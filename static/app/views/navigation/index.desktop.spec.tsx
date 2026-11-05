@@ -164,6 +164,141 @@ function setupMocks() {
 describe('desktop navigation', () => {
   beforeEach(setupMocks);
 
+  describe('inbox', () => {
+    it.each([false, true])(
+      'keeps the current preview when hovering Inbox from Issues (collapsed: %s)',
+      async isCollapsed => {
+        localStorage.setItem(
+          NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
+          JSON.stringify(isCollapsed)
+        );
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']},
+          })
+        );
+
+        const inbox = screen.getByRole('link', {name: 'Inbox'});
+        await userEvent.hover(inbox);
+        expect(await screen.findByRole('link', {name: 'Feed'})).toBeInTheDocument();
+        expect(inbox).not.toHaveAttribute('data-active-group');
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+        expect(await screen.findByRole('link', {name: 'Traces'})).toBeInTheDocument();
+        await userEvent.hover(inbox);
+        expect(screen.getByRole('link', {name: 'Traces'})).toBeInTheDocument();
+        expect(inbox).not.toHaveAttribute('data-active-group');
+
+        await userEvent.click(inbox);
+        expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+          'data-visible',
+          'false'
+        );
+      }
+    );
+
+    it('can preview menus immediately after navigating from an expanded sidebar', async () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']},
+        })
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Inbox'}));
+      expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+        'data-visible',
+        'false'
+      );
+      await userEvent.hover(screen.getByRole('link', {name: 'Issues'}));
+      await waitFor(() =>
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+          'data-visible',
+          'true'
+        )
+      );
+      expect(await screen.findByRole('link', {name: 'Feed'})).toBeInTheDocument();
+    });
+
+    it('collapses on Inbox, previews other groups, and restores the expanded preference', async () => {
+      localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'false');
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']},
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/inbox/'},
+          },
+        })
+      );
+
+      const sidebar = screen.getByTestId('collapsed-secondary-sidebar');
+      expect(sidebar).toHaveAttribute('data-visible', 'false');
+      expect(screen.queryByRole('button', {name: 'Collapse'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'All Items'})).not.toBeInTheDocument();
+
+      await userEvent.keyboard('{Control>}b{/Control}');
+      expect(sidebar).toHaveAttribute('data-visible', 'false');
+
+      await userEvent.hover(screen.getByRole('link', {name: 'Issues'}));
+      await waitFor(() => expect(sidebar).toHaveAttribute('data-visible', 'true'));
+      expect(await screen.findByRole('link', {name: 'Feed'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Expand'})).not.toBeInTheDocument();
+
+      await userEvent.hover(screen.getByRole('link', {name: 'Inbox'}));
+      await waitFor(() => expect(sidebar).toHaveAttribute('data-visible', 'false'));
+      await userEvent.unhover(screen.getByRole('link', {name: 'Inbox'}));
+      await userEvent.keyboard('{Escape}');
+      expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
+        'false'
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Issues'}));
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+      expect(screen.queryByTestId('collapsed-secondary-sidebar')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Collapse'})).toBeInTheDocument();
+    });
+
+    it('keeps a peek open when leaving Inbox with a collapsed preference', async () => {
+      localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']},
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/inbox/'},
+          },
+        })
+      );
+
+      await userEvent.hover(screen.getByRole('link', {name: 'Issues'}));
+      await waitFor(() =>
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+          'data-visible',
+          'true'
+        )
+      );
+      await userEvent.click(await screen.findByRole('link', {name: 'Feed'}));
+      expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+        'data-visible',
+        'true'
+      );
+      expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
+        'true'
+      );
+    });
+  });
+
   it('shows account settings as the active group without an organization', () => {
     render(
       <PrimaryNavigationContextProvider>

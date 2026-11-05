@@ -325,8 +325,12 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
 
 function SecondaryNavigationToggle() {
   const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
+  const {view, setView, isForceCollapsed} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
+
+  if (isForceCollapsed) {
+    return null;
+  }
 
   if (layout === 'mobile') {
     return (

@@ -5,7 +5,10 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {
+  hasSecondaryNavigation,
+  usePrimaryNavigation,
+} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {isPrimaryNavigationLinkActive} from './components';
@@ -33,7 +36,7 @@ export function useActivateNavigationGroupOnHover({
   ref,
 }: UseActivateNavigationGroupOnHoverProps) {
   const {layout, features, setActiveGroup, activeGroup} = usePrimaryNavigation();
-  const {view} = useSecondaryNavigation();
+  const {view, setView, isForceCollapsed} = useSecondaryNavigation();
   const location = useLocation();
 
   const mouseAccelerationRef = useMouseMovement({
@@ -56,6 +59,12 @@ export function useActivateNavigationGroupOnHover({
     const onMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+
+      // Groups without a secondary navigation have nothing to preview. Keep the
+      // current preview, unless the page has no sidebar of its own to return to.
+      if (!hasSecondaryNavigation(group) && !isForceCollapsed) {
+        return;
       }
 
       if (view === 'collapsed') {
@@ -119,6 +128,13 @@ export function useActivateNavigationGroupOnHover({
     };
 
     const onClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      // Groups without a secondary navigation have nothing to drill into on
+      // mobile, so navigate and close the menu.
+      if (layout === 'mobile' && !hasSecondaryNavigation(group)) {
+        setView('collapsed');
+        setActiveGroup(null);
+        return;
+      }
       // On touch mobile devices, activate the group without navigating.
       if (layout === 'mobile' && !features.hover) {
         e.preventDefault();

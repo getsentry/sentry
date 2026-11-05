@@ -98,6 +98,57 @@ describe('mobile navigation', () => {
     document.getElementById('main')?.remove();
   });
 
+  it('navigates to Inbox and closes the menu on touch devices', async () => {
+    const mediaQueryList = window.matchMedia('');
+    jest.spyOn(window, 'matchMedia').mockImplementation(query => ({
+      ...mediaQueryList,
+      matches: query !== '(hover: hover)',
+    }));
+    const {router} = render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']},
+      })
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+    await userEvent.click(screen.getByRole('link', {name: 'Inbox'}));
+
+    expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
+    expect(
+      screen.queryByRole('navigation', {name: 'Primary Navigation'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('opens only the primary menu on Inbox', async () => {
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']},
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+        },
+      })
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+    expect(
+      screen.getByRole('navigation', {name: 'Primary Navigation'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('link', {name: 'Issues'}));
+    expect(
+      screen.getByRole('navigation', {name: 'Secondary Navigation'})
+    ).toBeInTheDocument();
+  });
+
   describe('settings v3', () => {
     const settingsV3 = {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']};
 

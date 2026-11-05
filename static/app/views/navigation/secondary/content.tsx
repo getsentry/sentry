@@ -7,7 +7,6 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 import {AdminSecondaryNavigation} from './sections/admin/adminSecondaryNavigation';
 import {DashboardsSecondaryNavigation} from './sections/dashboards/dashboardsSecondaryNavigation';
 import {ExploreSecondaryNavigation} from './sections/explore/exploreSecondaryNavigation';
-import {InboxSecondaryNavigation} from './sections/inbox/inboxSecondaryNavigation';
 import {InsightsSecondaryNavigation} from './sections/insights/insightsSecondaryNavigation';
 import {IssuesSecondaryNavigation} from './sections/issues/issuesSecondaryNavigation';
 import {MonitorsSecondaryNavigation} from './sections/monitors/monitorsSecondaryNavigation';
@@ -21,7 +20,7 @@ export function SecondaryNavigationContent(): ReactNode {
 
   switch (activeGroup) {
     case 'inbox':
-      return <InboxSecondaryNavigation />;
+      return null;
     case 'issues':
       return <IssuesSecondaryNavigation />;
     case 'insights':

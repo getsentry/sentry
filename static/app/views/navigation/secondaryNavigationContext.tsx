@@ -13,6 +13,7 @@ import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from './constants';
 type SecondaryNavState = 'expanded' | 'collapsed' | 'peek';
 
 interface SecondaryNavigationContext {
+  isForceCollapsed: boolean;
   setView: (view: SecondaryNavState) => void;
   view: SecondaryNavState;
 }
@@ -31,35 +32,52 @@ export function useSecondaryNavigation(): SecondaryNavigationContext {
 
 interface SecondaryNavigationContextProviderProps {
   children: React.ReactNode;
+  /**
+   * Keeps the sidebar collapsed without changing the persisted preference.
+   * It can still peek to preview other groups.
+   */
+  forceCollapsed?: boolean;
 }
 
 export function SecondaryNavigationContextProvider(
   props: SecondaryNavigationContextProviderProps
 ) {
+  const {forceCollapsed = false} = props;
   const [isCollapsedPersisted, setIsCollapsedPersisted] = useLocalStorageState(
     NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
     false
   );
-  const [view, setViewState] = useState<SecondaryNavState>(
-    isCollapsedPersisted ? 'collapsed' : 'expanded'
-  );
+  const [isPeeking, setIsPeeking] = useState(false);
+
+  const isCollapsed = forceCollapsed || isCollapsedPersisted;
+  // A peek only exists while collapsed. Drop it when leaving a page that
+  // forced the sidebar collapsed into an expanded preference.
+  if (!isCollapsed && isPeeking) {
+    setIsPeeking(false);
+  }
+  const view: SecondaryNavState = isCollapsed
+    ? isPeeking
+      ? 'peek'
+      : 'collapsed'
+    : 'expanded';
 
   const setView = useCallback(
     (nextView: SecondaryNavState) => {
-      setViewState(nextView);
-      if (nextView !== 'peek') {
+      setIsPeeking(nextView === 'peek');
+      if (nextView !== 'peek' && !forceCollapsed) {
         setIsCollapsedPersisted(nextView === 'collapsed');
       }
     },
-    [setIsCollapsedPersisted]
+    [forceCollapsed, setIsCollapsedPersisted]
   );
 
   const value = useMemo(() => {
     return {
       view,
       setView,
+      isForceCollapsed: forceCollapsed,
     };
-  }, [view, setView]);
+  }, [forceCollapsed, view, setView]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>
@@ -88,7 +106,10 @@ export function MobileSecondaryNavigationContextProvider(
     }
   }, []);
 
-  const value = useMemo(() => ({view, setView}), [view, setView]);
+  const value = useMemo(
+    () => ({view, setView, isForceCollapsed: false}),
+    [view, setView]
+  );
 
   return (
     <SecondaryNavigationContext.Provider value={value}>

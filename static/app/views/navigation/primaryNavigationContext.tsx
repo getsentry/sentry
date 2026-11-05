@@ -26,6 +26,18 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
 
 type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
 
+/**
+ * Groups without a secondary navigation. Their pages keep the secondary
+ * sidebar collapsed, and they cannot be previewed from other pages.
+ */
+const GROUPS_WITHOUT_SECONDARY_NAVIGATION: ReadonlySet<NavigationGroup> = new Set([
+  'inbox',
+]);
+
+export function hasSecondaryNavigation(group: NavigationGroup): boolean {
+  return !GROUPS_WITHOUT_SECONDARY_NAVIGATION.has(group);
+}
+
 const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
   group: NavigationGroup;
   pattern: RegExp;
@@ -115,7 +127,9 @@ export function PrimaryNavigationContextProvider(
   );
 
   return (
-    <SecondaryNavigationContextProvider>
+    <SecondaryNavigationContextProvider
+      forceCollapsed={!hasSecondaryNavigation(activeRouteGroup)}
+    >
       <PrimaryNavigationContext.Provider value={value}>
         {props.children}
       </PrimaryNavigationContext.Provider>
