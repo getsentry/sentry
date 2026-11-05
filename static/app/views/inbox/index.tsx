@@ -35,7 +35,6 @@ const INBOX_LIST_MIN_SIZE = 320;
 const INBOX_LIST_MAX_SIZE = 640;
 
 interface UseMarkInboxItemReadOnViewOptions {
-  filters: InboxFilters;
   isPending: boolean;
   item: InboxItem | undefined;
   subject: InboxSubject | null;
@@ -44,13 +43,12 @@ interface UseMarkInboxItemReadOnViewOptions {
 function useMarkInboxItemReadOnView({
   subject,
   item,
-  filters,
   isPending,
 }: UseMarkInboxItemReadOnViewOptions) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {mutate: updateInboxItems} = useMutation(
-    updateInboxItemsMutationOptions({organization, queryClient, filters})
+    updateInboxItemsMutationOptions({organization, queryClient})
   );
   // Last activity seen per subject when it was marked read, so a failed request is not
   // retried in a loop. Undefined means it was marked before its item was loaded.
@@ -106,7 +104,6 @@ function InboxListBody({filters, onClearFilters, selectedSubject}: InboxListBody
   useMarkInboxItemReadOnView({
     subject: selectedSubject,
     item: selectedItem,
-    filters,
     isPending,
   });
 

@@ -483,6 +483,54 @@ describe('Inbox', () => {
       expect(router.location.query).toEqual({});
     });
 
+    it('marks a viewed item as read in lists for other filters', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [MockApiClient.matchQuery({subject_type: ['notebook']})],
+        body: [notebookItem, readNotebookItem],
+      });
+
+      render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Subject'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigation'}));
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('link', {name: /TypeError: Cannot read properties/})
+        ).not.toBeInTheDocument()
+      );
+
+      await userEvent.click(
+        screen.getByRole('link', {name: /OperationalError: could not connect to server/})
+      );
+      await expectMarkedRead(notebookItem);
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        body: [issueItem, {...notebookItem, isUnread: false}, readNotebookItem],
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Remove Subject filter'}));
+
+      // The cached unfiltered list is shown before it is refetched
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(1);
+      expect(markReadRequest).toHaveBeenCalledTimes(1);
+    });
+
     it('shows an empty state when no items match the filters', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',

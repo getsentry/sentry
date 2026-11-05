@@ -1,6 +1,11 @@
-import {mutationOptions, type QueryClient} from '@tanstack/react-query';
+import {
+  mutationOptions,
+  type InfiniteData,
+  type QueryClient,
+} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
@@ -13,9 +18,9 @@ const INBOX_ITEMS_PER_PAGE = 25;
 type InboxItemsUpdate = {
   isRead?: boolean;
   /**
-   * Only `false` (undoing a pending removal) is supported by the API.
+   * Cancels a pending removal.
    */
-  isRemoved?: false;
+  undoRemoval?: boolean;
 };
 
 /**
@@ -27,6 +32,8 @@ type InboxItemsTarget =
   | {selection: ListItemCheckboxState['selectedIds']};
 
 type UpdateInboxItemsVariables = InboxItemsTarget & {update: InboxItemsUpdate};
+
+type InboxListData = InfiniteData<ApiResponse<InboxItem[]>>;
 
 export function inboxItemsApiOptions(organization: Organization, filters: InboxFilters) {
   return {
@@ -67,28 +74,35 @@ function isTargetedItem(item: InboxItem, target: InboxItemsTarget) {
 }
 
 /**
- * Optimistically updates the targeted items in the cached inbox list.
+ * Matches the cached inbox lists for every combination of filters.
+ */
+function getInboxListsQueryKey(organization: Organization) {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/inbox/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+  ];
+}
+
+/**
+ * Optimistically updates the targeted items in every cached inbox list.
  * Returning null from `updateItem` drops the item from the list.
- * Returns the previous data so it can be restored if the request fails.
  */
 async function updateCachedInboxItems({
   organization,
-  filters,
   queryClient,
   target,
   updateItem,
 }: {
-  filters: InboxFilters;
   organization: Organization;
   queryClient: QueryClient;
   target: InboxItemsTarget;
   updateItem: (item: InboxItem) => InboxItem | null;
 }) {
-  const {queryKey} = inboxItemsApiOptions(organization, filters);
+  const queryKey = getInboxListsQueryKey(organization);
   await queryClient.cancelQueries({queryKey});
-  const previousData = queryClient.getQueryData(queryKey);
 
-  queryClient.setQueryData(queryKey, prev =>
+  queryClient.setQueriesData<InboxListData>({queryKey}, prev =>
     prev
       ? {
           ...prev,
@@ -105,8 +119,6 @@ async function updateCachedInboxItems({
         }
       : prev
   );
-
-  return previousData;
 }
 
 function applyReadState(item: InboxItem, isRead: boolean): InboxItem {
@@ -125,14 +137,12 @@ function applyReadState(item: InboxItem, isRead: boolean): InboxItem {
  */
 export function updateInboxItemsMutationOptions({
   organization,
-  filters,
   queryClient,
 }: {
-  filters: InboxFilters;
   organization: Organization;
   queryClient: QueryClient;
 }) {
-  const {queryKey} = inboxItemsApiOptions(organization, filters);
+  const queryKey = getInboxListsQueryKey(organization);
 
   return mutationOptions({
     mutationFn: ({update, ...target}: UpdateInboxItemsVariables) =>
@@ -147,27 +157,24 @@ export function updateInboxItemsMutationOptions({
     onMutate: async ({update, ...target}) => {
       const {isRead} = update;
       if (isRead === undefined) {
-        return {previousData: undefined};
+        return;
       }
-      const previousData = await updateCachedInboxItems({
+      await updateCachedInboxItems({
         organization,
-        filters,
         queryClient,
         target,
         updateItem: item => applyReadState(item, isRead),
       });
-      return {previousData};
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(queryKey, context.previousData);
-      }
-    },
-    onSettled: (_data, _error, {update}) => {
-      // Restored items are not in the cache, so the list has to be refetched to show them
-      if (update.isRemoved === false) {
-        queryClient.invalidateQueries({queryKey});
-      }
+    onSettled: (_data, error, {update}) => {
+      queryClient.invalidateQueries({
+        queryKey,
+        // Failed updates are refetched rather than restored from a snapshot, which could
+        // overwrite overlapping updates. Restored items are not in the cache, so they only
+        // show up after a refetch. Otherwise the read state is already applied, and lists
+        // are only marked stale in case they loaded during the request.
+        refetchType: error || update.undoRemoval ? 'active' : 'none',
+      });
       queryClient.invalidateQueries({
         queryKey: [
           getApiUrl('/organizations/$organizationIdOrSlug/inbox/count/', {
