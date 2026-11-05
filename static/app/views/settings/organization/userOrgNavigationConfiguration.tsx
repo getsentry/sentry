@@ -238,6 +238,7 @@ function getOrganizationNavigationConfiguration({
           recordAnalytics: true,
         },
         {
+          id: 'dynamic-sampling',
           path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
           title: t('Dynamic Sampling'),
           description: t('Manage your sampling rate'),
@@ -246,6 +247,7 @@ function getOrganizationNavigationConfiguration({
             !!organization && hasDynamicSamplingCustomFeature(organization),
         },
         {
+          id: 'feature-flags',
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           icon: <IconFlag />,
           title: t('Feature Flags'),

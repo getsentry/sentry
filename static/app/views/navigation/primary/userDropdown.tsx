@@ -20,6 +20,7 @@ import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {NavigationMenuHeader} from './navigationMenuHeader';
@@ -38,12 +39,18 @@ export function UserDropdown() {
   const {mutate: updateOptions} = useMutateUserOptions();
   const settingsV3 = useSettingsV3();
   const organization = useOrganization({allowNull: true});
+  const {scope: settingsScope} = useSettingsScope();
 
-  const trackSettingsClicked = () =>
+  const trackSettingsClicked = () => {
+    // The user menu stays visible in settings, where this is not an entry point.
+    if (settingsScope) {
+      return;
+    }
     trackAnalytics('settings.entry_point_clicked', {
       organization,
       entry_point: 'settings_navigation.user_menu',
     });
+  };
 
   useEffect(() => {
     portalContainerRef.current = document.body;
