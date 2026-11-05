@@ -12,8 +12,8 @@ import omitBy from 'lodash/omitBy';
 
 import {Flex} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
   JsonFormAdapterChoiceValue,
@@ -687,7 +687,7 @@ export function SentryAppExternalForm({
       // Match the click-cascade error handling: surface a toast so the user
       // knows a dependent fetch failed instead of silently leaving the
       // affected select blank.
-      addErrorMessage(t("Couldn't load options for some fields."));
+      toast.error(t("Couldn't load options for some fields."));
       Sentry.captureException(error, {
         tags: {
           sentry_app: appName,
@@ -955,7 +955,7 @@ export function SentryAppExternalForm({
         setExternalDefaultValues(cascadeResult.defaultValues);
         setFormVersion(version => version + 1);
       } catch (error) {
-        addErrorMessage(t("Couldn't load options for some fields."));
+        toast.error(t("Couldn't load options for some fields."));
         Sentry.captureException(error, {
           tags: {
             sentry_app: appName,
@@ -1044,7 +1044,7 @@ export function SentryAppExternalForm({
     },
     onError: error => {
       if (!(error instanceof RequestError)) {
-        addErrorMessage(t('Unable to %s %s issue.', action, appName));
+        toast.error(t('Unable to %s %s issue.', action, appName));
       }
     },
   });

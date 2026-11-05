@@ -16,8 +16,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
@@ -459,7 +459,7 @@ export function CustomFilters({project}: {project: Project}) {
       }),
     onSuccess: () => invalidate(),
     onError: error => {
-      addErrorMessage(getErrorDetail(error, t('Unable to update filter')));
+      toast.error(getErrorDetail(error, t('Unable to update filter')));
     },
   });
 
@@ -470,11 +470,11 @@ export function CustomFilters({project}: {project: Project}) {
         url: getCustomFilterUrl(organization, project, id),
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Filter deleted'));
+      toast.success(t('Filter deleted'));
       invalidate();
     },
     onError: error => {
-      addErrorMessage(getErrorDetail(error, t('Unable to delete filter')));
+      toast.error(getErrorDetail(error, t('Unable to delete filter')));
     },
   });
 

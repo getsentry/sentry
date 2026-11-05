@@ -1,17 +1,12 @@
 import {skipToken} from '@tanstack/react-query';
 
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {SentryApp, SentryAppWebhookRequest} from 'sentry/types/integrations';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from './indicator';
 
 export function sentryAppsApiOptions({
   orgSlug,
@@ -73,17 +68,17 @@ export function sentryAppTokensApiOptions({appSlug}: {appSlug: string | null}) {
  * @param {Object} app SentryApp
  */
 export function removeSentryApp(client: Client, app: SentryApp): Promise<undefined> {
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
   const promise = client.requestPromise(`/sentry-apps/${app.slug}/`, {
     method: 'DELETE',
   });
   promise.then(
     () => {
-      addSuccessMessage(t('%s successfully removed.', app.slug));
+      toast.success(t('%s successfully removed.', app.slug));
     },
     () => {
-      clearIndicators();
-      addErrorMessage(t('Unable to remove %s integration', app.slug));
+      toast.dismiss();
+      toast.error(t('Unable to remove %s integration', app.slug));
     }
   );
   return promise;

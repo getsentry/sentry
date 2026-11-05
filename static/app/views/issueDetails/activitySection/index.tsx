@@ -5,8 +5,8 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tct, tn} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
@@ -74,14 +74,14 @@ export function ActivitySection({
     try {
       const result = await createComment(data);
       trackAnalytics('issue_details.comment_created', {organization});
-      addSuccessMessage(t('Comment posted'));
+      toast.success(t('Comment posted'));
       onActivityChange?.([result, ...activities]);
     } catch (error) {
       const detail =
         error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
           ? error.responseJSON.detail
           : null;
-      addErrorMessage(
+      toast.error(
         detail ? tct('Error: [msg]', {msg: detail}) : t('Unable to post comment')
       );
       throw error;
@@ -92,7 +92,7 @@ export function ActivitySection({
     const commentId = item.commentId;
     await deleteComment(commentId);
     trackAnalytics('issue_details.comment_deleted', {organization});
-    addSuccessMessage(t('Comment removed'));
+    toast.success(t('Comment removed'));
     onActivityChange?.(
       activities.filter(
         activity => !isActivityNote(activity) || activity.commentId !== commentId
@@ -105,7 +105,7 @@ export function ActivitySection({
       const commentId = item.commentId;
       const result = await updateComment(commentId, data);
       trackAnalytics('issue_details.comment_updated', {organization});
-      addSuccessMessage(t('Comment updated'));
+      toast.success(t('Comment updated'));
       onActivityChange?.(
         activities.map(activity =>
           isActivityNote(activity) && activity.commentId === commentId
@@ -114,7 +114,7 @@ export function ActivitySection({
         )
       );
     } catch (error) {
-      addErrorMessage(t('Unable to update comment'));
+      toast.error(t('Unable to update comment'));
       throw error;
     }
   }

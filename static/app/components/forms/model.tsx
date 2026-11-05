@@ -2,7 +2,8 @@ import isEqual from 'lodash/isEqual';
 import type {ObservableMap} from 'mobx';
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
@@ -663,7 +664,7 @@ export class FormModel {
             // Just take first resp for now
             this.setError(id, this.normalizeError(resp.responseJSON[id][0]));
           } else if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
-            addErrorMessage(this.normalizeError(nonFieldErrors[0]), {duration: 10000});
+            toast.error(this.normalizeError(nonFieldErrors[0]), {duration: 10000});
             // Reset saving state
             this.setError(id, '');
           } else if (Array.isArray(firstError) && firstError.length) {
@@ -810,7 +811,7 @@ export class FormModel {
 
   handleErrorResponse({responseJSON: resp}: {responseJSON?: any} = {}) {
     if (!resp) {
-      addErrorMessage(t('Unknown error while saving'));
+      toast.error(t('Unknown error while saving'));
       return;
     }
 
@@ -825,7 +826,7 @@ export class FormModel {
         Array.isArray(nonFieldErrors) &&
         nonFieldErrors.length
       ) {
-        addErrorMessage(this.normalizeError(nonFieldErrors[0]), {duration: 10000});
+        toast.error(this.normalizeError(nonFieldErrors[0]), {duration: 10000});
         errorDisplayed = true;
       } else if (Array.isArray(resp[id]) && resp[id].length) {
         // Just take first resp for now
@@ -835,7 +836,7 @@ export class FormModel {
     });
 
     if (!errorDisplayed) {
-      addErrorMessage(t('Unknown error while saving'));
+      toast.error(t('Unknown error while saving'));
     }
   }
 

@@ -1,5 +1,7 @@
 import * as Sentry from '@sentry/react';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {Client} from 'sentry/api';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -16,7 +18,6 @@ import {
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
-import {addErrorMessage} from './indicator';
 import {setActiveOrganization} from './organizations';
 
 async function fetchOrg(api: Client, slug: string): Promise<Organization> {
@@ -130,7 +131,7 @@ export async function fetchOrganizationDetails(api: Client, slug: string): Promi
         const errMessage = getErrorMessage(err);
 
         if (errMessage) {
-          addErrorMessage(errMessage);
+          toast.error(errMessage);
           // eslint-disable-next-line @typescript-eslint/only-throw-error
           throw errMessage;
         }

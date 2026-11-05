@@ -18,8 +18,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import * as dashboardActions from 'sentry/actionCreators/dashboards';
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {registerOverride} from 'sentry/overrideRegistry';
@@ -40,8 +41,6 @@ import {DashboardState} from './types';
 import ViewEditDashboard from './view';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
-jest.mock('sentry/actionCreators/indicator');
-
 function StarredDashboardTitle() {
   const {data: dashboards = []} = useGetStarredDashboards();
   return <span aria-label="Starred dashboard title">{dashboards[0]?.title}</span>;
@@ -140,6 +139,7 @@ describe('Dashboards > Detail', () => {
     let initialData!: ReturnType<typeof initializeOrg>;
 
     beforeEach(() => {
+      jest.spyOn(toast, 'loading').mockClear();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/members/',
         body: [],
@@ -2299,6 +2299,7 @@ describe('Dashboards > Detail', () => {
     describe('widget builder redesign', () => {
       let mockUpdateDashboard!: jest.SpyInstance;
       beforeEach(() => {
+        jest.spyOn(toast, 'loading').mockClear();
         initialData = initializeOrg({
           organization: OrganizationFixture({
             features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
@@ -2615,7 +2616,7 @@ describe('Dashboards > Detail', () => {
           {revisionSource: undefined}
         );
         await waitFor(() => {
-          expect(addLoadingMessage).toHaveBeenCalledWith('Saving widget');
+          expect(toast.loading).toHaveBeenCalledWith('Saving widget');
         });
       });
     });

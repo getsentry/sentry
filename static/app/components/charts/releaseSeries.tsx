@@ -4,7 +4,8 @@ import type {Query} from 'history';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
@@ -324,7 +325,7 @@ export function useReleaseSeries({
             hasMore = false;
           }
         } catch {
-          addErrorMessage(t('Error fetching releases'));
+          toast.error(t('Error fetching releases'));
           hasMore = false;
         }
       }

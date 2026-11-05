@@ -4,8 +4,8 @@ import {parseAsInteger, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -110,7 +110,7 @@ export default function CreateFromSeer() {
 
   useEffect(() => {
     if (sessionStatus === 'error' || isError) {
-      addErrorMessage(t('Failed to generate dashboard'));
+      toast.error(t('Failed to generate dashboard'));
       Sentry.metrics.count('dashboards.seer.generation.session.error', 1, {
         attributes: {
           organization_slug: organization.slug,

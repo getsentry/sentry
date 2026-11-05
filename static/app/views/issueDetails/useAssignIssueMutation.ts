@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react';
 import {useQueryClient, useMutation} from '@tanstack/react-query';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Actor} from 'sentry/types/core';
@@ -95,7 +96,7 @@ export function useAssignIssueMutation() {
       // TODO: Remove this when we no longer rely on GroupStore for updates
       GroupStore.onAssignToSuccess(onMutateResult.changeId, variables.groupId, response);
       queryClient.invalidateQueries({queryKey});
-      addSuccessMessage(getAssignIssueSuccessMessage(response.assignedTo));
+      toast.success(getAssignIssueSuccessMessage(response.assignedTo));
     },
     onError: (error, variables, onMutateResult) => {
       // TODO: Remove this when we no longer rely on GroupStore for updates

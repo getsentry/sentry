@@ -7,8 +7,8 @@ import sortBy from 'lodash/sortBy';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getFileName} from 'sentry/components/events/interfaces/debugMeta/utils';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -283,7 +283,7 @@ export function DebugImageDetails({
       );
       refetch();
     } catch {
-      addErrorMessage(t('An error occurred while deleting the debug file.'));
+      toast.error(t('An error occurred while deleting the debug file.'));
     }
   };
 

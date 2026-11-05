@@ -2,7 +2,8 @@ import {useEffect, useRef, useState} from 'react';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -85,7 +86,7 @@ export function useInvestigationTitle(investigation: InvestigationDetail) {
       onSuccess: updated => {
         persistedTitle.current = updated.title;
       },
-      onError: () => addErrorMessage(t('Unable to rename investigation.')),
+      onError: () => toast.error(t('Unable to rename investigation.')),
     }
   );
   const renameDebouncer = useDebouncer(

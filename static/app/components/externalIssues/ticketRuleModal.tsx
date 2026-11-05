@@ -7,8 +7,8 @@ import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
@@ -266,7 +266,7 @@ export function TicketRuleModal({
       }
 
       onSubmitAction(cleanData(values), fieldOptionsCache);
-      addSuccessMessage(t('Changes applied.'));
+      toast.success(t('Changes applied.'));
       closeModal();
     },
     [cleanData, onSubmitAction, closeModal, integrationDetails, asyncOptionsCache]

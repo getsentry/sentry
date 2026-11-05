@@ -8,8 +8,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
@@ -158,7 +158,7 @@ export function AutomationBuilderDrawerForm({
 
       try {
         formModel.setFormSaving();
-        addLoadingMessage(t('Creating Alert...'));
+        toast.loading(t('Creating Alert...'));
         const newAutomationData = getNewAutomationData({
           data: formData,
           state,
@@ -172,7 +172,7 @@ export function AutomationBuilderDrawerForm({
           success: true,
         });
         onSuccess?.(automation.id);
-        addSuccessMessage(t('Alert created'));
+        toast.success(t('Alert created'));
       } catch (err) {
         onSubmitError(err);
         Sentry.logger.warn('Create alert request failure (drawer)', {

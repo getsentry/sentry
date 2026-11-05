@@ -8,8 +8,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DiscoverButton} from 'sentry/components/discoverButton';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -79,7 +79,7 @@ function EnableSpikeProtectionButton({
         method: 'POST',
         data: {projects: [project.slug]},
       });
-      addSuccessMessage(
+      toast.success(
         tct('[action] spike protection for [project]', {
           action: t('Enabled'),
           project: project.slug,
@@ -94,7 +94,7 @@ function EnableSpikeProtectionButton({
       });
       onEnableSpikeProtection();
     } catch {
-      addErrorMessage(SPIKE_PROTECTION_ERROR_MESSAGE);
+      toast.error(SPIKE_PROTECTION_ERROR_MESSAGE);
     }
   }
 

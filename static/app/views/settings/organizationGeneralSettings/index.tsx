@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
   changeOrganizationSlug,
   removeAndRedirectToRemainingOrganization,
@@ -87,7 +87,7 @@ export default function OrganizationGeneralSettings() {
       return;
     }
 
-    addLoadingMessage();
+    toast.loading(t('Saving changes...'));
     removeAndRedirectToRemainingOrganization(api, {
       navigate,
       orgId: organization.slug,

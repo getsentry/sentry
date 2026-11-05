@@ -6,8 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -122,7 +122,7 @@ export function SeerEnableNotifications({status}: Props) {
                     },
                   } satisfies RequestMessage);
                 } catch (error) {
-                  addErrorMessage(error instanceof Error ? error.message : String(error));
+                  toast.error(error instanceof Error ? error.message : String(error));
                 }
               }}
             >

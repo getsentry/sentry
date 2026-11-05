@@ -7,9 +7,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -389,7 +389,7 @@ export default function IntegrationDetailedView() {
           context.previousConfigurations
         );
       }
-      addErrorMessage(t('Failed to remove Integration'));
+      toast.error(t('Failed to remove Integration'));
     },
     onSettled: () => {
       // Resync with the server once the delete settles.

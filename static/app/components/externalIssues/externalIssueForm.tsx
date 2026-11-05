@@ -7,8 +7,8 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
@@ -315,7 +315,7 @@ export function ExternalIssueForm({
           external_issue_provider: integration.provider.key,
           external_issue_type: 'first_party',
         });
-        addSuccessMessage(MESSAGES_BY_ACTION[action]);
+        toast.success(MESSAGES_BY_ACTION[action]);
         onChange();
         closeModal();
         span?.end();

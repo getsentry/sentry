@@ -8,8 +8,8 @@ import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   installSentryApp,
   uninstallSentryApp,
@@ -208,7 +208,7 @@ export default function SentryAppDetailedView() {
     if (sentryApp.redirectUrl) {
       redirectUser(newInstall);
     } else {
-      addSuccessMessage(t('%s successfully installed.', sentryApp.slug));
+      toast.success(t('%s successfully installed.', sentryApp.slug));
       setApiQueryData<SentryAppInstallation[]>(
         queryClient,
         makeSentryAppInstallationsQueryKey({orgSlug: organization.slug}),
@@ -265,7 +265,7 @@ export default function SentryAppDetailedView() {
             )
         );
       } catch (error) {
-        addErrorMessage(t('Unable to uninstall %s', sentryApp.name));
+        toast.error(t('Unable to uninstall %s', sentryApp.name));
       }
     },
     [

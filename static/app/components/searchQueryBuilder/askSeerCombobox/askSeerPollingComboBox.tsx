@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -73,7 +74,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     referrer: 'search_bar',
     options: extraOptions,
     onError: error => {
-      addErrorMessage(t('Seer failed to process your search. Please try again.'));
+      toast.error(t('Seer failed to process your search. Please try again.'));
       trackAnalytics('ai_query.error', {
         organization,
         area: analyticsArea,

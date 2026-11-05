@@ -10,7 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
 import ApiNewToken from './apiNewToken';
 
@@ -183,7 +183,7 @@ describe('ApiNewToken', () => {
   });
 
   it('shows error message when token creation fails', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -198,7 +198,7 @@ describe('ApiNewToken', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
 
-    await waitFor(() => expect(indicators.addErrorMessage).toHaveBeenCalled());
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 
   it('does not render CI-only permissions for personal tokens', () => {

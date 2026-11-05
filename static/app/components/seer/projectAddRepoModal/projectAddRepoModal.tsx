@@ -21,8 +21,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -122,7 +122,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       return saveMutation
         .mutateAsync(formSchema.parse(value), {
           onSuccess: () => {
-            addSuccessMessage(t('Project saved successfully'));
+            toast.success(t('Project saved successfully'));
             closeModal();
           },
         })

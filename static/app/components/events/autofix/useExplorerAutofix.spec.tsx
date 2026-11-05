@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {DiffFileType, DiffLineType} from './types';
@@ -25,8 +26,6 @@ import {
   type RootCauseArtifact,
   type SolutionArtifact,
 } from './useExplorerAutofix';
-
-jest.mock('sentry/actionCreators/indicator');
 
 function makeValidArtifact<T>(data: T): Artifact<T> {
   return {
@@ -897,6 +896,7 @@ describe('useExplorerAutofix - createPR', () => {
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: AUTOFIX_URL,
@@ -972,7 +972,7 @@ describe('useExplorerAutofix - createPR', () => {
     );
   });
 
-  it('calls addErrorMessage and throws on API error', async () => {
+  it('shows an error toast and throws on API error', async () => {
     MockApiClient.addMockResponse({
       url: AUTOFIX_URL,
       method: 'POST',
@@ -985,7 +985,7 @@ describe('useExplorerAutofix - createPR', () => {
     await expect(act(() => result.current.createPR(42))).rejects.toThrow();
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith('Server error');
+      expect(toast.error).toHaveBeenCalledWith('Server error');
     });
   });
 });
@@ -1302,7 +1302,7 @@ describe('useExplorerAutofix - startStep errors', () => {
       act(() => result.current.startStep('pr_iteration', {runId: 42}))
     ).rejects.toThrow();
 
-    expect(addErrorMessage).toHaveBeenCalledWith('Something went wrong');
+    expect(toast.error).toHaveBeenCalledWith('Something went wrong');
     expect(result.current.runState).toEqual(existingRun);
   });
 
@@ -1332,7 +1332,7 @@ describe('useExplorerAutofix - startStep errors', () => {
       )
     ).rejects.toThrow();
 
-    expect(addErrorMessage).toHaveBeenCalledWith('An error occurred');
+    expect(toast.error).toHaveBeenCalledWith('An error occurred');
     expect(result.current.runState).toEqual(existingRun);
   });
 
@@ -1365,7 +1365,7 @@ describe('useExplorerAutofix - startStep errors', () => {
       await expect(result.current.startStep('solution', {runId: 42})).resolves.toBe(42);
     });
 
-    expect(addErrorMessage).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
     expect(result.current.runState).toEqual(existingRun);
     // Refetched, so the live run takes the view over.
     expect(getMock).toHaveBeenCalled();
@@ -1397,7 +1397,7 @@ describe('useExplorerAutofix - startStep errors', () => {
       await expect(result.current.startStep('solution', {runId: 42})).resolves.toBe(42);
     });
 
-    expect(addErrorMessage).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
     expect(result.current.runState?.status).not.toBe('error');
   });
 
@@ -1426,7 +1426,7 @@ describe('useExplorerAutofix - startStep errors', () => {
       ).rejects.toThrow();
     });
 
-    expect(addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'Cannot re-run a step after a pull request or coding agent has started'
     );
   });
@@ -1454,6 +1454,6 @@ describe('useExplorerAutofix - startStep errors', () => {
     expect(result.current.runState?.blocks[0]?.message.content).toBe(
       'Error: Something went wrong'
     );
-    expect(addErrorMessage).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });

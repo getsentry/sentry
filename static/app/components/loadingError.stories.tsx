@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import * as Storybook from 'sentry/stories';
 
 import {LoadingError} from './loadingError';
@@ -38,7 +39,7 @@ export default Storybook.story('LoadingError', story => {
       <Storybook.SizingWindow style={{height: '190px'}}>
         <LoadingError
           message="Uh-oh. Try refreshing."
-          onRetry={() => addErrorMessage('You can add any callback here.')}
+          onRetry={() => toast.error('You can add any callback here.')}
         />
       </Storybook.SizingWindow>
     </Fragment>

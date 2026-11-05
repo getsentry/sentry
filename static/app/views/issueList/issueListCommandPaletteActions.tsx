@@ -9,8 +9,8 @@ import orderBy from 'lodash/orderBy';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchFeatureFlagValues} from 'sentry/actionCreators/tags';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
@@ -353,7 +353,7 @@ function SaveViewActions({
         },
         {
           onSuccess: () => {
-            addSuccessMessage(t('Saved changes'));
+            toast.success(t('Saved changes'));
           },
         }
       );

@@ -3,8 +3,8 @@ import {useQuery} from '@tanstack/react-query';
 import {Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   projectTeamsApiOptions,
   useAddTeamToProject,
@@ -103,7 +103,7 @@ export default function ProjectTeams() {
             const team = TeamStore.getBySlug(teamSlug);
 
             if (!team) {
-              addErrorMessage(tct('Unable to find "[teamSlug]"', {teamSlug}));
+              toast.error(tct('Unable to find "[teamSlug]"', {teamSlug}));
               return;
             }
 

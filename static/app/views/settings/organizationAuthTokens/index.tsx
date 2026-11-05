@@ -6,8 +6,8 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -136,7 +136,7 @@ function OrganizationAuthTokensIndex() {
       ),
 
     onSuccess: (_data, {token}) => {
-      addSuccessMessage(t('Revoked auth token for the organization.'));
+      toast.success(t('Revoked auth token for the organization.'));
 
       setApiQueryData(
         queryClient,
@@ -153,7 +153,7 @@ function OrganizationAuthTokensIndex() {
     onError: error => {
       const message = t('Failed to revoke the auth token for the organization.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 

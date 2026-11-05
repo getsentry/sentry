@@ -4,7 +4,8 @@ import * as Sentry from '@sentry/react';
 import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {
   CanvasPoolManager,
   CanvasScheduler,
@@ -170,7 +171,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
 
     if (renderer === null) {
       Sentry.captureException('Failed to initialize a flamegraph renderer');
-      addErrorMessage('Failed to initialize renderer');
+      toast.error('Failed to initialize renderer');
       return null;
     }
 

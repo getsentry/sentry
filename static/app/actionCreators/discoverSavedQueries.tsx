@@ -1,9 +1,9 @@
+import {toast} from '@sentry/scraps/toast';
+
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-
-import {addErrorMessage} from './indicator';
 
 export function fetchSavedQuery(
   api: Client,
@@ -20,7 +20,7 @@ export function fetchSavedQuery(
   );
 
   promise.catch(() => {
-    addErrorMessage(t('Unable to load saved query'));
+    toast.error(t('Unable to load saved query'));
   });
   return promise;
 }
@@ -41,7 +41,7 @@ export function createSavedQuery(
   );
 
   promise.catch(() => {
-    addErrorMessage(t('Unable to create your saved query'));
+    toast.error(t('Unable to create your saved query'));
   });
   return promise;
 }
@@ -62,7 +62,7 @@ export function updateSavedQuery(
   );
 
   promise.catch(() => {
-    addErrorMessage(t('Unable to update your saved query'));
+    toast.error(t('Unable to update your saved query'));
   });
   return promise;
 }
@@ -98,7 +98,7 @@ export function deleteSavedQuery(
   );
 
   promise.catch(() => {
-    addErrorMessage(t('Unable to delete the saved query'));
+    toast.error(t('Unable to delete the saved query'));
   });
   return promise;
 }

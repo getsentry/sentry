@@ -2,12 +2,8 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -874,7 +870,7 @@ export function useExplorerAutofix(
               },
             })
             .catch(error => {
-              addErrorMessage(error instanceof Error ? error.message : String(error));
+              toast.error(error instanceof Error ? error.message : String(error));
             });
         }
 
@@ -903,7 +899,7 @@ export function useExplorerAutofix(
         // sidebar renders the setup UI in AutofixContent; this covers the
         // surfaces that don't (drawer, previews, command palette).
         if (isAutofixSetupRequiredError(e)) {
-          addErrorMessage(
+          toast.error(
             getApiErrorMessage(
               e,
               'Seer Autofix requires additional setup before starting a run'
@@ -915,7 +911,7 @@ export function useExplorerAutofix(
         const errorMessage = getApiErrorMessage(e);
         // Replacing the cached run would wipe out the blocks of a run that already exists.
         if (defined(queryClient.getQueryData(queryKey)?.json?.autofix)) {
-          addErrorMessage(errorMessage);
+          toast.error(errorMessage);
         } else {
           queryClient.setQueryData(queryKey, prev => ({
             headers: prev?.headers ?? {},
@@ -961,7 +957,7 @@ export function useExplorerAutofix(
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
-        addErrorMessage(getApiErrorMessage(e, 'Failed to create PR'));
+        toast.error(getApiErrorMessage(e, 'Failed to create PR'));
         throw e;
       }
     },
@@ -995,7 +991,7 @@ export function useExplorerAutofix(
         user_id: user.id,
       });
 
-      addLoadingMessage('Launching coding agent...');
+      toast.loading('Launching coding agent...');
 
       const data: Record<string, string | number> = {
         step: 'coding_agent_handoff',
@@ -1086,7 +1082,7 @@ export function useExplorerAutofix(
         throw e;
         // oxlint-disable-next-line react/todo
       } finally {
-        clearIndicators();
+        toast.dismiss();
         setWaitingForCodingAgent(false);
       }
     },

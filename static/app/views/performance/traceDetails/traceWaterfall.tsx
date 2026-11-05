@@ -16,8 +16,8 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -719,7 +719,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         organization: props.organization,
       });
       autogroupCount += TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
-      addSuccessMessage(
+      toast.success(
         autogroupCount > 0
           ? tct('Autogrouping enabled, detected [count] autogrouping spans', {
               count: autogroupCount,
@@ -731,7 +731,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       removeCount += TraceTree.RemoveSiblingAutogroupNodes(props.tree.root);
       removeCount += TraceTree.RemoveDirectChildrenAutogroupNodes(props.tree.root);
 
-      addSuccessMessage(
+      toast.success(
         removeCount > 0
           ? tct('Autogrouping disabled, removed [count] autogroup spans', {
               count: removeCount,
@@ -754,7 +754,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       const missingInstrumentationCount = TraceTree.DetectMissingInstrumentation(
         props.tree.root
       );
-      addSuccessMessage(
+      toast.success(
         missingInstrumentationCount > 0
           ? tct(
               'Missing instrumentation enabled, found [count] missing instrumentation spans',
@@ -766,7 +766,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       );
     } else {
       const removeCount = TraceTree.RemoveMissingInstrumentationNodes(props.tree.root);
-      addSuccessMessage(
+      toast.success(
         removeCount > 0
           ? tct(
               'Missing instrumentation disabled, removed [count] missing instrumentation spans',
@@ -794,7 +794,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const onCompressedTimelineChange = useCallback(() => {
     const value = !traceState.preferences.compressed_timeline;
 
-    addSuccessMessage(
+    toast.success(
       value ? t('Compressed timeline enabled') : t('Compressed timeline disabled')
     );
     traceAnalytics.trackCompressedTimelinePreferenceChange(props.organization, value);

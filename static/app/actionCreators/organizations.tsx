@@ -1,5 +1,7 @@
 import type {NavigateFunction} from 'react-router';
 
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
@@ -11,8 +13,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-
-import {addErrorMessage, addSuccessMessage} from './indicator';
 
 type RedirectRemainingOrganizationParams = {
   /**
@@ -94,12 +94,12 @@ function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams
       OrganizationsStore.onRemoveSuccess(orgId);
 
       if (successMessage) {
-        addSuccessMessage(successMessage);
+        toast.success(successMessage);
       }
     })
     .catch(() => {
       if (errorMessage) {
-        addErrorMessage(errorMessage);
+        toast.error(errorMessage);
       }
     });
 }

@@ -5,8 +5,8 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -101,7 +101,7 @@ function RenameDashboardModal({
           // collision, most often. Leave the modal open so it can be corrected.
           return;
         }
-        addSuccessMessage(t('Dashboard renamed'));
+        toast.success(t('Dashboard renamed'));
       }
 
       trackAnalytics('dashboards2.rename.save', {organization, surface});

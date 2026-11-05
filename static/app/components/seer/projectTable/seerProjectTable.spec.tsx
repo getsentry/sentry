@@ -9,7 +9,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {SeerProjectTable} from './seerProjectTable';
@@ -104,7 +105,7 @@ describe('SeerProjectTable', () => {
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
     });
-    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const errorSpy = jest.spyOn(toast, 'error');
 
     render(<SeerProjectTable />, {organization});
 
@@ -148,7 +149,7 @@ describe('SeerProjectTable', () => {
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
     });
-    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const errorSpy = jest.spyOn(toast, 'error');
 
     render(<SeerProjectTable />, {organization});
 
@@ -173,7 +174,7 @@ describe('SeerProjectTable', () => {
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
     });
-    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const errorSpy = jest.spyOn(toast, 'error');
 
     render(<SeerProjectTable />, {organization});
 

@@ -3,6 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
@@ -15,18 +17,6 @@ jest.mock('sentry/utils/queryClient', () => ({
   ...jest.requireActual('sentry/utils/queryClient'),
   get fetchMutation() {
     return mockFetchMutation;
-  },
-}));
-
-const mockAddErrorMessage = jest.fn();
-const mockAddSuccessMessage = jest.fn();
-
-jest.mock('sentry/actionCreators/indicator', () => ({
-  get addErrorMessage() {
-    return mockAddErrorMessage;
-  },
-  get addSuccessMessage() {
-    return mockAddSuccessMessage;
   },
 }));
 
@@ -57,6 +47,8 @@ describe('DeleteReplays', () => {
   const replay = createReplay();
 
   beforeEach(() => {
+    jest.spyOn(toast, 'success').mockClear();
+    jest.spyOn(toast, 'error').mockClear();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([ProjectFixture({id: '2', slug: 'proj-a'})]);
     mockFetchMutation.mockReset().mockResolvedValue({});
@@ -84,7 +76,7 @@ describe('DeleteReplays', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
 
     await waitFor(() => {
-      expect(mockAddErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Failed to delete replay: you cannot delete more than 30 days of data at a time'
       );
     });
@@ -98,7 +90,7 @@ describe('DeleteReplays', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
 
     await waitFor(() => {
-      expect(mockAddErrorMessage).toHaveBeenCalledWith('Failed to delete replay');
+      expect(toast.error).toHaveBeenCalledWith('Failed to delete replay');
     });
   });
 });

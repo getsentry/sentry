@@ -3,6 +3,8 @@ import type {UseMutationOptions} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
@@ -26,8 +28,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-
-import {addErrorMessage} from './indicator';
 
 type Options = {
   organization: OrganizationSummary;
@@ -322,7 +322,7 @@ export const useDeleteEventAttachmentOptimistic = () => {
       return {previous};
     },
     onError: (_error, variables, onMutateResult) => {
-      addErrorMessage(t('An error occurred while deleting the attachment'));
+      toast.error(t('An error occurred while deleting the attachment'));
 
       if (onMutateResult) {
         setApiQueryData(

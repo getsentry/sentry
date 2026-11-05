@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {FieldValue} from 'sentry/components/forms/model';
 import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
@@ -233,7 +233,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           ...newAutomationData,
         });
         onSubmitSuccess(formModel?.getData() ?? data);
-        addSuccessMessage(t('Alert updated'));
+        toast.success(t('Alert updated'));
         trackAnalytics('automation.updated', {
           organization,
           ...analyticsPayload,

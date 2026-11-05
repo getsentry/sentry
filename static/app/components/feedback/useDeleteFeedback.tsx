@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {bulkDelete} from 'sentry/actionCreators/group';
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -26,7 +27,7 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   return useCallback(() => {
     openConfirmModal({
       onConfirm: async () => {
-        addLoadingMessage(t('Updating feedback...'));
+        toast.loading(t('Updating feedback...'));
         try {
           await bulkDelete(api, {
             orgId: organization.slug,

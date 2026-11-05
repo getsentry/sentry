@@ -1,8 +1,9 @@
 import {TagsFixture} from 'sentry-fixture/tags';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {TagStore} from 'sentry/stores/tagStore';
 
-import * as indicators from './indicator';
 import {loadOrganizationTags} from './tags';
 
 describe('loadOrganizationTags', () => {
@@ -36,13 +37,13 @@ describe('loadOrganizationTags', () => {
   });
 
   it('should show an alert on failure', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       statusCode: 403,
     });
 
     await loadOrganizationTags(api, 'org-slug', selection, jest.fn());
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith('Unable to load tags');
+    expect(toast.error).toHaveBeenCalledWith('Unable to load tags');
   });
 });

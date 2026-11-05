@@ -8,20 +8,13 @@ import {
   ModalBody,
   ModalFooter,
 } from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {ExploreExportModal} from './exploreExportModal';
 import type {TraceItemExportConfig} from './types';
-
-const mockAddSuccessMessage = jest.fn();
-
-jest.mock('sentry/actionCreators/indicator', () => ({
-  get addSuccessMessage() {
-    return mockAddSuccessMessage;
-  },
-}));
 
 const organization = OrganizationFixture({features: ['discover-query']});
 const closeModal = jest.fn();
@@ -74,6 +67,7 @@ function ExampleExploreExportModal({
 
 describe('ExploreExportModal', () => {
   beforeEach(() => {
+    jest.spyOn(toast, 'success').mockClear();
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
   });
@@ -114,9 +108,7 @@ describe('ExploreExportModal', () => {
       exportType: 'browser_sync',
     });
     expect(dataExportMock).not.toHaveBeenCalled();
-    expect(mockAddSuccessMessage).toHaveBeenCalledWith(
-      'Downloading file to your browser.'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Downloading file to your browser.');
   });
 
   it("disables the Format radios and selects JSONL when the 'All Columns' switch is on", async () => {
@@ -198,7 +190,7 @@ describe('ExploreExportModal', () => {
       })
     );
     expect(config.localDownload).not.toHaveBeenCalled();
-    expect(mockAddSuccessMessage).toHaveBeenCalledWith(
+    expect(toast.success).toHaveBeenCalledWith(
       "Sit tight. We'll shoot you an email when your data is ready for download."
     );
   });

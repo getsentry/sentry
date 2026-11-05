@@ -12,9 +12,9 @@ import type {Primitive} from 'type-fest';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
@@ -130,7 +130,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
 
       const item = items.find(i => i.key === key);
       if (!item) {
-        addErrorMessage(t('Failed to find AI query to apply'));
+        toast.error(t('Failed to find AI query to apply'));
         return;
       }
 
@@ -199,7 +199,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             if (state.isOpen && state.selectionManager.focusedKey) {
               const item = items.find(i => i.key === state.selectionManager.focusedKey);
               if (!item) {
-                addErrorMessage(t('Failed to find AI query to apply'));
+                toast.error(t('Failed to find AI query to apply'));
                 return;
               }
 

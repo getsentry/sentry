@@ -24,8 +24,8 @@ import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
@@ -446,11 +446,11 @@ function AgentSelectCell({
                   queryClient,
                 });
               } catch {
-                addErrorMessage(t('Could not verify repositories. Please try again.'));
+                toast.error(t('Could not verify repositories. Please try again.'));
                 return;
               }
               if (hasNonGithubRepo) {
-                addErrorMessage(NON_GITHUB_HANDOFF_WARNING);
+                toast.error(NON_GITHUB_HANDOFF_WARNING);
                 return;
               }
             }

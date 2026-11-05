@@ -5,8 +5,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -101,7 +101,7 @@ export default function WebhookDetailedView() {
                   navigate(normalizeUrl(to));
                 })
                 .catch(() => {
-                  addErrorMessage(t('Failed to enable webhooks for project.'));
+                  toast.error(t('Failed to enable webhooks for project.'));
                   modalProps.closeModal();
                 });
               return;

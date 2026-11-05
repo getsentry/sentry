@@ -1,10 +1,10 @@
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Team} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-
-import {addErrorMessage, addSuccessMessage} from './indicator';
 
 /**
  * Note these are both slugs
@@ -97,7 +97,7 @@ export function removeTeam(api: Client, params: OrgAndTeamSlug) {
     .then(
       data => {
         TeamStore.onRemoveSuccess(params.teamId);
-        addSuccessMessage(
+        toast.success(
           tct('[team] has been removed from the [organization] organization', {
             team: `#${params.teamId}`,
             organization: params.orgId,
@@ -106,7 +106,7 @@ export function removeTeam(api: Client, params: OrgAndTeamSlug) {
         return data;
       },
       err => {
-        addErrorMessage(
+        toast.error(
           tct('Unable to remove [team] from the [organization] organization', {
             team: `#${params.teamId}`,
             organization: params.orgId,

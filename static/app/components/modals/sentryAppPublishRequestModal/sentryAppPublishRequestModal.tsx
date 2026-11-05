@@ -7,8 +7,8 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
@@ -102,7 +102,7 @@ export function SentryAppPublishRequestModal({
         data,
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Request to publish %s successful.', app.slug));
+      toast.success(t('Request to publish %s successful.', app.slug));
       closeModal();
       onPublishSubmission();
     },
@@ -110,7 +110,7 @@ export function SentryAppPublishRequestModal({
       const rawDetail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
       const detail = typeof rawDetail === 'string' ? rawDetail : rawDetail?.message;
-      addErrorMessage(
+      toast.error(
         detail
           ? tct('Request to publish [app] fails. [detail]', {app: app.slug, detail})
           : t('Request to publish %s fails.', app.slug)

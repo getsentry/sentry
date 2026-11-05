@@ -15,8 +15,8 @@ import {Button} from '@sentry/scraps/button';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TextArea} from '@sentry/scraps/textarea';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
@@ -288,7 +288,7 @@ export function FeedbackModal<T extends Data>({
         }
       }
 
-      addSuccessMessage(t('Thanks for taking the time to provide us feedback!'));
+      toast.success(t('Thanks for taking the time to provide us feedback!'));
       closeModal();
     },
     [

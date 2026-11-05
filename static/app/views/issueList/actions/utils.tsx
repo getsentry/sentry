@@ -4,13 +4,9 @@ import type {QueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import type {ResponsiveKey} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tct, tn} from 'sentry/locale';
@@ -267,7 +263,7 @@ export async function performBulkUpdate({
     project: getSelectedProjectIds({selectedGroupIds: itemIds, selection}),
   };
 
-  addLoadingMessage(t('Saving changes…'));
+  toast.loading(t('Saving changes…'));
 
   try {
     await bulkUpdate(api, {
@@ -281,10 +277,10 @@ export async function performBulkUpdate({
       ...projectConstraints,
       ...selection.datetime,
     });
-    clearIndicators();
+    toast.dismiss();
     onSuccess?.(itemIds);
   } catch (error) {
-    clearIndicators();
-    addErrorMessage(getBulkUpdateErrorMessage(error));
+    toast.dismiss();
+    toast.error(getBulkUpdateErrorMessage(error));
   }
 }

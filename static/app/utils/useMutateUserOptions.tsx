@@ -1,7 +1,8 @@
 import {useMutation} from '@tanstack/react-query';
 import merge from 'lodash/merge';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
 
@@ -33,7 +34,7 @@ export function useMutateUserOptions() {
       ConfigStore.set('user', merge({}, user, {options}));
     },
     onError: () => {
-      addErrorMessage('Failed to save user preference');
+      toast.error('Failed to save user preference');
     },
   });
 }

@@ -4,8 +4,8 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -91,7 +91,7 @@ function DisabledMemberView(props: Props) {
       );
     },
     onMutate: () => {
-      addLoadingMessage(t('Requesting\u2026'));
+      toast.loading(t('Requesting\u2026'));
     },
     onSuccess: () => {
       trackGetsentryAnalytics('disabled_member_view.clicked_leave_org', {
@@ -101,7 +101,7 @@ function DisabledMemberView(props: Props) {
       redirectToRemainingOrganization({navigate, orgId, removeOrg: true});
     },
     onError: () => {
-      addErrorMessage(t('Unable to leave organization'));
+      toast.error(t('Unable to leave organization'));
     },
   });
 

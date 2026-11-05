@@ -1,10 +1,10 @@
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-
-import {addErrorMessage, addLoadingMessage, clearIndicators} from './indicator';
 
 type KeyTransaction = {
   project_id: string;
@@ -60,8 +60,9 @@ export async function fetchTeamKeyTransactions(
         hasMore = false;
       }
     } catch (err: any) {
-      addErrorMessage(
-        err.responseJSON?.detail ?? t('Error fetching team key transactions')
+      const detail: unknown = err.responseJSON?.detail;
+      toast.error(
+        typeof detail === 'string' ? detail : t('Error fetching team key transactions')
       );
       throw err;
     }
@@ -78,7 +79,7 @@ export function toggleKeyTransaction(
   transactionName: string,
   teamIds?: string[] // TODO(txiao): make this required
 ): Promise<undefined> {
-  addLoadingMessage(t('Saving changes\u2026'));
+  toast.loading(t('Saving changes\u2026'));
 
   const promise: Promise<undefined> = api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/key-transactions/', {
@@ -96,19 +97,19 @@ export function toggleKeyTransaction(
     }
   );
 
-  promise.then(clearIndicators);
+  promise.then(() => toast.dismiss());
 
   promise.catch(response => {
     if (response instanceof RequestError) {
       const responseJSON = response?.responseJSON;
       const errorDetails = responseJSON?.detail ?? responseJSON?.non_field_errors;
 
-      if (Array.isArray(errorDetails) && errorDetails.length && errorDetails[0]) {
-        addErrorMessage(errorDetails[0]);
+      if (Array.isArray(errorDetails) && typeof errorDetails[0] === 'string') {
+        toast.error(errorDetails[0]);
       } else if (typeof errorDetails === 'string') {
-        addErrorMessage(errorDetails);
+        toast.error(errorDetails);
       } else {
-        addErrorMessage(t('Unable to update key transaction'));
+        toast.error(t('Unable to update key transaction'));
       }
     }
   });
