@@ -2,6 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 
@@ -609,6 +611,47 @@ describe('EventsRequest', () => {
         expect.objectContaining({
           expired: true,
           errored: true,
+        })
+      );
+    });
+  });
+
+  describe('request errors', () => {
+    beforeEach(() => {
+      jest.spyOn(toast, 'error');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('shows the response detail when it is a string', async () => {
+      jest
+        .mocked(doEventsRequest)
+        .mockRejectedValue({responseJSON: {detail: 'Invalid query'}});
+
+      render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Invalid query'));
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({errored: true, errorMessage: 'Invalid query'})
+      );
+    });
+
+    it('falls back to a default message when the response detail is not a string', async () => {
+      jest.mocked(doEventsRequest).mockRejectedValue({
+        responseJSON: {detail: {code: 'invalid', message: 'Invalid query'}},
+      });
+
+      render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith('Error loading chart data')
+      );
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          errored: true,
+          errorMessage: 'Error loading chart data',
         })
       );
     });
