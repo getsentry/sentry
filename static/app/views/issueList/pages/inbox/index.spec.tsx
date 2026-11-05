@@ -1439,7 +1439,11 @@ describe('InboxPage', () => {
 
   describe('an Autofix pull request that failed for credits', () => {
     const creditsOrganization = OrganizationFixture({
-      features: [...organization.features, 'seer-credit-checks'],
+      features: [
+        ...organization.features,
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+      ],
     });
 
     function mockOutOfCreditsPullRequest() {

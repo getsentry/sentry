@@ -5,7 +5,9 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {useOutOfCreditsRetry} from './useOutOfCreditsRetry';
 
 describe('useOutOfCreditsRetry', () => {
-  const organization = OrganizationFixture({features: ['seer-credit-checks']});
+  const organization = OrganizationFixture({
+    features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+  });
 
   function mockCreditCheck(hasEnoughCredits: boolean) {
     return MockApiClient.addMockResponse({
