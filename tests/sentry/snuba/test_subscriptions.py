@@ -190,7 +190,7 @@ class CreateSnubaSubscriptionTest(TestCase):
             )
             subscription = create_snuba_subscription(self.project, subscription_type, snuba_query)
         subscription = QuerySubscription.objects.get(id=subscription.id)
-        assert subscription.status == QuerySubscription.Status.DISABLED.value
+        assert subscription.status == QuerySubscription.Status.INVALID_QUERY.value
         assert subscription.subscription_id is None
 
 

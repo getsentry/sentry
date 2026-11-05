@@ -90,7 +90,7 @@ def create_subscription_in_snuba(query_subscription_id: int, **kwargs: Any) -> N
     try:
         subscription_id = _create_in_snuba(subscription)
     except SubscriptionError as e:
-        _disable_subscription_with_invalid_query(subscription, "create", e)
+        _mark_subscription_invalid_query(subscription, "create", e)
         return
     subscription.update(
         status=QuerySubscription.Status.ACTIVE.value, subscription_id=subscription_id
@@ -177,7 +177,7 @@ def update_subscription_in_snuba(
     try:
         subscription_id = _create_in_snuba(subscription)
     except SubscriptionError as e:
-        _disable_subscription_with_invalid_query(subscription, "update", e)
+        _mark_subscription_invalid_query(subscription, "update", e)
         return
     subscription.update(
         status=QuerySubscription.Status.ACTIVE.value, subscription_id=subscription_id
@@ -290,12 +290,12 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
 
 
-def _disable_subscription_with_invalid_query(
+def _mark_subscription_invalid_query(
     subscription: QuerySubscription, action: str, error: SubscriptionError
 ) -> None:
     """
-    Disables a subscription whose query can no longer be built, so that
-    `subscription_checker` stops retrying it. Editing or re-enabling the owning
+    Marks a subscription whose query can no longer be built as `INVALID_QUERY`, so
+    that `subscription_checker` stops retrying it. Editing or re-enabling the owning
     alert recreates it in Snuba.
     """
     metrics.incr(f"snuba.subscriptions.{action}.invalid_query")
@@ -308,17 +308,17 @@ def _disable_subscription_with_invalid_query(
             "error": str(error),
         },
     )
-    # Only disable if no concurrent edit or delete has moved the row out of the
+    # Only update if no concurrent edit or delete has moved the row out of the
     # status this task loaded it in; otherwise we'd clobber that change. Go through
     # Model.update so post_save clears the cached subscription_id lookup.
     with transaction.atomic(router.db_for_write(QuerySubscription)):
-        current = (
-            QuerySubscription.objects.select_for_update()
-            .filter(id=subscription.id, status=subscription.status)
-            .first()
+        current = QuerySubscription.objects.select_for_update().get_or_none(
+            id=subscription.id, status=subscription.status
         )
         if current is not None:
-            current.update(status=QuerySubscription.Status.DISABLED.value, subscription_id=None)
+            current.update(
+                status=QuerySubscription.Status.INVALID_QUERY.value, subscription_id=None
+            )
 
 
 # This indirection function only exists such that snql queries can be rewritten

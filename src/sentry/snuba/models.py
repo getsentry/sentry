@@ -139,6 +139,9 @@ class QuerySubscription(Model):
         UPDATING = 2
         DELETING = 3
         DISABLED = 4
+        # The query can no longer be built (e.g. it references a deleted issue or
+        # environment), so the subscription can't exist in Snuba until it's edited.
+        INVALID_QUERY = 5
 
     # NOTE: project fk SHOULD match AlertRule's fk
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)

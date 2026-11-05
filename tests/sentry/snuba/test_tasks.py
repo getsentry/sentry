@@ -157,7 +157,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query="issue:INVALID-1")
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
-        assert sub.status == QuerySubscription.Status.DISABLED.value
+        assert sub.status == QuerySubscription.Status.INVALID_QUERY.value
         assert sub.subscription_id is None
         self.metrics.incr.assert_any_call("snuba.subscriptions.create.invalid_query")
 
@@ -170,7 +170,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         delete_from_snuba.assert_not_called()
         self.metrics.incr.assert_any_call("snuba.subscriptions.create.old_entity_key_unresolved")
         sub = QuerySubscription.objects.get(id=sub.id)
-        assert sub.status == QuerySubscription.Status.DISABLED.value
+        assert sub.status == QuerySubscription.Status.INVALID_QUERY.value
         assert sub.subscription_id is None
 
     def test_invalid_query_clears_cached_subscription_id(self) -> None:
@@ -432,7 +432,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert delete_from_snuba.call_args[0][1] == subscription_id
         self.metrics.incr.assert_any_call("snuba.subscriptions.update.invalid_query")
         sub = QuerySubscription.objects.get(id=sub.id)
-        assert sub.status == QuerySubscription.Status.DISABLED.value
+        assert sub.status == QuerySubscription.Status.INVALID_QUERY.value
         assert sub.subscription_id is None
 
 
