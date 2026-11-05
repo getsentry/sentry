@@ -119,6 +119,7 @@ export function UsageStatsProjects({
   } = useQuery(
     apiOptions.as<UsageSeries>()('/organizations/$organizationIdOrSlug/stats_v2/', {
       path: {organizationIdOrSlug: organization.slug},
+      // We do not need more granularity in the data so interval is '1d'
       query: endpointQuery,
       staleTime: Infinity,
     })

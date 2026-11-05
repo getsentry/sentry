@@ -154,6 +154,7 @@ export default function SnapshotsPage() {
       }
     ),
     enabled: !!snapshotId,
+    // Skip retries on 4xx so error pages render instantly
     retry: (count, err) =>
       count < 3 && (!(err instanceof RequestError) || !err.status || err.status >= 500),
     refetchInterval: query => {
