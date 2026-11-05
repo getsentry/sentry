@@ -148,8 +148,7 @@ def _send_email_once(message: dict[str, Any]) -> None:
     try:
         _send_email(message)
     except BaseException:
-        # Release the claim so the retry of this delivery can send. This catches
-        # BaseException because the taskworker's ProcessingDeadlineExceeded is one.
+        # catches ProcessingDeadlineExceeded
         _set_dedupe_state(key, sent=False)
         raise
     _set_dedupe_state(key, sent=True)
