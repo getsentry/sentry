@@ -706,7 +706,7 @@ export default Storybook.story('Autofix', story => {
         The code changes finished, then opening the PR failed because the organization ran
         out of credits (<code>pr_creation_error_code: out_of_credits</code>). The Pull
         Request card says so in place of Seer's generic failure. The credit check for{' '}
-        <code>autofix_create_pr</code> says the organization still can't afford it, so the
+        <code>autofix_open_pr</code> says the organization still can't afford it, so the
         Code Changes card's “Draft a pull request” is disabled (hover it for why).
       </Text>
       <FixedRunChat run={PR_STOPPED_RUN} hasEnoughCredits={false}>

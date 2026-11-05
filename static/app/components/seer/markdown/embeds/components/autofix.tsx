@@ -313,7 +313,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
     ],
     {enabled: defined(outOfCreditsSection)}
   );
-  const createPRRetry = useOutOfCreditsRetry('autofix_create_pr', {
+  const createPRRetry = useOutOfCreditsRetry('autofix_open_pr', {
     enabled:
       section?.status === 'completed' &&
       canCreatePR &&
