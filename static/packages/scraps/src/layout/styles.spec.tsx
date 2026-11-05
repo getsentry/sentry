@@ -11,6 +11,7 @@ import type {BreakpointSize} from '@sentry/scraps/theme';
 import {
   getBackground,
   getBorder,
+  getBorderLonghands,
   getBorderWidth,
   rc,
   useActiveBreakpoint,
@@ -217,6 +218,42 @@ describe('getBorder', () => {
     // …and explicitly removed at lg via `none`.
     expect(output).toContain(`@container (min-width: ${theme.container.lg})`);
     expect(output).toContain('border-bottom: none');
+  });
+});
+
+describe('getBorderLonghands', () => {
+  it('sets style, color and the md width as separate declarations', () => {
+    expect(getBorderLonghands('border', 'primary', undefined, theme)).toBe(
+      `border-style: solid;border-color: ${theme.tokens.border.primary};border-width: ${theme.border.md};`
+    );
+  });
+
+  it('applies the width to the given side', () => {
+    expect(getBorderLonghands('border-top', 'translucent', 'xl', theme)).toBe(
+      `border-top-style: solid;border-top-color: ${theme.tokens.border.transparent.neutral.muted};border-top-width: 2px;`
+    );
+  });
+
+  it('turns the border off with none', () => {
+    expect(getBorderLonghands('border', 'none', undefined, theme)).toBe(
+      `border-style: none;border-width: ${theme.border.md};`
+    );
+  });
+
+  it('keeps the width out of responsive color rules', () => {
+    const output = getBorderLonghands(
+      'border',
+      {zero: 'primary', lg: 'danger'},
+      'xl',
+      theme
+    );
+    assert(output);
+    expect(output.match(/border-width: [^;]+/g)).toEqual(['border-width: 2px']);
+    expect(output).toContain(`border-color: ${theme.tokens.border.danger.vibrant}`);
+  });
+
+  it('returns undefined without a color, even with a width', () => {
+    expect(getBorderLonghands('border', undefined, 'xl', theme)).toBeUndefined();
   });
 });
 

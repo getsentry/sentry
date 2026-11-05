@@ -15,8 +15,7 @@ import type {
 import {
   ContainerQueryProvider,
   getBackground,
-  getBorder,
-  getBorderWidth,
+  getBorderLonghands,
   getMargin,
   getRadius,
   getSpacing,
@@ -93,8 +92,8 @@ interface ContainerLayoutProps {
   borderLeft?: Responsive<BorderVariant>;
   borderRight?: Responsive<BorderVariant>;
   /**
-   * Border width token. Defaults to `md` (1px), so this only needs to be set to
-   * override it, and has no effect without a border color prop.
+   * Border width token for every side that has a border color. Defaults to `md`
+   * (1px), and has no effect without a border color prop.
    */
   borderWidth?: Responsive<BorderWidth>;
 
@@ -378,20 +377,11 @@ export const Container = styled(
   ${p => rc('align-self', p.alignSelf, p.theme)};
   ${p => rc('justify-self', p.justifySelf, p.theme)};
 
-  ${p => rc('border', p.borderColor, p.theme, getBorder)};
-  ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
-  ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
-  ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
-  ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
-  /**
-   * The border shorthands above reset the width wherever they're declared later
-   * in the stylesheet: in responsive @container/@media rules and in wrappers like
-   * Surface. Doubling the class keeps an explicit width ahead of them.
-   */
-  ${p =>
-    p.borderWidth === undefined
-      ? undefined
-      : `&& { ${rc('border-width', p.borderWidth, p.theme, getBorderWidth)} }`};
+  ${p => getBorderLonghands('border', p.borderColor, p.borderWidth, p.theme)};
+  ${p => getBorderLonghands('border-top', p.borderTop, p.borderWidth, p.theme)};
+  ${p => getBorderLonghands('border-bottom', p.borderBottom, p.borderWidth, p.theme)};
+  ${p => getBorderLonghands('border-left', p.borderLeft, p.borderWidth, p.theme)};
+  ${p => getBorderLonghands('border-right', p.borderRight, p.borderWidth, p.theme)};
 
   ${p => rc('visibility', p.visibility, p.theme)};
   ${p => rc('white-space', p.whiteSpace, p.theme)};

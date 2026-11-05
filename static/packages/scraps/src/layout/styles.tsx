@@ -258,9 +258,55 @@ export function getBorder(
     .join(' ');
 }
 
+function getBorderStyle(
+  border: BorderVariant | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  _theme: Theme
+): string | undefined {
+  if (border === undefined) {
+    return undefined;
+  }
+
+  return border === 'none' ? 'none' : 'solid';
+}
+
+function getBorderColor(
+  border: BorderVariant | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+): string | undefined {
+  if (border === undefined || border === 'none') {
+    return undefined;
+  }
+
+  return borderValue(border, theme);
+}
+
 /**
- * Resolves a border width token. Only meaningful alongside a border color prop,
- * which sets the style and color (and defaults the width to `md`).
+ * Border style, color and width for one side, or for all sides with `border`.
+ * They're separate declarations, not the `border` shorthand, so a responsive
+ * color never resets the width. The style is always `solid` (or `none`), and
+ * the width defaults to `md`.
+ */
+export function getBorderLonghands(
+  property: 'border' | 'border-top' | 'border-bottom' | 'border-left' | 'border-right',
+  color: Responsive<BorderVariant> | undefined,
+  width: Responsive<BorderWidth> | undefined,
+  theme: Theme
+): string | undefined {
+  if (color === undefined) {
+    return undefined;
+  }
+
+  return [
+    rc(`${property}-style`, color, theme, getBorderStyle),
+    rc(`${property}-color`, color, theme, getBorderColor),
+    rc(`${property}-width`, width ?? 'md', theme, getBorderWidth),
+  ].join('');
+}
+
+/**
+ * Resolves a border width token.
  */
 export function getBorderWidth(
   width: BorderWidth | undefined,

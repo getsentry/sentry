@@ -8,7 +8,7 @@ import {
 } from '@sentry/scraps/layout/container';
 import type {SurfaceVariant} from '@sentry/scraps/theme';
 
-import {getBorder, getRadius, rc} from './styles';
+import {getBorderLonghands, getRadius, rc} from './styles';
 
 interface FlatSurfaceProps<T extends ContainerElement = 'div'> extends Omit<
   ContainerProps<T>,
@@ -108,7 +108,12 @@ export const Surface = styled(
       v ? p.theme.tokens.background[v] : undefined
     )};
   ${p =>
-    rc('border', p.variant === 'overlay' ? 'primary' : undefined, p.theme, getBorder)};
+    getBorderLonghands(
+      'border',
+      p.variant === 'overlay' ? 'primary' : undefined,
+      p.borderWidth,
+      p.theme
+    )};
   ${p =>
     rc(
       'border-radius',

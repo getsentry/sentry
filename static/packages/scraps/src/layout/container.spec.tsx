@@ -57,13 +57,14 @@ describe('Container', () => {
       {wrapper: ThemeWrapper}
     );
 
-    // The md rule re-declares the `border` shorthand after the base rule, so
-    // the width only survives if its rule is more specific.
+    // A `border` shorthand in the md rule would reset the width to 1px.
     const className = screen.getByText('Hello').className;
-    const rules = Array.from(document.styleSheets).flatMap(sheet =>
-      Array.from(sheet.cssRules, rule => rule.cssText)
-    );
-    expect(rules).toContain(`.${className}.${className} { border-width: 2px; }`);
+    const css = Array.from(document.styleSheets)
+      .flatMap(sheet => Array.from(sheet.cssRules, rule => rule.cssText))
+      .filter(rule => rule.includes(className))
+      .join('\n');
+    expect(css).not.toMatch(/border:/);
+    expect(css.match(/border-width: [^;]+/g)).toEqual(['border-width: 2px']);
   });
 
   it('render prop guards against invalid attributes', () => {
