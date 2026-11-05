@@ -11,11 +11,12 @@ import {
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as analytics from 'sentry/utils/analytics';
+
 import {
   MessagingIntegrationAlertRule,
   useMessagingIntegrationAlertRule,
-} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
-import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/messagingIntegrationTypes';
+} from './messagingIntegrationAlertRule';
+import type {IssueAlertNotificationProps} from './messagingIntegrationTypes';
 describe('MessagingIntegrationAlertRule', () => {
   const organization = OrganizationFixture();
   const slackIntegrations = [

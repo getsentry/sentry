@@ -5,8 +5,8 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -86,7 +86,7 @@ export function TermsAndConditions({subscription}: TermsProps) {
     }
 
     // we need to find the first parent
-    addLoadingMessage();
+    toast.loading(t('Saving changes...'));
     const data = await api.requestPromise(`/customers/${subscription.slug}/policies/`, {
       method: 'POST',
       data: {
@@ -100,7 +100,7 @@ export function TermsAndConditions({subscription}: TermsProps) {
       makeFetchPoliciesQueryKey(subscription),
       oldState => ({...oldState, [data.slug]: data})
     );
-    clearIndicators();
+    toast.dismiss();
   };
 
   const otherPolicies = Object.values(policies).filter(

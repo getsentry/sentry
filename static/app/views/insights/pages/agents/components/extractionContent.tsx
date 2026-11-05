@@ -10,12 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t, tct} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
-  ConfidenceBadge,
-  RawValue,
-  TruncatedTag,
-  UnrecognizedTag,
-} from 'sentry/views/insights/pages/agents/components/evaluationContent';
-import {
   formatExtractedValue,
   getExtractedValueLabels,
   getSourceSegments,
@@ -25,6 +19,13 @@ import {
   type ExtractionRow,
 } from 'sentry/views/insights/pages/agents/utils/extraction';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
+
+import {
+  ConfidenceBadge,
+  RawValue,
+  TruncatedTag,
+  UnrecognizedTag,
+} from './evaluationContent';
 
 // Building blocks for rendering `gen_ai.extract` spans. Like the evaluation
 // blocks, they carry no headings or view toggles so each surface can frame them.

@@ -1,7 +1,8 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useReplayExists} from 'sentry/utils/replayCount/useReplayExists';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+
+import {useReplayExists} from './useReplayExists';
 
 interface Props {
   limit: number;

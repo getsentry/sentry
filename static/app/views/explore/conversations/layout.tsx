@@ -17,11 +17,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
-import {
-  CONVERSATIONS_LANDING_TITLE,
-  MAX_PICKABLE_DAYS,
-} from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {CONVERSATIONS_LANDING_TITLE, MAX_PICKABLE_DAYS} from './settings';
 
 function ConversationsLayout() {
   const organization = useOrganization();

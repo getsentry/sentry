@@ -5,11 +5,6 @@ import styled from '@emotion/styled';
 import {Input} from '@sentry/scraps/input';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
 
-import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
-import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
-import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {
   ComboBoxLayoutContext,
@@ -18,6 +13,12 @@ import {
 import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
+
+import {TokenGrid} from './token/grid';
+import {useArithmeticBuilderAction} from './action';
+import {ArithmeticBuilderContext} from './context';
+import type {Expression} from './expression';
+import type {FunctionArgument} from './types';
 
 export type {ComboBoxMenuPresentation};
 

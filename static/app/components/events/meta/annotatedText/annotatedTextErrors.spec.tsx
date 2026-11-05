@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import {AnnotatedTextErrors} from './annotatedTextErrors';
 
 describe('AnnotatedTextErrors', () => {
   it('shows the error kind and reason in the tooltip', async () => {

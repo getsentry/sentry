@@ -12,8 +12,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {IssueType} from 'sentry/types/group';
+
+import {OurlogsSection} from './ourlogsSection';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,

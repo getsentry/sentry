@@ -16,8 +16,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
@@ -39,10 +39,11 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
+
 import type {
   CustomInboundFilter,
   CustomInboundFilterCondition,
-} from 'sentry/views/settings/project/projectFilters/customFilterModal';
+} from './customFilterModal';
 import {
   customFiltersQueryOptions,
   getCondition,
@@ -53,7 +54,7 @@ import {
   NEGATED_OPERATORS,
   openCustomFilterModal,
   OPERATOR_LABELS,
-} from 'sentry/views/settings/project/projectFilters/customFilterModal';
+} from './customFilterModal';
 
 // Values a condition shows in the table before the rest fold into a count.
 const MAX_VISIBLE_VALUES = 3;
@@ -458,7 +459,7 @@ export function CustomFilters({project}: {project: Project}) {
       }),
     onSuccess: () => invalidate(),
     onError: error => {
-      addErrorMessage(getErrorDetail(error, t('Unable to update filter')));
+      toast.error(getErrorDetail(error, t('Unable to update filter')));
     },
   });
 
@@ -469,11 +470,11 @@ export function CustomFilters({project}: {project: Project}) {
         url: getCustomFilterUrl(organization, project, id),
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Filter deleted'));
+      toast.success(t('Filter deleted'));
       invalidate();
     },
     onError: error => {
-      addErrorMessage(getErrorDetail(error, t('Unable to delete filter')));
+      toast.error(getErrorDetail(error, t('Unable to delete filter')));
     },
   });
 

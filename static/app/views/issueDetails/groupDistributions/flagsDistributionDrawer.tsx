@@ -15,12 +15,13 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
-import {GroupDistributionsSearchInput} from 'sentry/views/issueDetails/groupDistributions/groupDistributionsSearchInput';
-import {TagFlagPicker} from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
-import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsDrawerContent';
 import {FlagDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+
+import {GroupDistributionsSearchInput} from './groupDistributionsSearchInput';
+import {TagFlagPicker} from './tagFlagPicker';
+import {DrawerTab} from './types';
 
 interface Props {
   group: Group;

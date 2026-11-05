@@ -5,21 +5,21 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 import {GroupEventAttachments} from './groupEventAttachments';
 
 function GroupEventAttachmentsContainer() {
   const organization = useOrganization();
-  const params = useParams();
+  const groupId = useGroupId();
 
   const {
     data: group,
     isPending: isGroupPending,
     isError: isGroupError,
     refetch: refetchGroup,
-  } = useGroup({groupId: params.groupId!});
+  } = useGroup({groupId});
 
   if (isGroupPending) {
     return <LoadingIndicator />;

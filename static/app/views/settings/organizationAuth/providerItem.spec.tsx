@@ -4,7 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {descopeFeatureName} from 'sentry/utils';
-import {ProviderItem} from 'sentry/views/settings/organizationAuth/providerItem';
+
+import {ProviderItem} from './providerItem';
 
 describe('ProviderItem', () => {
   const provider = AuthProvidersFixture()[0]!;

@@ -8,7 +8,6 @@ import type {
   SelectSectionWithKey,
 } from '@sentry/scraps/compactSelect';
 
-import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
   TermOperator,
   WildcardOperators,
@@ -26,6 +25,8 @@ import {
   prettifyTagKey,
   type FieldDefinition,
 } from 'sentry/utils/fields';
+
+import {areWildcardOperatorsAllowed} from './filter/utils';
 
 export function shiftFocusToChild(
   element: HTMLElement,

@@ -9,18 +9,19 @@ import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {UptimeChecksGrid} from 'sentry/views/detectors/components/uptime/uptimeChecksGrid';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {uptimeChecksApiOptions} from 'sentry/views/insights/uptime/utils/uptimeChecksApiOptions';
-import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
-import {useUptimeIssueDetectorId} from 'sentry/views/issueDetails/issueUptimeCheckTimeline';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {EventListTable} from './eventListTable';
+import {useGroupId} from './groupIdContext';
+import {useUptimeIssueDetectorId} from './issueUptimeCheckTimeline';
+import {useGroup} from './useGroup';
 
 export default function GroupUptimeChecks() {
   const organization = useOrganization();
-  const {groupId} = useParams<{groupId: string}>();
+  const groupId = useGroupId();
   const [cursor] = useQueryState('cursor', parseAsScalar);
   const {since, until} = usePageFilterDates();
   const detectorId = useUptimeIssueDetectorId({groupId});

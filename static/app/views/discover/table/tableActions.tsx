@@ -16,8 +16,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {DiscoverExportModalButton} from 'sentry/views/discover/table/discoverExportModalButton';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
+
+import {DiscoverExportModalButton} from './discoverExportModalButton';
 
 type Props = {
   error: string | null;

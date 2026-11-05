@@ -8,7 +8,6 @@ import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
-import {EventAttachmentActions} from 'sentry/components/events/eventAttachmentActions';
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingError} from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -24,6 +23,7 @@ import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachm
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
+import {EventAttachmentActions} from './eventAttachmentActions';
 import {EventAttachmentsCrashReportsNotice} from './eventAttachmentsCrashReportsNotice';
 
 const ATTACHMENT_COLUMNS: TableColumnConfig[] = [

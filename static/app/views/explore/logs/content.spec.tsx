@@ -18,13 +18,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+
+import LogsPage from './content';
+import type {OurLogsResponseItem} from './types';
 import {
   LOGS_AGGREGATES_TIMESTAMP_FIELD,
   LOGS_AGGREGATES_TRACE_FIELD,
-} from 'sentry/views/explore/logs/useLogsAggregatesTable';
-
-import LogsPage from './content';
+} from './useLogsAggregatesTable';
 
 beforeEach(() => {
   mockElementSize();

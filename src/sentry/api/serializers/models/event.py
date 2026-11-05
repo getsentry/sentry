@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Annotated, Any, NotRequired, TypedDict, cast
 
 import sentry_sdk
 import sqlparse
@@ -18,6 +18,7 @@ from sentry.api.serializers.models.eventattachment import EventAttachmentSeriali
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.eventtypes import EventTypeStr
 from sentry.grouping.api import GroupingConfig
 from sentry.incidents.typings.metric_issue_evidence import MetricIssueOccurrenceResponse
@@ -668,19 +669,27 @@ SimpleEventSerializerResponse = TypedDict(
     {
         "id": str,
         "event.type": str,
-        "groupID": str | None,
+        "groupID": Annotated[str | None, ApiDescription("ID of the issue the event belongs to")],
         "eventID": str,
-        "projectID": str,
-        "message": str,
-        "title": str,
-        "location": str | None,
-        "culprit": str | None,
-        "user": EventUserApiContext | None,
-        "tags": list[EventTag],
-        "platform": str | None,
-        "dateCreated": datetime,
-        "crashFile": str | None,
-        "metadata": dict[str, Any],
+        "projectID": Annotated[str, ApiDescription("ID of the project the event belongs to")],
+        "message": Annotated[str, ApiDescription("Event message")],
+        "title": Annotated[str, ApiDescription("Event title")],
+        "location": Annotated[
+            str | None, ApiDescription("Source location of the event, such as a file and line")
+        ],
+        "culprit": Annotated[
+            str | None, ApiDescription("Function or module that caused the event")
+        ],
+        "user": Annotated[EventUserApiContext | None, ApiDescription("User context of the event")],
+        "tags": Annotated[list[EventTag], ApiDescription("Tags attached to the event")],
+        "platform": Annotated[
+            str | None, ApiDescription("Platform of the event, such as python or javascript")
+        ],
+        "dateCreated": Annotated[datetime, ApiDescription("When the event occurred (ISO 8601)")],
+        "crashFile": Annotated[
+            str | None, ApiDescription("Crash report attachment of the event, if any")
+        ],
+        "metadata": Annotated[dict[str, Any], ApiDescription("Event metadata")],
     },
 )
 

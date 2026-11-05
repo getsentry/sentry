@@ -32,7 +32,6 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {
   OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
   FRONTEND_PLATFORMS,
@@ -56,6 +55,8 @@ import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+
+import {OVERVIEW_PAGE_ALLOWED_OPS} from './settings';
 
 const APDEX_TOOLTIP = tct(
   'An industry-standard metric used to measure user satisfaction based on your application response times. [link:Learn more.]',

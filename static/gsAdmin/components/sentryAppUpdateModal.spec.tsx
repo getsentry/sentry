@@ -1,7 +1,6 @@
 import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {ModalStore} from 'sentry/stores/modalStore';
+import {openModal, closeModal} from '@sentry/scraps/modal';
 
 import {SentryAppUpdateModal} from 'admin/components/sentryAppUpdateModal';
 
@@ -27,7 +26,7 @@ function openSentryAppUpdateModal() {
 describe('SentryAppUpdateModal', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
+    closeModal();
   });
 
   it('updates popularity and features', async () => {
