@@ -96,7 +96,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "crash-rate-alerts",
             "custom-symbol-sources",
             "dashboards-basic",
-            "dashboards-edit",
             "data-forwarding",
             "discover-basic",
             "discover-query",
