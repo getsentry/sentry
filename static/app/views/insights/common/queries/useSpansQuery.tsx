@@ -18,12 +18,13 @@ import type {
   RPCQueryExtras,
   SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {ExtrapolationMode} from 'sentry/views/insights/common/queries/types';
 import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import {TrackResponse} from 'sentry/views/insights/common/utils/trackResponse';
+
+import type {ExtrapolationMode} from './types';
 const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;

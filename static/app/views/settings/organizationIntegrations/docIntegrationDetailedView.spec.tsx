@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import DocIntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/docIntegrationDetailedView';
+import DocIntegrationDetailedView from './docIntegrationDetailedView';
 
 describe('DocIntegrationDetailedView', () => {
   const organization = OrganizationFixture();

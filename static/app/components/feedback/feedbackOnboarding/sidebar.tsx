@@ -13,7 +13,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 
-import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -46,6 +45,8 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {FeedbackOnboardingLayout} from './feedbackOnboardingLayout';
 
 export function useFeedbackOnboardingDrawer() {
   const organization = useOrganization();

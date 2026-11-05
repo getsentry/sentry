@@ -9,7 +9,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import {GcpConnectionStatus} from 'sentry/views/settings/organizationIntegrations/gcpConnectionStatus';
+
+import {GcpConnectionStatus} from './gcpConnectionStatus';
 
 describe('GcpConnectionStatus', () => {
   const organization = OrganizationFixture();

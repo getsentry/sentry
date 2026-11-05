@@ -1,18 +1,13 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  TourAction,
-  TourContextProvider,
-  TourElement,
-  TourGuide,
-} from 'sentry/components/tours/components';
+import {TourAction, TourContextProvider, TourElement, TourGuide} from './components';
 import {
   emptyTourContext,
   ORDERED_TEST_TOUR,
   TestTour,
   TestTourContext,
-} from 'sentry/components/tours/testUtils';
-import {useTourReducer} from 'sentry/components/tours/tourContext';
+} from './testUtils';
+import {useTourReducer} from './tourContext';
 
 jest.mock('sentry/components/tours/tourContext', () => ({
   useTourReducer: jest.fn(),

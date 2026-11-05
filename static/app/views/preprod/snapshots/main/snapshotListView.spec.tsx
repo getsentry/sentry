@@ -7,7 +7,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {closeModal, openModal} from 'sentry/actionCreators/modal';
+import {closeModal, openModal} from '@sentry/scraps/modal';
+
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import type {
   SidebarItem,

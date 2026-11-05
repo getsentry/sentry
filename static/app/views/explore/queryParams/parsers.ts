@@ -12,7 +12,8 @@ import {
 import * as qs from 'query-string';
 
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+
+import {Mode} from './mode';
 
 export const parseAsMode = parseAsStringEnum<Mode>(Object.values(Mode));
 

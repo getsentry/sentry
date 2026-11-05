@@ -2,7 +2,7 @@ import {
   getSpecialPermissions,
   toPermissions,
   toResourcePermissions,
-} from 'sentry/utils/consolidatedScopes';
+} from './consolidatedScopes';
 
 describe('ConsolidatedScopes', () => {
   let scopes: any;

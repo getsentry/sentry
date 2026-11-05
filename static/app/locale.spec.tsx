@@ -1,8 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-// eslint-disable-next-line no-restricted-imports
-import {DEFAULT_LOCALE_DATA, pgettext, setLocale, t, tct} from 'sentry/locale';
+import {DEFAULT_LOCALE_DATA, pgettext, setLocale, t, tct} from './locale';
 
 describe('locale.gettextComponentTemplate', () => {
   it('should not wrap translated text in span', () => {

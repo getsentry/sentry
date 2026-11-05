@@ -8,17 +8,15 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+
 import {
   useWidgetViewportVisibility,
   WidgetInViewportProvider,
-} from 'sentry/views/dashboards/contexts/widgetViewportContext';
-import {isWidgetEditable} from 'sentry/views/dashboards/utils';
-import {useWidgetSlideout} from 'sentry/views/dashboards/utils/useWidgetSlideout';
-import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
-
+} from './contexts/widgetViewportContext';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {useWidgetSlideout} from './utils/useWidgetSlideout';
 import {Toolbar} from './widgetCard/toolbar';
+import type {TabularColumn} from './widgets/common/types';
 import {
   DisplayType,
   WidgetType,
@@ -27,6 +25,8 @@ import {
   type Widget,
   type WidgetQuery,
 } from './types';
+import {isWidgetEditable} from './utils';
+import WidgetCard from './widgetCard';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;

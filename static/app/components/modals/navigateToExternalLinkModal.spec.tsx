@@ -1,7 +1,8 @@
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import NavigateToExternalLinkModal from 'sentry/components/modals/navigateToExternalLinkModal';
+import {openModal} from '@sentry/scraps/modal';
+
+import NavigateToExternalLinkModal from './navigateToExternalLinkModal';
 
 describe('NavigateToExternalLinkModal', () => {
   it('closes on cancel button click', async () => {

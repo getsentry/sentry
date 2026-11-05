@@ -26,8 +26,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import type {MenuItemTrailingAction} from '@sentry/scraps/menu';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {update} from 'sentry/actionCreators/projects';
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
@@ -117,7 +117,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       setPendingBookmarks(prev => ({...prev, [project.id]: isBookmarked}));
     },
     onError: (_error, {project}) => {
-      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
+      toast.error(t('Unable to toggle bookmark for %s', project.slug));
     },
     onSettled: (_data, _error, {project}) => {
       setPendingBookmarks(prev => omit(prev, project.id));

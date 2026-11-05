@@ -1,6 +1,6 @@
 import {createContext, useContext} from 'react';
 
-import type {BlockRenderers} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
+import type {BlockRenderers} from './types';
 
 export const RendererContext = createContext<
   | undefined

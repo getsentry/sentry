@@ -7,10 +7,8 @@ import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {t} from 'sentry/locale';
 import type {StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
-import {
-  PrimaryNavigation,
-  usePrimaryNavigationButtonOverlay,
-} from 'sentry/views/navigation/primary/components';
+
+import {PrimaryNavigation, usePrimaryNavigationButtonOverlay} from './components';
 
 function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) {
   const {

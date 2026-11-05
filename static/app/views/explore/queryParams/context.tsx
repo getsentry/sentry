@@ -15,28 +15,29 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import {
+  areConditionalAggregateFiltersInExpressionValid,
+  isConditionalAggregateYAxisValid,
+} from 'sentry/views/explore/utils/conditionalAggregate';
+
+import {
   serializeAggregateFields,
   type AggregateField,
   type WritableAggregateField,
-} from 'sentry/views/explore/queryParams/aggregateField';
-import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {deriveUpdatedManagedFields} from 'sentry/views/explore/queryParams/managedFields';
-import type {Mode} from 'sentry/views/explore/queryParams/mode';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
+} from './aggregateField';
+import type {CrossEvent} from './crossEvent';
+import {isGroupBy} from './groupBy';
+import {deriveUpdatedManagedFields} from './managedFields';
+import type {Mode} from './mode';
+import {ReadableQueryParams} from './readableQueryParams';
+import {ID_KEY, TITLE_KEY} from './savedQuery';
 import {
   hasVisualizeTransformations,
   isVisualize,
   isVisualizeEquation,
   type BaseVisualize,
   type Visualize,
-} from 'sentry/views/explore/queryParams/visualize';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
-import {
-  areConditionalAggregateFiltersInExpressionValid,
-  isConditionalAggregateYAxisValid,
-} from 'sentry/views/explore/utils/conditionalAggregate';
+} from './visualize';
+import type {WritableQueryParams} from './writableQueryParams';
 
 interface QueryParamsContextValue {
   managedFields: Set<string>;

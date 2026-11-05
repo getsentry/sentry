@@ -7,6 +7,10 @@ import {UserFixture} from 'sentry-fixture/user';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+
 import {
   exceedsDatetimeLimits,
   initializeUrlState,
@@ -14,13 +18,10 @@ import {
   updateEnvironments,
   updatePersistence,
   updateProjects,
-} from 'sentry/components/pageFilters/actions';
-import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
-import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {localStorageWrapper} from 'sentry/utils/localStorage';
+} from './actions';
+import {PageFilterAdjustmentReason} from './adjustments';
+import * as PageFilterPersistence from './persistence';
+import {PageFiltersStore} from './store';
 
 jest.mock('sentry/utils/localStorage');
 

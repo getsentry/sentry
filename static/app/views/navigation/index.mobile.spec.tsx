@@ -15,7 +15,8 @@ import {mockMatchMedia} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {Navigation} from 'sentry/views/navigation';
-import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {PrimaryNavigationContextProvider} from './primaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
