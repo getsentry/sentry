@@ -1,15 +1,15 @@
 /**
  * Places outside of the settings navigation that open a settings page, as a link or a button.
- * - `settings_navigation.org_menu`: "Settings" item in the organization avatar menu
- * - `settings_navigation.user_menu`: "Settings" item in the user avatar menu
+ * - `org_menu`: "Settings" item in the organization avatar menu
+ * - `user_menu`: "Settings" item in the user avatar menu
  * - `project_page_filter`: settings icon on a project in the project page filter
  * - `project_details_menu`: "Project Settings" item on the project details page
  * - `project_card`: settings icon on a project card in the projects list
  * - `usage_stats`: "Project Settings" button on a project row in the usage stats table
  */
 export type SettingsEntryPoint =
-  | 'settings_navigation.org_menu'
-  | 'settings_navigation.user_menu'
+  | 'org_menu'
+  | 'user_menu'
   | 'project_page_filter'
   | 'project_details_menu'
   | 'project_card'
@@ -39,14 +39,9 @@ export type SettingsEventParameters = {
     entry_point: SettingsEntryPoint;
   };
   /**
-   * A different project was picked in the project selector at the top of the
-   * project settings sidebar.
+   * A project was bookmarked or unbookmarked from the organization avatar menu.
    */
-  'settings.project_selector.changed': Record<string, unknown>;
-  /**
-   * A project was starred or unstarred from the organization avatar menu.
-   */
-  'settings_navigation.project_bookmark_toggled': {
+  'settings.org_menu.project_bookmark_toggled': {
     bookmarked: boolean;
     source: SettingsOrgMenuProjectSource;
   };
@@ -54,9 +49,14 @@ export type SettingsEventParameters = {
    * A project was clicked in the organization avatar menu, opening its
    * project settings.
    */
-  'settings_navigation.project_clicked': {
+  'settings.org_menu.project_clicked': {
     source: SettingsOrgMenuProjectSource;
   };
+  /**
+   * A different project was picked in the project selector at the top of the
+   * project settings sidebar.
+   */
+  'settings.project_selector.changed': Record<string, unknown>;
   'sidebar.item_clicked': {
     dest: string;
     project_id?: string;
@@ -72,9 +72,9 @@ export const settingsEventMap: Record<SettingsEventKey, string | null> = {
   'notification_settings.updated_tuning_setting':
     'Notification Settings: Updated Tuning Setting',
   'settings.entry_point_clicked': 'Settings: Entry Point Clicked',
-  'settings_navigation.project_bookmark_toggled':
-    'Settings Navigation: Project Star Toggled',
-  'settings_navigation.project_clicked': 'Settings Navigation: Project Clicked',
+  'settings.org_menu.project_bookmark_toggled':
+    'Settings: Org Menu Project Bookmark Toggled',
+  'settings.org_menu.project_clicked': 'Settings: Org Menu Project Clicked',
   'settings.project_selector.changed': 'Settings: Sidebar Project Selector Changed',
   'sidebar.item_clicked': 'Sidebar: Item Clicked',
 };

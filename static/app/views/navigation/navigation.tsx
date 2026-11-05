@@ -204,8 +204,8 @@ export function SettingsNavigationBackButton({
       size="sm"
       icon={<IconArrow direction="left" />}
       aria-label={t('Back to app')}
-      analyticsEventKey="settings_navigation.back_to_app_clicked"
-      analyticsEventName="Settings Navigation: Back to App Clicked"
+      analyticsEventKey="settings.back_to_app_clicked"
+      analyticsEventName="Settings: Back to App Clicked"
       tooltipProps={{title: t('Back to app')}}
       to={getReturnPath(
         getSettingsReturnPathKey(organizationSlug),
