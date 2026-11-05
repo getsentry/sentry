@@ -8,6 +8,10 @@ import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import {
+  AutofixOutOfCreditsAlert,
+  getAutofixContinueAction,
+} from 'sentry/components/events/autofix/autofixCredits';
+import {
   getOrderedAutofixSections,
   isCodeChangesSection,
   isCodingAgentsSection,
@@ -21,6 +25,7 @@ import {
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 import {AutofixStartCard} from './autofixStartCard';
@@ -50,6 +55,7 @@ export function SeerDrawerContent({
   group,
   stickyNextStep,
 }: SeerDrawerContentProps) {
+  const organization = useOrganization();
   const sections = useMemo(
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
@@ -66,12 +72,28 @@ export function SeerDrawerContent({
     );
   }
 
+  // One out-of-credits alert, at the top so it sits above any results. The
+  // triggers below it stay on screen, disabled.
   if (!autofix.runState && aiConfig.hasAutofix) {
-    return <AutofixStartCard autofix={autofix} group={group} />;
+    return (
+      <Stack gap="lg">
+        <AutofixOutOfCreditsAlert action="root_cause" reason="autofix-start" />
+        <AutofixStartCard autofix={autofix} group={group} />
+      </Stack>
+    );
   }
 
   return (
     <Stack gap="lg">
+      <AutofixOutOfCreditsAlert
+        action={getAutofixContinueAction({
+          isPolling: autofix.isPolling,
+          organization,
+          runState: autofix.runState,
+          sections,
+        })}
+        reason="autofix-continue"
+      />
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
       {(autofix.runState?.status === 'completed' ||
         isLastStepPrIteration(autofix.runState)) && (

@@ -285,40 +285,55 @@ function DrawerStory({
 }
 
 export default Storybook.story('SeerDrawerContent', story => {
-  story('Out of credits: start', () => (
+  story('Out of credits: before a run', () => (
     <DrawerStory
-      description="No run yet. The start card keeps its explanation, and the CTA takes the place of Start Analysis (autofix_root_cause)."
+      description="No run yet. The autofix-start alert sits at the top; the start card stays below it with Start Analysis disabled (autofix_root_cause)."
       runState={null}
     />
   ));
 
   story('Out of credits: after the root cause', () => (
     <DrawerStory
-      description="The root cause stays readable. The CTA takes the place of “Are you happy with this root cause?” and its Yes, make a plan button (autofix_solution)."
+      description="The autofix-continue alert sits above the root cause. “Are you happy with this root cause?” stays at the bottom with No and Yes, make a plan disabled (autofix_solution). The coding agent menu stays available."
       runState={makeRun([ROOT_CAUSE])}
     />
   ));
 
   story('Out of credits: after the plan', () => (
     <DrawerStory
-      description="The root cause and plan stay readable. The CTA takes the place of Yes, write a code fix (autofix_code_changes)."
+      description="The alert sits above the root cause and plan. No and Yes, write a code fix are disabled (autofix_code_changes)."
       runState={makeRun([ROOT_CAUSE, SOLUTION])}
     />
   ));
 
   story('Out of credits: Create PR', () => (
     <DrawerStory
-      description="Every result so far stays readable, code changes included. The CTA takes the place of Yes, draft a PR (autofix_create_pr)."
+      description="The alert sits above every result so far, code changes included. No and Yes, draft a PR are disabled (autofix_create_pr)."
       runState={makeRun([ROOT_CAUSE, SOLUTION, CODE_CHANGES])}
     />
   ));
 
   story('Out of credits: PR iteration', () => (
     <DrawerStory
-      description="The PR is open. The CTA takes the place of the feedback form that would iterate on it (autofix_pr_iteration)."
+      description="The PR is open. The alert sits at the top, and the feedback form that would iterate on the PR is disabled (autofix_pr_iteration)."
       runState={makeRun([ROOT_CAUSE, SOLUTION, CODE_CHANGES], {
         repo_pr_states: {[PULL_REQUEST.repo_name]: PULL_REQUEST},
       })}
+    />
+  ));
+
+  story('Out of credits: a step that stopped', () => (
+    <DrawerStory
+      description="The plan step failed after the root cause. The autofix-continue alert covers the retry (autofix_solution); the card's own retry is left to the failure handling."
+      runState={makeRun([ROOT_CAUSE, SOLUTION], {status: 'error'})}
+    />
+  ));
+
+  story('With credits: before a run', () => (
+    <DrawerStory
+      description="For comparison: no alert, and Start Analysis is enabled."
+      runState={null}
+      hasEnoughCredits
     />
   ));
 

@@ -12,11 +12,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
-import {
-  AutofixCreditGate,
-  AutofixOutOfCreditsCta,
-  useAutofixCreditCheck,
-} from 'sentry/components/events/autofix/autofixCredits';
+import {useAutofixCreditsDisabled} from 'sentry/components/events/autofix/autofixCredits';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
 import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
@@ -139,20 +135,23 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
 
 function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
   const organization = useOrganization();
+  const canIterate = isRunValidForPrIteration(organization);
+  const creditsDisabled = useAutofixCreditsDisabled('pr_iteration', {
+    enabled: canIterate,
+  });
 
-  if (!isRunValidForPrIteration(organization)) {
+  if (!canIterate) {
     return null;
   }
 
   return (
-    <AutofixCreditGate action="pr_iteration">
-      <PrIterationFeedbackForm
-        autofix={autofix}
-        groupId={group.id}
-        runId={runId}
-        referrer={referrer}
-      />
-    </AutofixCreditGate>
+    <PrIterationFeedbackForm
+      autofix={autofix}
+      groupId={group.id}
+      runId={runId}
+      referrer={referrer}
+      disabled={creditsDisabled}
+    />
   );
 }
 
@@ -208,40 +207,48 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   });
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
+  const creditsDisabled = useAutofixCreditsDisabled('solution', {
+    enabled: defined(artifact),
+  });
 
   if (!defined(artifact)) {
     return null;
   }
 
   return (
-    <AutofixCreditGate action="solution">
-      <NextStepTemplate
-        isProcessing={isPolling}
-        prompt={t('Are you happy with this root cause?')}
-        labelNo={t('No')}
-        onClickNo={handleNoClick}
-        yesButton={
-          <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-            {t('Yes, make a plan')}
-          </Button>
-        }
-        nevermindButton={
-          <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-            {t('Nevermind, make a plan')}
-          </Button>
-        }
-        placeholderPrompt={t('Give seer additional context to improve this root cause.')}
-        rethinkPrompt={rethinkPrompt}
-        rethinkInChat={rethinkInChat}
-        labelRethink={t('Rethink root cause')}
-        askSeer={
-          isCodeMode ? {onAsk: askSeer, prompt: t('Rethink root cause')} : undefined
-        }
-        codingAgentIntegrations={codingAgentIntegrations}
-        codingAgentDisabledReason={codingAgentDisabledReason}
-        onCodingAgentHandoff={handleCodingAgentHandoff}
-      />
-    </AutofixCreditGate>
+    <NextStepTemplate
+      isProcessing={isPolling}
+      creditsDisabled={creditsDisabled}
+      prompt={t('Are you happy with this root cause?')}
+      labelNo={t('No')}
+      onClickNo={handleNoClick}
+      yesButton={
+        <Button
+          variant="primary"
+          disabled={isPolling || creditsDisabled}
+          onClick={handleYesClick}
+        >
+          {t('Yes, make a plan')}
+        </Button>
+      }
+      nevermindButton={
+        <Button
+          variant="primary"
+          disabled={isPolling || creditsDisabled}
+          onClick={handleYesClick}
+        >
+          {t('Nevermind, make a plan')}
+        </Button>
+      }
+      placeholderPrompt={t('Give seer additional context to improve this root cause.')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
+      labelRethink={t('Rethink root cause')}
+      askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink root cause')} : undefined}
+      codingAgentIntegrations={codingAgentIntegrations}
+      codingAgentDisabledReason={codingAgentDisabledReason}
+      onCodingAgentHandoff={handleCodingAgentHandoff}
+    />
   );
 }
 
@@ -289,38 +296,48 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   });
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
+  const creditsDisabled = useAutofixCreditsDisabled('code_changes', {
+    enabled: defined(artifact),
+  });
 
   if (!defined(artifact)) {
     return null;
   }
 
   return (
-    <AutofixCreditGate action="code_changes">
-      <NextStepTemplate
-        isProcessing={isPolling}
-        prompt={t('Are you happy with this plan?')}
-        labelNo={t('No')}
-        onClickNo={handleNoClick}
-        yesButton={
-          <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-            {t('Yes, write a code fix')}
-          </Button>
-        }
-        nevermindButton={
-          <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-            {t('Nevermind, write a code fix')}
-          </Button>
-        }
-        placeholderPrompt={t('Give seer additional context to improve this plan.')}
-        rethinkPrompt={rethinkPrompt}
-        rethinkInChat={rethinkInChat}
-        labelRethink={t('Rethink plan')}
-        askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink plan')} : undefined}
-        codingAgentIntegrations={codingAgentIntegrations}
-        codingAgentDisabledReason={codingAgentDisabledReason}
-        onCodingAgentHandoff={handleCodingAgentHandoff}
-      />
-    </AutofixCreditGate>
+    <NextStepTemplate
+      isProcessing={isPolling}
+      creditsDisabled={creditsDisabled}
+      prompt={t('Are you happy with this plan?')}
+      labelNo={t('No')}
+      onClickNo={handleNoClick}
+      yesButton={
+        <Button
+          variant="primary"
+          disabled={isPolling || creditsDisabled}
+          onClick={handleYesClick}
+        >
+          {t('Yes, write a code fix')}
+        </Button>
+      }
+      nevermindButton={
+        <Button
+          variant="primary"
+          disabled={isPolling || creditsDisabled}
+          onClick={handleYesClick}
+        >
+          {t('Nevermind, write a code fix')}
+        </Button>
+      }
+      placeholderPrompt={t('Give seer additional context to improve this plan.')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
+      labelRethink={t('Rethink plan')}
+      askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink plan')} : undefined}
+      codingAgentIntegrations={codingAgentIntegrations}
+      codingAgentDisabledReason={codingAgentDisabledReason}
+      onCodingAgentHandoff={handleCodingAgentHandoff}
+    />
   );
 }
 
@@ -331,20 +348,12 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
     group,
     enabled: defined(artifact),
   });
-  // Checked alongside the permission check rather than after it, so neither
-  // waits on the other.
-  const creditCheck = useAutofixCreditCheck('create_pr', {enabled: defined(artifact)});
+  const creditsDisabled = useAutofixCreditsDisabled('create_pr', {
+    enabled: defined(artifact),
+  });
 
   if (!defined(artifact)) {
     return null;
-  }
-
-  if (creditCheck.isPending) {
-    return null;
-  }
-
-  if (!creditCheck.hasEnoughCredits) {
-    return <AutofixOutOfCreditsCta />;
   }
 
   if (isPending) {
@@ -360,17 +369,20 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
       referrer={referrer}
       permissionsTarget={permissionsTarget}
       checkTargetWriteAccess={checkTargetWriteAccess}
+      creditsDisabled={creditsDisabled}
     />
   );
 }
 
 interface CodeChangesNextStepContentProps extends NextStepProps {
   checkTargetWriteAccess: () => Promise<boolean>;
+  creditsDisabled: boolean;
   permissionsTarget: PermissionsTarget | null;
 }
 
 function CodeChangesActionButton({
   checkTargetWriteAccess,
+  creditsDisabled,
   getPermissionsLabel,
   isPolling,
   onClick,
@@ -378,6 +390,7 @@ function CodeChangesActionButton({
   readyLabel,
 }: {
   checkTargetWriteAccess: () => Promise<boolean>;
+  creditsDisabled: boolean;
   getPermissionsLabel: (providerName: string) => string;
   isPolling: boolean;
   onClick: () => void;
@@ -399,7 +412,7 @@ function CodeChangesActionButton({
   }
 
   return (
-    <Button variant="primary" disabled={isPolling} onClick={onClick}>
+    <Button variant="primary" disabled={isPolling || creditsDisabled} onClick={onClick}>
       {readyLabel}
     </Button>
   );
@@ -412,6 +425,7 @@ function CodeChangesNextStepContent({
   section,
   referrer,
   checkTargetWriteAccess,
+  creditsDisabled,
   permissionsTarget,
 }: CodeChangesNextStepContentProps) {
   const organization = useOrganization();
@@ -450,12 +464,14 @@ function CodeChangesNextStepContent({
   return (
     <NextStepTemplate
       isProcessing={isPolling}
+      creditsDisabled={creditsDisabled}
       prompt={t('Are you happy with these code changes?')}
       labelNo={t('No')}
       onClickNo={handleNoClick}
       yesButton={
         <CodeChangesActionButton
           checkTargetWriteAccess={checkTargetWriteAccess}
+          creditsDisabled={creditsDisabled}
           getPermissionsLabel={providerName =>
             t('Yes, view %s permissions', providerName)
           }
@@ -468,6 +484,7 @@ function CodeChangesNextStepContent({
       nevermindButton={
         <CodeChangesActionButton
           checkTargetWriteAccess={checkTargetWriteAccess}
+          creditsDisabled={creditsDisabled}
           getPermissionsLabel={providerName => t('View %s permissions', providerName)}
           isPolling={isPolling}
           onClick={handleYesClick}
@@ -487,6 +504,13 @@ function CodeChangesNextStepContent({
 }
 
 interface NextStepTemplateProps {
+  /**
+   * Disables everything here that would start Seer work: the org can't afford
+   * the next step, or the check hasn't answered yet. "No" and "Ask Seer" lead
+   * only to a re-run or a Seer Agent message, so they go too. Coding agents
+   * aren't paid for in Seer credits, so their hand-off stays available.
+   */
+  creditsDisabled: boolean;
   isProcessing: boolean;
   labelNo: ReactNode;
   labelRethink: ReactNode;
@@ -515,6 +539,7 @@ interface NextStepTemplateProps {
 }
 
 function NextStepTemplate({
+  creditsDisabled,
   isProcessing,
   prompt,
   yesButton,
@@ -572,7 +597,7 @@ function NextStepTemplate({
           {nevermindButton}
           <Button
             variant="primary"
-            disabled={isProcessing || !userContext.trim()}
+            disabled={isProcessing || creditsDisabled || !userContext.trim()}
             onClick={() => onClickNo(userContext)}
           >
             {labelRethink}
@@ -588,7 +613,7 @@ function NextStepTemplate({
       <Flex gap="md">
         {askSeer ? (
           <Button
-            disabled={isProcessing}
+            disabled={isProcessing || creditsDisabled}
             icon={<IconSeer />}
             onClick={rethinkInChat ?? (() => askSeer.onAsk(askSeer.prompt))}
           >
@@ -596,7 +621,7 @@ function NextStepTemplate({
           </Button>
         ) : (
           <Button
-            disabled={isProcessing}
+            disabled={isProcessing || creditsDisabled}
             onClick={rethinkInChat ?? (() => handleClickedNo(true))}
           >
             {labelNo}

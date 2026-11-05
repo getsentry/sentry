@@ -408,7 +408,7 @@ function AutofixRefStory() {
   );
 }
 
-const OUT_OF_CREDITS_RUN_ID = 7;
+const CREDITS_RUN_ID = 7;
 
 function finishedStep(step: AutofixExplorerStep, rest: Partial<Block>): Block {
   return {
@@ -498,9 +498,9 @@ const CODE_CHANGES_BLOCK = finishedStep('code_changes', {
   ],
 });
 
-function outOfCreditsRun(blocks: Block[]): ExplorerAutofixState {
+function creditsRun(blocks: Block[]): ExplorerAutofixState {
   return {
-    run_id: OUT_OF_CREDITS_RUN_ID,
+    run_id: CREDITS_RUN_ID,
     blocks,
     status: 'completed',
     updated_at: '2026-10-07T12:00:00Z',
@@ -508,15 +508,17 @@ function outOfCreditsRun(blocks: Block[]): ExplorerAutofixState {
 }
 
 /**
- * Answers the embeds' run request with the given run, the credit check with an
- * empty balance, and every other request with an empty list.
+ * Answers the embeds' run request with the given run, the credit check with the
+ * given balance, and every other request with an empty list.
  */
-class OutOfCreditsQueryClient extends QueryClient {
+class CreditsQueryClient extends QueryClient {
   run: ExplorerAutofixState;
+  hasEnoughCredits: boolean;
 
-  constructor(run: ExplorerAutofixState) {
+  constructor(run: ExplorerAutofixState, hasEnoughCredits: boolean) {
     super({defaultOptions: {queries: {retry: false}}});
     this.run = run;
+    this.hasEnoughCredits = hasEnoughCredits;
   }
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
@@ -528,7 +530,7 @@ class OutOfCreditsQueryClient extends QueryClient {
     const url = String(defaulted.queryKey[0]);
     let json: unknown = [];
     if (url.includes('/seer/credit-check/')) {
-      json = {hasEnoughCredits: false};
+      json = {hasEnoughCredits: this.hasEnoughCredits};
     } else if (url.includes(`/issues/${ISSUE.id}/autofix/`)) {
       json = {autofix: this.run};
     }
@@ -539,20 +541,23 @@ class OutOfCreditsQueryClient extends QueryClient {
 }
 
 /**
- * A conversation in an org with credit checks on that has run out, where the
- * chat can still send, so each embed offers its next step if it can.
+ * A conversation in an org with credit checks on, out of credits unless
+ * `hasEnoughCredits` is set, where the chat can still send, so each embed
+ * offers its next step.
  */
-function OutOfCreditsChat({
+function CreditsChat({
   children,
   description,
   run,
+  hasEnoughCredits = false,
 }: {
   children: ReactNode;
   description: ReactNode;
   run: ExplorerAutofixState;
+  hasEnoughCredits?: boolean;
 }) {
   const organization = useOrganization();
-  const [queryClient] = useState(() => new OutOfCreditsQueryClient(run));
+  const [queryClient] = useState(() => new CreditsQueryClient(run, hasEnoughCredits));
 
   return (
     <Stack gap="md">
@@ -626,33 +631,52 @@ export default Storybook.story('Autofix', story => {
 
   story('Live Autofix run (autofixRef)', () => <AutofixRefStory />);
 
-  story('Out of credits: continue to the plan', () => (
-    <OutOfCreditsChat
-      description="The root cause card keeps its result. Open the card: the CTA takes the place of Continue: Plan (autofix_solution)."
-      run={outOfCreditsRun([ROOT_CAUSE_BLOCK])}
+  story('Out of credits: after the root cause', () => (
+    <CreditsChat
+      description="Open the card. The root cause stays readable; the muted autofix-continue notice sits above Continue: Plan, which is disabled (autofix_solution)."
+      run={creditsRun([ROOT_CAUSE_BLOCK])}
     >
       <User>Why is {ISSUE.shortId} happening?</User>
       <Seer
-        raw={`Here's the root cause:\n\n${autofixRefTag(ISSUE, 'root_cause', OUT_OF_CREDITS_RUN_ID)}`}
+        raw={`Here's the root cause:\n\n${autofixRefTag(ISSUE, 'root_cause', CREDITS_RUN_ID)}`}
       />
-    </OutOfCreditsChat>
+    </CreditsChat>
   ));
 
-  story('Out of credits: draft a pull request', () => (
-    <OutOfCreditsChat
-      description="Every earlier step keeps its result. Open the Code Changes card: the CTA takes the place of Draft a pull request (autofix_create_pr)."
-      run={outOfCreditsRun([ROOT_CAUSE_BLOCK, SOLUTION_BLOCK, CODE_CHANGES_BLOCK])}
+  story('Out of credits: after the plan', () => (
+    <CreditsChat
+      description="Open the card. The plan stays readable; the notice sits above Continue: Code Changes, which is disabled (autofix_code_changes)."
+      run={creditsRun([ROOT_CAUSE_BLOCK, SOLUTION_BLOCK])}
     >
-      <User>Fix {ISSUE.shortId} all the way.</User>
+      <User>Plan a fix for {ISSUE.shortId}.</User>
       <Seer
-        raw={`First, the root cause:\n\n${autofixRefTag(ISSUE, 'root_cause', OUT_OF_CREDITS_RUN_ID)}`}
+        raw={`Here's the plan:\n\n${autofixRefTag(ISSUE, 'solution', CREDITS_RUN_ID)}`}
       />
+    </CreditsChat>
+  ));
+
+  story('Out of credits: Create PR', () => (
+    <CreditsChat
+      description="Open the Code Changes card. The diff stays readable; the notice sits above Draft a pull request, which is disabled (autofix_create_pr)."
+      run={creditsRun([ROOT_CAUSE_BLOCK, SOLUTION_BLOCK, CODE_CHANGES_BLOCK])}
+    >
+      <User>Write the fix for {ISSUE.shortId}.</User>
       <Seer
-        raw={`The plan:\n\n${autofixRefTag(ISSUE, 'solution', OUT_OF_CREDITS_RUN_ID)}`}
+        raw={`And the changes:\n\n${autofixRefTag(ISSUE, 'code_changes', CREDITS_RUN_ID)}`}
       />
+    </CreditsChat>
+  ));
+
+  story('With credits: after the root cause', () => (
+    <CreditsChat
+      description="For comparison: open the card. No notice, and Continue: Plan is enabled."
+      run={creditsRun([ROOT_CAUSE_BLOCK])}
+      hasEnoughCredits
+    >
+      <User>Why is {ISSUE.shortId} happening?</User>
       <Seer
-        raw={`And the changes:\n\n${autofixRefTag(ISSUE, 'code_changes', OUT_OF_CREDITS_RUN_ID)}`}
+        raw={`Here's the root cause:\n\n${autofixRefTag(ISSUE, 'root_cause', CREDITS_RUN_ID)}`}
       />
-    </OutOfCreditsChat>
+    </CreditsChat>
   ));
 });

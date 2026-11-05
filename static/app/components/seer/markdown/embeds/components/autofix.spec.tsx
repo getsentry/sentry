@@ -10,6 +10,8 @@ import type {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {registerOverride} from 'sentry/overrideRegistry';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -517,6 +519,18 @@ describe('AutofixRef embed', () => {
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
+    // getsentry fills in the CTA; this stand-in shows what it was asked for.
+    function StubOutOfCreditsCta({
+      reason,
+      variant = 'warning',
+    }: SeerOutOfCreditsCtaProps) {
+      return <div data-test-id="seer-out-of-credits-cta">{`${variant} ${reason}`}</div>;
+    }
+
+    beforeEach(() => {
+      registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+    });
+
     it.each([
       {step: 'root_cause', button: 'Continue: Plan', operation: 'autofix_solution'},
       {
@@ -529,26 +543,35 @@ describe('AutofixRef embed', () => {
         button: 'Draft a pull request',
         operation: 'autofix_create_pr',
       },
-    ] as const)('swaps $button for the CTA', async ({step, button, operation}) => {
-      mockRun(makeRunThrough(step));
-      const creditCheck = MockApiClient.addMockResponse({
-        url: creditCheckUrl,
-        match: [MockApiClient.matchQuery({operation})],
-        body: {hasEnoughCredits: false},
-      });
+    ] as const)(
+      'shows the CTA above a disabled $button',
+      async ({step, button, operation}) => {
+        mockRun(makeRunThrough(step));
+        const creditCheck = MockApiClient.addMockResponse({
+          url: creditCheckUrl,
+          match: [MockApiClient.matchQuery({operation})],
+          body: {hasEnoughCredits: false},
+        });
 
-      render(
-        <AutofixChatProvider sendMessage={jest.fn()}>
-          <AutofixRefFor step={step} />
-        </AutofixChatProvider>,
-        {organization: creditCheckOrganization}
-      );
-      await expandAll(1);
+        render(
+          <AutofixChatProvider sendMessage={jest.fn()}>
+            <AutofixRefFor step={step} />
+          </AutofixChatProvider>,
+          {organization: creditCheckOrganization}
+        );
+        await expandAll(1);
 
-      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
-      expect(getButtons(button)).toHaveLength(0);
-      expect(creditCheck).toHaveBeenCalledTimes(1);
-    });
+        const cta = await screen.findByTestId('seer-out-of-credits-cta');
+        expect(cta).toHaveTextContent('muted autofix-continue');
+        expect(getButtons(button)).toHaveLength(1);
+        expect(getButtons(button)[0]).toBeDisabled();
+        expect(
+          cta.compareDocumentPosition(getButtons(button)[0]!) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy();
+        expect(creditCheck).toHaveBeenCalledTimes(1);
+      }
+    );
 
     it('keeps the step result visible', async () => {
       mockRun(makeRunThrough('root_cause'));
@@ -565,7 +588,7 @@ describe('AutofixRef embed', () => {
       );
       await expandAll(1);
 
-      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toBeInTheDocument();
       expect(screen.getByText('The cache key collides across orgs')).toBeInTheDocument();
     });
 
@@ -585,7 +608,7 @@ describe('AutofixRef embed', () => {
       await expandAll(1);
 
       await waitFor(() => expect(getButtons('Continue: Plan')[0]).toBeEnabled());
-      expect(screen.queryByTestId('autofix-out-of-credits-cta')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
     });
 
     it('does not check credits in a read-only conversation', async () => {
@@ -601,6 +624,7 @@ describe('AutofixRef embed', () => {
       await expandAll(1);
 
       expect(getButtons('Continue: Plan')).toHaveLength(1);
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
       expect(creditCheck).not.toHaveBeenCalled();
     });
   });

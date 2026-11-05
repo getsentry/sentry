@@ -249,6 +249,7 @@ function AutofixEmptyState({autofix, group, project}: AutofixEmptyStateProps) {
       group={group}
       referrer={referrer}
       onStarted={openSeerDrawer}
+      showOutOfCreditsNotice
     />
   );
 }
