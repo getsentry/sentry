@@ -1,4 +1,4 @@
-import {ATTRIBUTE_SEARCH_FIELD_DEFINITIONS} from './getFieldDefinitionFromAttributeSearchMetadata';
+import {getAttributeSearchFieldDefinition} from './getFieldDefinitionFromAttributeSearchMetadata';
 import {FieldKind, FieldValueType, type FieldDefinition} from './types';
 
 const UNIT_FIELD_VALUE_TYPES = new Set<FieldValueType>([
@@ -18,8 +18,8 @@ export function mergeAttributeSearchMetadata(
   definition: FieldDefinition,
   {keepLocalDescription = false}: {keepLocalDescription?: boolean} = {}
 ): FieldDefinition {
-  const fromSearch = ATTRIBUTE_SEARCH_FIELD_DEFINITIONS[key];
-  if (!Object.hasOwn(ATTRIBUTE_SEARCH_FIELD_DEFINITIONS, key) || !fromSearch) {
+  const fromSearch = getAttributeSearchFieldDefinition(key);
+  if (!fromSearch) {
     return definition;
   }
 
