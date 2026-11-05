@@ -340,14 +340,51 @@ describe('Tour Components', () => {
       expect(screen.getByRole('button', {name: 'Test Action'})).toBeInTheDocument();
       expect(screen.getByText('50/100')).toBeInTheDocument();
       expect(screen.getByText('Child Element')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+      expect(mockHandleDismiss).toHaveBeenCalled();
+    });
+
+    it('focuses subtle guides so Tab reaches their controls', async () => {
+      render(
+        <TourGuide
+          isOpen
+          variant="subtle"
+          title="Test Title"
+          description="Test Description"
+          actions={<TourAction>Test Action</TourAction>}
+        >
+          {props => <button {...props}>Child Element</button>}
+        </TourGuide>
+      );
+
+      await screen.findByText('Test Title');
       await waitFor(() =>
         expect(screen.getByText('Test Title').closest('[tabindex="-1"]')).toHaveFocus()
       );
       await userEvent.tab();
-      expect(screen.getByRole('button', {name: 'Close'})).toHaveFocus();
-      await userEvent.click(screen.getByRole('button', {name: 'Close'}));
-      expect(mockHandleDismiss).toHaveBeenCalled();
+      expect(screen.getByRole('button', {name: 'Test Action'})).toHaveFocus();
     });
+
+    it.each([undefined, 'spotlight'] as const)(
+      'does not move focus for the %s spotlight variant',
+      async variant => {
+        render(
+          <TourGuide
+            isOpen
+            variant={variant}
+            title="Test Title"
+            description="Test Description"
+            onKeyDown={jest.fn()}
+          >
+            {props => <button {...props}>Child Element</button>}
+          </TourGuide>
+        );
+
+        const title = await screen.findByText('Test Title');
+        expect(document.body).toHaveFocus();
+        expect(title.closest('[tabindex="-1"]')).toBeNull();
+      }
+    );
 
     it('scrolls the highlighted element into view and pins the guide to the viewport', async () => {
       const scrolledElements: Element[] = [];

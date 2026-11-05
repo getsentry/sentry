@@ -462,7 +462,7 @@ export function TourGuide({
   onKeyDown,
   focusHandoffRef,
   returnFocusRef,
-  variant,
+  variant = 'spotlight',
 }: TourGuideProps) {
   const theme = useTheme();
   const invertedTheme = useInvertedTheme();
@@ -493,10 +493,11 @@ export function TourGuide({
     }
   }, [isOpen, triggerRef]);
 
+  const isFocusable = variant !== 'spotlight';
   useEffect(() => {
     const overlay = overlayRef.current;
     // The guide's element attaches after it opens, and this runs again then.
-    if (!isOpen || !overlay) {
+    if (!isOpen || !isFocusable || !overlay) {
       return;
     }
     if (focusHandoffRef?.current) {
@@ -531,9 +532,11 @@ export function TourGuide({
         }
       }
     };
-  }, [isOpen, overlayRef, triggerRef, focusHandoffRef, returnFocusRef]);
+  }, [isOpen, isFocusable, overlayRef, triggerRef, focusHandoffRef, returnFocusRef]);
 
-  const focusProps: HTMLAttributes<HTMLElement> = {tabIndex: -1, onKeyDown};
+  const focusProps: HTMLAttributes<HTMLElement> = isFocusable
+    ? {tabIndex: -1, onKeyDown}
+    : {};
 
   return (
     <Fragment>
