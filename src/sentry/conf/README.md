@@ -119,49 +119,47 @@ aliases retain their existing precedence.
 
 ## Deployment prerequisites
 
-Deploy the deployment reader migration only after the GetSentry deployment-consumer release
-has migrated its own readers, and both repositories' candidate settings match
-the currently effective option values in every serving workload. Evaluate the
-actual candidate image with its full bootstrap and intended deployment inputs;
-equality produced by preparation-only promotion is insufficient. Verify again
-before removing compatibility writers. Include database and runtime override
-precedence, conflicting credentials, credential rotations,
-intentionally empty and false values, and legacy aliases in the comparison.
-Nonempty credentials alone do not prove parity. Confirm Slack retains HMAC
-authentication wherever it currently uses HMAC; a verification token cannot
-substitute for a missing signing secret. No production parity evidence is
-provided by this PR. Keep deployment blocked until these checks are complete.
+Deploy Sentry #128309 and GetSentry #22648 in one normal-pinned GetSentry reader
+image after their source prerequisites merge. Keep Sentry #126993 policy in a
+separate serving release. Compare full initialization of the actual reader image
+with currently effective option values in every workload, including jobs and
+canaries. Preparation-only settings equality does not establish consumer parity.
 
-The deployment reader migration switches consumers and removes their old
-registrations together. Legacy admin edits then reject as unknown options.
-Runtime policy and command retirement deploy separately in Sentry #126993.
-Both releases require the same effective-value parity and Slack HMAC checks
-above. Keep GetSentry's compatibility option writes until all Sentry and GetSentry
-readers have migrated. Retired option keys can produce unknown-configuration
-warnings during this overlap; they are not read by migrated consumers. Remove
-those writes in the final GetSentry retirement release.
+Include database and runtime override precedence, conflicting or rotated
+credentials, intentionally empty and false values, aliases, and mail backend
+aliases. Require Slack to retain HMAC wherever it currently uses HMAC. A nonempty
+credential or verification token cannot substitute for a matching signing secret.
+No production parity evidence is supplied by this PR.
 
-Deploy setting support before GetSentry's deployment writers. GetSentry's normal
-Sentry dependency bump must include this readiness. This cutover requires those
-writers and consumers, runtime mounts and matching single-tenant replay
-settings deployed everywhere and soaked. Verify candidate settings and currently served
-values against every serving workload, including jobs and canaries.
+Deploy settings support before GetSentry preparation writers. Use normal merged
+dependency pins, working runtime mounts, and matching replay configuration.
+Keep compatibility writes until the reader release serves everywhere and policy
+soak and rollback closure complete. Compare the final image again before removing
+those writes, which can expose different aliases or defaults.
 
-Pause legacy ConfigMap delivery and drain or cancel queued and in-flight legacy
-applies before removing deployment declarations from either source path. Protect
-the exact delivered ConfigMap hashes and revisions and existing option rows.
-Existing watchers must see unchanged legacy ConfigMaps until they are stopped;
-new namespace delivery remains active. Source declaration removal does not
-authorize delivering omissions to old watchers or implicitly deleting their
-rows. Keep legacy delivery paused through watcher retirement. Rollback restores
-and reconciles declarations, ConfigMaps and currently served values before
-reenabling delivery.
-Unused deployment schema entries may remain until final GetSentry cleanup.
+Stage runtime mirrors and preserved overrides through Automator #10302. Freeze
+legacy ConfigMap delivery, drain queued and in-flight applies, and protect exact
+ConfigMaps, matching declarations, and rows. Roll preparation images to watchers,
+then convert them in place to reporter-only with Ops #24527 and `Recreate`.
+Verify watcher termination in every context and one signed reporter per target
+for both namespaces before Automator #10112 removes deployment declarations.
+Keep new namespace delivery active and retain old ConfigMaps and rollback access.
 
-Export surviving deployment option rows before removing their registrations.
-Unregistered keys are excluded from legacy synchronization. Keep those exports
-out of source control. Retain protected row backups and the previous settings
-and configuration artifacts until the rollback window closes.
+Require parity for every retained runtime key and target before Sentry #126993.
+Supply a mounted value or verify the intended local fallback against current
+behavior, including cached values and null, false, or empty overrides. A missing
+mounted value under authoritative policy can select a registered default instead
+of the legacy DB value. Keep unresolved production evidence as a deployment blocker.
+The Seer token metrics option remains a runtime boolean and needs its schema and
+value parity before its automator registration serves.
+
+Export surviving deployment rows before removing their registrations. Keep exports
+private and retain protected snapshots through rollback closure. Delete reviewed
+configuration rows only after policy soak, rehearsal, and rollback-window closure.
+Use version 2 cleanup plans with explicit `rollback_closed_at`. Unused clients and
+schemas may retire before individual row deletion once those paths cannot use
+configuration rows. Keep inventory and restore tooling through table-removal gates.
+Remove obsolete watcher IAM, RBAC, and restart permissions last.
 
 The six application-state keys remain on the existing `options.get()`,
 `options.set()`, and `options.delete()` APIs and their Option/ControlOption store
@@ -169,7 +167,7 @@ and cache. The keys are `sentry:system-token`, `sentry:install-id`,
 `sentry:latest_version`, `sentry:last_worker_ping`, `sentry:last_worker_version`,
 and `sentry:version-configured`.
 
-Runtime options retain their existing manager, storage, cache, permissions and
-update channels. Legacy `sentry configoptions`, drift checks and presenters
+Until the policy release, runtime options retain their existing manager, storage,
+cache, permissions and update channels. Legacy `sentry configoptions`, drift checks and presenters
 remain available until Sentry #126993 retires that machinery. Keep their
 registrations, settings and dependencies until that release.
