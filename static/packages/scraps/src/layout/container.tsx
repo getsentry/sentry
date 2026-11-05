@@ -383,7 +383,15 @@ export const Container = styled(
   ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
   ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
-  ${p => rc('border-width', p.borderWidth, p.theme, getBorderWidth)};
+  /**
+   * The border shorthands above reset the width wherever they're declared later
+   * in the stylesheet: in responsive @container/@media rules and in wrappers like
+   * Surface. Doubling the class keeps an explicit width ahead of them.
+   */
+  ${p =>
+    p.borderWidth === undefined
+      ? undefined
+      : `&& { ${rc('border-width', p.borderWidth, p.theme, getBorderWidth)} }`};
 
   ${p => rc('visibility', p.visibility, p.theme)};
   ${p => rc('white-space', p.whiteSpace, p.theme)};

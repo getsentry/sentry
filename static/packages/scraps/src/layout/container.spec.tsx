@@ -49,6 +49,23 @@ describe('Container', () => {
     expect(element).not.toHaveAttribute('background');
   });
 
+  it('keeps borderWidth when the border color is responsive', () => {
+    render(
+      <Container borderColor={{xs: 'primary', md: 'danger'}} borderWidth="xl">
+        Hello
+      </Container>,
+      {wrapper: ThemeWrapper}
+    );
+
+    // The md rule re-declares the `border` shorthand after the base rule, so
+    // the width only survives if its rule is more specific.
+    const className = screen.getByText('Hello').className;
+    const rules = Array.from(document.styleSheets).flatMap(sheet =>
+      Array.from(sheet.cssRules, rule => rule.cssText)
+    );
+    expect(rules).toContain(`.${className}.${className} { border-width: 2px; }`);
+  });
+
   it('render prop guards against invalid attributes', () => {
     render(
       // @ts-expect-error - aria-activedescendant should be set on the child element

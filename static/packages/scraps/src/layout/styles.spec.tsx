@@ -228,16 +228,6 @@ describe('getBorderWidth', () => {
   it('returns undefined when omitted, keeping the border default', () => {
     expect(getBorderWidth(undefined, undefined, theme)).toBeUndefined();
   });
-
-  it('overrides the border shorthand width when emitted after it', () => {
-    const output = [
-      rc('border', 'primary', theme, getBorder),
-      rc('border-width', 'xl', theme, getBorderWidth),
-    ].join('');
-    expect(output.indexOf('border-width: 2px')).toBeGreaterThan(
-      output.indexOf(`border: 1px solid`)
-    );
-  });
 });
 
 describe('getBackground', () => {
