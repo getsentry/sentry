@@ -1,12 +1,13 @@
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import NotRequired, TypedDict, cast
+from typing import Annotated, NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry import quotas
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -21,19 +22,34 @@ from sentry.utils.eventuser import EventUser, SerializedEventUser
 
 
 class UserReportEvent(TypedDict):
-    id: str
-    eventID: str
+    id: Annotated[str, ApiDescription("ID of the event the feedback is attached to")]
+    eventID: Annotated[str, ApiDescription("ID of the event the feedback is attached to")]
 
 
 class UserReportSerializerResponse(TypedDict):
-    id: str
-    eventID: str
-    name: str | None
-    email: str | None
-    comments: str
-    dateCreated: datetime
-    user: SerializedEventUser | None
-    event: UserReportEvent
+    id: Annotated[str, ApiDescription("ID of the feedback")]
+    eventID: Annotated[str, ApiDescription("ID of the event the feedback is attached to")]
+    name: Annotated[
+        str | None,
+        ApiDescription(
+            "Name of the user who submitted the feedback. Falls back to the feedback's email address, then to the event user's name"
+        ),
+    ]
+    email: Annotated[
+        str | None,
+        ApiDescription(
+            "Email address of the user who submitted the feedback. Falls back to the event user's email address"
+        ),
+    ]
+    comments: Annotated[str, ApiDescription("Comments the user submitted")]
+    dateCreated: Annotated[datetime, ApiDescription("When the feedback was submitted (ISO 8601)")]
+    user: Annotated[
+        SerializedEventUser | None,
+        ApiDescription(
+            "User recorded on the feedback's event. Null when the event isn't found or has no user"
+        ),
+    ]
+    event: Annotated[UserReportEvent, ApiDescription("Event the feedback is attached to")]
 
 
 class UserReportWithGroupSerializerResponse(UserReportSerializerResponse):
