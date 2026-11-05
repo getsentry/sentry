@@ -22,7 +22,6 @@ export function useRecurringCredits(): RecurringCreditsContext {
       {path: {organizationIdOrSlug: organization.slug}, staleTime: Infinity}
     ),
     enabled,
-    notifyOnChangeProps: ['data', 'isLoading'],
   });
   return {recurringCredits, isLoading: enabled ? isPending : false};
 }
