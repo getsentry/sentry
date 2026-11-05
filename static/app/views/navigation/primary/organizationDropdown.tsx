@@ -138,7 +138,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       ),
       label: isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
       onAction: () => {
-        trackAnalytics('settings.org_menu.project_bookmark_toggled', {
+        trackAnalytics('settings_navigation.project_bookmark_toggled', {
           organization,
           bookmarked: !isBookmarked,
           source,
@@ -159,7 +159,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       source === 'quick_access' ? 'quick-access-project' : 'project'
     ),
     onAction: () =>
-      trackAnalytics('settings.org_menu.project_clicked', {organization, source}),
+      trackAnalytics('settings_navigation.project_clicked', {organization, source}),
   });
 
   const avatarProps = getOrganizationAvatarProps(organization);

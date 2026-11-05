@@ -37,9 +37,14 @@ export type SettingsEventParameters = {
     entry_point: SettingsEntryPoint;
   };
   /**
+   * A different project was picked in the project selector at the top of the
+   * project settings sidebar.
+   */
+  'settings.project_selector.changed': Record<string, unknown>;
+  /**
    * A project was starred or unstarred from the organization avatar menu.
    */
-  'settings.org_menu.project_bookmark_toggled': {
+  'settings_navigation.project_bookmark_toggled': {
     bookmarked: boolean;
     source: SettingsOrgMenuProjectSource;
   };
@@ -47,14 +52,9 @@ export type SettingsEventParameters = {
    * A project was clicked in the organization avatar menu, opening its
    * project settings.
    */
-  'settings.org_menu.project_clicked': {
+  'settings_navigation.project_clicked': {
     source: SettingsOrgMenuProjectSource;
   };
-  /**
-   * A different project was picked in the project selector at the top of the
-   * project settings sidebar.
-   */
-  'settings.project_selector.changed': Record<string, unknown>;
   'sidebar.item_clicked': {
     dest: string;
     project_id?: string;
@@ -70,9 +70,9 @@ export const settingsEventMap: Record<SettingsEventKey, string | null> = {
   'notification_settings.updated_tuning_setting':
     'Notification Settings: Updated Tuning Setting',
   'settings.entry_point_clicked': 'Settings: Entry Point Clicked',
-  'settings.org_menu.project_bookmark_toggled':
-    'Settings: Organization Menu Project Star Toggled',
-  'settings.org_menu.project_clicked': 'Settings: Organization Menu Project Clicked',
+  'settings_navigation.project_bookmark_toggled':
+    'Settings Navigation: Project Star Toggled',
+  'settings_navigation.project_clicked': 'Settings Navigation: Project Clicked',
   'settings.project_selector.changed': 'Settings: Sidebar Project Selector Changed',
   'sidebar.item_clicked': 'Sidebar: Item Clicked',
 };
