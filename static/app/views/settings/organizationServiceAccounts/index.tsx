@@ -95,9 +95,7 @@ export default function OrganizationServiceAccounts() {
   const projectsById = new Map(projects.map(project => [project.id, project]));
   // `service_account:*` isn't in the frontend's API_ACCESS_SCOPES yet, so <Access> can't
   // check it.
-  const canCreate = (organization.access as readonly string[]).includes(
-    'service_account:write'
-  );
+  const canCreate = new Set<string>(organization.access).has('service_account:write');
 
   const {
     data: serviceAccounts,

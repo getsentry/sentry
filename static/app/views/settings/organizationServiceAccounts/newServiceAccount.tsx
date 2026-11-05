@@ -76,19 +76,18 @@ const DEFAULT_VALUES: FormValues = {
   projectIds: [],
 };
 
-type ServiceAccountErrorDetail = Partial<
-  Record<'name' | 'projectIds' | 'scopes', string[]>
->;
+const errorDetailSchema = z.union([
+  z.string(),
+  z.object({
+    name: z.array(z.string()).optional(),
+    projectIds: z.array(z.string()).optional(),
+    scopes: z.array(z.string()).optional(),
+  }),
+]);
 
-function getErrorDetail(error: RequestError): ServiceAccountErrorDetail | string | null {
-  const detail = error.responseJSON?.detail;
-  if (typeof detail === 'string') {
-    return detail;
-  }
-  if (detail && typeof detail === 'object') {
-    return detail as ServiceAccountErrorDetail;
-  }
-  return null;
+function getErrorDetail(error: RequestError) {
+  const result = errorDetailSchema.safeParse(error.responseJSON?.detail);
+  return result.success ? result.data : null;
 }
 
 export default function OrganizationServiceAccountsNew() {
