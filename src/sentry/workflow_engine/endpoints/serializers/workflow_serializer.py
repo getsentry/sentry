@@ -67,9 +67,12 @@ class WorkflowSerializerResponse(TypedDict):
     organizationId: Annotated[str, ApiDescription("ID of the organization the workflow belongs to")]
     createdBy: Annotated[str | None, ApiDescription("ID of the user who created the workflow")]
     dateCreated: Annotated[datetime, ApiDescription("When the workflow was created (ISO 8601)")]
-    dateUpdated: Annotated[datetime, ApiDescription("When the workflow was last updated (ISO 8601)")]
+    dateUpdated: Annotated[
+        datetime, ApiDescription("When the workflow was last updated (ISO 8601)")
+    ]
     triggers: Annotated[
-        TriggerSerializerResponse | None, ApiDescription("Conditions on which the workflow triggers")
+        TriggerSerializerResponse | None,
+        ApiDescription("Conditions on which the workflow triggers"),
     ]
     actionFilters: Annotated[
         list[TriggerSerializerResponse] | None,
@@ -82,7 +85,8 @@ class WorkflowSerializerResponse(TypedDict):
         ),
     ]
     config: Annotated[
-        dict[str, Any], ApiDescription("Configuration of the workflow, such as frequency in minutes")
+        dict[str, Any],
+        ApiDescription("Configuration of the workflow, such as frequency in minutes"),
     ]
     detectorIds: Annotated[
         list[str] | None, ApiDescription("IDs of the monitors connected to the workflow")
@@ -92,7 +96,8 @@ class WorkflowSerializerResponse(TypedDict):
         datetime | None, ApiDescription("When the workflow last fired (ISO 8601)")
     ]
     owner: Annotated[
-        str | None, ApiDescription("Team or user that owns the workflow, such as user:123 or team:456")
+        str | None,
+        ApiDescription("Team or user that owns the workflow, such as user:123 or team:456"),
     ]
 
 
