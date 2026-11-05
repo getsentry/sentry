@@ -230,6 +230,20 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
             "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
             "sentry.utils.sentry_apps.webhooks.send_and_save_webhook_request",
         ),
+        # INFRENG-931: inbound filter feature adoption runs inside the project creation transaction
+        # https://linear.app/getsentry/issue/INFRENG-931
+        (
+            "sentry.models.featureadoption.FeatureAdoptionManager.record",
+            "sentry.receivers.features.record_inbound_filter_toggled",
+            "sentry.api.helpers.default_inbound_filters.set_default_inbound_filters",
+        ),
+        # INFRENG-932: delete-and-discard feature adoption runs inside the discard transaction
+        # https://linear.app/getsentry/issue/INFRENG-932
+        (
+            "sentry.models.featureadoption.FeatureAdoptionManager.record",
+            "sentry.receivers.features.deleted_and_discarded_issue",
+            "sentry.api.helpers.group_index.update.handle_discard",
+        ),
     }
 )
 
