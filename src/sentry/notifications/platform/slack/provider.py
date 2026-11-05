@@ -192,7 +192,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
                 organization_id=routing_data.organization_id,
                 project_id=routing_data.project_id,
                 tracking=tracking,
-                discriminator=routing_data.discriminator,
+                suffix=routing_data.suffix,
             )
             if tracked_action_id == action_id:
                 return None
@@ -200,6 +200,11 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
             return tracked_action_id
 
         def is_counted_by_page_load(url: str | None) -> bool:
+            """
+            Whether the button opens a link decorated with this notification, whose clicks the
+            click middleware records when the page loads. Marking such a button too would count
+            each click twice.
+            """
             if not url:
                 return False
             query = parse_qs(urlsplit(url).query)

@@ -44,7 +44,9 @@ class SlackRoutingData:
     organization_id: int | None = None
     project_id: int | None = None
     tracking: SlackActionTracking | None = None
-    discriminator: str | None = None
+    # Tells apart buttons with the same action in one block, such as one View PR button per pull
+    # request, since Slack rejects a block whose action IDs aren't unique.
+    suffix: str | None = None
 
 
 def encode_action_id(
@@ -53,20 +55,18 @@ def encode_action_id(
     organization_id: int,
     project_id: int | None,
     tracking: SlackActionTracking | None = None,
-    discriminator: str | None = None,
+    suffix: str | None = None,
 ) -> str:
     """
-    Used to encode routing data into the outbound action_id for a Slack block. `discriminator`
-    tells apart buttons with the same action in one block, since Slack requires each action ID in
-    a block to be unique. `tracking` is left off if it would make the action ID longer than Slack
-    allows.
+    Used to encode routing data into the outbound action_id for a Slack block. `tracking` is left
+    off if it would make the action ID longer than Slack allows.
     """
-    if discriminator is not None:
-        routing = f"{action}::{organization_id}::{project_id or ''}::{discriminator}"
-    elif project_id:
-        routing = f"{action}::{organization_id}::{project_id}"
-    else:
-        routing = f"{action}::{organization_id}"
+    segments = [action, str(organization_id)]
+    if project_id or suffix is not None:
+        segments.append(str(project_id or ""))
+    if suffix is not None:
+        segments.append(suffix)
+    routing = "::".join(segments)
     if tracking is None:
         return routing
     tracked = f"{routing}{_TRACKING_SEPARATOR}{tracking.encode()}"
@@ -77,31 +77,16 @@ def decode_action_id(encoded_action_id: str) -> SlackRoutingData:
     """Used to decode the routing data from the inbound action_id on a Slack block."""
     routing, separator, encoded_tracking = encoded_action_id.partition(_TRACKING_SEPARATOR)
     tracking = SlackActionTracking.decode(encoded_tracking) if separator else None
-    action_target_values = routing.split("::")
+    action, organization_id, project_id, suffix = [*routing.split("::"), "", "", ""][:4]
     try:
-        if len(action_target_values) == 4:
-            return SlackRoutingData(
-                action=action_target_values[0],
-                organization_id=int(action_target_values[1]),
-                project_id=int(action_target_values[2]) if action_target_values[2] else None,
-                tracking=tracking,
-                discriminator=action_target_values[3],
-            )
-        elif len(action_target_values) == 3:
-            return SlackRoutingData(
-                action=action_target_values[0],
-                organization_id=int(action_target_values[1]),
-                project_id=int(action_target_values[2]),
-                tracking=tracking,
-            )
-        elif len(action_target_values) == 2:
-            return SlackRoutingData(
-                action=action_target_values[0],
-                organization_id=int(action_target_values[1]),
-                tracking=tracking,
-            )
+        return SlackRoutingData(
+            action=action,
+            organization_id=int(organization_id) if organization_id else None,
+            project_id=int(project_id) if project_id else None,
+            tracking=tracking,
+            suffix=suffix or None,
+        )
     except ValueError as e:
         # If we can't parse the IDs as integers, fail silently since this is just routing
         logger.info("invalid_identifiers", extra={"action_id": encoded_action_id, "error": e})
-        pass
-    return SlackRoutingData(action=action_target_values[0], tracking=tracking)
+        return SlackRoutingData(action=action, tracking=tracking)

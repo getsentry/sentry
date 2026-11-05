@@ -85,7 +85,7 @@ class TrackedClickTest(BaseEventTest):
                         organization_id=self.organization.id,
                         project_id=self.project.id,
                         tracking=tracking,
-                        discriminator="123",
+                        suffix="123",
                     ),
                     "text": {"type": "plain_text", "text": "View PR (#123)"},
                     "url": "https://github.com/org/repo/pull/123",

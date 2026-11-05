@@ -275,7 +275,7 @@ class SeerSlackRendererTest(TestCase):
         routing = [decode_action_id(button.action_id or "") for button in pr_buttons]
         assert [r.action for r in routing] == [SlackAction.SEER_AUTOFIX_VIEW_PR] * 2
         assert [r.organization_id for r in routing] == [data.organization_id] * 2
-        assert [r.discriminator for r in routing] == ["123", "456"]
+        assert [r.suffix for r in routing] == ["123", "456"]
 
     def test_render_autofix_update_root_cause_with_handoff_target(self) -> None:
         data = self._create_update(

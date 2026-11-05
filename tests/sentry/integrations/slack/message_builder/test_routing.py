@@ -62,7 +62,7 @@ class SlackRequestRoutingTest(TestCase):
             assert decoded.project_id == project_id
             assert decoded.tracking == TRACKING
 
-    def test_discriminator_round_trip(self) -> None:
+    def test_suffix_round_trip(self) -> None:
         for project_id in (self.project.id, None):
             for tracking in (TRACKING, None):
                 encoded = encode_action_id(
@@ -70,14 +70,14 @@ class SlackRequestRoutingTest(TestCase):
                     organization_id=self.organization.id,
                     project_id=project_id,
                     tracking=tracking,
-                    discriminator="123",
+                    suffix="123",
                 )
                 decoded = decode_action_id(encoded)
                 assert decoded.action == SlackAction.SEER_AUTOFIX_VIEW_PR
                 assert decoded.organization_id == self.organization.id
                 assert decoded.project_id == project_id
                 assert decoded.tracking == tracking
-                assert decoded.discriminator == "123"
+                assert decoded.suffix == "123"
 
     def test_encode_action_id_drops_tracking_when_too_long(self) -> None:
         action = "a" * 250

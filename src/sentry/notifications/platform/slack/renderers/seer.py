@@ -270,7 +270,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                         action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
                         organization_id=data.organization_id,
                         project_id=data.project_id,
-                        discriminator=str(pr["pr_number"]),
+                        suffix=str(pr["pr_number"]),
                     ),
                 )
             )
