@@ -314,8 +314,11 @@ describe('desktop navigation', () => {
         </PrimaryNavigationContextProvider>,
         navigationContext({organization: settingsV3})
       );
-      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
-      await userEvent.tab({shift: true});
+      const initialGuide = await screen.findByText('Access Settings here');
+      await waitFor(() => expect(initialGuide.closest('[tabindex="-1"]')).toHaveFocus());
+      await userEvent.tab();
+      expect(screen.getByRole('button', {name: 'Close'})).toHaveFocus();
+      await userEvent.tab();
       expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
       await userEvent.keyboard('{Enter}');
       const guide = await screen.findByText(
