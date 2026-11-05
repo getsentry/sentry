@@ -173,10 +173,7 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
                     },
                 ],
             },
-            "config": {
-                "thresholdPeriod": 1,
-                "detectionType": AlertRuleDetectionType.STATIC.value,
-            },
+            "config": {"detectionType": AlertRuleDetectionType.STATIC.value},
             "workflowIds": [self.connected_workflow.id],
         }
 
