@@ -85,9 +85,8 @@ def _dedupe_key(message: dict[str, Any]) -> str | None:
     message_id = (message.get("headers") or {}).get("Message-Id")
     if not message_id:
         return None
-    # make_msgid() only combines second, pid and a 5-digit random number, so
-    # unrelated emails can share a Message-Id. Including the recipients keeps
-    # such a collision from suppressing a different email.
+    # unrelated emails can share a Message-Id
+    # including the recipients prevents such a collision
     recipients = sorted(
         {*(message.get("to") or ()), *(message.get("cc") or ()), *(message.get("bcc") or ())}
     )
