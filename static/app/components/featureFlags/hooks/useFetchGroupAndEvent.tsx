@@ -1,7 +1,8 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Event} from 'sentry/types/event';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
@@ -33,24 +34,20 @@ export function useFetchGroupAndEvent({
     isPending: isEventPending,
     isError: isEventError,
     error: eventError,
-  } = useApiQuery<Event>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug!,
-            eventId: eventId!,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: Infinity,
-      enabled: enabled && Boolean(eventId && projectSlug && organization.slug),
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<Event>()(
+      '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectSlug!,
+          eventId: eventId!,
+        },
+        staleTime: Infinity,
+      }
+    ),
+    enabled: enabled && Boolean(eventId && projectSlug && organization.slug),
+  });
 
   return {
     event,

@@ -1,3 +1,5 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
@@ -7,12 +9,11 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
@@ -52,20 +53,17 @@ const useApdex = (props: Props) => {
     dataset: DiscoverDatasets.SPANS,
   };
 
-  const currentQuery = useApiQuery<TableData>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          ...commonQuery,
-          ...normalizeDateTimeParams(datetime),
-        },
+  const currentQuery = useQuery({
+    ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        ...commonQuery,
+        ...normalizeDateTimeParams(datetime),
       },
-    ],
-    {staleTime: Infinity, enabled: isEnabled}
-  );
+      staleTime: Infinity,
+    }),
+    enabled: isEnabled,
+  });
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
     start: datetime.start,
@@ -73,24 +71,18 @@ const useApdex = (props: Props) => {
     period: datetime.period,
   });
 
-  const previousQuery = useApiQuery<TableData>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          ...commonQuery,
-          statsPeriodStart: doubledPeriod,
-          statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
-        },
+  const previousQuery = useQuery({
+    ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        ...commonQuery,
+        statsPeriodStart: doubledPeriod,
+        statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
       },
-    ],
-    {
       staleTime: Infinity,
-      enabled: isEnabled && isPreviousPeriodEnabled,
-    }
-  );
+    }),
+    enabled: isEnabled && isPreviousPeriodEnabled,
+  });
 
   return {
     data: currentQuery.data,

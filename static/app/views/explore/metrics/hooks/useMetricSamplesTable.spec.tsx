@@ -125,9 +125,7 @@ describe('useMetricSamplesTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'metric.name:test.metric metric.type:counter',
-          caseInsensitive: undefined,
           dataset: 'tracemetrics',
-          disableAggregateExtrapolation: undefined,
           environment: ['prod'],
           field: [
             'id',
@@ -185,9 +183,6 @@ describe('useMetricSamplesTable', () => {
         query: expect.objectContaining({
           statsPeriodStart: '24h',
           statsPeriodEnd: '120s',
-          statsPeriod: undefined,
-          start: undefined,
-          end: undefined,
         }),
       })
     );

@@ -1,9 +1,9 @@
 import {useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import type {Event} from 'sentry/types/event';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
@@ -15,21 +15,20 @@ export function useRedirectToFeedbackFromEvent() {
   const [eventId] = useQueryState('eventId', parseAsString);
   const [projectSlug] = useQueryState('projectSlug', parseAsString);
 
-  const {data: event} = useApiQuery<Event>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/', {
+  const {data: event} = useQuery({
+    ...apiOptions.as<Event>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectSlug ?? '',
           eventId: eventId ?? '',
         },
-      }),
-    ],
-    {
-      staleTime: Infinity,
-      enabled: Boolean(eventId) && Boolean(projectSlug),
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    enabled: Boolean(eventId) && Boolean(projectSlug),
+  });
 
   useEffect(() => {
     if (projectSlug && event?.groupID) {
