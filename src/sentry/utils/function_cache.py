@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import timedelta
 from decimal import Decimal
 from functools import partial, update_wrapper
 from typing import Generic, TypeVar, TypeVarTuple
 
 from django.core.cache import cache
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models.signals import post_delete, post_save
 
+from sentry.utils import metrics
+from sentry.utils.env import in_test_environment
 from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
@@ -149,3 +151,92 @@ class CachedFunction(Generic[*Ts, R]):
             cache.set_many(to_cache, timeout=self.cache_ttl.total_seconds())
 
         return [values[ck] for ck in cache_keys]
+
+
+class CommitSafeCachedFunction(Generic[*Ts, R]):
+    def __init__(
+        self, func: Callable[[*Ts], R], cache_ttl: timedelta, db_model: type[models.Model]
+    ):
+        self.func = func
+        self.cache_ttl = cache_ttl
+        self.db_model = db_model
+
+    def __call__(self, *args: *Ts) -> R:
+        # A write in this transaction could hand us a value that never commits.
+        if in_open_transaction(self.db_model):
+            self._record("bypass")
+            return self.func(*args)
+
+        cache_key = cache_key_for_cached_func(self.func, *args)
+        value = cache.get(cache_key)
+        if value is not None:
+            self._record("hit")
+            return value
+
+        self._record("miss")
+        value = self.func(*args)
+        cache.set(cache_key, value, timeout=self.cache_ttl.total_seconds())
+        return value
+
+    def _record(self, result: str) -> None:
+        metrics.incr(
+            "function_cache.get",
+            tags={"function": self.func.__qualname__, "result": result},
+        )
+
+    def clear(self, *args: *Ts) -> None:
+        cache_key = cache_key_for_cached_func(self.func, *args)
+        cache.delete(cache_key)
+        # A reader can cache the old value between now and commit.
+        transaction.on_commit(
+            lambda: cache.delete(cache_key), using=router.db_for_write(self.db_model)
+        )
+
+
+def cache_func_for_models_until_commit(
+    cache_invalidators: list[tuple[type[S], Callable[[S], Iterable[tuple[*Ts]]]]],
+    cache_ttl: timedelta,
+) -> Callable[[Callable[[*Ts], R]], CommitSafeCachedFunction[*Ts, R]]:
+    """Like ``cache_func_for_models`` with ``recalculate=False``, but safe around
+    transactions, and each invalidator can return several sets of args.
+
+    Reads inside an open transaction on the first invalidator model's database skip
+    the cache. Invalidation deletes the key now and again when the transaction
+    commits.
+
+    Writes that skip model signals, like ``QuerySet.update``, must call ``.clear``.
+    """
+
+    def decorator(func: Callable[[*Ts], R]) -> CommitSafeCachedFunction[*Ts, R]:
+        cached = CommitSafeCachedFunction(func, cache_ttl, db_model=cache_invalidators[0][0])
+        for model, args_getter in cache_invalidators:
+
+            def clear_for_instance(
+                instance: S,
+                args_getter: Callable[[S], Iterable[tuple[*Ts]]] = args_getter,
+                **kwargs: object,
+            ) -> None:
+                for args in set(args_getter(instance)):
+                    cached.clear(*args)
+
+            post_save.connect(clear_for_instance, sender=model, weak=False)
+            post_delete.connect(clear_for_instance, sender=model, weak=False)
+        return cached
+
+    return decorator
+
+
+def in_open_transaction(model: type[models.Model]) -> bool:
+    """Whether the caller is inside a transaction on ``model``'s database, ignoring
+    the ones tests wrap around each case."""
+    using = router.db_for_write(model)
+    if in_test_environment():
+        from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks  # NOQA:S007
+
+        return (
+            simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+                using=using
+            )
+            > 0
+        )
+    return transaction.get_connection(using).in_atomic_block

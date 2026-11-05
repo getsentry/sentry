@@ -1,12 +1,18 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, create_autospec
 
-from django.db import models
+from django.core.cache import cache
+from django.db import models, router, transaction
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import cell_silo_model
 from sentry.testutils.cases import TestCase
-from sentry.utils.function_cache import cache_func, cache_func_for_models
+from sentry.utils.function_cache import (
+    cache_func,
+    cache_func_for_models,
+    cache_func_for_models_until_commit,
+    cache_key_for_cached_func,
+)
 
 cache_func_for_models
 
@@ -116,6 +122,55 @@ class CacheFuncForModelsTest(TestCase):
         results = decorated_test_func.batch([("test1",), ("test2",), ("test3",)])
         assert results == [1, 0, 0]
         assert mock_test_func.call_count == 5
+
+
+class CacheFuncForModelsUntilCommitTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.mock_test_func = create_autospec(count_func)
+        self.mock_test_func.side_effect = count_func
+        self.cached = cache_func_for_models_until_commit(
+            [(CacheModel, lambda instance: [(instance.some_field,)])], cache_ttl=_TTL
+        )(self.mock_test_func)
+
+    def test_repeat_call_reads_cache(self) -> None:
+        assert self.cached("test") == 0
+        assert self.cached("test") == 0
+        assert self.mock_test_func.call_count == 1
+
+    def test_model_save_clears_cache(self) -> None:
+        assert self.cached("test") == 0
+
+        CacheModel.objects.create(some_field="test")
+
+        assert self.mock_test_func.call_count == 1
+        assert self.cached("test") == 1
+        assert self.mock_test_func.call_count == 2
+
+    def test_model_delete_clears_cache(self) -> None:
+        instance = CacheModel.objects.create(some_field="test")
+        assert self.cached("test") == 1
+
+        instance.delete()
+
+        assert self.cached("test") == 0
+
+    def test_clear(self) -> None:
+        assert self.cached("test") == 0
+        CacheModel.objects.filter(some_field="test").update(some_field="other")
+
+        self.cached.clear("test")
+
+        assert self.cached("test") == 0
+        assert self.mock_test_func.call_count == 2
+
+    def test_open_transaction_skips_cache(self) -> None:
+        with transaction.atomic(using=router.db_for_write(CacheModel)):
+            assert self.cached("test") == 0
+            assert self.cached("test") == 0
+
+        assert self.mock_test_func.call_count == 2
+        assert cache.get(cache_key_for_cached_func(self.mock_test_func, "test")) is None
 
 
 class CacheFuncTest(TestCase):
