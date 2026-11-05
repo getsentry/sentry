@@ -8,7 +8,7 @@ import {
   UserAvatar,
   type BaseAvatarProps,
 } from '@sentry/scraps/avatar';
-import {useAvatarColors} from '@sentry/scraps/avatarButton';
+import {getAvatarGradient, useAvatarColors} from '@sentry/scraps/avatarButton';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {useInvertedTheme} from '@sentry/scraps/theme';
@@ -75,6 +75,9 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
   );
 }
 
+const DEFAULT_GRADIENT_START = '#2c155c';
+const DEFAULT_GRADIENT_END = '#4e168c';
+
 function MenuHeader({
   label,
   title,
@@ -91,7 +94,10 @@ function MenuHeader({
   const currentTheme = useTheme();
   const invertedTheme = useInvertedTheme();
   const avatarColors = useAvatarColors(avatarProps);
-  const backgroundColor = avatarColors.type === 'image' ? avatarColors.chonk : undefined;
+  const [gradientStart, gradientEnd] =
+    avatarColors.type === 'none'
+      ? [DEFAULT_GRADIENT_START, DEFAULT_GRADIENT_END]
+      : getAvatarGradient(avatarColors.dominant, DEFAULT_GRADIENT_END);
 
   return (
     <ThemeProvider theme={currentTheme.type === 'dark' ? currentTheme : invertedTheme}>
@@ -100,17 +106,7 @@ function MenuHeader({
         padding="xs"
         css={theme => css`
           margin: -${theme.space.sm} -${theme.space.lg};
-          background: linear-gradient(90deg, #2c155c, #4e168c);
-          ${
-            backgroundColor &&
-            css`
-              background: linear-gradient(
-                90deg,
-                color-mix(in srgb, ${backgroundColor} 25%, black),
-                color-mix(in srgb, ${backgroundColor} 40%, black)
-              );
-            `
-          }
+          background: linear-gradient(90deg, ${gradientStart}, ${gradientEnd});
         `}
       >
         <Stack gap="md" padding="md lg">
