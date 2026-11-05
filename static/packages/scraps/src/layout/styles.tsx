@@ -300,7 +300,7 @@ export function getBorderLonghands(
 /**
  * Resolves a border width token.
  */
-export function getBorderWidth(
+function getBorderWidth(
   width: BorderWidth | undefined,
   _breakpoint: ResponsiveBreakpoint | undefined,
   theme: Theme
