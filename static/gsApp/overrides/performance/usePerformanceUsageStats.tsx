@@ -44,7 +44,7 @@ export function usePerformanceUsageStats({
     },
   };
 
-  const results = useQuery(
+  const {data} = useQuery(
     apiOptions.as<PartialUsageStats>()('/organizations/$organizationIdOrSlug/stats_v2/', {
       path: {organizationIdOrSlug: organization.slug},
       ...endpointOptions,
@@ -53,9 +53,7 @@ export function usePerformanceUsageStats({
   );
 
   return {
-    // oxlint-disable-next-line @tanstack/query/no-rest-destructuring -- Preserve the shared hook result interface.
-    ...results,
-    data: results.data?.groups?.find(group =>
+    data: data?.groups?.find(group =>
       [
         'transaction_usage_exceeded',
         'span_usage_exceeded',
