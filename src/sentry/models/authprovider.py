@@ -126,7 +126,7 @@ class AuthProvider(ReplicatedControlModel):
         # check if we have a scim app already
 
         if SentryAppInstallationForProvider.objects.filter(
-            organization_id=self.organization_id, provider=f"{self.provider}_scim"
+            organization_id=self.organization_id, provider="okta_scim"
         ).exists():
             logger.warning(
                 "SCIM installation already exists",
