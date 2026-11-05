@@ -35,6 +35,7 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.feature.dispatch import continue_single_run
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
+from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun
@@ -270,9 +271,9 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         try:
             client = SeerAgentClient(organization, request.user)
             state = client.get_run(run_id=resolved.seer_run_state_id)
-            return Response(
-                SeerAgentChatStateResponse(session=state, sentry_run_id=resolved.uuid).dict()
-            )
+            body = SeerAgentChatStateResponse(session=state, sentry_run_id=resolved.uuid).dict()
+            body["session"]["feature_id"] = SINGLE_RUN_FEATURE_ID if is_single_run(state) else None
+            return Response(body)
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except SeerApiError as e:

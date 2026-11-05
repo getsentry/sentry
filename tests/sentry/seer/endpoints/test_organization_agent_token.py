@@ -2646,6 +2646,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                     return_value=SimpleNamespace(seer_run_state_id=1, uuid=uuid4()),
                 )
             )
+            downstream_scope.enter_context(
+                patch(
+                    "sentry.seer.endpoints.group_ai_autofix.is_single_run_mirror",
+                    return_value=False,
+                )
+            )
             # Kickoffs are gated on Seer setup (SCM integration + linked repos)
             # mirroring the frontend; that gate is owned by test_group_ai_autofix,
             # so assume a configured project and keep this matrix about auth.
