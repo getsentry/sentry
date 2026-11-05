@@ -39,7 +39,7 @@ class OrganizationPrebuiltTelemetryClassifiersTest(APITestCase):
             "task_failure",
             "stuck_in_loop",
         ]
-        assert [c["key"] for c in trace_spans.data] == ["refusal"]
+        assert [c["key"] for c in trace_spans.data] == ["failed_operation"]
 
     def test_rejects_unknown_dataset(self) -> None:
         with self.feature(self.features):

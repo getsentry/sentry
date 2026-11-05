@@ -197,13 +197,13 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
         assert not TelemetryClassifier.objects.exists()
 
     def test_creates_prebuilt_classifier_for_trace_spans(self) -> None:
-        payload = self.payload(dataset="trace_spans", prebuiltClassifierKey="refusal")
+        payload = self.payload(dataset="trace_spans", prebuiltClassifierKey="failed_operation")
 
         with self.feature(self.features):
             response = self.get_success_response(self.organization.slug, **payload, status_code=201)
 
         assert response.data["dataset"] == "trace_spans"
-        assert response.data["prebuiltClassifierKey"] == "refusal"
+        assert response.data["prebuiltClassifierKey"] == "failed_operation"
 
     def test_rejects_unknown_prebuilt_classifier_key(self) -> None:
         with self.feature(self.features):

@@ -46,11 +46,11 @@ ALL_PREBUILT_CLASSIFIERS: tuple[PrebuiltClassifier, ...] = (
         attribute_name="sentry.classifier.stuck_in_loop",
     ),
     PrebuiltClassifier(
-        key="refusal",
+        key="failed_operation",
         dataset=TelemetryClassifierDataset.TRACE_SPANS,
-        name="Refusal",
-        description="When the model declines to answer or complete a request.",
-        attribute_name="sentry.classifier.refusal",
+        name="Failed operation",
+        description="When the operation a span measures fails or ends in an error.",
+        attribute_name="sentry.classifier.failed_operation",
     ),
 )
 
