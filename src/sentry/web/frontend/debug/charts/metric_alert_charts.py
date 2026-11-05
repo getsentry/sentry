@@ -183,7 +183,7 @@ detector = {
         ],
         "actions": [],
     },
-    "config": {"detectionType": "static", "comparisonDelta": None},
+    "config": {"detectionType": "static"},
     "enabled": True,
     "alertRuleId": None,
     "ruleId": None,

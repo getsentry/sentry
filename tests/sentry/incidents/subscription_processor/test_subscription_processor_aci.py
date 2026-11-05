@@ -697,7 +697,7 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
 
         # update the detector to be dynamic
         detector = self.crash_rate_detector
-        detector.update(config={"detection_type": "dynamic", "comparison_delta": None})
+        detector.update(config={"detection_type": "dynamic"})
         detector.save()
 
         critical_detector_trigger = DataCondition.objects.get(
