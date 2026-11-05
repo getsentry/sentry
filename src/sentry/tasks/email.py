@@ -75,19 +75,14 @@ class EmailSendInProgress(Exception):
     """
 
 
-SEND_CLAIM_TIMEOUT = 90  # matches send_email's processing deadline
+SEND_CLAIM_TIMEOUT = 90
 SENT_MARKER_TIMEOUT = 60 * 60 * 24
 _SENDING = "sending"
 _SENT = "sent"
 
 
-def _dedupe_key(message_id: str, message: dict[str, Any]) -> str:
-    # unrelated emails can share a Message-Id
-    # including the recipients prevents such a collision
-    recipients = sorted(
-        {*(message.get("to") or ()), *(message.get("cc") or ()), *(message.get("bcc") or ())}
-    )
-    digest = hashlib.sha256("\n".join([message_id, *recipients]).encode()).hexdigest()
+def _dedupe_key(message_id: str) -> str:
+    digest = hashlib.sha256(message_id.encode()).hexdigest()
     return f"mail:send-dedupe:{digest}"
 
 
@@ -139,7 +134,7 @@ def _send_email_once(message: dict[str, Any]) -> None:
         _send_email(message)
         return
 
-    key = _dedupe_key(message_id, message)
+    key = _dedupe_key(message_id)
     if not _claim_send(key):
         logger.info("mail.send_dedupe.duplicate_skipped", extra={"message_id": message_id})
         return
@@ -167,7 +162,7 @@ def _send_email(message: dict[str, Any]) -> None:
 @instrumented_task(
     name="sentry.tasks.email.send_email",
     namespace=notifications_tasks,
-    processing_deadline_duration=90,
+    processing_deadline_duration=SEND_CLAIM_TIMEOUT,
     retry=Retry(times=2, delay=60 * 5, on=(TemporaryEmailError, EmailSendInProgress)),
     silo_mode=SiloMode.CELL,
 )

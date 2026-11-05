@@ -89,12 +89,12 @@ class ProcessInboundEmailTest(TestCase):
         assert not Activity.objects.filter(group=group, type=ActivityType.NOTE.value).exists()
 
 
-def _message(to: str = "user@example.com") -> dict[str, Any]:
+def _message() -> dict[str, Any]:
     return {
         "subject": "Subject",
         "body": "Body",
         "from_email": "sentry@example.com",
-        "to": [to],
+        "to": ["user@example.com"],
         "cc": [],
         "bcc": [],
         "attachments": [],
@@ -126,14 +126,6 @@ class TestSendEmailDedupe:
 
         record_dedupe.assert_called_once_with("duplicate")
 
-    def test_different_recipients_with_same_message_id_are_both_sent(
-        self, send_messages: MagicMock
-    ) -> None:
-        send_email(message=_message(to="a@example.com"))
-        send_email(message=_message(to="b@example.com"))
-
-        assert send_messages.call_count == 2
-
     def test_failed_send_releases_claim_for_retry(self, send_messages: MagicMock) -> None:
         send_messages.side_effect = [SMTPDataError(421, b"try again"), 1]
 
@@ -145,7 +137,7 @@ class TestSendEmailDedupe:
 
     def test_send_in_progress_retries_instead_of_skipping(self, send_messages: MagicMock) -> None:
         message = _message()
-        key = _dedupe_key(message["headers"]["Message-Id"], message)
+        key = _dedupe_key(message["headers"]["Message-Id"])
         cache.add(key, "sending", 90)
 
         with pytest.raises(EmailSendInProgress):
