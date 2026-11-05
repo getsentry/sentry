@@ -55,7 +55,7 @@ from sentry.seer.autofix.pr_iteration.iterations import (
     PrIterationNoPullRequestException,
     get_open_iteration_index,
 )
-from sentry.seer.autofix.single_run import is_single_run_mirror
+from sentry.seer.autofix.single_run import is_single_run_record
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
@@ -537,7 +537,7 @@ def trigger_autofix_agent(
 
         # TEMPORARY: single runs skip "started" notices until they send completion notices too;
         # otherwise the issue would look stuck in progress. Remove with AIML-3809.
-        if not is_single_run_mirror(feature_run):
+        if not is_single_run_record(feature_run):
             _handle_step_started_events(
                 group,
                 step,

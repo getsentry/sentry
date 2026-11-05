@@ -15,7 +15,7 @@ def is_single_run(state: SeerRunState) -> bool:
     return (state.metadata or {}).get("feature_id") == SINGLE_RUN_FEATURE_ID
 
 
-def is_single_run_mirror(run: SeerRun) -> bool:
+def is_single_run_record(run: SeerRun) -> bool:
     from sentry.seer.models.run import SeerAgentRun
 
     return SeerAgentRun.objects.filter(run=run, source=SINGLE_RUN_FEATURE_ID).exists()

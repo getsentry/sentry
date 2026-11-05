@@ -2648,7 +2648,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
             downstream_scope.enter_context(
                 patch(
-                    "sentry.seer.endpoints.group_ai_autofix.is_single_run_mirror",
+                    "sentry.seer.endpoints.group_ai_autofix.is_single_run_record",
                     return_value=False,
                 )
             )
