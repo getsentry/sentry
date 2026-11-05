@@ -25,6 +25,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixError,
     SeerAutofixOutOfCredits,
+    SeerAutofixTrigger,
     SeerAutofixUpdate,
     SeerInvestigationError,
     SeerInvestigationStarted,
@@ -241,9 +242,12 @@ def _get_handoff_target(project: Project) -> CodingAgentProviderType | None:
 
 def _has_credits_for_next_step(data: SeerAutofixUpdate) -> bool:
     """Whether the org can afford the Seer step the update's next-step button starts."""
-    next_point = data.next_seer_stopping_point
-    if next_point is None:
+    # The handoff button hands the run to an external agent, not a Seer step.
+    if data.handoff_target and data.current_point == AutofixStoppingPoint.ROOT_CAUSE:
         return True
+    if not data.has_next_trigger:
+        return True
+    next_point = SeerAutofixTrigger.from_update(data).stopping_point
     try:
         organization = Organization.objects.get_from_cache(id=data.organization_id)
     except Organization.DoesNotExist:
