@@ -307,16 +307,19 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
     return settingsItem;
   }
 
-  const seerPath = automationsEnabled
+  // Without seer-primary-nav, automations and investigations still live under Explore.
+  const seerPrimaryNav = organization.features.includes('seer-primary-nav');
+  const seerAutomationsEnabled = seerPrimaryNav && automationsEnabled;
+  const seerInvestigationsEnabled = seerPrimaryNav && investigationsEnabled;
+
+  const seerPath = seerAutomationsEnabled
     ? getAutomationsPath(organization.slug)
-    : investigationsEnabled
+    : seerInvestigationsEnabled
       ? getInvestigationsPath(organization.slug)
       : getClassifiersPath(organization.slug);
 
   const showSeer =
-    classifiersEnabled ||
-    (organization.features.includes('seer-primary-nav') &&
-      (investigationsEnabled || automationsEnabled));
+    classifiersEnabled || seerAutomationsEnabled || seerInvestigationsEnabled;
 
   const prefix = `organizations/${organization.slug}`;
 
