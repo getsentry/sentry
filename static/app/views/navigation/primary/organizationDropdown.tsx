@@ -264,9 +264,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     leadingItems: <IconSettings />,
                     to: `/settings/${organization.slug}/`,
                     onAction: () =>
-                      trackAnalytics('settings.entry_point_clicked', {
+                      trackAnalytics('settings.settings_link_clicked', {
                         organization,
-                        entry_point: 'settings_navigation_org_menu',
+                        source: 'settings_navigation.org_menu',
                       }),
                     hidden:
                       props.hideCurrentOrganizationLinks ||
@@ -393,9 +393,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     label: t('Organization Settings'),
                     to: `/settings/${organization.slug}/`,
                     onAction: () =>
-                      trackAnalytics('settings.entry_point_clicked', {
+                      trackAnalytics('settings.settings_link_clicked', {
                         organization,
-                        entry_point: 'settings_navigation_org_menu',
+                        source: 'settings_navigation.org_menu',
                       }),
                     hidden: !organization.access?.includes('org:read'),
                   },

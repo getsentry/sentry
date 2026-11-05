@@ -40,9 +40,9 @@ export function UserDropdown() {
   const organization = useOrganization({allowNull: true});
 
   const trackSettingsClicked = () =>
-    trackAnalytics('settings.entry_point_clicked', {
+    trackAnalytics('settings.settings_link_clicked', {
       organization,
-      entry_point: 'settings_navigation_user_menu',
+      source: 'settings_navigation.user_menu',
     });
 
   useEffect(() => {

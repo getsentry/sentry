@@ -28,7 +28,7 @@ import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {SettingsEntryPoint} from 'sentry/utils/analytics/settingsAnalyticsEvents';
+import type {SettingsLinkSource} from 'sentry/utils/analytics/settingsAnalyticsEvents';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -196,10 +196,10 @@ export function ProjectPageFilter({
                     tooltipProps={{title: t('Open Project Settings'), delay: 400}}
                     aria-label={t('Open Project Settings')}
                     to={`/settings/${organization.slug}/projects/${project.slug}/`}
-                    analyticsEventKey="settings.entry_point_clicked"
-                    analyticsEventName="Settings: Link to Settings Clicked"
+                    analyticsEventKey="settings.settings_link_clicked"
+                    analyticsEventName="Settings: Settings Link Clicked"
                     analyticsParams={{
-                      entry_point: 'project_page_filter' satisfies SettingsEntryPoint,
+                      source: 'project_page_filter' satisfies SettingsLinkSource,
                     }}
                   />
                 </Fragment>
