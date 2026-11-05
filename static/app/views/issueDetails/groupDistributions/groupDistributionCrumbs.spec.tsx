@@ -89,12 +89,12 @@ describe('GroupDistributionCrumbs', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps the export outside the breadcrumb navigation', () => {
+  it('renders the export after the current tag key', () => {
     renderCrumbs({organization: OrganizationFixture({features: ['discover-query']})});
 
     const navigation = screen.getByRole('navigation', {name: 'Breadcrumbs'});
     expect(navigation).toContainElement(screen.getByText('user'));
-    expect(navigation).not.toContainElement(
+    expect(navigation).toContainElement(
       screen.getByRole('button', {name: 'Export options'})
     );
   });

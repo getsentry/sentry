@@ -109,8 +109,8 @@ describe('ReleasesDrawerDetails', () => {
       'href',
       expect.stringContaining('/releases/test-release/?project=1')
     );
-    // the full-details link is a crumb action, outside the breadcrumb landmark
-    expect(screen.getByRole('navigation', {name: 'Breadcrumbs'})).not.toContainElement(
+    // the full-details link is an action on the version crumb
+    expect(screen.getByRole('navigation', {name: 'Breadcrumbs'})).toContainElement(
       screen.getByRole('button', {name: 'View Full Details'})
     );
     // single-project releases don't need a project switcher
