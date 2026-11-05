@@ -1,6 +1,6 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {TimeSeriesItem} from 'sentry/views/dashboards/widgets/common/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -22,8 +22,8 @@ describe('ExtrapolationConfidenceFooter', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows the extrapolation indicator with a docs link for extrapolated data', async () => {
-    render(
+  it('renders nothing when extrapolated data is high confidence', () => {
+    const {container} = render(
       <ExtrapolationConfidenceFooter
         plottables={[
           makeLine([{sampleRate: 1}, {sampleRate: 1}]),
@@ -32,17 +32,7 @@ describe('ExtrapolationConfidenceFooter', () => {
       />
     );
 
-    expect(screen.queryByText('Low confidence data')).not.toBeInTheDocument();
-
-    await userEvent.hover(screen.getByTestId('extrapolation-indicator'));
-
-    expect(
-      await screen.findByText(/Some of this data is extrapolated from sampled events/)
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Learn more'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('docs.sentry.io')
-    );
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('shows the low confidence warning when any data is low confidence', () => {
@@ -58,7 +48,6 @@ describe('ExtrapolationConfidenceFooter', () => {
       />
     );
 
-    expect(screen.getByTestId('extrapolation-indicator')).toBeInTheDocument();
     expect(screen.getByText('Low confidence data')).toBeInTheDocument();
   });
 });

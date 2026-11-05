@@ -1056,7 +1056,6 @@ describe('Dashboards > WidgetCard', () => {
       );
 
       expect(await screen.findByText('Low confidence data')).toBeInTheDocument();
-      expect(screen.getByTestId('extrapolation-indicator')).toBeInTheDocument();
     });
   });
 });
