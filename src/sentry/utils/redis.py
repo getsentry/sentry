@@ -577,6 +577,18 @@ def get_dynamic_cluster_from_options(
     if cluster_opts is not None and cluster_opts.get("is_redis_cluster"):
         return True, redis_clusters.get(cluster_name), config
 
+    host_count = len(cluster_opts.get("hosts", [])) if cluster_opts is not None else 1
+    if host_count != 1:
+        # Self-hosted configs can still have a multi-host entry from the redis-blaster days.
+        # Without this message the process fails with a KeyError that does not say what to change.
+        raise InvalidConfiguration(
+            f"{setting} uses the Redis cluster {cluster_name!r} in redis.clusters. This entry has "
+            f"{host_count} hosts and does not set is_redis_cluster. "
+            "Sentry no longer spreads keys across hosts on the client side (redis-blaster), so an "
+            "entry without is_redis_cluster must have exactly one host. Keep one host, or set "
+            "is_redis_cluster to True if the hosts are a Redis Cluster."
+        )
+
     config = config.copy()
     config.pop("cluster", None)
     return False, redis_clusters.get_binary(cluster_name), config

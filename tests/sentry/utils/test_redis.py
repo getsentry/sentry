@@ -341,8 +341,19 @@ def test_get_dynamic_cluster_from_options_multi_host_without_is_redis_cluster() 
         "multi-host": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
     }
     with override_options({"redis.clusters": clusters_config}):
-        with pytest.raises(KeyError):
+        with pytest.raises(InvalidConfiguration) as excinfo:
             get_dynamic_cluster_from_options("SETTING", {"cluster": "multi-host"})
+
+    message = str(excinfo.value)
+    assert "SETTING" in message
+    assert "'multi-host'" in message
+    assert "2 hosts" in message
+    assert "is_redis_cluster" in message
+
+
+def test_get_dynamic_cluster_from_options_unknown_cluster_raises_key_error() -> None:
+    with pytest.raises(KeyError):
+        get_dynamic_cluster_from_options("SETTING", {"cluster": "does-not-exist"})
 
 
 def test_get_dynamic_cluster_from_options_hosts_option_invalid() -> None:
