@@ -102,7 +102,7 @@ import {
   handleUpdateHomepageQuery,
   handleUpdateQuery as handleUpdateSavedQuery,
 } from './savedQuery/utils';
-import Table from './table';
+import {Table} from './table';
 import {
   canCreateAlerts,
   generateTitle,

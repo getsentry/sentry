@@ -37,8 +37,9 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 import {getLandingDisplayFromParam} from './landing/utils';
 import {getMEPQueryParams} from './landing/widgets/utils';
-import TransactionThresholdModal, {
+import {
   modalCss,
+  TransactionThresholdModal,
 } from './transactionSummary/transactionThresholdModal';
 import {
   normalizeSearchConditionsWithTransactionName,

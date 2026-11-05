@@ -413,19 +413,20 @@ export function updateDashboardPermissions(
     }
   );
 
-  promise.catch(response => {
-    const errorResponse =
-      response instanceof RequestError ? response?.responseJSON : null;
-
-    if (errorResponse) {
-      const errors = flattenErrors(errorResponse, {});
-      toast.error(errors[Object.keys(errors)[0]!]! as string);
-    } else {
-      toast.error(t('Unable to update dashboard permissions'));
-    }
-  });
+  promise.catch(showDashboardPermissionsError);
 
   return promise;
+}
+
+export function showDashboardPermissionsError(response: unknown) {
+  const errorResponse = response instanceof RequestError ? response?.responseJSON : null;
+
+  if (errorResponse) {
+    const errors = flattenErrors(errorResponse, {});
+    toast.error(errors[Object.keys(errors)[0]!]! as string);
+  } else {
+    toast.error(t('Unable to update dashboard permissions'));
+  }
 }
 
 export function validateWidget(
