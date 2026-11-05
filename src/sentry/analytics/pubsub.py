@@ -30,6 +30,7 @@ class PubSubAnalytics(Analytics):
             max_latency=batch_max_latency,
             max_messages=batch_max_messages,
         )
+        self.publisher: pubsub_v1.PublisherClient | None
         try:
             self.publisher = pubsub_v1.PublisherClient(settings)
         except GoogleAuthError:
