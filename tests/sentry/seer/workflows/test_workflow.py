@@ -6,7 +6,7 @@ from django.db import router, transaction
 
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxDatabaseError, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -260,6 +260,25 @@ class SeerWorkflowServiceAccountOutboxTest(TestCase):
         ).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert ServiceAccount.objects.get(id=account_id).scope_list == ["event:read"]
+
+    def test_flush_database_error_keeps_config_for_retry(self) -> None:
+        organization, project = self.organization, self.project
+        with patch.object(
+            CellOutbox, "drain_shard", side_effect=OutboxDatabaseError("connection lost")
+        ):
+            workflow = SeerWorkflow.create(
+                organization_id=organization.id,
+                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                schedule=SeerWorkflowSchedule.DAILY,
+                project_ids=[project.id],
+                service_account_grant=SeerServiceAccountGrant(
+                    scopes=["event:read"], project_ids=[project.id]
+                ),
+            )
+
+        assert workflow.get_config().service_account_id is None
+        self.pending_outbox().drain_shard()
+        assert workflow.get_config().service_account_id is not None
 
     def test_redelivery_reuses_the_account(self) -> None:
         workflow = self.create_workflow_while_control_is_down()

@@ -12,7 +12,7 @@ from django.db.models import Count, Q, QuerySet
 from pydantic import BaseModel
 
 from sentry.constants import ALL_ACCESS_PROJECTS, ObjectStatus
-from sentry.hybridcloud.models.outbox import OutboxFlushError, outbox_context
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
@@ -181,7 +181,7 @@ class SeerWorkflow:
                     created_by_id=extras.created_by,
                 ).save()
                 yield config
-        except OutboxFlushError:
+        except (OutboxFlushError, OutboxDatabaseError):
             logger.exception(
                 "seer.workflow.service_account.flush_failed",
                 extra={"organization_id": organization_id},
