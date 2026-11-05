@@ -130,6 +130,10 @@ export function ActionRequestCard({
   const shown = isShownActionRequest(actionRequest);
   const actionKind = actionRequest.action?.kind ?? 'advice';
   const {id: actionRequestId, state} = actionRequest;
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
   useEffect(() => {
     if (shown) {
       trackAnalytics('seer.investigation.action_request.shown', {
@@ -137,10 +141,10 @@ export function ActionRequestCard({
         action_kind: actionKind,
         action_request_id: actionRequestId,
         investigation_id: investigationId,
-        state,
+        state: stateRef.current,
       });
     }
-  }, [shown, organization, actionKind, actionRequestId, investigationId, state]);
+  }, [shown, organization, actionKind, actionRequestId, investigationId]);
   const analyticsParams = {
     organization,
     action_kind: actionKind,

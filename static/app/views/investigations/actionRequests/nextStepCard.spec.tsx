@@ -931,6 +931,56 @@ describe('NextStepCard', () => {
     );
   });
 
+  it('tracks a request as shown once when it is applied', async () => {
+    jest.mocked(trackAnalytics).mockClear();
+    const actionRequest = InvestigationActionRequestFixture();
+    const queryClient = makeTestQueryClient();
+    const detailKey = getInvestigationDetailQueryOptions(
+      'org-slug',
+      'investigation-1'
+    ).queryKey;
+    queryClient.setQueryData(detailKey, {
+      headers: {},
+      json: InvestigationDetailFixture({
+        id: 'investigation-1',
+        actionRequests: [actionRequest],
+      }),
+    });
+    const {rerender} = render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[actionRequest]}
+      />,
+      {
+        additionalWrapper: ({children}) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      }
+    );
+
+    rerender(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+          }),
+        ]}
+      />
+    );
+
+    const shown = jest
+      .mocked(trackAnalytics)
+      .mock.calls.filter(
+        ([event]) => event === 'seer.investigation.action_request.shown'
+      );
+    expect(shown).toHaveLength(1);
+  });
+
   it('shows the updating state while the change is applied', async () => {
     mockApply({
       body: {actionRequest: InvestigationActionRequestFixture({state: 'applied'})},
