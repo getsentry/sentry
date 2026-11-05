@@ -93,6 +93,8 @@ class ServiceAccount(ReplicatedControlModel):
     all_projects = models.BooleanField(default=False, db_default=False)
     # Always a human user, never another service account.
     created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
+    # Lets a retried create, such as an outbox redelivery, find the account it already made.
+    idempotency_key = models.CharField(max_length=64, null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(auto_now=True)
 
@@ -105,6 +107,10 @@ class ServiceAccount(ReplicatedControlModel):
                 fields=["organization_id", "name"],
                 condition=Q(is_active=True),
                 name="service_accounts_serviceaccount_org_name_unique_active",
+            ),
+            models.UniqueConstraint(
+                fields=["organization_id", "idempotency_key"],
+                name="service_accounts_serviceaccount_org_idempotency_key_unique",
             ),
         ]
 
@@ -123,6 +129,7 @@ class ServiceAccount(ReplicatedControlModel):
         project_ids: Iterable[int],
         all_projects: bool,
         created_by_id: int | None,
+        idempotency_key: str | None = None,
     ) -> ServiceAccount:
         """
         Raises `InvalidScopeError` for a scope outside `GRANTABLE_SCOPES` and `IntegrityError`
@@ -137,6 +144,7 @@ class ServiceAccount(ReplicatedControlModel):
                 scope_list=scope_list,
                 all_projects=all_projects,
                 created_by_id=created_by_id,
+                idempotency_key=idempotency_key,
             )
             if not all_projects:
                 ServiceAccountProject.objects.bulk_create(
