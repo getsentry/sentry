@@ -17,6 +17,11 @@ export type SeerOutOfCreditsEscalation = 'top-up' | 'request' | 'contact';
 export interface SeerOutOfCreditsNoticeProps {
   escalation: SeerOutOfCreditsEscalation;
   /**
+   * The viewer already sent a credits request, so the request button shows
+   * "Request sent" instead.
+   */
+  hasRequestedCredits?: boolean;
+  /**
    * Shown while a credits request is sending.
    */
   isRequestingCredits?: boolean;
@@ -53,6 +58,7 @@ export function SeerOutOfCreditsNotice({
   topUpTo,
   onRequestCredits,
   isRequestingCredits,
+  hasRequestedCredits,
 }: SeerOutOfCreditsNoticeProps) {
   return (
     <Alert
@@ -65,6 +71,7 @@ export function SeerOutOfCreditsNotice({
           topUpTo={topUpTo}
           onRequestCredits={onRequestCredits}
           isRequestingCredits={isRequestingCredits}
+          hasRequestedCredits={hasRequestedCredits}
         />
       }
     >
@@ -80,6 +87,7 @@ function SeerOutOfCreditsAction({
   topUpTo,
   onRequestCredits,
   isRequestingCredits,
+  hasRequestedCredits,
 }: Omit<SeerOutOfCreditsNoticeProps, 'message'>) {
   if (escalation === 'top-up') {
     if (onTopUp) {
@@ -93,6 +101,10 @@ function SeerOutOfCreditsAction({
       );
     }
     return null;
+  }
+
+  if (escalation === 'request' && hasRequestedCredits) {
+    return <Alert.Button disabled>{t('Request sent')}</Alert.Button>;
   }
 
   if (escalation === 'request' && onRequestCredits) {

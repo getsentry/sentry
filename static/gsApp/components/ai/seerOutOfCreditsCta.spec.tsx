@@ -37,25 +37,100 @@ describe('SeerOutOfCreditsCta', () => {
     act(() =>
       SubscriptionStore.set(
         organization.slug,
-        SubscriptionFixture({organization, canSelfServe: true})
+        // Tests run with the clock frozen at 2017-10-17, inside this period.
+        SubscriptionFixture({
+          organization,
+          canSelfServe: true,
+          onDemandPeriodStart: '2017-10-01',
+        })
       )
     );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {},
+    });
+    const snooze = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      method: 'PUT',
+    });
     const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/event-limit-increase-request/`,
+      url: `/organizations/${organization.slug}/seer-top-up-request/`,
       method: 'POST',
     });
 
     render(<SeerOutOfCreditsCta />, {organization});
 
     expect(screen.queryByRole('button', {name: 'Top up'})).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Request credits'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Request credits'}));
 
-    await waitFor(() =>
-      expect(request).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/event-limit-increase-request/`,
-        expect.objectContaining({data: expect.objectContaining({types: ['seerAutofix']})})
+    await waitFor(() => expect(request).toHaveBeenCalled());
+    expect(snooze).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/prompts-activity/`,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          feature: 'seer_top_up_requested',
+          status: 'snoozed',
+        }),
+      })
+    );
+    expect(await screen.findByRole('button', {name: 'Request sent'})).toBeDisabled();
+  });
+
+  it('shows the request as sent for the rest of the billing period', async () => {
+    const organization = OrganizationFixture({access: ['org:read']});
+    act(() =>
+      SubscriptionStore.set(
+        organization.slug,
+        SubscriptionFixture({
+          organization,
+          canSelfServe: true,
+          onDemandPeriodStart: '2018-09-25',
+        })
       )
     );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {
+        features: {
+          seer_top_up_requested: {snoozed_ts: new Date('2018-10-01').getTime() / 1000},
+        },
+      },
+    });
+
+    render(<SeerOutOfCreditsCta />, {organization});
+
+    expect(await screen.findByRole('button', {name: 'Request sent'})).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Request credits'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('lets members request again once a new billing period starts', async () => {
+    const organization = OrganizationFixture({access: ['org:read']});
+    act(() =>
+      SubscriptionStore.set(
+        organization.slug,
+        SubscriptionFixture({
+          organization,
+          canSelfServe: true,
+          onDemandPeriodStart: '2018-09-25',
+        })
+      )
+    );
+    const prompts = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {
+        features: {
+          seer_top_up_requested: {snoozed_ts: new Date('2018-09-01').getTime() / 1000},
+        },
+      },
+    });
+
+    render(<SeerOutOfCreditsCta />, {organization});
+
+    await waitFor(() => expect(prompts).toHaveBeenCalled());
+    expect(screen.getByRole('button', {name: 'Request credits'})).toBeEnabled();
+    expect(screen.queryByRole('button', {name: 'Request sent'})).not.toBeInTheDocument();
   });
 
   it('offers no request to members of orgs that cannot self-serve', () => {
