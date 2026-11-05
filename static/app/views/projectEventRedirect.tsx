@@ -53,7 +53,7 @@ export function ProjectEventRedirect() {
           projectIdOrSlug: params.projectId,
           eventId: params.eventId,
         },
-        staleTime: 2 * 60 * 1000,
+        staleTime: 2 * 60 * 1000, // 2 minutes in milliseconds
       }
     )
   );

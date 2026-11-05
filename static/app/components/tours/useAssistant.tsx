@@ -1,9 +1,6 @@
-import type {UseQueryOptions} from '@tanstack/react-query';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useApi} from 'sentry/utils/useApi';
 
 interface AssistantResult {
@@ -16,15 +13,7 @@ const assistantQueryOptions = apiOptions.as<AssistantResult[]>()('/assistant/', 
 });
 
 export function useAssistant(
-  options: Omit<
-    UseQueryOptions<
-      ApiResponse<AssistantResult[]>,
-      Error,
-      AssistantResult[],
-      ApiQueryKey
-    >,
-    'queryKey' | 'queryFn' | 'select'
-  > = {}
+  options: Pick<typeof assistantQueryOptions, 'notifyOnChangeProps'> = {}
 ) {
   return useQuery({
     ...assistantQueryOptions,

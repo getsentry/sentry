@@ -4,7 +4,6 @@ import {useQuery} from '@tanstack/react-query';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 
 export type ReleaseRegistrySdk = Record<
   string,
@@ -31,7 +30,7 @@ export function useSourcePackageRegistries(organization: Organization) {
   );
 
   useEffect(() => {
-    if (releaseRegistrySdk.error instanceof RequestError) {
+    if (releaseRegistrySdk.error) {
       handleXhrErrorResponse(
         'Failed to fetch sentry release registry',
         releaseRegistrySdk.error

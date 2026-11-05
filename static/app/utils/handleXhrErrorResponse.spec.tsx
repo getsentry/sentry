@@ -43,6 +43,19 @@ describe('handleXhrErrorResponse', () => {
     expect(Sentry.captureException).toHaveBeenCalledWith(new Error('Object error'));
   });
 
+  it('captures plain errors with the original cause', () => {
+    const error = new Error('Connection failed');
+
+    handleXhrErrorResponse('Failed to fetch release registry', error);
+
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Failed to fetch release registry',
+        cause: error,
+      })
+    );
+  });
+
   it('ignores `sudo-required` errors', () => {
     handleXhrErrorResponse(
       'Sudo required error',
