@@ -266,6 +266,10 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     return super.directVisibleChildren;
   }
 
+  get canCollapse(): boolean {
+    return this.expanded || this.hasDirectVisibleChildren();
+  }
+
   private _reparentSSRUnderBrowserRequestSpan(node: BaseNode) {
     const serverRequestHandler = node.parent?.children.find(n => n.op === 'http.server');
 

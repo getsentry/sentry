@@ -1189,6 +1189,89 @@ describe('trace view', () => {
   });
 
   describe('EAP waterfall navigation', () => {
+    it.each([
+      {interaction: 'mouse', nested: false},
+      {interaction: 'keyboard', nested: true},
+    ])(
+      'collapses the initial transaction overview with $interaction and nested=$nested',
+      async ({interaction, nested}) => {
+        setupEAPTraceView();
+        const transactions = [
+          makeEAPSpan({
+            event_id: 'second-transaction',
+            description: 'second transaction',
+            is_transaction: true,
+            start_timestamp: 1,
+            end_timestamp: 2,
+            children: Array.from({length: 100}, (_, index) =>
+              makeEAPSpan({
+                description: `hidden span ${index}`,
+                start_timestamp: 1,
+                end_timestamp: 2,
+              })
+            ),
+          }),
+          makeEAPSpan({
+            event_id: 'third-transaction',
+            description: 'third transaction',
+            is_transaction: true,
+            start_timestamp: 3,
+            end_timestamp: 4,
+          }),
+        ];
+        mockTraceResponse({
+          body: makeEAPTrace([
+            makeEAPSpan({
+              event_id: 'root-transaction',
+              description: 'root transaction',
+              is_transaction: true,
+              start_timestamp: 1,
+              end_timestamp: 4,
+              children: nested
+                ? [
+                    makeEAPSpan({
+                      description: 'intermediate span',
+                      start_timestamp: 1,
+                      end_timestamp: 4,
+                      children: transactions,
+                    }),
+                  ]
+                : transactions,
+            }),
+          ]),
+        });
+
+        render(<TraceView />, {initialRouterConfig});
+
+        const waterfall = within(await screen.findByTestId('trace-virtualized-list'));
+        const root = await waterfall.findByText('root transaction');
+        const rootRow = root.closest<HTMLElement>(VISIBLE_TRACE_ROW_SELECTOR)!;
+        const rootButton = within(rootRow).getByRole('button', {name: '2'});
+        expect(rootButton.querySelector('svg')).toHaveStyle('transform: rotate(180deg)');
+        expect(waterfall.getByText('second transaction')).toBeInTheDocument();
+        expect(waterfall.getByText('third transaction')).toBeInTheDocument();
+        expect(waterfall.queryByText('hidden span 0')).not.toBeInTheDocument();
+        const secondRow = waterfall
+          .getByText('second transaction')
+          .closest<HTMLElement>(VISIBLE_TRACE_ROW_SELECTOR)!;
+        expect(
+          within(secondRow).getByRole('button', {name: '100'}).querySelector('svg')
+        ).toHaveStyle('transform: rotate(90deg)');
+
+        if (interaction === 'mouse') {
+          await userEvent.click(rootButton);
+        } else {
+          await userEvent.click(rootRow);
+          await userEvent.keyboard('{arrowleft}');
+        }
+
+        expect(rootButton.querySelector('svg')).toHaveStyle('transform: rotate(90deg)');
+        expect(rootButton).toHaveTextContent(nested ? '1' : '2');
+        expect(waterfall.queryByText('second transaction')).not.toBeInTheDocument();
+        expect(waterfall.queryByText('third transaction')).not.toBeInTheDocument();
+      }
+    );
+
     it('hides nested transactions on collapse and restores their expansion states', async () => {
       setupEAPTraceView();
       mockTraceResponse({
