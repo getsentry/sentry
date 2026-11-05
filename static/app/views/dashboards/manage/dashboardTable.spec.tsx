@@ -15,7 +15,7 @@ import {
 import {DisplayType, type DashboardListItem} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
-import DashboardTable from './dashboardTable';
+import {DashboardTable} from './dashboardTable';
 
 async function openRowActions(rowIndex: number) {
   await userEvent.click(screen.getAllByTestId('dashboard-actions')[rowIndex]!);

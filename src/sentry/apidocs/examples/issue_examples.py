@@ -62,11 +62,18 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     },
     "priority": "medium",
     "priorityLockedAt": None,
-    "owners": {
-        "type": "user",
-        "owner": "1",
-        "date_added": datetime.fromisoformat("2018-11-06T21:19:55Z"),
-    },
+    "owners": [
+        {
+            "type": "ownershipRule",
+            "owner": "user:1",
+            "date_added": datetime.fromisoformat("2018-11-06T21:19:55Z"),
+        },
+        {
+            "type": "suspectCommit",
+            "owner": "team:2",
+            "date_added": datetime.fromisoformat("2018-11-06T21:19:55Z"),
+        },
+    ],
     "platform": "python",
     "lifetime": {
         "count": "150",
