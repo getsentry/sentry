@@ -5,6 +5,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconGroup} from '@sentry/icons/group';
 import {IconInput} from '@sentry/icons/input';
 import {IconStar} from '@sentry/icons/star';
+import {useMutation} from '@tanstack/react-query';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -19,7 +20,7 @@ import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {updateDashboardPermissions} from 'sentry/actionCreators/dashboards';
+import {showDashboardPermissionsError} from 'sentry/actionCreators/dashboards';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -31,9 +32,10 @@ import {
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
@@ -43,7 +45,6 @@ import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateD
 import {useToggleDashboardFavorite} from 'sentry/views/dashboards/hooks/useToggleDashboardFavorite';
 import {useOpenRenameDashboardModal} from 'sentry/views/dashboards/renameDashboardModal';
 import type {
-  DashboardDetails,
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
@@ -220,7 +221,21 @@ export function DashboardTable({
   isLoading,
   isOnlyPrebuilt,
 }: Props) {
-  const api = useApi();
+  const {mutate: updateEditAccess} = useMutation({
+    mutationFn: (dashboard: DashboardListItem) =>
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+          path: {organizationIdOrSlug: organization.slug, dashboardId: dashboard.id},
+        }),
+        method: 'PUT',
+        data: {permissions: dashboard.permissions},
+      }),
+    onSuccess: () => {
+      onDashboardsChange();
+      toast.success(t('Dashboard Edit Access updated.'));
+    },
+    onError: showDashboardPermissionsError,
+  });
   const handleDuplicateDashboard = useDuplicateDashboard({
     onSuccess: onDashboardsChange,
   });
@@ -232,13 +247,7 @@ export function DashboardTable({
       const dashboardCopy = cloneDeep(dashboard);
       dashboardCopy.permissions = newDashboardPermissions;
 
-      updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
-        (newDashboard: DashboardDetails) => {
-          onDashboardsChange();
-          toast.success(t('Dashboard Edit Access updated.'));
-          return newDashboard;
-        }
-      );
+      updateEditAccess(dashboardCopy);
     };
   const hasUserLastVisited = organization.features.includes(
     'dashboards-user-last-visited'

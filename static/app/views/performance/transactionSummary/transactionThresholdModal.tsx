@@ -126,22 +126,19 @@ export function TransactionThresholdModal({
   });
 
   const {mutate: resetThreshold} = useMutation({
-    mutationFn: async (resetProject: Project) => {
-      await fetchMutation({
+    mutationFn: (resetProject: Project) =>
+      fetchMutation({
         url: overrideUrl,
         method: 'DELETE',
         options: {query: {project: resetProject.id}},
         data: {transaction: transactionName},
-      });
-      const response = await queryClient.fetchQuery({
-        ...projectTransactionThresholdApiOptions({organization, project: resetProject}),
-        retry: false,
-      });
-      return response.json;
-    },
-    onSuccess: data => {
+      }),
+    onSuccess: async (_data, resetProject) => {
+      const {json} = await queryClient.fetchQuery(
+        projectTransactionThresholdApiOptions({organization, project: resetProject})
+      );
       closeModal();
-      onApply?.(data.threshold, data.metric);
+      onApply?.(json.threshold, json.metric);
     },
     onError: err => {
       const errorMessage =
