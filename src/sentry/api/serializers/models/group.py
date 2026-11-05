@@ -106,97 +106,210 @@ def merge_list_dictionaries(
 
 
 class GroupAnnotation(TypedDict):
-    displayName: str
-    url: str
+    displayName: Annotated[str, ApiDescription("Display name of the linked external issue")]
+    url: Annotated[str, ApiDescription("URL of the linked external issue")]
 
 
 class GroupStatusDetailsResponseOptional(TypedDict, total=False):
-    ignoreCount: int
-    ignoreUntil: datetime
-    ignoreUserCount: int
-    ignoreUserWindow: int
-    ignoreWindow: int
-    actor: UserSerializerResponse
-    inNextRelease: bool
-    inRelease: str
-    inCommit: str
-    pendingEvents: int
-    info: ReprocessingInfo | None
+    ignoreCount: Annotated[
+        int, ApiDescription("Number of additional events after which the issue stops being ignored")
+    ]
+    ignoreUntil: Annotated[
+        datetime, ApiDescription("When the issue stops being ignored (ISO 8601)")
+    ]
+    ignoreUserCount: Annotated[
+        int,
+        ApiDescription(
+            "Number of additional affected users after which the issue stops being ignored"
+        ),
+    ]
+    ignoreUserWindow: Annotated[int, ApiDescription("Time window in minutes for ignoreUserCount")]
+    ignoreWindow: Annotated[int, ApiDescription("Time window in minutes for ignoreCount")]
+    actor: Annotated[
+        UserSerializerResponse, ApiDescription("User who ignored or resolved the issue")
+    ]
+    inNextRelease: Annotated[
+        bool, ApiDescription("Whether the issue is resolved in the next release")
+    ]
+    inRelease: Annotated[str, ApiDescription("Version of the release the issue is resolved in")]
+    inCommit: Annotated[str, ApiDescription("Commit the issue is resolved in")]
+    pendingEvents: Annotated[
+        int, ApiDescription("Number of events still waiting to be reprocessed")
+    ]
+    info: Annotated[ReprocessingInfo | None, ApiDescription("Reprocessing progress details")]
 
 
 class GroupProjectResponse(TypedDict):
-    id: str
-    name: str
-    slug: str
-    platform: str | None
+    id: Annotated[str, ApiDescription("ID of the project")]
+    name: Annotated[str, ApiDescription("Name of the project")]
+    slug: Annotated[str, ApiDescription("Slug of the project")]
+    platform: Annotated[str | None, ApiDescription("Platform of the project")]
 
 
 class BaseGroupResponseOptional(TypedDict, total=False):
-    isUnhandled: bool
+    isUnhandled: Annotated[bool, ApiDescription("Whether the issue includes unhandled events")]
     count: Annotated[str, ApiDescription("Total number of events in the issue")]
     userCount: Annotated[int, ApiDescription("Number of users affected by the issue")]
     firstSeen: Annotated[
         datetime | None, ApiDescription("When the issue was first seen (ISO 8601)")
     ]
     lastSeen: Annotated[datetime | None, ApiDescription("When the issue was last seen (ISO 8601)")]
-    derivedData: GroupDerivedDataResponse
+    derivedData: Annotated[
+        GroupDerivedDataResponse,
+        ApiDescription(
+            "Additional data derived for the issue. Only included when requested with expand"
+        ),
+    ]
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
-    id: str
-    shareId: str | None
-    shortId: str | None
-    title: str
+    id: Annotated[str, ApiDescription("ID of the issue")]
+    shareId: Annotated[
+        str | None,
+        ApiDescription("ID used in the issue's public share URL. Null when the issue isn't shared"),
+    ]
+    shortId: Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    title: Annotated[str, ApiDescription("Title of the issue")]
     culprit: Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
     permalink: Annotated[str, ApiDescription("URL of the issue in Sentry")]
-    logger: str | None
+    logger: Annotated[str | None, ApiDescription("Logger of the issue's events")]
     level: Annotated[GroupLevelStr, ApiDescription("Severity level of the issue")]
     status: Annotated[GroupStatusStr, ApiDescription("Issue status")]
-    statusDetails: GroupStatusDetailsResponseOptional
-    substatus: GroupSubStatusStr | None
-    isPublic: bool
-    platform: str | None
-    priority: GroupPriorityStr | None
-    priorityLockedAt: datetime | None
-    seerFixabilityScore: float | None
-    seerAutofixLastTriggered: datetime | None
-    seerExplorerAutofixLastTriggered: datetime | None
+    statusDetails: Annotated[
+        GroupStatusDetailsResponseOptional,
+        ApiDescription(
+            "Details of the issue's status, such as when an ignore expires or which release resolves it"
+        ),
+    ]
+    substatus: Annotated[
+        GroupSubStatusStr | None,
+        ApiDescription("Substatus of the issue, such as ongoing, regressed or escalating"),
+    ]
+    isPublic: Annotated[bool, ApiDescription("Whether the issue is shared publicly")]
+    platform: Annotated[str | None, ApiDescription("Platform of the issue's events")]
+    priority: Annotated[
+        GroupPriorityStr | None, ApiDescription("Priority of the issue: high, medium or low")
+    ]
+    priorityLockedAt: Annotated[
+        datetime | None,
+        ApiDescription(
+            "When the priority was last set manually, which stops automatic priority updates (ISO 8601)"
+        ),
+    ]
+    seerFixabilityScore: Annotated[
+        float | None, ApiDescription("Seer's score for how likely the issue is to be fixable")
+    ]
+    seerAutofixLastTriggered: Annotated[
+        datetime | None,
+        ApiDescription("When Seer Autofix was last triggered for the issue (ISO 8601)"),
+    ]
+    seerExplorerAutofixLastTriggered: Annotated[
+        datetime | None,
+        ApiDescription(
+            "When the Seer explorer agent last completed an Autofix step for the issue (ISO 8601)"
+        ),
+    ]
     project: Annotated[GroupProjectResponse, ApiDescription("Project the issue belongs to")]
-    type: EventTypeStr
-    issueType: str
-    issueCategory: str
+    type: Annotated[
+        EventTypeStr, ApiDescription("Event type of the issue, such as error or default")
+    ]
+    issueType: Annotated[
+        str, ApiDescription("Issue type, such as error or performance_n_plus_one_db_queries")
+    ]
+    issueCategory: Annotated[str, ApiDescription("Issue category, such as error or performance")]
     metadata: Annotated[dict[str, Any], ApiDescription("Issue metadata")]
-    numComments: int
+    numComments: Annotated[int, ApiDescription("Number of comments on the issue")]
     assignedTo: Annotated[
         ActorSerializerResponse | None, ApiDescription("User or team the issue is assigned to")
     ]
-    isBookmarked: bool
-    isSubscribed: bool
-    subscriptionDetails: SubscriptionDetails | None
-    hasSeen: bool
-    annotations: list[GroupAnnotation]
+    isBookmarked: Annotated[
+        bool, ApiDescription("Whether the requesting user bookmarked the issue")
+    ]
+    isSubscribed: Annotated[
+        bool, ApiDescription("Whether the requesting user is subscribed to the issue")
+    ]
+    subscriptionDetails: Annotated[
+        SubscriptionDetails | None,
+        ApiDescription("Why the requesting user is subscribed to the issue"),
+    ]
+    hasSeen: Annotated[
+        bool,
+        ApiDescription("Whether the requesting user has seen the issue since it last occurred"),
+    ]
+    annotations: Annotated[
+        list[GroupAnnotation], ApiDescription("External issues linked to the issue")
+    ]
 
 
 class GroupDetailsResponseOptional(TypedDict, total=False):
     # Included by default; removable via `?collapse=release|tags|stats`
-    firstRelease: dict[str, Any] | None
-    lastRelease: dict[str, Any] | None
-    tags: list[dict[str, Any]]
-    stats: dict[str, list[list[float]]]
+    firstRelease: Annotated[
+        dict[str, Any] | None,
+        ApiDescription("First release the issue was seen in. Omitted when release is collapsed"),
+    ]
+    lastRelease: Annotated[
+        dict[str, Any] | None,
+        ApiDescription("Latest release the issue was seen in. Omitted when release is collapsed"),
+    ]
+    tags: Annotated[
+        list[dict[str, Any]],
+        ApiDescription(
+            "Tag keys seen on the issue's events, with their top values. Omitted when tags is collapsed"
+        ),
+    ]
+    stats: Annotated[
+        dict[str, list[list[float]]],
+        ApiDescription(
+            "Event counts for the last 24 hours (hourly) and 30 days (daily), as [timestamp, count] pairs. Omitted when stats is collapsed"
+        ),
+    ]
     # Opt-in via `?expand=...`
-    inbox: InboxDetails | None
-    owners: list[OwnersSerialized] | None
-    forecast: dict[str, Any]
-    integrationIssues: list[dict[str, Any]]
-    sentryAppIssues: list[PlatformExternalIssueSerializerResponse]
-    latestEventHasAttachments: bool
+    inbox: Annotated[
+        InboxDetails | None,
+        ApiDescription("Why the issue is in the inbox. Only included when requested with expand"),
+    ]
+    owners: Annotated[
+        list[OwnersSerialized] | None,
+        ApiDescription("Suggested owners of the issue. Only included when requested with expand"),
+    ]
+    forecast: Annotated[
+        dict[str, Any],
+        ApiDescription(
+            "Escalation forecast for the issue. Only included when requested with expand"
+        ),
+    ]
+    integrationIssues: Annotated[
+        list[dict[str, Any]],
+        ApiDescription(
+            "External issues linked through integrations. Only included when requested with expand"
+        ),
+    ]
+    sentryAppIssues: Annotated[
+        list[PlatformExternalIssueSerializerResponse],
+        ApiDescription(
+            "External issues linked through Sentry apps. Only included when requested with expand"
+        ),
+    ]
+    latestEventHasAttachments: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the issue's latest event has attachments. Only included when requested with expand"
+        ),
+    ]
 
 
 class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
-    activity: list[dict[str, Any]]
-    seenBy: list[dict[str, Any]]
-    userReportCount: int
-    participants: list[dict[str, Any]]
+    activity: Annotated[
+        list[dict[str, Any]], ApiDescription("Recent activity on the issue, newest first")
+    ]
+    seenBy: Annotated[
+        list[dict[str, Any]],
+        ApiDescription("Users who have seen the issue, with when they last saw it"),
+    ]
+    userReportCount: Annotated[int, ApiDescription("Number of user reports for the issue")]
+    participants: Annotated[
+        list[dict[str, Any]], ApiDescription("Users participating in the issue")
+    ]
 
 
 class SeenStats(TypedDict):
