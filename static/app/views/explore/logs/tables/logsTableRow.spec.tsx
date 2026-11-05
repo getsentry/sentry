@@ -922,6 +922,71 @@ describe('logsTableRow', () => {
     );
   });
 
+  it.each([
+    {features: ['ourlogs-enabled'], expectedKey: 'custom'},
+    {
+      features: ['ourlogs-enabled', 'trace-item-details-raw-attribute-names'],
+      expectedKey: 'sentry.custom',
+    },
+  ])(
+    'displays and copies log attribute names as $expectedKey',
+    async ({features, expectedKey}) => {
+      const mockWriteText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(window.navigator, 'clipboard', {
+        value: {writeText: mockWriteText},
+        writable: true,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowData[OurLogKnownFieldKey.ID]}/`,
+        body: {
+          itemId: rowData[OurLogKnownFieldKey.ID],
+          timestamp: rowData[OurLogKnownFieldKey.TIMESTAMP],
+          meta: {},
+          attributes: [
+            ...rowDetails,
+            {
+              name: 'sentry.custom',
+              rawName: 'sentry.custom',
+              type: 'str',
+              value: 'custom value',
+            },
+          ],
+        },
+      });
+
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: OrganizationFixture({features}),
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await userEvent.click(await screen.findByTestId('log-table-row'));
+      expect(await screen.findByText('custom value')).toBeInTheDocument();
+      const attributeLabel = within(
+        screen.getByTestId('tree-key-sentry.custom')
+      ).getByText('custom');
+      await userEvent.hover(attributeLabel);
+      await waitFor(() =>
+        expect(attributeLabel).toHaveAccessibleDescription(
+          expect.stringContaining(expectedKey)
+        )
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as JSON'}));
+      expect(mockWriteText).toHaveBeenCalledWith(
+        expect.stringContaining(`"${expectedKey}": "custom value"`)
+      );
+    }
+  );
+
   it('copies log as JSON when Copy as JSON button is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {

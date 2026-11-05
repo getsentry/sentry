@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
@@ -50,6 +50,39 @@ describe('AttributesContent', () => {
       expect(screen.queryByText(/UTC/)).not.toBeInTheDocument();
     }
   );
+
+  it.each([
+    {features: [], search: 'span.op'},
+    {features: ['trace-item-details-raw-attribute-names'], search: 'sentry.op'},
+  ])('searches the displayed name $search', async ({features, search}) => {
+    const testOrganization = OrganizationFixture({features});
+    const node = new EapSpanNode(
+      null,
+      makeEAPSpan({event_id: 'span-id', project_id: 1}),
+      {organization: testOrganization}
+    );
+    render(
+      <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+        <AttributesContent
+          node={node}
+          attributes={[
+            {name: 'span.op', rawName: 'sentry.op', type: 'str', value: 'http.server'},
+            {name: 'custom', rawName: 'custom', type: 'str', value: 'other value'},
+          ]}
+          theme={theme}
+          location={location}
+          organization={testOrganization}
+          project={project}
+        />
+      </TraceStateProvider>,
+      {organization: testOrganization}
+    );
+
+    await userEvent.type(screen.getByRole('textbox'), search);
+
+    expect(screen.getByText('http.server')).toBeInTheDocument();
+    expect(screen.queryByText('other value')).not.toBeInTheDocument();
+  });
 
   it('falls back to the raw value when the timestamp is not a number', () => {
     renderAttributes([{name: 'precise.start_ts', type: 'str', value: 'not-a-number'}]);

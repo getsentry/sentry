@@ -1048,8 +1048,14 @@ function LogRowDetailsActions({
 
   const {copy} = useCopyToClipboard();
 
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
   // Memoize in case we are attempting to copy large JSON objects.
-  const json = useMemo(() => ourlogToJson(data), [data]);
+  const json = useMemo(
+    () => ourlogToJson(data, useRawAttributeNames),
+    [data, useRawAttributeNames]
+  );
   let logDebugEndpoint: string | undefined;
 
   if (user.isSuperuser && projectSlug && isRegularLogResponseItem(tableDataRow)) {

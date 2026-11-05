@@ -116,6 +116,9 @@ export function AttributesContent({
       ? 1
       : undefined;
 
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
   const sortedAndFilteredAttributes = useMemo(() => {
     const sortedAttributes = sortAttributes(attributes);
 
@@ -130,11 +133,14 @@ export function AttributesContent({
     const normalizedSearchQuery = searchQuery.toLowerCase().trim();
 
     const onlyMatchingAttributes = onlyVisibleAttributes.filter(attribute => {
-      return attribute.name.toLowerCase().trim().includes(normalizedSearchQuery);
+      const name = useRawAttributeNames
+        ? (attribute.rawName ?? attribute.name)
+        : attribute.name;
+      return name.toLowerCase().trim().includes(normalizedSearchQuery);
     });
 
     return onlyMatchingAttributes;
-  }, [attributes, searchQuery]);
+  }, [attributes, searchQuery, useRawAttributeNames]);
 
   const customRenderers: Record<
     string,
