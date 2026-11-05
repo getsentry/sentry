@@ -151,7 +151,6 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
-from sentry.utils.cache import cache_key_for_event
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
     CircuitBreakerPassthrough,
@@ -1145,15 +1144,12 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
             unprocessed = job.get("unprocessed")
             unprocessed_source = "inline"
-            # Only events with a cache key can have a backup in the processing store.
             # Clean up after `store.enable-inline-payloads` is 1.0 and
             # `store.disable-processing-store` is `True`
-            if unprocessed is None and job.get("cache_key"):
+            cache_key = job.get("cache_key")
+            if unprocessed is None and cache_key:
                 unprocessed_source = "processing_store"
-                unprocessed = event_processing_store.get(
-                    cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
-                    unprocessed=True,
-                )
+                unprocessed = event_processing_store.get(cache_key, unprocessed=True)
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
                 metrics.incr(
