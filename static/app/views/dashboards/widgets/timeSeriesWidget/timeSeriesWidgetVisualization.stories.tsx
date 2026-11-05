@@ -833,8 +833,9 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           Data points with <code>confidence: 'low'</code> are estimated from too few
           samples to be reliable. Lines and areas draw those sections dashed and faded,
           bars get a hatch pattern, and the tooltip labels the value as low confidence.
-          This only happens when the organization has the <code>dashboards-basic</code>{' '}
-          feature, which these examples turn on.
+          This only happens when the organization has the{' '}
+          <code>data-browsing-time-series-confidence</code> feature, which these examples
+          turn on.
         </p>
 
         <WithTimeSeriesConfidenceFeature>
@@ -1362,7 +1363,7 @@ function WithTimeSeriesConfidenceFeature({children}: {children: ReactNode}) {
     <OrganizationContext
       value={{
         ...organization,
-        features: [...organization.features, 'dashboards-basic'],
+        features: [...organization.features, 'data-browsing-time-series-confidence'],
       }}
     >
       {children}
