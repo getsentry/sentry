@@ -123,7 +123,7 @@ def test_get_required_attachment_types() -> None:
     ],
 )
 def test_get_native_symbolication_functions(
-    default_project,
+    default_project: Project,
     exceptions: list[dict[str, Any]],
     expected_functions: list[SymbolicatorFunction],
 ) -> None:
@@ -267,7 +267,9 @@ def test_flamegraph_symbolication_is_idempotent(cached_flamegraph: CachedFlamegr
 @pytest.mark.parametrize(
     ("enabled", "expected"), [(False, []), (True, [SymbolicatorFunction.native])]
 )
-def test_route_flamegraph_to_native_symbolication(default_project, enabled, expected) -> None:
+def test_route_flamegraph_to_native_symbolication(
+    default_project: Project, enabled: bool, expected: list[SymbolicatorFunction]
+) -> None:
     data = {"platform": "other", "_attachments": [{"type": "event.flamegraph"}]}
     with Feature({"organizations:flamegraph-attachments": enabled}):
         assert get_native_symbolication_functions(data, [], default_project) == expected
@@ -275,7 +277,9 @@ def test_route_flamegraph_to_native_symbolication(default_project, enabled, expe
 
 @django_db_all
 @pytest.mark.parametrize("attachments", [[], [{"type": "event.attachment"}]])
-def test_route_without_flamegraph_skips_feature_check(default_project, attachments) -> None:
+def test_route_without_flamegraph_skips_feature_check(
+    default_project: Project, attachments: list[dict[str, str]]
+) -> None:
     data = {"platform": "python", "_attachments": attachments}
     with mock.patch("sentry.features.has", return_value=True) as has:
         assert get_native_symbolication_functions(data, [], default_project) == []
@@ -285,7 +289,7 @@ def test_route_without_flamegraph_skips_feature_check(default_project, attachmen
 @django_db_all
 @pytest.mark.parametrize("attachments", [[], [{"type": "event.attachment"}]])
 def test_get_flamegraphs_without_flamegraph_skips_feature_check(
-    default_project, attachments
+    default_project: Project, attachments: list[dict[str, str]]
 ) -> None:
     data = {"platform": "native", "_attachments": attachments}
     with mock.patch("sentry.features.has", return_value=True) as has:
@@ -295,7 +299,9 @@ def test_get_flamegraphs_without_flamegraph_skips_feature_check(
 
 @django_db_all
 @pytest.mark.parametrize("enabled", [False, True])
-def test_route_native_stacktraces_with_flamegraph_flag(default_project, enabled) -> None:
+def test_route_native_stacktraces_with_flamegraph_flag(
+    default_project: Project, enabled: bool
+) -> None:
     data = {
         "platform": "native",
         "exception": {"values": [deepcopy(NATIVE_EXCEPTION)]},
@@ -378,7 +384,9 @@ def test_flamegraph_inline_expansion_at_node_limit() -> None:
         ]
 
 
-def test_flamegraph_inline_expansion_discards_partial_rewrite(flamegraph_payload) -> None:
+def test_flamegraph_inline_expansion_discards_partial_rewrite(
+    flamegraph_payload: FlamegraphPayload,
+) -> None:
     flamegraph_payload["nodes"] = [
         {"frame_id": 0, "sample_count": 10, "children": [1]},
         {"frame_id": 0, "sample_count": 10},
@@ -540,7 +548,7 @@ def cached_flamegraph(
 
 
 @pytest.fixture
-def native_event_with_flamegraph(cached_flamegraph):
+def native_event_with_flamegraph(cached_flamegraph: CachedFlamegraph) -> CachedFlamegraph:
     data, payload, symbolicator = cached_flamegraph
     data["platform"] = "native"
     data["exception"] = {"values": [deepcopy(NATIVE_EXCEPTION)]}
@@ -569,8 +577,8 @@ def native_event_with_flamegraph(cached_flamegraph):
     ],
 )
 def test_flamegraph_exception_does_not_mark_event_fatal(
-    native_event_with_flamegraph, target, reason
-):
+    native_event_with_flamegraph: CachedFlamegraph, target: str, reason: str
+) -> None:
     data, _, symbolicator = native_event_with_flamegraph
     error = RuntimeError("attachment failure")
     with (
@@ -590,7 +598,9 @@ def test_flamegraph_exception_does_not_mark_event_fatal(
 
 
 @django_db_all
-def test_flamegraph_timeout_stops_remaining_attachments(multiple_flamegraphs):
+def test_flamegraph_timeout_stops_remaining_attachments(
+    multiple_flamegraphs: MultipleFlamegraphs,
+) -> None:
     data, _, _, symbolicator = multiple_flamegraphs
     data["platform"] = "native"
     data["exception"] = {"values": [deepcopy(NATIVE_EXCEPTION)]}
@@ -623,7 +633,9 @@ def test_flamegraph_timeout_stops_remaining_attachments(multiple_flamegraphs):
 
 @django_db_all
 @pytest.mark.parametrize("response", [None, {"status": "failed"}])
-def test_flamegraph_processed_after_failed_event_response(native_event_with_flamegraph, response):
+def test_flamegraph_processed_after_failed_event_response(
+    native_event_with_flamegraph: CachedFlamegraph, response: dict[str, str] | None
+) -> None:
     data, _, symbolicator = native_event_with_flamegraph
     symbolicator.process_payload.side_effect = [response, symbolicator.process_payload.return_value]
     with Feature({"organizations:flamegraph-attachments": True}):
@@ -635,11 +647,13 @@ def test_flamegraph_processed_after_failed_event_response(native_event_with_flam
 
 
 @django_db_all
-def test_flamegraph_load_error_does_not_skip_later_attachments(multiple_flamegraphs):
+def test_flamegraph_load_error_does_not_skip_later_attachments(
+    multiple_flamegraphs: MultipleFlamegraphs,
+) -> None:
     data, first, _, symbolicator = multiple_flamegraphs
     original_load = CachedAttachment.load_data
 
-    def load(attachment, project):
+    def load(attachment: CachedAttachment, project: Project) -> bytes:
         if attachment.id == 0:
             raise RuntimeError("attachment unavailable")
         return original_load(attachment, project)
@@ -657,7 +671,7 @@ def test_flamegraph_load_error_does_not_skip_later_attachments(multiple_flamegra
 
 
 @django_db_all
-def test_flamegraph_node_limit_precedes_validation(cached_flamegraph):
+def test_flamegraph_node_limit_precedes_validation(cached_flamegraph: CachedFlamegraph) -> None:
     data, payload, symbolicator = cached_flamegraph
     with (
         Feature({"organizations:flamegraph-attachments": True}),
@@ -858,7 +872,9 @@ def test_flamegraph_large_frame_metadata_is_not_duplicated(
 
 @django_db_all
 @pytest.mark.parametrize(("node_limit", "reason"), [(0, "node_limit"), (1, "expansion_limit")])
-def test_flamegraph_node_limit_preserves_original(cached_flamegraph, node_limit, reason) -> None:
+def test_flamegraph_node_limit_preserves_original(
+    cached_flamegraph: CachedFlamegraph, node_limit: int, reason: str
+) -> None:
     data, payload, symbolicator = cached_flamegraph
     original = deepcopy(data)
     with (
@@ -878,7 +894,7 @@ def test_flamegraph_node_limit_preserves_original(cached_flamegraph, node_limit,
 
 @django_db_all
 def test_flamegraph_node_limit_does_not_block_event_symbolication(
-    native_event_with_flamegraph,
+    native_event_with_flamegraph: CachedFlamegraph,
 ) -> None:
     data, payload, symbolicator = native_event_with_flamegraph
     with (
