@@ -63,6 +63,19 @@ class ShouldCallSeerTest(TestCase):
                 is expected_result
             ), f"Case {backfill_completed_option} failed."
 
+    def test_obeys_global_and_rollout_options(self) -> None:
+        # No per-project option: only the global option or the rollout rate can turn Seer on
+        for overrides, expected_result in [
+            ({}, False),
+            ({"similarity.seer_grouping.rollout_rate": 1.0}, True),
+            ({"similarity.seer_grouping.enabled": True}, True),
+        ]:
+            with override_options(overrides):
+                assert (
+                    should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                    is expected_result
+                ), f"Case {overrides} failed."
+
     def test_obeys_content_filter(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 

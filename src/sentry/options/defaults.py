@@ -3904,6 +3904,23 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# The single switch between Seer embeddings similarity and the legacy MinHash index. Off for
+# self-hosted; the automator turns it on for SaaS once every region is fully migrated.
+register(
+    "similarity.seer_grouping.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Transitional: fraction of projects without `sentry:similarity_backfill_completed` that use
+# Seer similarity anyway, bucketed by project id. Ramped per region to move projects that were
+# created without the option; removed once `similarity.seer_grouping.enabled` is on everywhere.
+register(
+    "similarity.seer_grouping.rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "delayed_processing.batch_size",
     default=10000,
