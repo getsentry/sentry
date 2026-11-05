@@ -73,7 +73,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         response = self.client.get(f"{self.url}123/")
 
         assert response.status_code == 200
-        assert response.data["session"]["feature_id"] == "autofix_single_run"
+        assert response.data["feature_id"] == "autofix_single_run"
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_reports_no_feature_id_for_other_runs(self, mock_client_class: MagicMock) -> None:
@@ -83,7 +83,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         response = self.client.get(f"{self.url}123/")
 
-        assert response.data["session"]["feature_id"] is None
+        assert response.data["feature_id"] is None
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_includes_failure_reason(self, mock_client_class: MagicMock) -> None:

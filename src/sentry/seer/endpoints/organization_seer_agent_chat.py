@@ -54,6 +54,7 @@ _DASHBOARD_GENERATE_RUN_SOURCE = "dashboard_generate"
 class SeerAgentChatStateResponse(BaseModel):
     session: SeerRunState
     sentry_run_id: str | None
+    feature_id: str | None = None
 
 
 class CodeModeField(serializers.Field[str | None, str | None, str | None, object]):
@@ -271,9 +272,13 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         try:
             client = SeerAgentClient(organization, request.user)
             state = client.get_run(run_id=resolved.seer_run_state_id)
-            body = SeerAgentChatStateResponse(session=state, sentry_run_id=resolved.uuid).dict()
-            body["session"]["feature_id"] = SINGLE_RUN_FEATURE_ID if is_single_run(state) else None
-            return Response(body)
+            return Response(
+                SeerAgentChatStateResponse(
+                    session=state,
+                    sentry_run_id=resolved.uuid,
+                    feature_id=SINGLE_RUN_FEATURE_ID if is_single_run(state) else None,
+                ).dict()
+            )
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except SeerApiError as e:
