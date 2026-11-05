@@ -659,7 +659,14 @@ class Event(BaseEvent):
         if not self.group_id:
             return None
         if not hasattr(self, "_group_cache"):
-            self._group_cache = Group.objects.get(id=self.group_id)
+            group: Group | None
+            try:
+                group = Group.objects.get(id=self.group_id)
+            except Group.DoesNotExist:
+                # The group may have been deleted (or merged away) while the event
+                # still references it in nodestore/Snuba.
+                group = None
+            self._group_cache = group
         return self._group_cache
 
     @group.setter
