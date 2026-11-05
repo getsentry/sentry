@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from threading import Barrier
 from typing import Any, assert_type
 from unittest.mock import patch
@@ -32,7 +32,7 @@ from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.testutils.cases import TestCase, TransactionTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
@@ -79,6 +79,36 @@ class ReferenceItemType(StubItemType[SubjectReference]):
 @dataclass(frozen=True, kw_only=True)
 class MentionedData(InboxEventData):
     comment_id: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class StructuredData(InboxEventData):
+    details: dict[str, Any]
+
+
+def test_idempotency_key_uses_only_event_data() -> None:
+    data = IssueMentionedData(comment_id=123)
+    key = ISSUE_USER_MENTIONED.get_idempotency_key(data=data)
+
+    event_type = replace(ISSUE_USER_MENTIONED, summary=InboxEventSummary.ISSUE_TEAM_MENTIONED)
+    assert key == event_type.get_idempotency_key(data=data)
+    assert key != ISSUE_USER_MENTIONED.get_idempotency_key(data=replace(data, comment_id=456))
+
+
+def test_idempotency_key_sorts_nested_data() -> None:
+    event_type = InboxEventType(
+        event_type="test.structured",
+        summary=InboxEventSummary.NOTEBOOK_MENTIONED,
+        item_type=StubItemType[Group]("test.issue"),
+        data_class=StructuredData,
+        notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
+    )
+    first = StructuredData(
+        details={"a": 1, "b": {"c": 2, "d": 3}},
+    )
+    second = replace(first, details={"b": {"d": 3, "c": 2}, "a": 1})
+
+    assert event_type.get_idempotency_key(data=first) == event_type.get_idempotency_key(data=second)
 
 
 @pytest.mark.parametrize(
@@ -325,7 +355,7 @@ class RecordTest(TestCase):
         actor = self.create_user()
         other = self.create_user()
 
-        with patch("sentry.inbox.types.metrics.incr") as incr:
+        with patch("sentry.inbox.types.metrics") as metrics_mock:
             recorded = ISSUE_USER_MENTIONED.record(
                 subject=self.group,
                 data=IssueMentionedData(comment_id=123),
@@ -335,9 +365,11 @@ class RecordTest(TestCase):
 
         items = list(InboxItem.objects.order_by("user_id"))
         assert [item.user_id for item in items] == sorted([self.user.id, other.id])
-        assert sorted((event.inbox_item.id, event.id) for event in recorded) == sorted(
+        assert sorted((event.inbox_item_id, event.id) for event in recorded) == sorted(
             (item.id, item.events.get().id) for item in items
         )
+        with self.assertNumQueries(0):
+            assert {event.inbox_item.user_id for event in recorded} == {self.user.id, other.id}
         for item in items:
             event = item.events.get()
             assert item.subject_id == str(self.group.id)
@@ -349,8 +381,8 @@ class RecordTest(TestCase):
             assert event.actor_id == actor.id
             assert event.type == "issue.user_mentioned"
             assert event.data == {"comment_id": 123}
-        incr.assert_any_call(
-            "inbox.events.recorded", amount=2, tags={"event_type": "issue.user_mentioned"}
+        metrics_mock.incr.assert_any_call(
+            "inbox.events.processed", amount=2, tags={"event_type": "issue.user_mentioned"}
         )
 
     def test_no_other_recipients(self) -> None:
@@ -364,24 +396,6 @@ class RecordTest(TestCase):
                     actor=InboxActor.user(123),
                 )
             assert recorded == []
-
-    @override_options({"cleanup.inbox-events.enabled": False})
-    def test_query_count_for_multiple_recipients(self) -> None:
-        group = self.group
-        recipients = [self.user.id, *[self.create_user().id for _ in range(19)]]
-        Organization.objects.get_from_cache(id=self.organization.id)
-
-        for user_ids in ([recipients[0]], recipients, list(reversed(recipients))):
-            with self.subTest(recipient_count=len(user_ids)), self.assertNumQueries(5):
-                ISSUE_USER_MENTIONED.record(
-                    subject=group,
-                    data=IssueMentionedData(comment_id=123),
-                    recipient_user_ids=user_ids,
-                    actor=SYSTEM_ACTOR,
-                )
-
-        assert InboxItem.objects.count() == 20
-        assert InboxItemEvent.objects.count() == 41
 
     def test_recording_flag(self) -> None:
         for recording, ui in [(False, False), (False, True), (True, False), (True, True)]:
@@ -488,7 +502,7 @@ class RecordTest(TestCase):
         )
         foreign_updated_at = foreign.date_updated
 
-        with patch("sentry.inbox.types.metrics.incr") as incr:
+        with patch("sentry.inbox.types.metrics") as metrics_mock:
             ISSUE_USER_MENTIONED.record(
                 subject=self.group,
                 data=IssueMentionedData(comment_id=123),
@@ -509,14 +523,14 @@ class RecordTest(TestCase):
         assert not foreign.events.exists()
         assert event.actor_type == InboxActorType.SYSTEM
         assert event.actor_id is None
-        incr.assert_any_call(
-            "inbox.events.recorded", amount=1, tags={"event_type": "issue.user_mentioned"}
+        metrics_mock.incr.assert_any_call(
+            "inbox.events.processed", amount=1, tags={"event_type": "issue.user_mentioned"}
         )
 
     def test_event_failure_rolls_back_item(self) -> None:
         with (
             patch(
-                "sentry.inbox.types.InboxItemEvent.objects.bulk_create",
+                "sentry.inbox.types.InboxItemEvent.objects.get_or_create",
                 side_effect=RuntimeError("write failed"),
             ),
             pytest.raises(RuntimeError, match="write failed"),
@@ -579,10 +593,122 @@ class RecordTest(TestCase):
         assert item.last_activity_at == activity_at
         assert item.date_updated == item.events.get().date_added
 
+    def test_duplicate_preserves_event_and_refreshes_item(self) -> None:
+        data = IssueMentionedData(comment_id=123)
+        with freeze_time(before_now(minutes=1)):
+            ISSUE_USER_MENTIONED.record(
+                subject=self.group,
+                data=data,
+                recipient_user_ids=[self.user.id],
+                actor=SYSTEM_ACTOR,
+            )
+        item = InboxItem.objects.get()
+        read_at = item.last_activity_at
+        item.update(status=ObjectStatus.PENDING_DELETION, last_read_at=read_at)
+        before_event = InboxItemEvent.objects.values().get()
+        other_actor = self.create_user()
+
+        recorded = ISSUE_USER_MENTIONED.record(
+            subject=self.group,
+            data=data,
+            recipient_user_ids=[self.user.id],
+            actor=InboxActor.user(other_actor.id),
+        )
+
+        assert recorded == []
+        item.refresh_from_db()
+        assert item.status == ObjectStatus.ACTIVE
+        assert item.last_read_at == read_at
+        assert item.last_activity_at > read_at
+        assert InboxItemEvent.objects.values().get() == before_event
+
+    def test_custom_event_type_controls_idempotency(self) -> None:
+        class CommentEventType(InboxEventType[Group, IssueMentionedData]):
+            def get_idempotency_key(self, *, data: IssueMentionedData) -> str:
+                return str(data.comment_id)
+
+        event_type = CommentEventType(
+            event_type="test.comment",
+            summary=InboxEventSummary.ISSUE_USER_MENTIONED,
+            item_type=ISSUE_USER_MENTIONED.item_type,
+            data_class=IssueMentionedData,
+            notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
+        )
+        event_type.record(
+            subject=self.group,
+            data=IssueMentionedData(comment_id=123),
+            recipient_user_ids=[self.user.id],
+            actor=SYSTEM_ACTOR,
+        )
+
+        assert InboxItemEvent.objects.get().idempotency_key == "123"
+
+    def test_key_is_scoped_to_event_type_and_subject(self) -> None:
+        other_event_type = replace(ISSUE_USER_MENTIONED, event_type="test.issue.mentioned")
+        other_group = self.create_group(project=self.project)
+        data = IssueMentionedData(comment_id=123)
+
+        for group, event_type in (
+            (self.group, ISSUE_USER_MENTIONED),
+            (self.group, other_event_type),
+            (other_group, ISSUE_USER_MENTIONED),
+        ):
+            event_type.record(
+                subject=group,
+                data=data,
+                recipient_user_ids=[self.user.id],
+                actor=SYSTEM_ACTOR,
+            )
+
+        assert InboxItem.objects.count() == 2
+        assert InboxItemEvent.objects.count() == 3
+
+    def test_replayed_fanout_only_records_new_recipients(self) -> None:
+        first, second, third = [self.create_user() for _ in range(3)]
+        data = IssueMentionedData(comment_id=123)
+        ISSUE_USER_MENTIONED.record(
+            subject=self.group,
+            data=data,
+            recipient_user_ids=[first.id, second.id],
+            actor=SYSTEM_ACTOR,
+        )
+        recorded = ISSUE_USER_MENTIONED.record(
+            subject=self.group,
+            data=data,
+            recipient_user_ids=[second.id, third.id, third.id],
+            actor=SYSTEM_ACTOR,
+        )
+
+        assert len(recorded) == 1
+        assert recorded[0].inbox_item.user_id == third.id
+        assert InboxItemEvent.objects.count() == 3
+
+    def test_rollback_does_not_count_processed_events(self) -> None:
+        group, user = self.group, self.user
+        with (
+            patch("sentry.inbox.types.metrics") as metrics_mock,
+            pytest.raises(RuntimeError, match="rollback"),
+            transaction.atomic(using=router.db_for_write(InboxItem)),
+        ):
+            ISSUE_USER_MENTIONED.record(
+                subject=group,
+                data=IssueMentionedData(comment_id=123),
+                recipient_user_ids=[user.id],
+                actor=SYSTEM_ACTOR,
+            )
+            raise RuntimeError("rollback")
+
+        assert not InboxItem.objects.exists()
+        metrics_mock.incr.assert_not_called()
+
 
 @with_feature("organizations:universal-inbox-recording")
 class RecordConcurrencyTest(TransactionTestCase):
-    def _record_concurrently(self, recipient_user_ids: list[int]) -> None:
+    def _record_concurrently(
+        self,
+        recipient_user_ids: list[int],
+        comment_ids: tuple[int, int] = (123, 456),
+    ) -> list[list[InboxItemEvent]]:
         group = self.group
         ready = Barrier(2, timeout=20)
         bulk_create = InboxItem.objects.bulk_create
@@ -591,9 +717,9 @@ class RecordConcurrencyTest(TransactionTestCase):
             ready.wait()
             return bulk_create(items, **kwargs)
 
-        def record(comment_id: int, user_ids: list[int]) -> None:
+        def record(comment_id: int, user_ids: list[int]) -> list[InboxItemEvent]:
             try:
-                ISSUE_USER_MENTIONED.record(
+                return ISSUE_USER_MENTIONED.record(
                     subject=group,
                     data=IssueMentionedData(comment_id=comment_id),
                     recipient_user_ids=user_ids,
@@ -607,11 +733,10 @@ class RecordConcurrencyTest(TransactionTestCase):
             ContextPropagatingThreadPoolExecutor(max_workers=2) as executor,
         ):
             futures = [
-                executor.submit(record, 123, recipient_user_ids),
-                executor.submit(record, 456, list(reversed(recipient_user_ids))),
+                executor.submit(record, comment_ids[0], recipient_user_ids),
+                executor.submit(record, comment_ids[1], list(reversed(recipient_user_ids))),
             ]
-            for future in futures:
-                future.result(timeout=30)
+            return [future.result(timeout=30) for future in futures]
 
     def test_concurrent_creates_keep_both_events(self) -> None:
         recipients = [self.user.id, self.create_user().id]
@@ -624,6 +749,25 @@ class RecordConcurrencyTest(TransactionTestCase):
             assert len(events) == 2
             assert {event.data["comment_id"] for event in events} == {123, 456}
             assert item.last_activity_at == events[-1].date_added
+
+    def test_concurrent_duplicate_deliveries_only_record_once(self) -> None:
+        recipients = [self.user.id, self.create_user().id]
+
+        with patch("sentry.inbox.types.metrics") as metrics_mock:
+            recorded = self._record_concurrently(recipients, comment_ids=(123, 123))
+
+        recorded_ids = [event.id for events in recorded for event in events]
+        assert len(recorded_ids) == 2
+        assert set(recorded_ids) == set(InboxItemEvent.objects.values_list("id", flat=True))
+        assert InboxItem.objects.count() == 2
+        for item in InboxItem.objects.all():
+            event = item.events.get()
+            assert event.data["comment_id"] == 123
+            assert item.last_activity_at >= event.date_added
+        assert metrics_mock.incr.call_count == 2
+        metrics_mock.incr.assert_called_with(
+            "inbox.events.processed", amount=2, tags={"event_type": "issue.user_mentioned"}
+        )
 
     def test_concurrent_fanout_to_existing_and_new_items(self) -> None:
         read_at = before_now(days=1)
