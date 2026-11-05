@@ -1,7 +1,8 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import {IconClock} from '@sentry/icons/clock';
 import {IconTimer} from '@sentry/icons/timer';
+import {useAsyncQueuer} from '@tanstack/react-pacer';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
@@ -86,6 +87,12 @@ export type FiltersBarProps = {
   shouldBusySaveButton?: boolean;
   storageNamespace?: string;
   widgetLimitReached?: boolean;
+};
+
+type QueryPrioritySave = {
+  dashboardId: string;
+  previous: DashboardQueryPriority;
+  value: DashboardQueryPriority;
 };
 
 export function FiltersBar({
@@ -234,40 +241,31 @@ export function FiltersBar({
     priority,
     setPriority,
   } = useDashboardQueryPriority(dashboard?.queryPriority);
-  const saveQueryPriority = useSaveDashboardQueryPriority();
-  // One save at a time. A second change waits, then writes after the in-flight
-  // request finishes, so an older response cannot replace the latest choice.
-  const queryPrioritySave = useRef<{
-    inFlight: DashboardQueryPriority | null;
-    pending: {previous: DashboardQueryPriority; value: DashboardQueryPriority} | null;
-  }>({inFlight: null, pending: null});
-  const flushQueryPrioritySave = (dashboardId: string) => {
-    const save = queryPrioritySave.current;
-    if (save.inFlight !== null || !save.pending) {
-      return;
-    }
-    const next = save.pending;
-    save.pending = null;
-    save.inFlight = next.value;
-    saveQueryPriority(dashboardId, next.value).then(
-      updated => {
-        save.inFlight = null;
-        onDashboardQueryPrioritySaved?.(updated);
-        flushQueryPrioritySave(dashboardId);
-      },
-      () => {
-        save.inFlight = null;
-        if (save.pending) {
-          flushQueryPrioritySave(dashboardId);
-          return;
+  const {mutateAsync: saveQueryPriority} = useSaveDashboardQueryPriority();
+  // One save at a time, and only the latest selection waits behind it. An older
+  // response cannot replace a newer choice.
+  const queryPriorityQueuer = useAsyncQueuer(
+    (save: QueryPrioritySave) =>
+      saveQueryPriority({dashboardId: save.dashboardId, queryPriority: save.value}),
+    {
+      concurrency: 1,
+      maxSize: 1,
+      onSuccess: updated => {
+        if (updated) {
+          onDashboardQueryPrioritySaved?.(updated);
         }
-        setPriority(next.previous);
-      }
-    );
-  };
+      },
+      onError: (_error, save, queuer) => {
+        if (queuer.peekPendingItems().length === 0) {
+          setPriority(save.previous);
+        }
+      },
+    }
+  );
   const handleQueryPriorityChange = (value: DashboardQueryPriority) => {
-    const save = queryPrioritySave.current;
-    const previous = save.pending?.value ?? save.inFlight ?? priority;
+    const pending = queryPriorityQueuer.peekPendingItems();
+    const active = queryPriorityQueuer.peekActiveItems();
+    const previous = pending[0]?.value ?? active[0]?.value ?? priority;
     setPriority(value);
     // Viewers can still change the selection for this visit. Only an editor
     // of a saved dashboard writes it back.
@@ -275,11 +273,11 @@ export function FiltersBar({
       return;
     }
     const persisted = dashboard.queryPriority ?? 'normal';
-    if (persisted === value && save.inFlight === null && save.pending === null) {
+    if (persisted === value && pending.length === 0 && active.length === 0) {
       return;
     }
-    save.pending = {previous, value};
-    flushQueryPrioritySave(dashboard.id);
+    queryPriorityQueuer.clear();
+    queryPriorityQueuer.addItem({dashboardId: dashboard.id, previous, value});
   };
   const queryPriorityLabel =
     queryPriorityOptions.find(option => option.value === priority)?.label ?? t('Normal');

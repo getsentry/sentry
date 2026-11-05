@@ -405,41 +405,6 @@ export function updateDashboardTitle(
   return promise;
 }
 
-/**
- * Saves the dashboard query priority without touching anything else on it.
- *
- * The endpoint rewrites widgets when the payload carries a `widgets` key, so
- * this sends only `queryPriority`. A full dashboard save would race any
- * concurrent edit and could clobber widgets with a stale copy.
- */
-export function updateDashboardQueryPriority(
-  orgId: string,
-  dashboardId: string,
-  queryPriority: DashboardDetails['queryPriority']
-): Promise<DashboardDetails> {
-  const promise = fetchMutation<DashboardDetails>({
-    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
-      path: {organizationIdOrSlug: orgId, dashboardId},
-    }),
-    method: 'PUT',
-    data: {queryPriority},
-  });
-
-  promise.catch(response => {
-    const errorResponse =
-      response instanceof RequestError ? response?.responseJSON : null;
-
-    if (errorResponse) {
-      const errors = flattenErrors(errorResponse, {});
-      toast.error(errors[Object.keys(errors)[0]!]! as string);
-    } else {
-      toast.error(t('Unable to update query priority'));
-    }
-  });
-
-  return promise;
-}
-
 export function updateDashboardPermissions(
   api: Client,
   orgId: string,

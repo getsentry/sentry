@@ -1,11 +1,19 @@
 import {createContext, useContext, type ReactNode} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {updateDashboardQueryPriority} from 'sentry/actionCreators/dashboards';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {DashboardQueryPriority} from 'sentry/views/dashboards/types';
+import type {
+  DashboardDetails,
+  DashboardQueryPriority,
+} from 'sentry/views/dashboards/types';
+import {flattenErrors} from 'sentry/views/dashboards/utils';
 import {
   SAMPLING_MODE,
   type SamplingMode,
@@ -43,9 +51,9 @@ export function SavedDashboardQueryPriorityProvider({
   priority?: DashboardQueryPriority;
 }) {
   return (
-    <SavedDashboardQueryPriorityContext.Provider value={priority}>
+    <SavedDashboardQueryPriorityContext value={priority}>
       {children}
-    </SavedDashboardQueryPriorityContext.Provider>
+    </SavedDashboardQueryPriorityContext>
   );
 }
 
@@ -84,23 +92,50 @@ export function useDashboardQueryPriority(savedPriority?: DashboardQueryPriority
   };
 }
 
+type SaveDashboardQueryPriorityVariables = {
+  dashboardId: string;
+  queryPriority: DashboardQueryPriority;
+};
+
 /**
- * Persists the dropdown selection. Every write snapshots a revision, so refresh
- * that list after a successful save.
+ * Saves the dashboard query priority without touching anything else on it.
+ *
+ * The endpoint rewrites widgets when the payload carries a `widgets` key, so
+ * this sends only `queryPriority`. A full dashboard save would race any
+ * concurrent edit and could clobber widgets with a stale copy. Every write
+ * snapshots a revision, so refresh that list after a successful save.
  */
-export function useSaveDashboardQueryPriority() {
+function useSaveDashboardQueryPriorityMutationOptions() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  return (dashboardId: string, queryPriority: DashboardQueryPriority) =>
-    updateDashboardQueryPriority(organization.slug, dashboardId, queryPriority).then(
-      updated => {
-        queryClient.invalidateQueries({
-          queryKey: getDashboardRevisionsQueryKey(organization.slug, updated.id),
-        });
-        return updated;
-      }
-    );
+  return mutationOptions({
+    mutationFn: ({dashboardId, queryPriority}: SaveDashboardQueryPriorityVariables) =>
+      fetchMutation<DashboardDetails>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+          path: {organizationIdOrSlug: organization.slug, dashboardId},
+        }),
+        method: 'PUT',
+        data: {queryPriority},
+      }),
+    onSuccess: updated => {
+      queryClient.invalidateQueries({
+        queryKey: getDashboardRevisionsQueryKey(organization.slug, updated.id),
+      });
+    },
+    onError: (error: unknown) => {
+      const errorResponse = error instanceof RequestError ? error.responseJSON : null;
+      const errors = errorResponse ? flattenErrors(errorResponse, {}) : {};
+      const message = errors[Object.keys(errors)[0] ?? ''];
+      toast.error(
+        typeof message === 'string' ? message : t('Unable to update query priority')
+      );
+    },
+  });
+}
+
+export function useSaveDashboardQueryPriority() {
+  return useMutation(useSaveDashboardQueryPriorityMutationOptions());
 }
 
 /**
