@@ -10,6 +10,7 @@ import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {IssueCategory, IssueType, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import {
   LLMContextProvider,
   useLLMContext,
@@ -782,5 +783,82 @@ describe('AutofixSection', () => {
       .data as Record<string, string>;
     expect(data.rootCause).toContain('Null pointer in user handler');
     expect(data.codeChanges).toBe('org/repo: src/handler.py');
+  });
+
+  describe('route analytics', () => {
+    function renderWithRouteAnalytics() {
+      const routeAnalytics = {
+        previousUrl: '',
+        setDisableRouteAnalytics: jest.fn(),
+        setEventNames: jest.fn(),
+        setOrganization: jest.fn(),
+        setRouteAnalyticsParams: jest.fn(),
+      };
+
+      render(
+        <RouteAnalyticsContext value={routeAnalytics}>
+          <AutofixSection group={mockGroup} project={mockProject} />
+        </RouteAnalyticsContext>,
+        {organization}
+      );
+
+      return routeAnalytics;
+    }
+
+    it('reports the autofix run status', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {
+          autofix: {
+            run_id: 1,
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+            blocks: [
+              {
+                id: 'block-1',
+                message: {
+                  content: 'Found root cause',
+                  role: 'assistant',
+                  metadata: {step: 'root_cause'},
+                },
+                timestamp: new Date().toISOString(),
+                artifacts: [
+                  {
+                    key: 'root_cause',
+                    reason: 'Identified the issue',
+                    data: {
+                      one_line_description: 'Null pointer in user handler',
+                      five_whys: ['why1'],
+                      reproduction_steps: ['step1'],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      });
+
+      const routeAnalytics = renderWithRouteAnalytics();
+
+      expect(await screen.findByText('Root Cause')).toBeInTheDocument();
+      expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith(
+        expect.objectContaining({autofix_status: 'completed'})
+      );
+    });
+
+    it('reports no autofix status when there is no run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {autofix: null},
+      });
+
+      const routeAnalytics = renderWithRouteAnalytics();
+
+      expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
+      expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenLastCalledWith(
+        expect.objectContaining({autofix_status: 'none'})
+      );
+    });
   });
 });
