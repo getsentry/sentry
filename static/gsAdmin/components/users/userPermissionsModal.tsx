@@ -1,4 +1,4 @@
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -10,8 +10,9 @@ import {toast} from '@sentry/scraps/toast';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = ModalRenderProps & {
   onSubmit: (user: User) => void;
@@ -41,25 +42,21 @@ export function UserPermissionsModal({
     data: availablePermissions,
     isPending: availablePermissionsLoading,
     isError: availablePermissionsError,
-  } = useApiQuery<string[]>(
-    [
-      getApiUrl('/users/$userId/permissions/config/', {
-        path: {userId: user.id},
-      }),
-    ],
-    {staleTime: 0}
+  } = useQuery(
+    apiOptions.as<string[]>()('/users/$userId/permissions/config/', {
+      path: {userId: user.id},
+      staleTime: 0,
+    })
   );
   const {
     data: permissionList,
     isPending: permissionListLoading,
     isError: permissionListError,
-  } = useApiQuery<string[]>(
-    [
-      getApiUrl('/users/$userId/permissions/', {
-        path: {userId: user.id},
-      }),
-    ],
-    {staleTime: 0}
+  } = useQuery(
+    apiOptions.as<string[]>()('/users/$userId/permissions/', {
+      path: {userId: user.id},
+      staleTime: 0,
+    })
   );
 
   const permissions = permissionList ?? [];

@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
+import {useQuery} from '@tanstack/react-query';
 import round from 'lodash/round';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -16,9 +17,8 @@ import {t, tct} from 'sentry/locale';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
 import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
@@ -53,19 +53,18 @@ export function TeamStability({
     isPending: isPeriodSessionsLoading,
     isError: isPeriodSessionsError,
     refetch: refetchPeriodSessions,
-  } = useApiQuery<SessionApiResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery(
+    apiOptions.as<SessionApiResponse>()(
+      '/organizations/$organizationIdOrSlug/sessions/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           ...commonQuery,
           ...normalizeDateTimeParams(datetime),
         },
-      },
-    ],
-    {staleTime: 5000}
+        staleTime: 5000,
+      }
+    )
   );
 
   const {
@@ -73,19 +72,18 @@ export function TeamStability({
     isPending: isWeekSessionsLoading,
     isError: isWeekSessionsError,
     refetch: refetchWeekSessions,
-  } = useApiQuery<SessionApiResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery(
+    apiOptions.as<SessionApiResponse>()(
+      '/organizations/$organizationIdOrSlug/sessions/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           ...commonQuery,
           statsPeriod: '7d',
         },
-      },
-    ],
-    {staleTime: 5000}
+        staleTime: 5000,
+      }
+    )
   );
 
   const isLoading = isPeriodSessionsLoading || isWeekSessionsLoading;

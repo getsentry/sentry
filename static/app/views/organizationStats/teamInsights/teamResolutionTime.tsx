@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -7,9 +8,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {barAxisLabel, sortSeriesByDay} from './utils';
 
@@ -37,19 +37,18 @@ export function TeamResolutionTime({
     isPending,
     isError,
     refetch,
-  } = useApiQuery<TimeToResolution>(
-    [
-      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/time-to-resolution/', {
-        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
-      }),
+  } = useQuery(
+    apiOptions.as<TimeToResolution>()(
+      '/teams/$organizationIdOrSlug/$teamIdOrSlug/time-to-resolution/',
       {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
         query: {
           ...normalizeDateTimeParams(datetime),
           environment,
         },
-      },
-    ],
-    {staleTime: 5000}
+        staleTime: 5000,
+      }
+    )
   );
 
   if (isPending) {

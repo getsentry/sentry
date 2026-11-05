@@ -1,24 +1,23 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {Alert} from '@sentry/scraps/alert';
 
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function PreprodQuotaAlert({system}: {system?: boolean}) {
   const organization = useOrganization();
 
-  const {data: quotaData} = useApiQuery<{
-    hasDistributionQuota: boolean;
-    hasSizeQuota: boolean;
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/preprod/quota/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {staleTime: 0}
+  const {data: quotaData} = useQuery(
+    apiOptions.as<{
+      hasDistributionQuota: boolean;
+      hasSizeQuota: boolean;
+    }>()('/organizations/$organizationIdOrSlug/preprod/quota/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 0,
+    })
   );
 
   const isOutOfQuota =

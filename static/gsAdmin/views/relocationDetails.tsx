@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
@@ -16,9 +17,8 @@ import {ResultGrid} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {Truncate} from 'sentry/components/truncate';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getLocalities} from 'sentry/utils/cells';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -179,16 +179,12 @@ export function RelocationDetails() {
   const regionClient = new Client({baseUrl: `${locality?.url || ''}/api/0`});
   const regionApi = useApi({api: regionClient});
 
-  const {data, isPending, isError, refetch} = useApiQuery<Relocation>(
-    [
-      getApiUrl('/relocations/$relocationUuid/', {
-        path: {relocationUuid},
-      }),
-      {host: locality ? locality.url : ''},
-    ],
-    {
+  const {data, isPending, isError, refetch} = useQuery(
+    apiOptions.as<Relocation>()('/relocations/$relocationUuid/', {
+      path: {relocationUuid},
+      host: locality ? locality.url : '',
       staleTime: 0,
-    }
+    })
   );
 
   if (isPending) {
