@@ -1,9 +1,6 @@
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {
-  getEventSearchFromIssueQuery,
-  useEventQuery,
-} from 'sentry/views/issueDetails/hooks/useEventQuery';
+import {getEventSearchFromIssueQuery, useEventQuery} from './useEventQuery';
 
 describe('useEventQuery', () => {
   const [tagKey, tagValue] = ['user.email', 'leander@s.io'];

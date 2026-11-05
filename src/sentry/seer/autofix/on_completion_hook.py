@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import sentry_sdk
 from django.db import router, transaction
@@ -41,11 +41,13 @@ from sentry.seer.autofix.pr_iteration.completion import (
 )
 from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
 from sentry.seer.autofix.pr_iteration.iterations import get_latest_iteration_index
+from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
 )
+from sentry.seer.autofix.single_run import is_single_run, single_run_root_cause_payload
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -116,6 +118,18 @@ def get_run_stopping_point(
     )
 
 
+SingleRunStage = Literal["root_cause", "coding", "pr_created"]
+SINGLE_RUN_ANNOUNCED_STAGES_KEY = "single_run_announced_stages"
+
+
+def _single_run_referrer(state: SeerRunState) -> AutofixReferrer | None:
+    raw = (state.metadata or {}).get("referrer")
+    try:
+        return AutofixReferrer(raw) if isinstance(raw, str) else None
+    except ValueError:
+        return None
+
+
 class AutofixOnCompletionHook(AgentOnCompletionHook):
     """
     Hook called when an agent-based autofix run completes.
@@ -160,6 +174,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         group_id, run_referrer = resolve_run_group_id(organization, run_id, state)
+        if is_single_run(state):
+            cls._complete_single_run(organization, run_id, state, group_id, run_referrer)
+            return
         current_step, _ = get_current_step(state)
 
         if current_step == AutofixStep.PR_ITERATION:
@@ -199,6 +216,111 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls._maybe_continue_pipeline(
             organization, run_id, state, group, fallback_referrer=run_referrer
         )
+
+    @classmethod
+    def _complete_single_run(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        group_id: int | None,
+        run_referrer: AutofixReferrer | None,
+    ) -> None:
+        group = cls._fetch_group(organization, run_id, group_id)
+        if group is None:
+            return
+        if not cls._run_completed(organization, run_id, state):
+            if state.status == "error":
+                cls._notify_entrypoints_of_failure(
+                    organization, run_id, group, state.failure_reason
+                )
+            return
+        seer_run = SeerRun.objects.filter(
+            organization_id=organization.id, seer_run_state_id=run_id
+        ).first()
+        if seer_run is None:
+            logger.warning(
+                "autofix.on_completion_hook.single_run_missing_seer_run",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            return
+
+        root_cause = single_run_root_cause_payload(state)
+        pull_requests = [
+            pr
+            for pr in format_pull_requests_payload(state)
+            if pr["pull_request"]["pr_number"] is not None
+        ]
+        reached: list[SingleRunStage] = []
+        if root_cause is not None:
+            reached.append("root_cause")
+        if state.get_diffs_by_repo():
+            reached.append("coding")
+        if pull_requests:
+            reached.append("pr_created")
+
+        reconcile_milestones(seer_run, state)
+
+        with record_run_extras(seer_run) as extras:
+            announced = extras.get(SINGLE_RUN_ANNOUNCED_STAGES_KEY) or []
+            new_stages = [stage for stage in reached if stage not in announced]
+            extras[SINGLE_RUN_ANNOUNCED_STAGES_KEY] = [*announced, *new_stages]
+
+        cls._announce_single_run(
+            organization=organization,
+            run_id=run_id,
+            state=state,
+            group=group,
+            seer_run=seer_run,
+            stages=new_stages,
+            root_cause=root_cause,
+            pull_requests=pull_requests,
+            referrer=_single_run_referrer(state) or run_referrer,
+        )
+
+    @classmethod
+    def _announce_single_run(
+        cls,
+        *,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        group: Group,
+        seer_run: SeerRun,
+        stages: list[SingleRunStage],
+        root_cause: dict[str, Any] | None,
+        pull_requests: list[dict[str, Any]],
+        referrer: AutofixReferrer | None,
+    ) -> None:
+        cls._record_triggered(organization, run_id, group)
+        base = {"run_id": run_id, "sentry_run_id": str(seer_run.uuid), "group_id": group.id}
+        actor_user_id = get_acting_user_id(get_viewer_context())
+        for stage in stages:
+            if stage == "root_cause":
+                action_type = SeerActionType.ROOT_CAUSE_COMPLETED
+                payload: dict[str, object] = {**base, "root_cause": root_cause}
+                step = AutofixStep.ROOT_CAUSE
+            elif stage == "coding":
+                action_type = SeerActionType.CODING_COMPLETED
+                payload = {**base, "code_changes": cls._format_code_changes_payload(state)}
+                step = AutofixStep.CODE_CHANGES
+            else:
+                action_type = SeerActionType.PR_CREATED
+                payload = {**base, "pull_requests": pull_requests}
+                step = AutofixStep.CODE_CHANGES
+            cls._announce(
+                organization=organization,
+                run_id=run_id,
+                state=state,
+                group=group,
+                seer_run=seer_run,
+                action_type=action_type,
+                payload=payload,
+                step=step,
+                referrer=referrer,
+                actor_user_id=actor_user_id,
+                mode="single_run",
+            )
 
     @classmethod
     def _complete_pr_iteration(

@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+import {getApiUrl} from './api/getApiUrl';
+import {RequestError} from './requestError/requestError';
+import {useApiQuery} from './queryClient';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from './queryClientConfig';
 
 type ResponseData = {
   value: number;

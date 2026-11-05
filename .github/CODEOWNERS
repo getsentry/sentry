@@ -3,6 +3,18 @@
 # The following rules are not specific to any particular area of the product
 # and are more general
 
+## Request middleware
+## These run on every request, so they show up in the stack trace of most API errors.
+## Sentry issue auto-assignment uses the last matching line, so keep these above
+## all other rules. Lower down, their owners get assigned unrelated errors.
+/src/sentry/middleware/                                 @getsentry/app-backend
+/src/sentry/middleware/customer_domain.py                @getsentry/hybrid-cloud
+/src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
+/src/sentry/middleware/integrations/                     @getsentry/integration-platform
+/src/sentry/middleware/staff.py                          @getsentry/foundations
+/src/sentry/middleware/superuser.py                      @getsentry/foundations
+/src/sentry/middleware/viewer_context.py                 @getsentry/machine-learning-ai
+
 ## Distributed Ownership
 ## This is bad practice. Ideally each directory should be owned by a team
 ## or group of responsible individuals.
@@ -31,7 +43,6 @@
 /tests/sentry/deletions/                                 @getsentry/app-backend
 /src/sentry/management/                                 @getsentry/app-backend
 /src/sentry/metrics/                                    @getsentry/app-backend
-/src/sentry/middleware/                                 @getsentry/app-backend
 /src/sentry/options/                                    @getsentry/app-backend
 /src/sentry/projectoptions/                             @getsentry/app-backend
 /src/sentry/receivers/                                  @getsentry/app-backend
@@ -255,8 +266,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
 /src/sentry/hybridcloud/                                 @getsentry/hybrid-cloud
-/src/sentry/middleware/customer_domain.py                @getsentry/hybrid-cloud
-/src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
 /src/sentry/api/endpoints/internal/rpc.py                @getsentry/hybrid-cloud
 /src/sentry/organizations/                               @getsentry/hybrid-cloud
 /tests/sentry/hybridcloud/                               @getsentry/hybrid-cloud
@@ -520,7 +529,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/sentry_apps/                                           @getsentry/sentry-apps @getsentry/integration-platform
 /src/sentry/utils/sentry_apps/                                       @getsentry/sentry-apps @getsentry/integration-platform
 /tests/sentry/utils/sentry_apps/                                     @getsentry/sentry-apps @getsentry/integration-platform
-/src/sentry/middleware/integrations/                                 @getsentry/integration-platform
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-monitors
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-monitors
 
@@ -600,8 +608,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/endpoints/user_social_identity*                         @getsentry/foundations
 /src/sentry/auth/staff.py                                               @getsentry/foundations @getsentry/owners-auth
 /src/sentry/auth/superuser.py                                           @getsentry/foundations @getsentry/owners-auth
-/src/sentry/middleware/staff.py                                         @getsentry/foundations
-/src/sentry/middleware/superuser.py                                     @getsentry/foundations
 /src/sentry/models/release_threshold/                                   @getsentry/replay
 /src/sentry/scim/                                                       @getsentry/foundations
 /src/sentry/integrations/github/                                        @getsentry/foundations @getsentry/scm
@@ -755,7 +761,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/api/endpoints/test_seer_models.py             @getsentry/machine-learning-ai
 /src/sentry/viewer_context.py                               @getsentry/machine-learning-ai
 /tests/sentry/test_viewer_context.py                        @getsentry/machine-learning-ai
-/src/sentry/middleware/viewer_context.py                     @getsentry/machine-learning-ai
 /tests/sentry/middleware/test_viewer_context.py              @getsentry/machine-learning-ai
 /src/sentry/investigations/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/investigations/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend

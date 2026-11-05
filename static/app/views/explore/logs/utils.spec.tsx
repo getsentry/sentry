@@ -7,20 +7,18 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import {OurLogKnownFieldKey, type OurLogsResponseItem} from './types';
 import {
   compareLogRowsBySortBys,
   createErrorLogRow,
   getLogsUrlFromSavedQueryUrl,
   type LogTableRowItem,
   viewLogsSamplesTarget,
-} from 'sentry/views/explore/logs/utils';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+} from './utils';
 
 describe('viewLogsSamplesTarget', () => {
   it('does not add a filter for an empty group by', () => {

@@ -3,14 +3,15 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {TeamStore} from 'sentry/stores/teamStore';
+import type {DetailedTeam} from 'sentry/types/organization';
+
 import {
   defaultInviteProps,
   InviteMembersContext,
   type InviteMembersContextValue,
-} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import {InviteRowControl as InviteRowControlNew} from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
-import {TeamStore} from 'sentry/stores/teamStore';
-import type {DetailedTeam} from 'sentry/types/organization';
+} from './inviteMembersContext';
+import {InviteRowControl as InviteRowControlNew} from './inviteRowControl';
 
 describe('InviteRowControlNew', () => {
   const teamData = [

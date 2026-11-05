@@ -4,7 +4,8 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+
+import {spaceWidgetsEquallyOnRow} from './utils/spaceWidgetsEquallyOnRow';
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [

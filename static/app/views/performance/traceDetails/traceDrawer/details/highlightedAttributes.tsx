@@ -50,7 +50,8 @@ import {
   hasTokenMismatch,
 } from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
 import {SpanFields} from 'sentry/views/insights/types';
-import {tryParseJsonRecursive} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
+
+import {tryParseJsonRecursive} from './utils';
 
 type HighlightedAttribute = {
   name: string;

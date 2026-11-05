@@ -24,6 +24,7 @@ from sentry.api.serializers.rest_framework.base import convert_dict_key_case, sn
 from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -38,6 +39,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.breached_metrics import (
+    BreachedMetricConfigUpdate,
     BreachedMetricWorkflow,
     ConnectedMonitor,
     get_config_monitors_bulk,
@@ -72,6 +74,8 @@ class SeerWorkflowConfigResponse(TypedDict):
     dateLastRun: NotRequired[datetime]
     lastRunStatus: NotRequired[str | None]
     name: NotRequired[str]
+    createdBy: NotRequired[str]
+    updatedBy: NotRequired[str]
 
 
 class SeerWorkflowConfigsResponse(TypedDict):
@@ -89,7 +93,7 @@ class SeerWorkflowConfigPermission(OrganizationPermission):
         "GET": ["org:read", "org:write", "org:admin", "seer:read"],
         "POST": ["org:write", "org:admin", "seer:write"],
         "PUT": ["org:write", "org:admin", "seer:write"],
-        "DELETE": ["org:write", "org:admin"],
+        "DELETE": ["org:write", "org:admin", "seer:write"],
     }
 
 
@@ -304,6 +308,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         the seeded strategy even after edits.
         ``outputPolicy`` is the saved, opaque policy document.
         ``name`` is the user-supplied name, omitted if unset.
+        ``createdBy`` is the ID of the user who created the config, omitted if unset.
+        ``updatedBy`` is the ID of the user who last changed it, omitted if unset.
         ``dateLastRun`` is the latest visible run's creation time and ``lastRunStatus``
         is its status (null for older runs that predate status tracking). Both are
         omitted if no runs are visible under the runs endpoint's project-scope rules.
@@ -384,6 +390,10 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         if denied is not None:
             raise PermissionDenied(detail=denied)
 
+        extras = SeerWorkflowConfigExtras(
+            name=data.get("name"),
+            created_by=acting_user_id(request.user),
+        )
         try:
             workflow: SeerWorkflow
             if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
@@ -392,7 +402,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     enabled=data["enabled"],
                     environments=data["environments"],
                     monitor_ids=monitor_ids,
-                    name=data.get("name"),
+                    extras=extras,
                 )
             else:
                 workflow = SeerWorkflow.create(
@@ -402,7 +412,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     schedule=SeerWorkflowSchedule(data.get("schedule", SeerWorkflowSchedule.DAILY)),
                     environments=data["environments"],
                     project_ids=project_ids,
-                    name=data.get("name"),
+                    extras=extras,
                 )
         except ValueError as e:
             logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
@@ -511,105 +521,115 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             raise NotFound from e
         workflow = get_seer_workflow(config)
 
-        enabled = serializer.validated_data.get("enabled")
-        if enabled is not None:
-            denied = _check_project_access(
-                (
-                    [ALL_ACCESS_PROJECT_ID]
-                    if workflow.filters.all_projects
-                    else workflow.get_project_ids()
-                ),
-                request=request,
-                organization=organization,
-                endpoint=self,
-            )
-            if denied is not None:
-                raise PermissionDenied(denied)
-
-        # Validate and update projects
+        enabled: bool | None = serializer.validated_data.get("enabled")
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
-        all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
-        if project_ids is not None:
-            denied = _check_project_access(
-                project_ids,
-                request=request,
-                organization=organization,
-                endpoint=self,
-            )
-            if denied is not None:
-                raise PermissionDenied(detail=denied)
-            # Narrowing an all-projects config drops future projects the caller may not
-            # see, so it needs the same global access as selecting all projects.
-            if (
-                not all_projects
-                and workflow.filters.all_projects
-                and not request.access.has_global_access
-            ):
-                raise PermissionDenied(
-                    detail="You do not have permission to narrow this config's project scope"
-                )
-
-            try:
-                if all_projects:
-                    workflow.set_project_selection(AllProjects())
-                else:
-                    # Replace only what the caller can see; keep current projects they can't.
-                    merged_project_ids = _with_no_access_project_ids(
-                        project_ids,
-                        workflow.get_project_ids(),
-                        request=request,
-                        organization=organization,
-                        endpoint=self,
-                    )
-                    workflow.set_project_selection(
-                        SelectedProjects(project_ids=tuple(merged_project_ids))
-                    )
-            except ValueError as e:
-                logger.exception(
-                    "bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400}
-                )
-                if isinstance(e, WorkflowUpdateError):
-                    return Response({"detail": str(e)}, status=400)
-                return Response(status=400)
-
-        # Validate and update monitors
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
-        if monitor_ids is not None:
-            if not isinstance(workflow, BreachedMetricWorkflow):
-                return Response(
-                    {"detail": "Only metric automations support monitor selection."}, status=400
-                )
+
+        # Checks that depend only on the request run before taking the lock.
+        if monitor_ids is not None and not isinstance(workflow, BreachedMetricWorkflow):
+            return Response(
+                {"detail": "Only metric automations support monitor selection."}, status=400
+            )
+
+        if project_ids or monitor_ids:
+            request_project_ids = (
+                get_monitor_project_ids(monitor_ids, organization) if monitor_ids else project_ids
+            )
+            assert request_project_ids is not None
             denied = _check_project_access(
-                get_monitor_project_ids(monitor_ids, organization),
+                request_project_ids,
                 request=request,
                 organization=organization,
                 endpoint=self,
             )
             if denied is not None:
                 raise PermissionDenied(detail=denied)
-            try:
-                # Replace only what the caller can see; keep monitors in projects they can't.
-                workflow.set_monitor_selection(
-                    _with_no_access_monitor_ids(
-                        monitor_ids,
-                        workflow.get_monitors(),
+
+        # Updates are done in one txn. Error cases must raise instead of early return,
+        # so the transaction can rollback.
+        try:
+            with workflow.update_config() as update:
+                all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
+                config_all_projects = SeerWorkflowFilters.parse_obj(
+                    update.config.filters
+                ).all_projects
+
+                if enabled is not None:
+                    denied = _check_project_access(
+                        (
+                            [ALL_ACCESS_PROJECT_ID]
+                            if config_all_projects
+                            else workflow.get_project_ids()
+                        ),
                         request=request,
                         organization=organization,
                         endpoint=self,
                     )
-                )
-            except ValueError as e:
-                logger.exception(
-                    "bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400}
-                )
-                if isinstance(e, WorkflowUpdateError):
-                    return Response({"detail": str(e)}, status=400)
-                return Response(status=400)
+                    if denied is not None:
+                        raise PermissionDenied(detail=denied)
 
-        if enabled is not None:
-            workflow.set_enabled(enabled)
+                    update.set_enabled(enabled)
 
-        return Response(self.serialize(request, organization, workflow.get_config()))
+                if project_ids is not None:
+                    # Narrowing an all-projects config drops future projects the caller may
+                    # not see, so it needs the same global access as selecting all projects.
+                    if (
+                        not all_projects
+                        and config_all_projects
+                        and not request.access.has_global_access
+                    ):
+                        raise PermissionDenied(
+                            detail=(
+                                "You do not have permission to narrow this config's project scope"
+                            )
+                        )
+
+                    if all_projects:
+                        update.set_project_selection(AllProjects())
+                    else:
+                        # Replace only what the caller can see; keep current projects they can't.
+                        update.set_project_selection(
+                            SelectedProjects(
+                                project_ids=tuple(
+                                    _with_no_access_project_ids(
+                                        project_ids,
+                                        workflow.get_project_ids(),
+                                        request=request,
+                                        organization=organization,
+                                        endpoint=self,
+                                    )
+                                )
+                            )
+                        )
+
+                if monitor_ids is not None:
+                    assert isinstance(workflow, BreachedMetricWorkflow)
+                    assert isinstance(update, BreachedMetricConfigUpdate)
+                    # Replace only what the caller can see; keep monitors in projects they can't.
+                    update.set_monitor_selection(
+                        _with_no_access_monitor_ids(
+                            monitor_ids,
+                            workflow.get_monitors(),
+                            request=request,
+                            organization=organization,
+                            endpoint=self,
+                        )
+                    )
+
+                if update.changed:
+                    user_id = acting_user_id(request.user)
+                    extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
+                    extras.updated_by = "bot" if user_id is None else user_id
+                    update.set_extras(extras)
+
+        except ValueError as e:
+            logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
+            if isinstance(e, WorkflowUpdateError):
+                return Response({"detail": str(e)}, status=400)
+            return Response(status=400)
+
+        config = workflow.get_config()
+        return Response(self.serialize(request, organization, config))
 
     @extend_schema(
         operation_id="Delete a Seer automation workflow",
@@ -750,7 +770,11 @@ def serialize_workflow_config(
     if last_run is not None and last_run.last_run_at is not None:
         result["dateLastRun"] = last_run.last_run_at
         result["lastRunStatus"] = last_run.last_run_status
-    name = SeerWorkflowConfigExtras.parse_obj(config.extras).name
-    if name is not None:
-        result["name"] = name
+    extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
+    if extras.name is not None:
+        result["name"] = extras.name
+    if extras.created_by is not None:
+        result["createdBy"] = str(extras.created_by)
+    if extras.updated_by is not None:
+        result["updatedBy"] = str(extras.updated_by)
     return result

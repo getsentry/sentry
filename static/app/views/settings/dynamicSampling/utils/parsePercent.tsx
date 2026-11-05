@@ -1,4 +1,4 @@
-import {clampPercentRate} from 'sentry/views/settings/dynamicSampling/utils/clampNumer';
+import {clampPercentRate} from './clampNumer';
 
 export function parsePercent(value: string | undefined | null, fallback = 0) {
   if (!value) {

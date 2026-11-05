@@ -2,7 +2,6 @@ import type {LocationDescriptor} from 'history';
 
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
-import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -16,6 +15,7 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
+import type {ParsedOwnershipRule} from './ownership';
 import type {PlatformKey} from './platform';
 import type {AvatarProject, Project} from './project';
 import type {AvatarUser, User} from './user';

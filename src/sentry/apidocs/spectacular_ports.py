@@ -30,6 +30,7 @@
 
 import collections
 import inspect
+import os
 import typing
 from collections import defaultdict
 from collections.abc import Sequence
@@ -62,6 +63,7 @@ from drf_spectacular.utils import _SchemaType
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omission_guard import descended, omissions_enabled, record_typed_dict
 from sentry.apidocs.omissions import OMISSION_REASONS_OVERRIDE
+from sentry.apidocs.response_coverage import CYCLE, FIELD_SOURCE
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 # This function is ported from the drf-spectacular library method here:
@@ -149,19 +151,37 @@ def _field_description(hint: TypeHint) -> str | None:
             return None
 
 
-def _with_description(schema: Any, description: str | None) -> Any:
-    if description is None:
-        return schema
-    return {**schema, "description": description}
+def _declaring_typed_dict(typed_dict: Any, field: str) -> Any:
+    """The base TypedDict that declares an inherited field, which is where to edit it."""
+    for base in getattr(typed_dict, "__orig_bases__", ()):
+        base = typing.get_origin(base) or base
+        if is_typeddict(base) and field in base.__annotations__:
+            return _declaring_typed_dict(base, field)
+    return typed_dict
+
+
+def _field_schema(schema: Any, typed_dict: Any, field: str, description: str | None) -> Any:
+    extra: dict[str, str] = {}
+    if description is not None:
+        extra["description"] = description
+    if os.environ.get("OPENAPIGENERATE"):
+        # Read by the response coverage check; the deref step strips it.
+        owner = _declaring_typed_dict(typed_dict, field)
+        extra[FIELD_SOURCE] = f"{owner.__module__}.{owner.__qualname__}.{field}"
+    return {**schema, **extra} if extra else schema
 
 
 def _cycle_placeholder(hint: Any) -> dict[str, Any]:
     """Stand-in for a TypedDict met again while its own fields are being resolved."""
-    return {
+    placeholder: dict[str, Any] = {
         "type": "object",
         "description": f"Same as the {hint.__name__} this is inside. "
         "Its fields are left out here so it doesn't repeat forever.",
     }
+    if os.environ.get("OPENAPIGENERATE"):
+        # Read by the response coverage check; the deref step strips it.
+        placeholder[CYCLE] = True
+    return placeholder
 
 
 def resolve_type_hint(hint: TypeHint) -> TypeHint:
@@ -236,8 +256,10 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
         try:
             return build_object_type(
                 properties={
-                    k: _with_description(
+                    k: _field_schema(
                         _resolve_at(v, "properties", k),
+                        hint,
+                        k,
                         _field_description(hints_with_extras[k]),
                     )
                     for k, v in get_type_hints(hint).items()

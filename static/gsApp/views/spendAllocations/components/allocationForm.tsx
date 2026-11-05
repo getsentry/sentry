@@ -6,11 +6,11 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BooleanField as NewBooleanField} from 'sentry/components/forms/fields/booleanField';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -185,7 +185,7 @@ export function AllocationForm({
     const hasErrors = validateForm();
 
     if (hasErrors) {
-      addErrorMessage(t('Please validate your form values are correct'));
+      toast.error(t('Please validate your form values are correct'));
       return;
     }
     let METHOD = 'POST';
@@ -208,7 +208,7 @@ export function AllocationForm({
         },
       });
     } catch (err) {
-      addErrorMessage(
+      toast.error(
         getRequestErrorMessage(
           err,
           t('Unable to save spend allocation. Please try again.')

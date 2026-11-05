@@ -14,9 +14,10 @@ import {
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
+
 import TransactionThresholdModal, {
   TransactionThresholdMetric,
-} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
+} from './transactionThresholdModal';
 
 function mountModal(
   eventView: EventView,

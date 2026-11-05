@@ -17,7 +17,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {
@@ -25,9 +26,10 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
-import AutomationEdit from 'sentry/views/automations/edit';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import {dataConditionNodesMap} from './components/dataConditionNodes';
+import AutomationEdit from './edit';
 
 jest.mock('sentry/utils/analytics');
 
@@ -274,7 +276,7 @@ describe('EditAutomation', () => {
   });
 
   it('shows one error toast when the update fails validation', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
       method: 'PUT',
@@ -289,15 +291,13 @@ describe('EditAutomation', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Organization does not allow this action type: slack',
         {duration: 10000}
       );
     });
-    expect(indicators.addErrorMessage).toHaveBeenCalledTimes(1);
-    expect(indicators.addErrorMessage).not.toHaveBeenCalledWith(
-      'Unknown error while saving'
-    );
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).not.toHaveBeenCalledWith('Unknown error while saving');
   });
 
   describe('breadcrumbs', () => {

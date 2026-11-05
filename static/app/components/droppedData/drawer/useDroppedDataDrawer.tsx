@@ -4,8 +4,6 @@ import {createLoader, parseAsString, useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
-import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
-import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
 import type {UseDroppedDataParams} from 'sentry/components/droppedData/useDroppedData';
@@ -15,6 +13,9 @@ import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {buildAskSeerPrompt} from './askSeer';
+import {DroppedDataDrawer} from './droppedDataDrawer';
 
 const DROPPED_DATA_DRAWER_PARSERS = {droppedData: parseAsString};
 

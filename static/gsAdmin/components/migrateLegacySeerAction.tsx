@@ -1,11 +1,8 @@
 import {Component, Fragment} from 'react';
 import moment from 'moment-timezone';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {withApi} from 'sentry/utils/withApi';
@@ -45,22 +42,22 @@ class MigrateLegacySeerAction extends Component<Props, State> {
   handleConfirm = (_params: AdminConfirmParams) => {
     const {applyImmediately, addSeerTrial} = this.state;
 
-    addLoadingMessage('Running legacy Seer migration\u2026');
+    toast.loading('Running legacy Seer migration\u2026');
     this.props.api
       .requestPromise(`/customers/${this.props.orgId}/migrate-legacy-seer/`, {
         method: 'POST',
         data: {applyImmediately, addSeerTrial},
       })
       .then(() => {
-        addSuccessMessage('Legacy Seer migration complete.');
+        toast.success('Legacy Seer migration complete.');
       })
       .catch(res => {
         if (res instanceof RequestError && typeof res.responseJSON?.detail === 'string') {
-          addErrorMessage(res.responseJSON.detail);
+          toast.error(res.responseJSON.detail);
         } else if (res instanceof RequestError && res.responseText) {
-          addErrorMessage(res.responseText);
+          toast.error(res.responseText);
         } else {
-          addErrorMessage('Migration failed.');
+          toast.error('Migration failed.');
         }
       });
   };
