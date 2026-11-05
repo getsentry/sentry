@@ -3,6 +3,7 @@ import logging
 from smtplib import SMTPDataError
 from typing import Any
 
+import sentry_sdk
 from django.core.cache import cache
 from taskbroker_client.retry import Retry
 
@@ -81,10 +82,7 @@ _SENDING = "sending"
 _SENT = "sent"
 
 
-def _dedupe_key(message: dict[str, Any]) -> str | None:
-    message_id = (message.get("headers") or {}).get("Message-Id")
-    if not message_id:
-        return None
+def _dedupe_key(message_id: str, message: dict[str, Any]) -> str:
     # unrelated emails can share a Message-Id
     # including the recipients prevents such a collision
     recipients = sorted(
@@ -132,16 +130,19 @@ def _set_dedupe_state(key: str, sent: bool) -> None:
 
 
 def _send_email_once(message: dict[str, Any]) -> None:
-    key = _dedupe_key(message)
-    if key is None or not options.get("mail.send-dedupe.enabled"):
+    if not options.get("mail.send-dedupe.enabled"):
         _send_email(message)
         return
 
+    message_id = (message.get("headers") or {}).get("Message-Id")
+    if not message_id:
+        sentry_sdk.capture_message("mail.send_dedupe.missing_message_id", level="error")
+        _send_email(message)
+        return
+
+    key = _dedupe_key(message_id, message)
     if not _claim_send(key):
-        logger.info(
-            "mail.send_dedupe.duplicate_skipped",
-            extra={"message_id": message["headers"]["Message-Id"]},
-        )
+        logger.info("mail.send_dedupe.duplicate_skipped", extra={"message_id": message_id})
         return
 
     try:

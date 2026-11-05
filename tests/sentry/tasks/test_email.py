@@ -144,8 +144,8 @@ class TestSendEmailDedupe:
         assert send_messages.call_count == 2
 
     def test_send_in_progress_retries_instead_of_skipping(self, send_messages: MagicMock) -> None:
-        key = _dedupe_key(_message())
-        assert key is not None
+        message = _message()
+        key = _dedupe_key(message["headers"]["Message-Id"], message)
         cache.add(key, "sending", 90)
 
         with pytest.raises(EmailSendInProgress):
@@ -162,21 +162,33 @@ class TestSendEmailDedupe:
 
         assert send_messages.call_count == 2
 
-    def test_message_without_message_id_is_sent(self, send_messages: MagicMock) -> None:
+    def test_message_without_message_id_is_reported_and_sent(
+        self, send_messages: MagicMock
+    ) -> None:
         message = _message()
         message["headers"] = {}
 
-        send_email(message=message)
-        send_email(message=message)
+        with (
+            patch("sentry.tasks.email.sentry_sdk.capture_message") as capture_message,
+            patch("sentry.tasks.email._claim_send") as claim_send,
+        ):
+            send_email(message=message)
+            send_email(message=message)
 
         assert send_messages.call_count == 2
+        assert capture_message.call_count == 2
+        claim_send.assert_not_called()
 
     def test_disabled_option_sends_duplicates(self, send_messages: MagicMock) -> None:
-        with override_options({"mail.send-dedupe.enabled": False}):
+        with (
+            override_options({"mail.send-dedupe.enabled": False}),
+            patch("sentry.tasks.email._dedupe_key") as dedupe_key,
+        ):
             send_email(message=_message())
             send_email(message=_message())
 
         assert send_messages.call_count == 2
+        dedupe_key.assert_not_called()
 
     def test_control_silo_task_is_not_deduped(self, send_messages: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
