@@ -8,8 +8,9 @@ materialized (possibly stale), mirroring every other derived-data consumer.
 """
 
 from datetime import datetime
-from typing import NotRequired, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.issues.derived.features import (
     BLOCKER,
     HAS_OPEN_FIX_PR,
@@ -43,7 +44,14 @@ class GroupDerivedDataResponse(TypedDict):
     lastCompletedAutofixStep: str
     lastProgressedAt: datetime | None
     # Will become required once generally available
-    impact: NotRequired[ImpactDerivedData | None]
+    impact: NotRequired[
+        Annotated[
+            ImpactDerivedData | None,
+            ApiDescription(
+                "The issue's impact assessment, or null when no assessment is available"
+            ),
+        ]
+    ]
 
 
 def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDataResponse]:

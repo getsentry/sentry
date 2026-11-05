@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Final, Literal, TypedDict
+from typing import Annotated, Final, Literal, TypedDict
 
 from pydantic import BaseModel, Field
+
+from sentry.apidocs.descriptions import ApiDescription
 
 IMPACT_FEATURE_ID: Final = "impact_assessment"
 
@@ -10,17 +12,38 @@ ImpactLevel = Literal["super_low", "low", "moderate", "high", "super_high"]
 
 
 class ImpactCitationData(TypedDict):
-    reference: str
-    claim: str
-    source: str
+    reference: Annotated[
+        str, ApiDescription("Stable identifier for the evidence supporting this claim")
+    ]
+    claim: Annotated[
+        str, ApiDescription("Concise explanation of what the cited evidence establishes")
+    ]
+    source: Annotated[
+        str,
+        ApiDescription("The category of evidence cited, such as an event, trace, replay, or log"),
+    ]
 
 
 class ImpactDerivedData(TypedDict):
-    score: float | None
-    level: ImpactLevel | None
-    description: str
-    citations: list[ImpactCitationData]
-    sourceEventId: str
+    score: Annotated[
+        float | None,
+        ApiDescription(
+            "Estimated per-occurrence impact on the end user's capability from 0 to 100"
+        ),
+    ]
+    level: Annotated[
+        ImpactLevel | None, ApiDescription("Impact level derived from the assessment score")
+    ]
+    description: Annotated[
+        str, ApiDescription("Human-readable description of the capability affected by the issue")
+    ]
+    citations: Annotated[
+        list[ImpactCitationData],
+        ApiDescription("Evidence-backed claims supporting the impact assessment"),
+    ]
+    sourceEventId: Annotated[
+        str, ApiDescription("ID of the issue event used to generate the impact assessment")
+    ]
 
 
 # See assess_impact_for_group(), these citations should be stable references to details pulled from
