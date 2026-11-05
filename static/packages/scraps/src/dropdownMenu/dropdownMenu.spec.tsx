@@ -6,9 +6,44 @@ import {render, screen, waitFor} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {lightTheme} from '@sentry/scraps/theme';
 
 describe('DropdownMenu', () => {
+  it.each(['default', 'custom'])(
+    'identifies the menu popup on the %s trigger',
+    async trigger => {
+      const items = [{key: 'project', label: 'Project'}];
+      render(
+        trigger === 'custom' ? (
+          <DropdownMenu
+            items={items}
+            trigger={props => (
+              <OverlayTrigger.IconButton
+                {...props}
+                icon={<IconStar />}
+                aria-label="More projects"
+              />
+            )}
+          />
+        ) : (
+          <DropdownMenu items={items} triggerLabel="More projects" />
+        ),
+        {wrapper: ThemeWrapper}
+      );
+
+      const button = screen.getByRole('button', {name: 'More projects'});
+      expect(button).toHaveAttribute('aria-haspopup', 'true');
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+
+      await userEvent.click(button);
+
+      expect(button).toHaveAttribute('aria-haspopup', 'true');
+      expect(button).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+    }
+  );
+
   it('filters a searchable root menu', async () => {
     render(
       <DropdownMenu
