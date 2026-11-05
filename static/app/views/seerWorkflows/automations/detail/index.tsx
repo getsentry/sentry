@@ -3,7 +3,7 @@ import {Outlet} from 'react-router';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconPause} from '@sentry/icons/pause';
 import {IconPlay} from '@sentry/icons/play';
-import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -22,8 +22,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -34,6 +32,10 @@ import {
   getNextUpdate,
   type AutomationConfig,
 } from 'sentry/views/seerWorkflows/automations';
+import {
+  useConfigDelete,
+  useConfigUpdate,
+} from 'sentry/views/seerWorkflows/automations/hooks/configs';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerWorkflowConfigsResponse,
@@ -55,7 +57,6 @@ export default function AutomationDetail() {
   const automationsEnabled = useAutomationsEnabled();
   const {automationId} = useParams<{automationId: string}>();
   const basePath = getAutomationDetailPath(organization.slug, automationId);
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const {data, isPending, isError, refetch} = useQuery(
@@ -74,41 +75,8 @@ export default function AutomationDetail() {
     ? STRATEGY_META[strategy as WorkflowStrategy]
     : undefined;
   const title = config?.name ?? strategyMeta?.label ?? strategy;
-  const setEnabled = useMutation({
-    mutationFn: (enabled: boolean) =>
-      fetchMutation({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
-          {path: {organizationIdOrSlug: organization.slug, configId: automationId}}
-        ),
-        method: 'PUT',
-        data: {enabled},
-      }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/configs/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
-      }),
-    onError: () => addErrorMessage(t('Unable to update automation.')),
-  });
-  const deleteAutomation = useMutation({
-    mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
-          {path: {organizationIdOrSlug: organization.slug, configId: automationId}}
-        ),
-        method: 'DELETE',
-      }),
-    onSuccess: () => {
-      addSuccessMessage(t('Automation deleted.'));
-      navigate(getAutomationsPath(organization.slug));
-    },
-    onError: () => addErrorMessage(t('Unable to delete automation.')),
-  });
+  const updateConfig = useConfigUpdate({configId: automationId});
+  const deleteConfig = useConfigDelete({configId: automationId});
   // Show who last updated the automation, falling back to who created it
   const displayUserId = config?.updatedBy || config?.createdBy;
   const {data: displayUser} = useUserFromId({
@@ -204,9 +172,9 @@ export default function AutomationDetail() {
     <Flex gap="sm">
       <Button
         size="sm"
-        disabled={setEnabled.isPending}
+        disabled={updateConfig.isPending}
         icon={
-          setEnabled.isPending ? (
+          updateConfig.isPending ? (
             <LoadingIndicator size={14} style={{margin: 0}} />
           ) : config.enabled ? (
             <IconPause />
@@ -214,7 +182,12 @@ export default function AutomationDetail() {
             <IconPlay />
           )
         }
-        onClick={() => setEnabled.mutate(!config.enabled)}
+        onClick={() =>
+          updateConfig.mutate(
+            {enabled: !config.enabled},
+            {onError: () => addErrorMessage(t('Unable to update automation.'))}
+          )
+        }
       >
         {config.enabled ? t('Pause') : t('Resume')}
       </Button>
@@ -227,7 +200,14 @@ export default function AutomationDetail() {
             message: t('Are you sure you want to delete this automation?'),
             confirmText: t('Delete'),
             priority: 'danger',
-            onConfirm: () => deleteAutomation.mutate(),
+            onConfirm: () =>
+              deleteConfig.mutate(undefined, {
+                onSuccess: () => {
+                  addSuccessMessage(t('Automation deleted.'));
+                  navigate(getAutomationsPath(organization.slug));
+                },
+                onError: () => addErrorMessage(t('Unable to delete automation.')),
+              }),
           })
         }
       />
