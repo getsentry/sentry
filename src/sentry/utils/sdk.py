@@ -358,9 +358,7 @@ def configure_sdk() -> None:
         # but none are captured as events (that's handled by the `internal`
         # logger defined in `server.py`, which ignores the levels set
         # in the integration and goes straight to the underlying handler class).
-        LoggingIntegration(
-            event_level=None, sentry_logs_level=logging.INFO, capture_sentry_logs=True
-        ),
+        LoggingIntegration(event_level=None, level=logging.INFO),
         RustInfoIntegration(),
         RedisIntegration(),
     ]
