@@ -27,6 +27,20 @@ def fetch_column_types() -> dict[str, str]:
     return dict(rows)
 
 
+def fetch_column_nullability() -> dict[str, str]:
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT column_name, is_nullable
+            FROM information_schema.columns
+            WHERE table_name = 'sentry_grouprelease'
+              AND column_name IN ('release_id', 'new_release_id')
+            """
+        )
+        rows = cursor.fetchall()
+    return dict(rows)
+
+
 def fetch_unique_constraint_columns(name: str) -> list[str] | None:
     with connection.cursor() as cursor:
         cursor.execute(
@@ -84,11 +98,11 @@ def fetch_check_names() -> list[str]:
     return [name for (name,) in rows]
 
 
-def fetch_catalog_snapshot() -> dict[str, list[tuple[str, str]]]:
+def fetch_catalog_snapshot() -> dict[str, list[tuple[str, ...]]]:
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT column_name, data_type
+            SELECT column_name, data_type, is_nullable
             FROM information_schema.columns
             WHERE table_name = 'sentry_grouprelease'
             ORDER BY column_name
@@ -155,6 +169,9 @@ class SwapGroupReleaseReleaseIdTest(TestMigrations):
             column_types = fetch_column_types()
             assert column_types["release_id"] == "bigint"
             assert column_types["new_release_id"] == self.narrow_type
+
+        with self.subTest("narrow column is nullable"):
+            assert fetch_column_nullability() == {"release_id": "NO", "new_release_id": "YES"}
 
         with self.subTest("unique constraint"):
             columns = fetch_unique_constraint_columns(migration.UNIQUE_NAME)

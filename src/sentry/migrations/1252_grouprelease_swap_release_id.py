@@ -79,6 +79,9 @@ BEGIN
     ALTER TABLE "sentry_grouprelease" RENAME COLUMN "new_release_id" TO "release_id";
     ALTER TABLE "sentry_grouprelease" RENAME COLUMN "release_id_tmp" TO "new_release_id";
 
+    -- The narrow column stops being written before it is dropped.
+    ALTER TABLE "sentry_grouprelease" ALTER COLUMN "new_release_id" DROP NOT NULL;
+
     ALTER TABLE "sentry_grouprelease"
         ADD CONSTRAINT "{UNIQUE_NAME}" UNIQUE USING INDEX "{UNIQUE_TWIN}";
 
@@ -119,6 +122,8 @@ BEGIN
     END IF;
 
     ALTER TABLE "sentry_grouprelease" DROP CONSTRAINT "{UNIQUE_NAME}";
+
+    ALTER TABLE "sentry_grouprelease" ALTER COLUMN "new_release_id" SET NOT NULL;
 
     ALTER TABLE "sentry_grouprelease" RENAME COLUMN "new_release_id" TO "release_id_tmp";
     ALTER TABLE "sentry_grouprelease" RENAME COLUMN "release_id" TO "new_release_id";
@@ -185,7 +190,7 @@ class Migration(CheckedMigration):
                     model_name="grouprelease",
                     name="new_release_id",
                     field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
-                        db_index=True
+                        db_index=True, null=True
                     ),
                 ),
             ],
