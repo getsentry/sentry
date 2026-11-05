@@ -192,15 +192,15 @@ def upsert_commit(data: _CommitData, release: Release) -> Commit:
     if "timestamp" in data:
         commit_data["date_added"] = data["timestamp"]
 
-    commit, created = Commit.objects.get_or_create(
-        organization_id=release.organization_id,
-        repository_id=repo.id,
-        key=data["id"],
-        defaults=commit_data,
-    )
-    if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
-        # the receiver's issue links must commit with the message; a retry skips an unchanged one
-        with atomic_transaction(using=router.db_for_write(Commit)):
+    # the commit and the receiver's issue links commit together; a retry skips an unchanged message
+    with atomic_transaction(using=router.db_for_write(Commit)):
+        commit, created = Commit.objects.get_or_create(
+            organization_id=release.organization_id,
+            repository_id=repo.id,
+            key=data["id"],
+            defaults=commit_data,
+        )
+        if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
             commit.update(**commit_data)
 
     patch_set = data.get("patch_set")
