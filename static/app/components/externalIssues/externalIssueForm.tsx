@@ -29,7 +29,7 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -148,12 +148,15 @@ export function ExternalIssueForm({
 }: ExternalIssueFormProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
-  const {url: endpointString} = parseQueryKey(
-    makeIntegrationIssueConfigApiOptions({
-      orgSlug: organization.slug,
-      groupId: group.id,
-      integrationId: integration.id,
-    }).queryKey
+  const endpointString = getApiUrl(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        issueId: group.id,
+        integrationId: integration.id,
+      },
+    }
   );
   const queryClient = useQueryClient();
 

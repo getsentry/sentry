@@ -1,12 +1,9 @@
 import {useCallback, useMemo} from 'react';
-import type {UseQueryOptions} from '@tanstack/react-query';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {Client} from 'sentry/api';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
@@ -131,13 +128,12 @@ const makePromptsCheckApiOptions = ({
 
 function usePromptsCheck(
   {feature, organization, projectId}: PromptCheckHookParams,
-  {enabled = true, ...options}: PromptQueryOptions = {}
+  {enabled = true}: PromptQueryOptions = {}
 ) {
   return useQuery({
     ...makePromptsCheckApiOptions({feature, organization, projectId}),
     retry: false,
     enabled: defined(organization) && enabled,
-    ...options,
   });
 }
 
@@ -468,9 +464,4 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
   return result as Record<T[number], PromptData>;
 }
 
-type PromptQueryOptions = Partial<
-  Omit<
-    UseQueryOptions<ApiResponse<PromptResponse>, Error, PromptResponse, ApiQueryKey>,
-    'queryKey' | 'queryFn' | 'select'
-  >
->;
+type PromptQueryOptions = {enabled?: boolean};

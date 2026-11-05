@@ -1,11 +1,8 @@
-import type {UseQueryOptions} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
 import type {Repository} from 'sentry/types/integrations';
 
-import type {ApiResponse} from './api/apiFetch';
 import {apiOptions} from './api/apiOptions';
-import type {ApiQueryKey} from './api/apiQueryKey';
 
 function getReleaseRepositoriesApiOptions({
   orgSlug,
@@ -33,7 +30,7 @@ interface UseReleaseReposProps {
   orgSlug: string;
   projectSlug: string;
   release: string;
-  options?: ReleaseRepositoriesQueryOptions;
+  options?: {enabled?: boolean};
 }
 
 export function useReleaseRepositories({
@@ -51,10 +48,3 @@ export function useReleaseRepositories({
     ...options,
   });
 }
-
-type ReleaseRepositoriesQueryOptions = Partial<
-  Omit<
-    UseQueryOptions<ApiResponse<Repository[]>, Error, Repository[], ApiQueryKey>,
-    'queryKey' | 'queryFn' | 'select'
-  >
->;

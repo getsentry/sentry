@@ -24,7 +24,7 @@ import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -120,11 +120,14 @@ export function TicketRuleModal({
     []
   );
 
-  const {url: endpointString} = parseQueryKey(
-    makeIntegrationIssueConfigTicketRuleApiOptions({
-      orgSlug: organization.slug,
-      integrationId: instance.integration,
-    }).queryKey
+  const endpointString = getApiUrl(
+    '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        integrationId: instance.integration,
+      },
+    }
   );
 
   const initialConfigQuery = useMemo(() => {
