@@ -157,6 +157,11 @@ def set_commits_on_release(
 
     ReleaseCommit.objects.bulk_create(release_commits, ignore_conflicts=True, batch_size=100)
 
+    if latest_commit is None:
+        last_commit_id = None
+    else:
+        last_commit_id = latest_commit.id
+
     release.update(
         commit_count=len(commit_list),
         authors=[
@@ -167,7 +172,7 @@ def set_commits_on_release(
             .values_list("commit__author_id", flat=True)
             .distinct()
         ],
-        last_commit_id=latest_commit.id if latest_commit else None,
+        last_commit_id=last_commit_id,
     )
     return head_commit_by_repo, commit_author_by_commit
 
@@ -196,11 +201,9 @@ def upsert_commit(data: _CommitData, release: Release) -> Commit:
         with atomic_transaction(using=router.db_for_write(Commit)):
             commit.update(**commit_data)
 
-    if author is None:
-        author = commit.author
-
-    # Guard against patch_set being None
-    patch_set = data.get("patch_set") or []
+    patch_set = data.get("patch_set")
+    if patch_set is None:
+        patch_set = []
     if patch_set:
         CommitFileChange.objects.bulk_create(
             [
