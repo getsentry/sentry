@@ -2,7 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconRefresh} from '@sentry/icons/refresh';
 import * as Sentry from '@sentry/react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
@@ -27,10 +27,8 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {Teams} from 'sentry/utils/teams';
 import {useApi} from 'sentry/utils/useApi';
@@ -77,11 +75,11 @@ function MemberStatus({
   return t('Active');
 }
 
-const getMemberQueryKey = (orgSlug: string, memberId: string): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
+const memberOptions = (orgSlug: string, memberId: string) =>
+  apiOptions.as<Member>()('/organizations/$organizationIdOrSlug/members/$memberId/', {
     path: {organizationIdOrSlug: orgSlug, memberId},
-  }),
-];
+    staleTime: 0,
+  });
 
 function OrganizationMemberDetailContent({member}: {member: Member}) {
   const api = useApi();
@@ -106,10 +104,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
     },
     onSuccess: data => {
       toast.success(t('Saved'));
-      setApiQueryData<Member>(
-        queryClient,
-        getMemberQueryKey(organization.slug, member.id),
-        data
+      queryClient.setQueryData(
+        memberOptions(organization.slug, member.id).queryKey,
+        oldData => ({...oldData, json: data, headers: oldData?.headers ?? {}})
       );
     },
     onError: error => {
@@ -130,10 +127,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       onSuccess: data => {
         toast.success(t('Sent invite!'));
 
-        setApiQueryData<Member>(
-          queryClient,
-          getMemberQueryKey(organization.slug, member.id),
-          data
+        queryClient.setQueryData(
+          memberOptions(organization.slug, member.id).queryKey,
+          oldData => ({...oldData, json: data, headers: oldData?.headers ?? {}})
         );
       },
       onError: () => {
@@ -381,9 +377,7 @@ function OrganizationMemberDetail() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Member>(getMemberQueryKey(organization.slug, params.memberId), {
-    staleTime: 0,
-  });
+  } = useQuery(memberOptions(organization.slug, params.memberId));
 
   if (isPending) {
     return <LoadingIndicator />;

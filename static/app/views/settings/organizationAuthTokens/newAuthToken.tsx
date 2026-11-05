@@ -21,7 +21,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {makeFetchOrgAuthTokensForOrgQueryKey} from 'sentry/views/settings/organizationAuthTokens';
+import {orgAuthTokensOptions} from 'sentry/views/settings/organizationAuthTokens';
 
 type OrgAuthTokenWithToken = OrgAuthToken & {token: string};
 
@@ -58,7 +58,7 @@ function AuthTokenCreateForm({
       toast.success(t('Created organization token.'));
 
       queryClient.invalidateQueries({
-        queryKey: makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
+        queryKey: orgAuthTokensOptions({orgSlug: organization.slug}).queryKey,
       });
 
       onCreatedToken(token);
