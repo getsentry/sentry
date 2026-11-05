@@ -552,6 +552,22 @@ class EventGroupsTest(TestCase):
         assert event.groups == [self.group]
 
 
+class EventGroupPropertyTest(TestCase):
+    def test_group(self) -> None:
+        event = Event(
+            event_id="a" * 32, data={}, project_id=self.project.id, group_id=self.group.id
+        )
+        assert event.group == self.group
+
+    def test_group_deleted(self) -> None:
+        group_id = self.group.id
+        self.group.delete()
+        event = Event(event_id="a" * 32, data={}, project_id=self.project.id, group_id=group_id)
+        assert event.group is None
+        # Result is cached
+        assert event.group is None
+
+
 class EventForGroupTest(TestCase):
     def test(self) -> None:
         event = Event(
