@@ -53,7 +53,7 @@ describe('Inbox', () => {
       id: '2',
       type: 'notebook.mentioned',
       actor: {type: 'user', id: '2', name: 'Jane Doe', avatar: null},
-      data: {commentId: '1'},
+      data: {blockId: null, commentId: '1'},
       summary: 'Mentioned you in a comment',
       isUnread: true,
       dateAdded: '2020-01-01T00:00:00.000Z',

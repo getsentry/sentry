@@ -484,7 +484,7 @@ export function GlobalCommandPaletteActions() {
             />
           )}
           <CMDKAction
-            display={{label: t('All Queries')}}
+            display={{label: t('Saved Queries')}}
             to={`${prefix}/explore/saved-queries/`}
           />
           {starredSavedQueries.map(query => (

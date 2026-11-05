@@ -265,11 +265,11 @@ function ExploreSecondaryNavigationImpl() {
         <Feature features={['visibility-explore-view', 'performance-view']}>
           <Fragment>
             <SecondaryNavigation.Separator />
-            <SecondaryNavigation.Section id="explore-all-queries">
+            <SecondaryNavigation.Section id="explore-saved-queries">
               <SecondaryNavigation.List>
                 <SecondaryNavigation.ListItem>
                   <SecondaryNavigation.Link to={`${baseUrl}/saved-queries/`}>
-                    {t('All Queries')}
+                    {t('Saved Queries')}
                   </SecondaryNavigation.Link>
                 </SecondaryNavigation.ListItem>
                 <Feature features="organizations:explore-saved-formulas">

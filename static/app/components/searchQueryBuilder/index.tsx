@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useRef} from 'react';
+import {useCallback, useEffectEvent, useLayoutEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCase} from '@sentry/icons/case';
@@ -18,6 +18,7 @@ import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {useOnChange} from './hooks/useOnChange';
 import {
@@ -340,7 +341,7 @@ function SearchQueryBuilderUI({
   trailingItems,
   onChange,
 }: SearchQueryBuilderProps) {
-  const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
+  const {committedQuery, parsedQuery, query, dispatch} = useSearchQueryBuilderState();
   const {wrapperRef, actionBarRef, size, menuPresentation, panelRef, setMenuContainer} =
     useSearchQueryBuilderLayout();
   const {skipNextSearchQueryBuilderAutoFocusRef} = useSearchQueryBuilderAI();
@@ -360,9 +361,20 @@ function SearchQueryBuilderUI({
   );
 
   useOnChange({onChange});
+
+  const previousCommittedQuery = usePrevious(committedQuery);
+  const syncInitialQuery = useEffectEvent((newInitialQuery: string) => {
+    // An unsearched commit from this render must win, or useOnChange searches a
+    // query the builder no longer shows and the URL and builder swap forever.
+    if (committedQuery !== previousCommittedQuery) {
+      return;
+    }
+
+    dispatch({type: 'UPDATE_QUERY', query: newInitialQuery, ignoreDisabled: true});
+  });
   useLayoutEffect(() => {
-    dispatch({type: 'UPDATE_QUERY', query: initialQuery, ignoreDisabled: true});
-  }, [dispatch, initialQuery]);
+    syncInitialQuery(initialQuery);
+  }, [initialQuery]);
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 
