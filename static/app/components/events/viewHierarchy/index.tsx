@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {Node} from 'sentry/components/events/viewHierarchy/node';
-import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
@@ -14,7 +12,9 @@ import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useV
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {DetailsPanel} from './detailsPanel';
+import {Node} from './node';
 import {RenderingSystem} from './renderingSystem';
+import {Wireframe} from './wireframe';
 
 function getNodeLabel({
   node,

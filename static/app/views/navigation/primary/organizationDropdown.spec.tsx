@@ -9,7 +9,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
-import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
+
+import {OrganizationDropdown} from './organizationDropdown';
 
 describe('OrganizationDropdown', () => {
   const organization = OrganizationFixture({

@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AutomationAlertPreviewTable} from 'sentry/views/automations/components/automationAlertPreviewTable';
+import {AutomationAlertPreviewTable} from './automationAlertPreviewTable';
 
 const organization = OrganizationFixture();
 const groupsUrl = `/organizations/${organization.slug}/issues/`;

@@ -4,8 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
-import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
+import type {ProjectionSamplePeriod} from './utils/useProjectSampleCounts';
 import {ProjectsTable} from './projectsTable';
 
 mockElementSize({height: 400});

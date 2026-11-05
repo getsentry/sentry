@@ -1,4 +1,5 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {openExternalIssueModal} from 'sentry/components/externalIssues/externalIssueForm';
 import {useFetchIntegrations} from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
 import {t} from 'sentry/locale';
@@ -116,11 +117,11 @@ export function useIntegrationExternalIssues({
                 }
               )
               .then(() => {
-                addSuccessMessage(t('Successfully unlinked issue.'));
+                toast.success(t('Successfully unlinked issue.'));
                 refetchIntegrations();
               })
               .catch(() => {
-                addErrorMessage(t('Unable to unlink issue.'));
+                toast.error(t('Unable to unlink issue.'));
               });
           },
         }))

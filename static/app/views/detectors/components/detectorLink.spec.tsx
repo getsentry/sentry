@@ -10,7 +10,8 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
+
+import {DetectorLink} from './detectorLink';
 
 describe('DetectorLink', () => {
   const organization = OrganizationFixture();

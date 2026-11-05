@@ -5,7 +5,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
-import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
+
+import {LogsEmptyResults} from './logsEmptyResults';
 
 const organization = OrganizationFixture();
 

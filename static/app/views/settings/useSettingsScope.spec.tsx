@@ -1,6 +1,6 @@
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
+import {useSettingsScope} from './useSettingsScope';
 
 describe('useSettingsScope', () => {
   it.each([

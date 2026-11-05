@@ -1,5 +1,5 @@
-import {MAX_LOG_INGEST_DELAY} from 'sentry/views/explore/logs/constants';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {MAX_LOG_INGEST_DELAY} from './constants';
+import {OurLogKnownFieldKey} from './types';
 
 export function getMaxIngestDelayTimestamp() {
   return BigInt(Date.now() - MAX_LOG_INGEST_DELAY) * 1_000_000n;

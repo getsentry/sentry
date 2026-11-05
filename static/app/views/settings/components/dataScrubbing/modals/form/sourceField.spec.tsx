@@ -1,11 +1,12 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SourceField} from 'sentry/views/settings/components/dataScrubbing/modals/form/sourceField';
 import {
   binarySuggestions,
   unarySuggestions,
   valueSuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
+
+import {SourceField} from './sourceField';
 
 const defaultFieldProps = {
   'aria-describedby': 'source-hint',

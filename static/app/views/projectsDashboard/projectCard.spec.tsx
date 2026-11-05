@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {type ProjectStats} from 'sentry/types/project';
-import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
+
+import {ProjectCard} from './projectCard';
 
 function addProjectStatsResponse({
   latestDeploys,

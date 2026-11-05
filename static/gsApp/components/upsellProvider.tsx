@@ -1,8 +1,8 @@
 import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -143,7 +143,7 @@ function UpsellProvider({
     organization,
     source,
     onTrialFailed: () => {
-      addErrorMessage(t('Error starting trial. Please try again.'));
+      toast.error(t('Error starting trial. Please try again.'));
     },
     onTrialStarted,
   };

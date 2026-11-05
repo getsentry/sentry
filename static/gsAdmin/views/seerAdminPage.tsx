@@ -6,8 +6,8 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {Region} from 'sentry/types/system';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -114,10 +114,10 @@ function NightShiftForm() {
         variables.organizationId === null
           ? 'all eligible orgs'
           : `organization ${variables.organizationId}`;
-      addSuccessMessage(`Night shift run triggered for ${target}${mode}`);
+      toast.success(`Night shift run triggered for ${target}${mode}`);
     },
     onError: () => {
-      addErrorMessage('Failed to trigger night shift run');
+      toast.error('Failed to trigger night shift run');
     },
   });
 
@@ -238,10 +238,10 @@ function AutofixRetryForm() {
     },
     onSuccess: data => {
       const retried = data.results.filter(result => result.retried).length;
-      addSuccessMessage(`Retried ${retried} of ${data.results.length} autofix runs`);
+      toast.success(`Retried ${retried} of ${data.results.length} autofix runs`);
     },
     onError: () => {
-      addErrorMessage('Failed to retry autofix runs');
+      toast.error('Failed to retry autofix runs');
     },
   });
 
@@ -338,12 +338,12 @@ function SingleRunForm() {
       });
     },
     onSuccess: data => {
-      addSuccessMessage(`Started single run ${data.run_id}`);
+      toast.success(`Started single run ${data.run_id}`);
     },
     onError: error => {
       const detail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
-      addErrorMessage(typeof detail === 'string' ? detail : 'Failed to start single run');
+      toast.error(typeof detail === 'string' ? detail : 'Failed to start single run');
     },
   });
 

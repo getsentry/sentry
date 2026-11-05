@@ -634,6 +634,27 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
     A manager that consolidates logic for monitor environment updates
     """
 
+    def get_existing(
+        self, project: Project, monitor_slug: str, environment_name: str | None
+    ) -> MonitorEnvironment | None:
+        """Fetch an existing monitor environment and its monitor in one query. Creates nothing."""
+        environment_name = environment_name or "production"
+        if not Environment.is_valid_name(environment_name):
+            return None
+
+        try:
+            environment = Environment.get_for_organization_id(
+                project.organization_id, environment_name
+            )
+            return self.select_related("monitor").get(
+                monitor__organization_id=project.organization_id,
+                monitor__project_id=project.id,
+                monitor__slug=monitor_slug,
+                environment_id=environment.id,
+            )
+        except (Environment.DoesNotExist, MonitorEnvironment.DoesNotExist):
+            return None
+
     def ensure_environment(
         self, project: Project, monitor: Monitor, environment_name: str | None
     ) -> MonitorEnvironment:

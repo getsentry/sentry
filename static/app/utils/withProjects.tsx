@@ -1,6 +1,7 @@
 import type {Project} from 'sentry/types/project';
-import {getDisplayName} from 'sentry/utils/getDisplayName';
-import {useProjects} from 'sentry/utils/useProjects';
+
+import {getDisplayName} from './getDisplayName';
+import {useProjects} from './useProjects';
 
 type InjectedProjectsProps = {
   projects: Project[];

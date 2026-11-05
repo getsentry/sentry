@@ -1,8 +1,9 @@
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {EventOwners} from 'sentry/views/issueDetails/header/getOwnerList';
+
+import type {ApiQueryKey} from './api/apiQueryKey';
+import {getApiUrl} from './api/getApiUrl';
+import {useApiQuery} from './queryClient';
+import {useOrganization} from './useOrganization';
 
 interface UseIssueEventOwnersProps {
   eventId: string;

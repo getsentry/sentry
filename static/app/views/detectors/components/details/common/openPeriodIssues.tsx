@@ -26,10 +26,11 @@ import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useZoomToOpenPeriodRange} from 'sentry/views/detectors/components/details/common/useZoomToOpenPeriodRange';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getOpenPeriodDurationSeconds} from 'sentry/views/detectors/utils/getOpenPeriodDurationSeconds';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {useZoomToOpenPeriodRange} from './useZoomToOpenPeriodRange';
 
 const OPEN_PERIOD_COLUMNS: TableColumnConfig[] = [
   {key: 'issue', width: '1fr'},

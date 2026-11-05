@@ -1,4 +1,4 @@
-import {humanize} from 'sentry/utils/string/humanize';
+import {humanize} from './humanize';
 
 describe('humanize', () => {
   it('replaces underscores with spaces', () => {

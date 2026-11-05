@@ -1,4 +1,4 @@
-import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
+import {sanitizePath} from './sanitizePath';
 
 describe('sanitizePath', () => {
   for (const prefix of ['https://sentry.io/api/0', '']) {

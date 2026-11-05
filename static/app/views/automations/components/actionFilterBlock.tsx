@@ -18,22 +18,16 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useProjects} from 'sentry/utils/useProjects';
-import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
-import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
-import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {
-  stripActionFields,
-  validateActions,
-} from 'sentry/views/automations/components/automationFormData';
-import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
-import {
-  EmbeddedSelectField,
-  Step,
-  StepLead,
-} from 'sentry/views/automations/components/stepComponents';
 import {useSendTestNotification as useSendTestNotificationMutation} from 'sentry/views/automations/hooks';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
+
+import {FILTER_MATCH_OPTIONS} from './actionFilters/constants';
+import {ActionNodeList} from './actionNodeList';
+import {useAutomationBuilderContext} from './automationBuilderContext';
+import {useAutomationBuilderErrorContext} from './automationBuilderErrorContext';
+import {stripActionFields, validateActions} from './automationFormData';
+import {DataConditionNodeList} from './dataConditionNodeList';
+import {EmbeddedSelectField, Step, StepLead} from './stepComponents';
 
 // We want the test notification to use a project that makes sense for alert config,
 // so this selects the first project that is connected, and that the user has access to.

@@ -18,25 +18,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
-import {TraceAiTab} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceAiTab';
-import {TraceProfiles} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceProfiles';
-import {
-  TraceViewMetricsProviderWrapper,
-  TraceViewMetricsSection,
-} from 'sentry/views/performance/traceDetails/traceMetrics';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import {
-  TraceViewLogsPageDataProvider,
-  TraceViewLogsQueryParamsProvider,
-  TraceViewLogsSection,
-} from 'sentry/views/performance/traceDetails/traceOurlogs';
-import {TraceTabsAndVitals} from 'sentry/views/performance/traceDetails/traceTabsAndVitals';
-import {PartialTraceDataWarning} from 'sentry/views/performance/traceDetails/traceTypeWarnings/partialTraceDataWarning';
-import {TraceWaterfall} from 'sentry/views/performance/traceDetails/traceWaterfall';
-import {
-  TraceLayoutTabKeys,
-  useTraceLayoutTabs,
-} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -44,14 +25,27 @@ import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {useTraceTree} from './traceApi/useTraceTree';
+import {TraceAiTab} from './traceDrawer/tabs/traceAiTab';
+import {TraceProfiles} from './traceDrawer/tabs/traceProfiles';
+import type {TraceTree} from './traceModels/traceTree';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   getInitialTracePreferences,
 } from './traceState/tracePreferences';
 import {TraceStateProvider} from './traceState/traceStateProvider';
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
+import {PartialTraceDataWarning} from './traceTypeWarnings/partialTraceDataWarning';
 import {TraceMetaDataHeader} from './traceHeader';
+import {TraceViewMetricsProviderWrapper, TraceViewMetricsSection} from './traceMetrics';
+import {
+  TraceViewLogsPageDataProvider,
+  TraceViewLogsQueryParamsProvider,
+  TraceViewLogsSection,
+} from './traceOurlogs';
+import {TraceTabsAndVitals} from './traceTabsAndVitals';
+import {TraceWaterfall} from './traceWaterfall';
 import {useTraceEventView} from './useTraceEventView';
+import {TraceLayoutTabKeys, useTraceLayoutTabs} from './useTraceLayoutTabs';
 import {useTraceOverviewData} from './useTraceOverviewData';
 import {useTraceQueryParams} from './useTraceQueryParams';
 import {useTraceStateAnalytics} from './useTraceStateAnalytics';
