@@ -71,9 +71,15 @@ export function transferProject(
       },
       (err: RequestError) => {
         let message = '';
+        const detail = err.responseJSON?.detail;
         // Handle errors with known failures
-        if (err.status && err.status >= 400 && err.status < 500 && err.responseJSON) {
-          message = err.responseJSON.detail as string;
+        if (
+          err.status &&
+          err.status >= 400 &&
+          err.status < 500 &&
+          typeof detail === 'string'
+        ) {
+          message = detail;
         }
 
         if (message) {

@@ -82,13 +82,17 @@ export async function updateMonitor(
 
     // If we are updating a single value in the monitor we can read the
     // validation error for that key, otherwise fallback to the default error
-    const validationError =
+    const validationError: unknown =
       updateKeys.length === 1
         ? (respError.responseJSON?.[updateKeys[0]!] as any)?.[0]
         : undefined;
 
     Sentry.captureException(err);
-    toast.error(validationError ?? t('Unable to update monitor.'));
+    toast.error(
+      typeof validationError === 'string'
+        ? validationError
+        : t('Unable to update monitor.')
+    );
   }
 
   return null;

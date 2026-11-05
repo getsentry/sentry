@@ -334,7 +334,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
         api.clear();
         timeseriesData = await doEventsRequest<false>(api, props);
       } catch (resp: any) {
-        if (resp?.responseJSON?.detail) {
+        if (typeof resp?.responseJSON?.detail === 'string') {
           errorMessage = resp.responseJSON.detail;
         } else {
           errorMessage = t('Error loading chart data');
