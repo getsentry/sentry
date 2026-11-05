@@ -9,7 +9,6 @@ from collections.abc import Generator, Mapping
 from enum import Enum
 from typing import IO, Any, NoReturn, TypeVar, overload
 
-import orjson
 import rapidjson
 from django.db.models.query import QuerySet
 from django.utils.encoding import force_str
@@ -134,17 +133,6 @@ def loads(value: str | bytes, use_rapid_json: bool = False, **kwargs: NoReturn) 
         return rapidjson.loads(value)
     else:
         return _default_decoder.decode(value)
-
-
-# dumps JSON with `orjson` or the default function depending on `option_name`
-# TODO: remove this when orjson experiment is successful
-def dumps_experimental(option_name: str, data: Any) -> str:
-    from sentry.options.rollout import in_random_rollout
-
-    if in_random_rollout(option_name):
-        return orjson.dumps(data).decode()
-    else:
-        return dumps(data)
 
 
 def dumps_htmlsafe(value: object) -> SafeString:
