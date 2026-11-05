@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.integrations.base import IntegrationProvider
@@ -37,37 +38,87 @@ class MissingFeature(TypedDict):
     """A feature the installation can no longer support, named by the permission
     tier it falls short of, so the update-permissions modal can list them."""
 
-    key: str
-    description: str
+    key: Annotated[str, ApiDescription("Key of the missing feature")]
+    description: Annotated[str, ApiDescription("Description of the missing feature")]
 
 
 class OrganizationIntegrationResponse(TypedDict):
-    id: str
-    name: str
-    icon: str | None
-    domainName: str | None
-    accountType: str | None
-    scopes: list[str] | None
-    outOfDate: bool | None
-    missingFeatures: list[MissingFeature] | None
-    status: str
-    provider: Any
-    configOrganization: Any
-    configData: Any
-    externalId: str
-    organizationId: int
-    organizationIntegrationStatus: str
-    gracePeriodEnd: str | None
+    id: Annotated[str, ApiDescription("ID of the integration")]
+    name: Annotated[
+        str, ApiDescription("Name of the integration, usually the connected account or workspace")
+    ]
+    icon: Annotated[str | None, ApiDescription("URL of the connected account's icon")]
+    domainName: Annotated[
+        str | None,
+        ApiDescription("Domain of the connected account, such as github.com/example-org"),
+    ]
+    accountType: Annotated[
+        str | None, ApiDescription("Type of the connected account, such as Organization or User")
+    ]
+    scopes: Annotated[
+        list[str] | None, ApiDescription("Permission scopes granted to the integration")
+    ]
+    outOfDate: Annotated[
+        bool | None,
+        ApiDescription(
+            "Whether the installation lacks permissions the latest version of the integration needs. Null for providers without a permissions model"
+        ),
+    ]
+    missingFeatures: Annotated[
+        list[MissingFeature] | None,
+        ApiDescription(
+            "Features the installation can't support because of missing permissions. Null for providers without a permissions model"
+        ),
+    ]
+    status: Annotated[str, ApiDescription("Status of the integration, such as active or disabled")]
+    provider: Annotated[IntegrationProviderInfo, ApiDescription("Integration provider details")]
+    configOrganization: Annotated[
+        Any, ApiDescription("Organization-level configuration fields of the integration")
+    ]
+    configData: Annotated[
+        Any, ApiDescription("Configuration values the organization set for the integration")
+    ]
+    externalId: Annotated[str, ApiDescription("ID of the connected account in the provider")]
+    organizationId: Annotated[
+        int, ApiDescription("ID of the organization the integration is installed in")
+    ]
+    organizationIntegrationStatus: Annotated[
+        str,
+        ApiDescription(
+            "Status of the integration in this organization, such as active or disabled"
+        ),
+    ]
+    gracePeriodEnd: Annotated[
+        str | None,
+        ApiDescription(
+            "When the integration's grace period ends (ISO 8601). Null when there's no grace period"
+        ),
+    ]
 
 
 class IntegrationProviderInfo(TypedDict):
-    key: str
-    slug: str
-    name: str
-    canAdd: bool
-    canDisable: bool
-    features: list[str]
-    aspects: dict[str, Any]
+    key: Annotated[str, ApiDescription("Key of the integration provider, such as github")]
+    slug: Annotated[str, ApiDescription("Slug of the integration provider, same as key")]
+    name: Annotated[str, ApiDescription("Display name of the integration provider")]
+    canAdd: Annotated[bool, ApiDescription("Whether the integration can be installed from Sentry")]
+    canDisable: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the integration must be uninstalled from the provider instead of in Sentry"
+        ),
+    ]
+    features: Annotated[
+        list[str],
+        ApiDescription(
+            "Features the integration provider supports, such as issue-basic or commits"
+        ),
+    ]
+    aspects: Annotated[
+        dict[str, Any],
+        ApiDescription(
+            "Extra provider details shown during setup, such as alerts and configuration instructions"
+        ),
+    ]
 
 
 # converts the provider to JSON
@@ -84,18 +135,37 @@ def serialize_provider(provider: IntegrationProvider) -> IntegrationProviderInfo
 
 
 class IntegrationSerializerResponse(TypedDict):
-    id: str
-    name: str
-    icon: str | None
-    domainName: str | None
-    accountType: str | None
-    scopes: list[str] | None
-    outOfDate: bool | None
+    id: Annotated[str, ApiDescription("ID of the integration")]
+    name: Annotated[
+        str, ApiDescription("Name of the integration, usually the connected account or workspace")
+    ]
+    icon: Annotated[str | None, ApiDescription("URL of the connected account's icon")]
+    domainName: Annotated[
+        str | None,
+        ApiDescription("Domain of the connected account, such as github.com/example-org"),
+    ]
+    accountType: Annotated[
+        str | None, ApiDescription("Type of the connected account, such as Organization or User")
+    ]
+    scopes: Annotated[
+        list[str] | None, ApiDescription("Permission scopes granted to the integration")
+    ]
+    outOfDate: Annotated[
+        bool | None,
+        ApiDescription(
+            "Whether the installation lacks permissions the latest version of the integration needs. Null for providers without a permissions model"
+        ),
+    ]
     # Features blocked by missing permissions. GitHub tiers are oldest first.
     # None for providers without a permissions model.
-    missingFeatures: list[MissingFeature] | None
-    status: str
-    provider: IntegrationProviderInfo
+    missingFeatures: Annotated[
+        list[MissingFeature] | None,
+        ApiDescription(
+            "Features the installation can't support because of missing permissions. Null for providers without a permissions model"
+        ),
+    ]
+    status: Annotated[str, ApiDescription("Status of the integration, such as active or disabled")]
+    provider: Annotated[IntegrationProviderInfo, ApiDescription("Integration provider details")]
 
 
 @register(Integration)
@@ -332,13 +402,28 @@ class OrganizationIntegrationSerializer(Serializer):
 
 
 class IntegrationProviderResponse(TypedDict):
-    key: str
-    slug: str
-    name: str
-    metadata: Any
-    canAdd: bool
-    canDisable: bool
-    features: list[str]
+    key: Annotated[str, ApiDescription("Key of the integration provider, such as github")]
+    slug: Annotated[str, ApiDescription("Slug of the integration provider, same as key")]
+    name: Annotated[str, ApiDescription("Display name of the integration provider")]
+    metadata: Annotated[
+        Any,
+        ApiDescription(
+            "Provider metadata, such as description, author, source URL and setup details"
+        ),
+    ]
+    canAdd: Annotated[bool, ApiDescription("Whether the integration can be installed from Sentry")]
+    canDisable: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the integration must be uninstalled from the provider instead of in Sentry"
+        ),
+    ]
+    features: Annotated[
+        list[str],
+        ApiDescription(
+            "Features the integration provider supports, such as issue-basic or commits"
+        ),
+    ]
 
 
 class IntegrationProviderSerializer(Serializer[IntegrationProviderResponse]):
