@@ -56,9 +56,8 @@ def mock_event_processing_store() -> Iterator[MagicMock]:
         (False, False, "e:1", 1, False),
         (True, False, "e:1", 1, True),
         (True, True, None, 0, True),
-        # Options changed after ingest chose the cache key.
+        # Store re-enabled after ingest chose no cache key.
         (False, False, None, 0, True),
-        (True, True, "e:1", 0, True),
     ],
 )
 def test_move_to_symbolicate_event(

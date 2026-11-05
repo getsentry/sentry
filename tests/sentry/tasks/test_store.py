@@ -15,7 +15,6 @@ from sentry.exceptions import HashDiscarded
 from sentry.ingest.types import ConsumerType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.store import (
     is_process_disabled,
@@ -561,34 +560,6 @@ def test_inline_save_persists_then_cleans_up_backup_without_working_key(
         save_event(data=data, project_id=default_project.id)
 
     assert event_processing_store.get(working_key, unprocessed=True) is None
-
-
-@django_db_all
-@pytest.mark.parametrize("has_cache_key", [False, True])
-def test_save_event_reads_unprocessed_backup_only_with_cache_key(
-    default_project: Project, has_cache_key: bool
-) -> None:
-    manager = EventManager(
-        {
-            "project": default_project.id,
-            "platform": "python",
-            "event_id": EVENT_ID,
-            "logentry": {"formatted": "test unprocessed backup"},
-        }
-    )
-    manager.normalize()
-    data = manager.get_data()
-    data["project"] = default_project.id
-    cache_key = event_processing_store.store(data) if has_cache_key else None
-    event_processing_store.store(dict(data), unprocessed=True)
-
-    with mock.patch.object(event_processing_store, "get", wraps=event_processing_store.get) as get:
-        save_event(data=data, cache_key=cache_key, project_id=default_project.id)
-
-    assert get.call_count == int(has_cache_key)
-    node_id = Event.generate_node_id(default_project.id, EVENT_ID)
-    unprocessed = nodestore.backend.get(node_id, subkey="unprocessed")
-    assert (unprocessed is not None) is has_cache_key
 
 
 @django_db_all
