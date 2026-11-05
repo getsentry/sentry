@@ -71,6 +71,7 @@ from sentry.seer.agent.on_completion_hook import call_on_completion_hook
 from sentry.seer.agent.tools import (
     execute_table_query,
     execute_timeseries_query,
+    execute_timeseries_query_v2,
     execute_trace_table_query,
     get_baseline_tag_distribution,
     get_event_details,
@@ -995,6 +996,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
     "execute_table_query": seer_rpc(execute_table_query),
     "execute_timeseries_query": seer_rpc(execute_timeseries_query),
+    "execute_timeseries_query_v2": seer_rpc(execute_timeseries_query_v2),
     "execute_trace_table_query": seer_rpc(execute_trace_table_query),
     "execute_issues_query": seer_rpc(execute_issues_query),
     "get_repository_definition": seer_rpc(get_repository_definition),
