@@ -1,11 +1,15 @@
 import type {ReactNode} from 'react';
 import {createContext, Fragment, useContext} from 'react';
+import {matchRoutes, type RouteObject} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
+import {isInternalHref, Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
+
+import {useRouteConfig} from 'sentry/router/routeConfigContext';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import {
   type SeerEmbedBlockHostActions,
@@ -58,6 +62,46 @@ function toRelativeHref(href: string): string {
     return href.slice(origin.length) || '/';
   }
   return href;
+}
+
+/**
+ * Markdown re-renders links on every streamed chunk and the route tree is large,
+ * so cache match results per route config.
+ */
+const routeMatchCache = new WeakMap<RouteObject[], Map<string, boolean>>();
+
+/**
+ * Whether `path` resolves to a real frontend route. Two kinds of match don't
+ * count: one ending on a bare `*` splat (the app's 404 handlers), and one whose
+ * pattern starts with a param (the legacy `/:orgId/` and `/:orgId/:projectId/`
+ * redirects, which accept any one- or two-segment path).
+ */
+function matchesKnownRoute(routeConfig: RouteObject[], path: string): boolean {
+  let cache = routeMatchCache.get(routeConfig);
+  if (!cache) {
+    cache = new Map();
+    routeMatchCache.set(routeConfig, cache);
+  }
+  const cached = cache.get(path);
+  if (cached !== undefined) {
+    return cached;
+  }
+  let isKnown = false;
+  try {
+    const matches = matchRoutes(routeConfig, path);
+    const leafRoute = matches?.at(-1)?.route;
+    const firstSegment = matches
+      ?.map(match => match.route.path ?? '')
+      .join('/')
+      .split('/')
+      .find(Boolean);
+    isKnown =
+      leafRoute !== undefined && leafRoute.path !== '*' && !firstSegment?.startsWith(':');
+  } catch {
+    isKnown = false;
+  }
+  cache.set(path, isKnown);
+  return isKnown;
 }
 
 /**
@@ -127,13 +171,30 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
     reportUnhandledTag(name, level, attrs);
     return null;
   },
-  Link: ({children, Default, href, title}) => (
-    <IsInsideLinkContext.Provider value>
-      <Default href={toRelativeHref(href)} title={title}>
-        {children}
-      </Default>
-    </IsInsideLinkContext.Provider>
-  ),
+  Link: function SeerLink({children, Default, href, title}) {
+    const routeConfig = useRouteConfig();
+    const relativeHref = toRelativeHref(href);
+    // Seer links in org form (`/organizations/:orgId/...`). Only link paths that
+    // resolve to a real route once shortened for customer domains. The rendered
+    // `Link` normalizes `to` itself, and `normalizeUrl` isn't idempotent, so
+    // pass it the org form rather than the normalized path.
+    if (
+      routeConfig &&
+      isInternalHref(relativeHref) &&
+      !matchesKnownRoute(routeConfig, normalizeUrl(relativeHref))
+    ) {
+      return (
+        <IsInsideLinkContext.Provider value>{children}</IsInsideLinkContext.Provider>
+      );
+    }
+    return (
+      <IsInsideLinkContext.Provider value>
+        <Default href={relativeHref} title={title}>
+          {children}
+        </Default>
+      </IsInsideLinkContext.Provider>
+    );
+  },
   Text: function SeerText({children}) {
     const isInsideLink = useContext(IsInsideLinkContext);
     const text = children.replace(/^(?:#{1,6}\s*|`+|\*{1,3})/, '');
