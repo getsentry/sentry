@@ -27,11 +27,11 @@ export function DrawerBreadcrumbs({items = [], current}: DrawerBreadcrumbsProps)
     <Flex containerType="inline-size" align="center" flex="1" minWidth="0">
       <Flex as="nav" aria-label={t('Breadcrumbs')} align="center" gap="sm" minWidth="0">
         {items.length > 0 ? (
-          <Flex align="center" gap="sm" minWidth="0" flex="0 1 auto">
+          <Flex minWidth="0" flex="0 1 auto">
             <BreadcrumbList items={items} />
           </Flex>
         ) : null}
-        <Flex align="center" gap="sm" minWidth="0">
+        <Flex minWidth="0">
           <BreadcrumbList.Current item={current} />
         </Flex>
       </Flex>
