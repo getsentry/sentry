@@ -19,6 +19,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.source_map_debug_examples import SourceMapDebugExamples
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.debug_files.release_files import maybe_renew_releasefiles
@@ -78,14 +79,14 @@ URL_MATCH_MAX_BUNDLES = 1000
 
 
 class ScrapingResultSuccess(TypedDict):
-    url: Annotated[str, ApiDescription("URL Sentry fetched")]
+    url: Annotated[Url, ApiDescription("URL Sentry fetched")]
     status: Annotated[
         Literal["success"], ApiDescription("Result of fetching the file, always success")
     ]
 
 
 class ScrapingResultNotAttempted(TypedDict):
-    url: Annotated[str, ApiDescription("URL Sentry didn't fetch")]
+    url: Annotated[Url, ApiDescription("URL Sentry didn't fetch")]
     status: Annotated[
         Literal["not_attempted"],
         ApiDescription("Result of fetching the file, always not_attempted"),
@@ -93,7 +94,7 @@ class ScrapingResultNotAttempted(TypedDict):
 
 
 class ScrapingResultFailure(TypedDict):
-    url: Annotated[str, ApiDescription("URL Sentry failed to fetch")]
+    url: Annotated[Url, ApiDescription("URL Sentry failed to fetch")]
     status: Annotated[
         Literal["failure"], ApiDescription("Result of fetching the file, always failure")
     ]
@@ -1108,7 +1109,10 @@ def get_scraping_attempt_map(event_data: Mapping[str, Any]) -> dict[str, dict[st
     scraping_attempt_map: dict[str, dict[str, Any]] = {}  # maps from url to attempt
     scraping_attempts = event_data.get("scraping_attempts") or []
     for scraping_attempt in scraping_attempts:
-        attempt_data = {"status": scraping_attempt["status"], "url": scraping_attempt["url"]}
+        attempt_data = {
+            "status": scraping_attempt["status"],
+            "url": absolute_url(scraping_attempt["url"]),
+        }
 
         reason = scraping_attempt.get("reason")
         if reason is not None:

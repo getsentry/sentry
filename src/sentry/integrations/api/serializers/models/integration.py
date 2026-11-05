@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import datetime
 from typing import Annotated, Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
@@ -89,7 +90,7 @@ class OrganizationIntegrationResponse(TypedDict):
         ),
     ]
     gracePeriodEnd: Annotated[
-        str | None,
+        datetime | None,
         ApiDescription(
             "When the integration's grace period ends (ISO 8601). Null when there's no grace period"
         ),

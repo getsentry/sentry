@@ -4,6 +4,7 @@ import logging
 from typing import Annotated, Literal, TypedDict, cast
 
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import IsoDateTime, Url, absolute_url, iso_datetime
 from sentry.preprod.api.models.public.shared import (
     AppInfoResponseDict,
     GitInfoResponseDict,
@@ -35,10 +36,12 @@ class InstallInfoResponseDict(TypedDict):
     ]
     isInstallable: Annotated[bool, ApiDescription("Whether the build can be installed")]
     installUrl: Annotated[
-        str | None,
+        Url | None,
         ApiDescription("URL to install the build. Null when the build isn't installable"),
     ]
-    installUrlExpiresAt: Annotated[str | None, ApiDescription("When installUrl expires (ISO 8601)")]
+    installUrlExpiresAt: Annotated[
+        IsoDateTime | None, ApiDescription("When installUrl expires (ISO 8601)")
+    ]
     downloadCount: Annotated[int, ApiDescription("Number of times the build was downloaded")]
     releaseNotes: Annotated[str | None, ApiDescription("Release notes uploaded with the build")]
     installGroups: Annotated[
@@ -88,9 +91,9 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
             artifact.build_configuration.name if artifact.build_configuration else None
         ),
         "isInstallable": info.is_installable,
-        "installUrl": info.install_url,
+        "installUrl": absolute_url(info.install_url) if info.install_url is not None else None,
         "installUrlExpiresAt": (
-            info.install_url_expires_at.isoformat()
+            iso_datetime(info.install_url_expires_at)
             if info.install_url_expires_at is not None
             else None
         ),

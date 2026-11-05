@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated, Literal, TypedDict
 
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import GitRef, IsoDateTime, Url
 
 
 class VcsInfoResponseDict(TypedDict, total=False):
@@ -13,8 +14,8 @@ class VcsInfoResponseDict(TypedDict, total=False):
     provider: Annotated[str | None, ApiDescription("Version control provider, such as github")]
     head_repo_name: Annotated[str | None, ApiDescription("Repository name of the head commit")]
     base_repo_name: Annotated[str | None, ApiDescription("Repository name of the base commit")]
-    head_ref: Annotated[str | None, ApiDescription("Branch or ref of the head commit")]
-    base_ref: Annotated[str | None, ApiDescription("Branch or ref of the base commit")]
+    head_ref: Annotated[GitRef | None, ApiDescription("Branch or ref of the head commit")]
+    base_ref: Annotated[GitRef | None, ApiDescription("Branch or ref of the base commit")]
     pr_number: Annotated[int | None, ApiDescription("Pull request number")]
 
 
@@ -64,9 +65,11 @@ class SnapshotApproverResponseDict(TypedDict, total=False):
         ApiDescription("Username of the approver, or GitHub login for approvals from GitHub"),
     ]
     avatar_url: Annotated[
-        str | None, ApiDescription("Avatar URL of the approver. Only set for approvals from GitHub")
+        Url | None, ApiDescription("Avatar URL of the approver. Only set for approvals from GitHub")
     ]
-    approved_at: Annotated[str | None, ApiDescription("When the approval was given (ISO 8601)")]
+    approved_at: Annotated[
+        IsoDateTime | None, ApiDescription("When the approval was given (ISO 8601)")
+    ]
     source: Annotated[
         Literal["sentry", "github"],
         ApiDescription("Where the approval was given: sentry or github"),
@@ -164,7 +167,7 @@ class SnapshotCreateResponseDict(TypedDict):
     artifactId: Annotated[str, ApiDescription("ID of the build created for the snapshot")]
     snapshotMetricsId: Annotated[str, ApiDescription("ID of the snapshot")]
     imageCount: Annotated[int, ApiDescription("Number of images in the snapshot")]
-    snapshotUrl: Annotated[str, ApiDescription("URL of the snapshot in Sentry")]
+    snapshotUrl: Annotated[Url, ApiDescription("URL of the snapshot in Sentry")]
 
 
 class SnapshotImageDetailImageInfoResponseDict(SnapshotImageResponseDict, total=False):
@@ -217,8 +220,8 @@ class LatestBaseSnapshotVcsInfoResponseDict(TypedDict, total=False):
     base_sha: Annotated[
         str | None, ApiDescription("Commit SHA of the base. Empty or null for base snapshots")
     ]
-    head_ref: Annotated[str | None, ApiDescription("Branch or ref of the build")]
-    base_ref: Annotated[str | None, ApiDescription("Branch or ref of the base")]
+    head_ref: Annotated[GitRef | None, ApiDescription("Branch or ref of the build")]
+    base_ref: Annotated[GitRef | None, ApiDescription("Branch or ref of the base")]
     head_repo_name: Annotated[str | None, ApiDescription("Repository name of the build")]
     pr_number: Annotated[int | None, ApiDescription("Pull request number")]
 
@@ -238,7 +241,7 @@ class LatestBaseSnapshotResponseDict(TypedDict, total=False):
             "Fraction of changed pixels, from 0 to 1, above which an image counts as changed. Images can override it"
         ),
     ]
-    date_added: Annotated[str, ApiDescription("When the build was uploaded (ISO 8601)")]
+    date_added: Annotated[IsoDateTime, ApiDescription("When the build was uploaded (ISO 8601)")]
     vcs_info: Annotated[
         LatestBaseSnapshotVcsInfoResponseDict,
         ApiDescription("Version control details of the build"),

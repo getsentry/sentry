@@ -42,10 +42,10 @@ class _ReplayDeletionJobCreateData(TypedDict):
 
 class ReplayDeletionJobResponseData(TypedDict):
     id: Annotated[int, ApiDescription("ID of the deletion job")]
-    dateCreated: Annotated[str, ApiDescription("When the job was created")]
-    dateUpdated: Annotated[str, ApiDescription("When the job was last updated")]
-    rangeStart: Annotated[str, ApiDescription("Earliest UTC timestamp in the deletion range")]
-    rangeEnd: Annotated[str, ApiDescription("Latest UTC timestamp in the deletion range")]
+    dateCreated: Annotated[datetime, ApiDescription("When the job was created")]
+    dateUpdated: Annotated[datetime, ApiDescription("When the job was last updated")]
+    rangeStart: Annotated[datetime, ApiDescription("Earliest UTC timestamp in the deletion range")]
+    rangeEnd: Annotated[datetime, ApiDescription("Latest UTC timestamp in the deletion range")]
     environments: Annotated[
         list[str],
         ApiDescription("Environments of the replays to delete. Empty means all environments"),

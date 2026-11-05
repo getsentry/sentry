@@ -7,6 +7,7 @@ from rest_framework.request import Request
 
 from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.loader.browsersdkversion import (
     get_browser_sdk_version_choices,
@@ -24,22 +25,22 @@ class RateLimit(TypedDict):
 
 
 class DSN(TypedDict):
-    secret: Annotated[str, ApiDescription("DSN that includes the secret key")]
-    public: Annotated[str, ApiDescription("Public DSN to configure SDKs with")]
-    csp: Annotated[str, ApiDescription("Endpoint for Content Security Policy reports")]
-    security: Annotated[str, ApiDescription("Endpoint for security reports")]
-    minidump: Annotated[str, ApiDescription("Endpoint for minidump crash reports")]
-    nel: Annotated[str, ApiDescription("Endpoint for Network Error Logging reports")]
-    unreal: Annotated[str, ApiDescription("Endpoint for Unreal Engine crash reports")]
-    crons: Annotated[str, ApiDescription("Endpoint for cron monitor check-ins")]
-    cdn: Annotated[str, ApiDescription("URL of the JavaScript SDK Loader script")]
-    playstation: Annotated[str, ApiDescription("Endpoint for PlayStation crash reports")]
+    secret: Annotated[Url, ApiDescription("DSN that includes the secret key")]
+    public: Annotated[Url, ApiDescription("Public DSN to configure SDKs with")]
+    csp: Annotated[Url, ApiDescription("Endpoint for Content Security Policy reports")]
+    security: Annotated[Url, ApiDescription("Endpoint for security reports")]
+    minidump: Annotated[Url, ApiDescription("Endpoint for minidump crash reports")]
+    nel: Annotated[Url, ApiDescription("Endpoint for Network Error Logging reports")]
+    unreal: Annotated[Url, ApiDescription("Endpoint for Unreal Engine crash reports")]
+    crons: Annotated[Url, ApiDescription("Endpoint for cron monitor check-ins")]
+    cdn: Annotated[Url, ApiDescription("URL of the JavaScript SDK Loader script")]
+    playstation: Annotated[Url, ApiDescription("Endpoint for PlayStation crash reports")]
     integration: Annotated[
-        str,
+        Url,
         ApiDescription("Base URL for integration endpoints, such as the OpenTelemetry endpoints"),
     ]
-    otlp_traces: Annotated[str, ApiDescription("OpenTelemetry (OTLP) endpoint for traces")]
-    otlp_logs: Annotated[str, ApiDescription("OpenTelemetry (OTLP) endpoint for logs")]
+    otlp_traces: Annotated[Url, ApiDescription("OpenTelemetry (OTLP) endpoint for traces")]
+    otlp_logs: Annotated[Url, ApiDescription("OpenTelemetry (OTLP) endpoint for logs")]
 
 
 class BrowserSDK(TypedDict):
@@ -125,19 +126,19 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
                 else None
             ),
             "dsn": {
-                "secret": obj.dsn_private,
-                "public": obj.dsn_public,
-                "csp": obj.csp_endpoint,
-                "security": obj.security_endpoint,
-                "minidump": obj.minidump_endpoint,
-                "nel": obj.nel_endpoint,
-                "unreal": obj.unreal_endpoint,
-                "crons": obj.crons_endpoint,
-                "cdn": obj.js_sdk_loader_cdn_url,
-                "playstation": obj.playstation_endpoint,
-                "integration": obj.integration_endpoint,
-                "otlp_traces": obj.otlp_traces_endpoint,
-                "otlp_logs": obj.otlp_logs_endpoint,
+                "secret": absolute_url(obj.dsn_private),
+                "public": absolute_url(obj.dsn_public),
+                "csp": absolute_url(obj.csp_endpoint),
+                "security": absolute_url(obj.security_endpoint),
+                "minidump": absolute_url(obj.minidump_endpoint),
+                "nel": absolute_url(obj.nel_endpoint),
+                "unreal": absolute_url(obj.unreal_endpoint),
+                "crons": absolute_url(obj.crons_endpoint),
+                "cdn": absolute_url(obj.js_sdk_loader_cdn_url),
+                "playstation": absolute_url(obj.playstation_endpoint),
+                "integration": absolute_url(obj.integration_endpoint),
+                "otlp_traces": absolute_url(obj.otlp_traces_endpoint),
+                "otlp_logs": absolute_url(obj.otlp_logs_endpoint),
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
             "browserSdk": {"choices": cast(Any, get_browser_sdk_version_choices(obj.project))},
