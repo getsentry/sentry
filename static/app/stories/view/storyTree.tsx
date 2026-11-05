@@ -11,6 +11,7 @@ import {
   COMPONENT_CATEGORY_CONFIG,
   COMPONENT_CATEGORY_ORDER,
   isComponentCategory,
+  isScrapsStoryFile,
   type ComponentCategory,
 } from 'sentry/stories/componentCategories';
 import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest';
@@ -379,7 +380,7 @@ function isPrinciplesFile(file: string) {
 }
 
 function isCoreFile(file: string) {
-  return file.includes('components/core');
+  return isScrapsStoryFile(file) || file.includes('components/core');
 }
 
 function isPatternsFile(file: string) {
