@@ -31,7 +31,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {getReturnPath} from 'sentry/utils/useReturnPath';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
   getInvestigationsPath,
   useInvestigationsEnabled,
@@ -361,15 +360,13 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         {tourProps => (
           <PrimaryNavigation.ListItem>
             <PrimaryNavigation.Link
-              to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
+              to={`/${prefix}/explore/traces/`}
               analyticsKey="explore"
               label={t('Explore')}
               {...mergeProps(
-                makeNavigationItemProps(
-                  'explore',
-                  `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
-                  [`/${prefix}/explore`]
-                ),
+                makeNavigationItemProps('explore', `/${prefix}/explore/traces/`, [
+                  `/${prefix}/explore`,
+                ]),
                 tourProps
               )}
             >

@@ -22,7 +22,6 @@ const ALL_AVAILABLE_FEATURES = [
   'ourlogs-enabled',
   'performance-view',
   'profiling',
-  'visibility-explore-view',
 ];
 
 function setupMocks() {

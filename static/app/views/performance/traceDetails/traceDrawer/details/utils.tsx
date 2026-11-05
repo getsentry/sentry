@@ -135,7 +135,6 @@ export type KeyValueActionParams = {
 
 export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemProps[] {
   const {rowKey, rowValue, projectIds, location, organization} = params;
-  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
 
   if (
     !defined(rowValue) ||
@@ -153,10 +152,6 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
         successMessage: t('Attribute filter copied to clipboard'),
       }),
   };
-
-  if (!hasExploreEnabled) {
-    return [copyAttributeFilterAction];
-  }
 
   const dropdownOptions = [
     {

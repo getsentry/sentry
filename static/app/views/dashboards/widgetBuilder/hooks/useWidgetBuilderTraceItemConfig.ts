@@ -19,7 +19,7 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   if (state.dataset === WidgetType.SPANS) {
     return {
       traceItemType: TraceItemDataset.SPANS,
-      enabled: organization.features.includes('visibility-explore-view'),
+      enabled: true,
     };
   }
 

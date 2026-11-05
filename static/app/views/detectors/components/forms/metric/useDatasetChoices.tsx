@@ -42,9 +42,7 @@ export function useDatasetChoices(): Array<SelectValue<DetectorDataset>> {
               label: t('Transactions'),
             },
           ]),
-      ...(organization.features.includes('visibility-explore-view')
-        ? [{value: DetectorDataset.SPANS, label: t('Spans')}]
-        : []),
+      {value: DetectorDataset.SPANS, label: t('Spans')},
       ...(hasLogAlerts(organization)
         ? [
             {

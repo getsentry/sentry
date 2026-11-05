@@ -26,7 +26,6 @@ import {
 } from 'sentry/utils/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
   DisplayType,
@@ -145,9 +144,7 @@ const INTERNAL_ERROR_COUNT_FIELD =
 
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {filterKeySearch, pageFilters, widgetQuery} = props;
-  const organization = useOrganization();
   const attributeOptions = {
-    enabled: organization.features.includes('visibility-explore-view'),
     search: filterKeySearch,
     staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
   };
