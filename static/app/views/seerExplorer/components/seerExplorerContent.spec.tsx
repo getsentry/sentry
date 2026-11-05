@@ -2122,7 +2122,12 @@ describe('SeerExplorerContent', () => {
   describe('Out of credits', () => {
     const creditsOrganization = OrganizationFixture({
       openMembership: true,
-      features: ['seer-explorer', 'seer-credit-checks', 'investigations'],
+      features: [
+        'seer-explorer',
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+        'investigations',
+      ],
       hideAiFeatures: false,
     });
 

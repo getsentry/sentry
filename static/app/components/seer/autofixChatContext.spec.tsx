@@ -221,7 +221,11 @@ describe('AutofixChatProvider', () => {
   it('leaves the message in the composer when the organization is out of credits', async () => {
     const creditsOrganization = OrganizationFixture({
       ...organization,
-      features: [...organization.features, 'seer-credit-checks'],
+      features: [
+        ...organization.features,
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+      ],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/credit-check/`,

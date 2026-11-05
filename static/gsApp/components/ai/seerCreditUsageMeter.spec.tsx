@@ -9,7 +9,7 @@ import {SeerCreditUsageMeter} from './seerCreditUsageMeter';
 
 const billingOrganization = OrganizationFixture({
   access: ['org:read', 'org:billing'],
-  features: ['seer-credit-checks'],
+  features: ['seer-credit-checks', 'token-billed-seer-enabled'],
 });
 
 function mockWallet(
@@ -175,7 +175,7 @@ describe('SeerCreditUsageMeter', () => {
   it('shows nothing to members without billing access', () => {
     const organization = OrganizationFixture({
       access: ['org:read'],
-      features: ['seer-credit-checks'],
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
     });
     const {wallet, autoTopUp} = mockWallet(organization);
 
