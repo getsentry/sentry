@@ -59,6 +59,10 @@ function rootCauseArtifactToMarkdown(
 
   const parts: string[] = [`${h1} Root Cause`, '', rootCause.one_line_description];
 
+  if (rootCause.cause) {
+    parts.push('', rootCause.cause);
+  }
+
   if (rootCause.five_whys.length) {
     parts.push(
       '',

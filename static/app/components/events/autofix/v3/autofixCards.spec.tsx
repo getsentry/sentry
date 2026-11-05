@@ -319,6 +319,27 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     });
 
+    it('renders the cause under the headline', () => {
+      const artifact = makeRootCauseArtifact({
+        one_line_description: 'Divides by an empty weight',
+        cause: 'total_weight is 0 for projects with no tasks.',
+        five_whys: [],
+      });
+
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
+      );
+
+      expect(screen.getByText('Divides by an empty weight')).toBeInTheDocument();
+      expect(
+        screen.getByText('total_weight is 0 for projects with no tasks.')
+      ).toBeInTheDocument();
+    });
+
     it('renders unclosed embed syntax in the description as literal text', () => {
       const description =
         "Users clicking 'Ask Seer' trigger Seer chat that emits {% autofix %} embeds.";

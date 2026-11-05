@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {
   getAutofixArtifactFromSection,
   isRootCauseArtifact,
+  isSingleRunAutofix,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -68,7 +69,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
           ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
           : undefined
       }
-      allowReset
+      allowReset={!isSingleRunAutofix(autofix.runState)}
       onReset={canReset ? (rethinkInChat ?? (() => setShouldShowReset(true))) : undefined}
       resetInChat={defined(rethinkInChat)}
     >
@@ -89,6 +90,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
           )}
           <ArtifactDetails>
             <SeerMarkdown raw={artifact.data.one_line_description} />
+            {artifact.data.cause ? <SeerMarkdown raw={artifact.data.cause} /> : null}
           </ArtifactDetails>
           {artifact.data.five_whys?.length ? (
             <Fragment>

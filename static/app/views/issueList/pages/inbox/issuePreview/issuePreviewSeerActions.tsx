@@ -364,7 +364,7 @@ function SeerActionButton({
     );
   }
 
-  const nextStep = getAutofixNextStep({sections});
+  const nextStep = getAutofixNextStep({sections, runState: autofix.runState});
   if (autofix.isProcessing) {
     let icon = <IconBug data-test-id="autofix-root-cause-icon" />;
     let label = t('Find Root Cause');

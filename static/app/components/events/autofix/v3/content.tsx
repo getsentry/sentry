@@ -14,6 +14,7 @@ import {
   isLastStepPrIteration,
   isPullRequestsSection,
   isRootCauseSection,
+  isSingleRunAutofix,
   isSolutionSection,
   useExplorerAutofix,
   type AutofixSection,
@@ -72,12 +73,13 @@ export function SeerDrawerContent({
   return (
     <Stack gap="lg">
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
-      {(autofix.runState?.status === 'completed' ||
-        isLastStepPrIteration(autofix.runState)) && (
-        <NextStepWrap isSticky={stickyNextStep}>
-          <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
-        </NextStepWrap>
-      )}
+      {!isSingleRunAutofix(autofix.runState) &&
+        (autofix.runState?.status === 'completed' ||
+          isLastStepPrIteration(autofix.runState)) && (
+          <NextStepWrap isSticky={stickyNextStep}>
+            <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
+          </NextStepWrap>
+        )}
       {autofix.codingAgentErrors.map(({id, message}) => (
         <Alert
           key={id}

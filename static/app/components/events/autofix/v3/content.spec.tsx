@@ -2,7 +2,10 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import type {
+  ExplorerAutofixState,
+  useExplorerAutofix,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 import {SeerDrawerContent} from './content';
@@ -61,5 +64,58 @@ describe('SeerDrawerContent', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
 
     expect(startStep).toHaveBeenCalledWith('root_cause');
+  });
+
+  describe('single runs', () => {
+    const singleRun: ExplorerAutofixState = {
+      run_id: 776,
+      feature_id: 'autofix_single_run',
+      status: 'completed',
+      updated_at: '2026-01-01T00:00:00Z',
+      blocks: [
+        {
+          id: 'b1',
+          timestamp: '2026-01-01T00:00:00Z',
+          message: {role: 'assistant', content: 'done', metadata: {step: 'single_run'}},
+          artifacts: [
+            {
+              key: 'single_run_root_cause',
+              reason: 'found',
+              data: {headline: 'Divides by zero', cause: 'Empty weights.'},
+            },
+          ],
+        },
+      ],
+    };
+
+    it('shows no next step', () => {
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({runState: singleRun})}
+          group={GroupFixture()}
+        />
+      );
+
+      expect(screen.getByText('Divides by zero')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Are you happy with this root cause?')
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides the root cause reset', () => {
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({runState: singleRun})}
+          group={GroupFixture()}
+        />
+      );
+
+      expect(screen.queryByRole('button', {name: 'Re-run step'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Chat with Seer about this step'})
+      ).not.toBeInTheDocument();
+    });
   });
 });
