@@ -155,8 +155,15 @@ export default function SnapshotsPage() {
     ),
     enabled: !!snapshotId,
     // Skip retries on 4xx so error pages render instantly
-    retry: (count, err) =>
-      count < 3 && (!(err instanceof RequestError) || !err.status || err.status >= 500),
+    retry: (count, err) => {
+      if (count >= 3) {
+        return false;
+      }
+      if (err instanceof RequestError && err.status && err.status < 500) {
+        return false;
+      }
+      return true;
+    },
     refetchInterval: query => {
       const state = query.state.data?.json?.comparison_state;
       return state === 'pending' || state === 'processing' ? 5_000 : false;
