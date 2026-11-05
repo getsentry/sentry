@@ -1,17 +1,18 @@
-import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
-export function repositoryWithSettingsOptions(
+/**
+ * TODO: Convert to apiOptions
+ */
+export function getRepositoryWithSettingsQueryKey(
   organization: Organization,
   repoId: string
 ) {
-  return apiOptions.as<RepositoryWithSettings>()(
-    '/organizations/$organizationIdOrSlug/repos/$repoId/',
-    {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/repos/$repoId/', {
       path: {organizationIdOrSlug: organization.slug, repoId},
-      query: {expand: 'settings'},
-      staleTime: 0,
-    }
-  );
+    }),
+    {query: {expand: 'settings'}},
+  ] satisfies ApiQueryKey;
 }

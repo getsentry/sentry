@@ -13,9 +13,10 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
-import {repositoryWithSettingsOptions} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {RepoDetailsForm} from 'sentry/components/seer/repoDetails/repoDetailsForm';
 import {t} from 'sentry/locale';
+import type {RepositoryWithSettings} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {orgHasCodeReviewFeature} from 'sentry/utils/seer/orgHasCodeReviewFeature';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -39,7 +40,14 @@ export default function SeerRepoDetails() {
     isPending,
     refetch,
   } = useQuery({
-    ...repositoryWithSettingsOptions(organization, repoId ?? ''),
+    ...apiOptions.as<RepositoryWithSettings>()(
+      '/organizations/$organizationIdOrSlug/repos/$repoId/',
+      {
+        path: {organizationIdOrSlug: organization.slug, repoId: repoId ?? ''},
+        query: {expand: 'settings'},
+        staleTime: 0,
+      }
+    ),
     enabled: !!repoId && hasCodeReviewAccess,
   });
 

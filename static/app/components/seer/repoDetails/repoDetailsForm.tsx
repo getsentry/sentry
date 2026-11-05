@@ -4,14 +4,14 @@ import {z} from 'zod';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 
-import {repositoryWithSettingsOptions} from 'sentry/components/repositories/useRepositoryWithSettings';
+import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -29,10 +29,10 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
   const canWrite = useCanWriteSettings();
   const queryClient = useQueryClient();
 
-  const repoQueryKey = repositoryWithSettingsOptions(
+  const repoQueryKey = getRepositoryWithSettingsQueryKey(
     organization,
     repoWithSettings.id
-  ).queryKey;
+  );
 
   const repoMutationOpts = mutationOptions({
     mutationFn: (
@@ -50,31 +50,27 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
       });
     },
     onMutate: data => {
-      const previous = queryClient.getQueryData(repoQueryKey);
+      const previous = getApiQueryData<RepositoryWithSettings>(queryClient, repoQueryKey);
       if (previous) {
-        queryClient.setQueryData(repoQueryKey, {
+        setApiQueryData<RepositoryWithSettings>(queryClient, repoQueryKey, {
           ...previous,
-          json: {
-            ...previous.json,
-            settings: {
-              codeReviewTriggers: [],
-              enabledCodeReview: false,
-              ...previous.json.settings,
-              ...data,
-            },
+          settings: {
+            codeReviewTriggers: [],
+            enabledCodeReview: false,
+            ...previous.settings,
+            ...data,
           },
         });
       }
       return {previous};
     },
     onError: (_error, _data, context) => {
-      const previous = context?.previous;
-      if (previous) {
-        queryClient.setQueryData(repoQueryKey, current => ({
-          ...current,
-          headers: current?.headers ?? {},
-          json: previous.json,
-        }));
+      if (context?.previous) {
+        setApiQueryData<RepositoryWithSettings>(
+          queryClient,
+          repoQueryKey,
+          context.previous
+        );
       }
     },
     onSettled: () => {
