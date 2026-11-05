@@ -150,7 +150,7 @@ function SplitView({
           </ZoomContainer>
         </Stack>
 
-        <Stack minWidth="0" minHeight="0" borderLeft="secondary">
+        <Stack minWidth="0" minHeight="0" borderLeftColor="secondary">
           <Container padding="sm xl">
             <Text size="xs" variant="muted" ellipsis monospace>
               {headLabel}

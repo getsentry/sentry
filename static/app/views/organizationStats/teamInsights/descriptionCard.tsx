@@ -16,8 +16,8 @@ export function DescriptionCard({title, description, children}: Props) {
       radius="md"
     >
       <Container
-        borderBottom={{zero: 'primary', '3xl': 'none'}}
-        borderRight={{zero: 'none', '3xl': 'primary'}}
+        borderBottomColor={{zero: 'primary', '3xl': 'none'}}
+        borderRightColor={{zero: 'none', '3xl': 'primary'}}
         maxWidth={{zero: 'none', '3xl': '250px'}}
         padding="xl"
       >

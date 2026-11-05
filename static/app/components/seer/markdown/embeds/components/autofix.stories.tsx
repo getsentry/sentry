@@ -164,7 +164,7 @@ function ChatShell({children}: {children: ReactNode}) {
         <Container flex="1" overflow="auto">
           {children}
         </Container>
-        <Container borderTop="primary" background="primary" padding="lg xl">
+        <Container borderTopColor="primary" background="primary" padding="lg xl">
           <InputGroup>
             <InputGroup.TextArea
               rows={1}
@@ -385,7 +385,7 @@ function AutofixRefStory() {
 
       {issue && <Text>{issue.title}</Text>}
 
-      <Container borderTop="primary" paddingTop="xl">
+      <Container borderTopColor="primary" paddingTop="xl">
         {issue ? (
           <AutofixIssueDemo key={issue.id} group={issue} />
         ) : (

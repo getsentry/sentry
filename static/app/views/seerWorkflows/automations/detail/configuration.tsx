@@ -77,7 +77,7 @@ function ConfigRow({
       gap="lg"
       align="center"
       padding="lg"
-      borderTop={hasBorder ? 'primary' : undefined}
+      borderTopColor={hasBorder ? 'primary' : undefined}
     >
       <Stack gap="xs">
         <Text bold>{label}</Text>

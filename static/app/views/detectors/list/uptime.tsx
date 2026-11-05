@@ -47,7 +47,12 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
   });
 
   return (
-    <SimpleTable.RowCell column="-3 / -1" padding="lg 0" borderLeft="muted" height="100%">
+    <SimpleTable.RowCell
+      column="-3 / -1"
+      padding="lg 0"
+      borderLeftColor="muted"
+      height="100%"
+    >
       <Flex width="100%" height="100%" ref={elementRef} align="center">
         {isPending ? (
           <CheckInPlaceholder />
@@ -85,7 +90,7 @@ export default function UptimeDetectorsList() {
             <SimpleTable.RowCell
               column="-3 / -1"
               padding="lg 0"
-              borderLeft="muted"
+              borderLeftColor="muted"
               height="100%"
             >
               <CheckInPlaceholder />

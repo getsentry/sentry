@@ -244,7 +244,7 @@ function ScheduledChanges({
           </Container>
         );
       })}
-      <Container borderTop="primary" />
+      <Container borderTopColor="primary" />
       <Flex align="center" justify="between" padding="0 xl">
         <Text as="span" bold>
           {t('Total')}

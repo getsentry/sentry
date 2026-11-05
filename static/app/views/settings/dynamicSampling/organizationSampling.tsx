@@ -97,7 +97,7 @@ export function OrganizationSampling() {
                     targetSampleRate={field.state.value}
                     savedTargetSampleRate={savedTargetSampleRate}
                     targetSampleRateInput={
-                      <Container borderBottom="muted">
+                      <Container borderBottomColor="muted">
                         <field.Layout.Row
                           padding="lg xl"
                           label={t('Target Sample Rate')}

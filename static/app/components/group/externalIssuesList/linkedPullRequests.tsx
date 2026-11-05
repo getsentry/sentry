@@ -481,7 +481,7 @@ export function PullRequestList({
         <Container
           as="li"
           key={`${pullRequest.repository.id}:${pullRequest.id}`}
-          borderTop={index === 0 ? undefined : 'primary'}
+          borderTopColor={index === 0 ? undefined : 'primary'}
           style={{listStyle: 'none'}}
         >
           <LinkedPullRequestRow

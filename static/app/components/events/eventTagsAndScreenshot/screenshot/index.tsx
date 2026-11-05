@@ -85,7 +85,7 @@ export function Screenshot({
                 padding="md"
                 width="100%"
                 borderColor="primary"
-                borderBottom="none"
+                borderBottomColor="none"
                 radius="md md 0 0"
                 background="primary"
               >
@@ -154,7 +154,7 @@ export function Screenshot({
               padding="md"
               width="100%"
               borderColor="primary"
-              borderTop="none"
+              borderTopColor="none"
               radius="0 0 md md"
             >
               <Grid flow="column" align="center" gap="md">

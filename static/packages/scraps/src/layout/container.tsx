@@ -87,10 +87,10 @@ interface ContainerLayoutProps {
    * unless `borderWidth` overrides it.
    */
   borderColor?: Responsive<BorderVariant>;
-  borderTop?: Responsive<BorderVariant>;
-  borderBottom?: Responsive<BorderVariant>;
-  borderLeft?: Responsive<BorderVariant>;
-  borderRight?: Responsive<BorderVariant>;
+  borderTopColor?: Responsive<BorderVariant>;
+  borderBottomColor?: Responsive<BorderVariant>;
+  borderLeftColor?: Responsive<BorderVariant>;
+  borderRightColor?: Responsive<BorderVariant>;
   /**
    * Border width token for every side that has a border color. Defaults to `md`
    * (1px), and has no effect without a border color prop.
@@ -218,10 +218,10 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'as',
   'background',
   'borderColor',
-  'borderTop',
-  'borderBottom',
-  'borderLeft',
-  'borderRight',
+  'borderTopColor',
+  'borderBottomColor',
+  'borderLeftColor',
+  'borderRightColor',
   'borderWidth',
   'bottom',
   'column',
@@ -378,10 +378,10 @@ export const Container = styled(
   ${p => rc('justify-self', p.justifySelf, p.theme)};
 
   ${p => getBorderLonghands('border', p.borderColor, p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-top', p.borderTop, p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-bottom', p.borderBottom, p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-left', p.borderLeft, p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-right', p.borderRight, p.borderWidth, p.theme)};
+  ${p => getBorderLonghands('border-top', p.borderTopColor, p.borderWidth, p.theme)};
+  ${p => getBorderLonghands('border-bottom', p.borderBottomColor, p.borderWidth, p.theme)};
+  ${p => getBorderLonghands('border-left', p.borderLeftColor, p.borderWidth, p.theme)};
+  ${p => getBorderLonghands('border-right', p.borderRightColor, p.borderWidth, p.theme)};
 
   ${p => rc('visibility', p.visibility, p.theme)};
   ${p => rc('white-space', p.whiteSpace, p.theme)};

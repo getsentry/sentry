@@ -42,7 +42,7 @@ export function OrganizationJoinRequest({organizationSlug}: {organizationSlug: s
   }
 
   return (
-    <Stack gap="0" borderTop="secondary" width="100%">
+    <Stack gap="0" borderTopColor="secondary" width="100%">
       <Flex align="center" justify="between" gap="lg" padding="sm lg">
         <Text size="sm">{t('Not a member?')}</Text>
         <Button

@@ -39,7 +39,7 @@ const ModalFooter = styled((props: React.HTMLAttributes<HTMLElement>) => {
       {...props}
       as="footer"
       justify="end"
-      borderTop="primary"
+      borderTopColor="primary"
       padding={{zero: '2xl xl', '3xl': '2xl 3xl'}}
       css={(theme: Theme) => css`
         margin: ${theme.space['2xl']} -${theme.space['2xl']} -${theme.space['3xl']};
@@ -93,7 +93,7 @@ const makeClosableHeader = (closeModal: () => void) => {
         align="center"
         gap="md"
         position="relative"
-        borderBottom="primary"
+        borderBottomColor="primary"
         padding={{zero: '2xl', '3xl': '2xl 3xl'}}
       >
         {children}

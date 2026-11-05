@@ -207,7 +207,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
               wrap="wrap"
               paddingTop="md"
               paddingBottom="md"
-              borderBottom="primary"
+              borderBottomColor="primary"
               position="relative"
               background={isComplete ? undefined : 'primary'}
               role="banner"
@@ -218,7 +218,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                 top={0}
                 right={0}
                 left={`var(--issue-details-inset, ${theme.space['2xl']})`}
-                borderTop="primary"
+                borderTopColor="primary"
                 pointerEvents="none"
               />
               <GroupActions group={group} project={project} event={event} />

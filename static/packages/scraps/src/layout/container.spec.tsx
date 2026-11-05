@@ -67,6 +67,27 @@ describe('Container', () => {
     expect(css.match(/border-width: [^;]+/g)).toEqual(['border-width: 2px']);
   });
 
+  it('sets the color of a single side with the per-side color props', () => {
+    render(
+      <Container borderTopColor="primary" borderBottomColor="none">
+        Hello
+      </Container>,
+      {wrapper: ThemeWrapper}
+    );
+
+    const element = screen.getByText('Hello');
+    expect(element).not.toHaveAttribute('borderTopColor');
+    expect(element).not.toHaveAttribute('borderBottomColor');
+
+    const css = Array.from(document.styleSheets)
+      .flatMap(sheet => Array.from(sheet.cssRules, rule => rule.cssText))
+      .filter(rule => rule.includes(element.className))
+      .join('\n');
+    expect(css).toMatch(/border-top-style: solid/);
+    expect(css).toMatch(/border-top-width: 1px/);
+    expect(css).toMatch(/border-bottom-style: none/);
+  });
+
   it('render prop guards against invalid attributes', () => {
     render(
       // @ts-expect-error - aria-activedescendant should be set on the child element

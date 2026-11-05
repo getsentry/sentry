@@ -204,7 +204,7 @@ export default function LegacyWebhookDetails() {
             <Text variant="muted" size="sm">
               {t('Enter callback URLs to POST new events to (one per line).')}
             </Text>
-            <Flex gap="md" justify="end" borderTop="primary" paddingTop="lg">
+            <Flex gap="md" justify="end" borderTopColor="primary" paddingTop="lg">
               <Button
                 size="sm"
                 variant="primary"

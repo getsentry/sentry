@@ -71,7 +71,7 @@ export default function PreprodSettings() {
       </TopBar.Slot>
       <Stack gap="lg">
         <PreprodQuotaAlert />
-        <Container borderBottom="primary">
+        <Container borderBottomColor="primary">
           <Tabs value={tab} onChange={handleTabChange}>
             <TabList>
               <TabList.Item key="size">{t('Size Analysis')}</TabList.Item>

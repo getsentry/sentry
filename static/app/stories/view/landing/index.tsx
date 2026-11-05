@@ -57,7 +57,7 @@ export function StoryLanding() {
           gap="3xl"
           align="center"
           background="secondary"
-          borderBottom="primary"
+          borderBottomColor="primary"
           padding="3xl 0"
         >
           <Flex

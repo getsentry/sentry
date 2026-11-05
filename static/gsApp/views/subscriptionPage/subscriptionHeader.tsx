@@ -39,7 +39,7 @@ export function SubscriptionHeader(props: Props) {
     <Stack gap="xl" background="secondary">
       <SentryDocumentTitle title={t('Subscription')} orgSlug={organization.slug} />
 
-      <Stack gap="md" background="primary" borderBottom="primary" padding="2xl 3xl">
+      <Stack gap="md" background="primary" borderBottomColor="primary" padding="2xl 3xl">
         <Flex
           justify="between"
           align={{zero: 'start', xl: 'center'}}
@@ -68,7 +68,7 @@ export function SubscriptionHeader(props: Props) {
           </Flex>
         </Flex>
       </Stack>
-      <Stack padding="0 2xl xl" gap="xl" borderBottom="primary">
+      <Stack padding="0 2xl xl" gap="xl" borderBottomColor="primary">
         <SubscriptionUpsellBanner
           organization={organization}
           subscription={subscription}

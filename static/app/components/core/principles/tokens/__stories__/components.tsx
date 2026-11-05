@@ -51,15 +51,15 @@ export function Space() {
           as="div"
           width={value}
           height="16px"
-          borderLeft="accent"
-          borderRight="accent"
+          borderLeftColor="accent"
+          borderRightColor="accent"
           style={{boxSizing: 'border-box'}}
         >
           <Container
             as="div"
             width="100%"
             height="1px"
-            borderTop="accent"
+            borderTopColor="accent"
             style={{boxSizing: 'border-box'}}
           />
         </Flex>
@@ -174,8 +174,8 @@ export function LineHeight() {
           justify="center"
           as="div"
           height={typeof value === 'number' ? `${value * 16}px` : value}
-          borderTop="accent"
-          borderBottom="accent"
+          borderTopColor="accent"
+          borderBottomColor="accent"
           style={{boxSizing: 'border-box'}}
         >
           <Text size="md" density={token} variant="accent">

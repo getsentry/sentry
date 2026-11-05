@@ -460,7 +460,7 @@ function ConnectedMonitorList({
             justify="between"
             gap="md"
             padding="lg"
-            borderTop={index ? 'primary' : undefined}
+            borderTopColor={index ? 'primary' : undefined}
           >
             <Stack gap="xs" minWidth={0}>
               <ExternalLink

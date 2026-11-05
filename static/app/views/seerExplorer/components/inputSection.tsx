@@ -180,7 +180,7 @@ export function InputSection({
         exit={{opacity: 0, y: 10}}
         transition={{duration: 0.12, delay: 0.1, ease: 'easeOut'}}
       >
-        <Container borderTop="primary" padding="md" background="secondary">
+        <Container borderTopColor="primary" padding="md" background="secondary">
           <Flex justify="between" align="center">
             <Flex align="center" gap="md" paddingLeft="md">
               <Text size="md" bold>
@@ -225,7 +225,7 @@ export function InputSection({
         exit={{opacity: 0, y: 10}}
         transition={{duration: 0.12, delay: 0.1, ease: 'easeOut'}}
       >
-        <Container borderTop="primary" padding="md" background="secondary">
+        <Container borderTopColor="primary" padding="md" background="secondary">
           <Flex justify="between" align="center">
             <Flex align="center" gap="md" paddingLeft="md">
               <Text size="md" bold>

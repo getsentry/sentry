@@ -635,7 +635,7 @@ function AMCheckout(props: Props) {
           title={t('Checkout Completed')}
           orgSlug={organization.slug}
         />
-        <Flex width="100%" justify="center" borderBottom="primary">
+        <Flex width="100%" justify="center" borderBottomColor="primary">
           <Flex width="100%" justify="start" padding="2xl" maxWidth="1440px">
             <LogoSentry />
           </Flex>
@@ -687,7 +687,7 @@ function AMCheckout(props: Props) {
         maxWidth={{zero: '100%', '2xl': '26rem'}}
         position={{zero: 'static', '2xl': 'sticky'}}
         top={{zero: 'auto', '2xl': '6.25rem'}}
-        borderTop={{zero: 'primary', '2xl': 'none'}}
+        borderTopColor={{zero: 'primary', '2xl': 'none'}}
         padding={{zero: '0 2xl', '2xl': '0 2xl 3xl 3xl'}}
         background={{zero: 'secondary', '2xl': 'primary'}}
       >

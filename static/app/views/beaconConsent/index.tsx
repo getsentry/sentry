@@ -94,7 +94,12 @@ function BeaconConsent({onSubmitSuccess}: Props) {
                 </field.Radio.Group>
               )}
             </form.AppField>
-            <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">
+            <Flex
+              justify="end"
+              borderTopColor="secondary"
+              paddingTop="xl"
+              paddingBottom="xl"
+            >
               <form.SubmitButton>{t('Continue')}</form.SubmitButton>
             </Flex>
           </Stack>

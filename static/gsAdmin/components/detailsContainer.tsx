@@ -15,7 +15,7 @@ export function DetailsHeading({children}: {children: React.ReactNode}) {
       marginTop="2xl"
       marginBottom="xl"
       paddingBottom="xs"
-      borderBottom="secondary"
+      borderBottomColor="secondary"
     >
       <Heading as="h6" size="md" variant="muted">
         <Text as="span" variant="inherit" uppercase>

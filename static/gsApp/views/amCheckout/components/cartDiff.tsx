@@ -578,7 +578,7 @@ export function CartDiff({
           padding="xl xl 0 xl"
           maxHeight="240px"
           overflowY="auto"
-          borderTop="primary"
+          borderTopColor="primary"
         >
           {planChanges.length + productChanges.length + cycleChanges.length > 0 && (
             <PlanDiff

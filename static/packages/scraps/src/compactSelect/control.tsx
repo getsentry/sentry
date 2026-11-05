@@ -535,7 +535,7 @@ export function Control<Value extends SelectKey>({
             >
               <FocusScope contain>
                 {hasHeader && (
-                  <Header borderBottom={searchEnabled ? 'none' : 'muted'}>
+                  <Header borderBottomColor={searchEnabled ? 'none' : 'muted'}>
                     <Flex
                       align="center"
                       justify="between"

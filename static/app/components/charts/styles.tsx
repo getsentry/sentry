@@ -44,7 +44,7 @@ export function ChartControls(props: FlexProps) {
       wrap={{zero: 'nowrap', xl: 'wrap'}}
       padding="md"
       paddingLeft="2xl"
-      borderTop="primary"
+      borderTopColor="primary"
       {...props}
     />
   );

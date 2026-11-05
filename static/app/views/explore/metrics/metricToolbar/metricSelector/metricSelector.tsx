@@ -640,12 +640,12 @@ export function MetricSelector({
                     minWidth="400px"
                     minHeight={`${METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT}px`}
                     maxHeight={`${METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT}px`}
-                    borderBottom={
+                    borderBottomColor={
                       isOverlayAboveTrigger
                         ? undefined
                         : {'screen:xs': 'primary', 'screen:md': undefined}
                     }
-                    borderTop={
+                    borderTopColor={
                       isOverlayAboveTrigger
                         ? {'screen:xs': 'primary', 'screen:md': undefined}
                         : undefined

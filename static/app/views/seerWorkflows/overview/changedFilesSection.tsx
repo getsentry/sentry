@@ -77,8 +77,8 @@ function RepoGroup({
         gap="md"
         align="center"
         padding="md"
-        borderBottom="primary"
-        borderTop={groupIndex > 0 ? 'primary' : undefined}
+        borderBottomColor="primary"
+        borderTopColor={groupIndex > 0 ? 'primary' : undefined}
       >
         {group.repoName ? (
           <Text size="sm" bold variant="secondary" ellipsis>
@@ -111,7 +111,7 @@ function RepoGroup({
         );
       })}
       {hiddenCount > 0 ? (
-        <Flex justify="center" borderTop="primary" background="primary" padding="xs">
+        <Flex justify="center" borderTopColor="primary" background="primary" padding="xs">
           <Button
             size="xs"
             variant="transparent"

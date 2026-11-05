@@ -166,7 +166,7 @@ export function DataRequests() {
           <Flex
             align="center"
             padding="xl"
-            borderBottom="primary"
+            borderBottomColor="primary"
             background="secondary"
             radius="md md 0 0"
           >
@@ -208,7 +208,7 @@ export function DataRequests() {
               </form.AppField>
             </Stack>
           </Container>
-          <Flex justify="end" padding="xl" borderTop="primary">
+          <Flex justify="end" padding="xl" borderTopColor="primary">
             <form.SubmitButton>Search</form.SubmitButton>
           </Flex>
         </Panel>

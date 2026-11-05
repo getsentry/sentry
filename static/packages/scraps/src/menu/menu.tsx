@@ -41,7 +41,7 @@ export function calculateMenuMinHeight(
 
 /** Container for a menu header, with a divider below it. */
 export function MenuHeaderLayout(props: FlexProps) {
-  return <Stack borderBottom="muted" gap="0" {...props} />;
+  return <Stack borderBottomColor="muted" gap="0" {...props} />;
 }
 
 /** Text style for the menu's main heading. */
@@ -119,7 +119,7 @@ export function MenuSectionList(props: FlexProps<'ul'>) {
 
 /** Container for menu footer actions, with a divider above it. */
 export function MenuFooterLayout(props: FlexProps) {
-  return <Flex borderTop="muted" align="center" padding="md lg" {...props} />;
+  return <Flex borderTopColor="muted" align="center" padding="md lg" {...props} />;
 }
 
 type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input> & {

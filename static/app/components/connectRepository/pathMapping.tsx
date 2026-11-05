@@ -56,7 +56,7 @@ export function PathMapping({
           onExpandToggle={onExpandToggle}
         />
       )}
-      {showSummary && editing && <Container borderTop="muted" />}
+      {showSummary && editing && <Container borderTopColor="muted" />}
       {editing && (
         <PathMappingEdit
           // TODO(scttcper): Remove once TanStack Form's useFieldGroup handles `fields`

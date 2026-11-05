@@ -393,7 +393,7 @@ export function ScmMessagingProviderRow({
 
         {visualState === 'configuring' &&
           resolvedProvider.eligibleIntegrations.length > 0 && (
-            <Container borderTop="primary">
+            <Container borderTopColor="primary">
               {renderChannelPicker ? (
                 renderChannelPicker({
                   integrations: resolvedProvider.eligibleIntegrations,

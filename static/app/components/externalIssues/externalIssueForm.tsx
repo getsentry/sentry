@@ -387,7 +387,7 @@ export function ExternalIssueForm({
         areas={`"content close" "content loading"`}
         align="start"
         gap="0 md"
-        borderBottom="primary"
+        borderBottomColor="primary"
       >
         <Stack area="content" align="stretch" gap="lg" minWidth={0}>
           <Heading as="h2">{title}</Heading>

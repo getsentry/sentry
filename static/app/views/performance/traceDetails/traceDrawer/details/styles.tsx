@@ -261,7 +261,7 @@ function Highlights({
                   <Flex
                     align="center"
                     justify="between"
-                    borderBottom="primary"
+                    borderBottomColor="primary"
                     radius="md md 0 0"
                     background="secondary"
                     position="relative"

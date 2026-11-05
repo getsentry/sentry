@@ -119,7 +119,7 @@ export function FeatureFilter({
         </Flex>
       </PanelHeader>
       <PanelBody>
-        <Flex align="center" justify="between" padding="xl" borderBottom="primary">
+        <Flex align="center" justify="between" padding="xl" borderBottomColor="primary">
           <Stack gap="xs">
             <Text size="lg" bold>
               {t('%s Enabled', title)}

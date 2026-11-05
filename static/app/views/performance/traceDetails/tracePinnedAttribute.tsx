@@ -179,7 +179,7 @@ export function TracePinnedAttributeHeader() {
       align="center"
       gap="xs"
       padding="xs md"
-      borderBottom="primary"
+      borderBottomColor="primary"
       overflow="hidden"
     >
       <Text bold ellipsis size="sm" title={pin.attribute}>

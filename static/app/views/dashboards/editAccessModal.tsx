@@ -317,7 +317,7 @@ function EditAccessModal({
                       justify="between"
                       gap="md"
                       padding="md lg"
-                      borderBottom={
+                      borderBottomColor={
                         index === visibleTeams.length - 1 ? undefined : 'secondary'
                       }
                     >

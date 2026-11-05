@@ -124,7 +124,7 @@ function AcceptProjectTransferForm({
             </field.Layout.Stack>
           )}
         </form.AppField>
-        <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">
+        <Flex justify="end" borderTopColor="secondary" paddingTop="xl" paddingBottom="xl">
           <form.SubmitButton variant="danger">{t('Transfer Project')}</form.SubmitButton>
         </Flex>
       </Stack>

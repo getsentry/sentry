@@ -70,7 +70,7 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
       <Container containerType="inline-size">
         <InboxIssuePreviewHeader group={group} project={project} event={event} />
         <Tabs value={tab} onChange={setTab}>
-          <Container padding="0 2xl" borderBottom="primary">
+          <Container padding="0 2xl" borderBottomColor="primary">
             <TabList>
               <TabList.Item key="activity">{t('Activity')}</TabList.Item>
               <TabList.Item key="telemetry">{t('Telemetry')}</TabList.Item>
@@ -110,7 +110,7 @@ function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps
 
   return (
     <Stack>
-      <Stack gap="xs" borderBottom="muted" padding="lg 2xl">
+      <Stack gap="xs" borderBottomColor="muted" padding="lg 2xl">
         <Flex justify="between" align="center" gap="md">
           <Heading as="h2" size="xl">
             <AnsiText>{title}</AnsiText>
@@ -125,7 +125,7 @@ function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps
         gap="md"
         wrap="wrap"
         padding="lg 2xl"
-        borderBottom="muted"
+        borderBottomColor="muted"
       >
         <GroupActions group={group} project={project} event={event ?? null} />
         <Flex align="center" gap="0 xl" wrap="wrap">

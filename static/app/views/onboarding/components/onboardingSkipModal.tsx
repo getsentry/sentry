@@ -125,7 +125,7 @@ function OnboardingSkipModal({
             <Container
               key={option.value}
               position="relative"
-              borderBottom={index < reasons.length - 1 ? 'primary' : undefined}
+              borderBottomColor={index < reasons.length - 1 ? 'primary' : undefined}
             >
               <Container
                 position="absolute"

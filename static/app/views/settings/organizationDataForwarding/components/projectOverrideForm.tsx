@@ -126,7 +126,7 @@ export function ProjectOverrideForm({
         </Flex>
       </Disclosure.Title>
       <Disclosure.Content>
-        <Stack borderTop="primary">
+        <Stack borderTopColor="primary">
           <form.AppForm form={form}>
             <form.AppField name="is_enabled">
               {field => (

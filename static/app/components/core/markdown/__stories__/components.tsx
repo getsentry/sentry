@@ -143,7 +143,7 @@ export function TagDemo() {
                   <Text variant="danger">{typedData?.severity}</Text>
                 </Flex>
                 {typedData?.description ? (
-                  <Flex borderTop="primary" paddingTop="lg">
+                  <Flex borderTopColor="primary" paddingTop="lg">
                     <Text>{typedData.description}</Text>
                   </Flex>
                 ) : null}

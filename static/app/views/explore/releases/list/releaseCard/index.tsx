@@ -124,7 +124,7 @@ export function ReleaseCard({
   return (
     <ResponsivePanel reloading={reloading} data-test-id="release-panel">
       <Stack
-        borderRight={{zero: 'none', '3xl': 'primary'}}
+        borderRightColor={{zero: 'none', '3xl': 'primary'}}
         flexShrink={1}
         gap={{zero: 'md', '3xl': '0'}}
         maxWidth={{zero: 'none', '3xl': '300px'}}
@@ -225,7 +225,7 @@ export function ReleaseCard({
         </ReleaseInfoSubheader>
       </Stack>
 
-      <Container borderTop={{zero: 'primary', '3xl': 'none'}} flexGrow={1}>
+      <Container borderTopColor={{zero: 'primary', '3xl': 'none'}} flexGrow={1}>
         <ProjectsTable
           aria-label={t('Projects in release %s', formatVersion(version))}
           columns={getProjectColumns(showReleaseAdoptionStages)}

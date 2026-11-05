@@ -36,7 +36,7 @@ export function EventUserCounts({group, project}: EventUserCountsProps) {
           </Text>
         </Flex>
       </Tooltip>
-      <Container aria-hidden borderLeft="muted" height="16px" />
+      <Container aria-hidden borderLeftColor="muted" height="16px" />
       <Tooltip title={eventLabel} skipWrapper>
         <Flex as="span" align="center" gap="xs" padding="sm 0" aria-label={eventLabel}>
           <Text size="md" bold tabular>

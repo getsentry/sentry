@@ -37,7 +37,7 @@ export function LinkedIssueRows({linkedIssues}: LinkedIssueRowsProps) {
         <Container
           as="li"
           key={linkedIssue.key}
-          borderTop={index === 0 ? undefined : 'primary'}
+          borderTopColor={index === 0 ? undefined : 'primary'}
           style={{listStyle: 'none'}}
         >
           <LinkedIssueRow linkedIssue={linkedIssue} />

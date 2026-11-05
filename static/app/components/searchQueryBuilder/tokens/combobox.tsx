@@ -315,7 +315,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           </Flex>
         ) : null}
         {enableAISearch ? (
-          <Flex padding="sm" borderTop="muted">
+          <Flex padding="sm" borderTopColor="muted">
             <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onTabForward} />
           </Flex>
         ) : null}

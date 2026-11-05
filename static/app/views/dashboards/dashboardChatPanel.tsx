@@ -204,7 +204,7 @@ const ChatHistory = memo(function ChatHistoryInner({
       maxHeight={`${MAX_CHAT_HISTORY_HEIGHT}px`}
       overflowY="auto"
       overflowX="hidden"
-      borderTop="primary"
+      borderTopColor="primary"
     >
       <Stack>
         {blocks.map((block, index) => (

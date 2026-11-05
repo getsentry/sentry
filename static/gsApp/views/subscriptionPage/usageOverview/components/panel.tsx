@@ -99,7 +99,7 @@ function PanelHeader({
       gap="md"
       justify="between"
       align="center"
-      borderBottom="primary"
+      borderBottomColor="primary"
       padding="xl"
       height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}
     >
