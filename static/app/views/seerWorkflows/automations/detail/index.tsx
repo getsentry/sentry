@@ -9,8 +9,8 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
@@ -172,7 +172,7 @@ export default function AutomationDetail() {
         onClick={() =>
           updateConfig.mutate(
             {enabled: !config.enabled},
-            {onError: () => addErrorMessage(t('Unable to update automation.'))}
+            {onError: () => toast.error(t('Unable to update automation.'))}
           )
         }
       >
@@ -190,10 +190,10 @@ export default function AutomationDetail() {
             onConfirm: () =>
               deleteConfig.mutate(undefined, {
                 onSuccess: () => {
-                  addSuccessMessage(t('Automation deleted.'));
+                  toast.success(t('Automation deleted.'));
                   navigate(getAutomationsPath(organization.slug));
                 },
-                onError: () => addErrorMessage(t('Unable to delete automation.')),
+                onError: () => toast.error(t('Unable to delete automation.')),
               }),
           })
         }

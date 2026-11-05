@@ -29,10 +29,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
-import {
-  useCreateConfig,
-  useUpdateConfig,
-} from 'sentry/views/seerWorkflows/automations/hooks/configs';
 import type {
   SeerAgentResponse,
   SeerWorkflowConfigResponse,
@@ -41,6 +37,8 @@ import {
   getAutomationDetailPath,
   getAutomationsPath,
 } from 'sentry/views/seerWorkflows/utils';
+
+import {useCreateConfig, useUpdateConfig} from './hooks/configs';
 
 const agentProjectsSchema = z.discriminatedUnion('mode', [
   z.object({mode: z.literal('monitors')}),
@@ -117,12 +115,12 @@ export function MetricAutomationForm(props: Props) {
         strategy: 'breached_metric_investigation',
         name: value.name,
       });
-      addSuccessMessage(t('Automation created.'));
+      toast.success(t('Automation created.'));
       navigate(getAutomationDetailPath(organization.slug, config.id));
       return config;
     }
     const config = await updateConfig.mutateAsync(fields);
-    addSuccessMessage(t('Automation saved.'));
+    toast.success(t('Automation saved.'));
     return config;
   };
   const form = useScrapsForm({

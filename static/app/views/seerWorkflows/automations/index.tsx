@@ -25,7 +25,6 @@ import {formatAbbreviatedNumber, userDisplayName} from 'sentry/utils/formatters'
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
-import {useFetchConfigs} from 'sentry/views/seerWorkflows/automations/hooks/configs';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerWorkflowConfigResponse,
@@ -35,6 +34,8 @@ import {
   getAutomationDetailPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
+
+import {useFetchConfigs} from './hooks/configs';
 
 /**
  * The narrowest a card may get before the grid drops to fewer columns per row.
