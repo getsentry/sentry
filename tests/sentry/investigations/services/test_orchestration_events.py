@@ -2366,7 +2366,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert block.producer_revision == 1
         assert block.content == "old body"
 
-    def test_adopted_blocks_a_clear_replaced_survive_report_completion(self) -> None:
+    def test_adoption_keeps_only_blocks_the_current_report_rewrote(self) -> None:
         self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.deliver(self.text_block_upserted(2, "kept", 1, "kept body"))
         self.deliver(self.text_block_upserted(3, "rewritten", 1, "first body"))
@@ -2383,15 +2383,17 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 },
             )
         )
+        kept = NotebookBlock.objects.get(producer_key="kept")
         self.orchestration_run.refresh_from_db()
-        assert "reportReplacedBlockIds" not in self.orchestration_run.projection["_sentryControl"]
+        assert self.orchestration_run.projection["_sentryControl"]["reportReplacedBlockIds"] == [
+            kept.id
+        ]
 
         self.deliver(self.make_event(7, "report_completed", {"reportRevision": 3}))
 
-        kept = NotebookBlock.objects.get(producer_key="kept")
+        kept.refresh_from_db()
         rewritten = NotebookBlock.objects.get(producer_key="rewritten")
-        assert kept.deleted_at is None
-        assert kept.content == "kept body"
+        assert kept.deleted_at is not None
         assert rewritten.deleted_at is None
         assert rewritten.producer_revision == 2
         assert rewritten.content == "second body"

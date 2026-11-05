@@ -452,9 +452,15 @@ def _adopt_preserved_report_revision(
             run.investigation, remove_blocks(writes, block_ids=discarded_ids)
         )
     control = _control(run)
-    replaced_ids = [
-        block_id for block_id in _replaced_report_block_ids(run) if block_id not in completed_ids
-    ]
+    # Seer's restarted report only knows the blocks written since the clear, so
+    # only those are kept. The rest still go when the report completes.
+    replaced_ids = _replaced_report_block_ids(run)
+    rewritten_ids = set(
+        NotebookBlock.objects.filter(
+            id__in=replaced_ids, producer_revision__gte=_report_revision(run)
+        ).values_list("id", flat=True)
+    )
+    replaced_ids = [block_id for block_id in replaced_ids if block_id not in rewritten_ids]
     if replaced_ids:
         control[_REPLACED_BLOCK_IDS_KEY] = replaced_ids
     else:
