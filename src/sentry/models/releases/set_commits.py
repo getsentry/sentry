@@ -91,6 +91,7 @@ def set_commits(release: Release, commit_list: list[_CommitData]) -> None:
     with TimedRetryPolicy(10)(lock.acquire):
         create_repositories(commit_list, release)
         create_commit_authors(commit_list, release)
+        # upserts stay outside the swap transaction: inside it, each one would open savepoints
         commits = [upsert_commit(data, release) for data in commit_list]
 
         with atomic_transaction(using=router.db_for_write(type(release))):
@@ -140,7 +141,7 @@ def set_commits_on_release(
     release_commits = []
 
     latest_commit = None
-    for idx, (data, commit) in enumerate(zip(commit_list, commits)):
+    for idx, (data, commit) in enumerate(zip(commit_list, commits, strict=True)):
         if idx == 0:
             latest_commit = commit
 
@@ -198,6 +199,7 @@ def upsert_commit(data: _CommitData, release: Release) -> Commit:
         defaults=commit_data,
     )
     if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
+        # the receiver's issue links must commit with the message; a retry skips an unchanged one
         with atomic_transaction(using=router.db_for_write(Commit)):
             commit.update(**commit_data)
 
