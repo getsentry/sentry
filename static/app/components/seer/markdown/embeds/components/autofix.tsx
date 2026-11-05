@@ -39,7 +39,6 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useRefreshAutofixProgressQueries} from 'sentry/components/events/autofix/useRefreshAutofixProgressQueries';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {ArtifactPartialDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   useAutofixChat,
@@ -59,9 +58,10 @@ import {
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
+import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
-import {isOutOfCreditsPRState} from 'sentry/views/seerExplorer/types';
+import {isOutOfCreditsPRState, isSeerErrorBlock} from 'sentry/views/seerExplorer/types';
 
 import {resourceLinkMarkdown} from './resourceLink';
 import {SeerEmbedBlock} from './seerEmbedBlock';
@@ -558,6 +558,51 @@ function getStoppedStep(
   return firstBlock && isPrIterationBlock(firstBlock) ? 'pr_iteration' : 'code_changes';
 }
 
+function hasText(content: string | null | undefined): content is string {
+  const trimmed = content?.trim();
+  return !!trimmed && trimmed !== '.';
+}
+
+/**
+ * What a stopped step wrote, without Seer's own error block, since the line
+ * below says why it stopped. It renders with this embed's markdown rather than
+ * `ArtifactPartialDetails`, whose `SeerMarkdown` renders embeds and so would
+ * import this file back.
+ */
+function StoppedStepText({blocks}: {blocks: AutofixSection['blocks']}) {
+  const {containerRef, onScrollHandler} = useAutoScroll({key: blocks});
+  const texts = blocks.flatMap(block => {
+    if (block.message.role === 'user' || isSeerErrorBlock(block)) {
+      return [];
+    }
+    const {content, thinking_content} = block.message;
+    if (hasText(content) && content !== 'Thinking...') {
+      return [content];
+    }
+    return hasText(thinking_content) ? [thinking_content] : [];
+  });
+
+  if (texts.length === 0) {
+    return null;
+  }
+
+  return (
+    <ArtifactDetails>
+      <Stack
+        gap="md"
+        ref={containerRef}
+        maxHeight="200px"
+        overflowY="auto"
+        onScroll={onScrollHandler}
+      >
+        {texts.map((text, index) => (
+          <AutofixMarkdown key={index} raw={text} />
+        ))}
+      </Stack>
+    </ArtifactDetails>
+  );
+}
+
 /**
  * A step that stopped for credits: what it wrote and, for code changes, the
  * diff it got to, then a line saying why it stopped. The credit gates show the
@@ -575,7 +620,7 @@ function OutOfCreditsStepBody({
 
   return (
     <Stack gap="lg">
-      <ArtifactPartialDetails blocks={getStoppedStepBlocks(section)} />
+      <StoppedStepText blocks={getStoppedStepBlocks(section)} />
       {patchesByRepo.size > 0 && <CodeChangesBody patchesByRepo={patchesByRepo} />}
       <Text variant="danger">
         {OUT_OF_CREDITS_STEP_MESSAGE[getStoppedStep(section, step)]}
