@@ -281,7 +281,6 @@ interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabList
 function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
   const outerWrapRef = useRef<HTMLDivElement>(null);
   const tabListRef = useRef<HTMLUListElement>(null);
-  const automaticActivationRef = useRef<{key?: string | number} | null>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
     value,
@@ -298,12 +297,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
-    onSelectionChange: (key: any) => {
-      onChange?.(key);
-      if (automaticActivationRef.current) {
-        automaticActivationRef.current.key = key;
-      }
-    },
+    onSelectionChange: onChange,
     isDisabled: disabled,
     keyboardActivation,
     ...otherRootProps,
@@ -366,25 +360,6 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
     <Container position="relative" style={outerWrapStyles} ref={outerWrapRef}>
       <TabListWrap
         {...tabListProps}
-        onKeyDown={event => {
-          const activation: {key?: string | number} = {};
-          automaticActivationRef.current =
-            keyboardActivation === 'automatic' ? activation : null;
-          try {
-            tabListProps.onKeyDown?.(event);
-          } finally {
-            automaticActivationRef.current = null;
-          }
-          if (activation.key !== undefined) {
-            const link = tabItemsRef.current[
-              activation.key
-            ]?.querySelector<HTMLAnchorElement>(':scope > a[role="tab"]');
-            if (link) {
-              link.focus();
-              link.click();
-            }
-          }
-        }}
         orientation={orientation}
         ref={tabListRef}
         variant={variant}

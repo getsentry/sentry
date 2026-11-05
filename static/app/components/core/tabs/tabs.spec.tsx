@@ -158,36 +158,41 @@ describe('Tabs', () => {
     expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
   });
 
-  it('changes tabs using keyboard navigation', async () => {
-    render(
-      <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
-      </Tabs>
-    );
+  it.each([
+    {activation: 'manual', keys: '{ArrowRight}{Enter}'},
+    {activation: 'automatic', keys: '{ArrowRight}'},
+  ] as const)(
+    'changes tabs using $activation keyboard activation',
+    async ({activation, keys}) => {
+      render(
+        <Tabs keyboardActivation={activation}>
+          <TabList>
+            {TABS.map(tab => (
+              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+            ))}
+          </TabList>
+          <TabPanels>
+            {TABS.map(tab => (
+              <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+            ))}
+          </TabPanels>
+        </Tabs>
+      );
 
-    // Focus on tab list
-    await userEvent.tab();
-    expect(screen.getByRole('tab', {name: 'Details'})).toHaveFocus();
+      // Focus on tab list
+      await userEvent.tab();
+      expect(screen.getByRole('tab', {name: 'Details'})).toHaveFocus();
 
-    // Press Arrow Right to select the next tab to the right (Activity)
-    await userEvent.keyboard('{arrowRight}{enter}');
+      await userEvent.keyboard(keys);
 
-    // The Activity tab is selected and its contents rendered
-    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
-    expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
-  });
+      // The Activity tab is selected and its contents rendered
+      expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
+    }
+  );
 
   it('changes tabs on key press in vertical orientation', async () => {
     render(
@@ -371,7 +376,7 @@ describe('Tabs', () => {
     }
   );
 
-  it('navigates once on automatic keyboard selection', async () => {
+  it('does not navigate on automatic keyboard selection until the link is activated', async () => {
     const onChange = jest.fn();
     const {router} = render(
       <LinkedTabs keyboardActivation="automatic" onChange={onChange} />,
@@ -382,11 +387,14 @@ describe('Tabs', () => {
     onChange.mockClear();
     await userEvent.keyboard('{ArrowRight}');
 
-    await waitFor(() => expect(router.location.pathname).toBe('/tabs/activity/'));
+    expect(router.location.pathname).toBe('/tabs/details/');
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveFocus();
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith('activity');
 
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() => expect(router.location.pathname).toBe('/tabs/activity/'));
     router.navigate(-1);
     await waitFor(() => expect(router.location.pathname).toBe('/tabs/details/'));
   });
