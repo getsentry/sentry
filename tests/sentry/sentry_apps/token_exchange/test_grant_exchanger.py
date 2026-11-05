@@ -114,9 +114,11 @@ class TestGrantExchanger(TestCase):
         self, mock_record: MagicMock
     ) -> None:
         outbox_error = OutboxDatabaseError("outbox write failed")
-        with patch.object(ApiToken.objects, "create", side_effect=outbox_error):
-            with pytest.raises(SentryAppSentryError) as e:
-                self.grant_exchanger.run()
+        with (
+            patch.object(ApiToken.objects, "create", side_effect=outbox_error),
+            pytest.raises(SentryAppSentryError) as e,
+        ):
+            self.grant_exchanger.run()
 
         assert e.value.message == "Failed to exchange given grant"
         assert e.value.status_code == 500
