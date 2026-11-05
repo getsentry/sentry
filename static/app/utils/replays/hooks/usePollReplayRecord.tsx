@@ -20,6 +20,7 @@ export function usePollReplayRecord({
     '/organizations/$organizationIdOrSlug/replays/$replayId/',
     {
       path: {organizationIdOrSlug: orgSlug, replayId},
+      // we use { isPolling: true } to avoid colliding with the queryKey used by useReplayData
       query: {isPolling: true},
       staleTime: 0,
     }
