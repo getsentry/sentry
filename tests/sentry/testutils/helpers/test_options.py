@@ -1,3 +1,4 @@
+from contextlib import ExitStack
 from unittest.mock import patch
 
 from django.test import override_settings
@@ -34,3 +35,14 @@ def test_override_options_preserves_read_hook_precedence() -> None:
         override_options({"mail.timeout": 20}),
     ):
         assert options.get("mail.timeout") == 42
+
+
+def test_override_options_survives_setup_settings_scope() -> None:
+    with override_settings(), ExitStack() as cleanups:
+        with override_settings(SENTRY_SELF_HOSTED=True):
+            cleanups.enter_context(override_options({"mail.timeout": 20}))
+        with override_settings(SENTRY_SELF_HOSTED=False):
+            assert options.get("mail.timeout") == 20
+            with override_options({"mail.timeout": 30}):
+                assert options.get("mail.timeout") == 30
+            assert options.get("mail.timeout") == 20
