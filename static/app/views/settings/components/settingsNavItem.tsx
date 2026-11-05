@@ -16,10 +16,6 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 type Props = {
   label: React.ReactNode;
   to: string;
-  /**
-   * Sent as `item` with `navigation.secondary_item_clicked`, prefixed with `settings_`.
-   */
-  analyticsId?: string;
   badge?: string | number | null | ReactElement;
   id?: string;
   index?: boolean;
@@ -31,18 +27,9 @@ const LabelHook = OverrideOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-export function SettingsNavItem({
-  analyticsId,
-  badge,
-  label,
-  id,
-  to,
-  index,
-  ...props
-}: Props) {
+export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
   const settingsV3 = useSettingsV3();
   const {scope} = useSettingsScope();
-  const itemAnalyticsId = analyticsId ?? id;
   const badgeElement = badge ? <SettingsNavBadge badge={badge} /> : null;
 
   return (
@@ -59,9 +46,7 @@ export function SettingsNavItem({
             end={index}
             leadingItems={settingsV3 ? badgeElement : null}
             trailingItems={settingsV3 ? null : badgeElement}
-            analyticsItemName={
-              itemAnalyticsId ? `settings_${itemAnalyticsId}` : undefined
-            }
+            analyticsItemName={id ? `settings_${id}` : undefined}
             analyticsParams={scope ? {settings_scope: scope} : undefined}
           >
             <Text density={settingsV3 ? 'fixed' : undefined} variant="inherit">
