@@ -6,12 +6,14 @@ import {IconFire} from '@sentry/icons/fire';
 import {IconSentry} from '@sentry/icons/sentry';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -21,9 +23,10 @@ import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, userDisplayName} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerWorkflowConfigResponse,
@@ -120,6 +123,9 @@ export default function AutomationsList() {
 function AutomationCard({config}: {config: AutomationConfig}) {
   const organization = useOrganization();
   const {projects} = useProjects();
+  const {data: createdByUser} = useUserFromId({
+    id: config.createdBy ? Number(config.createdBy) : undefined,
+  });
   const strategyMeta = Object.hasOwn(STRATEGY_META, config.strategy)
     ? STRATEGY_META[config.strategy as WorkflowStrategy]
     : undefined;
@@ -172,7 +178,20 @@ function AutomationCard({config}: {config: AutomationConfig}) {
               <Heading as="h3" size="md">
                 {title}
               </Heading>
-              <IconSentry size="xs" variant="muted" />
+              {config.createdBy ? (
+                createdByUser && (
+                  <UserAvatar
+                    user={createdByUser}
+                    size={16}
+                    hasTooltip
+                    tooltip={t('Created by %s', userDisplayName(createdByUser))}
+                  />
+                )
+              ) : (
+                <Tooltip title={t('Built and maintained by Sentry')}>
+                  <IconSentry size="xs" variant="muted" />
+                </Tooltip>
+              )}
             </Flex>
             {enabled ? (
               trigger ? (
