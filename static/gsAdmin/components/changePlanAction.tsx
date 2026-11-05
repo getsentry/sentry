@@ -48,6 +48,7 @@ function ChangePlanAction({
     apiOptions.as<BillingConfig>()('/customers/$organizationIdOrSlug/billing-config/', {
       path: {organizationIdOrSlug: orgId},
       query: {tier: BillingConfigTier.ALL},
+      // TODO(isabella): pass billing config from customerDetails
       staleTime: Infinity,
     })
   );

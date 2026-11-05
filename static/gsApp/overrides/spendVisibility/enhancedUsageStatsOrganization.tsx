@@ -276,6 +276,7 @@ function EnhancedUsageStatsOrganization({
 
   const spikesListQueryEnabled = isSingleProject && !!project;
   const spikesList = useQuery({
+    // Get all the spikes in the time period
     ...apiOptions.as<SpikesList>()(
       '/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/',
       {
@@ -292,6 +293,7 @@ function EnhancedUsageStatsOrganization({
 
   const spikeThresholdsQueryEnabled = isSingleProject && !!project && hasAccurateSpikes;
   const spikeThresholds = useQuery({
+    // Only fetch spike thresholds if the interval is 1h
     ...apiOptions.as<SpikeThresholds>()(
       '/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/',
       {
