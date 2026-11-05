@@ -68,7 +68,7 @@ function DataRequestsResults({
                   key={`user-${user.id}`}
                   gap="2xs"
                   padding="md"
-                  borderColor="primary"
+                  border="primary"
                   radius="md"
                   background="primary"
                 >
@@ -87,7 +87,7 @@ function DataRequestsResults({
                   key={`event-${event.id}`}
                   gap="2xs"
                   padding="md"
-                  borderColor="primary"
+                  border="primary"
                   radius="md"
                   background="primary"
                 >

@@ -307,7 +307,7 @@ export function StacktraceLinkModal({
                   gap="sm"
                   padding="md"
                   background="secondary"
-                  borderColor="primary"
+                  border="primary"
                   radius="md"
                 >
                   <WrappingFilePath path={filename} />

@@ -163,7 +163,7 @@ function AutomationCard({config}: {config: AutomationConfig}) {
           gap="lg"
           height="100%"
           padding="xl"
-          borderColor="primary"
+          border="primary"
           radius="md"
           background="primary"
         >

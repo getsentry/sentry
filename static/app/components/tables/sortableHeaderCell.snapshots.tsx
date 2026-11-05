@@ -9,15 +9,15 @@ describe('SortableHeaderCell', () => {
     align => (
       <Text as="div">
         <Stack gap="lg" padding="md" width="240px">
-          <Container borderColor="primary" padding="md">
+          <Container border="primary" padding="md">
             <SortableHeaderCell align={align}>Duration</SortableHeaderCell>
           </Container>
-          <Container borderColor="primary" padding="md">
+          <Container border="primary" padding="md">
             <SortableHeaderCell align={align} direction="asc">
               Duration
             </SortableHeaderCell>
           </Container>
-          <Container borderColor="primary" padding="md">
+          <Container border="primary" padding="md">
             <SortableHeaderCell align={align} direction="desc">
               Duration
             </SortableHeaderCell>

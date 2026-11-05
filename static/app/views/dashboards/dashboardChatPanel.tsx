@@ -103,7 +103,7 @@ export function DashboardChatPanel({
     <Container
       position="sticky"
       bottom={0}
-      borderColor="primary"
+      border="primary"
       radius="md"
       maxWidth="800px"
       width="100%"

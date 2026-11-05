@@ -215,7 +215,7 @@ export function ProductBreakdownPanel({
   return (
     <Container
       height={isEnabled && !setupRequired ? undefined : '100%'}
-      borderColor={isInline ? undefined : 'primary'}
+      border={isInline ? undefined : 'primary'}
       radius={isInline ? undefined : 'md'}
       column={isInline ? '1 / -1' : undefined}
     >

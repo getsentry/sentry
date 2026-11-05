@@ -167,7 +167,7 @@ function CreditBreakdown({
       </Stack>
       {showPurchased && (
         <Stack gap="sm">
-          <Separator orientation="horizontal" borderColor="primary" />
+          <Separator orientation="horizontal" border="primary" />
           <Flex justify="between" gap="md">
             <Text bold>{t('Purchased')}</Text>
             {purchased.expiresAt && (

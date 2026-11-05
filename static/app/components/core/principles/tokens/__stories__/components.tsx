@@ -83,7 +83,7 @@ export function Radius() {
             height: '48px',
             background: theme.tokens.background.transparent.accent.muted,
           }}
-          borderColor="accent"
+          border="accent"
           radius={token}
         />
       )}
@@ -224,7 +224,7 @@ export function ShadowOffset() {
             background: theme.tokens.background.primary,
             boxShadow: value,
           }}
-          borderColor="accent"
+          border="accent"
           radius="xs"
         />
       )}
@@ -274,7 +274,7 @@ export function BackgroundColors() {
             height: '48px',
             background: value,
           }}
-          borderColor="muted"
+          border="muted"
           radius="sm"
         />
       )}
@@ -427,7 +427,7 @@ export function ShadowColors() {
             background: theme.tokens.background.overlay,
             boxShadow: value,
           }}
-          borderColor="primary"
+          border="primary"
           radius="md"
         />
       )}

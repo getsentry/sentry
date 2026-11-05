@@ -288,7 +288,7 @@ export function AgenticProgressList({
     <MotionStack
       width="100%"
       background="primary"
-      borderColor="primary"
+      border="primary"
       radius="xl"
       overflow="hidden"
       gap="0"
@@ -371,7 +371,7 @@ function AgenticProgressSummary({projectSlugs}: {projectSlugs: string[]}) {
     <Flex
       width="100%"
       background="primary"
-      borderColor="primary"
+      border="primary"
       radius="xl"
       padding="xl"
       gap="md"

@@ -240,7 +240,7 @@ function Card(props: CardProps) {
       width="calc(100% * 3 / 5)"
       maxWidth={{zero: 'none', '3xl': 'calc(50% - 32px)'}}
       padding="xl"
-      borderColor="secondary"
+      border="secondary"
       radius="md"
       css={cardLinkCss}
     >

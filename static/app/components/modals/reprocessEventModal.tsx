@@ -143,7 +143,7 @@ export function ReprocessingEventModal({
             )}
           </form.AppField>
 
-          <Separator orientation="horizontal" borderColor="secondary" />
+          <Separator orientation="horizontal" border="secondary" />
 
           <form.Subscribe selector={state => state.values.maxEvents === null}>
             {isDisabled => (

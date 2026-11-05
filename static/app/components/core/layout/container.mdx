@@ -72,7 +72,7 @@ The `padding` prop uses the theme's spacing system with shorthand support:
         key={size}
         background="primary"
         padding={size}
-        borderColor="primary"
+        border="primary"
         radius="md"
       >
         <strong>{size} padding</strong> -{' '}
@@ -103,13 +103,13 @@ Apply rounded corners using theme radius values:
 
 <Storybook.Demo>
   <Flex gap="md">
-    <Container background="primary" padding="md" radius="sm" borderColor="primary">
+    <Container background="primary" padding="md" radius="sm" border="primary">
       Small radius
     </Container>
-    <Container background="primary" padding="md" radius="md" borderColor="primary">
+    <Container background="primary" padding="md" radius="md" border="primary">
       Medium radius
     </Container>
-    <Container background="primary" padding="md" radius="lg" borderColor="primary">
+    <Container background="primary" padding="md" radius="lg" border="primary">
       Large radius
     </Container>
   </Flex>
@@ -122,16 +122,16 @@ Apply rounded corners using theme radius values:
 
 ### Border and Background
 
-`borderColor` adds a 1px border in the given color. Use `borderWidth` to change the width. It has no effect without `borderColor`.
+`border` sets the border color, using the theme's `md` width (1px) by default. Use `borderWidth` to override the width with a theme border token. It has no effect without a `border*` prop.
 
-Use `translucent` for a see-through neutral border or background.
+Use `translucent` for a see-through neutral border or fill. It maps to the `transparent.neutral.muted` token, which is how Figma refers to it.
 
 <Storybook.Demo>
   <Flex gap="md">
-    <Container padding="md" radius="md" borderColor="translucent">
+    <Container padding="md" radius="md" border="translucent">
       Translucent border
     </Container>
-    <Container padding="md" radius="md" borderColor="primary" borderWidth="xl">
+    <Container padding="md" radius="md" border="primary" borderWidth="xl">
       2px border
     </Container>
     <Container padding="md" radius="md" background="translucent">
@@ -140,34 +140,29 @@ Use `translucent` for a see-through neutral border or background.
   </Flex>
 </Storybook.Demo>
 ```jsx
-<Container borderColor="translucent" radius="md">
+<Container border="translucent" radius="md">
   Translucent border
 </Container>
-<Container borderColor="primary" borderWidth="xl">
+<Container border="primary" borderWidth="xl">
   2px border
 </Container>
 <Container background="translucent">Translucent background</Container>
 ```
 
-`background` accepts `primary`, `secondary`, `tertiary`, `accent`, `danger`, `warning`, `success`, `promotion` and `translucent`.
+Semantic backgrounds (`accent`, `danger`, `warning`, `success`, `promotion`) map to their `vibrant` token. `overlay` isn't supported. Use `<Surface variant="overlay">` instead, which also applies the border, radius and shadow.
 
 ### Position
 
 Set positioning for absolute/relative layouts:
 
 <Storybook.Demo>
-  <Container
-    position="relative"
-    height="100px"
-    background="primary"
-    borderColor="primary"
-  >
+  <Container position="relative" height="100px" background="primary" border="primary">
     <Container
       position="absolute"
       padding="xs"
       background="primary"
       style={{top: '12px', right: '8px'}}
-      borderColor="primary"
+      border="primary"
     >
       Absolute positioned
     </Container>
@@ -199,12 +194,12 @@ Set positioning for absolute/relative layouts:
       'screen:lg': 'primary',
     }}
     radius={{'screen:xs': '0', 'screen:sm': 'md'}}
-    borderColor="primary"
+    border="primary"
   >
-    <Container padding="sm" background="primary" style={{flex: 1}} borderColor="primary">
+    <Container padding="sm" background="primary" style={{flex: 1}} border="primary">
       Item 1
     </Container>
-    <Container padding="sm" background="primary" style={{flex: 1}} borderColor="primary">
+    <Container padding="sm" background="primary" style={{flex: 1}} border="primary">
       Item 2
     </Container>
   </Flex>
@@ -214,12 +209,8 @@ Set positioning for absolute/relative layouts:
   // Padding increases at lg breakpoint
   padding={{'screen:xs': 'sm', 'screen:lg': 'xl'}}
   // Background changes at sm and lg breakpoints
-  background={{
-    'screen:xs': 'primary',
-    'screen:sm': 'secondary',
-    'screen:lg': 'primary',
-  }}
-  // Adds borderColor="primary" radius at sm breakpoint
+  background={{'screen:xs': 'primary', 'screen:sm': 'secondary', 'screen:lg': 'primary'}}
+  // Adds border="primary" radius at sm breakpoint
   radius={{'screen:xs': '0', 'screen:sm': 'md'}}
 >
   <div>Responsive layout content</div>
@@ -267,10 +258,10 @@ An element can't query its own size — mark a parent with
 
 <Storybook.Demo resizable align="start">
   <Flex direction={{zero: 'column', sm: 'row'}} gap="md">
-    <Container padding="sm" background="primary" borderColor="primary" radius="md">
+    <Container padding="sm" background="primary" border="primary" radius="md">
       Stacked below `sm` (container narrower than 512px)...
     </Container>
-    <Container padding="sm" background="primary" borderColor="primary" radius="md">
+    <Container padding="sm" background="primary" border="primary" radius="md">
       ...and side by side from `sm` up (512px+). Drag the handle at the bottom-right to
       flip it — the viewport never changes.
     </Container>
@@ -359,7 +350,7 @@ The `area` prop supports CSS Grid integration:
       area="header"
       background="primary"
       padding="sm"
-      borderColor="primary"
+      border="primary"
       radius="md"
     >
       Header
@@ -368,7 +359,7 @@ The `area` prop supports CSS Grid integration:
       area="sidebar"
       background="primary"
       padding="sm"
-      borderColor="primary"
+      border="primary"
       radius="md"
     >
       Sidebar
@@ -377,7 +368,7 @@ The `area` prop supports CSS Grid integration:
       area="content"
       background="primary"
       padding="sm"
-      borderColor="primary"
+      border="primary"
       radius="md"
     >
       Content

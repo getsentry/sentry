@@ -298,7 +298,7 @@ function ScmCreateProjectWizard({
                 padding="2xl"
                 maxWidth={CREATE_PROJECT_MAX_WIDTH}
                 width="100%"
-                borderColor="primary"
+                border="primary"
                 radius="lg"
                 layout
               >

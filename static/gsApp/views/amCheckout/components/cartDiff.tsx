@@ -550,7 +550,7 @@ export function CartDiff({
   return (
     <Stack
       data-test-id="cart-diff"
-      borderColor="primary"
+      border="primary"
       radius="lg"
       align="start"
       background="primary"

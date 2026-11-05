@@ -44,7 +44,7 @@ export function PathMapping({
   const hasWarning = isExactWarning(warning);
 
   return (
-    <Stack borderColor={hasWarning ? 'warning' : 'muted'} radius="md" overflow="hidden">
+    <Stack border={hasWarning ? 'warning' : 'muted'} radius="md" overflow="hidden">
       {showSummary && (
         <PathMappingSummary
           {...value}

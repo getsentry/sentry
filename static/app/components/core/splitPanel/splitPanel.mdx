@@ -74,13 +74,7 @@ mobile layout.
 Pass the resizable pane as `sized` and the flexible pane as `fill`, with `defaultSize` setting the sized pane's initial size. The component fills its parent, so give the parent explicit dimensions.
 
 <Storybook.Demo>
-  <Container
-    width="600px"
-    height="240px"
-    borderColor="primary"
-    radius="md"
-    overflow="hidden"
-  >
+  <Container width="600px" height="240px" border="primary" radius="md" overflow="hidden">
     <SplitPanel
       defaultSize={300}
       minSize={120}
@@ -114,13 +108,7 @@ Pass the resizable pane as `sized` and the flexible pane as `fill`, with `defaul
 By default the `sized` pane sits before the divider. Set `placement="end"` to move it after, placing it on the right in horizontal layouts and on the bottom in vertical ones.
 
 <Storybook.Demo>
-  <Container
-    width="100%"
-    height="240px"
-    borderColor="primary"
-    radius="md"
-    overflow="hidden"
-  >
+  <Container width="100%" height="240px" border="primary" radius="md" overflow="hidden">
     <SplitPanel
       placement="end"
       defaultSize={220}
@@ -156,13 +144,7 @@ By default the `sized` pane sits before the divider. Set `placement="end"` to mo
 Set `orientation="vertical"` to stack the panes top-to-bottom instead of side by side.
 
 <Storybook.Demo>
-  <Container
-    width="100%"
-    height="400px"
-    borderColor="primary"
-    radius="md"
-    overflow="hidden"
-  >
+  <Container width="100%" height="400px" border="primary" radius="md" overflow="hidden">
     <SplitPanel
       orientation="vertical"
       defaultSize={220}

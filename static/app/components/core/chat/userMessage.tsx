@@ -38,7 +38,7 @@ export function UserMessage({
       minWidth={0}
       padding="xs md"
       background="secondary"
-      borderColor="primary"
+      border="primary"
       radius="md"
       whiteSpace="pre-wrap"
       // `overflow-wrap`/`word-wrap` are not layout props; they keep long

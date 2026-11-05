@@ -53,7 +53,7 @@ export default Storybook.story('sentry-image/*', story => {
           >
             <Container
               background="primary"
-              borderColor="primary"
+              border="primary"
               radius="md"
               overflow="hidden"
               minWidth="0"

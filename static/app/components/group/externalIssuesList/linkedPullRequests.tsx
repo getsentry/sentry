@@ -337,7 +337,7 @@ function SeerAttributionAvatar() {
         as="span"
         align="center"
         aria-label={label}
-        borderColor="primary"
+        border="primary"
         display="inline-flex"
         height="18px"
         justify="center"
@@ -471,7 +471,7 @@ export function PullRequestList({
     <Stack
       as="ul"
       aria-label={ariaLabel}
-      borderColor="primary"
+      border="primary"
       radius="md"
       overflow="hidden"
       margin="0"

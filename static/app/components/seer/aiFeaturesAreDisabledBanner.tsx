@@ -39,7 +39,7 @@ export function AiFeaturesAreDisabledBanner() {
   });
 
   return (
-    <Container borderColor="warning" radius="md" overflow="hidden">
+    <Container border="warning" radius="md" overflow="hidden">
       <Stack>
         <Alert system showIcon={false} variant="warning">
           {t('Generative AI features are disabled for your organization.')}

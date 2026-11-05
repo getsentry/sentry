@@ -178,7 +178,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
         searchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
         searchQueryBuilderProviderProps={searchQueryBuilderProviderProps}
       />
-      <LogsItemContainer borderColor="primary" radius="md" flex="1 1 auto">
+      <LogsItemContainer border="primary" radius="md" flex="1 1 auto">
         {isPending ? (
           <Placeholder height="100%" />
         ) : (

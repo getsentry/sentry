@@ -23,10 +23,10 @@ The Separator component requires an `orientation` prop to determine its layout d
 
 ```jsx
 // Horizontal separator (default styling)
-<Separator orientation="horizontal" borderColor="primary" />
+<Separator orientation="horizontal" border="primary" />
 
 // Vertical separator
-<Separator orientation="vertical" borderColor="primary" />
+<Separator orientation="vertical" border="primary" />
 ```
 
 ## Horizontal Separators
@@ -35,11 +35,11 @@ Horizontal separators are ideal for dividing content vertically, such as between
 
 <Storybook.Demo>
   <Stack gap="md">
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       Content above separator
     </Container>
-    <Separator orientation="horizontal" borderColor="primary" />
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Separator orientation="horizontal" border="primary" />
+    <Container padding="md" border="primary" radius="md" background="primary">
       Content below separator
     </Container>
   </Stack>
@@ -48,7 +48,7 @@ Horizontal separators are ideal for dividing content vertically, such as between
 ```jsx
 <Flex direction="column" gap="md">
   <div>Content above separator</div>
-  <Separator orientation="horizontal" borderColor="primary" />
+  <Separator orientation="horizontal" border="primary" />
   <div>Content below separator</div>
 </Flex>
 ```
@@ -59,11 +59,11 @@ Vertical separators work well for dividing content horizontally, typically withi
 
 <Storybook.Demo>
   <Flex direction="row" align="center" gap="md">
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       Left content
     </Container>
-    <Separator orientation="vertical" borderColor="primary" />
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Separator orientation="vertical" border="primary" />
+    <Container padding="md" border="primary" radius="md" background="primary">
       Right content
     </Container>
   </Flex>
@@ -72,14 +72,14 @@ Vertical separators work well for dividing content horizontally, typically withi
 ```jsx
 <Flex direction="row" align="center" gap="md">
   <div>Left content</div>
-  <Separator orientation="vertical" borderColor="primary" />
+  <Separator orientation="vertical" border="primary" />
   <div>Right content</div>
 </Flex>
 ```
 
 ## Border Styling
 
-The `borderColor` prop accepts any border token from the theme, allowing you to customize the separator's visual weight and color.
+The `border` prop accepts any border token from the theme, allowing you to customize the separator's visual weight and color.
 
 <Storybook.Demo>
   <Flex direction="row" gap="md" justify="start" align="start">
@@ -88,23 +88,23 @@ The `borderColor` prop accepts any border token from the theme, allowing you to 
       <Stack gap="md">
         <Stack gap="xs">
           <Text>Primary border</Text>
-          <Separator orientation="horizontal" borderColor="primary" />
+          <Separator orientation="horizontal" border="primary" />
         </Stack>
         <Stack gap="xs">
           <Text>Secondary border</Text>
-          <Separator orientation="horizontal" borderColor="secondary" />
+          <Separator orientation="horizontal" border="secondary" />
         </Stack>
         <Stack gap="xs">
           <Text>Success border</Text>
-          <Separator orientation="horizontal" borderColor="success" />
+          <Separator orientation="horizontal" border="success" />
         </Stack>
         <Stack gap="xs">
           <Text>Warning border</Text>
-          <Separator orientation="horizontal" borderColor="warning" />
+          <Separator orientation="horizontal" border="warning" />
         </Stack>
         <Stack gap="xs">
           <Text>Danger border</Text>
-          <Separator orientation="horizontal" borderColor="danger" />
+          <Separator orientation="horizontal" border="danger" />
         </Stack>
       </Stack>
     </Stack>
@@ -113,23 +113,23 @@ The `borderColor` prop accepts any border token from the theme, allowing you to 
       <Stack gap="md">
         <Flex direction="row" gap="xs">
           <Text>Primary border</Text>
-          <Separator orientation="vertical" borderColor="primary" />
+          <Separator orientation="vertical" border="primary" />
         </Flex>
         <Flex direction="row" gap="xs">
           <Text>Secondary border</Text>
-          <Separator orientation="vertical" borderColor="secondary" />
+          <Separator orientation="vertical" border="secondary" />
         </Flex>
         <Flex direction="row" gap="xs">
           <Text>Success border</Text>
-          <Separator orientation="vertical" borderColor="success" />
+          <Separator orientation="vertical" border="success" />
         </Flex>
         <Flex direction="row" gap="xs">
           <Text>Warning border</Text>
-          <Separator orientation="vertical" borderColor="warning" />
+          <Separator orientation="vertical" border="warning" />
         </Flex>
         <Flex direction="row" gap="xs">
           <Text>Danger border</Text>
-          <Separator orientation="vertical" borderColor="danger" />
+          <Separator orientation="vertical" border="danger" />
         </Flex>
       </Stack>
     </Stack>
@@ -142,7 +142,7 @@ The `borderColor` prop accepts any border token from the theme, allowing you to 
   <Flex direction="column" gap="md">
     <Flex direction="column" gap="xs">
       <Text>Example border</Text>
-      <Separator orientation="horizontal" borderColor="primary" />
+      <Separator orientation="horizontal" border="primary" />
     </Flex>
   </Flex>
 </div>
@@ -151,7 +151,7 @@ The `borderColor` prop accepts any border token from the theme, allowing you to 
   <Flex direction="column" gap="md">
     <Flex direction="row" gap="xs">
       <Text>Example border</Text>
-      <Separator orientation="vertical" borderColor="primary" />
+      <Separator orientation="vertical" border="primary" />
     </Flex>
   </Flex>
 </div>

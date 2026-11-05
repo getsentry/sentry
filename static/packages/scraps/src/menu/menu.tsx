@@ -104,7 +104,7 @@ export function MenuSectionHeader({
 
 /** Divider between menu sections. */
 export function MenuSectionSeparator() {
-  return <Separator orientation="horizontal" borderColor="muted" />;
+  return <Separator orientation="horizontal" border="muted" />;
 }
 
 /** List item wrapper for a menu section. */

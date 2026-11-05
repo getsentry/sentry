@@ -301,7 +301,7 @@ function CommentRow({
         ) : (
           <Container
             background="secondary"
-            borderColor="primary"
+            border="primary"
             radius="lg"
             padding="sm md"
             marginTop="xs"

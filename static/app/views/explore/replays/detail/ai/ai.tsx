@@ -59,7 +59,7 @@ export function Ai() {
       <Stack
         wrap="nowrap"
         minHeight="0"
-        borderColor="primary"
+        border="primary"
         radius="md"
         data-test-id="replay-details-ai-summary-tab"
       >
@@ -78,7 +78,7 @@ export function Ai() {
       <Stack
         wrap="nowrap"
         minHeight="0"
-        borderColor="primary"
+        border="primary"
         radius="md"
         data-test-id="replay-details-ai-summary-tab"
       >
@@ -108,7 +108,7 @@ export function Ai() {
     <Stack
       wrap="nowrap"
       minHeight="0"
-      borderColor="primary"
+      border="primary"
       radius="md"
       data-test-id="replay-details-ai-summary-tab"
     >

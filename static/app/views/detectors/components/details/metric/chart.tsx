@@ -579,7 +579,7 @@ function ChartContainer({
   overflow?: 'hidden';
 }) {
   return (
-    <Container borderColor="muted" radius="md" overflow={overflow}>
+    <Container border="muted" radius="md" overflow={overflow}>
       {children}
     </Container>
   );

@@ -9,7 +9,7 @@ export function Card({
   const theme = useTheme();
   return (
     <Container
-      borderColor="primary"
+      border="primary"
       radius="md"
       background="primary"
       style={{boxShadow: theme.shadow.medium}}

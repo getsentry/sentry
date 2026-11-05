@@ -357,7 +357,7 @@ export function SentryComponentInspector() {
                 </Stack>
                 {state.trace?.length && state.trace.length > tracePreview.length && (
                   <Fragment>
-                    <Separator orientation="horizontal" borderColor="primary" />
+                    <Separator orientation="horizontal" border="primary" />
                     <Text size="xs" ellipsis monospace align="right" variant="muted">
                       context menu to view more, cmd+shift+c to close
                     </Text>

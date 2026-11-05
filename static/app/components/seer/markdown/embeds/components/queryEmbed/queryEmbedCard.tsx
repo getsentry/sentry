@@ -75,7 +75,7 @@ export function QueryEmbedCard({
             flex="1"
             minWidth="0"
             background="secondary"
-            borderColor="primary"
+            border="primary"
             radius="md"
             padding="xs"
           >

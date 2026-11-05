@@ -16,7 +16,7 @@ export function PersistedSizeDemo() {
       <Container
         width="100%"
         height="240px"
-        borderColor="primary"
+        border="primary"
         radius="md"
         overflow="hidden"
       >
@@ -50,7 +50,7 @@ export function SinglePaneDemo() {
       <Container
         width="100%"
         height="240px"
-        borderColor="primary"
+        border="primary"
         radius="md"
         overflow="hidden"
       >

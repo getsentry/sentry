@@ -72,7 +72,7 @@ function byRepo(...states: RepoPRState[]): Record<string, RepoPRState> {
 
 function Frame({children}: {children: React.ReactNode}) {
   return (
-    <Container width="520px" borderColor="primary" radius="md" padding="lg 0">
+    <Container width="520px" border="primary" radius="md" padding="lg 0">
       {children}
     </Container>
   );

@@ -53,7 +53,7 @@ export function renderActivityLineActor(item: GroupActivity): React.ReactElement
           align="center"
           aria-label={t('Seer activity')}
           background="primary"
-          borderColor="secondary"
+          border="secondary"
           display="inline-flex"
           height="22px"
           justify="center"

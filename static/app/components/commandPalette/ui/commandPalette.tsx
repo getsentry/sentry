@@ -1200,7 +1200,7 @@ function makeMenuItemFromAction(
 function CommandPaletteHints() {
   return (
     <Stack padding="0 2xs">
-      <Stack.Separator borderColor="muted" />
+      <Stack.Separator border="muted" />
       <Flex align="center" justify="between" padding="xs 0 2xs 0">
         <Flex align="center" gap="lg">
           <Flex align="center" gap="xs">

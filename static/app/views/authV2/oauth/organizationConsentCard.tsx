@@ -26,7 +26,7 @@ export function OrganizationConsentCard({
       align="center"
       justify="between"
       gap="lg"
-      borderColor="secondary"
+      border="secondary"
       radius="md"
       padding="lg"
     >

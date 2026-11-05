@@ -11,12 +11,12 @@ When using the `Container`, `Flex`, and `Grid` elements, use **render props** to
 
 ```tsx
 // ✅ Apply layout props to a single element
-<Container borderColor="primary" padding="lg">
+<Container border="primary" padding="lg">
   {props => <MyCustomComponent {...props}>Content</MyCustomComponent>}
 </Container>
 
 // ✅ Apply the same layout props to multiple elements
-<Container borderColor="primary" padding="lg">
+<Container border="primary" padding="lg">
   {props => (
     <>
       <MyCustomComponent {...props}>Content</MyCustomComponent>
@@ -34,12 +34,12 @@ Do not use render props if all you need is to apply the styled to an intrinsic e
 
 ```tsx
 // ❌ Unnecessary render prop, use the `as` prop instead
-<Container borderColor="primary" padding="lg">
+<Container border="primary" padding="lg">
   {props => <section {...props}>Content</section>}
 </Container>
 
 // ✅ Use the `as` prop instead
-<Container borderColor="primary" padding="lg" as="section">
+<Container border="primary" padding="lg" as="section">
   Content
 </Container>
 ```
@@ -73,7 +73,7 @@ When using render props, the layout component doesn't render its own DOM element
 You can apply layout props to custom elements by passing a render function to the layout component.
 
 ```tsx
-<Container borderColor="primary" padding="lg">
+<Container border="primary" padding="lg">
   {props => <MyCustomComponent {...props}>Content</MyCustomComponent>}
 </Container>
 ```
@@ -89,12 +89,12 @@ The render prop system prevents invalid attributes from being passed to HTML ele
 
 ```tsx
 // ✅ Props are passed to the child element in a type-safe way
-<Container borderColor="primary" aria-activedescendant="invalid">
+<Container border="primary" aria-activedescendant="invalid">
   {props => <p {...props}>Hello</p>}
 </Container>
 
 // ❌ Props are spread onto the child element without type safety or guarantees that they will be accepted
-<Container borderColor="primary" asChild>
+<Container border="primary" asChild>
   <ComponentWithIncompatibleProps/>}
 </Container>
 // The aria-activedescendant prop is filtered out since it's invalid for <p>

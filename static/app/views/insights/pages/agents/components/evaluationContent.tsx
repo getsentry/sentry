@@ -141,7 +141,7 @@ function ResultCard({result}: {result: EvaluationResult}) {
   const type = question?.kind === 'invalid' ? t('Unrecognized') : getResultType(result);
   const confidence = getConfidence(answer);
   return (
-    <Container borderColor="primary" radius="md" padding="md lg">
+    <Container border="primary" radius="md" padding="md lg">
       <Stack gap="sm">
         <Flex align="baseline" justify="between" gap="md">
           <Flex flex="0 1 auto" minWidth="0" align="baseline" gap="sm">

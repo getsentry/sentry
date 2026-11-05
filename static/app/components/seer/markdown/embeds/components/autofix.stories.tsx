@@ -157,7 +157,7 @@ function ChatShell({children}: {children: ReactNode}) {
         maxWidth="518px"
         height="640px"
         background="primary"
-        borderColor="primary"
+        border="primary"
         radius="md"
         overflow="hidden"
       >
@@ -373,7 +373,7 @@ function AutofixRefStory() {
       width="100%"
       minWidth="640px"
       background="primary"
-      borderColor="primary"
+      border="primary"
       radius="md"
       padding="xl"
       gap="xl"

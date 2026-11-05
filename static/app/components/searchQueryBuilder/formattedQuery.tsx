@@ -195,7 +195,7 @@ export function FilterWrapper(props: FlexProps) {
       gap="xs"
       background="primary"
       padding="2xs xs"
-      borderColor="secondary"
+      border="secondary"
       radius="md"
       minHeight="24px"
       height="24px"

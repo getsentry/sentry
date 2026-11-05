@@ -437,12 +437,7 @@ function Chart({
     chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
   return (
-    <ChartWrapper
-      ref={chartWrapperRef}
-      borderColor="primary"
-      radius="md"
-      background="primary"
-    >
+    <ChartWrapper ref={chartWrapperRef} border="primary" radius="md" background="primary">
       <Widget
         Title={Title}
         TitleBadges={TitleBadges}

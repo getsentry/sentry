@@ -26,7 +26,7 @@ export function DataForwarderRow({
 }) {
   const organization = useOrganization();
   return (
-    <Container padding="xl" borderColor="muted" radius="md" key={dataForwarder.id}>
+    <Container padding="xl" border="muted" radius="md" key={dataForwarder.id}>
       <Grid columns="auto 1fr auto" align="center" gap="md">
         <PluginIcon pluginId={dataForwarder.provider} size={32} />
         <Stack gap="xs">

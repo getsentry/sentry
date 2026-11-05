@@ -26,7 +26,7 @@ export function DebugNotificationsExample({
     ExampleDataFormat.FORMATTED
   );
   return (
-    <Container padding="md" borderColor="primary" radius="md">
+    <Container padding="md" border="primary" radius="md">
       <ExampleGrid columns="auto minmax(0, 1fr)" gap="lg xl">
         <Flex justify="between" column="span 2" align="center">
           <Heading as="h3">Example Data</Heading>

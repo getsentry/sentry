@@ -135,7 +135,7 @@ function ResultCard({
 
   return (
     <ResultCardContainer
-      borderColor="primary"
+      border="primary"
       radius="md"
       padding="md lg"
       data-active={(isLinked && isActive) || undefined}

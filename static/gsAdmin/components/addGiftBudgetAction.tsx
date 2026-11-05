@@ -112,7 +112,7 @@ function AddGiftBudgetModal({
                         display="block"
                         data-test-id={`reserved-budget-${budget.id}`}
                         padding="xl"
-                        borderColor="primary"
+                        border="primary"
                         radius="md"
                         cursor="pointer"
                         background={

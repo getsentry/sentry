@@ -61,7 +61,7 @@ export function StackTraceFrames({
   if (view === 'raw') {
     return (
       <Container
-        borderColor={borderless ? undefined : 'primary'}
+        border={borderless ? undefined : 'primary'}
         radius={borderless ? undefined : 'md'}
       >
         <RawStackTraceText>
@@ -73,7 +73,7 @@ export function StackTraceFrames({
 
   if (allRows.length === 0) {
     return (
-      <Container borderColor="primary" radius="md" padding="md">
+      <Container border="primary" radius="md" padding="md">
         <Text variant="muted">{t('No stack trace available')}</Text>
       </Container>
     );

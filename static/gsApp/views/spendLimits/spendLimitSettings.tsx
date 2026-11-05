@@ -359,7 +359,7 @@ export function SpendLimitSettings({
           onDemandBudgets={onDemandBudgets}
           onUpdate={onUpdate}
         />
-        <Stack gap="xl" borderColor="primary" radius="md" overflow="hidden">
+        <Stack gap="xl" border="primary" radius="md" overflow="hidden">
           <InnerSpendLimitSettings
             activePlan={activePlan}
             onDemandBudgets={onDemandBudgets}

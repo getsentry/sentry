@@ -516,13 +516,7 @@ export function PlanFeatures({
 
   return (
     <Stack>
-      <Stack
-        background="secondary"
-        padding="xl"
-        radius="lg"
-        borderColor="primary"
-        gap="xl"
-      >
+      <Stack background="secondary" padding="xl" radius="lg" border="primary" gap="xl">
         <Grid columns={{zero: '1fr', '4xl': 'repeat(2, 1fr)'}} gap="xl">
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />

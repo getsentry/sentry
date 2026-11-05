@@ -87,14 +87,14 @@ interface ContainerLayoutProps {
    * Border color on all sides. Renders a solid border at the `md` width (1px)
    * unless `borderWidth` overrides it.
    */
-  borderColor?: Responsive<BorderVariant>;
+  border?: Responsive<BorderVariant>;
   borderTop?: Responsive<BorderVariant>;
   borderBottom?: Responsive<BorderVariant>;
   borderLeft?: Responsive<BorderVariant>;
   borderRight?: Responsive<BorderVariant>;
   /**
-   * Border width token. Defaults to `md` (1px), so this only needs to be set to
-   * override it, and has no effect without a border color prop.
+   * Border width token. Defaults to `md` (1px) via the `border*` props, so this
+   * only needs to be set to override it, and has no effect without one.
    */
   borderWidth?: Responsive<BorderWidth>;
 
@@ -218,7 +218,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'area',
   'as',
   'background',
-  'borderColor',
+  'border',
   'borderTop',
   'borderBottom',
   'borderLeft',
@@ -378,7 +378,7 @@ export const Container = styled(
   ${p => rc('align-self', p.alignSelf, p.theme)};
   ${p => rc('justify-self', p.justifySelf, p.theme)};
 
-  ${p => rc('border', p.borderColor, p.theme, getBorder)};
+  ${p => rc('border', p.border, p.theme, getBorder)};
   ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
   ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};

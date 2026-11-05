@@ -17,7 +17,7 @@ export function SlideOverPanelPlayground() {
 
       {isPanelOpen && (
         <SlideOverPanel position="right">
-          <Container borderColor="primary" height="100%" padding="md">
+          <Container border="primary" height="100%" padding="md">
             <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
           </Container>
         </SlideOverPanel>
@@ -60,7 +60,7 @@ interface PanelContentsProps {
 
 function PanelContents({onClick}: PanelContentsProps) {
   return (
-    <Stack borderColor="primary" height="100%" gap="md" padding="md">
+    <Stack border="primary" height="100%" gap="md" padding="md">
       <Button onClick={onClick}>Close Panel</Button>
       <Container>
         <Alert variant="warning">I took a very long time to render!</Alert>
@@ -72,7 +72,7 @@ function PanelContents({onClick}: PanelContentsProps) {
 
 export function SkeletonPanelContents({onClick}: PanelContentsProps) {
   return (
-    <Stack borderColor="primary" height="100%" gap="md" padding="md">
+    <Stack border="primary" height="100%" gap="md" padding="md">
       <Button onClick={onClick}>Close Panel</Button>
       <Container>
         <Placeholder />

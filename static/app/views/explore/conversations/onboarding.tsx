@@ -170,7 +170,7 @@ function AgentSetupInstructions({
           'Give this prompt to your coding agent to set up agent tracing for this project.'
         )}
       </Text>
-      <Container width="100%" borderColor="primary" radius="md" padding="lg">
+      <Container width="100%" border="primary" radius="md" padding="lg">
         {containerProps => (
           <ClippedBox
             {...containerProps}

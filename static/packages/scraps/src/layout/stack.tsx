@@ -78,7 +78,7 @@ const StackSeparator = styled((props: StackSeparatorProps) => {
       // A separator has the opposite orientation as the stack. If we are in
       // row orientation, the separator should be vertical and vice versa
       orientation={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
-      borderColor={props.borderColor ?? 'primary'}
+      border={props.border ?? 'primary'}
     />
   );
 })<StackSeparatorProps>``;

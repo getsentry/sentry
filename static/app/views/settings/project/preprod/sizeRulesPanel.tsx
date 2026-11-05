@@ -169,7 +169,7 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
                     margin="md"
                     padding="xl"
                     background="secondary"
-                    borderColor="primary"
+                    border="primary"
                     radius="md"
                     style={{borderStyle: 'dashed'}}
                   >

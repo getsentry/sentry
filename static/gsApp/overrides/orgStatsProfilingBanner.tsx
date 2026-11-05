@@ -11,7 +11,7 @@ export function OrgStatsProfilingBanner() {
   return (
     <Grid
       columns={{zero: '1fr', '3xl': 'repeat(2, 1fr)', '4xl': 'repeat(3, 1fr)'}}
-      borderColor="primary"
+      border="primary"
       radius="md"
       marginBottom="xl"
     >

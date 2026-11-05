@@ -41,7 +41,7 @@ export function GithubCopilotIntegrationCta() {
     return (
       <Container
         padding="xl"
-        borderColor="primary"
+        border="primary"
         radius="md"
         marginTop="2xl"
         marginBottom="2xl"
@@ -55,7 +55,7 @@ export function GithubCopilotIntegrationCta() {
     return (
       <Container
         padding="xl"
-        borderColor="primary"
+        border="primary"
         radius="md"
         marginTop="2xl"
         marginBottom="2xl"
@@ -89,7 +89,7 @@ export function GithubCopilotIntegrationCta() {
   return (
     <Container
       padding="xl"
-      borderColor="primary"
+      border="primary"
       radius="md"
       marginTop="2xl"
       marginBottom="2xl"

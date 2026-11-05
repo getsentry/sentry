@@ -22,7 +22,7 @@ export function SnapshotCardFrame({
       gap="0"
       width="100%"
       background="primary"
-      borderColor="primary"
+      border="primary"
       radius="md"
       overflow="hidden"
       {...(fillHeight ? {flex: '1', minHeight: '0'} : {})}
@@ -100,7 +100,7 @@ export function SnapshotVariantFrame({
 
 export function SnapshotCanvasWrapper({children}: {children: React.ReactNode}) {
   return (
-    <Container background="secondary" borderColor="primary" radius="sm" overflow="hidden">
+    <Container background="secondary" border="primary" radius="sm" overflow="hidden">
       {children}
     </Container>
   );

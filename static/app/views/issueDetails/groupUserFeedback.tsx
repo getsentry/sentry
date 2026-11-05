@@ -56,11 +56,7 @@ function GroupUserFeedback() {
 
   if (isPending || isPendingGroup) {
     return (
-      <Layout.Body
-        borderColor="primary"
-        radius="md"
-        padding={{zero: 'lg 0', '3xs': 'lg'}}
-      >
+      <Layout.Body border="primary" radius="md" padding={{zero: 'lg 0', '3xs': 'lg'}}>
         <Layout.Main width="full">
           <LoadingIndicator />
         </Layout.Main>
@@ -73,7 +69,7 @@ function GroupUserFeedback() {
   const hasUserFeedback = group.project.hasUserReports;
 
   return (
-    <Layout.Body borderColor="primary" radius="md" padding={{zero: 'lg 0', '3xs': 'lg'}}>
+    <Layout.Body border="primary" radius="md" padding={{zero: 'lg 0', '3xs': 'lg'}}>
       <Layout.Main width="full">
         {hasUserFeedback && (
           <Text as="div" variant="muted">

@@ -97,7 +97,7 @@ export function SpanDetailCard({
     <Stack
       ref={ref}
       background="primary"
-      borderColor={embedded ? undefined : 'primary'}
+      border={embedded ? undefined : 'primary'}
       radius={embedded ? undefined : 'md'}
       padding="xl"
       gap="lg"
@@ -146,7 +146,7 @@ export function ConversationContentLayout({
                   minHeight="0"
                   padding={leftPadding}
                   background="primary"
-                  borderColor="primary"
+                  border="primary"
                   radius="md"
                   overflowX="hidden"
                   overflowY="auto"

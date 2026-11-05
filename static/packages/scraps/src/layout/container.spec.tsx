@@ -24,7 +24,7 @@ describe('Container', () => {
   it('implements render prop', () => {
     render(
       <section>
-        <Container borderColor="primary">{props => <p {...props}>Hello</p>}</Container>
+        <Container border="primary">{props => <p {...props}>Hello</p>}</Container>
       </section>,
       {wrapper: ThemeWrapper}
     );
@@ -32,26 +32,26 @@ describe('Container', () => {
     expect(screen.getByText('Hello')?.tagName).toBe('P');
     expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
 
-    expect(screen.getByText('Hello')).not.toHaveAttribute('borderColor', 'primary');
+    expect(screen.getByText('Hello')).not.toHaveAttribute('border', 'primary');
   });
 
   it('does not forward color and width props to the DOM', () => {
     render(
-      <Container borderColor="translucent" borderWidth="xl" background="accent">
+      <Container border="translucent" borderWidth="xl" background="accent">
         Hello
       </Container>,
       {wrapper: ThemeWrapper}
     );
 
     const element = screen.getByText('Hello');
-    expect(element).not.toHaveAttribute('borderColor');
+    expect(element).not.toHaveAttribute('border');
     expect(element).not.toHaveAttribute('borderWidth');
     expect(element).not.toHaveAttribute('background');
   });
 
   it('keeps borderWidth when the border color is responsive', () => {
     render(
-      <Container borderColor={{xs: 'primary', md: 'danger'}} borderWidth="xl">
+      <Container border={{xs: 'primary', md: 'danger'}} borderWidth="xl">
         Hello
       </Container>,
       {wrapper: ThemeWrapper}
@@ -69,7 +69,7 @@ describe('Container', () => {
   it('render prop guards against invalid attributes', () => {
     render(
       // @ts-expect-error - aria-activedescendant should be set on the child element
-      <Container borderColor="primary" aria-activedescendant="what">
+      <Container border="primary" aria-activedescendant="what">
         {/* @ts-expect-error - this should be a React.ElementType */}
         {props => <p {...props}>Hello</p>}
       </Container>,
@@ -86,7 +86,7 @@ describe('Container', () => {
     }
 
     render(
-      <Container borderColor="primary">
+      <Container border="primary">
         {/* @ts-expect-error - className is incompatible */}
         {props => <Child {...props} />}
       </Container>,
