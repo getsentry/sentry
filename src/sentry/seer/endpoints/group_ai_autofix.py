@@ -61,7 +61,7 @@ from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.dispatch import project_stopping_point, should_use_single_run
-from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
+from sentry.seer.autofix.feature.models import FEATURE_ID, SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
 from sentry.seer.autofix.pr_iteration.manual_trigger import handle_ui_feedback
 from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
@@ -644,7 +644,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         - Generated code changes
         """
         try:
-            state = get_autofix_agent_state(group.organization, group.id, include_single_runs=True)
+            state = get_autofix_agent_state(
+                group.organization, group.id, sources=(FEATURE_ID, SINGLE_RUN_FEATURE_ID)
+            )
         except SeerPermissionError as e:
             raise PermissionDenied(str(e))
 
