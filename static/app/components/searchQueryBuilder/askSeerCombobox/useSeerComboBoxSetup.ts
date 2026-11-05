@@ -9,6 +9,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
+import {t} from 'sentry/locale';
 import type {DateString, PageFilterDatetime} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -196,6 +197,13 @@ export function mapSeerResponseItem(
   defaultMode = 'samples'
 ): AskSeerSearchQuery {
   const interval = getRawSeerInterval(item);
+  const plottedVisualizations = item.visualization?.filter(viz => viz.y_axes?.length);
+  const hasTransformations = plottedVisualizations?.some(
+    viz => viz.transformations?.length
+  );
+  const intervals = new Set(
+    plottedVisualizations?.map(viz => viz.interval).filter(Boolean)
+  );
   const crossEvents = defaultMode === 'spans' ? buildCrossEvents(item) : [];
   return {
     visualizations:
@@ -205,6 +213,9 @@ export function mapSeerResponseItem(
             ? {chartType: visualization.chart_type}
             : {}),
           yAxes: visualization.y_axes ?? [],
+          ...(visualization.transformations
+            ? {transformations: visualization.transformations}
+            : {}),
         }))
         .filter(visualization => visualization.yAxes.length > 0) ?? [],
     query: item.query ?? '',
@@ -217,6 +228,13 @@ export function mapSeerResponseItem(
     ...(interval ? {interval} : {}),
     ...(crossEvents.length ? {crossEvents} : {}),
     ...(item.extra_fields?.length ? {extraFields: item.extra_fields} : {}),
+    ...(hasTransformations && intervals.size > 1
+      ? {
+          unsupportedReason: t(
+            'This suggestion uses different chart intervals. Ask Seer to use one interval for all charts.'
+          ),
+        }
+      : {}),
   };
 }
 
