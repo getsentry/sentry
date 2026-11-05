@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 import sentry_sdk
 
@@ -19,20 +19,29 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
 )
-from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
+from sentry.preprod.size_analysis.models import (
+    ComparisonResults,
+    DiffType,
+    InsightDiffType,
+    SizeAnalysisResults,
+)
 from sentry.preprod.size_analysis.utils import match_and_fetch_comparisons
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
+# Names of PreprodArtifactSizeMetrics.MetricsArtifactType
+MetricsArtifactTypeName = Literal[
+    "MAIN_ARTIFACT", "WATCH_ARTIFACT", "ANDROID_DYNAMIC_FEATURE", "APP_CLIP_ARTIFACT"
+]
+# Names of PreprodArtifactSizeComparison.State
+ComparisonStateName = Literal["PENDING", "PROCESSING", "SUCCESS", "FAILED"]
+# Names of PreprodArtifactSizeMetrics.SizeAnalysisState
+SizeAnalysisStateName = Literal["PENDING", "PROCESSING", "COMPLETED", "FAILED", "NOT_RAN"]
+
 
 class AppComponentResponseDict(TypedDict):
-    componentType: Annotated[
-        str,
-        ApiDescription(
-            "Type of the component: MAIN_ARTIFACT, WATCH_ARTIFACT, ANDROID_DYNAMIC_FEATURE or APP_CLIP_ARTIFACT"
-        ),
-    ]
+    componentType: Annotated[MetricsArtifactTypeName, ApiDescription("Type of the component")]
     name: Annotated[str, ApiDescription("Name of the component")]
     appId: Annotated[str, ApiDescription("App identifier of the component")]
     path: Annotated[str, ApiDescription("Path of the component inside the build")]
@@ -53,9 +62,7 @@ class DiffItemResponseDict(TypedDict):
     ]
     path: Annotated[str, ApiDescription("Path of the file or group")]
     itemType: Annotated[str | None, ApiDescription("Type of the file or group")]
-    type: Annotated[
-        str, ApiDescription("How the item changed: added, removed, increased or decreased")
-    ]
+    type: Annotated[DiffType, ApiDescription("How the item changed")]
     # Recursive type (list[DiffItemResponseDict]) breaks drf-spectacular schema generation
     diffItems: Annotated[
         list[Any] | None, ApiDescription("Changes to the item's children, in the same shape")
@@ -64,10 +71,7 @@ class DiffItemResponseDict(TypedDict):
 
 class SizeMetricDiffResponseDict(TypedDict):
     metricsArtifactType: Annotated[
-        str,
-        ApiDescription(
-            "Type of the component the sizes are for: MAIN_ARTIFACT, WATCH_ARTIFACT, ANDROID_DYNAMIC_FEATURE or APP_CLIP_ARTIFACT"
-        ),
+        MetricsArtifactTypeName, ApiDescription("Type of the component the sizes are for")
     ]
     identifier: Annotated[
         str | None, ApiDescription("Identifier of the component, such as a dynamic feature name")
@@ -82,7 +86,7 @@ class InsightDiffItemResponseDict(TypedDict):
     insightType: Annotated[
         str, ApiDescription("Type of the insight, such as duplicate_files or large_images")
     ]
-    status: Annotated[str, ApiDescription("How the insight changed: new, resolved or unresolved")]
+    status: Annotated[InsightDiffType, ApiDescription("How the insight changed")]
     totalSavingsChange: Annotated[
         int, ApiDescription("Change in the insight's potential savings in bytes")
     ]
@@ -98,17 +102,12 @@ class ComparisonSummaryResponseDict(TypedDict):
     """Comparison data shared between the public API and the webhook."""
 
     metricsArtifactType: Annotated[
-        str,
-        ApiDescription(
-            "Type of the component compared: MAIN_ARTIFACT, WATCH_ARTIFACT, ANDROID_DYNAMIC_FEATURE or APP_CLIP_ARTIFACT"
-        ),
+        MetricsArtifactTypeName, ApiDescription("Type of the component compared")
     ]
     identifier: Annotated[
         str | None, ApiDescription("Identifier of the component, such as a dynamic feature name")
     ]
-    state: Annotated[
-        str, ApiDescription("State of the comparison: PENDING, PROCESSING, SUCCESS or FAILED")
-    ]
+    state: Annotated[ComparisonStateName, ApiDescription("State of the comparison")]
     errorCode: Annotated[str | None, ApiDescription("Error code when the comparison failed")]
     errorMessage: Annotated[str | None, ApiDescription("Error message when the comparison failed")]
     sizeMetricDiff: Annotated[
@@ -138,12 +137,7 @@ class _SizeAnalysisBaseResponseDict(TypedDict):
     """
 
     buildId: Annotated[str, ApiDescription("ID of the build")]
-    state: Annotated[
-        str,
-        ApiDescription(
-            "State of the size analysis: PENDING, PROCESSING, COMPLETED, FAILED or NOT_RAN"
-        ),
-    ]
+    state: Annotated[SizeAnalysisStateName, ApiDescription("State of the size analysis")]
     appInfo: Annotated[AppInfoResponseDict, ApiDescription("App details of the build")]
     gitInfo: Annotated[
         GitInfoResponseDict | None,
@@ -254,6 +248,10 @@ def build_comparison_data(
     return comparisons if comparisons else None
 
 
+def _metrics_artifact_type_name(value: int) -> MetricsArtifactTypeName:
+    return cast(MetricsArtifactTypeName, PreprodArtifactSizeMetrics.MetricsArtifactType(value).name)
+
+
 def _build_failed_comparison(
     head_metric: PreprodArtifactSizeMetrics,
     error_code: str | None,
@@ -261,9 +259,7 @@ def _build_failed_comparison(
 ) -> ComparisonResponseDict:
     assert head_metric.metrics_artifact_type is not None
     return {
-        "metricsArtifactType": PreprodArtifactSizeMetrics.MetricsArtifactType(
-            head_metric.metrics_artifact_type
-        ).name,
+        "metricsArtifactType": _metrics_artifact_type_name(head_metric.metrics_artifact_type),
         "identifier": head_metric.identifier,
         "state": PreprodArtifactSizeComparison.State.FAILED.name,
         "errorCode": error_code,
@@ -292,9 +288,7 @@ def _build_comparison_result(
         )
     else:
         return {
-            "metricsArtifactType": PreprodArtifactSizeMetrics.MetricsArtifactType(
-                head_metric.metrics_artifact_type
-            ).name,
+            "metricsArtifactType": _metrics_artifact_type_name(head_metric.metrics_artifact_type),
             "identifier": head_metric.identifier,
             "state": PreprodArtifactSizeComparison.State.PROCESSING.name,
             "errorCode": None,
@@ -333,9 +327,7 @@ def _build_success_comparison(
             size_metric_diff["metricsArtifactType"]
         ).name
         return {
-            "metricsArtifactType": PreprodArtifactSizeMetrics.MetricsArtifactType(
-                head_metric.metrics_artifact_type
-            ).name,
+            "metricsArtifactType": _metrics_artifact_type_name(head_metric.metrics_artifact_type),
             "identifier": head_metric.identifier,
             "state": PreprodArtifactSizeComparison.State.SUCCESS.name,
             "errorCode": None,
@@ -444,7 +436,7 @@ def build_size_analysis_summary(
         "organizationSlug": head_artifact.project.organization.slug,
         "projectSlug": head_artifact.project.slug,
         "platform": platform.value.upper() if platform is not None else None,
-        "state": state_enum.name,
+        "state": cast(SizeAnalysisStateName, state_enum.name),
         "appInfo": create_app_info_dict(head_artifact),
         "gitInfo": create_git_info_dict(head_artifact),
         "errorCode": None,

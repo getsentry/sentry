@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import Annotated, TypedDict
+from typing import Annotated, Literal, TypedDict, cast
 
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.preprod.models import PreprodArtifact
+
+# Names of PreprodArtifact.ArtifactType
+ArtifactTypeName = Literal["XCARCHIVE", "AAB", "APK"]
 
 
 class AppInfoResponseDict(TypedDict):
@@ -11,9 +14,7 @@ class AppInfoResponseDict(TypedDict):
     name: Annotated[str | None, ApiDescription("App name")]
     version: Annotated[str | None, ApiDescription("Version of the build")]
     buildNumber: Annotated[int | None, ApiDescription("Build number")]
-    artifactType: Annotated[
-        str | None, ApiDescription("Type of the build file: XCARCHIVE, AAB or APK")
-    ]
+    artifactType: Annotated[ArtifactTypeName | None, ApiDescription("Type of the build file")]
     dateAdded: Annotated[str | None, ApiDescription("When the build was uploaded (ISO 8601)")]
     dateBuilt: Annotated[str | None, ApiDescription("When the build was built (ISO 8601)")]
 
@@ -39,7 +40,9 @@ def create_app_info_dict(artifact: PreprodArtifact) -> AppInfoResponseDict:
         "name": mobile_app_info.app_name if mobile_app_info else None,
         "version": mobile_app_info.build_version if mobile_app_info else None,
         "buildNumber": mobile_app_info.build_number if mobile_app_info else None,
-        "artifactType": PreprodArtifact.ArtifactType(artifact.artifact_type).name
+        "artifactType": cast(
+            ArtifactTypeName, PreprodArtifact.ArtifactType(artifact.artifact_type).name
+        )
         if artifact.artifact_type is not None
         else None,
         "dateAdded": artifact.date_added.isoformat() if artifact.date_added else None,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated, TypedDict
+from typing import Annotated, Literal, TypedDict, cast
 
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.preprod.api.models.public.shared import (
@@ -15,12 +15,13 @@ from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
 
+# Names of PreprodArtifact.ArtifactState
+BuildState = Literal["UPLOADING", "UPLOADED", "PROCESSED", "FAILED"]
+
 
 class InstallInfoResponseDict(TypedDict):
     buildId: Annotated[str, ApiDescription("ID of the build")]
-    state: Annotated[
-        str, ApiDescription("State of the build: UPLOADING, UPLOADED, PROCESSED or FAILED")
-    ]
+    state: Annotated[BuildState, ApiDescription("State of the build")]
     appInfo: Annotated[AppInfoResponseDict, ApiDescription("App details of the build")]
     gitInfo: Annotated[
         GitInfoResponseDict | None,
@@ -76,7 +77,7 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
 
     return {
         "buildId": str(artifact.id),
-        "state": PreprodArtifact.ArtifactState(artifact.state).name,
+        "state": cast(BuildState, PreprodArtifact.ArtifactState(artifact.state).name),
         "appInfo": create_app_info_dict(artifact),
         "gitInfo": create_git_info_dict(artifact),
         # Uppercase for consistency with other enum fields (e.g. artifactType)
