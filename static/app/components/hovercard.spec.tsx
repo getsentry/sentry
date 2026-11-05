@@ -2,7 +2,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Hovercard} from 'sentry/components/hovercard';
+import {Hovercard} from './hovercard';
 
 describe('Hovercard', () => {
   beforeEach(() => {

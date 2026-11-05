@@ -9,15 +9,14 @@ import {
   ModalBody,
   ModalFooter,
 } from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
-import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 
-jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/indicator');
+import {TicketRuleModal} from './ticketRuleModal';
 
+jest.unmock('sentry/utils/recreateRoute');
 const defaultIssueConfig = [
   {
     name: 'project',
@@ -54,6 +53,10 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
     issueTypeLabel, // New Feature
   ] = defaultIssueConfig[1].choices[3];
 
+  beforeEach(() => {
+    jest.spyOn(toast, 'success').mockClear();
+  });
+
   afterEach(() => {
     closeModal.mockReset();
     MockApiClient.clearMockResponses();
@@ -61,7 +64,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
 
   const submitSuccess = async () => {
     await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
-    expect(addSuccessMessage).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
   };
 

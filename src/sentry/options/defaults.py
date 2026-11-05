@@ -276,6 +276,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Public CLI application used for private onboarding handoffs. Empty disables minting.
+register(
+    "onboarding.agent-handoff.client-id",
+    default="",
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Auth
 register(
     "auth.ip-rate-limit",

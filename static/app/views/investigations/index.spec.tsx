@@ -11,18 +11,20 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import InvestigationsView from 'sentry/views/investigations';
+import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
+
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
-} from 'sentry/views/investigations/api';
-import {InvestigationListItemFixture as InvestigationFixture} from 'sentry/views/investigations/fixtures';
-import type {InvestigationDetail} from 'sentry/views/investigations/types';
-import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
+} from './api';
+import {InvestigationListItemFixture as InvestigationFixture} from './fixtures';
+import type {InvestigationDetail} from './types';
 
 const organization = OrganizationFixture({
   features: ['investigations'],
@@ -53,8 +55,8 @@ function renderView({
 
 describe('Explore Investigations', () => {
   beforeEach(() => {
-    jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
-    jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+    jest.spyOn(toast, 'success').mockImplementation();
+    jest.spyOn(toast, 'error').mockImplementation();
     ConfigStore.set('customerDomain', null);
   });
 
@@ -382,9 +384,7 @@ describe('Explore Investigations', () => {
         `${window.location.origin}/organizations/org-slug/seer/investigations/1/`
       )
     );
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
-      'Investigation link copied.'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Investigation link copied.');
   });
 
   it('deletes only after confirmation and sends the current version', async () => {
@@ -498,9 +498,7 @@ describe('Explore Investigations', () => {
     );
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to update investigation favorite.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to update investigation favorite.')
     );
   });
 
@@ -522,9 +520,7 @@ describe('Explore Investigations', () => {
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to duplicate investigation.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to duplicate investigation.')
     );
   });
 
@@ -548,9 +544,7 @@ describe('Explore Investigations', () => {
     await userEvent.click(await screen.findByTestId('confirm-button'));
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to delete investigation.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to delete investigation.')
     );
   });
 });

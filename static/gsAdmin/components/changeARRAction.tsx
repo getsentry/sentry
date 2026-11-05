@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 
 type Props = {

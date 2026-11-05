@@ -34,8 +34,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-import {getIsOnlyPrebuilt} from 'sentry/views/dashboards/manage/utils/getIsOnlyPrebuilt';
 import {
   CUSTOM_DASHBOARD_LABEL,
   DashboardFilter,
@@ -48,6 +46,8 @@ import {
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
+import {getIsOnlyPrebuilt} from './utils/getIsOnlyPrebuilt';
+import DashboardTable from './dashboardTable';
 import {DASHBOARD_TABLE_NUM_ROWS, DEFAULT_PREBUILT_SORT} from './settings';
 
 function getSortOptions({

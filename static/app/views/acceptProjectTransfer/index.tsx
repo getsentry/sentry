@@ -4,8 +4,8 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
@@ -86,7 +86,7 @@ function AcceptProjectTransferForm({
           ? error.responseJSON.detail
           : '';
 
-      addErrorMessage(
+      toast.error(
         errorMsg
           ? t('Unable to transfer project. %s', errorMsg)
           : t('Unable to transfer project.')

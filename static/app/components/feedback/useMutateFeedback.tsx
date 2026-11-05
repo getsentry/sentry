@@ -1,14 +1,15 @@
 import {useCallback} from 'react';
 import {useMutation, type MutateOptions} from '@tanstack/react-query';
 
-import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
-import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import type {Actor} from 'sentry/types/core';
 import type {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+
+import {useFeedbackApiOptions} from './useFeedbackApiOptions';
+import {useFeedbackCache} from './useFeedbackCache';
 
 type TFeedbackIds = 'all' | string[];
 type TPayload =

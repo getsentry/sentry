@@ -12,9 +12,10 @@ import type EChartsReact from 'echarts-for-react';
 import type {EChartsInstance} from 'echarts-for-react';
 import {connect, disconnect} from 'echarts/core';
 
-import {getToolBox} from 'sentry/components/charts/components/toolBox';
 import type {EChartBrushEndHandler, EChartBrushStartHandler} from 'sentry/types/echarts';
 import {usePrevious} from 'sentry/utils/usePrevious';
+
+import {getToolBox} from './components/toolBox';
 
 export type Selection = {
   /**

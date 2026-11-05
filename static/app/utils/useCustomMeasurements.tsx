@@ -1,6 +1,6 @@
 import {useContext} from 'react';
 
-import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
+import {CustomMeasurementsContext} from './customMeasurements/customMeasurementsContext';
 
 export function useCustomMeasurements() {
   return useContext(CustomMeasurementsContext);

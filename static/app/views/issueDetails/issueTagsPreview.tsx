@@ -28,12 +28,13 @@ import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
+
+import type {GroupTag} from './groupTags/useGroupTags';
+import {useGroupTags} from './groupTags/useGroupTags';
+import {useEventQuery} from './hooks/useEventQuery';
+import {Tab, TabPaths} from './types';
+import {useGroupDetailsRoute} from './useGroupDetailsRoute';
+import {usePrefetchTagValues} from './utils';
 
 const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 const FRONTEND_TAGS = ['browser', 'release', 'url', 'environment'];

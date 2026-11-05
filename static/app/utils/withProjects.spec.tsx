@@ -3,7 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {withProjects} from 'sentry/utils/withProjects';
+
+import {withProjects} from './withProjects';
 
 describe('withProjects HoC', () => {
   beforeEach(() => {

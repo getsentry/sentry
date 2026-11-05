@@ -7,11 +7,12 @@ import {
   draftNumericString,
   type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
-import type {PreprodDetectorFormData} from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildFormData';
 import {
   ALL_MEASUREMENTS,
   ALL_METRIC_TYPES,
 } from 'sentry/views/settings/project/preprod/types';
+
+import type {PreprodDetectorFormData} from './mobileBuildFormData';
 
 export const PREPROD_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<PreprodDetectorFormData> =
   z

@@ -3,9 +3,10 @@ import {EmptyState} from '@sentry/scraps/emptyState';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
-import {InboxIssuePreview} from 'sentry/views/inbox/inboxIssuePreview';
-import {InboxNotebookPreview} from 'sentry/views/inbox/inboxNotebookPreview';
-import type {InboxSubject} from 'sentry/views/inbox/types';
+
+import {InboxIssuePreview} from './inboxIssuePreview';
+import {InboxNotebookPreview} from './inboxNotebookPreview';
+import type {InboxSubject} from './types';
 
 interface InboxItemPreviewProps {
   subject: InboxSubject | null;

@@ -1,11 +1,9 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
-import {
-  MOCK_BREADCRUMBS,
-  MOCK_DATA_SECTION_PROPS,
-} from 'sentry/components/events/breadcrumbs/testUtils';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+
+import {BreadcrumbsDataSection} from './breadcrumbsDataSection';
+import {MOCK_BREADCRUMBS, MOCK_DATA_SECTION_PROPS} from './testUtils';
 
 async function openBreadcrumbDrawer() {
   mockElementSize({width: 0, height: 30});

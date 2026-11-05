@@ -9,11 +9,8 @@ import {
   useUpdateQueryAtIndex,
   type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {
-  Section,
-  SectionHeader,
-  SectionLabel,
-} from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
+
+import {Section, SectionHeader, SectionLabel} from './styles';
 
 type Props = {index: number; query: ReadableExploreQueryParts};
 

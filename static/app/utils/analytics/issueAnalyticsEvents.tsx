@@ -8,8 +8,9 @@ import type {
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
-import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
+
+import type {BaseEventAnalyticsParams} from './workflowAnalyticsEvents';
 
 type IssueStream = {
   group_id: string;

@@ -21,12 +21,13 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
+
+import {useIncompleteBucketTooltipDetails} from './incompleteBucketTooltip';
+import type {ChartInfo} from './types';
 
 interface ChartVisualizationProps {
   chartInfo: ChartInfo;

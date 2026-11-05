@@ -2,8 +2,8 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -13,12 +13,13 @@ import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {BuildCompareHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildCompareHeaderContent';
-import {SizeCompareMainContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareMainContent';
-import {SizeCompareSelectionContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectionContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getCompareApiUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
+
+import {BuildCompareHeaderContent} from './header/buildCompareHeaderContent';
+import {SizeCompareMainContent} from './main/sizeCompareMainContent';
+import {SizeCompareSelectionContent} from './main/sizeCompareSelectionContent';
 
 export default function BuildComparison() {
   const organization = useOrganization();
@@ -65,9 +66,9 @@ export default function BuildComparison() {
     },
     onSuccess: response => {
       if (response?.status === 'exists') {
-        addErrorMessage(t('Comparison already exists'));
+        toast.error(t('Comparison already exists'));
       } else {
-        addSuccessMessage(t('Comparison rerun triggered'));
+        toast.success(t('Comparison rerun triggered'));
       }
       queryClient.invalidateQueries({queryKey: [compareUrl]});
     },
@@ -76,7 +77,7 @@ export default function BuildComparison() {
         handleStaffPermissionError(error.responseJSON?.detail);
         return;
       }
-      addErrorMessage(t('Failed to rerun comparison'));
+      toast.error(t('Failed to rerun comparison'));
     },
   });
 

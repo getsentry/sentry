@@ -5,9 +5,10 @@ import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus, ProgressState} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {ActivityResolutionReason} from 'sentry/views/issueDetails/actions/resolutionReason';
 import {getArchiveDetails} from 'sentry/views/issueDetails/activitySection/activityLineItem/archiveDetails';
 import {ActivityProgressMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker/progressMarker';
+
+import {ActivityResolutionReason} from './resolutionReason';
 
 type StatusGroup = Extract<Group, {status: GroupStatus.IGNORED | GroupStatus.RESOLVED}>;
 

@@ -1,5 +1,4 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {onboarding} from 'sentry/gettingStartedDocs/go-negroni/onboarding';
 import {crashReport} from 'sentry/gettingStartedDocs/go/crashReport';
 import {logs} from 'sentry/gettingStartedDocs/go/logs';
 import {metrics} from 'sentry/gettingStartedDocs/go/metrics';
@@ -7,6 +6,8 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
+
+import {onboarding} from './onboarding';
 
 export const docs: Docs = {
   onboarding,

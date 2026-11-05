@@ -22,8 +22,6 @@ import {ReplayBadge} from 'sentry/components/replays/replayBadge';
 import {ReplayErrorCount} from 'sentry/components/replays/replayErrorCount';
 import {ReplayPlatformIcon} from 'sentry/components/replays/replayPlatformIcon';
 import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
-import {NumericDropdownFilter} from 'sentry/components/replays/table/filters/numericDropdownFilter';
-import {OSBrowserDropdownFilter} from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t, tct} from 'sentry/locale';
@@ -42,6 +40,9 @@ import type {
   ReplayRecordNestedFieldName,
 } from 'sentry/views/explore/replays/types';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
+
+import {NumericDropdownFilter} from './filters/numericDropdownFilter';
+import {OSBrowserDropdownFilter} from './filters/osBrowserDropdownFilter';
 
 type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 
