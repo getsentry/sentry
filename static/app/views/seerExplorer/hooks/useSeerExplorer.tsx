@@ -208,10 +208,10 @@ export const useSeerExplorer = () => {
                 session: {
                   ...prev.json.session,
                   failure_reason: null,
-                  status: 'processing',
+                  status: 'processing' as const,
                   updated_at: new Date().toISOString(),
                 },
-              } satisfies SeerExplorerResponse,
+              },
             }
           : prev
       )?.json;
