@@ -29,7 +29,6 @@ import type {Frame} from 'sentry/utils/profiling/frame';
 import {isEventedProfile, isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -175,9 +174,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   {visualization === 'flamegraph' ? (
                     <AggregateFlamegraph
                       status={status}
-                      queryError={
-                        status === 'error' && error instanceof RequestError ? error : null
-                      }
+                      queryError={status === 'error' ? error : null}
                       filter={frameFilter}
                       onResetFilter={onResetFrameFilter}
                       canvasPoolManager={canvasPoolManager}
