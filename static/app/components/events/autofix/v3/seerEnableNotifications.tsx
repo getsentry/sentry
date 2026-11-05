@@ -16,6 +16,7 @@ import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 import type {RequestMessage} from 'sentry/serviceWorker/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useAskSeerHandoff} from './useAskSeerHandoff';
@@ -48,7 +49,9 @@ export function SeerEnableNotifications({status}: Props) {
   const analyticsArea = useAnalyticsArea();
 
   const isEligible =
-    organization.features.includes('autofix-browser-notifications') &&
+    // The sandbox can start Seer runs to showcase AI, but asking a demo visitor
+    // for browser notification permission is not part of that pitch.
+    !isDemoModeActive() &&
     // In code mode the run is handed to the agent and followed in chat, so an
     // offer to announce it from here would point at the wrong surface.
     !isCodeMode &&
