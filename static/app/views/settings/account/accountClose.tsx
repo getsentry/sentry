@@ -24,9 +24,10 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
-import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+
+import {ConfirmAccountClose} from './confirmAccountClose';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);

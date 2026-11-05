@@ -37,10 +37,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {sentryAppComponentsApiOptions} from 'sentry/utils/useSentryAppComponents';
-import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
-import {SplitInstallationIdModal} from 'sentry/views/settings/organizationIntegrations/SplitInstallationIdModal';
+
+import type {IntegrationTab} from './detailedView/integrationLayout';
+import {IntegrationLayout} from './detailedView/integrationLayout';
+import {RequestIntegrationButton} from './integrationRequest/RequestIntegrationButton';
+import {SplitInstallationIdModal} from './SplitInstallationIdModal';
 
 function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
   return [

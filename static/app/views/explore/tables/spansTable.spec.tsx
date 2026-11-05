@@ -26,10 +26,8 @@ import {FieldValueType} from 'sentry/utils/fields';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {
-  addValidatedFieldTypesToMeta,
-  SpansTable,
-} from 'sentry/views/explore/tables/spansTable';
+
+import {addValidatedFieldTypesToMeta, SpansTable} from './spansTable';
 
 jest.mock('sentry/utils/analytics');
 

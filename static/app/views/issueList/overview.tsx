@@ -53,12 +53,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import {IssueListTable} from 'sentry/views/issueList/issueListTable';
-import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
-import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -67,8 +61,14 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import {parseIssuePrioritySearch} from './utils/parseIssuePrioritySearch';
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
+import {IssueListTable} from './issueListTable';
+import {IssuesDataConsentBanner} from './issuesDataConsentBanner';
+import {IssueSelectionProvider} from './issueSelectionContext';
+import {IssueViewsHeader} from './issueViewsHeader';
+import type {IssueUpdateData} from './types';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,

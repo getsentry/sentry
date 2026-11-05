@@ -10,10 +10,11 @@ import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {reorderFavoriteDashboards} from 'sentry/views/dashboards/manage/utils/reorderFavoriteDashboards';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
+
+import {getStarredDashboardsQueryKey} from './useGetStarredDashboards';
 
 type ToggleFavoriteVariables = {
   dashboard: DashboardListItem;

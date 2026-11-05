@@ -2,9 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {formatSort} from 'sentry/utils/profiling/hooks/utils';
+import type {EventsResults} from './types';
+import {useProfileEvents} from './useProfileEvents';
+import {formatSort} from './utils';
 
 describe('useProfileEvents', () => {
   afterEach(() => {

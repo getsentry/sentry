@@ -3,23 +3,18 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import {toast} from '@sentry/scraps/toast';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {
-  AskSeerComboBox,
-  type AskSeerComboBoxProps,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
-import {AskSeerLoadingStatus} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerLoadingStatus';
-import {BaseAskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/baseAskSeerComboBox';
-import type {
-  AskSeerStrategy,
-  QueryTokensProps,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {useAskSeerPolling} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAskSeerPolling';
-import {formatQueryToNaturalLanguage} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+
+import {AskSeerComboBox, type AskSeerComboBoxProps} from './askSeerComboBox';
+import {AskSeerLoadingStatus} from './askSeerLoadingStatus';
+import {BaseAskSeerComboBox} from './baseAskSeerComboBox';
+import type {AskSeerStrategy, QueryTokensProps} from './types';
+import {useAskSeerPolling} from './useAskSeerPolling';
+import {formatQueryToNaturalLanguage} from './utils';
 
 interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T, runId?: number | string) => void;

@@ -11,9 +11,10 @@ import {getOverride} from 'sentry/overrideRegistry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
-import {RESERVED_EVENT_IDS} from 'sentry/views/issueDetails/useGroupEvent';
-import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
+
+import {useGroupId} from './groupIdContext';
+import {RESERVED_EVENT_IDS} from './useGroupEvent';
+import {useDefaultIssueEvent} from './utils';
 
 export function EventMissingBanner() {
   const location = useLocation();

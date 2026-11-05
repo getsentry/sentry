@@ -11,8 +11,9 @@ import {
 
 import {toast} from '@sentry/scraps/toast';
 
-import {SeerProjectTable} from 'sentry/components/seer/projectTable/seerProjectTable';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {SeerProjectTable} from './seerProjectTable';
 
 // jsdom has no layout, so the virtualizer would render zero rows. Force it to
 // render a row per item so the table body is present.

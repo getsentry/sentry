@@ -12,8 +12,9 @@ import {
 import {toast} from '@sentry/scraps/toast';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import {TextField} from 'sentry/components/forms/fields/textField';
+
+import {FeedbackModal} from './feedbackModal';
 
 describe('FeatureFeedback', () => {
   describe('default', () => {

@@ -10,10 +10,11 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {FeedbackActivitySection} from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
 import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {GroupActivityType, IssueCategory} from 'sentry/types/group';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+
+import {FeedbackActivitySection} from './feedbackActivitySection';
 
 function getCommentEditor(name = 'Add a comment') {
   const editor = screen.getByRole('combobox', {name});

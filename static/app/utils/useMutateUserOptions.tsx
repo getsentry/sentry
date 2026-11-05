@@ -5,10 +5,11 @@ import {toast} from '@sentry/scraps/toast';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
-import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
-import {useUser} from 'sentry/utils/useUser';
+
+import type {RequestError} from './requestError/requestError';
+import {removeBodyTheme} from './removeBodyTheme';
+import {useApi} from './useApi';
+import {useUser} from './useUser';
 type UpdateUserOptionsVariables = Partial<User['options']>;
 
 export function useMutateUserOptions() {

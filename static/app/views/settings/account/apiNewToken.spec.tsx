@@ -12,7 +12,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {toast} from '@sentry/scraps/toast';
 
-import ApiNewToken from 'sentry/views/settings/account/apiNewToken';
+import ApiNewToken from './apiNewToken';
 
 describe('ApiNewToken', () => {
   it('renders', () => {

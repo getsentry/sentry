@@ -8,8 +8,9 @@ import {
 
 import {OnboardingDrawerStore} from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {OnboardingSkipButton} from 'sentry/views/onboarding/components/onboardingSkipButton';
 import {OnboardingStepId} from 'sentry/views/onboarding/types';
+
+import {OnboardingSkipButton} from './onboardingSkipButton';
 
 jest.mock('sentry/utils/analytics');
 

@@ -45,23 +45,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
-import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import {ChatPromptMessage} from 'sentry/views/seerExplorer/components/chat/chatPrompt';
-import {
-  groupTranscript,
-  ResponseGroup,
-} from 'sentry/views/seerExplorer/components/chat/responseGroup';
-import {findLatestTodos} from 'sentry/views/seerExplorer/components/chat/toolUse';
-import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
-import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
-import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
-import {
-  isReauthEnabled,
-  PendingUserInputDock,
-  PendingUserInputPicker,
-} from 'sentry/views/seerExplorer/components/pendingUserInputDock';
-import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
-import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
 import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/hooks/useCopySessionDataToClipboard';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
@@ -84,6 +67,21 @@ import {
   useSeerExplorerDeepLink,
   useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
+
+import {ChatPromptMessage} from './chat/chatPrompt';
+import {groupTranscript, ResponseGroup} from './chat/responseGroup';
+import {findLatestTodos} from './chat/toolUse';
+import {BlockComponent} from './chat';
+import {EmptyState} from './emptyState';
+import {useExplorerMenu} from './explorerMenu';
+import {InputSection} from './inputSection';
+import {
+  isReauthEnabled,
+  PendingUserInputDock,
+  PendingUserInputPicker,
+} from './pendingUserInputDock';
+import {SeerExplorerHeader} from './seerExplorerHeader';
+import {UpdateSlackAlert} from './updateSlackAlert';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
 

@@ -7,7 +7,7 @@ import {Input} from '@sentry/scraps/input';
 import {toast} from '@sentry/scraps/toast';
 import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 
-import {TextOverflow} from 'sentry/components/textOverflow';
+import {TextOverflow} from './textOverflow';
 
 type Props = {
   onChange: (value: string) => void;

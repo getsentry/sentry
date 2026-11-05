@@ -23,13 +23,10 @@ import type {
   FormulaDataset,
   SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
-import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
-import {
-  buildTokenMap,
-  FormulaToken,
-  FormulaTokens,
-} from 'sentry/views/explore/savedFormulas/formulaTokens';
-import {makeSavedFormulasPathname} from 'sentry/views/explore/savedFormulas/pathnames';
+
+import {stripNamePrefix} from './formulaBuilder/draft';
+import {buildTokenMap, FormulaToken, FormulaTokens} from './formulaTokens';
+import {makeSavedFormulasPathname} from './pathnames';
 
 const DATASET_LABEL_MAP: Record<FormulaDataset, string> = {
   spans: t('Spans'),

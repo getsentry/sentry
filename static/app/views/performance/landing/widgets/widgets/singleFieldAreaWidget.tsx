@@ -27,7 +27,8 @@ import {
   getMEPQueryParams,
   QUERY_LIMIT_PARAM,
 } from 'sentry/views/performance/landing/widgets/utils';
-import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
+
+import {EAP_QUERY_PARAMS} from './settings';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;

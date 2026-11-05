@@ -5,15 +5,16 @@ import {useDebouncedValue} from '@tanstack/react-pacer';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
-import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
-import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
-import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
-import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
-import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
+
+import {formatPercent} from './utils/formatPercent';
+import {parsePercent} from './utils/parsePercent';
+import {balanceSampleRate} from './utils/rebalancing';
 import type {
   ProjectionSamplePeriod,
   ProjectSampleCount,
-} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+} from './utils/useProjectSampleCounts';
+import {ProjectsTable} from './projectsTable';
+import {SamplingBreakdown} from './samplingBreakdown';
 
 interface ProjectsPreviewTableProps {
   actions: React.ReactNode;

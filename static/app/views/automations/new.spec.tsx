@@ -31,7 +31,8 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import AutomationNewSettings from 'sentry/views/automations/new';
+
+import AutomationNewSettings from './new';
 
 jest.mock('sentry/utils/analytics');
 

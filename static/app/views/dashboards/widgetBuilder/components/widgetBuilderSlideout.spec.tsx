@@ -13,13 +13,14 @@ import {toast} from '@sentry/scraps/toast';
 
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
   useSpanItemAttributes,
   useTraceItemDatasetAttributes,
   useTraceMetricItemAttributes,
 } from 'sentry/views/explore/hooks/useTraceItemAttributes';
+
+import {WidgetBuilderSlideout} from './widgetBuilderSlideout';
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');

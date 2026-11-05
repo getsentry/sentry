@@ -15,7 +15,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
-import type {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';
@@ -27,6 +26,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
+
+import type {MissingMemberInvite} from './types';
 
 const INVITE_COLUMNS: TableColumnConfig[] = [
   {key: 'select', width: 'max-content'},

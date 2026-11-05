@@ -9,11 +9,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
-import {
-  ProviderLabels,
-  type DataForwarder,
-  type DataForwarderPayload,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+
+import {ProviderLabels, type DataForwarder, type DataForwarderPayload} from './types';
 
 const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [
   getApiUrl('/organizations/$organizationIdOrSlug/forwarding/', {

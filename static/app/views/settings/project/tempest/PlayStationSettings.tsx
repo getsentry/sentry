@@ -23,14 +23,14 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
-import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
-import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
-import {MessageType} from 'sentry/views/settings/project/tempest/types';
-import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
+import {useFetchTempestCredentials} from './hooks/useFetchTempestCredentials';
+import {useHasTempestWriteAccess} from './utils/access';
+import {AddCredentialsButton} from './addCredentialsButton';
+import {ConfigForm} from './configForm';
 import {CredentialRow} from './CredentialRow';
 import {EmptyState} from './EmptyState';
+import {MessageType} from './types';
 
 interface Props {
   organization: Organization;

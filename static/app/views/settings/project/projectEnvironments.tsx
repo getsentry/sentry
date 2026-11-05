@@ -31,8 +31,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {ProjectPermissionAlert} from './projectPermissionAlert';
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 const ENVIRONMENT_COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 'minmax(0, 1fr)'},

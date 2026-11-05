@@ -13,7 +13,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+
+import {groupQueryKey} from './useGroup';
 
 type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 

@@ -50,15 +50,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
-import type {
-  AlertType,
-  IntegrationTab,
-} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
-import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
-import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
+
+import type {AlertType, IntegrationTab} from './detailedView/integrationLayout';
+import {IntegrationLayout} from './detailedView/integrationLayout';
+import {AddIntegrationButton} from './addIntegrationButton';
+import {InstalledIntegration} from './installedIntegration';
+import {IntegrationButton} from './integrationButton';
+import {IntegrationContext} from './integrationContext';
 
 // Show the features tab if the org has features for the integration
 const integrationFeatures = ['slack'];

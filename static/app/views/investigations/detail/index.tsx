@@ -20,10 +20,6 @@ import {
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import {InvestigationAccess} from 'sentry/views/investigations/detail/investigationAccess';
-import {InvestigationPageContent} from 'sentry/views/investigations/detail/investigationPageContent';
-import {useInvestigationDetail} from 'sentry/views/investigations/detail/useInvestigationDetail';
-import {useInvestigationTitle} from 'sentry/views/investigations/detail/useInvestigationTitle';
 import {useInvestigationAskSeer} from 'sentry/views/investigations/investigationLLMContext';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
 import {
@@ -34,6 +30,11 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {InvestigationAccess} from './investigationAccess';
+import {InvestigationPageContent} from './investigationPageContent';
+import {useInvestigationDetail} from './useInvestigationDetail';
+import {useInvestigationTitle} from './useInvestigationTitle';
 
 function InvestigationDetailPageInner({
   investigation,

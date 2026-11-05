@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {LoadingError} from 'sentry/components/loadingError';
 import * as Storybook from 'sentry/stories';
+
+import {LoadingError} from './loadingError';
 
 export default Storybook.story('LoadingError', story => {
   story('Default', () => {

@@ -24,15 +24,16 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import {useOpenDashboardRevisions} from 'sentry/views/dashboards/dashboardRevisions';
-import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
-import {exportDashboard} from 'sentry/views/dashboards/exportDashboard';
-import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
-import {useOpenRenameDashboardModal} from 'sentry/views/dashboards/renameDashboardModal';
-import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
-import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {useDuplicateDashboard} from './hooks/useDuplicateDashboard';
+import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {DashboardCreateLimitWrapper} from './createLimitWrapper';
+import {useOpenDashboardRevisions} from './dashboardRevisions';
+import {useOpenEditAccessModal} from './editAccessModal';
+import {exportDashboard} from './exportDashboard';
+import {useOpenRenameDashboardModal} from './renameDashboardModal';
+import type {DashboardDetails, DashboardPermissions} from './types';
 
 /**
  * Star/unstar the dashboard. Sits beside the actions menu rather than inside it —

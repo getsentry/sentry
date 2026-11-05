@@ -2,7 +2,7 @@ import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {toast} from '@sentry/scraps/toast';
 
-import {handleExpressiveCodeCopyClick} from 'sentry/stories/view/expressiveCodeCopy';
+import {handleExpressiveCodeCopyClick} from './expressiveCodeCopy';
 
 function StoryCodeBlock() {
   return (

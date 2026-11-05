@@ -13,7 +13,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+
+import {groupQueryKey} from './useGroup';
 
 type GroupDetailsPriorityProps = {
   group: Group;

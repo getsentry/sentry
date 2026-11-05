@@ -1,4 +1,4 @@
-import {makeCombinedReducers} from 'sentry/utils/makeCombinedReducer';
+import {makeCombinedReducers} from './makeCombinedReducer';
 
 describe('makeCombinedReducers', () => {
   it('calls reducer only with subset of state', () => {

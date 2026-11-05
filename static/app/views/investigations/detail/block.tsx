@@ -37,7 +37,6 @@ import {
   useResumeInvestigationExecutionMutation,
   useStopInvestigationExecutionMutation,
 } from 'sentry/views/investigations/api';
-import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
 import {
   getBlockLLMContext,
   getInvestigationReference,
@@ -60,6 +59,8 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
+
+import {InvestigationBlockPlaceholder} from './blockPlaceholder';
 
 type InvestigationNotebookBlockProps = {
   block: InvestigationBlock;

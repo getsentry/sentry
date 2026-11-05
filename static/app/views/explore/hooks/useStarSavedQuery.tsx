@@ -7,12 +7,13 @@ import {toast} from '@sentry/scraps/toast';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   SavedQueryType,
   useGetSavedQuery,
   useInvalidateSavedQuery,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+} from './useGetSavedQueries';
+import {useStarQuery} from './useStarQuery';
 
 interface UseStarSavedQueryResult {
   isLoading: boolean;

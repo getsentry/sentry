@@ -29,8 +29,9 @@ import {getCategories, getIntegrationFeatureGate} from 'sentry/utils/integration
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {useIntegrationFeatures} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationFeatures';
 import {IntegrationStatus} from 'sentry/views/settings/organizationIntegrations/integrationStatus';
+
+import {useIntegrationFeatures} from './useIntegrationFeatures';
 
 export type IntegrationTab = 'overview' | 'configurations' | 'features';
 export interface AlertType extends AlertProps {

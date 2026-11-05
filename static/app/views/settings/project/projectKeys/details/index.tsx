@@ -12,11 +12,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {RouteError} from 'sentry/views/routeError';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
-import {KeyStats} from 'sentry/views/settings/project/projectKeys/details/keyStats';
 import {RelayDsnOverrideAlert} from 'sentry/views/settings/project/projectKeys/relayDsnOverrideAlert';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {KeySettings} from './keySettings';
+import {KeyStats} from './keyStats';
 
 export default function ProjectKeyDetails() {
   const organization = useOrganization();

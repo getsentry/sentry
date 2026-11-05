@@ -19,14 +19,12 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
-import {SpansTabCrossEventMetricsSearchBar} from 'sentry/views/explore/spans/crossEvents/crossEventMetricsSearchBar';
-import {SpansTabCrossEventSearchBar} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBar';
-import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
-import {
-  getCrossEventDatasetOptions,
-  makeCrossEvent,
-} from 'sentry/views/explore/spans/crossEvents/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {SpansTabCrossEventMetricsSearchBar} from './crossEventMetricsSearchBar';
+import {SpansTabCrossEventSearchBar} from './crossEventSearchBar';
+import {useCrossEventDatasetAvailability} from './useCrossEventDatasetAvailability';
+import {getCrossEventDatasetOptions, makeCrossEvent} from './utils';
 
 const EMPTY_CROSS_EVENTS: CrossEvent[] = [];
 

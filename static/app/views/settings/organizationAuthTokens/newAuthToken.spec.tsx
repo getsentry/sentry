@@ -8,7 +8,8 @@ import {
 import {toast} from '@sentry/scraps/toast';
 
 import type {OrgAuthToken} from 'sentry/types/user';
-import OrganizationAuthTokensNewAuthToken from 'sentry/views/settings/organizationAuthTokens/newAuthToken';
+
+import OrganizationAuthTokensNewAuthToken from './newAuthToken';
 
 describe('OrganizationAuthTokensNewAuthToken', () => {
   const ENDPOINT = '/organizations/org-slug/org-auth-tokens/';

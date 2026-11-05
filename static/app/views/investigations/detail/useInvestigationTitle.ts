@@ -12,9 +12,10 @@ import {
   investigationTitleGenerationQueryOptions,
   useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import {isTitleGenerationActive} from 'sentry/views/investigations/detail/utils';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
+
+import {isTitleGenerationActive} from './utils';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 

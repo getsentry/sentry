@@ -14,7 +14,8 @@ import {
   useDataExport,
 } from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
-import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+
+import type {ExploreExportConfig} from './types';
 
 enum ModalColumnValue {
   ALL = 'all',

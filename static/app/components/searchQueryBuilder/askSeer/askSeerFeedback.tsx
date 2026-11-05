@@ -6,11 +6,12 @@ import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {AskSeerLabel} from 'sentry/components/searchQueryBuilder/askSeer/components';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AskSeerLabel} from './components';
 
 export function AskSeerFeedback() {
   const organization = useOrganization();

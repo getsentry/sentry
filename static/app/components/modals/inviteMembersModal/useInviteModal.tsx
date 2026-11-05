@@ -1,10 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
-import type {
-  InviteRow,
-  InviteStatus,
-  NormalizedInvite,
-} from 'sentry/components/modals/inviteMembersModal/types';
 import {t} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -12,6 +7,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
+
+import type {InviteRow, InviteStatus, NormalizedInvite} from './types';
 
 interface Props {
   organization: Organization;

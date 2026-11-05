@@ -24,13 +24,11 @@ import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPal
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {GroupStatus} from 'sentry/types/group';
-import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
-import {IssueListCommandPaletteActions} from 'sentry/views/issueList/issueListCommandPaletteActions';
-import {
-  IssueSelectionProvider,
-  useIssueSelectionActions,
-} from 'sentry/views/issueList/issueSelectionContext';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {IssueListBulkCommandPaletteActions} from './issueListBulkCommandPaletteActions';
+import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
+import {IssueSelectionProvider, useIssueSelectionActions} from './issueSelectionContext';
+import {IssueSortOptions} from './utils';
 
 const organization = OrganizationFixture();
 

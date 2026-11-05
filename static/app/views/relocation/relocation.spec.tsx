@@ -9,7 +9,8 @@ import {
 import {toast} from '@sentry/scraps/toast';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {RelocationOnboarding as Relocation} from 'sentry/views/relocation/relocation';
+
+import {RelocationOnboarding as Relocation} from './relocation';
 
 const fakeOrgSlug = 'test-org';
 const fakePromoCode = 'free-hugs';

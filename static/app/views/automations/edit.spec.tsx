@@ -26,9 +26,10 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
-import AutomationEdit from 'sentry/views/automations/edit';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import {dataConditionNodesMap} from './components/dataConditionNodes';
+import AutomationEdit from './edit';
 
 jest.mock('sentry/utils/analytics');
 

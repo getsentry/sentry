@@ -17,12 +17,6 @@ import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {
-  ProfilingContextMenu,
-  ProfilingContextMenuGroup,
-  ProfilingContextMenuHeading,
-  ProfilingContextMenuItemButton,
-} from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 // eslint-disable-next-line boundaries/dependencies
@@ -30,6 +24,13 @@ import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {
+  ProfilingContextMenu,
+  ProfilingContextMenuGroup,
+  ProfilingContextMenuHeading,
+  ProfilingContextMenuItemButton,
+} from './profiling/profilingContextMenu';
 
 type TraceElement = HTMLElement | SVGElement;
 

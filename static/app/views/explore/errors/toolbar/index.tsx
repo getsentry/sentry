@@ -2,10 +2,11 @@ import {Button} from '@sentry/scraps/button';
 import {Grid, Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {ErrorsToolbarGroupBy} from 'sentry/views/explore/errors/toolbar/errorsToolbarGroupBy';
-import {ErrorsToolbarSortBy} from 'sentry/views/explore/errors/toolbar/errorsToolbarSortBy';
-import {ErrorsToolbarVisualize} from 'sentry/views/explore/errors/toolbar/errorsToolbarVisualize';
 import {SaveStyledToolbarSection} from 'sentry/views/explore/toolbar/toolbarSaveAs';
+
+import {ErrorsToolbarGroupBy} from './errorsToolbarGroupBy';
+import {ErrorsToolbarSortBy} from './errorsToolbarSortBy';
+import {ErrorsToolbarVisualize} from './errorsToolbarVisualize';
 
 export function ErrorsToolbar() {
   return (

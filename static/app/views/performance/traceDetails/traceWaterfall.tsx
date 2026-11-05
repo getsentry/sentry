@@ -36,19 +36,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
-import type {TraceQueryResult} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
-import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import {TraceLinksNavigation} from 'sentry/views/performance/traceDetails/traceLinksNavigation/traceLinksNavigation';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import {TraceOpenInExploreButton} from 'sentry/views/performance/traceDetails/traceOpenInExploreButton';
-import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
-import {useDividerResizeSync} from 'sentry/views/performance/traceDetails/useDividerResizeSync';
-import {useTraceSpaceListeners} from 'sentry/views/performance/traceDetails/useTraceSpaceListeners';
-import {useTraceWaterfallModels} from 'sentry/views/performance/traceDetails/useTraceWaterfallModels';
-import {useTraceWaterfallScroll} from 'sentry/views/performance/traceDetails/useTraceWaterfallScroll';
 
+import type {TraceQueryResult} from './traceApi/useTrace';
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
+import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
+import {TraceLinksNavigation} from './traceLinksNavigation/traceLinksNavigation';
+import {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {
   searchInTraceTreeText,
@@ -63,6 +57,7 @@ import {
 } from './traceState/traceStateProvider';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
+import {TraceOpenInExploreButton} from './traceOpenInExploreButton';
 import {
   TracePinnedAttributeContext,
   useTracePinnedAttribute,
@@ -71,10 +66,15 @@ import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceResetZoomButton} from './traceResetZoomButton';
 import type {TraceReducer} from './traceState';
 import {TraceWaterfallState} from './traceWaterfallState';
+import {traceGridCssVariables} from './traceWaterfallStyles';
+import {useDividerResizeSync} from './useDividerResizeSync';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath, type UseTraceScrollToPath} from './useTraceScrollToPath';
+import {useTraceSpaceListeners} from './useTraceSpaceListeners';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
+import {useTraceWaterfallModels} from './useTraceWaterfallModels';
+import {useTraceWaterfallScroll} from './useTraceWaterfallScroll';
 
 // The settings trigger is the toolbar's last item and the search input beside it grows to
 // fill, so the trigger always sits flush right. In the narrow Seer embed the 300px menu would

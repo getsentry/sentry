@@ -1,11 +1,8 @@
 import {useCallback, useState} from 'react';
 import {hashKey, useQueryClient} from '@tanstack/react-query';
 
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import type {LogsInfiniteQueryKey} from 'sentry/views/explore/logs/useLogsApiOptions';
+import {OurLogKnownFieldKey, type OurLogsResponseItem} from './types';
+import type {LogsInfiniteQueryKey} from './useLogsApiOptions';
 
 export interface LogAnchor {
   id: string;

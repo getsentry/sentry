@@ -2,7 +2,7 @@ import {DashboardFixture} from 'sentry-fixture/dashboard';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {updateDashboard} from 'sentry/actionCreators/dashboards';
+import {updateDashboard} from './dashboards';
 
 describe('updateDashboard', () => {
   beforeEach(() => {

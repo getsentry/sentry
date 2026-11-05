@@ -20,13 +20,14 @@ import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
-import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
-import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
+
+import {useHasDynamicSamplingWriteAccess} from './utils/access';
+import {parsePercent} from './utils/parsePercent';
 import type {
   ProjectionSamplePeriod,
   ProjectSampleCount,
-} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+} from './utils/useProjectSampleCounts';
+import {PercentInput} from './percentInput';
 
 type SubProject = ProjectSampleCount['subProjects'][number];
 

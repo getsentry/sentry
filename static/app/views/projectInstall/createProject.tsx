@@ -43,23 +43,17 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import type {
-  AlertRuleOptions,
-  RequestDataFragment,
-} from 'sentry/views/projectInstall/issueAlertOptions';
-import {
-  getRequestDataFragment,
-  IssueAlertOptions,
-  RuleAction,
-} from 'sentry/views/projectInstall/issueAlertOptions';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {useCreateNotificationAction} from './issueAlertNotificationOptions';
+import type {AlertRuleOptions, RequestDataFragment} from './issueAlertOptions';
+import {getRequestDataFragment, IssueAlertOptions, RuleAction} from './issueAlertOptions';
 import {
   MultipleCheckboxOptions,
   type IntegrationChannel,
-} from 'sentry/views/projectInstall/messagingIntegrationTypes';
-import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
-import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
-import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+} from './messagingIntegrationTypes';
+import {useProjectCreationPageOrigin} from './projectCreationOrigin';
+import {validateChannelQueryOptions} from './useValidateChannel';
 
 type FormData = {
   projectName: string;

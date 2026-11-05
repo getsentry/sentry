@@ -16,14 +16,15 @@ import {toast} from '@sentry/scraps/toast';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import InvestigationsView from 'sentry/views/investigations';
+import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
+
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
-} from 'sentry/views/investigations/api';
-import {InvestigationListItemFixture as InvestigationFixture} from 'sentry/views/investigations/fixtures';
-import type {InvestigationDetail} from 'sentry/views/investigations/types';
-import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
+} from './api';
+import {InvestigationListItemFixture as InvestigationFixture} from './fixtures';
+import type {InvestigationDetail} from './types';
 
 const organization = OrganizationFixture({
   features: ['investigations'],

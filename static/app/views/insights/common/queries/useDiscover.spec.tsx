@@ -6,9 +6,10 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {useSpans} from './useDiscover';
 
 const initialRouterConfig = {
   location: {

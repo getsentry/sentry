@@ -39,10 +39,11 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
+
 import type {
   CustomInboundFilter,
   CustomInboundFilterCondition,
-} from 'sentry/views/settings/project/projectFilters/customFilterModal';
+} from './customFilterModal';
 import {
   customFiltersQueryOptions,
   getCondition,
@@ -53,7 +54,7 @@ import {
   NEGATED_OPERATORS,
   openCustomFilterModal,
   OPERATOR_LABELS,
-} from 'sentry/views/settings/project/projectFilters/customFilterModal';
+} from './customFilterModal';
 
 // Values a condition shows in the table before the rest fold into a count.
 const MAX_VISIBLE_VALUES = 3;

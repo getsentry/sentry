@@ -3,8 +3,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {toast} from '@sentry/scraps/toast';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {PrIterationFeedbackForm} from './prIterationFeedbackForm';
 
 jest.mock('sentry/utils/analytics');
 function makeAutofix(

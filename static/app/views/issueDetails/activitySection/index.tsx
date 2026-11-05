@@ -14,18 +14,19 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ActivityFeed} from 'sentry/views/issueDetails/activitySection/activityFeed';
-import {
-  buildActivityFeedItems,
-  type DisplayedActivityFeedItem,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
-import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
-import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+
+import {
+  buildActivityFeedItems,
+  type DisplayedActivityFeedItem,
+} from './activityLineItem/activityFeedItem';
+import {isActivityNote} from './activityLineItem/note';
+import {ActivityFeed} from './activityFeed';
+import {ActivityNoteInput} from './activityNoteInput';
+import {useMutateActivity} from './useMutateActivity';
 
 interface ActivitySectionProps {
   group: Group;

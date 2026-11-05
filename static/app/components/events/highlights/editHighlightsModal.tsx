@@ -18,14 +18,6 @@ import {ContextCardContent} from 'sentry/components/events/contexts/contextCard'
 import {getOrderedContextItems} from 'sentry/components/events/contexts/contextItems';
 import {getContextMeta} from 'sentry/components/events/contexts/dataUtils';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import type {
-  HighlightContext,
-  HighlightTags,
-} from 'sentry/components/events/highlights/util';
-import {
-  getHighlightContextData,
-  getHighlightTagData,
-} from 'sentry/components/events/highlights/util';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject} from 'sentry/types/project';
@@ -34,6 +26,9 @@ import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {HighlightContext, HighlightTags} from './util';
+import {getHighlightContextData, getHighlightTagData} from './util';
 
 export interface EditHighlightsModalProps extends ModalRenderProps {
   event: Event;

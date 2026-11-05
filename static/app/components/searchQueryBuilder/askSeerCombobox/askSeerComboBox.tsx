@@ -6,15 +6,16 @@ import {Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
-import {AskSeerSearchSkeleton} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchSkeleton';
-import {BaseAskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/baseAskSeerComboBox';
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {formatQueryToNaturalLanguage} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AskSeerSearchHeader} from './askSeerSearchHeader';
+import {AskSeerSearchSkeleton} from './askSeerSearchSkeleton';
+import {BaseAskSeerComboBox} from './baseAskSeerComboBox';
+import type {QueryTokensProps} from './types';
+import {formatQueryToNaturalLanguage} from './utils';
 
 interface AskSeerMutationResult<T extends QueryTokensProps> {
   queries: T[];

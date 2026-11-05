@@ -19,8 +19,9 @@ import {
 } from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {ExternalIssueForm} from 'sentry/components/externalIssues/externalIssueForm';
 import type {IntegrationIssueConfig} from 'sentry/types/integrations';
+
+import {ExternalIssueForm} from './externalIssueForm';
 
 describe('ExternalIssueForm', () => {
   const group = GroupFixture();

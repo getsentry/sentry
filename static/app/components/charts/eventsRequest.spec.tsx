@@ -3,9 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {EventsRequestProps} from 'sentry/components/charts/eventsRequest';
-import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+
+import type {EventsRequestProps} from './eventsRequest';
+import {EventsRequest} from './eventsRequest';
 
 const COUNT_OBJ = {
   count: 123,

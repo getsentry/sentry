@@ -20,14 +20,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOnboardingAgentSetupRun} from 'sentry/views/onboarding/agenticProgress/useOnboardingAgentSetupRun';
 import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
-import {
-  NewWelcomeProductCard,
-  type ProductOption,
-} from 'sentry/views/onboarding/components/newWelcomeProductCard';
-import {WelcomeAgentSetup} from 'sentry/views/onboarding/components/welcomeAgentSetup';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
 import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
 import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandleComplete';
+
+import {NewWelcomeProductCard, type ProductOption} from './newWelcomeProductCard';
+import {WelcomeAgentSetup} from './welcomeAgentSetup';
 
 const MotionContainer = motion.create(Container);
 const MotionFlex = motion.create(Flex);

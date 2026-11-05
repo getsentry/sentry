@@ -17,14 +17,12 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  INSTALLED,
-  NOT_INSTALLED,
-} from 'sentry/views/settings/organizationIntegrations/constants';
-import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {legacyWebhooksQueryOptions} from 'sentry/views/settings/organizationIntegrations/legacyWebhooksQueryOptions';
-import {WebhookConfigurations} from 'sentry/views/settings/organizationIntegrations/webhookConfigurations';
+
+import type {IntegrationTab} from './detailedView/integrationLayout';
+import {IntegrationLayout} from './detailedView/integrationLayout';
+import {INSTALLED, NOT_INSTALLED} from './constants';
+import {legacyWebhooksQueryOptions} from './legacyWebhooksQueryOptions';
+import {WebhookConfigurations} from './webhookConfigurations';
 
 const WEBHOOK_DESCRIPTION = [
   t('Trigger outgoing HTTP POST requests from Sentry.'),

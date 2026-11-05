@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {toast} from '@sentry/scraps/toast';
 
-import WebhookDetailedView from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
+import WebhookDetailedView from './webhookDetailedView';
 
 describe('WebhookConfigurations', () => {
   const organization = OrganizationFixture();

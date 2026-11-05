@@ -10,7 +10,8 @@ import {handleEnroll} from 'sentry/components/webAuthn/handlers';
 import {ModalStore} from 'sentry/stores/modalStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
+
+import AccountSecurityEnroll from './accountSecurityEnroll';
 
 jest.mock('sentry/components/webAuthn/handlers');
 

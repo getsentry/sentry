@@ -16,13 +16,6 @@ import type {
   JsonFormAdapterChoiceValue,
   JsonFormAdapterFieldConfig,
 } from 'sentry/components/backendJsonFormAdapter/types';
-import {
-  applySavedDefaultToField,
-  getSavedChoicesMap,
-  STATIC_TICKET_FIELDS,
-} from 'sentry/components/externalIssues/ticketRuleModalUtils';
-import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
-import {getConfigName} from 'sentry/components/externalIssues/utils';
 import type {FieldValue} from 'sentry/components/forms/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -36,6 +29,14 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {
+  applySavedDefaultToField,
+  getSavedChoicesMap,
+  STATIC_TICKET_FIELDS,
+} from './ticketRuleModalUtils';
+import {useDynamicFields} from './useDynamicFields';
+import {getConfigName} from './utils';
 
 const IGNORED_FIELDS = ['Sprint'];
 

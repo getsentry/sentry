@@ -58,16 +58,11 @@ import {useParams} from 'sentry/utils/useParams';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {
-  granularWebhookEvents,
-  WEBHOOK_SUBSCRIPTION_CHOICES,
-} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {
-  getSentryAppTemplates,
-  type SentryAppTemplate,
-} from 'sentry/views/settings/organizationDeveloperSettings/creationTemplates';
-import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
+
+import type {WebhookSubscription} from './constants';
+import {granularWebhookEvents, WEBHOOK_SUBSCRIPTION_CHOICES} from './constants';
+import {getSentryAppTemplates, type SentryAppTemplate} from './creationTemplates';
+import {PermissionsObserver} from './permissionsObserver';
 import {
   AllowedOriginsField,
   AlertableField,
@@ -80,7 +75,7 @@ import {
   VerifyInstallField,
   WebhookHeadersField,
   WebhookUrlField,
-} from 'sentry/views/settings/organizationDeveloperSettings/sentryAppFormFields';
+} from './sentryAppFormFields';
 
 const AVATAR_STYLES = {
   color: {

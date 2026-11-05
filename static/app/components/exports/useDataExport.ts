@@ -3,7 +3,6 @@ import {useMutation} from '@tanstack/react-query';
 import {toast} from '@sentry/scraps/toast';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import {createExportFilename} from 'sentry/components/exports/createExportFilename';
 import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {t} from 'sentry/locale';
 import type {ApiResult, ResponseMeta} from 'sentry/types/api';
@@ -14,6 +13,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {createExportFilename} from './createExportFilename';
 
 // NOTE: Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
 export enum ExportQueryType {

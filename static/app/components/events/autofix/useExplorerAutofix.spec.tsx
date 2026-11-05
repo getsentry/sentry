@@ -5,7 +5,9 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {toast} from '@sentry/scraps/toast';
 
-import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
+import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+
+import {DiffFileType, DiffLineType} from './types';
 import {
   collectPatches,
   getOrderedAutofixSections,
@@ -23,8 +25,7 @@ import {
   type ExplorerAutofixState,
   type RootCauseArtifact,
   type SolutionArtifact,
-} from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+} from './useExplorerAutofix';
 
 function makeValidArtifact<T>(data: T): Artifact<T> {
   return {

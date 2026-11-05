@@ -4,8 +4,9 @@ import {IconRefresh} from '@sentry/icons/refresh';
 import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import type {FieldValue, FormModel} from 'sentry/components/forms/model';
 import {t, tct} from 'sentry/locale';
+
+import type {FieldValue, FormModel} from './model';
 
 /**
  * This will call an action creator to generate a "Toast" message that

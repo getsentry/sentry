@@ -14,8 +14,8 @@ import {t} from 'sentry/locale';
 import {getLocalities} from 'sentry/utils/cells';
 import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
-import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
 
+import {StepHeading} from './components/stepHeading';
 import type {StepProps} from './types';
 
 const DEFAULT_ERROR_MSG = t(

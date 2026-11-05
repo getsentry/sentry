@@ -1,7 +1,8 @@
 import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
-import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+
+import {downloadFromHref} from './downloadFromHref';
 
 type ErrorDetail = {
   code?: string;

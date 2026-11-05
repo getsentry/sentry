@@ -11,9 +11,10 @@ import {
 import {toast} from '@sentry/scraps/toast';
 
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
-import {ExploreExportModal} from 'sentry/views/explore/components/exports/exploreExportModal';
-import type {TraceItemExportConfig} from 'sentry/views/explore/components/exports/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {ExploreExportModal} from './exploreExportModal';
+import type {TraceItemExportConfig} from './types';
 
 const organization = OrganizationFixture({features: ['discover-query']});
 const closeModal = jest.fn();

@@ -9,20 +9,21 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {LegacyOnRouteLeave} from 'sentry/router/legacy/onRouteLeave';
 import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
-import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
-import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
-import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
-import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
-import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
-import {sampleRateField} from 'sentry/views/settings/dynamicSampling/utils/schemas';
+
+import {useHasDynamicSamplingWriteAccess} from './utils/access';
+import {parsePercent} from './utils/parsePercent';
+import {sampleRateField} from './utils/schemas';
 import {
   useProjectSampleCounts,
   type ProjectionSamplePeriod,
-} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+} from './utils/useProjectSampleCounts';
 import {
   useGetSamplingProjectRates,
   useUpdateSamplingProjectRates,
-} from 'sentry/views/settings/dynamicSampling/utils/useSamplingProjectRates';
+} from './utils/useSamplingProjectRates';
+import {ProjectionPeriodControl} from './projectionPeriodControl';
+import {ProjectsEditTable} from './projectsEditTable';
+import {SamplingModeSwitch} from './samplingModeSwitch';
 
 const UNSAVED_CHANGES_MESSAGE = t(
   'You have unsaved changes, are you sure you want to leave?'

@@ -39,10 +39,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
-import {TeamMembersRow} from 'sentry/views/settings/organizationTeams/teamMembersRow';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
+import {useTeamDetailsOutlet} from './teamDetails';
+import {TeamMembersRow} from './teamMembersRow';
 import {getButtonHelpText} from './utils';
 
 const COLUMNS: TableColumnConfig[] = [

@@ -32,7 +32,6 @@ import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {ProjectTableHeader} from 'sentry/components/seer/projectTable/seerProjectTableHeader';
 import {t, tct} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -65,6 +64,8 @@ import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {ProjectTableHeader} from './seerProjectTableHeader';
 
 const estimateSize = () => 41;
 

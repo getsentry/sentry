@@ -21,7 +21,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
-import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -34,6 +33,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SEER_THRESHOLD_MAP} from 'sentry/views/settings/projectSeer';
+
+import {SEER_THRESHOLD_OPTIONS} from './legacy/constants';
 
 const PROJECTS_PER_PAGE = 20;
 

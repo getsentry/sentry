@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {toast} from '@sentry/scraps/toast';
 
-import ApiTokenDetails from 'sentry/views/settings/account/apiTokenDetails';
+import ApiTokenDetails from './apiTokenDetails';
 
 const ROUTER_CONFIG = {
   initialRouterConfig: {

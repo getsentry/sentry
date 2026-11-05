@@ -12,7 +12,8 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DashboardRenameSurface} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useRenameDashboard} from 'sentry/views/dashboards/hooks/useRenameDashboard';
+
+import {useRenameDashboard} from './hooks/useRenameDashboard';
 
 /**
  * Structural on purpose, so the same modal serves the detail page
