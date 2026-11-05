@@ -173,10 +173,7 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
                     },
                 ],
             },
-            "config": {
-                "thresholdPeriod": 1,
-                "detectionType": AlertRuleDetectionType.STATIC.value,
-            },
+            "config": {"detectionType": AlertRuleDetectionType.STATIC.value},
             "workflowIds": [self.connected_workflow.id],
         }
 
@@ -247,7 +244,10 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
 
     def test_invalid_comparison_delta(self) -> None:
         data = {**self.valid_data}
-        data["config"]["comparisonDelta"] = 0
+        data["config"] = {
+            "detectionType": AlertRuleDetectionType.PERCENT.value,
+            "comparisonDelta": 0,
+        }
 
         response = self.get_error_response(
             self.organization.slug,

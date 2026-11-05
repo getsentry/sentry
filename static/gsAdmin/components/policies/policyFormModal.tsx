@@ -6,10 +6,10 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {readFileAsBase64} from 'sentry/utils/readFileAsBase64';
@@ -81,7 +81,7 @@ export function PolicyFormModal({
       ) {
         return;
       }
-      addErrorMessage('Unable to save the policy.');
+      toast.error('Unable to save the policy.');
     },
   });
   const form = useScrapsForm({
@@ -99,7 +99,7 @@ export function PolicyFormModal({
     validators: {onDynamic: isNewPolicy ? policySchema : revisionSchema},
     onSubmit: ({value}) => {
       if (isReadingFile) {
-        addErrorMessage('Please wait for the selected file to finish loading.');
+        toast.error('Please wait for the selected file to finish loading.');
         return;
       }
       return mutation
@@ -241,7 +241,7 @@ export function PolicyFormModal({
                             },
                             () => {
                               setIsReadingFile(false);
-                              addErrorMessage('Unable to read the selected file.');
+                              toast.error('Unable to read the selected file.');
                             }
                           );
                         }}

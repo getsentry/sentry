@@ -18,8 +18,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {createFilter} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   changeProjectSlug,
   removeProject,
@@ -63,9 +63,10 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
-import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
 import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {ConnectedRepositoriesPanel} from './connectedRepositoriesPanel';
 
 type Props = {
   onChangeSlug: (slug: string) => void;
@@ -588,11 +589,11 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
         origin: 'settings',
       });
     } catch (err) {
-      addErrorMessage(tct('Error removing [project]', {project: project.slug}));
+      toast.error(tct('Error removing [project]', {project: project.slug}));
       throw err;
     }
 
-    addSuccessMessage(tct('[project] was successfully removed', {project: project.slug}));
+    toast.success(tct('[project] was successfully removed', {project: project.slug}));
     navigate(`/settings/${organization.slug}/projects/`);
   };
 

@@ -13,15 +13,6 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
-import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
-import {
-  BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-  BREADCRUMB_TIME_DISPLAY_OPTIONS,
-  BreadcrumbTimeDisplay,
-  useBreadcrumbFilters,
-  type EnhancedCrumb,
-} from 'sentry/components/events/breadcrumbs/utils';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -48,6 +39,16 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {BreadcrumbsTimeline} from './breadcrumbsTimeline';
+import {CopyBreadcrumbsDropdown} from './copyBreadcrumbs';
+import {
+  BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+  BREADCRUMB_TIME_DISPLAY_OPTIONS,
+  BreadcrumbTimeDisplay,
+  useBreadcrumbFilters,
+  type EnhancedCrumb,
+} from './utils';
 
 export const enum BreadcrumbControlOptions {
   SEARCH = 'search',

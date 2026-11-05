@@ -168,6 +168,16 @@ describe('IssueListActions', () => {
         render(<WrappedComponent queryCount={1500} />);
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+
+        expect(screen.getByText('3 issues on this page selected.')).toBeInTheDocument();
+        await userEvent.click(
+          screen.getByText('Select the first 1,000 issues that match this search query.')
+        );
+        expect(
+          screen.getByText(
+            'Selected up to the first 1,000 issues that match this search query.'
+          )
+        ).toBeInTheDocument();
       });
 
       it('bulk resolves with the current search filters and sort', async () => {
@@ -266,6 +276,9 @@ describe('IssueListActions', () => {
         await userEvent.click(
           screen.getByText(/Select all 15 issues that match this search query/)
         );
+        expect(
+          screen.getByText('Selected all 15 issues that match this search query.')
+        ).toBeInTheDocument();
       });
 
       it('bulk resolves', async () => {
@@ -623,7 +636,6 @@ describe('IssueListActions', () => {
 
     describe('bulk action performance issues', () => {
       const orgWithPerformanceIssues = OrganizationFixture({
-        features: ['performance-issues'],
         access: ['event:admin'],
       });
 

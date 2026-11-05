@@ -4,10 +4,11 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+
+import {useDuplicateDashboard} from './useDuplicateDashboard';
 
 describe('useDuplicateDashboard', () => {
   const organization = OrganizationFixture();

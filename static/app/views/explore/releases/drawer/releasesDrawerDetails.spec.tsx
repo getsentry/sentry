@@ -7,8 +7,9 @@ import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {ReleasesDrawerDetails} from 'sentry/views/explore/releases/drawer/releasesDrawerDetails';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+
+import {ReleasesDrawerDetails} from './releasesDrawerDetails';
+import {ReleasesDrawerFields} from './utils';
 
 // Mock GroupList as it throws act warnings
 jest.mock('sentry/components/issues/groupList', () => ({

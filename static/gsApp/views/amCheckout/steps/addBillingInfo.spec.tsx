@@ -11,13 +11,11 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
 describe('AddBillingInformation', () => {
-  const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
 
   beforeEach(() => {
     organization.access = ['org:billing'];
-    api.clear();
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -65,10 +63,9 @@ describe('AddBillingInformation', () => {
       method: 'GET',
       body: BillingDetailsFixture(),
     });
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     expect(await screen.findByText('Edit billing information')).toBeInTheDocument();
     expect(await screen.findByText('Business address')).toBeInTheDocument();
@@ -83,10 +80,9 @@ describe('AddBillingInformation', () => {
 
   it('renders heading with partial billing info', async () => {
     // subscription has payment source
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     expect(await screen.findByText('Edit billing information')).toBeInTheDocument();
     expect(await screen.findByText('Business address')).toBeInTheDocument();
@@ -110,10 +106,9 @@ describe('AddBillingInformation', () => {
     });
     SubscriptionStore.set(organization.slug, newSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     expect(await screen.findByText('Add billing information')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Confirm'})).toHaveAttribute(

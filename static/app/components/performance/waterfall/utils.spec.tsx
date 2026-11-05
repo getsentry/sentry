@@ -1,6 +1,6 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import {pickBarColor} from './utils';
 
 const theme = ThemeFixture();
 

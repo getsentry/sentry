@@ -236,7 +236,7 @@ class WorkflowEngineExamples:
                     ],
                     "actions": [],
                 },
-                "config": {"detectionType": "dynamic", "comparisonDelta": None},
+                "config": {"detectionType": "dynamic"},
                 "enabled": True,
                 "latestGroup": {
                     "id": "123456789",
@@ -532,7 +532,7 @@ class WorkflowEngineExamples:
                         ],
                         "actions": [],
                     },
-                    "config": {"detectionType": "static", "comparisonDelta": None},
+                    "config": {"detectionType": "static"},
                     "enabled": True,
                     "latestGroup": None,
                 },

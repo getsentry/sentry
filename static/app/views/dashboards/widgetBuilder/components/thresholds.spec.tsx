@@ -1,12 +1,13 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {ThresholdsSection as Thresholds} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {ThresholdsSection as Thresholds} from './thresholds';
 
 describe('Thresholds', () => {
   it.each(['15', '0'])(

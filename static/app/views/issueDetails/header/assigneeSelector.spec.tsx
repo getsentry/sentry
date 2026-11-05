@@ -9,8 +9,9 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {GroupActivityType} from 'sentry/types/group';
-import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
-import type {EventOwners} from 'sentry/views/issueDetails/header/getOwnerList';
+
+import {GroupHeaderAssigneeSelector} from './assigneeSelector';
+import type {EventOwners} from './getOwnerList';
 
 describe('GroupHeaderAssigneeSelector', () => {
   const organization = OrganizationFixture();

@@ -12,7 +12,6 @@ import type {Anomaly} from 'sentry/views/alerts/types';
 import {AnomalyType} from 'sentry/views/alerts/types';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {isEapDataset} from 'sentry/views/detectors/datasetConfig/utils/isEapDataset';
-import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {
   EAP_HISTORICAL_TIME_PERIOD_MAP,
   HISTORICAL_TIME_PERIOD_MAP,
@@ -21,6 +20,7 @@ import {
 
 import type {IncidentPeriod} from './useIncidentMarkers';
 import {useMetricDetectorAnomalies} from './useMetricDetectorAnomalies';
+import {useMetricDetectorSeries} from './useMetricDetectorSeries';
 
 interface UseMetricDetectorAnomalyPeriodsProps {
   aggregate: string;

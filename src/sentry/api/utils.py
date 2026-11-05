@@ -28,7 +28,13 @@ from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.discover.arithmetic import ArithmeticError
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidFunctionArgumentQuery,
+    InvalidParams,
+    InvalidSearchQuery,
+    SearchQueryParseError,
+)
 from sentry.hybridcloud.rpc import extract_id_from
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
@@ -405,6 +411,18 @@ def handle_query_errors() -> Iterator[None]:
         sentry_sdk.set_tag("query.error_reason", message)
         sentry_sdk.set_attribute("query.error_reason", message)
         logger.info("A query error was handled", extra={"query.error_reason": message})
+        if isinstance(error, InvalidFunctionArgumentQuery):
+            body = {
+                "detail": original_error,
+                "code": "invalid_function_argument",
+                "function": error.function,
+                "argument": error.argument,
+            }
+            if error.hint is not None:
+                body["hint"] = error.hint
+            raise ParseError(detail=body)
+        if isinstance(error, SearchQueryParseError):
+            raise ParseError(detail={"detail": original_error, "code": "invalid_search_query"})
         raise ParseError(detail=original_error)
     except ArithmeticError as error:
         message = str(error)

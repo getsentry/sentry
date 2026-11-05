@@ -9,14 +9,14 @@ import {WidgetType} from 'sentry/views/dashboards/types';
 import {widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
 import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
-import {SpansWidgetQueries} from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
-import {TraceMetricsWidgetQueries} from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {IssueWidgetQueries} from './issueWidgetQueries';
 import {LogsWidgetQueries} from './logsWidgetQueries';
 import {MobileAppSizeWidgetQueries} from './mobileAppSizeWidgetQueries';
 import {ReleaseWidgetQueries} from './releaseWidgetQueries';
+import {SpansWidgetQueries} from './spansWidgetQueries';
+import {TraceMetricsWidgetQueries} from './traceMetricsWidgetQueries';
 import {WidgetQueries} from './widgetQueries';
 
 type Results = {

@@ -3,9 +3,10 @@ from __future__ import annotations
 import functools
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, ClassVar, TypedDict
+from typing import Annotated, Any, ClassVar, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.tagstore.base import TagKeyStatus
 
@@ -132,8 +133,17 @@ class GroupTagValue(TagType):
 
 class TagKeySerializerResponseOptional(TypedDict, total=False):
     uniqueValues: int | None
-    totalValues: int | None
-    topValues: list[TagValueSerializerResponse] | None
+    totalValues: Annotated[
+        int | None,
+        ApiDescription(
+            "Number of events counted for the tag key. For an issue tag, this is the issue's "
+            "retained event count, including events without the tag"
+        ),
+    ]
+    topValues: Annotated[
+        list[TagValueSerializerResponse] | None,
+        ApiDescription("Most frequent values of the tag key, ordered by count"),
+    ]
 
 
 class TagKeySerializerResponse(TagKeySerializerResponseOptional):

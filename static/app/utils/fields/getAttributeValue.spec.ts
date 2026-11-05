@@ -1,4 +1,4 @@
-import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
+import {getAttributeValue} from './getAttributeValue';
 
 describe('getAttributeValue', () => {
   it('returns the first value in the requested attribute deprecation chain', () => {

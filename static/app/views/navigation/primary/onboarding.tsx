@@ -18,11 +18,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  PrimaryNavigation,
-  usePrimaryNavigationButtonOverlay,
-} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {PrimaryNavigation, usePrimaryNavigationButtonOverlay} from './components';
 
 function OnboardingItem({
   allTasks,

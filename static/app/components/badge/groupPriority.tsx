@@ -11,7 +11,6 @@ import {Footer} from '@sentry/scraps/menu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
@@ -23,6 +22,8 @@ import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {IconCellSignal} from './iconCellSignal';
 
 type GroupPriorityDropdownProps = {
   groupId: string;

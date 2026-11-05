@@ -38,11 +38,9 @@ from sentry.workflow_engine.models.detector import Detector
 
 BASE_DETECTOR_OPTIONS = {
     "performance.issues.n_plus_one_db.problem-creation": 1.0,
-    "performance.issues.n_plus_one_db_ext.problem-creation": 1.0,
 }
 BASE_DETECTOR_OPTIONS_OFF = {
     "performance.issues.n_plus_one_db.problem-creation": 0.0,
-    "performance.issues.n_plus_one_db_ext.problem-creation": 0.0,
 }
 
 
