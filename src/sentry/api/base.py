@@ -133,12 +133,9 @@ DEFAULT_AUTHENTICATION = (
 )
 
 
-def _with_endpoint_scope(
+def _with_endpoint_scope_declaration(
     func: Callable[..., Response],
 ) -> Callable[..., Response]:
-    # Each decorator on `dispatch` adds an in-app frame to the stack of every endpoint error,
-    # and those frames feed the grouping hash, so adding one splits existing issues. Put new
-    # per-dispatch context in this wrapper instead of adding another decorator.
     @functools.wraps(func)
     def wrapper(self: Endpoint, request: Request, *args: Any, **kwargs: Any) -> Response:
         assert request.method is not None
@@ -508,7 +505,7 @@ class Endpoint(APIView):
 
     @csrf_exempt
     @allow_cors_options
-    @_with_endpoint_scope
+    @_with_endpoint_scope_declaration
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability
