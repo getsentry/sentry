@@ -48,7 +48,7 @@ export function UserDropdown() {
     }
     trackAnalytics('settings.entry_point_clicked', {
       organization,
-      entry_point: 'settings_navigation.user_menu',
+      entry_point: 'user_menu',
     });
   };
 
