@@ -102,7 +102,7 @@ describe('SeerSecondaryNavigation', () => {
     expect(screen.queryByRole('link', {name: /Automations/})).not.toBeInTheDocument();
   });
 
-  it('renders Classifiers with an experimental badge below Investigations', () => {
+  it('renders Classifiers with an alpha badge below Investigations', () => {
     renderNavigation(
       '/organizations/org-slug/seer/classifiers/',
       OrganizationFixture({
@@ -118,7 +118,7 @@ describe('SeerSecondaryNavigation', () => {
       '/organizations/org-slug/seer/classifiers/'
     );
     expect(classifiers).toHaveAttribute('aria-current', 'page');
-    expect(within(classifiers).getByLabelText('experimental')).toBeInTheDocument();
+    expect(within(classifiers).getByLabelText('alpha')).toBeInTheDocument();
     expect(
       investigations.compareDocumentPosition(classifiers) &
         Node.DOCUMENT_POSITION_FOLLOWING

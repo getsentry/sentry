@@ -38,7 +38,7 @@ function SeerSecondaryNavigationImpl() {
         ? [{label: 'Investigations', badge: 'alpha', to: investigationsPath}]
         : []),
       ...(classifiersEnabled
-        ? [{label: 'Classifiers', badge: 'experimental', to: classifiersPath}]
+        ? [{label: 'Classifiers', badge: 'alpha', to: classifiersPath}]
         : []),
     ],
   });
@@ -84,8 +84,8 @@ function SeerSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={classifiersPath}
                   analyticsItemName="seer_classifiers"
-                  leadingItems={settingsV3 ? <FeatureBadge type="experimental" /> : null}
-                  trailingItems={settingsV3 ? null : <FeatureBadge type="experimental" />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
                 >
                   {t('Classifiers')}
                 </SecondaryNavigation.Link>

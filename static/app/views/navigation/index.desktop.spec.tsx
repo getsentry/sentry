@@ -1072,6 +1072,14 @@ describe('desktop navigation', () => {
       );
     });
 
+    it('shows Seer with classifiers-ui, even without seer-primary-nav', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'classifiers-ui'],
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toBeInTheDocument();
+    });
+
     it('links Seer to classifiers when only classifiers is enabled', () => {
       const primaryNav = renderSeerNavigation({
         features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'classifiers-ui'],

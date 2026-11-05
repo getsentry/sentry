@@ -313,6 +313,11 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
       ? getInvestigationsPath(organization.slug)
       : getClassifiersPath(organization.slug);
 
+  const showSeer =
+    classifiersEnabled ||
+    (organization.features.includes('seer-primary-nav') &&
+      (investigationsEnabled || automationsEnabled));
+
   const prefix = `organizations/${organization.slug}`;
 
   return (
@@ -347,19 +352,18 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         )}
       </NavigationTourElement>
 
-      {organization.features.includes('seer-primary-nav') &&
-        (investigationsEnabled || automationsEnabled || classifiersEnabled) && (
-          <PrimaryNavigation.ListItem>
-            <PrimaryNavigation.Link
-              to={seerPath}
-              analyticsKey="seer"
-              label={t('Seer')}
-              {...makeNavigationItemProps('seer', seerPath, `/${prefix}/seer`)}
-            >
-              <IconSeer />
-            </PrimaryNavigation.Link>
-          </PrimaryNavigation.ListItem>
-        )}
+      {showSeer && (
+        <PrimaryNavigation.ListItem>
+          <PrimaryNavigation.Link
+            to={seerPath}
+            analyticsKey="seer"
+            label={t('Seer')}
+            {...makeNavigationItemProps('seer', seerPath, `/${prefix}/seer`)}
+          >
+            <IconSeer />
+          </PrimaryNavigation.Link>
+        </PrimaryNavigation.ListItem>
+      )}
 
       <NavigationTourElement id={NavigationTour.EXPLORE} title={null} description={null}>
         {tourProps => (
