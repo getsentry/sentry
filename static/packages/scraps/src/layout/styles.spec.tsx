@@ -234,6 +234,18 @@ describe('getBorderLonghands', () => {
     );
   });
 
+  it('applies the given border style', () => {
+    expect(getBorderLonghands('border', 'muted', undefined, theme, 'dashed')).toBe(
+      `border-style: dashed;border-color: ${theme.tokens.border.secondary};border-width: ${theme.border.md};`
+    );
+  });
+
+  it('keeps none over the given border style', () => {
+    expect(getBorderLonghands('border', 'none', undefined, theme, 'dashed')).toBe(
+      `border-style: none;border-width: ${theme.border.md};`
+    );
+  });
+
   it('turns the border off with none', () => {
     expect(getBorderLonghands('border', 'none', undefined, theme)).toBe(
       `border-style: none;border-width: ${theme.border.md};`

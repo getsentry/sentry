@@ -122,7 +122,7 @@ Apply rounded corners using theme radius values:
 
 ### Border and Background
 
-`borderColor` adds a 1px border in the given color. To border a single side, use `borderTopColor`, `borderBottomColor`, `borderLeftColor` or `borderRightColor`. Use `borderWidth` to change the width. It has no effect without a border color.
+`borderColor` adds a 1px border in the given color. To border a single side, use `borderTopColor`, `borderBottomColor`, `borderLeftColor` or `borderRightColor`. Use `borderWidth` to change the width and `borderStyle` to make it `dashed`. Neither has an effect without a border color.
 
 Use `translucent` for a see-through neutral border or background.
 
@@ -133,6 +133,9 @@ Use `translucent` for a see-through neutral border or background.
     </Container>
     <Container padding="md" radius="md" borderColor="primary" borderWidth="xl">
       2px border
+    </Container>
+    <Container padding="md" radius="md" borderColor="muted" borderStyle="dashed">
+      Dashed border
     </Container>
     <Container padding="md" radius="md" background="translucent">
       Translucent background
@@ -145,6 +148,9 @@ Use `translucent` for a see-through neutral border or background.
 </Container>
 <Container borderColor="primary" borderWidth="xl">
   2px border
+</Container>
+<Container borderColor="muted" borderStyle="dashed">
+  Dashed border
 </Container>
 <Container background="translucent">Translucent background</Container>
 ```

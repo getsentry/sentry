@@ -12,6 +12,7 @@ import {useTheme} from '@emotion/react';
 
 import type {
   BackgroundVariant,
+  BorderStyle,
   BorderVariant,
   BorderWidth,
   BreakpointSize,
@@ -258,16 +259,18 @@ export function getBorder(
     .join(' ');
 }
 
-function getBorderStyle(
-  border: BorderVariant | undefined,
-  _breakpoint: ResponsiveBreakpoint | undefined,
-  _theme: Theme
-): string | undefined {
-  if (border === undefined) {
-    return undefined;
-  }
+function getBorderStyle(style: BorderStyle) {
+  return (
+    border: BorderVariant | undefined,
+    _breakpoint: ResponsiveBreakpoint | undefined,
+    _theme: Theme
+  ): string | undefined => {
+    if (border === undefined) {
+      return undefined;
+    }
 
-  return border === 'none' ? 'none' : 'solid';
+    return border === 'none' ? 'none' : style;
+  };
 }
 
 function getBorderColor(
@@ -285,21 +288,22 @@ function getBorderColor(
 /**
  * Border style, color and width for one side, or for all sides with `border`.
  * They're separate declarations, not the `border` shorthand, so a responsive
- * color never resets the width. The style is always `solid` (or `none`), and
- * the width defaults to `md`.
+ * color never resets the width. The style defaults to `solid` (`none` turns the
+ * border off), and the width defaults to `md`.
  */
 export function getBorderLonghands(
   property: 'border' | 'border-top' | 'border-bottom' | 'border-left' | 'border-right',
   color: Responsive<BorderVariant> | undefined,
   width: Responsive<BorderWidth> | undefined,
-  theme: Theme
+  theme: Theme,
+  style: BorderStyle = 'solid'
 ): string | undefined {
   if (color === undefined) {
     return undefined;
   }
 
   return [
-    rc(`${property}-style`, color, theme, getBorderStyle),
+    rc(`${property}-style`, color, theme, getBorderStyle(style)),
     rc(`${property}-color`, color, theme, getBorderColor),
     rc(`${property}-width`, width ?? 'md', theme, getBorderWidth),
   ].join('');

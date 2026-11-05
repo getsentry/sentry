@@ -6,6 +6,7 @@ import {mergeRefs} from '@react-aria/utils';
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {
   BackgroundVariant,
+  BorderStyle,
   BorderVariant,
   BorderWidth,
   RadiusSize,
@@ -96,6 +97,11 @@ interface ContainerLayoutProps {
    * (1px), and has no effect without a border color prop.
    */
   borderWidth?: Responsive<BorderWidth>;
+  /**
+   * Border line style for every side that has a border color. Defaults to
+   * `solid`, and has no effect without a border color prop.
+   */
+  borderStyle?: BorderStyle;
 
   // Grid Item Properties
   area?: Responsive<CSS['gridArea']>;
@@ -222,6 +228,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'borderBottomColor',
   'borderLeftColor',
   'borderRightColor',
+  'borderStyle',
   'borderWidth',
   'bottom',
   'column',
@@ -377,11 +384,11 @@ export const Container = styled(
   ${p => rc('align-self', p.alignSelf, p.theme)};
   ${p => rc('justify-self', p.justifySelf, p.theme)};
 
-  ${p => getBorderLonghands('border', p.borderColor, p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-top', p.borderTopColor, p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-bottom', p.borderBottomColor, p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-left', p.borderLeftColor, p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-right', p.borderRightColor, p.borderWidth, p.theme)};
+  ${p => getBorderLonghands('border', p.borderColor, p.borderWidth, p.theme, p.borderStyle)};
+  ${p => getBorderLonghands('border-top', p.borderTopColor, p.borderWidth, p.theme, p.borderStyle)};
+  ${p => getBorderLonghands('border-bottom', p.borderBottomColor, p.borderWidth, p.theme, p.borderStyle)};
+  ${p => getBorderLonghands('border-left', p.borderLeftColor, p.borderWidth, p.theme, p.borderStyle)};
+  ${p => getBorderLonghands('border-right', p.borderRightColor, p.borderWidth, p.theme, p.borderStyle)};
 
   ${p => rc('visibility', p.visibility, p.theme)};
   ${p => rc('white-space', p.whiteSpace, p.theme)};

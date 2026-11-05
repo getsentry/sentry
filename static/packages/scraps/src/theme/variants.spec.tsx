@@ -3,6 +3,7 @@ import {expectTypeOf} from 'expect-type';
 import type {
   AlertVariant,
   BackgroundVariant,
+  BorderStyle,
   BorderVariant,
   BorderWidth,
   ButtonVariant,
@@ -39,6 +40,7 @@ it('preserves the variant unions and constrains tracked button variants', () => 
     | 'translucent'
     | 'none'
   >();
+  expectTypeOf<BorderStyle>().toEqualTypeOf<'solid' | 'dashed'>();
   expectTypeOf<BorderWidth>().toEqualTypeOf<'0' | 'md' | 'lg' | 'xl' | '2xl'>();
   expectTypeOf<BackgroundVariant>().toEqualTypeOf<
     | 'primary'

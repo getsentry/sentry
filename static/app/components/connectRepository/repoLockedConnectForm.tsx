@@ -41,12 +41,7 @@ export type RepoLockedConnectFormProps = ModalRenderProps & {
 
 function PathsPlaceholder() {
   return (
-    <Container
-      borderColor="muted"
-      radius="md"
-      padding="2xl"
-      style={{borderStyle: 'dashed'}}
-    >
+    <Container borderColor="muted" radius="md" padding="2xl" borderStyle="dashed">
       <Flex justify="center">
         <Text variant="muted">{t('Select a project first to configure code paths')}</Text>
       </Flex>

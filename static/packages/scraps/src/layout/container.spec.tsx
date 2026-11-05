@@ -88,6 +88,20 @@ describe('Container', () => {
     expect(css).toMatch(/border-bottom-style: none/);
   });
 
+  it('applies borderStyle to sides with a border color', () => {
+    render(
+      <Container borderTopColor="primary" borderStyle="dashed">
+        Hello
+      </Container>,
+      {wrapper: ThemeWrapper}
+    );
+
+    const element = screen.getByText('Hello');
+    expect(element).toHaveStyle({borderTopStyle: 'dashed'});
+    expect(element).not.toHaveStyle({borderBottomStyle: 'dashed'});
+    expect(element).not.toHaveAttribute('borderStyle');
+  });
+
   it('render prop guards against invalid attributes', () => {
     render(
       // @ts-expect-error - aria-activedescendant should be set on the child element
