@@ -152,7 +152,7 @@ export type SeerWorkflowConfigCreateRequest = {
  * Body of a PUT to a workflow config. Send at most one of projectIds or monitorIds
  */
 export type SeerWorkflowConfigUpdateRequest = {
-  agent: SeerAgentRequest;
+  agent?: SeerAgentRequest;
   enabled?: boolean;
   monitorIds?: number[];
   /**

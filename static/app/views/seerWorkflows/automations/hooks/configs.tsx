@@ -1,13 +1,16 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {apiOptions, selectJson} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   SeerWorkflowConfigCreateRequest,
   SeerWorkflowConfigResponse,
+  SeerWorkflowConfigsResponse,
   SeerWorkflowConfigUpdateRequest,
 } from 'sentry/views/seerWorkflows/types';
+import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
 
 function useConfigUrls(configId = '') {
   const organization = useOrganization();
@@ -26,9 +29,29 @@ function useConfigUrls(configId = '') {
 }
 
 /**
+ * Fetches the organization's automation configs. Pass `ids` to only fetch those configs.
+ */
+export function useFetchConfigs({ids}: {ids?: string[]} = {}) {
+  const organization = useOrganization();
+  const automationsEnabled = useAutomationsEnabled();
+
+  return useQuery({
+    ...apiOptions.as<SeerWorkflowConfigsResponse>()(
+      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
+      {
+        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query: {id: ids},
+        staleTime: 0,
+      }
+    ),
+    select: data => selectJson(data).configs,
+  });
+}
+
+/**
  * Creates an automation's config and refetches the organization's configs.
  */
-export function useConfigCreate() {
+export function useCreateConfig() {
   const queryClient = useQueryClient();
   const {configsUrl} = useConfigUrls();
 
@@ -42,7 +65,7 @@ export function useConfigCreate() {
 /**
  * Updates an automation's config and refetches the organization's configs.
  */
-export function useConfigUpdate({configId}: {configId: string}) {
+export function useUpdateConfig({configId}: {configId: string}) {
   const queryClient = useQueryClient();
   const {configsUrl, configUrl} = useConfigUrls(configId);
 
@@ -56,7 +79,7 @@ export function useConfigUpdate({configId}: {configId: string}) {
 /**
  * Deletes an automation's config and refetches the organization's configs.
  */
-export function useConfigDelete({configId}: {configId: string}) {
+export function useDeleteConfig({configId}: {configId: string}) {
   const queryClient = useQueryClient();
   const {configsUrl, configUrl} = useConfigUrls(configId);
 

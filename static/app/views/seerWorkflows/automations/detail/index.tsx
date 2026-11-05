@@ -3,7 +3,6 @@ import {Outlet} from 'react-router';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconPause} from '@sentry/icons/pause';
 import {IconPlay} from '@sentry/icons/play';
-import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -21,7 +20,6 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -33,14 +31,12 @@ import {
   type AutomationConfig,
 } from 'sentry/views/seerWorkflows/automations';
 import {
-  useConfigDelete,
-  useConfigUpdate,
+  useDeleteConfig,
+  useFetchConfigs,
+  useUpdateConfig,
 } from 'sentry/views/seerWorkflows/automations/hooks/configs';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
-import type {
-  SeerWorkflowConfigsResponse,
-  WorkflowStrategy,
-} from 'sentry/views/seerWorkflows/types';
+import type {WorkflowStrategy} from 'sentry/views/seerWorkflows/types';
 import {
   getAutomationDetailPath,
   getAutomationsPath,
@@ -59,24 +55,15 @@ export default function AutomationDetail() {
   const basePath = getAutomationDetailPath(organization.slug, automationId);
   const navigate = useNavigate();
 
-  const {data, isPending, isError, refetch} = useQuery(
-    apiOptions.as<SeerWorkflowConfigsResponse>()(
-      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-      {
-        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {id: automationId},
-        staleTime: 0,
-      }
-    )
-  );
-  const config: AutomationConfig | undefined = data?.configs[0];
+  const {data, isPending, isError, refetch} = useFetchConfigs({ids: [automationId]});
+  const config: AutomationConfig | undefined = data?.[0];
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
     ? STRATEGY_META[strategy as WorkflowStrategy]
     : undefined;
   const title = config?.name ?? strategyMeta?.label ?? strategy;
-  const updateConfig = useConfigUpdate({configId: automationId});
-  const deleteConfig = useConfigDelete({configId: automationId});
+  const updateConfig = useUpdateConfig({configId: automationId});
+  const deleteConfig = useDeleteConfig({configId: automationId});
   // Show who last updated the automation, falling back to who created it
   const displayUserId = config?.updatedBy || config?.createdBy;
   const {data: displayUser} = useUserFromId({

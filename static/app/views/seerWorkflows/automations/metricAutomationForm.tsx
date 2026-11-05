@@ -30,8 +30,8 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {
-  useConfigCreate,
-  useConfigUpdate,
+  useCreateConfig,
+  useUpdateConfig,
 } from 'sentry/views/seerWorkflows/automations/hooks/configs';
 import type {
   SeerAgentResponse,
@@ -91,9 +91,9 @@ export function MetricAutomationForm(props: Props) {
     monitorsQuery.data?.filter(monitor => monitor.type === 'metric_issue') ?? [];
   const getProjectSlug = (projectId: string) =>
     projects.find(project => project.id === projectId)?.slug ?? projectId;
-  const createConfig = useConfigCreate();
+  const createConfig = useCreateConfig();
   // Only called in edit mode, where the config ID is known
-  const updateConfig = useConfigUpdate({
+  const updateConfig = useUpdateConfig({
     configId: props.mode === 'edit' ? props.config.id : '',
   });
   const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;

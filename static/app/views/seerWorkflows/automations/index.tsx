@@ -4,7 +4,6 @@ import {IconAllProjects} from '@sentry/icons/allProjects';
 import {IconClock} from '@sentry/icons/clock';
 import {IconFire} from '@sentry/icons/fire';
 import {IconSentry} from '@sentry/icons/sentry';
-import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -22,15 +21,14 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {formatAbbreviatedNumber, userDisplayName} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
+import {useFetchConfigs} from 'sentry/views/seerWorkflows/automations/hooks/configs';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerWorkflowConfigResponse,
-  SeerWorkflowConfigsResponse,
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 import {
@@ -74,20 +72,11 @@ type AdditionalConfig = {
 export type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfig;
 
 export default function AutomationsList() {
-  const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
-  const {data, isPending, isLoadingError, refetch} = useQuery(
-    apiOptions.as<SeerWorkflowConfigsResponse>()(
-      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-      {
-        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-        staleTime: 0,
-      }
-    )
-  );
+  const {data, isPending, isLoadingError, refetch} = useFetchConfigs();
 
-  const configs = data?.configs ?? [];
+  const configs = data ?? [];
 
   if (!automationsEnabled) {
     return <NotFound />;
