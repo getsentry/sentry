@@ -177,16 +177,6 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
 
         if not environments or len(environments) != 1:
             raise InvalidSearchQuery("Choose a single environment to filter by release stage.")
-        environment = environments[0]
-        # Tag value autocomplete passes environment ids; search filters pass names.
-        if isinstance(environment, int):
-            environment_filter = Q(environment_id=environment)
-        elif isinstance(environment, str):
-            environment_filter = Q(environment__name=environment)
-        else:
-            raise TypeError(
-                f"Expected an environment name or id, got {type(environment).__name__}."
-            )
 
         filters: dict[str, Q] = {
             ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
@@ -202,9 +192,19 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
                 raise InvalidSearchQuery("Unsupported release.stage value.")
 
         rpes = ReleaseProjectEnvironment.objects.filter(
-            environment_filter,
             release__organization_id=organization_id,
         ).select_related("release")
+
+        environment = environments[0]
+        # Tag value autocomplete passes environment ids; search filters pass names.
+        if isinstance(environment, int):
+            rpes = rpes.filter(environment_id=environment)
+        elif isinstance(environment, str):
+            rpes = rpes.filter(environment__name=environment)
+        else:
+            raise TypeError(
+                f"Expected an environment name or id, got {type(environment).__name__}."
+            )
 
         if project_ids:
             rpes = rpes.filter(project_id__in=project_ids)
