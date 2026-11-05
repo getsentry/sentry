@@ -25,7 +25,7 @@ interface InboxEventDataByType {
   'notebook.participant_added': Record<string, never>;
 }
 
-type InboxEventType = keyof InboxEventDataByType;
+export type InboxEventType = keyof InboxEventDataByType;
 
 type InboxSystemActor = {
   avatar: null;
@@ -74,3 +74,8 @@ export interface InboxItem {
 }
 
 export type InboxSubject = Pick<InboxItem, 'subjectId' | 'subjectType'>;
+
+export interface InboxFilters {
+  eventType: InboxEventType[];
+  subjectType: InboxSubjectType[];
+}
