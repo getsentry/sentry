@@ -799,6 +799,20 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
+    default=3600,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
+    default=601,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Reject Bitbucket Server webhooks without a valid signature. While off, signatures are still
 # checked and reported in the `bitbucket_server.webhook.signature` metric, but never rejected.
 register(
@@ -4286,6 +4300,22 @@ register(
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Decompress chunk uploads into temporary files instead of memory, so a request
+# doesn't hold up to its full decompressed size in the web worker.
+register(
+    "chunk-upload.spool-decompressed-chunks",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# With spooling on, how many bytes of each decompressed chunk stay in memory
+# before the rest is written to a temporary file. 0 never writes to disk.
+register(
+    "chunk-upload.spool-max-memory-size",
+    type=Int,
+    default=1024 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "issues.client_error_sampling.project_allowlist",

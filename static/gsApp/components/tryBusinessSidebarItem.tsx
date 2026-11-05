@@ -8,7 +8,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import TrialStartedSidebarItem from 'getsentry/components/trialStartedSidebarItem';
+import {TrialStartedSidebarItem} from 'getsentry/components/trialStartedSidebarItem';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {hasPerformance, isBizPlanFamily, isTrial} from 'getsentry/utils/billing';

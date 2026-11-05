@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
@@ -6,8 +7,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
 import {paymentIntentOptions} from 'getsentry/hooks/useIntentData';
@@ -28,7 +27,7 @@ export default function InvoiceDetailsPaymentForm({
   invoice,
   reloadInvoice,
 }: Props) {
-  const location = useLocation();
+  const [referrer] = useQueryState('referrer');
   const endpoint = paymentIntentOptions(organization.slug, invoice.id).queryKey;
 
   return (
@@ -57,7 +56,7 @@ export default function InvoiceDetailsPaymentForm({
             }}
             organization={organization}
             intentDataQueryKey={endpoint}
-            referrer={decodeScalar(location?.query?.referrer)}
+            referrer={referrer || undefined}
             buttonText={t('Pay Now')}
           />
         </Stack>
