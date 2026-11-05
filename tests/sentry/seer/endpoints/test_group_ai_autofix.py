@@ -107,7 +107,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         mock_get_explorer_state.assert_called_once_with(group.organization, group.id)
 
-    def _mirror_run(self, group: Group, *, state_id: int, source: str, minutes_ago: int) -> None:
+    def _create_run(self, group: Group, *, state_id: int, source: str, minutes_ago: int) -> None:
         run = self.create_seer_run(
             organization=self.organization,
             seer_run_state_id=state_id,
@@ -129,8 +129,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         self, mock_get_run: MagicMock
     ) -> None:
         group = self.create_group()
-        self._mirror_run(group, state_id=1, source="autofix", minutes_ago=10)
-        self._mirror_run(group, state_id=2, source=SINGLE_RUN_FEATURE_ID, minutes_ago=1)
+        self._create_run(group, state_id=1, source="autofix", minutes_ago=10)
+        self._create_run(group, state_id=2, source=SINGLE_RUN_FEATURE_ID, minutes_ago=1)
         mock_get_run.side_effect = lambda run_id, **_: self._state(run_id, single_run=run_id == 2)
 
         self.login_as(user=self.user)
@@ -143,8 +143,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
     def test_get_returns_newer_step_run_with_null_feature_id(self, mock_get_run: MagicMock) -> None:
         group = self.create_group()
-        self._mirror_run(group, state_id=2, source=SINGLE_RUN_FEATURE_ID, minutes_ago=10)
-        self._mirror_run(group, state_id=1, source="autofix", minutes_ago=1)
+        self._create_run(group, state_id=2, source=SINGLE_RUN_FEATURE_ID, minutes_ago=10)
+        self._create_run(group, state_id=1, source="autofix", minutes_ago=1)
         mock_get_run.side_effect = lambda run_id, **_: self._state(run_id, single_run=run_id == 2)
 
         self.login_as(user=self.user)
