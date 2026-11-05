@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
@@ -26,6 +27,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
@@ -60,7 +62,7 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
     endpoint = "sentry-api-0-organization-releases"
 
-    def assert_expected_versions(self, response, expected):
+    def assert_expected_versions(self, response: Response, expected: list[Release]) -> None:
         assert [item["version"] for item in response.data] == [e.version for e in expected]
 
     def test_simple(self) -> None:
@@ -539,6 +541,12 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
             self.organization.slug, query=f"!{SEMVER_BUILD_ALIAS}:125"
         )
         self.assert_expected_versions(response, [release_4, release_2, release_1])
+
+        # IN operator (list value) is unsupported for build and must 400, not 500
+        response = self.get_response(
+            self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:[124,125]"
+        )
+        assert response.status_code == 400
 
     def test_release_stage_filter(self) -> None:
         self.login_as(user=self.user)
@@ -1482,6 +1490,30 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
         assert ReleaseProject.objects.filter(release=release, project=project2).exists()
 
+    def test_projects_with_dict_entries(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
+        # Non-scalar project entries must 400 at validation, not raise an
+        # unhashable-type TypeError in the handler.
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1", "projects": [{"slug": project.slug}]},
+        )
+
+        assert response.status_code == 400
+
     def test_duplicate(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
@@ -2378,7 +2410,11 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_commit(commits[2], "current-commit-id-3")
 
         head_commits = ReleaseHeadCommit.objects.all()
-        self.assert_head_commit(head_commits[0], "current-commit-id-3", release_id=release.id)
+        self.assert_head_commit(
+            head_commits[0],
+            "current-commit-id-3",
+            release_id=release.id,
+        )
 
         refs_expected = [
             {
@@ -2429,7 +2465,11 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_commit(commits[2], "current-commit-id-3")
 
         head_commits = ReleaseHeadCommit.objects.all()
-        self.assert_head_commit(head_commits[0], "current-commit-id-3", release_id=release.id)
+        self.assert_head_commit(
+            head_commits[0],
+            "current-commit-id-3",
+            release_id=release.id,
+        )
 
         refs_expected = [
             {
@@ -2485,7 +2525,11 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_commit(commits[2], "current-commit-id-3")
 
         head_commits = ReleaseHeadCommit.objects.all()
-        self.assert_head_commit(head_commits[0], "current-commit-id-3", release_id=release.id)
+        self.assert_head_commit(
+            head_commits[0],
+            "current-commit-id-3",
+            release_id=release.id,
+        )
 
         refs_expected = [
             {
@@ -2577,12 +2621,12 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         self.env2 = env2
         self.org = org
 
-    def make_environment(self, name, project):
+    def make_environment(self, name: str, project: Project) -> Environment:
         env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 
-    def assert_releases(self, response, releases):
+    def assert_releases(self, response: Response, releases: list[Release]) -> None:
         assert len(response.data) == len(releases)
 
         response_versions = sorted(r["version"] for r in response.data)
@@ -2689,7 +2733,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
 class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
-    def url(self):
+    def url(self) -> str:
         return reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
@@ -3130,7 +3174,7 @@ class OrganizationReleasesBaseEndpointGetProjectsTest(TestCase):
 
 
 class DebounceUpdateReleaseHealthDataTest(TestCase):
-    def run_with_health_data(self, project, version="1.0"):
+    def run_with_health_data(self, project: Project, version: str = "1.0") -> None:
         with patch(
             "sentry.api.endpoints.organization_releases.release_health"
         ) as mock_release_health:

@@ -10,14 +10,6 @@ import {
 
 import type {SelectValue} from '@sentry/scraps/select';
 
-import {
-  normalizeRoot,
-  resolveBranch,
-} from 'sentry/components/connectRepository/normalization';
-import type {
-  CodeMappingPrefixesResponse,
-  PathMappingValue,
-} from 'sentry/components/connectRepository/type';
 import type {
   Integration,
   IntegrationRepository,
@@ -33,6 +25,9 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {normalizeRoot, resolveBranch} from './normalization';
+import type {CodeMappingPrefixesResponse, PathMappingValue} from './type';
 
 export type ProjectRepoListItem = {
   externalId: string | null;
@@ -273,7 +268,7 @@ export function projectCodeMappingsOptions({
   );
 }
 
-const STACK_PREFIXES_STALE_TIME_MS = 60_000;
+const PREFIXES_STALE_TIME_MS = 60_000;
 
 export function stackCodeMappingPrefixesOptions({
   orgSlug,
@@ -288,7 +283,24 @@ export function stackCodeMappingPrefixesOptions({
       path: projectSlug
         ? {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug}
         : skipToken,
-      staleTime: STACK_PREFIXES_STALE_TIME_MS,
+      staleTime: PREFIXES_STALE_TIME_MS,
+    }
+  );
+}
+
+export function repoCodeMappingPrefixesOptions({
+  orgSlug,
+  repositoryId,
+}: {
+  orgSlug: string;
+  repositoryId: string | undefined;
+}) {
+  return apiOptions.as<CodeMappingPrefixesResponse>()(
+    '/organizations/$organizationIdOrSlug/code-mapping-prefixes/repo/',
+    {
+      path: repositoryId ? {organizationIdOrSlug: orgSlug} : skipToken,
+      query: {repositoryId},
+      staleTime: PREFIXES_STALE_TIME_MS,
     }
   );
 }

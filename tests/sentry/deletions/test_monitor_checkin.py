@@ -44,7 +44,6 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         monitor_env = MonitorEnvironment.objects.create(monitor=monitor, environment_id=env.id)
         for _ in range(num_checkins):
             MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_env,
                 status=CheckInStatus.OK,
             )
@@ -59,7 +58,7 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             with self.tasks():
                 run_scheduled_deletions()
 
-        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
+        assert not MonitorCheckIn.objects.exists()
         mock_limiter_cls.assert_called_with(
             burst_limit=1000,
             drip_rate=1000,
@@ -82,7 +81,7 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
                 with self.tasks():
                     run_scheduled_deletions()
 
-        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
+        assert not MonitorCheckIn.objects.exists()
         mock_limiter_cls.assert_not_called()
 
     def test_checkin_deletion_sleeps_when_throttled(self) -> None:
@@ -99,7 +98,7 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
                     run_scheduled_deletions()
 
         mock_sleep.assert_called_once_with(0.2)
-        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
+        assert not MonitorCheckIn.objects.exists()
 
     def test_delete_monitor_does_not_mark_checkins_in_progress(self) -> None:
         """
@@ -122,7 +121,6 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         )
         for status in (CheckInStatus.OK, CheckInStatus.ERROR, CheckInStatus.OK):
             MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_env,
                 status=status,
             )
@@ -133,7 +131,7 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         with patcher, self.tasks():
             run_scheduled_deletions()
 
-        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
+        assert not MonitorCheckIn.objects.exists()
         assert "MonitorCheckIn" not in marked_models
         assert "Monitor" in marked_models
 
@@ -155,7 +153,6 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             environment_id=env.id,
         )
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
@@ -196,17 +193,14 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
 
         # Create check-ins
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
         checkin2 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
             status=CheckInStatus.OK,
         )
         checkin3 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
@@ -288,17 +282,14 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
 
         # Create multiple check-ins to test bulk deletion
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
         checkin2 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
         checkin3 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
             status=CheckInStatus.OK,
         )
@@ -328,7 +319,7 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         )
 
         # Verify initial state
-        assert MonitorCheckIn.objects.filter(monitor=monitor).count() == 3
+        assert MonitorCheckIn.objects.filter(monitor_environment__monitor=monitor).count() == 3
         assert MonitorIncident.objects.filter(monitor=monitor).count() == 2
         assert MonitorEnvBrokenDetection.objects.count() == 2
 
@@ -373,12 +364,10 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
 
         # Create check-ins
         failed_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
         ok_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
             status=CheckInStatus.OK,
         )
@@ -426,12 +415,10 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             environment_id=env.id,
         )
         checkin1_m1 = MonitorCheckIn.objects.create(
-            monitor=monitor1,
             monitor_environment=monitor_env1,
             status=CheckInStatus.ERROR,
         )
         checkin2_m1 = MonitorCheckIn.objects.create(
-            monitor=monitor1,
             monitor_environment=monitor_env1,
             status=CheckInStatus.OK,
         )
@@ -457,12 +444,10 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             environment_id=env.id,
         )
         checkin1_m2 = MonitorCheckIn.objects.create(
-            monitor=monitor2,
             monitor_environment=monitor_env2,
             status=CheckInStatus.ERROR,
         )
         checkin2_m2 = MonitorCheckIn.objects.create(
-            monitor=monitor2,
             monitor_environment=monitor_env2,
             status=CheckInStatus.OK,
         )

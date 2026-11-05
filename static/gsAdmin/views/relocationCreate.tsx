@@ -5,8 +5,8 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {getCells} from 'sentry/utils/cells';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -38,7 +38,7 @@ function RelocationForm() {
     event.preventDefault();
     const formData = new FormData(event.target);
     if (!formData.get('owner') || !formData.get('orgs') || !file) {
-      addErrorMessage('Requires relocation file, organization slug(s), and owner.');
+      toast.error('Requires relocation file, organization slug(s), and owner.');
       return;
     }
     try {
@@ -52,9 +52,10 @@ function RelocationForm() {
           });
         } catch (error) {
           if (error instanceof RequestError && error.status === 403) {
-            addErrorMessage(PROMO_CODE_ERROR_MSG);
+            toast.error(PROMO_CODE_ERROR_MSG);
             return;
           }
+          // oxlint-disable-next-line react/todo
           throw error;
         }
       }
@@ -66,11 +67,11 @@ function RelocationForm() {
         data: formData,
       });
 
-      addSuccessMessage('The relocation job has started!');
+      toast.success('The relocation job has started!');
       navigate(`/_admin/relocations/${cell.name}/${response.uuid}/`);
     } catch (error: any) {
-      if (error.responseJSON) {
-        addErrorMessage(error.responseJSON.detail);
+      if (typeof error.responseJSON?.detail === 'string') {
+        toast.error(error.responseJSON.detail);
       }
     }
   };
@@ -84,12 +85,12 @@ function RelocationForm() {
     }
 
     if (!/.*.tar/.test(newFile.name)) {
-      addErrorMessage('That is not a supported file type.');
+      toast.error('That is not a supported file type.');
       return;
     }
 
     if (newFile.size > FILE_MAX_SIZE) {
-      addErrorMessage('Please upload a file less than 200 MB.');
+      toast.error('Please upload a file less than 200 MB.');
       return;
     }
 

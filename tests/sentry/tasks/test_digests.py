@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from unittest import mock
 
@@ -10,11 +11,11 @@ import sentry
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.models.projectownership import ProjectOwnership
+from sentry.notifications.types import NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -32,7 +33,13 @@ class DeliverDigestTest(TestCase):
             backend = RedisBackend()
             digests.backend.digest = backend.digest
 
-            rule = self.create_project_rule(project=self.project)
+            workflow = self.create_workflow(organization=self.organization)
+            origin = NotificationOrigin(
+                label=workflow.name,
+                environment_id=workflow.environment_id,
+                workflow_id=workflow.id,
+                legacy_rule_id=None,
+            )
             ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
             event = self.store_event(
                 data={"timestamp": before_now(days=1).isoformat(), "fingerprint": ["group-1"]},
@@ -43,7 +50,6 @@ class DeliverDigestTest(TestCase):
                 project_id=self.project.id,
             )
             notification_uuid = str(uuid.uuid4())
-            origin = create_notification_origin(rule)
             backend.add(
                 key,
                 event_to_record(as_group_event(event), [origin], notification_uuid),
@@ -89,7 +95,7 @@ class DeliverDigestTest(TestCase):
 
     def test_unable_to_acquire_lock_propagates(self) -> None:
         @contextmanager
-        def raise_lock_error(*args, **kwargs):
+        def raise_lock_error(*args: object, **kwargs: object) -> Iterator[None]:
             raise UnableToAcquireLock("test lock contention")
             yield  # type: ignore[unreachable]
 

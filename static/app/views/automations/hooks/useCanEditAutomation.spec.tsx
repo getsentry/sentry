@@ -4,10 +4,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
 import {
   useAutomationEditPermission,
   useCanCreateAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
+} from './useCanEditAutomation';
 
 describe('useAutomationEditPermission', () => {
   const organization = OrganizationFixture({

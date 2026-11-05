@@ -2,7 +2,6 @@ import {Fragment, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -18,16 +17,12 @@ import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProgressBar} from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import {
-  StreamGroupCell,
-  useStreamGroupColumns,
-  type StreamGroupColumn,
-} from 'sentry/components/stream/groupColumns';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -67,6 +62,12 @@ import {
   DISCOVER_EXCLUSION_FIELDS,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
+
+import {
+  StreamGroupCell,
+  useStreamGroupColumns,
+  type StreamGroupColumn,
+} from './groupColumns';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 const COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'priority', 'assignee'];

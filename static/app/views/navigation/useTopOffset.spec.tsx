@@ -3,18 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
-  SUPERUSER_MARQUEE_HEIGHT,
-} from 'sentry/views/navigation/constants';
-import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+
+import {PRIMARY_HEADER_HEIGHT, SUPERUSER_MARQUEE_HEIGHT} from './constants';
+import {useTopOffset} from './useTopOffset';
 
 jest.mock('sentry/utils/isActiveSuperuser', () => ({
   isActiveSuperuser: jest.fn(),
 }));
 
-// jsdom doesn't match the desktop media query, so the mobile header height applies.
-const HEADER_HEIGHT = NAVIGATION_MOBILE_CONTENT_HEIGHT;
+const HEADER_HEIGHT = PRIMARY_HEADER_HEIGHT;
 
 describe('useTopOffset', () => {
   beforeEach(() => {
@@ -37,7 +34,7 @@ describe('useTopOffset', () => {
     const {result} = renderHookWithProviders(useTopOffset, {
       organization: OrganizationFixture({
         openMembership: true,
-        features: ['seer-explorer', 'seer-explorer-persistent-sidebar'],
+        features: ['seer-explorer'],
       }),
     });
 

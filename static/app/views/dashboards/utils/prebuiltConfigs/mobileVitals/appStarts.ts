@@ -5,6 +5,9 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
 import {
   APP_START_SCREEN_FILTER_FALLBACK,
   AVG_START_VALUE,
@@ -13,10 +16,8 @@ import {
   TRANSACTION_COUNT,
   WARM_START_CONDITION,
   WARM_START_TABLE_OPERATIONS_CONDITION,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
-import {APP_STARTS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
-import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+} from './constants';
+import {APP_STARTS_DASHBOARD_TITLE} from './settings';
 
 const AVG_COLD_STARTS_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'avg-cold-starts-big-number',

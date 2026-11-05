@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.http import HttpRequest
 from django.test import override_settings
 from django.urls import re_path
 from rest_framework.permissions import AllowAny
@@ -13,7 +14,7 @@ from sentry.testutils.silo import no_silo_test
 class APITestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    def get(self, request):
+    def get(self, request: HttpRequest) -> Response:
         return Response(status=200)
 
 

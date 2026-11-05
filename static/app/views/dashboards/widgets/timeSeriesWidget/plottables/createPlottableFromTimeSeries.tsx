@@ -1,10 +1,11 @@
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
-import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
-import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
-import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+
+import {Area} from './area';
+import {Bars} from './bars';
+import {Line} from './line';
+import type {Plottable} from './plottable';
 
 type PlottableConfig = {
   alias?: string;

@@ -123,7 +123,6 @@ class OrganizationMonitorsTest(AcceptanceTestCase):
             last_checkin=ts,
         )
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
             date_added=ts,

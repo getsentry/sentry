@@ -36,6 +36,18 @@ class TestAction(TestCase):
             "data": {"foo": "bar"},
         }
 
+    def test_default_dedup_key_preserves_target_and_dynamic_fields(self) -> None:
+        action = Action(
+            type=Action.Type.SLACK,
+            integration_id=123,
+            config={"target_identifier": "channel", "target_display": "#channel"},
+            data={"dynamic_form_fields": {"foo": "bar"}, "metadata": "ignored"},
+        )
+
+        assert action.get_dedup_key() == "slack:123:{'target_identifier': 'channel'}:{'foo': 'bar'}"
+        assert action.config["target_display"] == "#channel"
+        assert action.data["metadata"] == "ignored"
+
     def test_get_handler_notification_type(self) -> None:
         with patch("sentry.workflow_engine.registry.action_handler_registry.get") as mock_get:
             mock_handler = Mock(spec=ActionHandler)

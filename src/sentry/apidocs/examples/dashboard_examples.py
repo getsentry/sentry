@@ -45,6 +45,7 @@ DASHBOARD_OBJECT = {
                     "name": "",
                     "fields": ["avg(transaction.duration)", "transaction"],
                     "aggregates": ["avg(transaction.duration)"],
+                    "transformations": {},
                     "columns": ["transaction"],
                     "fieldAliases": ["", ""],
                     "conditions": "",
@@ -81,6 +82,7 @@ DASHBOARD_OBJECT = {
     },
     "isFavorited": False,
     "prebuiltId": None,
+    "queryPriority": "normal",
 }
 
 DASHBOARDS_OBJECT = [

@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import type {Placement} from '@popperjs/core';
+import type {Placement} from '@floating-ui/react-dom';
 import {IconSettings} from '@sentry/icons/settings';
 
 import {
@@ -17,11 +17,12 @@ import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
-import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import {isTraceItemDetailsResponse} from 'sentry/views/performance/traceDetails/traceApi/utils';
-import {getCustomInstrumentationLink} from 'sentry/views/performance/traceDetails/traceConfigurations';
-import {TraceShortcutsModal} from 'sentry/views/performance/traceDetails/traceShortcutsModal';
+
+import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
+import {isTraceItemDetailsResponse} from './traceApi/utils';
+import {traceAnalytics} from './traceAnalytics';
+import {getCustomInstrumentationLink} from './traceConfigurations';
+import {TraceShortcutsModal} from './traceShortcutsModal';
 
 interface TracePreferencesDropdownProps {
   autogroup: boolean;
@@ -32,8 +33,8 @@ interface TracePreferencesDropdownProps {
   onMissingInstrumentationChange: () => void;
   rootEventResults: TraceRootEventQueryResults;
   /**
-   * Placements Popper may fall back to when the default `bottom-start` would overflow the
-   * menu's clipping container. `useOverlay` sets `flipVariations: false`, so without this the
+   * Placements Floating UI may fall back to when the default `bottom-start` would overflow the
+   * menu's clipping container. `useOverlay` sets `flipAlignment: false`, so without this the
    * menu never re-aligns on its own. Pass a stable reference.
    */
   fallbackPlacements?: Placement[];

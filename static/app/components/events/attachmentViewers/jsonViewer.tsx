@@ -2,14 +2,15 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {PreviewPanelItem} from 'sentry/components/events/attachmentViewers/previewPanelItem';
-import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
-import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
+
+import {PreviewPanelItem} from './previewPanelItem';
+import type {ViewerProps} from './utils';
+import {getAttachmentUrl} from './utils';
 
 export function JsonViewer(props: ViewerProps) {
   const query = useApiQuery(

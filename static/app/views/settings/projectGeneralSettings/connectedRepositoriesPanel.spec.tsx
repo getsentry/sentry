@@ -16,7 +16,8 @@ import {
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
-import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
+
+import {ConnectedRepositoriesPanel} from './connectedRepositoriesPanel';
 
 mockElementSize();
 
@@ -271,6 +272,10 @@ describe('ConnectedRepositoriesPanel', () => {
       body: {prefixes: []},
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mapping-prefixes/repo/`,
+      body: {prefixes: []},
+    });
+    MockApiClient.addMockResponse({
       url: repoUrl,
       method: 'GET',
       body: () => [
@@ -381,6 +386,10 @@ describe('ConnectedRepositoriesPanel', () => {
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/code-mapping-prefixes/stack/`,
+      body: {prefixes: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mapping-prefixes/repo/`,
       body: {prefixes: []},
     });
     MockApiClient.addMockResponse({

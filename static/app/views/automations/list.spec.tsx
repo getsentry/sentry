@@ -13,6 +13,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -24,11 +25,12 @@ import {
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import AutomationsList from 'sentry/views/automations/list';
 import {
   LLM_CONTEXT_MAX_ROWS,
   useLLMContext,
 } from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import AutomationsList from './list';
 
 // Cells the container is too narrow to show are hidden rather than dropped, so
 // the row still holds every column in order: name, last triggered, action,
@@ -265,6 +267,33 @@ describe('AutomationsList', () => {
     expect(router.location.query.sort).toBe('-name');
   });
 
+  it('clears the cursor in a new history entry when sorting', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [AutomationFixture({name: 'Automation 1'})],
+    });
+    const {router} = render(<AutomationsList />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/automations/', query: {cursor: '0:25:0'}},
+      },
+    });
+    await screen.findByText('Automation 1');
+
+    await userEvent.click(
+      within(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      ).getByRole('button')
+    );
+    await waitFor(() => expect(router.location.query.sort).toBe('name'));
+    const sortedQuery = router.location.query;
+    act(() => router.navigate(-1));
+
+    expect(sortedQuery.cursor).toBeUndefined();
+    await waitFor(() => expect(router.location.query.cursor).toBe('0:25:0'));
+    expect(router.location.query.sort).toBeUndefined();
+  });
+
   describe('search', () => {
     it('can filter by action', async () => {
       const mockAutomationActionSlack = MockApiClient.addMockResponse({
@@ -302,6 +331,25 @@ describe('AutomationsList', () => {
 
       await screen.findByText('My Automation');
       expect(mockAutomationCreatedBy).toHaveBeenCalled();
+    });
+
+    it('pushes the query without the cursor when searching', async () => {
+      const {router} = render(<AutomationsList />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/automations/', query: {cursor: '0:25:0', sort: 'name'}},
+        },
+      });
+      await screen.findByText('Automation 1');
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'created_by:me{enter}'
+      );
+      await waitFor(() =>
+        expect(router.location.query).toEqual({query: 'created_by:me', sort: 'name'})
+      );
+      expect(router.historyAction).toBe('PUSH');
     });
   });
 

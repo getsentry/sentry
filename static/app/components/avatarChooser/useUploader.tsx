@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t, tct} from 'sentry/locale';
 
 const ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
@@ -50,7 +51,7 @@ export function useUploader({onSelect, minImageSize}: UseUploaderOptions) {
     }
 
     if (!/^image\//.test(file.type)) {
-      addErrorMessage(t('That is not a supported file type.'));
+      toast.error(t('That is not a supported file type.'));
       return;
     }
     const url = window.URL.createObjectURL(file);
@@ -58,7 +59,7 @@ export function useUploader({onSelect, minImageSize}: UseUploaderOptions) {
     const sizeValidation = validateSize(height, width);
 
     if (sizeValidation !== true) {
-      addErrorMessage(sizeValidation);
+      toast.error(sizeValidation);
       return;
     }
 

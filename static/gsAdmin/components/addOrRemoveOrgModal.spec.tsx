@@ -1,6 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import {AddToOrgModal} from 'admin/components/addOrRemoveOrgModal';

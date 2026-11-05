@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import {EventsRequest} from 'sentry/components/charts/eventsRequest';
@@ -59,7 +60,8 @@ import {
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
 } from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
+
+import {EAP_QUERY_PARAMS} from './settings';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -345,10 +347,10 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
             <Truncate value={transaction} maxLength={40} />
           </GrowLink>
           <RightAlignedCell>
-            <StyledDurationWrapper>
+            <Container padding="0 md">
               {/* milliseconds expects a number */}
               <PerformanceDuration milliseconds={listItem[field] as any} abbreviation />
-            </StyledDurationWrapper>
+            </Container>
           </RightAlignedCell>
         </Fragment>
       );
@@ -409,10 +411,6 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
     />
   );
 }
-
-const StyledDurationWrapper = styled('div')`
-  padding: 0 ${p => p.theme.space.md};
-`;
 
 const LoadingWrapper = styled('div')<{height?: number}>`
   height: ${p => p.height}px;

@@ -10,22 +10,24 @@ import {
 import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 
+import {useMedia} from '@sentry/scraps/useMedia';
+
 import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+
 import type {
   Artifact,
   Block,
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
   ToolLink,
-} from 'sentry/views/seerExplorer/types';
+} from './types';
 
 /**
  * Tool formatter function type.
@@ -549,6 +551,7 @@ export function useRemoveSeerExplorerRunIdParam() {
     if (location.query?.[RUN_ID_QUERY_PARAM] === undefined) {
       return;
     }
+    // oxlint-disable-next-line react/todo
     const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query;
     navigate({...location, query: restQuery});
   }, [location, navigate]);
@@ -579,6 +582,7 @@ export function useSyncSeerExplorerRunIdToUrl(runId: SeerExplorerRunId | null) {
 
     // Push rather than replace, so the browser back button returns to the previous
     // conversation (the deep link listener switches to it when the param changes).
+    // oxlint-disable-next-line react/todo
     const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
     navigate({
       ...location,
@@ -612,6 +616,7 @@ export function useSeerExplorerResumeDeepLink({
     }
     hasResumedRef.current = true;
     onResume();
+    // oxlint-disable-next-line react/todo
     const {[RESUME_RUN_QUERY_PARAM]: _resume, ...restQuery} = location.query ?? {};
     navigate({...location, query: restQuery}, {replace: true});
   }, [location, navigate, ready, onResume]);

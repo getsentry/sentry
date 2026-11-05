@@ -3,14 +3,15 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {TeamStore} from 'sentry/stores/teamStore';
+import type {DetailedTeam} from 'sentry/types/organization';
+
 import {
   defaultInviteProps,
   InviteMembersContext,
   type InviteMembersContextValue,
-} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import {InviteRowControl as InviteRowControlNew} from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
-import {TeamStore} from 'sentry/stores/teamStore';
-import type {DetailedTeam} from 'sentry/types/organization';
+} from './inviteMembersContext';
+import {InviteRowControl as InviteRowControlNew} from './inviteRowControl';
 
 describe('InviteRowControlNew', () => {
   const teamData = [
@@ -121,6 +122,27 @@ describe('InviteRowControlNew', () => {
     await userEvent.click(roleInput);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Billing'}));
     expect(mockSetRole).toHaveBeenCalled();
+  });
+
+  it('keeps unfinished email text when an existing email is removed', async () => {
+    const setEmails = jest.fn();
+    render(
+      getComponent({
+        ...defaultInviteProps,
+        setEmails,
+        pendingInvites: {
+          ...defaultInviteProps.pendingInvites,
+          emails: new Set(['existing@example.com']),
+        },
+      })
+    );
+    const input = screen.getByRole('textbox', {name: 'Email Addresses'});
+
+    await userEvent.type(input, 'unfinished');
+    await userEvent.click(screen.getByLabelText('Remove item'));
+
+    expect(setEmails).toHaveBeenLastCalledWith([], 0);
+    expect(input).toHaveValue('unfinished');
   });
 
   it('disables team selection when team roles are not allowed', () => {

@@ -15,6 +15,7 @@ class SdkConfig(TypedDict):
     data_collection: DataCollectionUserOptions
     auto_enabling_integrations: bool
     keep_alive: NotRequired[bool]
+    attach_stacktrace: NotRequired[bool]
     spotlight: NotRequired[str | bool | None]
     add_full_stack: NotRequired[bool]
     max_value_length: NotRequired[int]
@@ -23,11 +24,7 @@ class SdkConfig(TypedDict):
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
     transport_queue_size: NotRequired[int]
     before_send: NotRequired[Callable[[Event, Hint], Event | None]]
-    before_send_transaction: NotRequired[Callable[[Event, Hint], Event | None]]
     before_send_log: NotRequired[Callable[[Log, Hint], Log | None]]
-    profiles_sample_rate: NotRequired[float]
-    profiles_sampler: NotRequired[Callable[[dict[str, Any]], float]]
-    profiler_mode: NotRequired[Literal["sleep", "thread", "gevent", "unknown"]]
     profile_session_sample_rate: NotRequired[float]
     profile_lifecycle: NotRequired[Literal["manual", "trace"]]
     enable_db_query_source: NotRequired[bool]

@@ -8,6 +8,7 @@ from sentry.integrations.tasks import logger
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
+from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
@@ -74,3 +75,7 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
         organization = organization_service.get(id=organization_id)
         if organization is None:
             raise Organization.DoesNotExist
+        if repo.status == ObjectStatus.ACTIVE:
+            get_integration_repository_provider(integration).on_create_repository(
+                repo, organization
+            )

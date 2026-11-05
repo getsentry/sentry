@@ -7,10 +7,7 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/eventTitle';
-import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
-  PRIMARY_HEADER_HEIGHT,
-} from 'sentry/views/navigation/constants';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 export const Header = styled('h3')`
   display: block;
@@ -52,24 +49,21 @@ export const ShortId = styled('div')`
   line-height: 1;
 `;
 
+// oxlint-disable-next-line @sentry/scraps/prefer-primitives
 export const EventDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
   grid-template-rows: max-content max-content auto;
 
-  /* Responsive height that matches the TopBar (48px mobile, 53px desktop) */
-  --event-drawer-header-height: ${NAVIGATION_MOBILE_CONTENT_HEIGHT}px;
+  /* Matches the TopBar height */
+  --event-drawer-header-height: ${PRIMARY_HEADER_HEIGHT}px;
   --event-navigator-box-shadow: none;
   --event-navigator-border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    --event-drawer-header-height: ${PRIMARY_HEADER_HEIGHT}px;
-  }
 `;
 
 export const EventDrawerHeader = styled(DrawerHeader)`
   position: unset;
-  /* Height priority: container variable (responsive) → DrawerHeader height prop → default */
+  /* Height priority: container variable → DrawerHeader height prop → default */
   height: var(--event-drawer-header-height, var(--drawer-header-height, auto));
   max-height: var(
     --event-drawer-header-height,

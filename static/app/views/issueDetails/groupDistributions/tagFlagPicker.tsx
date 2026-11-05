@@ -1,7 +1,8 @@
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {t} from 'sentry/locale';
-import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
+
+import {DrawerTab} from './types';
 
 interface Props {
   setTab: (value: DrawerTab) => void;

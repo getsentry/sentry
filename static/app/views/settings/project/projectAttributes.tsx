@@ -1,7 +1,7 @@
 import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
-import {Tag} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -10,7 +10,7 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
@@ -31,7 +31,8 @@ import type {
   TraceItemAttributeType,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 type AttributeDataset = 'spans' | 'logs' | 'tracemetrics';
 
@@ -159,7 +160,11 @@ function ProjectAttributesSettings() {
   return (
     <SentryDocumentTitle title={t('Attributes')} projectSlug={project.slug}>
       <SettingsPageHeader
-        title={t('Attributes')}
+        title={{
+          type: 'page-title',
+          label: t('Attributes'),
+          trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+        }}
         subtitle={t(
           'Browse the attributes sent with your logs, metrics, and spans in the last 14 days.'
         )}

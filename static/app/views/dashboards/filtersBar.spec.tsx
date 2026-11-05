@@ -10,15 +10,12 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
-import {FiltersBar, type FiltersBarProps} from 'sentry/views/dashboards/filtersBar';
-import {
-  DashboardFilterKeys,
-  WidgetType,
-  type GlobalFilter,
-} from 'sentry/views/dashboards/types';
-import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {WEB_VITALS_NAVIGATION_TYPE_FEATURE} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
+
+import {PrebuiltDashboardId} from './utils/prebuiltConfigs';
+import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from './utils/prebuiltConfigs/webVitals/webVitals';
+import {FiltersBar, type FiltersBarProps} from './filtersBar';
+import {DashboardFilterKeys, WidgetType, type GlobalFilter} from './types';
 
 describe('FiltersBar', () => {
   let organization: Organization;
@@ -26,9 +23,7 @@ describe('FiltersBar', () => {
   beforeEach(() => {
     mockNetworkRequests();
 
-    organization = OrganizationFixture({
-      features: ['dashboards-basic', 'dashboards-edit'],
-    });
+    organization = OrganizationFixture();
   });
 
   afterEach(() => {
@@ -205,12 +200,7 @@ describe('FiltersBar', () => {
     ['Application Metrics', 'tracemetrics'],
   ])('dynamically fetches %s filter keys when searched', async (dataset, itemType) => {
     organization = OrganizationFixture({
-      features: [
-        'dashboards-basic',
-        'dashboards-edit',
-        'ourlogs-enabled',
-        'visibility-explore-view',
-      ],
+      features: ['ourlogs-enabled', 'visibility-explore-view'],
     });
     const filterKey = `custom.searched.${itemType}`;
     const searchRequest = MockApiClient.addMockResponse({
@@ -442,6 +432,33 @@ describe('FiltersBar', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save for Everyone'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+  });
+
+  describe('query priority', () => {
+    it('hides the control when the feature is off', () => {
+      renderFilterBar();
+
+      expect(
+        screen.queryByRole('button', {name: 'Query priority: Normal'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('defaults to normal and can switch to faster', async () => {
+      organization = OrganizationFixture({
+        features: ['low-priority-queries'],
+      });
+      renderFilterBar();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
+      expect(screen.getByText('Balance speed and accuracy')).toBeInTheDocument();
+      expect(screen.getByText('Faster with reduced accuracy')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+
+      expect(
+        screen.getByRole('button', {name: 'Query priority: Faster'})
+      ).toBeInTheDocument();
+    });
   });
 });
 

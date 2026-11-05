@@ -1,4 +1,4 @@
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -17,11 +17,14 @@ from sentry.api.helpers.data_annotations import (
     DATASET_TO_CATEGORY,
     DROPPED_OUTCOMES,
     Annotation,
+    SuppressedDrop,
+    classify_drop,
     get_dropped_data_annotations,
     record_dropped_events_telemetry,
 )
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
@@ -33,26 +36,60 @@ _ACCEPTED = "accepted"
 
 
 class DroppedEventsBucket(TypedDict):
-    type: str
-    category: str
-    outcome: str
-    reason: str
-    start: float
-    end: float
-    count: float
+    type: Annotated[str, ApiDescription("Annotation type. Always `system`")]
+    category: Annotated[str, ApiDescription("Data category of the events, such as `log_item`")]
+    outcome: Annotated[
+        str,
+        ApiDescription(
+            "Outcome of the events, such as `rate_limited` or `filtered`, or `accepted` for accepted events"
+        ),
+    ]
+    reason: Annotated[
+        str,
+        ApiDescription(
+            "Reason for the outcome within its outcome class, or `accepted` for accepted events"
+        ),
+    ]
+    start: Annotated[
+        float, ApiDescription("Start of the bucket, in milliseconds since the Unix epoch")
+    ]
+    end: Annotated[float, ApiDescription("End of the bucket, in milliseconds since the Unix epoch")]
+    count: Annotated[float, ApiDescription("Number of events in the bucket")]
+    tags: Annotated[
+        list[str],
+        ApiDescription(
+            "Whether the drop is `intentional` (user-configured) or `unintentional`. Empty for accepted events"
+        ),
+    ]
 
 
 class DroppedEventsMeta(TypedDict):
-    dataset: str
-    start: float
-    end: float
-    interval: float
+    dataset: Annotated[str, ApiDescription("Dataset that was queried")]
+    start: Annotated[
+        float,
+        ApiDescription("Start of the queried time range, in milliseconds since the Unix epoch"),
+    ]
+    end: Annotated[
+        float, ApiDescription("End of the queried time range, in milliseconds since the Unix epoch")
+    ]
+    interval: Annotated[float, ApiDescription("Width of each bucket, in milliseconds")]
+    suppressedDrops: Annotated[
+        list[SuppressedDrop],
+        ApiDescription(
+            "Dropped volume withheld from `droppedEvents` because it is a known SDK misreport"
+        ),
+    ]
 
 
 class DroppedEventsResponse(TypedDict):
-    meta: DroppedEventsMeta
-    droppedEvents: list[DroppedEventsBucket]
-    acceptedEvents: list[DroppedEventsBucket]
+    meta: Annotated[DroppedEventsMeta, ApiDescription("Metadata about the query")]
+    droppedEvents: Annotated[
+        list[DroppedEventsBucket],
+        ApiDescription("Dropped event volume, one entry per bucket, outcome and reason"),
+    ]
+    acceptedEvents: Annotated[
+        list[DroppedEventsBucket], ApiDescription("Accepted event volume, one entry per bucket")
+    ]
 
 
 class DroppedEventsQueryParamsSerializer(serializers.Serializer[dict[str, Any]]):
@@ -144,6 +181,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
                     "start": 0,
                     "end": 0,
                     "interval": 0,
+                    "suppressedDrops": [],
                 },
                 "droppedEvents": [],
                 "acceptedEvents": [],
@@ -158,6 +196,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
 
             dropped_events: list[DroppedEventsBucket] = []
             accepted_events: list[DroppedEventsBucket] = []
+            suppressed_drops: list[SuppressedDrop] = []
             with traces.start_span(
                 name=_ENDPOINT,
                 attributes={
@@ -165,14 +204,15 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
                 },
             ):
                 try:
-                    dropped_raw, accepted_raw = get_dropped_data_annotations(
+                    annotations = get_dropped_data_annotations(
                         dataset, snuba_params, rollup, outcome=outcome, reason=reason
                     )
-                    dropped_events = [_to_bucket(bucket) for bucket in dropped_raw]
+                    dropped_events = [_to_bucket(bucket) for bucket in annotations.dropped]
                     accepted_events = [
                         _to_bucket(bucket, outcome=_ACCEPTED, reason=_ACCEPTED)
-                        for bucket in accepted_raw
+                        for bucket in annotations.accepted
                     ]
+                    suppressed_drops = annotations.suppressed
                 except ParseError:
                     # ParseErrors should bubble up so we 400 to the user
                     raise
@@ -193,6 +233,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             "start": snuba_params.start_date.timestamp() * 1000,
             "end": snuba_params.end_date.timestamp() * 1000,
             "interval": rollup * 1000,
+            "suppressedDrops": suppressed_drops,
         }
         response: DroppedEventsResponse = {
             "meta": meta,
@@ -205,12 +246,18 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
 def _to_bucket(
     raw: Annotation, *, outcome: str | None = None, reason: str | None = None
 ) -> DroppedEventsBucket:
+    bucket_outcome = outcome if outcome is not None else raw["outcome"]
+    bucket_reason = reason if reason is not None else raw["reason"]
+    # Accepted buckets (passed an explicit outcome override) are not drops, so
+    # they carry no intentional/unintentional tag.
+    tags = [] if outcome == _ACCEPTED else [classify_drop(bucket_outcome, bucket_reason)]
     return {
         "type": raw["type"],
         "category": raw["category"],
-        "outcome": outcome if outcome is not None else raw["outcome"],
-        "reason": reason if reason is not None else raw["reason"],
+        "outcome": bucket_outcome,
+        "reason": bucket_reason,
         "start": raw["start"],
         "end": raw["end"],
         "count": raw["eventCount"],
+        "tags": tags,
     }

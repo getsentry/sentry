@@ -1,5 +1,4 @@
 import {useEffect, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -25,8 +24,8 @@ import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useC
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
 
+import {ProfileGroupProvider} from './profileGroupProvider';
 import {useProfiles} from './profilesProvider';
 
 function ContinuousProfileFlamegraph(): React.ReactElement {
@@ -111,14 +110,14 @@ export default function ContinuousProfileFlamegraphWrapper() {
           <FlamegraphThemeProvider>
             <FlamegraphStateQueryParamSync />
             <FlamegraphStateLocalStorageSync />
-            <FlamegraphContainer>
+            <Stack flex="1 1 100%">
               {profiles.type === 'loading' ? (
                 <Stack justify="center" width="100%" height="100%" position="absolute">
                   <LoadingIndicator />
                 </Stack>
               ) : null}
               <ContinuousProfileFlamegraph />
-            </FlamegraphContainer>
+            </Stack>
           </FlamegraphThemeProvider>
         </ProfileGroupTypeProvider>
       </FlamegraphStateProvider>
@@ -150,9 +149,3 @@ function ProfileGroupTypeProvider({
     </ProfileGroupProvider>
   );
 }
-
-const FlamegraphContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
-`;

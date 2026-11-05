@@ -13,10 +13,11 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import type {ExploreQueryChangedReason} from './useSaveQuery';
 
 export enum SavedQueryType {
   DISCOVER = 'discover',
@@ -143,9 +144,10 @@ export type ReadableSavedQuery = {
   crossEvents?: CrossEvent[];
   end?: string;
   environment?: string[];
+  errorsOnly?: boolean;
   isPrebuilt?: boolean;
-  range?: string;
   start?: string;
+  statsPeriod?: string;
 };
 
 export class SavedQuery {
@@ -167,9 +169,10 @@ export class SavedQuery {
   createdBy?: User;
   end?: string | DateString;
   environment?: string[];
+  errorsOnly?: boolean;
   isPrebuilt?: boolean;
-  range?: string;
   start?: string | DateString;
+  statsPeriod?: string;
 
   constructor(savedQuery: ReadableSavedQuery) {
     this.agent = savedQuery.agent;
@@ -191,8 +194,9 @@ export class SavedQuery {
     this.createdBy = savedQuery.createdBy;
     this.end = savedQuery.end;
     this.environment = savedQuery.environment;
+    this.errorsOnly = savedQuery.errorsOnly;
     this.isPrebuilt = savedQuery.isPrebuilt;
-    this.range = savedQuery.range;
+    this.statsPeriod = savedQuery.statsPeriod;
     this.start = savedQuery.start;
     this.dataset = savedQuery.dataset;
   }

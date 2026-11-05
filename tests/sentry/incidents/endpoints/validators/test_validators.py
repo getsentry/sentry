@@ -9,6 +9,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry import audit_log
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
@@ -185,7 +186,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -206,10 +206,24 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.DYNAMIC.value,
             },
         }
+
+    def _assert_documented_create_request_is_valid(self, example_index: int) -> None:
+        example = WorkflowEngineExamples.CREATE_DETECTOR[example_index]
+        validator = MetricIssueDetectorValidator(data=example.value, context=self.context)
+
+        assert validator.is_valid(), validator.errors
+
+    def test_documented_static_create_request_is_valid(self, *mocks: Any) -> None:
+        self._assert_documented_create_request_is_valid(0)
+
+    def test_documented_percent_create_request_is_valid(self, *mocks: Any) -> None:
+        self._assert_documented_create_request_is_valid(1)
+
+    def test_documented_dynamic_create_request_is_valid(self, *mocks: Any) -> None:
+        self._assert_documented_create_request_is_valid(2)
 
     def create_static_detector(self) -> Detector:
         validator = MetricIssueDetectorValidator(
@@ -276,7 +290,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         query_sub = QuerySubscription.objects.get(id=data_source.source_id)
         return query_sub.snuba_query
 
-    def assert_validated(self, detector):
+    def assert_validated(self, detector: Detector) -> None:
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == MetricIssue.slug
@@ -309,7 +323,9 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_valid_data(
-        self, mock_audit: mock.MagicMock, mock_schedule_update_project_config
+        self,
+        mock_audit: mock.MagicMock,
+        mock_schedule_update_project_config: mock.MagicMock,
     ) -> None:
         detector = self.create_static_detector()
 
@@ -368,7 +384,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
                 ],
             },
             "config": {
-                "threshold_period": 1,
                 "detection_type": AlertRuleDetectionType.DYNAMIC.value,
             },
         }
@@ -676,7 +691,6 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -833,7 +847,6 @@ class TestMetricAlertsResolution(TestMetricAlertsDetectorValidator):
             **self.valid_data,
             "dataSources": [self._make_data_source(timeWindow=3600)],
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.PERCENT.value,
                 "comparisonDelta": 86400,
             },
@@ -876,7 +889,6 @@ class TestMetricAlertsResolution(TestMetricAlertsDetectorValidator):
         update_data = {
             **self.valid_data,
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -1148,7 +1160,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }

@@ -6,8 +6,8 @@ import {IconUpload} from '@sentry/icons/upload';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
-import {Grid} from '@sentry/scraps/layout';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -37,8 +37,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
-import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
+
+import {AssociatedReleases} from './associatedReleases';
+import {useDeleteDebugIdBundle} from './useDeleteDebugIdBundle';
 
 type Props = {
   project: Project;
@@ -369,7 +370,7 @@ function SourceMapUploadsList({
 
   return (
     <Fragment>
-      <List>
+      <Grid gap="xl" columns="1fr">
         {sourceMapUploads.map(sourceMapUpload => (
           <Item key={sourceMapUpload.id}>
             <ItemHeader>
@@ -388,15 +389,15 @@ function SourceMapUploadsList({
                 }
               />
             </ItemHeader>
-            <ItemContent>
+            <Container padding="md xl">
               <SourceMapUploadDetails
                 sourceMapUpload={sourceMapUpload}
                 projectId={project.id}
               />
-            </ItemContent>
+            </Container>
           </Item>
         ))}
-      </List>
+      </Grid>
       <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
@@ -482,12 +483,6 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
   );
 }
 
-const List = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${p => p.theme.space.xl};
-`;
-
 const Item = styled(Panel)`
   margin: 0;
 `;
@@ -506,10 +501,6 @@ const ItemTitle = styled(Link)`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
-`;
-
-const ItemContent = styled('div')`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`

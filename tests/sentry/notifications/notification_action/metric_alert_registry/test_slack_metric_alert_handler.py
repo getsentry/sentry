@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import asdict
-from typing import Any
+from dataclasses import asdict, replace
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import patch
 
@@ -21,6 +21,7 @@ from sentry.integrations.slack.message_builder.routing import decode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
@@ -145,6 +146,34 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
         blocks = orjson.loads(client.chat_postMessage.call_args.kwargs["attachments"])[0]["blocks"]
         assert len(blocks) == 1
 
+    def _make_send_alert_kwargs_with_workflow(self) -> dict[str, Any]:
+        kwargs = self._make_send_alert_kwargs()
+        kwargs["notification_context"] = replace(
+            kwargs["notification_context"],
+            workflow_id=self.workflow.id,
+            workflow_name="Page the on-call",
+        )
+        return kwargs
+
+    @patch("sentry.integrations.slack.utils.notifications.SlackSdkClient")
+    def test_send_alert_includes_workflow_link(self, mock_slack_client: mock.MagicMock) -> None:
+        client = mock_slack_client.return_value
+        client.chat_postMessage.return_value = {"ok": True, "ts": "123.456"}
+
+        self.handler.send_alert(**self._make_send_alert_kwargs_with_workflow())
+
+        client.chat_postMessage.assert_called_once()
+        blocks = orjson.loads(client.chat_postMessage.call_args.kwargs["attachments"])[0]["blocks"]
+        workflow_url = self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/monitors/alerts/{self.workflow.id}/"
+        )
+        assert blocks[-1] == {
+            "type": "context",
+            "elements": [
+                {"type": "mrkdwn", "text": f"Alert: <{workflow_url}|Page the on-call>"},
+            ],
+        }
+
     @patch(f"{_HANDLER_PATH}.send_incident_alert_notification")
     @freeze_time("2021-01-01 00:00:00")
     def test_send_alert(self, mock_send_incident: mock.MagicMock) -> None:
@@ -184,9 +213,11 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
 
     @override_options({"notifications.platform-rollout.internal-testing": {"metric-alert": 1.0}})
     @override_options({"notifications.platform.alert-providers": {"metric-alert": ["slack"]}})
-    @with_feature("organizations:notification-platform.internal-testing")
     def _send_platform_alert_and_get_blocks(self, invocation: ActionInvocation) -> list[Any]:
-        with patch("sentry.integrations.slack.integration.SlackSdkClient") as mock_client:
+        with (
+            with_feature("organizations:notification-platform.internal-testing"),
+            patch("sentry.integrations.slack.integration.SlackSdkClient") as mock_client,
+        ):
             mock_client.return_value.chat_postMessage.return_value = SlackResponse(
                 client=mock_client.return_value,
                 http_verb="POST",
@@ -200,11 +231,24 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
             payload = mock_client.return_value.chat_postMessage.call_args.kwargs
         return payload["attachments"][0]["blocks"]
 
+    def test_send_alert_via_platform_includes_workflow_link(self) -> None:
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation())
+
+        workflow_url = self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/monitors/alerts/{self.workflow.id}/"
+        )
+        assert blocks[-1] == {
+            "type": "context",
+            "elements": [
+                {"type": "mrkdwn", "text": f"Alert: <{workflow_url}|{self.workflow.name}>"},
+            ],
+        }
+
     @with_feature(["organizations:investigations", "organizations:investigations-slack"])
     def test_send_alert_with_investigation_button(self) -> None:
         blocks = self._send_platform_alert_and_get_blocks(self._invocation())
 
-        assert [block["type"] for block in blocks] == ["section", "actions"]
+        assert [block["type"] for block in blocks] == ["section", "actions", "context"]
         (button,) = blocks[1]["elements"]
         assert button["text"]["text"] == "Investigate with Seer"
         routing = decode_action_id(button["action_id"])
@@ -220,27 +264,44 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
     def test_send_alert_resolved_has_no_investigation_button(self) -> None:
         blocks = self._send_platform_alert_and_get_blocks(self._invocation(resolved=True))
 
-        assert [block["type"] for block in blocks] == ["section"]
+        assert [block["type"] for block in blocks] == ["section", "context"]
 
     def test_send_alert_without_flags_has_no_investigation_button(self) -> None:
         blocks = self._send_platform_alert_and_get_blocks(self._invocation())
 
-        assert [block["type"] for block in blocks] == ["section"]
+        assert [block["type"] for block in blocks] == ["section", "context"]
+
+    @with_feature(["organizations:investigations", "organizations:investigations-slack"])
+    def test_send_alert_closed_membership_has_no_investigation_button(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation())
+
+        assert [block["type"] for block in blocks] == ["section", "context"]
 
     @with_feature("organizations:investigations")
     def test_send_alert_without_slack_flag_has_no_investigation_button(self) -> None:
         blocks = self._send_platform_alert_and_get_blocks(self._invocation())
 
-        assert [block["type"] for block in blocks] == ["section"]
+        assert [block["type"] for block in blocks] == ["section", "context"]
 
     @with_feature("organizations:investigations-slack")
     def test_send_alert_without_investigations_flag_has_no_investigation_button(self) -> None:
         blocks = self._send_platform_alert_and_get_blocks(self._invocation())
 
-        assert [block["type"] for block in blocks] == ["section"]
+        assert [block["type"] for block in blocks] == ["section", "context"]
+
+
+_UnpackedSendAlert = tuple[
+    NotificationContext, AlertContext, MetricIssueContext, OpenPeriodContext, Organization, str
+]
 
 
 class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
+    def unpack_kwargs(self, mock_send_alert: mock.MagicMock) -> _UnpackedSendAlert:
+        return cast(_UnpackedSendAlert, super().unpack_kwargs(mock_send_alert))
+
     """Tests for invoke_legacy_registry — verifies context extraction from GroupEvent and Activity."""
 
     def setUp(self) -> None:
@@ -290,6 +351,8 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             target_display="Channel 123",
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(
@@ -371,6 +434,8 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             sentry_app_config=None,
             sentry_app_id=None,
             notes="Check the runbook",
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         notification_data = metric_alert_notification_data_factory(

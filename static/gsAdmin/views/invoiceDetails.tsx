@@ -3,12 +3,12 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ResultTable} from 'sentry/components/resultTable';
+import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCells} from 'sentry/utils/cells';
@@ -77,9 +77,9 @@ export function InvoiceDetails() {
         }
       );
       updateCache(updatedInvoice);
-      addSuccessMessage('Invoice has been closed');
+      toast.success('Invoice has been closed');
     } catch {
-      addErrorMessage(ERR_MESSAGE);
+      toast.error(ERR_MESSAGE);
     }
   };
 
@@ -102,9 +102,9 @@ export function InvoiceDetails() {
         }
       );
       updateCache(updatedInvoice);
-      addSuccessMessage('Payment will be retried');
+      toast.success('Payment will be retried');
     } catch {
-      addErrorMessage(ERR_MESSAGE);
+      toast.error(ERR_MESSAGE);
     }
   };
 
@@ -193,7 +193,7 @@ export function InvoiceDetails() {
       <tbody>
         {invoice.items.map((item, num) => (
           <tr key={num}>
-            <td>{getItemDescription(item)}</td>
+            <ResultTableRowHeader>{getItemDescription(item)}</ResultTableRowHeader>
             <td data-label="Amount" style={{textAlign: 'right'}}>
               ${(item.amount / 100).toLocaleString()}
             </td>
@@ -217,9 +217,9 @@ export function InvoiceDetails() {
       <tbody>
         {invoice.charges.map(row => (
           <tr key={row.id}>
-            <td>
+            <ResultTableRowHeader>
               <DateTime date={row.dateCreated} />
-            </td>
+            </ResultTableRowHeader>
             <td data-label="Stripe ID" style={{textAlign: 'center'}}>
               {row.stripeID ? (
                 <a href={`https://dashboard.stripe.com/charges/${row.stripeID}`}>

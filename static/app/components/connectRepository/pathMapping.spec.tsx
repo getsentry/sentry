@@ -2,8 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
-import {PathMapping} from 'sentry/components/connectRepository/pathMapping';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+import {PathMapping} from './pathMapping';
+import type {PathMappingValue} from './type';
 
 function renderMapping({
   value = {stackRoot: '', sourceRoot: '', branch: ''},
@@ -86,10 +86,7 @@ describe('PathMapping', () => {
     renderMapping({editing: true, isNew: true});
 
     expect(screen.getByText('e.g src/')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: /repository prefix/i})).toHaveAttribute(
-      'placeholder',
-      'e.g src/app/'
-    );
+    expect(screen.getByText('e.g src/app/')).toBeInTheDocument();
   });
 
   it('renders preview using placeholder example and updates on input', () => {

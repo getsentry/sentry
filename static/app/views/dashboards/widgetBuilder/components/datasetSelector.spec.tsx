@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderDatasetSelector as DatasetSelector} from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+
+import {WidgetBuilderDatasetSelector as DatasetSelector} from './datasetSelector';
 
 describe('DatasetSelector', () => {
   it('changes the dataset', async () => {

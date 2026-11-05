@@ -477,10 +477,9 @@ const ResizeHandle = styled('div')<{position: Position}>`
   cursor: ${p => `${p.position}-resize`};
   ${p =>
     RESIZER_POSITIONS[p.position].map(
-      pos =>
-        css`
-          ${pos}: -5px;
-        `
+      pos => css`
+        ${pos}: -5px;
+      `
     )}
 `;
 

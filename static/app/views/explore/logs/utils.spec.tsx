@@ -7,20 +7,18 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import {OurLogKnownFieldKey, type OurLogsResponseItem} from './types';
 import {
   compareLogRowsBySortBys,
   createErrorLogRow,
   getLogsUrlFromSavedQueryUrl,
   type LogTableRowItem,
   viewLogsSamplesTarget,
-} from 'sentry/views/explore/logs/utils';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+} from './utils';
 
 describe('viewLogsSamplesTarget', () => {
   it('does not add a filter for an empty group by', () => {
@@ -111,7 +109,7 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
       }),
     });
     expect(target).toBe(
-      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
+      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&caseInsensitive=0&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
     );
   });
 
@@ -151,7 +149,7 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
       }),
     });
     expect(target).toBe(
-      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
+      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&caseInsensitive=0&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
     );
   });
 });

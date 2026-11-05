@@ -1,12 +1,15 @@
 import {useCallback, type ReactNode} from 'react';
-import type {Location} from 'history';
 
-import {ExploreLocationQueryParamsProvider} from 'sentry/views/explore/exploreLocationQueryParamsProvider';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreQueryParamsProvider} from 'sentry/views/explore/exploreQueryParamsProvider';
+
+import {hasMultiAggregateCharts} from './sharedChartAggregates';
 import {
-  getReadableQueryParamsFromLocation,
-  getTargetWithReadableQueryParams,
-  isDefaultFields,
-} from 'sentry/views/explore/spans/spansQueryParams';
+  getReadableSpansQueryParams,
+  getSpansQueryParamsUpdates,
+  isDefaultSpansFields,
+  SPANS_QUERY_PARSERS,
+} from './spansQueryParams';
 
 interface SpansQueryParamsProviderProps {
   children: ReactNode;
@@ -17,18 +20,24 @@ export function SpansQueryParamsProvider({
   children,
   fields,
 }: SpansQueryParamsProviderProps) {
-  const getQueryParams = useCallback(
-    (location: Location) => getReadableQueryParamsFromLocation(location, fields),
-    [fields]
+  const organization = useOrganization({allowNull: true});
+  const multiAggregateCharts = organization
+    ? hasMultiAggregateCharts(organization)
+    : false;
+  const getReadableQueryParams = useCallback(
+    (values: Parameters<typeof getReadableSpansQueryParams>[0]) =>
+      getReadableSpansQueryParams(values, fields, {multiAggregateCharts}),
+    [fields, multiAggregateCharts]
   );
 
   return (
-    <ExploreLocationQueryParamsProvider
-      getReadableQueryParamsFromLocation={getQueryParams}
-      getTargetWithReadableQueryParams={getTargetWithReadableQueryParams}
-      isDefaultFields={isDefaultFields}
+    <ExploreQueryParamsProvider
+      getQueryParamsUpdates={getSpansQueryParamsUpdates}
+      getReadableQueryParams={getReadableQueryParams}
+      isDefaultFields={isDefaultSpansFields}
+      parsers={SPANS_QUERY_PARSERS}
     >
       {children}
-    </ExploreLocationQueryParamsProvider>
+    </ExploreQueryParamsProvider>
   );
 }

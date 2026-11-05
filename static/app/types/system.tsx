@@ -1,5 +1,4 @@
-import type {ApiResult} from 'sentry/types/api';
-
+import type {ApiResult} from './api';
 import type {ParntershipAgreementType} from './overrides';
 import type {User} from './user';
 
@@ -15,7 +14,6 @@ export interface PreloadRequestResult {
 
 export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
-  SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 
 export type OnSentryInitConfiguration = {

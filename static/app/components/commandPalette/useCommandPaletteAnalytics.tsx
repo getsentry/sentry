@@ -2,13 +2,14 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import uniqueId from 'lodash/uniqueId';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   getActionPath,
   type CMDKNavStack,
   useCommandPaletteState,
-} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './ui/commandPaletteStateContext';
 
 function getNavDepth(node: CMDKNavStack | null): number {
   let depth = 0;

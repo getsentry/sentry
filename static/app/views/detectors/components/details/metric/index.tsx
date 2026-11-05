@@ -4,6 +4,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   DisableDetectorAction,
@@ -14,29 +15,35 @@ import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/deta
 import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
-import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
-import {MetricDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/metric/sidebar';
-import {MetricTimePeriodSelect} from 'sentry/views/detectors/components/details/metric/timePeriodSelect';
-import {
-  MigratedAlertWarning,
-  TransactionsDatasetWarning,
-} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
-import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useDetectorStatsPeriods} from 'sentry/views/detectors/hooks/useDetectorStatsPeriods';
+
+import {useIsMigratedExtrapolation} from './utils/useIsMigratedExtrapolation';
+import {MetricDetectorDetailsChart} from './chart';
+import {MetricDetectorRecentIssues} from './recentIssues';
+import {MetricDetectorDetailsSidebar} from './sidebar';
+import {MetricTimePeriodSelect} from './timePeriodSelect';
+import {
+  MigratedAlertWarning,
+  TransactionsDatasetWarning,
+} from './transactionsDatasetWarning';
 
 type MetricDetectorDetailsProps = {
   detector: MetricDetector;
 };
 
 export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
+  const organization = useOrganization();
+  const detectorsOpenIssuePerActivation = organization.features.includes(
+    'workflow-engine-rotate-activation-id'
+  );
   const dataSource = detector.dataSources[0];
   const snubaQuery = dataSource.queryObj?.snubaQuery;
 
   const snubaDataset = snubaQuery?.dataset ?? Dataset.ERRORS;
   const eventTypes = snubaQuery?.eventTypes ?? [];
-  const interval = snubaQuery?.timeWindow;
+  const intervalSeconds = snubaQuery?.timeWindow;
   const detectorDataset = getDetectorDataset(snubaDataset, eventTypes);
   const extrapolationMode = snubaQuery?.extrapolationMode;
   const showExtrapolationModeWarning = useIsMigratedExtrapolation({
@@ -44,8 +51,7 @@ export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
     extrapolationMode,
   });
 
-  const intervalSeconds = dataSource.queryObj?.snubaQuery.timeWindow;
-  useDetectorStatsPeriods(interval);
+  useDetectorStatsPeriods(intervalSeconds);
 
   return (
     <DetailLayout>
@@ -61,7 +67,10 @@ export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
           )}
           {showExtrapolationModeWarning && <MigratedAlertWarning detector={detector} />}
           <Flex align="center" gap="sm" justify="between" wrap="wrap">
-            <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
+            <MetricTimePeriodSelect
+              dataset={detectorDataset}
+              interval={intervalSeconds}
+            />
             <Flex align="center" gap="sm" marginLeft="auto">
               <DisableDetectorAction detector={detector} />
               <DuplicateDetectorAction detector={detector} />
@@ -70,10 +79,17 @@ export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
           </Flex>
           {snubaQuery && <MetricDetectorDetailsChart detector={detector} />}
           <ErrorBoundary mini>
-            <DetectorDetailsOpenPeriodIssues
-              detector={detector}
-              intervalSeconds={intervalSeconds}
-            />
+            {detectorsOpenIssuePerActivation ? (
+              <MetricDetectorRecentIssues
+                detector={detector}
+                intervalSeconds={intervalSeconds}
+              />
+            ) : (
+              <DetectorDetailsOpenPeriodIssues
+                detector={detector}
+                intervalSeconds={intervalSeconds}
+              />
+            )}
           </ErrorBoundary>
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>

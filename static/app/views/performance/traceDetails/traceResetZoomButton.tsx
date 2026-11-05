@@ -5,8 +5,9 @@ import {Button} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
-import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
+
+import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import {traceAnalytics} from './traceAnalytics';
 
 export function TraceResetZoomButton(props: {
   organization: Organization;
@@ -23,7 +24,6 @@ export function TraceResetZoomButton(props: {
       hide={props.viewManager.reset_zoom_button?.disabled !== false}
       size="xs"
       onClick={onResetZoom}
-      // oxlint-disable-next-line react/refs
       ref={props.viewManager.registerResetZoomRef}
     >
       {t('Reset Zoom')}

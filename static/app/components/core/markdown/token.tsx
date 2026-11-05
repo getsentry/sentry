@@ -21,11 +21,6 @@ import {
   DefaultStrikethrough,
   DefaultStrong,
   DefaultTable,
-  DefaultTableBody,
-  DefaultTableCell,
-  DefaultTableHead,
-  DefaultTableHeaderCell,
-  DefaultTableRow,
   DefaultTaskList,
   DefaultTaskListItem,
   DefaultText,
@@ -180,45 +175,15 @@ export function Token({
 
     case 'table': {
       const TableComp = components.Table ?? DefaultTable;
-      const Thead = components.TableHead ?? DefaultTableHead;
-      const Tbody = components.TableBody ?? DefaultTableBody;
-      const Tr = components.TableRow ?? DefaultTableRow;
-      const Th = components.TableHeaderCell ?? DefaultTableHeaderCell;
-      const Td = components.TableCell ?? DefaultTableCell;
-
-      const columns = token.align.map(align => ({align: align ?? undefined}));
-      const header = token.header.map(cell => renderInline(cell.tokens, components));
-      const rows = token.rows.map(row =>
-        row.map(cell => renderInline(cell.tokens, components))
-      );
-
       return (
-        <TableComp Default={DefaultTable} columns={columns} header={header} rows={rows}>
-          <Thead Default={DefaultTableHead}>
-            <Tr Default={DefaultTableRow}>
-              {header.map((cell, i) => (
-                <Th key={i} Default={DefaultTableHeaderCell} align={columns[i]?.align}>
-                  {cell}
-                </Th>
-              ))}
-            </Tr>
-          </Thead>
-          <Tbody Default={DefaultTableBody}>
-            {rows.map((row, rowIndex) => (
-              <Tr key={rowIndex} Default={DefaultTableRow}>
-                {row.map((cell, cellIndex) => (
-                  <Td
-                    key={cellIndex}
-                    Default={DefaultTableCell}
-                    align={columns[cellIndex]?.align}
-                  >
-                    {cell}
-                  </Td>
-                ))}
-              </Tr>
-            ))}
-          </Tbody>
-        </TableComp>
+        <TableComp
+          Default={DefaultTable}
+          columns={token.align.map(align => ({align: align ?? undefined}))}
+          header={token.header.map(cell => renderInline(cell.tokens, components))}
+          rows={token.rows.map(row =>
+            row.map(cell => renderInline(cell.tokens, components))
+          )}
+        />
       );
     }
 

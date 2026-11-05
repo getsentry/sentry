@@ -24,15 +24,14 @@ import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {ProjectTableHeader} from 'sentry/components/seer/projectTable/seerProjectTableHeader';
 import {t, tct} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -65,6 +64,8 @@ import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {ProjectTableHeader} from './seerProjectTableHeader';
 
 const estimateSize = () => 41;
 
@@ -336,7 +337,6 @@ export function SeerProjectTable() {
                               menuPortalTarget={document.body}
                               onChange={field.handleChange}
                               options={stoppingPointOptions}
-                              // @ts-expect-error: Select component does not have a size prop defined
                               size="xs"
                               value={field.state.value}
                             />
@@ -367,7 +367,6 @@ export function SeerProjectTable() {
                               menuPortalTarget={document.body}
                               onChange={field.handleChange}
                               options={PR_ITERATION_OPTIONS}
-                              // @ts-expect-error: Select component does not have a size prop defined
                               size="xs"
                               value={field.state.value}
                             />
@@ -422,7 +421,10 @@ function AgentSelectCell({
           disabled={disabled}
           menuPortalTarget={document.body}
           multiple={false}
-          onMenuOpen={() => {
+          onOpenChange={isOpen => {
+            if (!isOpen) {
+              return;
+            }
             // Warm the cache so the on-change check below usually resolves from
             // cache instead of blocking on a fetch.
             void prefetchAllSeerProjectRepos({
@@ -444,11 +446,11 @@ function AgentSelectCell({
                   queryClient,
                 });
               } catch {
-                addErrorMessage(t('Could not verify repositories. Please try again.'));
+                toast.error(t('Could not verify repositories. Please try again.'));
                 return;
               }
               if (hasNonGithubRepo) {
-                addErrorMessage(NON_GITHUB_HANDOFF_WARNING);
+                toast.error(NON_GITHUB_HANDOFF_WARNING);
                 return;
               }
             }
@@ -456,7 +458,6 @@ function AgentSelectCell({
             field.handleBlur();
           }}
           options={agentSelectOptions}
-          // @ts-expect-error: Select component does not have a size prop defined
           size="xs"
           value={field.state.value}
         />
@@ -476,6 +477,7 @@ function AddProjectButton({disabled}: {disabled: boolean}) {
       size="md"
       onClick={async () => {
         setIsLoadingModal(true);
+        // oxlint-disable-next-line react/todo
         try {
           const {ProjectAddRepoModal} =
             await import('sentry/components/seer/projectAddRepoModal/projectAddRepoModal');

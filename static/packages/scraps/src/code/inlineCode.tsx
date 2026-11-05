@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {css, useTheme} from '@emotion/react';
 
 import type {Theme} from '@sentry/scraps/theme';

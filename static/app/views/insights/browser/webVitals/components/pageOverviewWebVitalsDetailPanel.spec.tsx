@@ -6,7 +6,8 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
+
+import {PageOverviewWebVitalsDetailPanel} from './pageOverviewWebVitalsDetailPanel';
 
 describe('PageOverviewWebVitalsDetailPanel', () => {
   const organization = OrganizationFixture({
@@ -87,5 +88,38 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
     expect(screen.getByText('Replay')).toBeInTheDocument();
     expect(screen.getByText('FCP')).toBeInTheDocument();
     expect(screen.getByText('FCP Score')).toBeInTheDocument();
+  });
+
+  it('filters by the subregion when the URL has a single subregion', async () => {
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+    });
+
+    render(<PageOverviewWebVitalsDetailPanel webVital="fcp" />, {
+      organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            project: project.id,
+            transaction: 'test-transaction',
+            'user.geo.subregion': '21',
+          },
+        },
+      },
+    });
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    expect(eventsRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: expect.stringContaining('user.geo.subregion:[21]'),
+        }),
+      })
+    );
   });
 });

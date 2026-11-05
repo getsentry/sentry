@@ -6,8 +6,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {openSamplingModeSwitchModal} from 'sentry/views/settings/dynamicSampling/samplingModeSwitchModal';
-import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+
+import {useHasDynamicSamplingWriteAccess} from './utils/access';
+import {openSamplingModeSwitchModal} from './samplingModeSwitchModal';
 
 interface Props {
   /**

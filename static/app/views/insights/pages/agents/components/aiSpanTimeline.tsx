@@ -12,14 +12,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
-  calculateRelativeTiming,
-  getCompressedTimeBounds,
-  getNodeTimeBounds,
-  type TraceBounds,
-} from 'sentry/views/insights/pages/agents/components/aiSpanList';
-import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {
   type ColorByOpType,
   getToolInputPreview,
   getGenAiOpType,
@@ -34,6 +26,10 @@ import {
   getEvaluationPreview,
   getNodeEvaluation,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {
+  getExtractionPreview,
+  getNodeExtraction,
+} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {
   getMemoryPreview,
@@ -43,6 +39,15 @@ import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+
+import {
+  calculateRelativeTiming,
+  getCompressedTimeBounds,
+  getNodeTimeBounds,
+  type TraceBounds,
+} from './aiSpanList';
+import {AiSpanStatusIcon} from './aiSpanStatusIcon';
+import {LLMCosts} from './llmCosts';
 
 interface SpanPresentation {
   color: string;
@@ -85,6 +90,7 @@ export function AiSpanTimeline({
         }
         visited.add(parent);
         if (getIsAiAgentNode(parent)) {
+          // oxlint-disable-next-line react/todo
           indent++;
         }
         return false;
@@ -341,6 +347,19 @@ function getSpanPresentation(
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         op,
       secondary: getEvaluationPreview(evaluation),
+    };
+  }
+
+  const extraction = getNodeExtraction(node);
+  if (extraction) {
+    return {
+      color,
+      isTool: false,
+      title:
+        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+        op,
+      secondary: getExtractionPreview(extraction),
     };
   }
 

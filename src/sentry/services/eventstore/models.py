@@ -95,7 +95,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # Reuse the Snuba column to avoid loading the full event body from nodestore.
         if "trace_id" in self._snuba_data:
             return cast(str | None, self._snuba_data["trace_id"])
-        return get_path(self.data, "contexts", "trace", "trace_id")
+        trace_id = get_path(self.data, "contexts", "trace", "trace_id")
+        return trace_id
 
     @property
     def platform(self) -> str | None:
@@ -216,9 +217,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
             username = self._snuba_data[user_username_column]
             ip_address = self._snuba_data[user_ip_address_column]
 
-            return User.to_python(
+            user = User.to_python(
                 {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
             )
+            assert user is not None
+            return user
 
         return self.get_interface("user")
 
@@ -671,25 +674,27 @@ class Event(BaseEvent):
     _groups_cache: Sequence[Group] | None
 
     @property
+    def group_ids(self) -> list[int]:
+        if self._group_ids is not None:
+            return list(self._group_ids)
+
+        group_id = self.group_id
+        snuba_group_ids = self._snuba_data.get(self._get_column_name(Columns.GROUP_IDS))
+        group_ids = []
+        if group_id:
+            group_ids.append(group_id)
+        if snuba_group_ids:
+            group_ids.extend(snuba_group_ids)
+        return group_ids
+
+    @property
     def groups(self) -> Sequence[Group]:
         from sentry.models.group import Group
 
         if getattr(self, "_groups_cache"):
             return self._groups_cache
 
-        if self._group_ids is not None:
-            group_ids = self._group_ids
-        else:
-            snuba_group_id = self.group_id
-            # TODO: Replace `snuba_group_id` with this once we deprecate `group_id`.
-            # snuba_group_id = self._snuba_data.get(self._get_column_name(Columns.GROUP_ID))
-            snuba_group_ids = self._snuba_data.get(self._get_column_name(Columns.GROUP_IDS))
-            group_ids = []
-            if snuba_group_id:
-                group_ids.append(snuba_group_id)
-            if snuba_group_ids:
-                group_ids.extend(snuba_group_ids)
-
+        group_ids = self.group_ids
         if group_ids:
             groups = list(Group.objects.filter(id__in=group_ids))
         else:
@@ -837,9 +842,9 @@ class EventSubjectTemplateData(dict[str, str]):
                 raise KeyError
             return str(value)
         elif name == "project":
-            return cast(str, self.event.project.get_full_name())
+            return self.event.project.get_full_name()
         elif name == "projectID":
-            return cast(str, self.event.project.slug)
+            return self.event.project.slug
         elif name == "shortID" and self.event.group_id and self.event.group:
             return cast(str, self.event.group.qualified_short_id)
         elif name == "orgID":

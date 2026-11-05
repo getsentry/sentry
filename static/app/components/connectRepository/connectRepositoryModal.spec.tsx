@@ -17,7 +17,7 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
-import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
+import {ConnectRepositoryModal} from './connectRepositoryModal';
 
 describe('ConnectRepositoryModal', () => {
   const organization = OrganizationFixture();
@@ -136,6 +136,10 @@ describe('ConnectRepositoryModal', () => {
       url: `/projects/${organization.slug}/${project.slug}/code-mapping-prefixes/stack/`,
       body: {prefixes: []},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mapping-prefixes/repo/`,
+      body: {prefixes: []},
+    });
   });
 
   it('renders initial modal state', async () => {
@@ -241,6 +245,7 @@ describe('ConnectRepositoryModal', () => {
     );
 
     // Add a second mapping: src/app/ → dist/  (prefix overlap — Save still enabled)
+    // Clicking the button blurs the repo prefix field, committing 'app/'.
     await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
     await userEvent.type(
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
@@ -250,6 +255,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /repository prefix/i}),
       'dist/'
     );
+    await userEvent.tab();
     expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
 
     // Change second stack root to src/ — same stack, different source root (sameStack warning)
@@ -259,6 +265,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
       'src/'
     );
+    await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
 
     // Now make source roots identical too → exact duplicate → Save disabled
@@ -267,6 +274,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /repository prefix/i}),
       'app/'
     );
+    await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
   });
 
@@ -474,6 +482,46 @@ describe('ConnectRepositoryModal', () => {
     });
   });
 
+  describe('repository prefix autocomplete', () => {
+    it('picks a repo suggestion and persists it as sourceRoot on save', async () => {
+      const closeModal = jest.fn();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mapping-prefixes/repo/`,
+        match: [MockApiClient.matchQuery({repositoryId: '10'})],
+        body: {prefixes: [{path: 'src/'}, {path: 'src/app/'}]},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/repo/`,
+        method: 'POST',
+        body: {id: '99', projectId: project.id, repositoryId: '10', created: true},
+      });
+      const postMapping = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'POST',
+        body: {},
+      });
+
+      renderModal(closeModal);
+      await selectRepository('getsentry/sentry');
+
+      await userEvent.click(screen.getByRole('textbox', {name: /repository prefix/i}));
+      await userEvent.click(await screen.findByText('src/app/'));
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(postMapping).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/code-mappings/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({sourceRoot: 'src/app/'}),
+          })
+        );
+      });
+      expect(closeModal).toHaveBeenCalled();
+    });
+  });
+
   describe('edit mode', () => {
     const seededMapping = {
       id: '5',
@@ -641,6 +689,53 @@ describe('ConnectRepositoryModal', () => {
       expect(branchInput).toBeEnabled();
     });
 
+    it('shows the empty state with Save disabled when the repository has no mappings', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [],
+      });
+
+      renderEditModal();
+
+      expect(await screen.findByText('No paths configured')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('textbox', {name: /stack trace prefix/i})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Save'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('deletes the last mapping and saves zero mappings', async () => {
+      const closeModal = jest.fn();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping],
+      });
+      const deleteMapping = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/${seededMapping.id}/`,
+        method: 'DELETE',
+        body: {},
+      });
+
+      renderEditModal(closeModal);
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Delete path mapping'})
+      );
+      expect(await screen.findByText('No paths configured')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(deleteMapping).toHaveBeenCalled();
+      });
+      expect(closeModal).toHaveBeenCalled();
+    });
+
     it('seeds new mappings with the repository default branch', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/code-mappings/`,
@@ -674,6 +769,9 @@ describe('ConnectRepositoryModal', () => {
         externalId: '2',
       });
 
+      // With no mappings the modal opens on the empty state; add a row first.
+      await userEvent.click(await screen.findByRole('button', {name: 'Add path'}));
+
       expect(await screen.findByRole('textbox', {name: /branch/i})).toHaveValue('master');
       // Assert the search param was actually sent (not the full unfiltered list).
       expect(branchLookup).toHaveBeenCalled();
@@ -693,6 +791,9 @@ describe('ConnectRepositoryModal', () => {
       });
 
       renderEditModal(closeModal);
+
+      // With no mappings the modal opens on the empty state; add a row first.
+      await userEvent.click(await screen.findByRole('button', {name: 'Add path'}));
 
       expect(
         await screen.findByRole('textbox', {name: /stack trace prefix/i})
@@ -890,6 +991,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /repository prefix/i}),
       'app/'
     );
+    await userEvent.tab();
 
     expect(await screen.findByText(/getsentry\/relay/)).toBeInTheDocument();
     expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
@@ -928,6 +1030,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /repository prefix/i}),
       'app/'
     );
+    await userEvent.tab();
 
     expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();

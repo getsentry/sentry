@@ -1,4 +1,6 @@
-import {isCreatedPullRequestState} from 'sentry/components/events/autofix/pullRequests';
+import {defined} from 'sentry/utils/defined';
+
+import {isCreatedPullRequestState} from './pullRequests';
 import {
   getAutofixArtifactFromSection,
   isCodeChangesSection,
@@ -7,8 +9,7 @@ import {
   isRootCauseSection,
   isSolutionSection,
   type AutofixSection,
-} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {defined} from 'sentry/utils/defined';
+} from './useExplorerAutofix';
 
 export type AutofixNextStep =
   | {action: 'root_cause'; section: AutofixSection}

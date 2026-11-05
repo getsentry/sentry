@@ -18,6 +18,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import (
     Action,
@@ -190,7 +191,10 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
     def test_priority_detector(self) -> None:
         """Test priorityDetector param - workflows connected to the specified detector appear first."""
         fresh_org = self.create_organization(name="Fresh Org", owner=self.user)
-        fresh_project = self.create_project(organization=fresh_org)
+        fresh_project = self.create_project(
+            organization=fresh_org,
+            teams=[self.create_team(organization=fresh_org, members=[self.user])],
+        )
 
         workflow_a = self.create_workflow(organization_id=fresh_org.id, name="Workflow A")
         workflow_b = self.create_workflow(organization_id=fresh_org.id, name="Workflow B")
@@ -418,6 +422,36 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
 
         assert str(self.workflow.id) in {workflow["id"] for workflow in response.data}
+
+    def test_no_project_filter_scopes_to_member_projects_in_open_membership_org(self) -> None:
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        member_project = self.create_project(
+            organization=self.organization, teams=[self.create_team(members=[self.user])]
+        )
+        non_member_project = self.create_project(
+            organization=self.organization, teams=[self.create_team()]
+        )
+        non_member_detector = self.create_detector(project=non_member_project)
+        self.create_detector_workflow(
+            workflow=self.workflow, detector=self.create_detector(project=member_project)
+        )
+        self.create_detector_workflow(workflow=self.workflow_two, detector=non_member_detector)
+
+        response = self.get_success_response(self.organization.slug)
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_three.id),
+        }
+
+        for qs_params in (
+            {"project": "-1"},
+            {"project": str(non_member_project.id)},
+            {"id": str(self.workflow_two.id)},
+            {"detector": str(non_member_detector.id)},
+        ):
+            response = self.get_success_response(self.organization.slug, qs_params=qs_params)
+            assert str(self.workflow_two.id) in {w["id"] for w in response.data}, qs_params
 
     def test_query_filter_by_action(self) -> None:
         self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
@@ -713,6 +747,27 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert self._workflow_creation_model_counts() == model_counts
 
+    def test_create_rejects_client_action_id(self) -> None:
+        self._assert_create_rejected_without_writes(
+            {
+                "actionFilters": [
+                    {
+                        "logicType": "any",
+                        "conditions": [],
+                        "actions": [
+                            {
+                                "id": 2**62,
+                                "type": Action.Type.EMAIL,
+                                "config": {"targetType": "issue_owners"},
+                                "data": {},
+                            }
+                        ],
+                    }
+                ]
+            },
+            status_code=400,
+        )
+
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
         response = self.get_success_response(
@@ -811,6 +866,32 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert response.data == serialize(new_workflow)
+
+    def test_create_workflow__condition_result_defaults_to_true(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [{"type": Condition.FIRST_SEEN_EVENT, "comparison": True}],
+        }
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ISSUE_PRIORITY_DEESCALATING.value,
+                        "comparison": PriorityLevel.HIGH,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.data["triggers"]["conditions"][0]["conditionResult"] is True
+        assert response.data["actionFilters"][0]["conditions"][0]["conditionResult"] is True
 
     def test_create_workflow__with_triggers_invalid_logic_type(self) -> None:
         self.valid_workflow["triggers"] = {

@@ -37,7 +37,6 @@ from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 
@@ -99,8 +98,6 @@ class PromoteToLiveTest(TestCase):
     def test_build_and_promote_raises_for_deleted_group(self) -> None:
         nonexistent_group_id = 999999999
         with (
-            # Keep GroupManager's option lookup outside the query budget.
-            override_options({"groups.enable-post-update-signal": False}),
             patch("sentry.issues.derived.promote._drain_log") as drain,
             self.assertNumQueries(1),
             pytest.raises(Group.DoesNotExist),
@@ -749,3 +746,41 @@ class PromoteToLiveTest(TestCase):
         ]
         assert len(failed_calls) == 1
         assert failed_calls[0].kwargs["extra"]["group_id"] == group.id
+
+    def test_batch_continues_after_failed_replay_without_promoting_it(self) -> None:
+        bad_group = self.create_group()
+        good_group = self.create_group()
+        bad = self.create_group_derived_data(bad_group, data={"status": "closed"})
+        self.create_group_action_log_entry(
+            bad_group, type=GroupActionType.RECONCILE_STATUS, data={"status": "invalid"}
+        )
+        self.create_group_action_log_entry(good_group)
+        before = GroupDerivedData.objects.filter(id=bad.id).values().get()
+        result = build_and_promote_batch(
+            [bad_group.id, good_group.id], timeout=timedelta(minutes=1), log_key="test.batch"
+        )
+        assert result.processed == {PromotionResult.PROMOTED: 1}
+        assert result.errors == 1
+        assert result.resume_from_group_id is None
+        assert GroupDerivedData.objects.filter(id=bad.id).values().get() == before
+        assert GroupDerivedData.objects.get(group_id=good_group.id).view_count == 1
+
+    def test_build_and_promote_batch_records_per_group_duration(self) -> None:
+        group = self.create_group()
+        self.create_group_action_log_entry(group)
+
+        with patch("sentry.issues.derived.promote.metrics.distribution") as distribution:
+            build_and_promote_batch([group.id], timeout=timedelta(minutes=1), log_key="test.batch")
+
+        (duration,) = [
+            c
+            for c in distribution.call_args_list
+            if c.args[0] == "issues.derived.build_and_promote_group.duration"
+        ]
+        assert duration.args[1] >= 0
+        assert duration.kwargs["tags"] == {
+            "task": "test.batch",
+            "outcome": "promoted",
+            "resumed": "false",
+        }
+        assert duration.kwargs["unit"] == "second"

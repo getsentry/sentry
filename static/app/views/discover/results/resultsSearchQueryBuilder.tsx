@@ -57,8 +57,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {IssueListSeerComboBox} from 'sentry/views/discover/results/issueListSeerComboBox';
 import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
+
+import {IssueListSeerComboBox} from './issueListSeerComboBox';
 
 type DataProviderProps = {
   customMeasurements?: CustomMeasurementCollection;
@@ -365,7 +366,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
           sort: '-count' as const,
           organization,
         });
-        return results.map(({value}) => value);
+        return results.map(({value}) => value).filter(defined);
       }
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {

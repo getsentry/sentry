@@ -4,13 +4,14 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {makeClosableHeader, ModalBody, ModalFooter} from '@sentry/scraps/modal';
 
-import {SudoModal} from 'sentry/components/modals/sudoModal';
 import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {SuperuserAccessCategoryProps} from 'sentry/types/overrides';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {App} from 'sentry/views/app';
+
+import {SudoModal} from './sudoModal';
 
 function TestAccessCategory({RadioItem}: SuperuserAccessCategoryProps) {
   return <RadioItem value="development">Development</RadioItem>;
@@ -319,6 +320,76 @@ describe('Sudo Modal', () => {
               isSuperuserModal: true,
               superuserAccessCategory: 'cops_csm',
               superuserReason: 'COPS and CSM use',
+            },
+          })
+        );
+      });
+    });
+
+    it('submits the typed reason when pressing Enter', async () => {
+      ConfigStore.set('disableU2FForSUForm', true);
+      const authRequest = MockApiClient.addMockResponse({
+        url: '/auth/',
+        method: 'PUT',
+      });
+
+      renderSuperuserModal();
+
+      await userEvent.click(await screen.findByRole('radio', {name: 'Development'}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Reason for Access'}),
+        'Investigating an issue{Enter}'
+      );
+
+      await waitFor(() => {
+        expect(authRequest).toHaveBeenCalledWith(
+          '/auth/',
+          expect.objectContaining({
+            data: {
+              isSuperuserModal: true,
+              superuserAccessCategory: 'development',
+              superuserReason: 'Investigating an issue',
+            },
+          })
+        );
+      });
+    });
+
+    it('authorizes the current org when starting a superuser session', async () => {
+      ConfigStore.set('disableU2FForSUForm', true);
+      const authRequest = MockApiClient.addMockResponse({
+        url: '/auth/',
+        method: 'PUT',
+      });
+
+      render(
+        <SudoModal
+          Header={makeClosableHeader(jest.fn())}
+          Body={ModalBody}
+          Footer={ModalFooter}
+          closeModal={jest.fn()}
+          accessMode="superuser"
+        />,
+        {
+          initialRouterConfig: {
+            route: '/organizations/:orgId/',
+            location: {pathname: '/organizations/org-slug/'},
+          },
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'COPS/CSM'}));
+
+      await waitFor(() => {
+        expect(authRequest).toHaveBeenCalledWith(
+          '/auth/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: {
+              isSuperuserModal: true,
+              superuserAccessCategory: 'cops_csm',
+              superuserReason: 'COPS and CSM use',
+              superuserOrgSlug: 'org-slug',
             },
           })
         );

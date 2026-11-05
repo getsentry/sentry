@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
+from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from psycopg2 import OperationalError
 from rest_framework import status
@@ -37,7 +37,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
     provider = IntegrationProviderSlug.JIRA.value
 
     @csrf_exempt
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
     def handle_exception_with_details(

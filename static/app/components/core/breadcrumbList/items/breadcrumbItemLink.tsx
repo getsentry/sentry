@@ -1,6 +1,6 @@
 import {Container, Flex} from '@sentry/scraps/layout';
-import type {LinkDestination} from '@sentry/scraps/link';
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
@@ -8,18 +8,18 @@ import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 export type BreadcrumbItemLinkProps = {
   label: string;
   /**
+   * Where the crumb leads. A breadcrumb trail is a path through the product, so
+   * every step in it stays inside the product.
+   */
+  to: LinkProps['to'];
+  /**
    * Decorative 16×16 leading graphic — a `ProjectsBadge`, avatar, or icon.
    * Rendered aria-hidden inside a fixed-size slot; the label carries the meaning.
    */
   leadingGraphic?: React.ReactNode;
-} & LinkDestination;
+};
 
-export function BreadcrumbItemLink({
-  label,
-  to,
-  externalHref,
-  leadingGraphic,
-}: BreadcrumbItemLinkProps) {
+export function BreadcrumbItemLink({label, to, leadingGraphic}: BreadcrumbItemLinkProps) {
   const content = (
     <Text ellipsis variant="muted">
       {label}
@@ -31,28 +31,18 @@ export function BreadcrumbItemLink({
       {/* The visible-width floor lives on the outer Flex above (min-width: 32px).
             Here the label just fills that floored space and ellipsizes within it. */}
       <Container minWidth={0}>
-        {styleProps =>
-          externalHref === undefined ? (
-            <Link
-              to={to}
-              analyticsEventKey="breadcrumbs.link.clicked"
-              analyticsEventName="Breadcrumbs: Link Clicked"
-              analyticsParams={{organization: null}}
-              data-test-id="breadcrumb-link"
-              {...styleProps}
-            >
-              {content}
-            </Link>
-          ) : (
-            <ExternalLink
-              href={externalHref}
-              data-test-id="breadcrumb-link"
-              {...styleProps}
-            >
-              {content}
-            </ExternalLink>
-          )
-        }
+        {styleProps => (
+          <Link
+            to={to}
+            analyticsEventKey="breadcrumbs.link.clicked"
+            analyticsEventName="Breadcrumbs: Link Clicked"
+            analyticsParams={{organization: null}}
+            data-test-id="breadcrumb-link"
+            {...styleProps}
+          >
+            {content}
+          </Link>
+        )}
       </Container>
     </Flex>
   );
