@@ -24,6 +24,22 @@ from sentry.utils.snuba_rpc import SnubaRPCBadRequest
 class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
     endpoint = "sentry-api-0-project-trace-item-details"
 
+    def test_raw_attribute_names_feature_enabled(self) -> None:
+        with self.feature("organizations:trace-item-details-raw-attribute-names"):
+            _, response = self.get_item({})
+
+        assert response.data["attributes"] == [
+            {"name": "sentry.op", "queryName": "span.op", "type": "str", "value": "http.server"}
+        ]
+
+    def test_raw_attribute_names_feature_disabled(self) -> None:
+        with self.feature({"organizations:trace-item-details-raw-attribute-names": False}):
+            _, response = self.get_item({})
+
+        assert response.data["attributes"] == [
+            {"name": "span.op", "type": "str", "value": "http.server"}
+        ]
+
     def test_routing_hint_is_forwarded_unchanged(self) -> None:
         self.assert_routing_hint({"routing_hint": " opaque+/== "}, " opaque+/== ")
 
@@ -106,7 +122,157 @@ class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
         assert response.data == {"detail": "Invalid trace item details request."}
 
 
-def test_convert_rpc_attribute_to_json_serializes_known_string_array_without_array_flag() -> None:
+@pytest.mark.parametrize(
+    "item_type,name,value,output_type,output_value",
+    [
+        (SupportedTraceItemType.SPANS, "sentry.op", {"valStr": "http"}, "str", "http"),
+        (SupportedTraceItemType.SPANS, "sentry.custom", {"valStr": "value"}, "str", "value"),
+        (SupportedTraceItemType.SPANS, "custom.number", {"valInt": "42"}, "int", "42"),
+        (SupportedTraceItemType.SPANS, "custom.bool", {"valBool": True}, "bool", True),
+        (SupportedTraceItemType.SPANS, "span.op", {"valStr": "custom"}, "str", "custom"),
+        (SupportedTraceItemType.LOGS, "sentry.body", {"valStr": "message"}, "str", "message"),
+        (
+            SupportedTraceItemType.LOGS,
+            "sentry.message.parameter.foo",
+            {"valStr": "bar"},
+            "str",
+            "bar",
+        ),
+        (
+            SupportedTraceItemType.SPANS,
+            "custom.array",
+            {"valArray": {"values": [{"valStr": "value"}]}},
+            "array",
+            ["value"],
+        ),
+    ],
+)
+def test_raw_attribute_names(
+    item_type: SupportedTraceItemType,
+    name: str,
+    value: dict[str, Any],
+    output_type: str,
+    output_value: Any,
+) -> None:
+    legacy_attributes = convert_rpc_attribute_to_json(
+        [{"name": name, "value": value}], item_type, include_arrays=True
+    )
+    assert convert_rpc_attribute_to_json(
+        [{"name": name, "value": value}],
+        item_type,
+        include_arrays=True,
+        use_raw_attribute_names=True,
+    ) == [
+        {
+            "name": name,
+            "queryName": legacy_attributes[0]["name"],
+            "type": output_type,
+            "value": output_value,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "name,value,query_name",
+    [
+        ("custom.number", {"valDouble": 1.5}, "tags[custom.number,number]"),
+        ("custom.bool", {"valBool": True}, "tags[custom.bool,boolean]"),
+        (
+            "custom.array",
+            {"valArray": {"values": [{"valStr": "value"}]}},
+            "tags[custom.array,array]",
+        ),
+        ("trace", {"valStr": "custom"}, "tags[trace,string]"),
+        ("trace", {"valDouble": 1.5}, "tags[trace,number]"),
+        ("sentry.trace_id", {"valStr": "a" * 32}, "trace"),
+    ],
+)
+def test_raw_attribute_query_names(name: str, value: dict[str, Any], query_name: str) -> None:
+    result = convert_rpc_attribute_to_json(
+        [{"name": name, "value": value}],
+        SupportedTraceItemType.LOGS,
+        include_arrays=True,
+        use_raw_attribute_names=True,
+    )
+
+    assert result[0]["name"] == name
+    assert result[0]["queryName"] == query_name
+
+
+@pytest.mark.parametrize("include_internal", [False, True])
+def test_raw_attribute_names_preserve_private_visibility(include_internal: bool) -> None:
+    assert (
+        convert_rpc_attribute_to_json(
+            [
+                {"name": "sentry.organization_id", "value": {"valInt": "1"}},
+                {"name": "sentry.item_type", "value": {"valInt": "1"}},
+                {"name": "sentry.links", "value": {"valStr": "[]"}},
+                {"name": "sentry._meta.fields.foo", "value": {"valStr": "{}"}},
+            ],
+            SupportedTraceItemType.SPANS,
+            include_internal=include_internal,
+            use_raw_attribute_names=True,
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize(
+    "visibility,expected_names",
+    [
+        ({}, []),
+        ({"include_internal": True}, ["sentry._internal.custom", "sentry.dsc.environment"]),
+        ({"include_internal_convention_attributes": True}, ["sentry.dsc.environment"]),
+    ],
+)
+def test_raw_attribute_names_preserve_internal_visibility(
+    visibility: dict[str, bool], expected_names: list[str]
+) -> None:
+    result = convert_rpc_attribute_to_json(
+        [
+            {"name": "sentry._internal.custom", "value": {"valStr": "value"}},
+            {"name": "sentry.dsc.environment", "value": {"valStr": "production"}},
+        ],
+        SupportedTraceItemType.SPANS,
+        use_raw_attribute_names=True,
+        **visibility,
+    )
+    assert [attribute["name"] for attribute in result] == expected_names
+
+
+@pytest.mark.parametrize("use_raw_attribute_names", [False, True])
+def test_raw_attribute_names_preserve_array_visibility(use_raw_attribute_names: bool) -> None:
+    assert (
+        convert_rpc_attribute_to_json(
+            [{"name": "custom.array", "value": {"valArray": {"values": [{"valStr": "value"}]}}}],
+            SupportedTraceItemType.SPANS,
+            use_raw_attribute_names=use_raw_attribute_names,
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize(
+    "name,value", [("sentry.op", {"valStr": "http"}), ("custom.number", {"valInt": "42"})]
+)
+def test_serialize_meta_raw_attribute_names(name: str, value: dict[str, str]) -> None:
+    assert serialize_meta(
+        [
+            {"name": name, "value": value},
+            {"name": f"sentry._meta.fields.attributes.{name}", "value": {"valStr": '{"foo": 1}'}},
+        ],
+        SupportedTraceItemType.SPANS,
+        use_raw_attribute_names=True,
+    ) == {name: {"foo": 1}}
+
+
+@pytest.mark.parametrize(
+    "use_raw_attribute_names,query_fields",
+    [(False, {}), (True, {"queryName": "gen_ai.output.messages"})],
+)
+def test_convert_rpc_attribute_to_json_serializes_known_string_array_without_array_flag(
+    use_raw_attribute_names: bool, query_fields: dict[str, str]
+) -> None:
     result = convert_rpc_attribute_to_json(
         [
             {
@@ -115,6 +281,7 @@ def test_convert_rpc_attribute_to_json_serializes_known_string_array_without_arr
             }
         ],
         SupportedTraceItemType.SPANS,
+        use_raw_attribute_names=use_raw_attribute_names,
     )
 
     assert result == [
@@ -122,6 +289,7 @@ def test_convert_rpc_attribute_to_json_serializes_known_string_array_without_arr
             "name": "gen_ai.output.messages",
             "type": "str",
             "value": '["assistant output"]',
+            **query_fields,
         }
     ]
 
@@ -294,13 +462,17 @@ class TestReplacementAttributeFiltering:
         assert len(result) == 1
         assert result[0]["name"] == attr_name
 
-    def test_replacement_attribute_hidden_when_normalized_source_present(self) -> None:
+    @pytest.mark.parametrize("use_raw_attribute_names", [False, True])
+    def test_replacement_attribute_hidden_when_normalized_source_present(
+        self, use_raw_attribute_names: bool
+    ) -> None:
         result = convert_rpc_attribute_to_json(
             [
                 {"name": "gen_ai.tool.output", "value": {"valStr": "result"}},
                 {"name": "gen_ai.tool.call.result", "value": {"valStr": "result"}},
             ],
             SupportedTraceItemType.SPANS,
+            use_raw_attribute_names=use_raw_attribute_names,
         )
 
         names = [r["name"] for r in result]

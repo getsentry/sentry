@@ -117,6 +117,7 @@ def convert_rpc_attribute_to_json(
     include_internal: bool = False,
     include_arrays: bool = False,
     include_internal_convention_attributes: bool = False,
+    use_raw_attribute_names: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
     all_internal_names = {attr["name"] for attr in attributes}
@@ -196,13 +197,14 @@ def convert_rpc_attribute_to_json(
         if external_name == "trace" and isinstance(output_value, str):
             output_value = output_value.replace("-", "")
 
-        result.append(
-            TraceItemAttribute(
-                name=external_name,
-                type=output_type,
-                value=output_value,
-            )
+        result_attribute = TraceItemAttribute(
+            name=attribute["name"] if use_raw_attribute_names else external_name,
+            type=output_type,
+            value=output_value,
         )
+        if use_raw_attribute_names:
+            result_attribute["queryName"] = external_name
+        result.append(result_attribute)
 
     return sorted(result, key=lambda x: (x["type"], x["name"]))
 
@@ -210,6 +212,7 @@ def convert_rpc_attribute_to_json(
 def serialize_meta(
     attributes: list[dict[str, Any]],
     trace_item_type: SupportedTraceItemType,
+    use_raw_attribute_names: bool = False,
 ) -> dict[str, Any]:
     internal_name = ""
     attribute = {}
@@ -244,6 +247,9 @@ def serialize_meta(
             result = json.loads(attribute["value"]["valStr"])
             # Map the internal field key name back to its public name
             if (field_attribute := get_attribute(attribute_map, field_key)) is not None:
+                if use_raw_attribute_names:
+                    meta_result[field_key] = result
+                    continue
                 item_type: Literal["string", "number", "boolean"]
                 if (
                     "valInt" in field_attribute
@@ -525,6 +531,12 @@ class ProjectTraceItemDetailsEndpoint(ConditionalGetResponseMixin, ProjectEndpoi
             actor=request.user,
         )
 
+        use_raw_attribute_names = features.has(
+            "organizations:trace-item-details-raw-attribute-names",
+            project.organization,
+            actor=request.user,
+        )
+
         include_internal = is_active_superuser(request) or is_active_staff(request)
         include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
 
@@ -537,8 +549,11 @@ class ProjectTraceItemDetailsEndpoint(ConditionalGetResponseMixin, ProjectEndpoi
                 include_internal=include_internal,
                 include_internal_convention_attributes=include_internal_convention_attributes,
                 include_arrays=include_arrays,
+                use_raw_attribute_names=use_raw_attribute_names,
             ),
-            "meta": serialize_meta(resp["attributes"], item_type),
+            "meta": serialize_meta(
+                resp["attributes"], item_type, use_raw_attribute_names=use_raw_attribute_names
+            ),
             "links": serialize_links(resp["attributes"]),
         }
 

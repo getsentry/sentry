@@ -98,6 +98,7 @@ ScalarValueType = float | bool | str
 
 class TraceItemAttribute(TypedDict):
     name: str
+    queryName: NotRequired[str]
     type: ScalarType | Literal["array"]
     value: str | int | float | bool | list[str | int | float | bool] | None
 
