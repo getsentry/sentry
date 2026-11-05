@@ -419,8 +419,7 @@ interface TourGuideProps extends Omit<
   margin?: number;
   offset?: UseOverlayProps['offset'];
   /**
-   * Handles keys pressed while focus is inside the guide. The guide can then be
-   * focused, and returns focus to the page when it closes.
+   * Handles keys pressed while focus is inside the guide.
    */
   onKeyDown?: (event: React.KeyboardEvent) => void;
   position?: UseOverlayProps['position'];
@@ -494,17 +493,16 @@ export function TourGuide({
     }
   }, [isOpen, triggerRef]);
 
-  const isFocusable = defined(onKeyDown);
   useEffect(() => {
     const overlay = overlayRef.current;
     // The guide's element attaches after it opens, and this runs again then.
-    if (!isOpen || !isFocusable || !overlay) {
+    if (!isOpen || !overlay) {
       return;
     }
     if (focusHandoffRef?.current) {
       focusHandoffRef.current = false;
-      overlay.focus();
     }
+    overlay.focus({preventScroll: true});
     const returnFocusTarget = returnFocusRef?.current ?? triggerRef.current;
     let hasFocus = overlay.contains(document.activeElement);
     const handleFocusIn = () => {
@@ -533,11 +531,9 @@ export function TourGuide({
         }
       }
     };
-  }, [isOpen, isFocusable, overlayRef, triggerRef, focusHandoffRef, returnFocusRef]);
+  }, [isOpen, overlayRef, triggerRef, focusHandoffRef, returnFocusRef]);
 
-  const focusProps: HTMLAttributes<HTMLElement> = isFocusable
-    ? {tabIndex: -1, onKeyDown}
-    : {};
+  const focusProps: HTMLAttributes<HTMLElement> = {tabIndex: -1, onKeyDown};
 
   return (
     <Fragment>

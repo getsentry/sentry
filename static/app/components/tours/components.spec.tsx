@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {TourAction, TourContextProvider, TourElement, TourGuide} from './components';
 import {
@@ -340,6 +340,11 @@ describe('Tour Components', () => {
       expect(screen.getByRole('button', {name: 'Test Action'})).toBeInTheDocument();
       expect(screen.getByText('50/100')).toBeInTheDocument();
       expect(screen.getByText('Child Element')).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByText('Test Title').closest('[tabindex="-1"]')).toHaveFocus()
+      );
+      await userEvent.tab();
+      expect(screen.getByRole('button', {name: 'Close'})).toHaveFocus();
       await userEvent.click(screen.getByRole('button', {name: 'Close'}));
       expect(mockHandleDismiss).toHaveBeenCalled();
     });

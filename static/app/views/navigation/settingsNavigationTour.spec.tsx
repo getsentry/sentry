@@ -119,10 +119,13 @@ describe('Settings navigation tour', () => {
   it('handles Escape only while the guide has focus', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'entry'}));
     await userEvent.keyboard('{Escape}');
     expect(screen.getByText('Tour entry')).toBeInTheDocument();
 
-    await userEvent.tab({shift: true});
+    await userEvent.tab();
+    await userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
@@ -145,7 +148,8 @@ describe('Settings navigation tour', () => {
   it('moves focus to the next guide when the tour changes step from the guide', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
-    await userEvent.tab({shift: true});
+    await userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
     await userEvent.keyboard('{Enter}');
     expect(await screen.findByText('Tour projects')).toBeInTheDocument();
@@ -160,17 +164,22 @@ describe('Settings navigation tour', () => {
   it('returns focus to the highlighted element when a focused guide closes', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
-    await userEvent.tab({shift: true});
+    await userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'entry'})).toHaveFocus();
   });
 
-  it('does not take focus when the guide opens on its own', async () => {
+  it('focuses the guide when it opens on page load', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
-    expect(screen.getByText('Tour entry').closest('[tabindex="-1"]')).not.toHaveFocus();
+    await waitFor(() =>
+      expect(screen.getByText('Tour entry').closest('[tabindex="-1"]')).toHaveFocus()
+    );
+    await userEvent.tab();
+    expect(screen.getByRole('button', {name: 'Close'})).toHaveFocus();
   });
 
   it('marks the guide as viewed once it is shown, and only once', async () => {
