@@ -11,7 +11,7 @@ import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';

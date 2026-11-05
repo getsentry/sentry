@@ -1,13 +1,14 @@
 import logging
 from typing import TypedDict
 
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
+from sentry.agent_handoff.applications import get_handoff_application
 from sentry.agent_handoff.codes import issue_handoff
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -17,7 +18,6 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, Organ
 from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import require_user
-from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -98,20 +98,8 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         if organization_context.member is None:
             return Response({"detail": "Organization membership is required."}, status=403)
 
-        client_id = options.get("onboarding.agent-handoff.client-id")
-        application = ApiApplication.objects.filter(
-            client_id=client_id, status=ApiApplicationStatus.active
-        ).first()
-        if (
-            not client_id
-            or client_id not in options.get("oauth.setup-code.allowed-client-ids")
-            or application is None
-            or not application.is_public
-            or (
-                application.requires_org_level_access
-                and not set(HANDOFF_SCOPES).issubset(application.scopes)
-            )
-        ):
+        application = get_handoff_application(HANDOFF_SCOPES)
+        if application is None:
             return Response({"detail": "Agent onboarding is not configured."}, status=503)
 
         issued = issue_handoff(
@@ -121,7 +109,7 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
             scope_list=HANDOFF_SCOPES,
         )
         # Fragments are withheld from HTTP requests, including access logs and previews.
-        guide_url = f"{absolute_uri('/onboard/')}#{issued.code}"
+        guide_url = f"{absolute_uri(reverse('sentry-agent-handoff'))}#{issued.code}"
         data: AgentHandoffResponse = {
             "prompt": f"Follow these instructions to get started with Sentry:\n{guide_url}",
             "guideUrl": guide_url,

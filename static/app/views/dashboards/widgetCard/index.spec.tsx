@@ -119,7 +119,6 @@ describe('Dashboards > WidgetCard', () => {
     },
   };
 
-  const api = new MockApiClient();
   let eventsMock: jest.Mock;
 
   const widgetLegendState = new WidgetLegendSelectionState({
@@ -165,7 +164,6 @@ describe('Dashboards > WidgetCard', () => {
     const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={multipleQueryWidget}
         selection={selection}
         onDelete={() => {}}
@@ -188,7 +186,6 @@ describe('Dashboards > WidgetCard', () => {
   it('renders with Open in Explore button', async () => {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]!]}}
         selection={selection}
         onDelete={() => {}}
@@ -210,7 +207,6 @@ describe('Dashboards > WidgetCard', () => {
   it('renders widget description in dashboard', async () => {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={multipleQueryWidget}
         selection={selection}
         onDelete={() => {}}
@@ -229,7 +225,6 @@ describe('Dashboards > WidgetCard', () => {
   it('renders Open in Explore button with prepended fields pulled from equations', async () => {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           queries: [
@@ -265,7 +260,6 @@ describe('Dashboards > WidgetCard', () => {
   it('renders button to open Explore with Top N', async () => {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TOP_N,
@@ -299,7 +293,6 @@ describe('Dashboards > WidgetCard', () => {
   it('allows Open in Explore when the widget contains custom measurements', async () => {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.LINE,
@@ -334,7 +327,6 @@ describe('Dashboards > WidgetCard', () => {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
@@ -359,7 +351,6 @@ describe('Dashboards > WidgetCard', () => {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
@@ -384,7 +375,6 @@ describe('Dashboards > WidgetCard', () => {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
@@ -412,7 +402,6 @@ describe('Dashboards > WidgetCard', () => {
   ])('explains why %s is disabled on Sentry Built dashboards', async (name, message) => {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
@@ -441,7 +430,6 @@ describe('Dashboards > WidgetCard', () => {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
@@ -473,7 +461,6 @@ describe('Dashboards > WidgetCard', () => {
 
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
@@ -506,7 +493,6 @@ describe('Dashboards > WidgetCard', () => {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
@@ -534,6 +520,87 @@ describe('Dashboards > WidgetCard', () => {
     });
   });
 
+  it('uses the selection prop when page filters differ', async () => {
+    PageFiltersStore.onInitializeUrlState({
+      projects: [2],
+      environments: [],
+      datetime: {period: '7d', start: null, end: null, utc: false},
+    });
+
+    renderWithProviders(
+      <WidgetCard
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
+        }}
+        selection={selection}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
+        showContextMenu
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />
+    );
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
+
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({statsPeriod: '14d', project: '1'}),
+        })
+      );
+    });
+    expect(eventsMock).not.toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({query: expect.objectContaining({project: '2'})})
+    );
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Explore'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/errors/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
+    );
+  });
+
+  it('uses the page filter selection when no selection prop is passed', async () => {
+    PageFiltersStore.onInitializeUrlState({
+      projects: [2],
+      environments: [],
+      datetime: {period: '7d', start: null, end: null, utc: false},
+    });
+
+    renderWithProviders(
+      <WidgetCard
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
+        }}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
+        showContextMenu
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />
+    );
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
+
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({statsPeriod: '7d', project: '2'}),
+        })
+      );
+    });
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Explore'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/errors/results/?field=count%28%29&field=failure_count%28%29&name=Errors&project=2&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=7d&yAxis=count%28%29&yAxis=failure_count%28%29'
+    );
+  });
+
   it('has sticky table headers and scroll', async () => {
     const tableWidget: Widget = {
       title: 'Table Widget',
@@ -554,7 +621,6 @@ describe('Dashboards > WidgetCard', () => {
 
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={tableWidget}
         selection={selection}
         onDelete={() => {}}
@@ -596,7 +662,6 @@ describe('Dashboards > WidgetCard', () => {
     };
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={widget}
         selection={selection}
         onDelete={() => {}}
@@ -632,7 +697,6 @@ describe('Dashboards > WidgetCard', () => {
 
     const {router} = renderWithProviders(
       <WidgetCard
-        api={api}
         widget={widget}
         selection={selection}
         onDelete={() => {}}
@@ -659,7 +723,6 @@ describe('Dashboards > WidgetCard', () => {
     const onNuqsUrlUpdate = jest.fn();
     const {router} = render(
       <WidgetCard
-        api={api}
         widget={multipleQueryWidget}
         selection={selection}
         onDelete={() => {}}
@@ -693,7 +756,6 @@ describe('Dashboards > WidgetCard', () => {
   it('does not render description for text display type widgets', async () => {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TEXT,
@@ -717,7 +779,6 @@ describe('Dashboards > WidgetCard', () => {
   it('displays the transaction deprecation warning and explore links for transaction widgets', async () => {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={transactionQueryWidget}
         selection={selection}
         onDelete={() => {}}
@@ -756,7 +817,6 @@ describe('Dashboards > WidgetCard', () => {
     it('does not show Open in Explore for spans widget without visibility-explore-view', async () => {
       renderWithProviders(
         <WidgetCard
-          api={api}
           widget={spansWidget}
           selection={selection}
           onDelete={() => {}}
@@ -775,7 +835,6 @@ describe('Dashboards > WidgetCard', () => {
     it('links multi-query metrics widgets to the metrics explorer', async () => {
       renderWithProviders(
         <WidgetCard
-          api={api}
           widget={{
             ...spansWidget,
             widgetType: WidgetType.TRACEMETRICS,
@@ -812,7 +871,6 @@ describe('Dashboards > WidgetCard', () => {
       async widgetType => {
         renderWithProviders(
           <WidgetCard
-            api={api}
             widget={{
               ...spansWidget,
               widgetType,
@@ -848,7 +906,6 @@ describe('Dashboards > WidgetCard', () => {
     it('shows Open in Explore for spans widget with visibility-explore-view', async () => {
       renderWithProviders(
         <WidgetCard
-          api={api}
           widget={spansWidget}
           selection={selection}
           onDelete={() => {}}
@@ -888,7 +945,6 @@ describe('Dashboards > WidgetCard', () => {
     function renderWithDashboardFilters(dashboardFilters: DashboardFilters) {
       renderWithProviders(
         <WidgetCard
-          api={api}
           widget={spanWidget}
           selection={selection}
           onDelete={() => {}}
