@@ -198,6 +198,13 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         if project_ids:
             rpes = rpes.filter(project_id__in=project_ids)
 
+        # Callers pass either environment names or ids.
+        (environment,) = environments
+        if isinstance(environment, int):
+            rpes = rpes.filter(environment_id=environment)
+        else:
+            rpes = rpes.filter(environment__name=environment)
+
         query = Q()
         if operator == "IN":
             for stage in value:

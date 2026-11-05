@@ -42,7 +42,7 @@ from sentry.models.releaseactivity import ReleaseActivity
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
-from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.search.events.filter import parse_semver
@@ -1659,6 +1659,109 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("exact", "123a*", [release_3])
         self.run_test("exact", "123ab", [])
         self.run_test("exact", "123abc", [release_3])
+
+
+class ReleaseFilterByStageTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.production = self.create_environment(name="production", project=self.project)
+        self.staging = self.create_environment(name="staging", project=self.project)
+        now = timezone.now()
+
+        # Adopted in production, low adoption in staging.
+        self.adopted_in_production = self.create_release(
+            version="adopted-in-production",
+            environments=[self.production, self.staging],
+            adopted=now,
+        )
+        ReleaseProjectEnvironment.objects.filter(
+            release=self.adopted_in_production, environment=self.staging
+        ).update(adopted=None)
+
+        # Adopted in production, replaced in staging.
+        self.replaced_in_staging = self.create_release(
+            version="replaced-in-staging",
+            environments=[self.production, self.staging],
+            adopted=now,
+        )
+        ReleaseProjectEnvironment.objects.filter(
+            release=self.replaced_in_staging, environment=self.staging
+        ).update(unadopted=now)
+
+    def run_test(
+        self,
+        operator: str,
+        stage: str | list[str],
+        environment: str | int,
+        expected_releases: list[Release],
+    ) -> None:
+        assert set(
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                operator,
+                stage,
+                project_ids=[self.project.id],
+                environments=[environment],
+            )
+        ) == set(expected_releases)
+
+    def test_stage_is_scoped_to_environment(self) -> None:
+        self.run_test(
+            "=",
+            ReleaseStages.ADOPTED,
+            "production",
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+        self.run_test("=", ReleaseStages.ADOPTED, "staging", [])
+        self.run_test("=", ReleaseStages.LOW_ADOPTION, "production", [])
+        self.run_test("=", ReleaseStages.LOW_ADOPTION, "staging", [self.adopted_in_production])
+        self.run_test("=", ReleaseStages.REPLACED, "production", [])
+        self.run_test("=", ReleaseStages.REPLACED, "staging", [self.replaced_in_staging])
+
+    def test_negated_stage_is_scoped_to_environment(self) -> None:
+        self.run_test("!=", ReleaseStages.ADOPTED, "production", [])
+        self.run_test(
+            "!=",
+            ReleaseStages.ADOPTED,
+            "staging",
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+
+    def test_multiple_stages_are_scoped_to_environment(self) -> None:
+        self.run_test(
+            "IN",
+            [ReleaseStages.ADOPTED, ReleaseStages.REPLACED],
+            "staging",
+            [self.replaced_in_staging],
+        )
+
+    def test_environment_id(self) -> None:
+        self.run_test(
+            "=",
+            ReleaseStages.ADOPTED,
+            self.production.id,
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+        self.run_test("=", ReleaseStages.ADOPTED, self.staging.id, [])
+        self.run_test(
+            "=", ReleaseStages.LOW_ADOPTION, self.staging.id, [self.adopted_in_production]
+        )
+
+    def test_unknown_environment(self) -> None:
+        self.run_test("=", ReleaseStages.ADOPTED, "does-not-exist", [])
+
+    def test_requires_single_environment(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="Choose a single environment"):
+            Release.objects.filter_by_stage(
+                self.organization.id, "=", ReleaseStages.ADOPTED, environments=None
+            )
+        with pytest.raises(InvalidSearchQuery, match="Choose a single environment"):
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                "=",
+                ReleaseStages.ADOPTED,
+                environments=["production", "staging"],
+            )
 
 
 class FollowsSemverVersioningSchemeTestCase(TestCase):
