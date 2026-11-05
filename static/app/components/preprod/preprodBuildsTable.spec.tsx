@@ -2,11 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
-import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {getInstallBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+
+import {PreprodBuildsDisplay} from './preprodBuildsDisplay';
+import {PreprodBuildsTable} from './preprodBuildsTable';
 
 const organization = OrganizationFixture();
 

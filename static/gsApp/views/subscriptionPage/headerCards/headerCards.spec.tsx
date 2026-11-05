@@ -23,6 +23,7 @@ describe('HeaderCards', () => {
         creditPriceCents: 1,
         included: {total: 500, remaining: 500, resetsAt: null},
         purchased: {total: 0, remaining: 0, expiresAt: null},
+        percentUsed: 0,
       },
     });
     MockApiClient.addMockResponse({

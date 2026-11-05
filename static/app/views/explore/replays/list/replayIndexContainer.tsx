@@ -14,7 +14,8 @@ import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ReplayIndexTable} from 'sentry/views/explore/replays/list/replayIndexTable';
+
+import {ReplayIndexTable} from './replayIndexTable';
 
 const replayListParsers = {
   ...pageFilterParsers,

@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
+import {CollapsibleContent} from './collapsibleContent';
 
 describe('CollapsibleContent', () => {
   it('renders the title and keeps content in the DOM when collapsed', () => {

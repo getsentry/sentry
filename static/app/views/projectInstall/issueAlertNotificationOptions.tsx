@@ -15,8 +15,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
-import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+
+import type {RequestDataFragment} from './issueAlertOptions';
+import {MessagingIntegrationAlertRule} from './messagingIntegrationAlertRule';
 import {
   buildIntegrationAction,
   getChannelTarget,
@@ -25,7 +26,7 @@ import {
   MultipleCheckboxOptions,
   type NotificationSelection,
   providerDetails,
-} from 'sentry/views/projectInstall/messagingIntegrationTypes';
+} from './messagingIntegrationTypes';
 
 /**
  * Result of resolving the initial notification-picker selection, computed

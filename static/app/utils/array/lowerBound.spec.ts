@@ -1,5 +1,6 @@
-import {lowerBound} from 'sentry/utils/array/lowerBound';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+
+import {lowerBound} from './lowerBound';
 
 describe('lowerBound', () => {
   it.each([

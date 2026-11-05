@@ -40,6 +40,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
@@ -86,13 +87,18 @@ detector_search_config = SearchConfig.create_from(
 parse_detector_query = partial(base_parse_search_query, config=detector_search_config)
 
 
-def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], user: User) -> Q:
+def convert_assignee_values(
+    value: Iterable[str], projects: Sequence[Project], user: RequestPrincipal
+) -> Q:
     """
     Convert an assignee search value to a Django Q object for filtering detectors.
     """
     actors_or_none: list[RpcUser | Team | None] = convert_actor_or_none_value(
         value, projects, user, None
     )
+    if not actors_or_none:
+        # my_teams for a caller with no teams; Q() would match every detector
+        return Q(pk__in=[])
     assignee_query = Q()
     for actor in actors_or_none:
         if isinstance(actor, (User, RpcUser)):

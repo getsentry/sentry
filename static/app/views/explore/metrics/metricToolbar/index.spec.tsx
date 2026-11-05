@@ -5,7 +5,6 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
-import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -14,6 +13,8 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {Filter} from './filter';
 
 jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
   const actual = jest.requireActual(

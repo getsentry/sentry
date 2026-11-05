@@ -60,6 +60,7 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.feature.dispatch import project_stopping_point, should_use_single_run
 from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
 from sentry.seer.autofix.pr_iteration.manual_trigger import handle_ui_feedback
 from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
@@ -265,11 +266,6 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer[dict[str, Any]]):
         required=False,
         help_text="Referrer identifying where the issue fix was triggered from.",
     )
-    enable_bash_mode = serializers.BooleanField(
-        required=False,
-        default=False,
-        help_text="Override bash mode tools.",
-    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -353,7 +349,16 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
-        _require_publish_scope(request, group, step, {stopping_point})
+        stopping_points = {stopping_point}
+        is_new_run = data.get("sentry_run_id") is None and data.get("run_id") is None
+        if (
+            stopping_point is None
+            and is_new_run
+            and should_use_single_run(group, step)
+            and project_stopping_point(group.project) == AutofixStoppingPoint.OPEN_PR
+        ):
+            stopping_points.add(AutofixStoppingPoint.OPEN_PR.value)
+        _require_publish_scope(request, group, step, stopping_points)
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
@@ -565,7 +570,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=acting_user(request.user),
-                        enable_bash_mode=data.get("enable_bash_mode", False),
                         # TRIGGER_AUTOFIX attributes a kickoff, so only steps the
                         # user continues (or codes directly) carry them as the actor.
                         actor_user_id=(

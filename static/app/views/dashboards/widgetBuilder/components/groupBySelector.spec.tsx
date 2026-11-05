@@ -5,8 +5,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {TagStore} from 'sentry/stores/tagStore';
 import {decodeList} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+
+import {WidgetBuilderGroupBySelector} from './groupBySelector';
 
 const organization = OrganizationFixture({
   features: [],

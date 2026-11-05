@@ -275,9 +275,8 @@ def _is_request_user_type_check(node: ast.AST) -> bool:
 
 
 # Lower these as callers move off. Exact, so the baseline can't drift back up.
-REQUEST_USER_ID_BASELINE = 134
+REQUEST_USER_ID_BASELINE = 123
 REQUEST_USER_TYPE_CHECK_BASELINE = 29
-REQUEST_USER_ALLOWLIST_BASELINE = 22
 
 
 def test_request_user_id_uses_only_go_down() -> None:
@@ -302,20 +301,4 @@ def test_request_user_type_checks_only_go_down() -> None:
     assert count == REQUEST_USER_TYPE_CHECK_BASELINE, (
         f"request.user type checks dropped to {count}; lower "
         "REQUEST_USER_TYPE_CHECK_BASELINE to match."
-    )
-
-
-def test_request_user_mypy_allowlist_only_goes_down() -> None:
-    allowlist = "tools/mypy_helpers/request_user_allowlist.txt"
-    paths = (ROOT / allowlist).read_text().split()
-    missing = [path for path in paths if not (ROOT / path).is_file()]
-    assert not missing, f"Remove deleted files from {allowlist}: {missing}"
-    count = len(paths)
-    assert count <= REQUEST_USER_ALLOWLIST_BASELINE, (
-        f"{count - REQUEST_USER_ALLOWLIST_BASELINE} new file(s) in {allowlist}, where mypy "
-        "doesn't know request.user can be a service account. Don't add to it: narrow with "
-        "has_user(request.user), acting_user_id(request.user) or require_user(request)."
-    )
-    assert count == REQUEST_USER_ALLOWLIST_BASELINE, (
-        f"{allowlist} dropped to {count} files; lower REQUEST_USER_ALLOWLIST_BASELINE to match."
     )

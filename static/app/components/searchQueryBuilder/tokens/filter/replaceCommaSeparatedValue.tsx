@@ -1,4 +1,4 @@
-import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
+import {parseMultiSelectFilterValue} from './parsers/string/parser';
 
 /**
  * Replaces the focused parameter (at cursorPosition) with the new value.

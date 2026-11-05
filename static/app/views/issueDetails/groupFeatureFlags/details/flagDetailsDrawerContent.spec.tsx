@@ -1,3 +1,4 @@
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 import {GroupFixture} from 'sentry-fixture/group';
 
 import {
@@ -20,8 +21,14 @@ const pageLinks =
   '<https://sentry.io/api/0/organizations/org-slug/flags/logs/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
   '<https://sentry.io/api/0/organizations/org-slug/flags/logs/?cursor=0:50:0>; rel="next"; results="true"; cursor="0:50:0"';
 
+// The testing adapter briefly re-reads the pre-write cursor and refetches both pages, so a late fetch can outlive the mocks.
+function ProductionNuqsAdapter({children}: {children?: React.ReactNode}) {
+  return <NuqsAdapter defaultOptions={{shallow: false}}>{children}</NuqsAdapter>;
+}
+
 describe('FlagDetailsDrawerContent', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/');
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
       query: {flag: 'test-flag-key'},
@@ -247,19 +254,28 @@ describe('FlagDetailsDrawerContent', () => {
       },
       headers: {Link: pageLinks},
     });
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+      match: [MockApiClient.matchQuery({cursor: '0:50:0'})],
+    });
 
     const group = GroupFixture();
     const {router} = render(
       <GroupDataContextProvider group={group} project={group.project}>
         <FlagDetailsDrawerContent group={group} />
-      </GroupDataContextProvider>
+      </GroupDataContextProvider>,
+      {additionalWrapper: ProductionNuqsAdapter}
     );
+    const historyLength = window.history.length;
 
     await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
 
     await waitFor(() => {
       expect(router.location.query.flagDrawerCursor).toBe('0:50:0');
     });
+    expect(window.history).toHaveLength(historyLength + 1);
+    await waitFor(() => expect(nextPageRequest).toHaveBeenCalled());
     expect(trackAnalytics).toHaveBeenCalledWith(
       'flags.logs-paginated',
       expect.objectContaining({

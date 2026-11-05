@@ -30,7 +30,8 @@ import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedS
 import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsernames';
 import {escapeIssueTagKey} from 'sentry/utils/queryString';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
+
+import {useFetchOrganizationFeatureFlags} from './useFetchOrganizationFeatureFlags';
 
 type UseFetchIssueTagsParams = {
   org: Organization;

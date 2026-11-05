@@ -11,7 +11,6 @@ import classNames from 'classnames';
 import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {defined} from '@sentry/scraps/defined';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Text} from '@sentry/scraps/text';
@@ -183,7 +182,7 @@ export function Alert({
   ...props
 }: AlertProps) {
   const {t} = useTranslation();
-  const showExpand = defined(expand);
+  const showExpand = expand != null;
   const [isExpanded, setIsExpanded] = useState(!!props.defaultExpanded);
 
   const expandRef = useRef<HTMLDivElement>(null);

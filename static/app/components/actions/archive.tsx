@@ -6,10 +6,10 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {openModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {CustomIgnoreCountModal} from 'sentry/components/customIgnoreCountModal';
 import {CustomIgnoreDurationModal} from 'sentry/components/customIgnoreDurationModal';

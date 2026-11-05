@@ -8,19 +8,10 @@ import {toast} from '@sentry/scraps/toast';
 
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {
-  ActionRequestApply,
-  ActionRequestDetails,
-  getAppliedSummary,
-  getApplyErrorMessage,
-  getApplySuccessMessage,
-  getCannotApplyMessage,
-  useApplyCheck,
-} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
-import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
 import {
   canRetryFollowUp,
   isFollowUpPending,
@@ -36,6 +27,17 @@ import type {
 } from 'sentry/views/investigations/types';
 import {getActorName} from 'sentry/views/investigations/utils';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {
+  ActionRequestApply,
+  ActionRequestDetails,
+  getAppliedSummary,
+  getApplyErrorMessage,
+  getApplySuccessMessage,
+  getCannotApplyMessage,
+  useApplyCheck,
+} from './actionRequestDetails';
+import type {ApplyCheck} from './applyButton';
 
 const CURRENT_STATES = new Set<InvestigationActionRequest['state']>([
   'suggested',
@@ -124,6 +126,32 @@ export function ActionRequestCard({
       },
     }
   );
+
+  const shown = isShownActionRequest(actionRequest);
+  const actionKind = actionRequest.action?.kind ?? 'advice';
+  const {id: actionRequestId, state} = actionRequest;
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  useEffect(() => {
+    if (shown) {
+      trackAnalytics('seer.investigation.action_request.shown', {
+        organization,
+        action_kind: actionKind,
+        action_request_id: actionRequestId,
+        investigation_id: investigationId,
+        state: stateRef.current,
+      });
+    }
+  }, [shown, organization, actionKind, actionRequestId, investigationId]);
+  const analyticsParams = {
+    organization,
+    action_kind: actionKind,
+    action_request_id: actionRequestId,
+    investigation_id: investigationId,
+    state,
+  };
 
   const previousCheckStatus = useRef(check.status);
   const {error: applyMutationError, reset: resetApplyMutation} = applyMutation;
@@ -254,7 +282,16 @@ export function ActionRequestCard({
         applying={applying}
         check={check}
         finishing={finishing}
-        onApply={() => applyMutation.mutate(actionRequest)}
+        onApply={() => {
+          trackAnalytics('seer.investigation.action_request.applied', analyticsParams);
+          applyMutation.mutate(actionRequest);
+        }}
+        onLinkClick={link =>
+          trackAnalytics('seer.investigation.action_request.link_clicked', {
+            ...analyticsParams,
+            link,
+          })
+        }
         onRecheck={() => recheckMutation.mutate(actionRequest)}
         rechecking={rechecking}
       />
