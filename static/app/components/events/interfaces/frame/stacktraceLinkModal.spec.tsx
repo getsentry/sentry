@@ -15,8 +15,9 @@ import {
 
 import {openModal} from '@sentry/scraps/modal';
 
-import {StacktraceLinkModal} from 'sentry/components/events/interfaces/frame/stacktraceLinkModal';
 import * as analytics from 'sentry/utils/analytics';
+
+import {StacktraceLinkModal} from './stacktraceLinkModal';
 
 jest.mock('sentry/utils/analytics');
 

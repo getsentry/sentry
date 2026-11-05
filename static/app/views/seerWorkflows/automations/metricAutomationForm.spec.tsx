@@ -9,10 +9,11 @@ import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import AutomationDetail from 'sentry/views/seerWorkflows/automations/detail';
-import AutomationConfiguration from 'sentry/views/seerWorkflows/automations/detail/configuration';
-import {MetricAutomationForm} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
-import NewMetricAutomation from 'sentry/views/seerWorkflows/automations/new';
+
+import AutomationConfiguration from './detail/configuration';
+import AutomationDetail from './detail';
+import {MetricAutomationForm} from './metricAutomationForm';
+import NewMetricAutomation from './new';
 
 describe('MetricAutomationForm', () => {
   const organization = OrganizationFixture({

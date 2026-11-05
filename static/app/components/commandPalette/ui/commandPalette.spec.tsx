@@ -36,18 +36,16 @@ import * as modalActions from '@sentry/scraps/modal';
 
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
-import {
-  CMDKAction,
-  CommandPaletteProvider,
-} from 'sentry/components/commandPalette/ui/cmdk';
-import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import type {CommandPaletteDispatch} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+
+import {CMDKAction, CommandPaletteProvider} from './cmdk';
+import {CommandPalette} from './commandPalette';
+import {CommandPaletteSlot} from './commandPaletteSlot';
+import type {CommandPaletteDispatch} from './commandPaletteStateContext';
 import {
   CommandPaletteHotkeys,
   useCommandPaletteDispatch,
   useCommandPaletteState,
-} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+} from './commandPaletteStateContext';
 
 function makeRenderProps(onClose: () => void) {
   return {

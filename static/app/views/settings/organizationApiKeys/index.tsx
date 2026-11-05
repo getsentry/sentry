@@ -1,10 +1,7 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {LoadingError} from 'sentry/components/loadingError';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -54,7 +51,7 @@ function OrganizationApiKeys() {
       );
     },
     onMutate: () => {
-      addLoadingMessage(t('Removing API key'));
+      toast.loading(t('Removing API key'));
     },
     onSuccess: (_data, {removedId}) => {
       setApiQueryData<DeprecatedApiKey[]>(
@@ -74,7 +71,7 @@ function OrganizationApiKeys() {
       );
     },
     onError: () => {
-      addErrorMessage(t('Error removing key'));
+      toast.error(t('Error removing key'));
     },
   });
 
@@ -93,10 +90,10 @@ function OrganizationApiKeys() {
       }
 
       navigate(`/settings/${organization.slug}/api-keys/${data.id}/`);
-      addSuccessMessage(t('Created a new API key "%s"', data.label));
+      toast.success(t('Created a new API key "%s"', data.label));
     },
     onError: () => {
-      addErrorMessage(t('Error creating key'));
+      toast.error(t('Error creating key'));
     },
   });
 

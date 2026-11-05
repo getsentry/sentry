@@ -16,16 +16,6 @@ import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
-import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
-import {
-  type ScmAnalyticsFlow,
-  scmFlowVariantParams,
-  trackScmPlatformSelected,
-} from 'sentry/components/onboarding/scm/scmAnalyticsFlow';
-import {
-  useCreateProjectAndRulesError,
-  useIsCreatingProjectAndRules,
-} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {categoryList, createablePlatforms} from 'sentry/data/platformPickerCategories';
@@ -37,6 +27,17 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+
+import {
+  type ScmAnalyticsFlow,
+  scmFlowVariantParams,
+  trackScmPlatformSelected,
+} from './scm/scmAnalyticsFlow';
+import {ProjectCreationErrorAlert} from './projectCreationErrorAlert';
+import {
+  useCreateProjectAndRulesError,
+  useIsCreatingProjectAndRules,
+} from './useCreateProjectAndRules';
 
 export enum SupportedLanguages {
   JAVASCRIPT = 'javascript',

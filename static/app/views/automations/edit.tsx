@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {FieldValue} from 'sentry/components/forms/model';
 import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
@@ -27,34 +27,35 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import type {AutomationBuilderState} from './components/automationBuilderContext';
 import {
   createCondition,
   AutomationBuilderContext,
   useAutomationBuilderReducer,
-} from 'sentry/views/automations/components/automationBuilderContext';
-import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import {AutomationForm} from 'sentry/views/automations/components/automationForm';
-import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
+} from './components/automationBuilderContext';
+import {AutomationBuilderErrorContext} from './components/automationBuilderErrorContext';
+import {AutomationFeedbackButton} from './components/automationFeedbackButton';
+import {AutomationForm} from './components/automationForm';
+import type {AutomationFormData} from './components/automationFormData';
 import {
   assignSubfilterIds,
   getAutomationFormData,
   getNewAutomationData,
   validateAutomationBuilderState,
-} from 'sentry/views/automations/components/automationFormData';
-import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
-import {EditAutomationActions} from 'sentry/views/automations/components/editAutomationActions';
-import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
-import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
-import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
-import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
-import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
-import {dataConditionGroupToLLMContext} from 'sentry/views/automations/utils/automationLLMContext';
-import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
-import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+} from './components/automationFormData';
+import {EditableAutomationName} from './components/editableAutomationName';
+import {EditAutomationActions} from './components/editAutomationActions';
+import {getAutomationAnalyticsPayload} from './components/forms/common/getAutomationAnalyticsPayload';
+import {AutomationFormProvider} from './components/forms/context';
+import {useAutomationBuilderErrors} from './hooks/useAutomationBuilderErrors';
+import {dataConditionGroupToLLMContext} from './utils/automationLLMContext';
+import {mapAutomationFormErrors} from './utils/mapAutomationFormErrors';
+import {resolveDetectorIdsForProjects} from './utils/resolveDetectorIdsForProjects';
+import {useAutomationQuery, useUpdateAutomation} from './hooks';
+import {makeAutomationDetailsPathname} from './pathnames';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -232,7 +233,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           ...newAutomationData,
         });
         onSubmitSuccess(formModel?.getData() ?? data);
-        addSuccessMessage(t('Alert updated'));
+        toast.success(t('Alert updated'));
         trackAnalytics('automation.updated', {
           organization,
           ...analyticsPayload,

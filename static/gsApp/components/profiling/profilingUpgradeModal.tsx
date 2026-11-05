@@ -9,8 +9,8 @@ import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {closeModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
 import {List} from 'sentry/components/list';
@@ -201,7 +201,7 @@ function ActionButtons({
           onComplete();
         }
         closeModal();
-        addSuccessMessage(t('Subscription Updated!'));
+        toast.success(t('Subscription Updated!'));
 
         OnboardingDrawerStore.open(OnboardingDrawerKey.PROFILING_ONBOARDING);
 

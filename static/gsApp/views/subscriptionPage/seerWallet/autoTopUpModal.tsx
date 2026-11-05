@@ -10,8 +10,8 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -70,7 +70,7 @@ function AutoTopUpModal({
       queryClient.invalidateQueries({
         queryKey: seerWalletAutoTopUpOptions(organization).queryKey,
       });
-      addSuccessMessage(
+      toast.success(
         data.enabled ? t('Auto top-up turned on') : t('Auto top-up turned off')
       );
       closeModal();

@@ -20,12 +20,13 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import DataWidgetViewerModal from 'sentry/components/modals/dataWidgetViewerModal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
+
+import DataWidgetViewerModal from './dataWidgetViewerModal';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {

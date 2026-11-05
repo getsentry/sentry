@@ -2,8 +2,8 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import {openModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
@@ -76,7 +76,7 @@ export async function openOnDemandBudgetEditModal(
       modalCss: theme ? onDemandBudgetEditModalCss(theme) : undefined,
     });
   } else {
-    addErrorMessage(
+    toast.error(
       tct("You don't have permission to edit [budgetTerm] budgets.", {
         budgetTerm: displayBudgetName(subscription.planDetails),
       })

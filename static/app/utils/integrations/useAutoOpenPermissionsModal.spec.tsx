@@ -12,7 +12,8 @@ import type {
   OrganizationIntegration,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {useAutoOpenPermissionsModal} from 'sentry/utils/integrations/useAutoOpenPermissionsModal';
+
+import {useAutoOpenPermissionsModal} from './useAutoOpenPermissionsModal';
 
 interface Params {
   isConfigurationsLoading: boolean;

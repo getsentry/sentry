@@ -9,8 +9,8 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {List} from 'sentry/components/list';
 import {t, tct} from 'sentry/locale';
@@ -207,7 +207,7 @@ export function StacktraceLinkModal({
         },
       });
 
-      addSuccessMessage(t('Stack trace configuration saved.'));
+      toast.success(t('Stack trace configuration saved.'));
       trackAnalytics('integrations.stacktrace_complete_setup', {
         setup_type: 'automatic',
         provider: configData.config?.provider.key,

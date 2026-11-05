@@ -10,7 +10,6 @@ import type {SelectHandle, StylesConfig} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
@@ -21,6 +20,8 @@ import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {LoadingIndicator} from './loadingIndicator';
 
 type SharedProps = ModalRenderProps & {
   /**

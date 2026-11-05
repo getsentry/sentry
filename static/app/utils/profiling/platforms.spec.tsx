@@ -1,9 +1,10 @@
 import {DataCategory} from 'sentry/types/core';
+
 import {
   getDocsPlatformSDKForPlatform,
   getProfileDurationCategoryForPlatform,
   getProfilingDocsForPlatform,
-} from 'sentry/utils/profiling/platforms';
+} from './platforms';
 
 describe('getDocsPlatformSDKForPlatform', () => {
   it.each([

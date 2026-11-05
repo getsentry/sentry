@@ -13,10 +13,8 @@ import {closeModal} from '@sentry/scraps/modal';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import * as intercom from 'sentry/utils/intercom';
-import {
-  PrimaryNavigationHelpMenu,
-  useWhatsNewHelpMenuItem,
-} from 'sentry/views/navigation/primary/helpMenu';
+
+import {PrimaryNavigationHelpMenu, useWhatsNewHelpMenuItem} from './helpMenu';
 
 function HelpMenuWithWhatsNew() {
   const whatsNewOptions = useWhatsNewHelpMenuItem();

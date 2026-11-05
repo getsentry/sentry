@@ -3,8 +3,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import SaveQueryModal from 'sentry/components/modals/explore/saveQueryModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import SaveQueryModal from './saveQueryModal';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 

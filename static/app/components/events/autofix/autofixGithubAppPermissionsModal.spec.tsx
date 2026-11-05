@@ -6,7 +6,7 @@ import {
   CodingAgentHandoffPermissionsModal,
   IntegrationSettingsPermissionsModal,
   PrIterationPermissionsModal,
-} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
+} from './autofixGithubAppPermissionsModal';
 
 const DEFAULT_INSTALLATIONS_URL = 'https://github.com/settings/installations/';
 

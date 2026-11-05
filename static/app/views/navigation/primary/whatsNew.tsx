@@ -16,10 +16,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  PrimaryNavigation,
-  usePrimaryNavigationButtonOverlay,
-} from 'sentry/views/navigation/primary/components';
+
+import {PrimaryNavigation, usePrimaryNavigationButtonOverlay} from './components';
 
 const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
   announcement: t('Announcement'),

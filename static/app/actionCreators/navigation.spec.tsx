@@ -6,10 +6,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {openModal} from '@sentry/scraps/modal';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Config} from 'sentry/types/system';
+
+import {navigateTo} from './navigation';
 
 jest.mock('@sentry/scraps/modal');
 

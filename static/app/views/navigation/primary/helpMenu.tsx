@@ -26,11 +26,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {
-  useWhatsNewBroadcasts,
-  WhatsNewContent,
-} from 'sentry/views/navigation/primary/whatsNew';
+
+import {PrimaryNavigation} from './components';
+import {useWhatsNewBroadcasts, WhatsNewContent} from './whatsNew';
 
 interface PrimaryNavigationHelpMenuProps {
   additionalItems?: MenuItemProps[];

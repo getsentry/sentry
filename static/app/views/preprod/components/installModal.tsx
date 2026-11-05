@@ -7,7 +7,8 @@ import {openModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {InstallDetailsContent} from 'sentry/views/preprod/components/installDetailsContent';
+
+import {InstallDetailsContent} from './installDetailsContent';
 
 interface InstallModalProps {
   artifactId: string;

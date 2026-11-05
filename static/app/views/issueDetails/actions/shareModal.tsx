@@ -8,9 +8,9 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Grid, type GridProps, Stack, Container} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -117,7 +117,7 @@ export function ShareIssueModal({
         }),
       });
     } catch {
-      addErrorMessage(t('Error sharing'));
+      toast.error(t('Error sharing'));
       // oxlint-disable-next-line react/todo
     } finally {
       setLoading(false);

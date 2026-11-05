@@ -3612,9 +3612,11 @@ class Factories:
         for action in trigger_actions:
             Factories.create_seer_workflow_trigger_binding(config, action)
         if monitors:
-            BreachedMetricWorkflow(
+            workflow = BreachedMetricWorkflow(
                 config_id=config.id, organization_id=config.organization_id
-            ).set_monitor_selection([monitor.id for monitor in monitors])
+            )
+            with workflow.update_config() as update:
+                update.set_monitor_selection([monitor.id for monitor in monitors])
             config.refresh_from_db()
         return config
 

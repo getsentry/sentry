@@ -9,8 +9,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -60,7 +60,7 @@ export function DatadogPatConnectModal({
         const detail = error.responseJSON.detail;
         setFormError(typeof detail === 'string' ? detail : (detail.message ?? ''));
       } else {
-        addErrorMessage(t('Failed to connect provider.'));
+        toast.error(t('Failed to connect provider.'));
       }
     },
   });

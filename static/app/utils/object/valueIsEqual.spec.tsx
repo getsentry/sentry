@@ -1,4 +1,4 @@
-import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
+import {valueIsEqual} from './valueIsEqual';
 
 describe('valueIsEqual', () => {
   it('should return true when objects are deeply equal', () => {

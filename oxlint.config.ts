@@ -339,6 +339,7 @@ const config = defineConfig({
         paths: restrictedImportPaths,
       },
     ],
+    '@sentry/prefer-relative-child-imports': 'error',
     '@sentry/no-relative-import-paths': [
       'error',
       {

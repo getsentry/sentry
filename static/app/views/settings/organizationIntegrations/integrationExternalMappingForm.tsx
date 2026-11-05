@@ -11,8 +11,8 @@ import {
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t, tct} from 'sentry/locale';
 import type {
   ExternalActorMapping,
@@ -192,7 +192,7 @@ function InlineMappingForm({
           },
           onSuccess: data => onSubmitSuccess?.(data),
           onError: () => {
-            addErrorMessage(t('Unable to save changes'));
+            toast.error(t('Unable to save changes'));
           },
         }}
       >
@@ -280,7 +280,7 @@ function ModalMappingForm({
       closeModal();
     },
     onError: () => {
-      addErrorMessage(t('Unable to save changes'));
+      toast.error(t('Unable to save changes'));
     },
   });
 

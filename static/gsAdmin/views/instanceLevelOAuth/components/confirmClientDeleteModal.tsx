@@ -4,8 +4,8 @@ import {useMutation} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -27,10 +27,10 @@ export function ConfirmClientDeleteModal({Body, Footer, Header, clientID, name}:
         method: 'DELETE',
       }),
     onSuccess: () => {
-      addSuccessMessage(`Client "${name}" deleted successfully`);
+      toast.success(`Client "${name}" deleted successfully`);
       navigate('/_admin/instance-level-oauth/');
     },
-    onError: () => addErrorMessage('Unable to delete client'),
+    onError: () => toast.error('Unable to delete client'),
   });
 
   return (

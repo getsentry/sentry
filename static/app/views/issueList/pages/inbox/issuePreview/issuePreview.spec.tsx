@@ -22,7 +22,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {clearIndicators} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {
@@ -111,7 +112,7 @@ describe('IssuePreview', () => {
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: []},
     });
-    clearIndicators();
+    toast.dismiss();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({

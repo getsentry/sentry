@@ -1,11 +1,3 @@
-import {
-  getErrorMessage,
-  type ErrorMessage,
-} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
-import {
-  shouldErrorBeShown,
-  useFetchProguardMappingFiles,
-} from 'sentry/components/events/interfaces/crashContent/exception/actionableItemsUtils';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -14,6 +6,8 @@ import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {getErrorMessage, type ErrorMessage} from './actionableItems';
+import {shouldErrorBeShown, useFetchProguardMappingFiles} from './actionableItemsUtils';
 import type {ActionableItemErrors} from './actionableItemsUtils';
 
 const actionableItemsQuery = ({

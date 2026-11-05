@@ -1,10 +1,8 @@
 import moment from 'moment-timezone';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {
-  getDateFromMoment,
-  getXAxisDates,
-} from 'sentry/views/organizationStats/usageChart/utils';
+
+import {getDateFromMoment, getXAxisDates} from './utils';
 
 const TS_START = 1531094400000; // 2018 July 9, 12am UTC
 const TS_END = 1531180800000; // 2018 July 10, 12am UTC

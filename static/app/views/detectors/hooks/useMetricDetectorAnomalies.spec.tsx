@@ -7,7 +7,8 @@ import {
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AnomalyType, type Anomaly} from 'sentry/views/alerts/types';
-import {useMetricDetectorAnomalies} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalies';
+
+import {useMetricDetectorAnomalies} from './useMetricDetectorAnomalies';
 
 const organization = OrganizationFixture();
 

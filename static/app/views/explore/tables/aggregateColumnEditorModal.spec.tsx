@@ -23,7 +23,8 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
+
+import {AggregateColumnEditorModal} from './aggregateColumnEditorModal';
 
 const stringTags: TagCollection = {
   id: {

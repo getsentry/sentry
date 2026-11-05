@@ -100,10 +100,6 @@ import {
   TraceIconStyleWrapper,
 } from 'sentry/views/explore/logs/styles';
 import {
-  getMessageFilter,
-  type MessageFilter,
-} from 'sentry/views/explore/logs/tables/getMessageFilter';
-import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
@@ -127,6 +123,8 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import {getMessageFilter, type MessageFilter} from './getMessageFilter';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;

@@ -4,7 +4,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {fetchReplayClicks} from 'sentry/utils/replays/fetchReplayClicks';
-import {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+
+import {useInitialTimeOffsetMs} from './useInitialTimeOffsetMs';
 
 jest.mock('sentry/utils/replays/fetchReplayClicks');
 

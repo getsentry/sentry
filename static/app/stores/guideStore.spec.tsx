@@ -3,9 +3,10 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {openModal, closeModal} from '@sentry/scraps/modal';
 
-import {ConfigStore} from 'sentry/stores/configStore';
-import {GuideStore} from 'sentry/stores/guideStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {ConfigStore} from './configStore';
+import {GuideStore} from './guideStore';
 
 jest.mock('sentry/utils/analytics');
 

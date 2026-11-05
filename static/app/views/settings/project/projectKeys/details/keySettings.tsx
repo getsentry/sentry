@@ -6,12 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, DisplayField, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
@@ -24,8 +20,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
-import {KeyRateLimitsForm} from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
-import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
+
+import {KeyRateLimitsForm} from './keyRateLimitsForm';
+import {LoaderSettings} from './loaderSettings';
 
 type Props = {
   data: ProjectKey;
@@ -79,7 +76,7 @@ export function KeySettings({
   };
 
   const handleRemove = async () => {
-    addLoadingMessage(t('Revoking key\u2026'));
+    toast.loading(t('Revoking key\u2026'));
 
     try {
       await api.requestPromise(
@@ -96,9 +93,9 @@ export function KeySettings({
       );
 
       onRemove();
-      addSuccessMessage(t('Revoked key'));
+      toast.success(t('Revoked key'));
     } catch (_err) {
-      addErrorMessage(t('Unable to revoke key'));
+      toast.error(t('Unable to revoke key'));
     }
   };
 

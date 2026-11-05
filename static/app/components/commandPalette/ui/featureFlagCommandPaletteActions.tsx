@@ -10,8 +10,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {t} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
@@ -60,7 +60,7 @@ function setLocalFeatureFlagOverrideWithFeedback(
   value: boolean
 ) {
   setLocalFeatureFlagOverride(organization, name, value);
-  addSuccessMessage(
+  toast.success(
     value
       ? t('Enabled local feature flag override: %s', name)
       : t('Disabled local feature flag override: %s', name)

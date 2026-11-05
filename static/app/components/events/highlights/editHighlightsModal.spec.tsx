@@ -12,13 +12,10 @@ import {
 
 import {openModal} from '@sentry/scraps/modal';
 
-import {
-  EditHighlightsModal,
-  type EditHighlightsModalProps,
-} from 'sentry/components/events/highlights/editHighlightsModal';
 import type {DetailedProject} from 'sentry/types/project';
 import * as analytics from 'sentry/utils/analytics';
 
+import {EditHighlightsModal, type EditHighlightsModalProps} from './editHighlightsModal';
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
 describe('EditHighlightsModal', () => {

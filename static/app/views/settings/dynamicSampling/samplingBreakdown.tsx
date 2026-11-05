@@ -11,9 +11,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {clampPercentRate} from 'sentry/views/settings/dynamicSampling/utils/clampNumer';
-import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
-import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+
+import {clampPercentRate} from './utils/clampNumer';
+import {formatPercent} from './utils/formatPercent';
+import type {ProjectSampleCount} from './utils/useProjectSampleCounts';
 
 const ITEMS_TO_SHOW = 5;
 interface Props {

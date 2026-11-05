@@ -27,13 +27,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  getUserDisplayName,
-  normalizeUserField,
-  UserNotInstrumentedTooltip,
-} from 'sentry/views/explore/conversations/components/conversationsTable';
-import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
-import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {
   ConversationModelUsage,
   ConversationStats,
@@ -63,6 +56,14 @@ import {
 import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {
+  getUserDisplayName,
+  normalizeUserField,
+  UserNotInstrumentedTooltip,
+} from './conversationsTable';
+import {ConversationTraceLink} from './conversationTraceLink';
+import {ToolTag} from './toolTag';
 
 interface ConversationSummaryProps {
   conversationId: string;

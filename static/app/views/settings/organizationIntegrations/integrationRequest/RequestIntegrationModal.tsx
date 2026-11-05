@@ -5,8 +5,8 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {IntegrationType} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -64,12 +64,12 @@ export function RequestIntegrationModal({
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Request successfully sent.'));
+      toast.success(t('Request successfully sent.'));
       onSuccess();
       closeModal();
     },
     onError: () => {
-      addErrorMessage(t('Error sending the request'));
+      toast.error(t('Error sending the request'));
     },
   });
 

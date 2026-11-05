@@ -8,8 +8,8 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
+import {DataSet} from './widgetBuilder/utils';
 import {DisplayType} from './types';
 import {WidgetWrapper} from './widgetWrapper';
 

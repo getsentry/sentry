@@ -6,7 +6,6 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import type {
@@ -19,6 +18,8 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+
+import AddToDashboardModal from './addToDashboardModal';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 

@@ -2,8 +2,9 @@ import {act, renderGlobalModal} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from '@sentry/scraps/modal';
 
-import {RedirectToProjectModal} from 'sentry/components/modals/redirectToProject';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+
+import {RedirectToProjectModal} from './redirectToProject';
 
 jest.mock('sentry/utils/recreateRoute', () => ({
   recreateRoute: jest.fn(() => '/org-slug/new-slug/'),

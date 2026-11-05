@@ -8,8 +8,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Separator} from '@sentry/scraps/separator';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
@@ -76,7 +76,7 @@ export function ReprocessingEventModal({
                 )
               : false;
           if (!handled) {
-            addErrorMessage(t('Failed to reprocess. Please check your input.'));
+            toast.error(t('Failed to reprocess. Please check your input.'));
           }
         }),
   });

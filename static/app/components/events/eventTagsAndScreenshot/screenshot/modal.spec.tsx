@@ -5,9 +5,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import {ScreenshotModal} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {ScreenshotModal} from './modal';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
