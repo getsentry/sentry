@@ -74,7 +74,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     organization = FlexibleForeignKey("sentry.Organization")
 
     type = models.CharField(
-        max_length=64,
+        max_length=256,
         choices=[(t.value, t.value) for t in Type],
         default=Type.ALERT,
         db_default=Type.ALERT,
