@@ -3,19 +3,17 @@ import type {Location} from 'history';
 
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
-import type {Client} from 'sentry/api';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {withApi} from 'sentry/utils/withApi';
+import {useApi} from 'sentry/utils/useApi';
 import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
 import {SavedQueryButtonGroup} from 'sentry/views/discover/savedQuery';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 type Props = {
-  api: Client;
   errorCode: number;
   eventView: EventView;
   location: Location;
@@ -25,8 +23,7 @@ type Props = {
   isHomepage?: boolean;
 };
 
-function ResultsHeaderBase({
-  api,
+export function ResultsHeader({
   errorCode,
   eventView,
   location,
@@ -35,6 +32,7 @@ function ResultsHeaderBase({
   yAxis,
   isHomepage,
 }: Props) {
+  const api = useApi();
   const [homepageQuery, setHomepageQuery] = useState<SavedQuery | undefined>(undefined);
   const [savedQuery, setSavedQueryState] = useState<SavedQuery | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -126,5 +124,3 @@ function ResultsHeaderBase({
     </Fragment>
   );
 }
-
-export const ResultsHeader = withApi(ResultsHeaderBase);

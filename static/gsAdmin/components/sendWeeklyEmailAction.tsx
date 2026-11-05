@@ -1,10 +1,7 @@
 import {Component} from 'react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {TextField} from 'sentry/components/forms/fields/textField';
@@ -42,25 +39,25 @@ class SendWeeklyEmailAction extends Component<Props, State> {
     const {targetEmail, deliveryEmail, dryRun} = this.state;
 
     if (!dryRun && !deliveryEmail) {
-      addErrorMessage('Delivery email address is required when dry run is disabled');
+      toast.error('Delivery email address is required when dry run is disabled');
       return;
     }
 
-    addLoadingMessage('Sending Email');
+    toast.loading('Sending Email');
     this.props.api
       .requestPromise(`/customers/${this.props.orgId}/send-weekly-email/`, {
         method: 'POST',
         data: {targetEmail, deliveryEmail, dryRun},
       })
       .then(() => {
-        addSuccessMessage('Email queued');
+        toast.success('Email queued');
       })
       .catch(res => {
         if (res instanceof RequestError) {
           if (res.status === 404) {
-            addErrorMessage('User is not a member of the organization!');
+            toast.error('User is not a member of the organization!');
           } else {
-            addErrorMessage(res.responseText || res.name);
+            toast.error(res.responseText || res.name);
           }
         }
       });

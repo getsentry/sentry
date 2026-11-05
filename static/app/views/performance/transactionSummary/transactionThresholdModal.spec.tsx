@@ -10,17 +10,16 @@ import {
   ModalBody,
   ModalFooter,
 } from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
+
 import {
   TransactionThresholdMetric,
   TransactionThresholdModal,
-} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
-
-jest.mock('sentry/actionCreators/indicator');
+} from './transactionThresholdModal';
 
 function mountModal(
   eventView: EventView,
@@ -64,6 +63,7 @@ describe('TransactionThresholdModal', () => {
   let postTransactionThresholdMock: any;
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error');
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     postTransactionThresholdMock = MockApiClient.addMockResponse({
@@ -106,7 +106,7 @@ describe('TransactionThresholdModal', () => {
     await userEvent.click(await screen.findByTestId('apply-threshold'));
 
     await waitFor(() =>
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Ensure this value is less than or equal to 60000.'
       )
     );

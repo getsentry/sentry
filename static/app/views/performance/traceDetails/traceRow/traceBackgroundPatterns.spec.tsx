@@ -7,7 +7,8 @@ import {
   makeEAPSpan,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
-import {TraceBackgroundPatterns} from 'sentry/views/performance/traceDetails/traceRow/traceBackgroundPatterns';
+
+import {TraceBackgroundPatterns} from './traceBackgroundPatterns';
 
 const manager = {
   computeRelativeLeftPositionFromOrigin: () => 0.5,

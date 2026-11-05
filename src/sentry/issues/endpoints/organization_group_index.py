@@ -329,7 +329,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             IssueParams.GROUP_STATS_PERIOD,
             IssueParams.SHORT_ID_LOOKUP,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
             IssueParams.LIMIT,
             IssueParams.GROUP_INDEX_EXPAND,
@@ -521,9 +520,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
-            IssueParams.LIMIT,
         ],
         request=GroupValidator,
         responses={
@@ -575,9 +572,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
-            IssueParams.LIMIT,
         ],
         responses={
             204: RESPONSE_NO_CONTENT,

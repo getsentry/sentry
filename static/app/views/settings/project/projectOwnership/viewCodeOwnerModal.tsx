@@ -2,13 +2,14 @@ import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
 import type {CodeOwner} from 'sentry/types/integrations';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
-import {RulesPanel} from 'sentry/views/settings/project/projectOwnership/rulesPanel';
+
+import {RulesPanel} from './rulesPanel';
 
 interface ViewCodeOwnerModalProps extends ModalRenderProps {
   codeowner: CodeOwner;

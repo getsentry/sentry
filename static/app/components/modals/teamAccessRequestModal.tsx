@@ -3,12 +3,10 @@ import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {
-  ModalRenderProps,
-  TeamAccessRequestModalOptions,
-} from 'sentry/actionCreators/modal';
+import type {TeamAccessRequestModalOptions} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -32,8 +30,8 @@ function CreateTeamAccessRequestModal(props: CreateTeamAccessRequestModalProps) 
         ),
         method: 'POST',
       }),
-    onSuccess: () => addSuccessMessage(t('Team request sent for approval')),
-    onError: () => addErrorMessage(t('Unable to send team request')),
+    onSuccess: () => toast.success(t('Team request sent for approval')),
+    onError: () => toast.error(t('Unable to send team request')),
     onSettled: () => closeModal(),
   });
 

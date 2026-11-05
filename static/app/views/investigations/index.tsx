@@ -15,8 +15,8 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -32,21 +32,19 @@ import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {RouteError} from 'sentry/views/routeError';
+
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useSetInvestigationFavoriteMutation,
-} from 'sentry/views/investigations/api';
-import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
-import type {InvestigationListItem} from 'sentry/views/investigations/types';
-import {
-  getInvestigationPath,
-  useInvestigationsEnabled,
-} from 'sentry/views/investigations/utils';
-import {TopBar} from 'sentry/views/navigation/topBar';
-import {RouteError} from 'sentry/views/routeError';
+} from './api';
+import {updateInvestigationCache} from './investigationCache';
+import type {InvestigationListItem} from './types';
+import {getInvestigationPath, useInvestigationsEnabled} from './utils';
 
 enum ColumnKey {
   NAME = 'title',
@@ -176,14 +174,14 @@ export function InvestigationsPage() {
         investigation.id,
         current => ({...current, isFavorited: shouldFavorite})
       );
-      addSuccessMessage(t('Investigation favorite updated.'));
+      toast.success(t('Investigation favorite updated.'));
     },
-    onError: () => addErrorMessage(t('Unable to update investigation favorite.')),
+    onError: () => toast.error(t('Unable to update investigation favorite.')),
   });
 
   const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
-    onSuccess: () => addSuccessMessage(t('Investigation duplicated.')),
-    onError: () => addErrorMessage(t('Unable to duplicate investigation.')),
+    onSuccess: () => toast.success(t('Investigation duplicated.')),
+    onError: () => toast.error(t('Unable to duplicate investigation.')),
   });
 
   const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
@@ -193,9 +191,9 @@ export function InvestigationsPage() {
           .queryKey,
         exact: true,
       });
-      addSuccessMessage(t('Investigation deleted.'));
+      toast.success(t('Investigation deleted.'));
     },
-    onError: () => addErrorMessage(t('Unable to delete investigation.')),
+    onError: () => toast.error(t('Unable to delete investigation.')),
   });
 
   function handleSearch(nextQuery: string) {

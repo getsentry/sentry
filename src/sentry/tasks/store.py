@@ -223,7 +223,7 @@ def _do_preprocess_event(
     # The event will be submitted to Symbolicator for all returned platforms,
     # one after the other, so we handle mixed stacktraces.
     stacktraces = find_stacktraces_in_data(data)
-    symbolicate_functions = get_symbolication_functions(data, stacktraces)
+    symbolicate_functions = get_symbolication_functions(data, stacktraces, project)
     metrics.incr(
         "events.to-symbolicate",
         tags={f.value: True for f in symbolicate_functions},

@@ -10,13 +10,13 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {TransactionThresholdButton} from 'sentry/views/performance/transactionSummary/transactionThresholdButton';
 
-jest.mock('sentry/actionCreators/indicator');
+import {TransactionThresholdButton} from './transactionThresholdButton';
 
 function ExampleTransactionThresholdButton({
   eventView,
@@ -59,6 +59,7 @@ describe('TransactionThresholdButton', () => {
   const onChangeThreshold = jest.fn();
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error');
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
   });
@@ -263,7 +264,7 @@ describe('TransactionThresholdButton', () => {
 
     await waitFor(() => expect(getProjectThresholdMock).toHaveBeenCalledTimes(1));
     await waitFor(() =>
-      expect(addErrorMessage).toHaveBeenCalledWith('Unable to load the threshold')
+      expect(toast.error).toHaveBeenCalledWith('Unable to load the threshold')
     );
   });
 });

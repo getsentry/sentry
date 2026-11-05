@@ -8,9 +8,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {FeedbackCategories} from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+
+import {FeedbackCategories} from './feedbackCategories';
 
 jest.mock('sentry/components/events/autofix/useOrganizationSeerSetup');
 

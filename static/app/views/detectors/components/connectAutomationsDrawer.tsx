@@ -10,7 +10,8 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
-import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
+
+import {ConnectedAutomationsList} from './connectedAutomationList';
 
 function ConnectedAutomations({
   automationIds,

@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import AutomationConfiguration from 'sentry/views/seerWorkflows/automations/detail/configuration';
+import AutomationConfiguration from './configuration';
 
 describe('AutomationConfiguration', () => {
   it('renders the configuration with seer-automations', () => {

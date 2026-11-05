@@ -3,8 +3,9 @@ import {IconSort} from '@sentry/icons/sort';
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {type OrderBy} from 'sentry/components/events/featureFlags/utils';
 import {t} from 'sentry/locale';
+
+import {type OrderBy} from './utils';
 
 interface Props {
   orderBy: OrderBy;

@@ -11,6 +11,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+
 import type {
   InvestigationActionRequest,
   InvestigationActionRequestApplyResponse,
@@ -27,7 +28,7 @@ import type {
   InvestigationViewer,
   ManualInvestigationSource,
   MetricOpenPeriodInvestigationSource,
-} from 'sentry/views/investigations/types';
+} from './types';
 
 type ListOptions = {
   organizationSlug: string;

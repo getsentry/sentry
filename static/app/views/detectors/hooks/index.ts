@@ -1,6 +1,7 @@
 import {queryOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -136,7 +137,7 @@ export function useCreateDetector<T extends Detector = Detector>() {
       });
     },
     onError: _ => {
-      addErrorMessage(t('Unable to create monitor'));
+      toast.error(t('Unable to create monitor'));
     },
   });
 }
@@ -172,7 +173,7 @@ export function useUpdateDetector<T extends Detector = Detector>() {
       });
     },
     onError: error => {
-      addErrorMessage(
+      toast.error(
         (error instanceof RequestError
           ? getWorkflowEngineResponseErrorMessage(error.responseJSON)
           : undefined) ?? t('Unable to update monitor')

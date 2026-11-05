@@ -339,7 +339,7 @@ onSubmit: async ({value, formApi}) => {
     await mutation.mutateAsync(value);
   } catch (error) {
     if (!(error instanceof RequestError)) {
-      addErrorMessage(t('Unable to save changes.'));
+      toast.error(t('Unable to save changes.'));
       return;
     }
 
@@ -349,7 +349,7 @@ onSubmit: async ({value, formApi}) => {
     );
 
     if (!handled) {
-      addErrorMessage(t('Unable to save changes.'));
+      toast.error(t('Unable to save changes.'));
     }
   }
 },
@@ -386,7 +386,7 @@ The `saveMessage` showed a custom toast/alert after successful save. In the new 
 **New:**
 
 ```tsx
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
 <AutoSaveForm
   name="fingerprintingRules"
@@ -396,7 +396,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
     mutationFn: data => fetchMutation({...}),
     onSuccess: () => {
       // Custom success message (equivalent to saveMessage)
-      addSuccessMessage(t('Changing fingerprint rules will apply to future events only.'));
+      toast.success(t('Changing fingerprint rules will apply to future events only.'));
     },
   }}
 >
@@ -423,13 +423,13 @@ mutationOptions={{
   mutationFn: data => fetchMutation({...}),
   onSuccess: () => {
     // Just show the message, no value (equivalent to formatMessageValue: false)
-    addSuccessMessage(t('Rules updated'));
+    toast.success(t('Rules updated'));
   },
 }}
 
 // Or if you want to show a formatted value:
 onSuccess: (data) => {
-  addSuccessMessage(t('Slug changed to %s', data.slug));
+  toast.success(t('Slug changed to %s', data.slug));
 },
 ```
 

@@ -4,17 +4,17 @@ import fetchMock from 'jest-fetch-mock';
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
+import {PROJECT_MOVED} from './constants/apiErrorCodes';
+import type {ResponseMeta} from './types/api';
+import {RequestError} from './utils/requestError/requestError';
+import {testableWindowLocation} from './utils/testableWindowLocation';
 import {
   Client,
   initApiClientErrorHandling,
   registerApiErrorHandler,
   Request,
   withCurrentPageAsNext,
-} from 'sentry/api';
-import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
-import type {ResponseMeta} from 'sentry/types/api';
-import {RequestError} from 'sentry/utils/requestError/requestError';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+} from './api';
 
 jest.unmock('sentry/api');
 

@@ -3,8 +3,6 @@ import {useCallback} from 'react';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {useAttributeTreeSearchActions} from 'sentry/views/explore/components/traceItemAttributes/useAttributeTreeSearchActions';
-import {useLogsSidebar} from 'sentry/views/explore/logs/logsSidebarContext';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   useQueryParamsFields,
   useQueryParamsGroupBys,
@@ -12,6 +10,9 @@ import {
   useSetQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+
+import {useLogsSidebar} from './logsSidebarContext';
+import {OurLogKnownFieldKey} from './types';
 
 export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
   const getSearchActions = useAttributeTreeSearchActions();

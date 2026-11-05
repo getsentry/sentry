@@ -8,7 +8,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
-import {useSetupWizardCompletedAnalytics} from 'sentry/views/setupWizard/utils/setupWizardAnalytics';
+
+import {useSetupWizardCompletedAnalytics} from './utils/setupWizardAnalytics';
 
 export function WaitingForWizardToConnect({
   hash,

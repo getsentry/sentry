@@ -30,15 +30,15 @@ import {
   SpanOperationBreakdownFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
-import {SEGMENT_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/constants';
-import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
-import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {
   isSummaryViewFrontend,
   isSummaryViewFrontendPageLoad,
 } from 'sentry/views/performance/utils';
 
+import {SEGMENT_SPANS_CURSOR_NAME} from './constants';
+import {EAPChartsWidget} from './eapChartsWidget';
+import {EAPSidebarCharts} from './eapSidebarCharts';
 import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
 import {RelatedIssues} from './relatedIssues';
 import {StatusBreakdown} from './statusBreakdown';

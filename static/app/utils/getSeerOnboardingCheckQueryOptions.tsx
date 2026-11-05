@@ -1,5 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+import {apiOptions} from './api/apiOptions';
 
 interface SeerOnboardingCheckResponse {
   hasSupportedScmIntegration: boolean;

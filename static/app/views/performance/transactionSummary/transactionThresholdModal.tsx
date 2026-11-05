@@ -7,10 +7,10 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -119,7 +119,9 @@ export function TransactionThresholdModal({
       if (Array.isArray(errorMessage)) {
         errorMessage = errorMessage[0];
       }
-      addErrorMessage(errorMessage as string);
+      toast.error(
+        typeof errorMessage === 'string' ? errorMessage : t('Unable to update threshold')
+      );
     },
   });
 
@@ -144,7 +146,9 @@ export function TransactionThresholdModal({
     onError: err => {
       const errorMessage =
         err instanceof RequestError ? err.responseJSON?.threshold : null;
-      addErrorMessage(errorMessage as string);
+      toast.error(
+        typeof errorMessage === 'string' ? errorMessage : t('Unable to reset threshold')
+      );
     },
   });
 

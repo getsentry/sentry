@@ -17,8 +17,8 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
@@ -45,7 +45,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -78,6 +77,7 @@ import type {
 } from 'sentry/views/investigations/types';
 import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
@@ -194,7 +194,7 @@ function useZoomTimeRangeToOpenPeriod({
   openPeriodStart: string | null;
 }) {
   const organization = useOrganization();
-  const params = useParams<{groupId: string; eventId?: string}>();
+  const groupId = useGroupId();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -220,7 +220,7 @@ function useZoomTimeRangeToOpenPeriod({
       navigate(
         {
           pathname: normalizeUrl(
-            `/organizations/${organization.slug}/issues/${params.groupId}/events/${eventId}/`
+            `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
           ),
           query,
         },
@@ -708,7 +708,7 @@ function SeerInvestigationSection({
       );
       navigate(getInvestigationPath(organization.slug, launchedInvestigation.id));
     },
-    onError: () => addErrorMessage(t('Unable to launch investigation.')),
+    onError: () => toast.error(t('Unable to launch investigation.')),
   });
 
   const investigationPath =
