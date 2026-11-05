@@ -661,8 +661,18 @@ class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerRespo
     samplingMode: Annotated[
         str, ApiDescription("Where dynamic sampling target rates are set: organization or project")
     ]
-    planSampleRate: float
-    desiredSampleRate: float
+    planSampleRate: Annotated[
+        float,
+        ApiDescription(
+            "Sample rate of the organization's plan, or its target sample rate in organization sampling mode, from 0 to 1"
+        ),
+    ]
+    desiredSampleRate: Annotated[
+        float,
+        ApiDescription(
+            "Sample rate dynamic sampling aims for, from 0 to 1. Not set in project sampling mode"
+        ),
+    ]
     ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
     consoleSdkInviteQuota: int
@@ -782,7 +792,10 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     hideAiFeatures: Annotated[
         bool, ApiDescription("Whether AI features are hidden for the organization")
     ]
-    aggregatedDataConsent: bool
+    aggregatedDataConsent: Annotated[
+        bool,
+        ApiDescription("Whether the organization agreed to let Sentry use its data in aggregate"),
+    ]
     genAIConsent: bool
     isDynamicallySampled: Annotated[
         bool,

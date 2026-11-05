@@ -1,23 +1,24 @@
 from collections.abc import Mapping
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 
 class EnvironmentSerializerResponse(TypedDict):
-    id: str
-    name: str
+    id: Annotated[str, ApiDescription("ID of the environment")]
+    name: Annotated[str, ApiDescription("Name of the environment")]
 
 
 class EnvironmentProjectSerializerResponse(TypedDict):
-    id: str
-    name: str
-    isHidden: bool
+    id: Annotated[str, ApiDescription("ID of the environment")]
+    name: Annotated[str, ApiDescription("Name of the environment")]
+    isHidden: Annotated[bool, ApiDescription("Whether the environment is hidden in the project")]
 
 
 @register(Environment)

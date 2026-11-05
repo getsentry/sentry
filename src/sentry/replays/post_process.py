@@ -85,7 +85,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     ota_updates: Annotated[OTAUpdatesResponseType, ApiDescription("Over-the-air update metadata")]
     is_archived: Annotated[bool | None, ApiDescription("Whether the replay is archived")]
     urls: Annotated[list[str] | None, ApiDescription("URLs visited during the replay")]
-    segment_names: list[str] | None
+    segment_names: Annotated[list[str] | None, ApiDescription("Names of the replay's segments")]
     clicks: Annotated[
         list[dict[str, Any]],
         ApiDescription("Clicks recorded during the replay, one object per click"),

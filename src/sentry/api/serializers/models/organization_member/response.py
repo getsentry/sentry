@@ -80,8 +80,14 @@ _OrganizationMemberFlags = TypedDict(
                 "Whether the member has linked their account to the organization's SSO provider"
             ),
         ],
-        "sso:invalid": bool,
-        "member-limit:restricted": bool,
+        "sso:invalid": Annotated[
+            bool,
+            ApiDescription("Whether the member's SSO link is invalid"),
+        ],
+        "member-limit:restricted": Annotated[
+            bool,
+            ApiDescription("Whether the member is restricted by the plan's member limit"),
+        ],
         "partnership:restricted": Annotated[
             bool,
             ApiDescription(
