@@ -1283,7 +1283,11 @@ describe('SeerDrawerNextStep', () => {
   describe('out of Seer credits', () => {
     const creditCheckUrl = '/organizations/org-slug/seer/credit-check/';
     const creditCheckOrganization = OrganizationFixture({
-      features: ['seer-credit-checks', 'autofix-pr-iteration-manual'],
+      features: [
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+        'autofix-pr-iteration-manual',
+      ],
     });
 
     function mockCreditCheck(operation: string, hasEnoughCredits = false) {
@@ -1316,7 +1320,7 @@ describe('SeerDrawerNextStep', () => {
     it.each([
       ['root_cause', 'autofix_solution', 'Yes, make a plan'],
       ['solution', 'autofix_code_changes', 'Yes, write a code fix'],
-      ['code_changes', 'autofix_create_pr', 'Yes, draft a PR'],
+      ['code_changes', 'autofix_open_pr', 'Yes, draft a PR'],
     ])(
       'keeps the next step after %s on screen but disabled when %s is unaffordable',
       async (step, operation, yesLabel) => {
@@ -1400,7 +1404,11 @@ describe('SeerDrawerNextStep', () => {
         {
           organization: OrganizationFixture({
             ...codeModeOrganization,
-            features: [...codeModeOrganization.features, 'seer-credit-checks'],
+            features: [
+              ...codeModeOrganization.features,
+              'seer-credit-checks',
+              'token-billed-seer-enabled',
+            ],
           }),
         }
       );

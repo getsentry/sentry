@@ -567,7 +567,11 @@ function CreditsChat({
       <OrganizationContext.Provider
         value={{
           ...organization,
-          features: [...organization.features, 'seer-credit-checks'],
+          features: [
+            ...organization.features,
+            'seer-credit-checks',
+            'token-billed-seer-enabled',
+          ],
         }}
       >
         <QueryClientProvider client={queryClient}>
@@ -657,7 +661,7 @@ export default Storybook.story('Autofix', story => {
 
   story('Out of credits: Create PR', () => (
     <CreditsChat
-      description="Open the Code Changes card. The diff stays readable; the notice sits above Draft a pull request, which is disabled (autofix_create_pr)."
+      description="Open the Code Changes card. The diff stays readable; the notice sits above Draft a pull request, which is disabled (autofix_open_pr)."
       run={creditsRun([ROOT_CAUSE_BLOCK, SOLUTION_BLOCK, CODE_CHANGES_BLOCK])}
     >
       <User>Write the fix for {ISSUE.shortId}.</User>

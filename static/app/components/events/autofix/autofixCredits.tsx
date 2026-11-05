@@ -22,7 +22,7 @@ const AUTOFIX_CREDIT_OPERATIONS: Record<AutofixAction, SeerCreditOperation> = {
   root_cause: 'autofix_root_cause',
   solution: 'autofix_solution',
   code_changes: 'autofix_code_changes',
-  create_pr: 'autofix_create_pr',
+  create_pr: 'autofix_open_pr',
   pr_iteration: 'autofix_pr_iteration',
 };
 
