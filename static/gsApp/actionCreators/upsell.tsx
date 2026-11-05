@@ -53,6 +53,22 @@ export function sendTrialRequest({
   });
 }
 
+export function sendSeerTopUpRequest({
+  organization,
+  ...rest
+}: {
+  api: Client;
+  organization: Organization;
+  handleSuccess?: () => void;
+}) {
+  const endpoint = `/organizations/${organization.slug}/seer-top-up-request/`;
+  return sendBasicRequest({
+    endpoint,
+    data: {},
+    ...rest,
+  });
+}
+
 export function sendAddEventsRequest({
   organization,
   eventTypes,
