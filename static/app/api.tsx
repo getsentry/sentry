@@ -413,7 +413,7 @@ export class Client {
   /**
    * Initiate a request to the backend API.
    *
-   * @deprecated Use `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation` instead.
+   * @deprecated Use `useQuery` with `apiOptions`, or `useMutation` with `fetchMutation` instead.
    * See https://develop.sentry.dev/frontend/network-requests/ for more.
    */
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
@@ -667,7 +667,7 @@ export class Client {
   /**
    * Initiate a request to the backend API.
    *
-   * @deprecated Use `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation` instead.
+   * @deprecated Use `useQuery` with `apiOptions`, or `useMutation` with `fetchMutation` instead.
    * See https://develop.sentry.dev/frontend/network-requests/ for more.
    */
   requestPromise<IncludeAllArgsType extends boolean>(

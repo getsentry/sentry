@@ -1,14 +1,15 @@
 import {useCallback, useMemo} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import type {UseQueryOptions} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {Client} from 'sentry/api';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
 type PromptsUpdateParams = {
@@ -113,30 +114,31 @@ export async function promptsCheck(
   return null;
 }
 
-const makePromptsCheckQueryKey = ({
+const makePromptsCheckApiOptions = ({
   feature,
   organization,
   projectId,
-}: PromptCheckHookParams): ApiQueryKey => {
-  const url = getApiUrl('/organizations/$organizationIdOrSlug/prompts-activity/', {
-    path: {organizationIdOrSlug: organization?.slug!},
-  });
-  return [url, {query: {feature, project_id: projectId}}];
+}: PromptCheckHookParams) => {
+  return apiOptions.as<PromptResponse>()(
+    '/organizations/$organizationIdOrSlug/prompts-activity/',
+    {
+      path: {organizationIdOrSlug: organization?.slug!},
+      query: {feature, project_id: projectId},
+      staleTime: 120000,
+    }
+  );
 };
 
 function usePromptsCheck(
   {feature, organization, projectId}: PromptCheckHookParams,
-  {enabled = true, ...options}: Partial<UseApiQueryOptions<PromptResponse>> = {}
+  {enabled = true, ...options}: PromptQueryOptions = {}
 ) {
-  return useApiQuery<PromptResponse>(
-    makePromptsCheckQueryKey({feature, organization, projectId}),
-    {
-      staleTime: 120000,
-      retry: false,
-      enabled: defined(organization) && enabled,
-      ...options,
-    }
-  );
+  return useQuery({
+    ...makePromptsCheckApiOptions({feature, organization, projectId}),
+    retry: false,
+    enabled: defined(organization) && enabled,
+    ...options,
+  });
 }
 
 /**
@@ -153,7 +155,7 @@ export function usePrompts({
   organization: Organization | null;
   daysToSnooze?: number;
   isDismissed?: (prompt: PromptData, daysToSnooze?: number) => boolean;
-  options?: Partial<UseApiQueryOptions<PromptResponse>>;
+  options?: PromptQueryOptions;
 }) {
   const api = useApi({persistInFlight: true});
   const prompts = usePromptsCheck({feature: features, organization}, options);
@@ -185,17 +187,25 @@ export function usePrompts({
 
       // Update cached query data
       // Will set prompt to dismissed
-      setApiQueryData<PromptResponse>(
-        queryClient,
-        makePromptsCheckQueryKey({
+      queryClient.setQueryData(
+        makePromptsCheckApiOptions({
           organization,
           feature: features,
-        }),
-        existingData => {
+        }).queryKey,
+        previous => {
+          const existingData = previous?.json;
+
           const dismissedTs = Date.now() / 1000;
           return {
-            data: {dismissed_ts: dismissedTs},
-            features: {...existingData?.features, [feature]: {dismissed_ts: dismissedTs}},
+            ...previous,
+            headers: previous?.headers ?? {},
+            json: {
+              data: {dismissed_ts: dismissedTs},
+              features: {
+                ...existingData?.features,
+                [feature]: {dismissed_ts: dismissedTs},
+              },
+            },
           };
         }
       );
@@ -216,17 +226,22 @@ export function usePrompts({
 
       // Update cached query data
       // Will set prompt to snoozed
-      setApiQueryData<PromptResponse>(
-        queryClient,
-        makePromptsCheckQueryKey({
+      queryClient.setQueryData(
+        makePromptsCheckApiOptions({
           organization,
           feature: features,
-        }),
-        existingData => {
+        }).queryKey,
+        previous => {
+          const existingData = previous?.json;
+
           const snoozedTs = Date.now() / 1000;
           return {
-            data: {snoozed_ts: snoozedTs},
-            features: {...existingData?.features, [feature]: {snoozed_ts: snoozedTs}},
+            ...previous,
+            headers: previous?.headers ?? {},
+            json: {
+              data: {snoozed_ts: snoozedTs},
+              features: {...existingData?.features, [feature]: {snoozed_ts: snoozedTs}},
+            },
           };
         }
       );
@@ -247,16 +262,21 @@ export function usePrompts({
 
       // Update cached query data
       // Will clear the status/timestamps of a prompt that is dismissed or snoozed
-      setApiQueryData<PromptResponse>(
-        queryClient,
-        makePromptsCheckQueryKey({
+      queryClient.setQueryData(
+        makePromptsCheckApiOptions({
           organization,
           feature: features,
-        }),
-        existingData => {
+        }).queryKey,
+        previous => {
+          const existingData = previous?.json;
+
           return {
-            data: {},
-            features: {...existingData?.features, [feature]: {}},
+            ...previous,
+            headers: previous?.headers ?? {},
+            json: {
+              data: {},
+              features: {...existingData?.features, [feature]: {}},
+            },
           };
         }
       );
@@ -284,7 +304,7 @@ export function usePrompt({
   feature: string;
   organization: Organization | null;
   daysToSnooze?: number;
-  options?: Partial<UseApiQueryOptions<PromptResponse>>;
+  options?: PromptQueryOptions;
   projectId?: string;
 }) {
   const api = useApi({persistInFlight: true});
@@ -315,18 +335,21 @@ export function usePrompt({
 
     // Update cached query data
     // Will set prompt to dismissed
-    setApiQueryData<PromptResponse>(
-      queryClient,
-      makePromptsCheckQueryKey({
+    queryClient.setQueryData(
+      makePromptsCheckApiOptions({
         organization,
         feature,
         projectId,
-      }),
-      () => {
+      }).queryKey,
+      previous => {
         const dismissedTs = Date.now() / 1000;
         return {
-          data: {dismissed_ts: dismissedTs},
-          features: {[feature]: {dismissed_ts: dismissedTs}},
+          ...previous,
+          headers: previous?.headers ?? {},
+          json: {
+            data: {dismissed_ts: dismissedTs},
+            features: {[feature]: {dismissed_ts: dismissedTs}},
+          },
         };
       }
     );
@@ -345,18 +368,21 @@ export function usePrompt({
 
     // Update cached query data
     // Will set prompt to snoozed
-    setApiQueryData<PromptResponse>(
-      queryClient,
-      makePromptsCheckQueryKey({
+    queryClient.setQueryData(
+      makePromptsCheckApiOptions({
         organization,
         feature,
         projectId,
-      }),
-      () => {
+      }).queryKey,
+      previous => {
         const snoozedTs = Date.now() / 1000;
         return {
-          data: {snoozed_ts: snoozedTs},
-          features: {[feature]: {snoozed_ts: snoozedTs}},
+          ...previous,
+          headers: previous?.headers ?? {},
+          json: {
+            data: {snoozed_ts: snoozedTs},
+            features: {[feature]: {snoozed_ts: snoozedTs}},
+          },
         };
       }
     );
@@ -375,17 +401,20 @@ export function usePrompt({
 
     // Update cached query data
     // Will clear the status/timestamps of a prompt that is dismissed or snoozed
-    setApiQueryData<PromptResponse>(
-      queryClient,
-      makePromptsCheckQueryKey({
+    queryClient.setQueryData(
+      makePromptsCheckApiOptions({
         organization,
         feature,
         projectId,
-      }),
-      () => {
+      }).queryKey,
+      previous => {
         return {
-          data: {},
-          features: {[feature]: {}},
+          ...previous,
+          headers: previous?.headers ?? {},
+          json: {
+            data: {},
+            features: {[feature]: {}},
+          },
         };
       }
     );
@@ -438,3 +467,10 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
   }
   return result as Record<T[number], PromptData>;
 }
+
+type PromptQueryOptions = Partial<
+  Omit<
+    UseQueryOptions<ApiResponse<PromptResponse>, Error, PromptResponse, ApiQueryKey>,
+    'queryKey' | 'queryFn' | 'select'
+  >
+>;

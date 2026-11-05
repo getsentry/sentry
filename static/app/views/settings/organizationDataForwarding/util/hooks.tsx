@@ -1,27 +1,25 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
 import {t, tct} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
 import {ProviderLabels, type DataForwarder, type DataForwarderPayload} from './types';
 
-const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/forwarding/', {
+const makeDataForwarderApiOptions = (params: {orgSlug: string}) =>
+  apiOptions.as<DataForwarder[]>()('/organizations/$organizationIdOrSlug/forwarding/', {
     path: {organizationIdOrSlug: params.orgSlug},
-  }),
-];
-
-export function useDataForwarders({params}: {params: {orgSlug: string}}) {
-  return useApiQuery<DataForwarder[]>(makeDataForwarderQueryKey(params), {
     staleTime: 30000,
   });
+
+export function useDataForwarders({params}: {params: {orgSlug: string}}) {
+  return useQuery(makeDataForwarderApiOptions(params));
 }
 
 const makeDataForwarderMutationQueryKey = (params: {
@@ -46,7 +44,7 @@ export function useMutateDataForwarder({
   const api = useApi({persistInFlight: false});
   const queryClient = useQueryClient();
   const method = dataForwarderId ? 'PUT' : 'POST';
-  const listQueryKey = makeDataForwarderQueryKey({orgSlug});
+  const listQueryKey = makeDataForwarderApiOptions({orgSlug}).queryKey;
   const queryKey = dataForwarderId
     ? makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug})
     : listQueryKey;
@@ -90,7 +88,9 @@ export function useDeleteDataForwarder({
       ),
     onSuccess: () => {
       toast.success(t('Data forwarder deleted'));
-      queryClient.invalidateQueries({queryKey: makeDataForwarderQueryKey(params)});
+      queryClient.invalidateQueries({
+        queryKey: makeDataForwarderApiOptions(params).queryKey,
+      });
     },
     onError: _error => {
       toast.error(t('Failed to delete data forwarder'));
@@ -107,7 +107,7 @@ export function useMutateDataForwarderProject({
 }) {
   const api = useApi({persistInFlight: false});
   const queryClient = useQueryClient();
-  const listQueryKey = makeDataForwarderQueryKey({orgSlug});
+  const listQueryKey = makeDataForwarderApiOptions({orgSlug}).queryKey;
   const endpoint = makeDataForwarderMutationQueryKey({
     dataForwarderId,
     orgSlug,
