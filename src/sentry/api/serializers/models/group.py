@@ -401,7 +401,7 @@ class GroupSerializerBase(Serializer, ABC):
             if self._expand("derivedData")
             else {}
         )
-        if features.has(
+        if not features.has(
             "organizations:seer-impact-assessment", organization=item_list[0].organization
         ):
             for derived_data in derived_data_by_group_id.values():

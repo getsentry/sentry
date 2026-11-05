@@ -74,7 +74,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
 
         result = serialize(entry, self.user)
 
-        assert result["type"] == "IMPACT_ASSESSMENT"
+        assert result["type"] == "impact_assessment"
         assert result["data"] == {
             "score": 73.5,
             "level": "high",
@@ -107,7 +107,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         )
 
         assert [item["type"] for item in self._activity_items()] == [
-            "IMPACT_ASSESSMENT",
+            "impact_assessment",
             "first_seen",
         ]
 
