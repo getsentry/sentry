@@ -71,10 +71,7 @@ export interface QueryTokensProps {
   visualizations?: SeerVisualization[];
 }
 
-export type SeerVisualization = Pick<
-  BaseVisualize,
-  'yAxes' | 'chartType' | 'transformations'
->;
+type SeerVisualization = Pick<BaseVisualize, 'yAxes' | 'chartType' | 'transformations'>;
 
 export interface AskSeerSearchQuery extends QueryTokensProps {
   end: string | null;
