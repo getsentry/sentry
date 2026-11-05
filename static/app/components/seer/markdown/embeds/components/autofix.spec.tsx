@@ -496,7 +496,7 @@ describe('AutofixRef embed', () => {
   describe('out of credits', () => {
     const creditsOrganization = OrganizationFixture({
       slug: 'org-slug',
-      features: ['seer-credit-checks'],
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
     });
     const retryTooltip = 'Your organization does not have enough Seer credits for this.';
 

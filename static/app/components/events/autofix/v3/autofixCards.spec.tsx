@@ -2704,9 +2704,15 @@ describe('ArtifactCard', () => {
 });
 
 describe('out of credits', () => {
-  const organization = OrganizationFixture({features: ['seer-credit-checks']});
+  const organization = OrganizationFixture({
+    features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+  });
   const manualPrIterationCreditsOrganization = OrganizationFixture({
-    features: ['seer-credit-checks', 'autofix-pr-iteration-manual'],
+    features: [
+      'seer-credit-checks',
+      'token-billed-seer-enabled',
+      'autofix-pr-iteration-manual',
+    ],
   });
   const retryTooltip = 'Your organization does not have enough Seer credits for this.';
 
