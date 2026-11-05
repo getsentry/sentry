@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 import {useEffect, useEffectEvent, useMemo} from 'react';
-import {IconQuestion} from '@sentry/icons/question';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -604,7 +604,7 @@ function Product({
             disabled={isDisabled}
           />
           {label}
-          <IconQuestion size="xs" />
+          <IconInfo size="xs" />
         </Grid>
       </ProductButton>
     </Tooltip>
