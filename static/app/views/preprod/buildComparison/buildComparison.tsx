@@ -15,6 +15,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {SizeComparisonApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getCompareApiUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 import {BuildCompareHeaderContent} from './header/buildCompareHeaderContent';
@@ -61,7 +62,11 @@ export default function BuildComparison() {
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: compareOptions.queryKey[0],
+        url: getCompareApiUrl({
+          organizationSlug: organization.slug,
+          headArtifactId: headArtifactId!,
+          baseArtifactId: baseArtifactId!,
+        }),
         method: 'POST',
         options: {query: {rerun: 'true'}},
       });
@@ -72,7 +77,7 @@ export default function BuildComparison() {
       } else {
         toast.success(t('Comparison rerun triggered'));
       }
-      queryClient.invalidateQueries({queryKey: [compareOptions.queryKey[0]]});
+      queryClient.invalidateQueries({queryKey: compareOptions.queryKey});
     },
     onError: (error: RequestError) => {
       if (error.status === 403) {
