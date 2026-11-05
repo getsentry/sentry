@@ -74,7 +74,7 @@ export default function AutomationDetail() {
     ? STRATEGY_META[strategy as WorkflowStrategy]
     : undefined;
   const title = config?.name ?? strategyMeta?.label ?? strategy;
-  const toggleEnabled = useMutation({
+  const setEnabled = useMutation({
     mutationFn: (enabled: boolean) =>
       fetchMutation({
         url: getApiUrl(
@@ -143,6 +143,115 @@ export default function AutomationDetail() {
     );
   }
 
+  const headerDetails = (
+    <Stack direction="row" align="center" gap="md" wrap="wrap">
+      <Text size="sm" variant="muted">
+        {config.dateLastRun === undefined
+          ? t('No runs yet')
+          : tct('Last run [time]', {
+              time: <TimeSince date={config.dateLastRun} tooltipPrefix={t('Last run')} />,
+            })}
+      </Text>
+      <Stack.Separator />
+      {nextUpdate && (
+        <Fragment>
+          <Text size="sm" variant="muted">
+            {tct('Next run [time]', {
+              time: <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />,
+            })}
+          </Text>
+          <Stack.Separator />
+        </Fragment>
+      )}
+      <Text size="sm" variant="muted">
+        {config.strategy === 'breached_metric_investigation'
+          ? tn('%s monitor connected', '%s monitors connected', config.monitorIds.length)
+          : config.projects.includes(ALL_ACCESS_PROJECTS)
+            ? t('All projects')
+            : tn('%s project', '%s projects', config.projects.length)}
+      </Text>
+      {displayUserId && (
+        <Fragment>
+          <Stack.Separator />
+          <Flex gap="xs" align="center">
+            <Text size="sm" variant="muted">
+              {config.updatedBy ? t('Last updated by') : t('Created by')}
+            </Text>
+            {displayUser ? (
+              <UserBadge
+                user={displayUser}
+                hideEmail
+                avatarSize={16}
+                avatarProps={{hasTooltip: true}}
+                displayName={
+                  <Text size="sm" variant="muted">
+                    {displayUser.name || displayUser.email}
+                  </Text>
+                }
+              />
+            ) : (
+              <Text size="sm" variant="muted">
+                {displayUserId}
+              </Text>
+            )}
+          </Flex>
+        </Fragment>
+      )}
+    </Stack>
+  );
+
+  const actionButtons = (
+    <Flex gap="sm">
+      <Button
+        size="sm"
+        disabled={setEnabled.isPending}
+        icon={
+          setEnabled.isPending ? (
+            <LoadingIndicator size={14} style={{margin: 0}} />
+          ) : config.enabled ? (
+            <IconPause />
+          ) : (
+            <IconPlay />
+          )
+        }
+        onClick={() => setEnabled.mutate(!config.enabled)}
+      >
+        {config.enabled ? t('Pause') : t('Resume')}
+      </Button>
+      <Button
+        size="sm"
+        icon={<IconDelete />}
+        aria-label={t('Delete')}
+        onClick={() =>
+          openConfirmModal({
+            message: t('Are you sure you want to delete this automation?'),
+            confirmText: t('Delete'),
+            priority: 'danger',
+            onConfirm: () => deleteAutomation.mutate(),
+          })
+        }
+      />
+    </Flex>
+  );
+
+  // TODO: Placeholder costs until the API provides them
+  const headerCosts = (
+    <Flex gap="xl">
+      <Stack align="end">
+        <Text size="sm" variant="muted">
+          {t('Cost 30D')}
+        </Text>
+        <Text size="lg">$140.69</Text>
+      </Stack>
+      <Stack align="end">
+        <Text size="sm" variant="muted">
+          {t('Cost per Run')}
+        </Text>
+        <Text size="lg">$2.50</Text>
+      </Stack>
+    </Flex>
+  );
+
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <Stack>
@@ -176,119 +285,11 @@ export default function AutomationDetail() {
                 )}
               </Flex>
               <Text>{strategyMeta?.description ?? t('No description')}</Text>
-              <Stack direction="row" align="center" gap="md" wrap="wrap">
-                <Text size="sm" variant="muted">
-                  {config.dateLastRun === undefined
-                    ? t('No runs yet')
-                    : tct('Last run [time]', {
-                        time: (
-                          <TimeSince
-                            date={config.dateLastRun}
-                            tooltipPrefix={t('Last run')}
-                          />
-                        ),
-                      })}
-                </Text>
-                <Stack.Separator />
-                {nextUpdate && (
-                  <Fragment>
-                    <Text size="sm" variant="muted">
-                      {tct('Next run [time]', {
-                        time: (
-                          <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />
-                        ),
-                      })}
-                    </Text>
-                    <Stack.Separator />
-                  </Fragment>
-                )}
-                <Text size="sm" variant="muted">
-                  {config.strategy === 'breached_metric_investigation'
-                    ? tn(
-                        '%s monitor connected',
-                        '%s monitors connected',
-                        config.monitorIds.length
-                      )
-                    : config.projects.includes(ALL_ACCESS_PROJECTS)
-                      ? t('All projects')
-                      : tn('%s project', '%s projects', config.projects.length)}
-                </Text>
-                {displayUserId && (
-                  <Fragment>
-                    <Stack.Separator />
-                    <Flex gap="xs" align="center">
-                      <Text size="sm" variant="muted">
-                        {config.updatedBy ? t('Last updated by') : t('Created by')}
-                      </Text>
-                      {displayUser ? (
-                        <UserBadge
-                          user={displayUser}
-                          hideEmail
-                          avatarSize={16}
-                          avatarProps={{hasTooltip: true}}
-                          displayName={
-                            <Text size="sm" variant="muted">
-                              {displayUser.name || displayUser.email}
-                            </Text>
-                          }
-                        />
-                      ) : (
-                        <Text size="sm" variant="muted">
-                          {displayUserId}
-                        </Text>
-                      )}
-                    </Flex>
-                  </Fragment>
-                )}
-              </Stack>
+              {headerDetails}
             </Stack>
             <Stack gap="md" align="end">
-              <Flex gap="sm">
-                <Button
-                  size="sm"
-                  disabled={toggleEnabled.isPending}
-                  icon={
-                    toggleEnabled.isPending ? (
-                      <LoadingIndicator size={14} style={{margin: 0}} />
-                    ) : config.enabled ? (
-                      <IconPause />
-                    ) : (
-                      <IconPlay />
-                    )
-                  }
-                  onClick={() => toggleEnabled.mutate(!config.enabled)}
-                >
-                  {config.enabled ? t('Pause') : t('Resume')}
-                </Button>
-                <Button
-                  size="sm"
-                  icon={<IconDelete />}
-                  aria-label={t('Delete')}
-                  onClick={() =>
-                    openConfirmModal({
-                      message: t('Are you sure you want to delete this automation?'),
-                      confirmText: t('Delete'),
-                      priority: 'danger',
-                      onConfirm: () => deleteAutomation.mutate(),
-                    })
-                  }
-                />
-              </Flex>
-              {/* TODO: Placeholder costs until the API provides them */}
-              <Flex gap="xl">
-                <Stack align="end">
-                  <Text size="sm" variant="muted">
-                    {t('Cost 30D')}
-                  </Text>
-                  <Text size="lg">$140.69</Text>
-                </Stack>
-                <Stack align="end">
-                  <Text size="sm" variant="muted">
-                    {t('Cost per Run')}
-                  </Text>
-                  <Text size="lg">$2.50</Text>
-                </Stack>
-              </Flex>
+              {actionButtons}
+              {headerCosts}
             </Stack>
           </Flex>
           <Tabs value={activeTab} size="sm">

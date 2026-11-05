@@ -133,7 +133,7 @@ function AutomationCard({config}: {config: AutomationConfig}) {
   const {enabled, tokensPerMonth, costPerRun} = config;
   const trigger =
     config.strategy === 'breached_metric_investigation'
-      ? t('When a metric monitor breaches')
+      ? t('Triggered by metric monitors')
       : config.trigger;
   const title = config.name ?? strategyMeta?.label ?? config.strategy;
   const description = strategyMeta?.description ?? t('No description');
