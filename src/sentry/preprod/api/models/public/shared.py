@@ -1,29 +1,34 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.preprod.models import PreprodArtifact
 
 
 class AppInfoResponseDict(TypedDict):
-    appId: str | None
-    name: str | None
-    version: str | None
-    buildNumber: int | None
-    artifactType: str | None
-    dateAdded: str | None
-    dateBuilt: str | None
+    appId: Annotated[str | None, ApiDescription("App identifier of the build")]
+    name: Annotated[str | None, ApiDescription("App name")]
+    version: Annotated[str | None, ApiDescription("Version of the build")]
+    buildNumber: Annotated[int | None, ApiDescription("Build number")]
+    artifactType: Annotated[
+        str | None, ApiDescription("Type of the build file: XCARCHIVE, AAB or APK")
+    ]
+    dateAdded: Annotated[str | None, ApiDescription("When the build was uploaded (ISO 8601)")]
+    dateBuilt: Annotated[str | None, ApiDescription("When the build was built (ISO 8601)")]
 
 
 class GitInfoResponseDict(TypedDict):
-    headSha: str | None
-    baseSha: str | None
-    provider: str | None
-    headRepoName: str | None
-    baseRepoName: str | None
-    headRef: str | None
-    baseRef: str | None
-    prNumber: int | None
+    headSha: Annotated[str | None, ApiDescription("Commit SHA of the build")]
+    baseSha: Annotated[
+        str | None, ApiDescription("Commit SHA of the base the build is compared against")
+    ]
+    provider: Annotated[str | None, ApiDescription("Version control provider, such as github")]
+    headRepoName: Annotated[str | None, ApiDescription("Repository name of the head commit")]
+    baseRepoName: Annotated[str | None, ApiDescription("Repository name of the base commit")]
+    headRef: Annotated[str | None, ApiDescription("Branch or ref of the head commit")]
+    baseRef: Annotated[str | None, ApiDescription("Branch or ref of the base commit")]
+    prNumber: Annotated[int | None, ApiDescription("Pull request number")]
 
 
 def create_app_info_dict(artifact: PreprodArtifact) -> AppInfoResponseDict:

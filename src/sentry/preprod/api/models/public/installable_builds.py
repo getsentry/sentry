@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.preprod.api.models.public.shared import (
     AppInfoResponseDict,
     GitInfoResponseDict,
@@ -16,28 +17,58 @@ logger = logging.getLogger(__name__)
 
 
 class InstallInfoResponseDict(TypedDict):
-    buildId: str
-    state: str
-    appInfo: AppInfoResponseDict
-    gitInfo: GitInfoResponseDict | None
-    platform: str | None
-    projectId: str
-    projectSlug: str
-    buildConfiguration: str | None
-    isInstallable: bool
-    installUrl: str | None
-    installUrlExpiresAt: str | None
-    downloadCount: int
-    releaseNotes: str | None
-    installGroups: list[str] | None
-    isCodeSignatureValid: bool | None
-    profileName: str | None
-    codesigningType: str | None
+    buildId: Annotated[str, ApiDescription("ID of the build")]
+    state: Annotated[
+        str, ApiDescription("State of the build: UPLOADING, UPLOADED, PROCESSED or FAILED")
+    ]
+    appInfo: Annotated[AppInfoResponseDict, ApiDescription("App details of the build")]
+    gitInfo: Annotated[
+        GitInfoResponseDict | None,
+        ApiDescription("Version control details of the build. Null when the build has none"),
+    ]
+    platform: Annotated[str | None, ApiDescription("Platform of the build, in uppercase")]
+    projectId: Annotated[str, ApiDescription("ID of the project the build belongs to")]
+    projectSlug: Annotated[str, ApiDescription("Slug of the project the build belongs to")]
+    buildConfiguration: Annotated[
+        str | None, ApiDescription("Name of the build configuration, such as Release")
+    ]
+    isInstallable: Annotated[bool, ApiDescription("Whether the build can be installed")]
+    installUrl: Annotated[
+        str | None,
+        ApiDescription("URL to install the build. Null when the build isn't installable"),
+    ]
+    installUrlExpiresAt: Annotated[str | None, ApiDescription("When installUrl expires (ISO 8601)")]
+    downloadCount: Annotated[int, ApiDescription("Number of times the build was downloaded")]
+    releaseNotes: Annotated[str | None, ApiDescription("Release notes uploaded with the build")]
+    installGroups: Annotated[
+        list[str] | None, ApiDescription("Install groups the build belongs to")
+    ]
+    isCodeSignatureValid: Annotated[
+        bool | None,
+        ApiDescription("Whether the build's code signature is valid. Only set for Apple builds"),
+    ]
+    profileName: Annotated[
+        str | None, ApiDescription("Name of the provisioning profile. Only set for Apple builds")
+    ]
+    codesigningType: Annotated[
+        str | None,
+        ApiDescription(
+            "Code signing type, such as development or app-store. Only set for Apple builds"
+        ),
+    ]
 
 
 class LatestInstallableBuildResponseDict(TypedDict):
-    latestArtifact: InstallInfoResponseDict | None
-    currentArtifact: InstallInfoResponseDict | None
+    latestArtifact: Annotated[
+        InstallInfoResponseDict | None,
+        ApiDescription("Latest installable build that matches the filters. Null when there's none"),
+    ]
+    currentArtifact: Annotated[
+        InstallInfoResponseDict | None,
+        ApiDescription(
+            "Build that matches the given buildVersion. Null when buildVersion isn't given or no build matches"
+        ),
+    ]
 
 
 def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDict:
