@@ -1,6 +1,11 @@
 import {useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import {IconArrow} from '@sentry/icons/arrow';
-import {QueryClient, QueryClientProvider, useQuery} from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  skipToken,
+  useQuery,
+} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {AssistantMessage, MessageRow, UserMessage} from '@sentry/scraps/chat';
@@ -17,11 +22,13 @@ import {
   type AutofixExplorerStep,
   type ExplorerAutofixState,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import * as Storybook from 'sentry/stories';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   Block,
@@ -537,21 +544,32 @@ const PR_STOPPED_RUN: ExplorerAutofixState = {
 };
 
 /**
- * Answers the embed's run-state query with a fixed run, and every other query
- * (the pages it refreshes once a step lands) with an empty list.
+ * Answers the embed's run-state query with a fixed run, every credit check with
+ * `hasEnoughCredits`, and every other query (the pages it refreshes once a step
+ * lands) with an empty list.
  */
 class FixedRunQueryClient extends QueryClient {
   run: ExplorerAutofixState;
+  hasEnoughCredits: boolean;
 
-  constructor(run: ExplorerAutofixState) {
+  constructor(run: ExplorerAutofixState, hasEnoughCredits: boolean) {
     super({defaultOptions: {queries: {retry: false}}});
     this.run = run;
+    this.hasEnoughCredits = hasEnoughCredits;
   }
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
+    if (defaulted.queryFn === skipToken) {
+      return defaulted;
+    }
     const url = String(defaulted.queryKey[0]);
-    const json = url.includes(`/issues/${ISSUE.id}/autofix/`) ? {autofix: this.run} : [];
+    let json: unknown = [];
+    if (url.includes(`/issues/${ISSUE.id}/autofix/`)) {
+      json = {autofix: this.run};
+    } else if (url.includes('/seer/credit-check/')) {
+      json = {hasEnoughCredits: this.hasEnoughCredits};
+    }
     const queryFn = () => Promise.resolve({json, headers: {}});
     return {...defaulted, queryFn: queryFn as never};
   };
@@ -576,14 +594,37 @@ function ExpandedEmbeds({children}: {children: ReactNode}) {
   return <Container ref={ref}>{children}</Container>;
 }
 
-function FixedRunChat({children, run}: {children: ReactNode; run: ExplorerAutofixState}) {
-  const [queryClient] = useState(() => new FixedRunQueryClient(run));
+/**
+ * A chat holding a fixed run, for an organization with `seer-credit-checks`
+ * whose credit checks all answer `hasEnoughCredits`. The embeds can send
+ * messages, so only the credit check holds their buttons back.
+ */
+function FixedRunChat({
+  children,
+  hasEnoughCredits,
+  run,
+}: {
+  children: ReactNode;
+  hasEnoughCredits: boolean;
+  run: ExplorerAutofixState;
+}) {
+  const organization = useOrganization();
+  const [queryClient] = useState(() => new FixedRunQueryClient(run, hasEnoughCredits));
   return (
-    <QueryClientProvider client={queryClient}>
-      <ExpandedEmbeds>
-        <ChatShell>{children}</ChatShell>
-      </ExpandedEmbeds>
-    </QueryClientProvider>
+    <OrganizationContext.Provider
+      value={{
+        ...organization,
+        features: [...organization.features, 'seer-credit-checks'],
+      }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <AutofixChatProvider sendMessage={() => {}}>
+          <ExpandedEmbeds>
+            <ChatShell>{children}</ChatShell>
+          </ExpandedEmbeds>
+        </AutofixChatProvider>
+      </QueryClientProvider>
+    </OrganizationContext.Provider>
   );
 }
 
@@ -641,11 +682,12 @@ export default Storybook.story('Autofix', story => {
       <Text variant="muted">
         The organization ran out of Seer credits while Autofix was writing code changes,
         so the run ended with <code>failure_reason: out_of_credits</code>. The card keeps
-        what Seer wrote and the partial diff, and the out-of-credits CTA replaces “Try
-        again”, which would only fail again. No “Draft a pull request” is offered for the
-        unfinished changes.
+        what Seer wrote and the partial diff, then says why it stopped. The credit check
+        for <code>autofix_code_changes</code> says the organization still can't afford it,
+        so “Try again” is disabled (hover it for why). No “Draft a pull request” is
+        offered for the unfinished changes.
       </Text>
-      <FixedRunChat run={CODE_CHANGES_STOPPED_RUN}>
+      <FixedRunChat run={CODE_CHANGES_STOPPED_RUN} hasEnoughCredits={false}>
         <User>Fix {ISSUE.shortId} all the way.</User>
         <Seer
           raw={`I started on the code changes:\n\n${autofixRefTag(ISSUE, 'code_changes', CODE_CHANGES_STOPPED_RUN.run_id)}`}
@@ -659,10 +701,11 @@ export default Storybook.story('Autofix', story => {
       <Text variant="muted">
         The code changes finished, then opening the PR failed because the organization ran
         out of credits (<code>pr_creation_error_code: out_of_credits</code>). The Pull
-        Request card shows the CTA in place of Seer's generic failure, and the Code
-        Changes card stops offering “Draft a pull request”, which would fail the same way.
+        Request card says so in place of Seer's generic failure. The credit check for{' '}
+        <code>autofix_create_pr</code> says the organization still can't afford it, so the
+        Code Changes card's “Draft a pull request” is disabled (hover it for why).
       </Text>
-      <FixedRunChat run={PR_STOPPED_RUN}>
+      <FixedRunChat run={PR_STOPPED_RUN} hasEnoughCredits={false}>
         <User>Open a pull request for {ISSUE.shortId}.</User>
         <Seer
           raw={`${autofixRefTag(ISSUE, 'code_changes', PR_STOPPED_RUN.run_id)}\n\n${autofixRefTag(ISSUE, 'pr_iteration', PR_STOPPED_RUN.run_id)}`}

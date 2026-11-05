@@ -16,8 +16,6 @@ import {
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
-import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -1275,15 +1273,6 @@ describe('SeerExplorerContent', () => {
   });
 
   describe('Out of credits', () => {
-    // getsentry fills in the CTA; this stand-in shows the headline it was given.
-    function StubOutOfCreditsCta({message}: SeerOutOfCreditsCtaProps) {
-      return <div data-test-id="seer-out-of-credits">{message}</div>;
-    }
-
-    beforeEach(() => {
-      registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
-    });
-
     const stoppedBlocks = [
       {
         id: 'user-1',
@@ -1323,7 +1312,7 @@ describe('SeerExplorerContent', () => {
       );
     }
 
-    it("replaces Seer's error block with the CTA and keeps the partial response", async () => {
+    it("replaces Seer's error block with why it stopped and keeps the partial response", async () => {
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
         ...defaultHookReturn,
         runId: 123,
@@ -1337,9 +1326,11 @@ describe('SeerExplorerContent', () => {
 
       renderContent();
 
-      expect(await screen.findByTestId('seer-out-of-credits')).toHaveTextContent(
-        'Seer stopped because your organization is out of credits.'
-      );
+      expect(
+        await screen.findByText(
+          'Seer stopped because your organization is out of credits.'
+        )
+      ).toBeInTheDocument();
       expect(screen.queryByText(/so I stopped here/)).not.toBeInTheDocument();
       expect(screen.queryByText('Response timed out.')).not.toBeInTheDocument();
       // The reasoning before it stopped stays in the thinking block.
@@ -1364,7 +1355,9 @@ describe('SeerExplorerContent', () => {
       renderContent();
 
       expect(await screen.findByText(/so I stopped here/)).toBeInTheDocument();
-      expect(screen.queryByTestId('seer-out-of-credits')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Seer stopped because your organization is out of credits.')
+      ).not.toBeInTheDocument();
     });
   });
 

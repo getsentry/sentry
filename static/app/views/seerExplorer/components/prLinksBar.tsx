@@ -2,14 +2,10 @@ import {IconPullRequest} from '@sentry/icons/pullRequest';
 import {IconWarning} from '@sentry/icons/warning';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {
-  getOutOfCreditsPRMessage,
-  getOutOfCreditsPRsMessage,
-} from 'sentry/components/seer/outOfCredits/messages';
-import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {isOutOfCreditsPRState, type RepoPRState} from 'sentry/views/seerExplorer/types';
@@ -27,20 +23,12 @@ export function PRLinksBar({repoPRStates}: PRLinksBarProps) {
     return null;
   }
 
-  // The failure toast is gone by the time anyone reads it, so the CTA lives here.
-  const outOfCreditsStates = states.filter(isOutOfCreditsPRState);
-
   return (
-    <Stack margin="lg xl 0" gap="md">
-      <Flex gap="md" wrap="wrap">
-        {states.map(state => (
-          <PRButton key={state.repo_name} state={state} />
-        ))}
-      </Flex>
-      {outOfCreditsStates.length > 0 && (
-        <SeerOutOfCreditsCta message={getOutOfCreditsPRsMessage(outOfCreditsStates)} />
-      )}
-    </Stack>
+    <Flex margin="lg xl 0" gap="md" wrap="wrap">
+      {states.map(state => (
+        <PRButton key={state.repo_name} state={state} />
+      ))}
+    </Flex>
   );
 }
 

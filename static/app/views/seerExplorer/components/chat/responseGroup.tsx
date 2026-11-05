@@ -2,12 +2,12 @@ import {Fragment, memo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
+import {AssistantMessage, MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
 import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {OUT_OF_CREDITS_CHAT_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
-import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t} from 'sentry/locale';
 import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {
@@ -275,7 +275,7 @@ export const ResponseGroup = memo(function ResponseGroup({
           </MessageRow>
         ) : null}
 
-        {/* Seer's plain-text error block gives way to the CTA. */}
+        {/* Seer's plain-text error block gives way to a line saying why it stopped. */}
         {settledAnswer && !(showOutOfCredits && isSeerErrorBlock(settledAnswer)) ? (
           <AssistantBlock
             block={settledAnswer}
@@ -292,16 +292,16 @@ export const ResponseGroup = memo(function ResponseGroup({
   );
 }, areResponseGroupPropsEqual);
 
+/**
+ * Why the run stopped. The out-of-credits alert above the composer offers the
+ * way out, so this has no CTA of its own.
+ */
 function OutOfCreditsMessage({compact}: {compact: boolean}) {
   return (
-    <MessageRow
-      from="assistant"
-      density={compact ? 'compact' : undefined}
-      data-test-id="seer-explorer-out-of-credits"
-    >
-      <Container width="100%">
-        <SeerOutOfCreditsCta message={OUT_OF_CREDITS_CHAT_MESSAGE} />
-      </Container>
+    <MessageRow from="assistant" density={compact ? 'compact' : undefined}>
+      <AssistantMessage>
+        <Text variant="muted">{OUT_OF_CREDITS_CHAT_MESSAGE}</Text>
+      </AssistantMessage>
     </MessageRow>
   );
 }
