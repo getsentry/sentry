@@ -428,9 +428,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         modes.
 
         Like _flush_cycle, this reports the process healthy once all segments
-        of the cycle were built, so that a flusher whose first cycle crashes,
-        for example on a corrupt segment, fails the consumer's startup
-        handshake. Here, that is after the segments were also produced.
+        of the cycle were built. Here, that is after the segments were also
+        produced. So a flusher whose first cycle crashes, for example on a
+        corrupt segment, fails the consumer's startup handshake, unless it
+        waited for the drift before that cycle (see SpanFlusher.main). It then
+        reported healthy while it waited, and hold_first_batch instead holds
+        the consumer's first batch until the first cycle has finished.
 
         If building or producing a segment fails, the segments that were
         handed to the producer before are still awaited and cleaned up, so
