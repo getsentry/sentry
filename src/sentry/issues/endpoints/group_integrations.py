@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -15,6 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import Serializer, serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
@@ -37,16 +38,26 @@ from sentry.utils.cursors import CursorResult
 
 
 class LinkedExternalIssueResponse(TypedDict):
-    id: str
-    key: str
-    url: str
-    title: str | None
-    description: str | None
-    displayName: str
+    id: Annotated[str, ApiDescription("ID of the link between the issue and the external issue")]
+    key: Annotated[
+        str, ApiDescription("Key of the external issue in the provider, such as PROJ-123")
+    ]
+    url: Annotated[str, ApiDescription("URL of the external issue")]
+    title: Annotated[str | None, ApiDescription("Title of the external issue")]
+    description: Annotated[str | None, ApiDescription("Description of the external issue")]
+    displayName: Annotated[
+        str,
+        ApiDescription(
+            "Name to show for the external issue, such as owner/repo#1. Empty when the integration doesn't set one"
+        ),
+    ]
 
 
 class IntegrationIssueSerializerResponse(IntegrationSerializerResponse):
-    externalIssues: list[LinkedExternalIssueResponse]
+    externalIssues: Annotated[
+        list[LinkedExternalIssueResponse],
+        ApiDescription("External issues of this integration linked to the issue"),
+    ]
 
 
 class IntegrationIssueSerializer(Serializer[IntegrationIssueSerializerResponse]):
