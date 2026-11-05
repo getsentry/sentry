@@ -33,6 +33,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
+    BreachedMetricConfigUpdate,
     BreachedMetricWorkflow,
     IgnoredMetricBreach,
     MetricBreachRunExtras,
@@ -134,8 +135,11 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
             config_id=self.config.id, organization_id=self.config.organization_id
         )
         for selection in (SelectedProjects(project_ids=(self.project.id,)), AllProjects()):
-            with pytest.raises(ValueError, match="selected by connecting monitors"):
-                workflow.set_project_selection(selection)
+            with (
+                pytest.raises(ValueError, match="selected by connecting monitors"),
+                workflow.update_config() as update,
+            ):
+                update.set_project_selection(selection)
 
         assert workflow.get_config().version == self.config.version
 
@@ -776,6 +780,13 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             filters={"all_projects": False, "environments": ["production"]},
         )
 
+    def test_update_config_yields_metric_update(self) -> None:
+        workflow = BreachedMetricWorkflow(
+            config_id=self.config.id, organization_id=self.organization.id
+        )
+        with workflow.update_config() as update:
+            assert isinstance(update, BreachedMetricConfigUpdate)
+
     def test_connects_selected_monitors(self) -> None:
         updated = self.select_monitors([*self.monitor_ids, self.monitor_ids[0]])
 
@@ -971,10 +982,9 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         other = Factories.create_seer_workflow_config(
             self.create_organization(), strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         )
-        with pytest.raises(SeerWorkflowConfig.DoesNotExist):
-            BreachedMetricWorkflow(
-                config_id=other.id, organization_id=self.organization.id
-            ).set_monitor_selection(self.monitor_ids)
+        foreign = BreachedMetricWorkflow(config_id=other.id, organization_id=self.organization.id)
+        with pytest.raises(SeerWorkflowConfig.DoesNotExist), foreign.update_config() as update:
+            update.set_monitor_selection(self.monitor_ids)
 
         self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
         with pytest.raises(ValueError, match="Only metric automations"):
@@ -1003,7 +1013,8 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         workflow = BreachedMetricWorkflow(
             config_id=self.config.id, organization_id=self.organization.id
         )
-        workflow.set_monitor_selection(monitor_ids)
+        with workflow.update_config() as update:
+            update.set_monitor_selection(monitor_ids)
         return workflow.get_config()
 
     def has_all_projects(self) -> bool:

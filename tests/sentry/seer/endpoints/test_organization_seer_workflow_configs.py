@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Any
+from unittest.mock import patch
 
 from django.db import connections, router
 from django.test import override_settings
@@ -27,6 +28,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow, ConnectedMonitor
+from sentry.seer.workflows.workflow import ConfigUpdate, WorkflowUpdateError
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
@@ -712,6 +714,41 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             }
 
         assert self.connected_monitor_ids(workflow) == {connected.id}
+
+    def test_put_projects_and_enabled_bumps_version_once(self) -> None:
+        config = self.create_config()
+        response = self.get_success_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            projectIds=[self.project.id],
+            enabled=True,
+        )
+
+        assert response.data["version"] == config.version + 1
+        assert response.data["enabled"] is True
+        assert response.data["projects"] == [self.project.id]
+
+    def test_put_failure_rolls_back_every_change(self) -> None:
+        config = self.create_config()
+        Factories.create_seer_workflow_config_project(config, self.project)
+        other = self.create_project()
+
+        # Fail on the last change, after the project change has been applied.
+        with patch.object(ConfigUpdate, "set_enabled", side_effect=WorkflowUpdateError("failed")):
+            self.get_error_response(
+                self.organization.slug,
+                config.id,
+                method="put",
+                projectIds=[other.id],
+                enabled=True,
+                status_code=400,
+            )
+
+        config.refresh_from_db()
+        assert config.version == 1
+        assert config.enabled is False
+        assert self.selected_project_ids(config) == [self.project.id]
 
     def test_put_project_ids_on_breached_metric_config_returns_400(self) -> None:
         workflow = self.create_metric_workflow()
