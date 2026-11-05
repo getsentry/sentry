@@ -1,6 +1,5 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -18,17 +17,6 @@ export type SeerCreditOperation =
 
 interface SeerCreditCheckResponse {
   hasEnoughCredits: boolean;
-}
-
-/**
- * Whether Seer credit gating applies to the organization at all. Orgs without
- * token-billed Seer have no wallet to check, so they make no billing calls.
- */
-export function hasSeerCreditChecks(organization: Organization) {
-  return (
-    organization.features.includes('seer-credit-checks') &&
-    organization.features.includes('token-billed-seer-enabled')
-  );
 }
 
 interface UseSeerCreditCheckOptions {
@@ -55,7 +43,12 @@ export function useSeerCreditCheck(
   {enabled = true}: UseSeerCreditCheckOptions = {}
 ) {
   const organization = useOrganization();
-  const isChecking = enabled && hasSeerCreditChecks(organization);
+  // Orgs without token-billed Seer have no wallet to check, so they make no
+  // billing call.
+  const isChecking =
+    enabled &&
+    organization.features.includes('seer-credit-checks') &&
+    organization.features.includes('token-billed-seer-enabled');
 
   const query = useQuery({
     ...apiOptions.as<SeerCreditCheckResponse>()(
