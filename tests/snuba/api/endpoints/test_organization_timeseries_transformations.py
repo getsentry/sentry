@@ -2,10 +2,13 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
+import orjson
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.response import Response
 
+from sentry.seer.endpoints.seer_rpc import generate_request_signature
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 from tests.snuba.api.endpoints.test_organization_events_timeseries_spans import (
@@ -109,6 +112,193 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                 for offset in range(count)
             ]
         )
+
+    def _do_seer_request(self, args: dict[str, Any]) -> Response:
+        path = reverse(
+            "sentry-api-0-seer-rpc-service", kwargs={"method_name": "execute_timeseries_query_v2"}
+        )
+        data = {
+            "args": {
+                "org_id": self.organization.id,
+                "dataset": "spans",
+                "project_ids": [self.project.id],
+                "start": self.start.isoformat(),
+                "end": self.end.isoformat(),
+                "query": "",
+                **args,
+            },
+            "meta": {},
+        }
+        with (
+            override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"]),
+            self.feature("organizations:explore-interpolation-and-smoothing"),
+        ):
+            signature = generate_request_signature(path, orjson.dumps(data))
+            return self.client.post(path, data=data, HTTP_AUTHORIZATION=f"rpcsignature {signature}")
+
+    def test_seer_rpc_comparison_provenance(self) -> None:
+        self.end = self.start + timedelta(seconds=90)
+        self._store_spans_in_buckets([2, 0, 6, 4, 0, 0], self.start, interval_seconds=15)
+        self._store_spans_in_buckets([0, 8, 0, 2, 0, 0], self.two_days_ago, interval_seconds=15)
+
+        response = self._do_seer_request(
+            {
+                "y_axes": ["count()"],
+                "interval": "15s",
+                "comparison_delta": 86400,
+                "transformations": [["fill(locf)", "smooth(sma,2)"]],
+            }
+        )
+
+        assert response.status_code == 200, response.data
+        (series,) = orjson.loads(response.content)["timeSeries"]
+        assert [point["value"] for point in series["values"]] == [2, 2, 4, 5, 4, 4]
+        assert [point["comparisonValue"] for point in series["values"]] == [None, 8, 8, 5, 2, 2]
+        assert [point["comparisonFilled"] for point in series["values"]] == [
+            False,
+            False,
+            True,
+            False,
+            True,
+            True,
+        ]
+        assert [point["comparisonSmoothed"] for point in series["values"]] == [
+            False,
+            True,
+            True,
+            True,
+            True,
+            True,
+        ]
+        assert series["meta"]["interval"] == 15000
+
+    def test_seer_rpc_grouped_axes_preserve_pipeline_order_and_interval(self) -> None:
+        self.end = self.start + timedelta(seconds=90)
+        self._store_spans_in_buckets([2, 0, 6, 4, 0, 0], self.start, "foo", 15)
+        self._store_spans_in_buckets([4, 0, 2, 6, 0, 0], self.start, "bar", 15)
+        for group in ("baz", "qux", "quux", "corge"):
+            self._store_spans_in_buckets([1, 0, 0, 0, 0, 0], self.start, group, 15)
+
+        response = self._do_seer_request(
+            {
+                "y_axes": ["count()", "count()"],
+                "interval": "15s",
+                "group_by": ["span.description"],
+                "transformations": [
+                    ["fill(locf)", "smooth(sma,2)"],
+                    ["smooth(sma,2)", "fill(locf)"],
+                ],
+            }
+        )
+
+        assert response.status_code == 200, response.data
+        body = orjson.loads(response.content)
+        series = body["timeSeries"]
+        assert len(series) == 12
+        for fill_first, smooth_first in zip(series[::2], series[1::2]):
+            assert fill_first["groupBy"] == smooth_first["groupBy"]
+            assert fill_first["meta"]["interval"] == smooth_first["meta"]["interval"] == 15000
+            assert fill_first["yAxis"] == smooth_first["yAxis"] == "count()"
+        by_group = {
+            series[index]["groupBy"][0]["value"]: series[index : index + 2]
+            for index in range(0, len(series) - 2, 2)
+        }
+        foo_fill_first, foo_smooth_first = by_group["foo"]
+        bar_fill_first, bar_smooth_first = by_group["bar"]
+        assert [point["value"] for point in foo_fill_first["values"]] == [2, 2, 4, 5, 4, 4]
+        assert [point["value"] for point in foo_smooth_first["values"]] == [2, 2, 6, 5, 5, 5]
+        assert [point["value"] for point in bar_fill_first["values"]] == [4, 4, 3, 4, 6, 6]
+        assert [point["value"] for point in bar_smooth_first["values"]] == [4, 4, 2, 4, 4, 4]
+        assert series[-1]["groupBy"] is None
+        assert series[-1]["meta"]["isOther"] is True
+        assert body["meta"]["start"] == self.start.timestamp() * 1000
+        assert body["meta"]["end"] == self.end.timestamp() * 1000
+
+    def test_seer_rpc_transforms_logs(self) -> None:
+        self.end = self.start + timedelta(minutes=3)
+        logs = []
+        for bucket, count in enumerate([2, 0, 6]):
+            for offset in range(count):
+                logs.append(
+                    self.create_ourlog(
+                        timestamp=self.start + timedelta(minutes=bucket, seconds=offset)
+                    )
+                )
+        self.store_eap_items(logs)
+
+        response = self._do_seer_request(
+            {
+                "dataset": "logs",
+                "y_axes": ["count()"],
+                "interval": "1m",
+                "transformations": [["fill(locf)", "smooth(sma,2)"]],
+            }
+        )
+
+        assert response.status_code == 200, response.data
+        body = orjson.loads(response.content)
+        (series,) = body["timeSeries"]
+        assert [point["value"] for point in series["values"]] == [2, 2, 4]
+        assert series["meta"]["interval"] == 60000
+        assert body["meta"]["dataset"] == "logs"
+
+    def test_seer_rpc_metrics_preserve_observed_zero_and_missing_values(self) -> None:
+        self.end = self.start + timedelta(minutes=4)
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "test.metric", 0, "gauge", timestamp=self.start + timedelta(minutes=1)
+                ),
+                self.create_trace_metric(
+                    "test.metric", 6, "gauge", timestamp=self.start + timedelta(minutes=3)
+                ),
+            ]
+        )
+
+        response = self._do_seer_request(
+            {
+                "dataset": "tracemetrics",
+                "query": "metric.name:test.metric",
+                "y_axes": ["avg(value)", "avg(value)"],
+                "interval": "1m",
+                "transformations": [["fill(locf)", "smooth(sma,2)"], []],
+            }
+        )
+
+        assert response.status_code == 200, response.data
+        body = orjson.loads(response.content)
+        transformed, raw = body["timeSeries"]
+        assert [point["value"] for point in transformed["values"]] == [None, 0, 0, 3]
+        assert [point["value"] for point in raw["values"]] == [0, 0, 0, 6]
+        assert [point["filled"] for point in transformed["values"]] == [False, False, True, False]
+        assert transformed["meta"]["interval"] == raw["meta"]["interval"] == 60000
+        assert body["meta"]["dataset"] == "tracemetrics"
+
+    def test_seer_rpc_preserves_boolean_groups(self) -> None:
+        self.end = self.start + timedelta(minutes=1)
+        self.store_spans(
+            [
+                self.create_span({"data": {"feature_flag": True}}, start_ts=self.start),
+                self.create_span({"data": {"feature_flag": False}}, start_ts=self.start),
+            ]
+        )
+
+        response = self._do_seer_request(
+            {
+                "y_axes": ["count()"],
+                "interval": "1m",
+                "group_by": ["tags[feature_flag,boolean]"],
+                "transformations": [["smooth(sma,2)"]],
+            }
+        )
+
+        assert response.status_code == 200, response.data
+        series = orjson.loads(response.content)["timeSeries"]
+        assert len(series) == 2
+        assert {item["groupBy"][0]["value"] for item in series} == {True, False}
+        for item in series:
+            assert type(item["groupBy"][0]["value"]) is bool
+            assert [point["value"] for point in item["values"]] == [1]
 
     def test_transformations_preserve_duplicate_untransformed_axis(self) -> None:
         self.end = self.start + timedelta(seconds=90)
