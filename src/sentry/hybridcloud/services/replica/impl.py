@@ -34,8 +34,13 @@ from sentry.service_accounts.models import (
     ServiceAccount,
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
+    ServiceAccountToken,
+    ServiceAccountTokenReplica,
 )
-from sentry.service_accounts.services.service_account.model import RpcServiceAccount
+from sentry.service_accounts.services.service_account.model import (
+    RpcServiceAccount,
+    RpcServiceAccountToken,
+)
 from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
 from sentry.utils import metrics
@@ -262,6 +267,33 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
                     for project_id in valid_project_ids - existing_project_ids
                 ]
             )
+
+    def upsert_replicated_service_account_token(
+        self,
+        *,
+        token: RpcServiceAccountToken,
+        cell_name: str,
+    ) -> None:
+        try:
+            organization = Organization.objects.get(id=token.organization_id)
+        except Organization.DoesNotExist:
+            return
+
+        # The account's outbox is on the same shard and was written first, so its replica
+        # exists. Raising instead of skipping keeps the token's outbox for a retry.
+        service_account = ServiceAccountReplica.objects.get(
+            organization_id=organization.id, service_account_id=token.service_account_id
+        )
+        destination = ServiceAccountTokenReplica(
+            service_account=service_account,
+            token_id=token.id,
+            organization=organization,
+            token_hashed=token.token_hashed,
+            scope_list=token.scope_list,
+            date_expires=token.date_expires,
+            date_deactivated=token.date_deactivated,
+        )
+        handle_replication(ServiceAccountToken, destination)
 
     def upsert_replicated_auth_provider(
         self,
