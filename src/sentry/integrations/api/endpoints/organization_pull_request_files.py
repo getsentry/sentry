@@ -14,7 +14,7 @@ from scm.types import FileStatus, GetPullRequestFilesProtocol, PullRequestFile
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
 from sentry.constants import ObjectStatus
@@ -102,7 +102,7 @@ class OrganizationPullRequestFilesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
     # Not the loose permission: org:ci tokens must not read source diffs.
-    permission_classes = (OrganizationIntegrationsPermission,)
+    permission_classes = (OrganizationPermission,)
 
     def get(
         self, request: Request, organization: Organization, pull_request_id: str
@@ -133,7 +133,7 @@ class OrganizationRepositoryPullRequestFilesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
     # Not the loose permission: org:ci tokens must not read source diffs.
-    permission_classes = (OrganizationIntegrationsPermission,)
+    permission_classes = (OrganizationPermission,)
 
     def get(
         self, request: Request, organization: Organization

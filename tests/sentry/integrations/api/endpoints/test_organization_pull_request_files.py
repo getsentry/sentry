@@ -9,6 +9,7 @@ from scm.errors import (
     SCMError,
 )
 
+from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -35,6 +36,13 @@ def _org_ci_auth_header(test: APITestCase) -> str:
         # Authenticate with the token alone, not the logged-in session.
         test.client.logout()
     return f"Bearer {token_str}"
+
+
+def _org_integrations_auth_header(test: APITestCase) -> str:
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        token = ApiToken.objects.create(user=test.user, scope_list=["org:integrations"])
+        test.client.logout()
+    return f"Bearer {token.plaintext_token}"
 
 
 class _FakeScm:
@@ -144,6 +152,16 @@ class OrganizationPullRequestFilesTest(APITestCase):
         )
         mock_make_scm.assert_not_called()
 
+    @mock.patch(_MAKE_SCM)
+    def test_org_integrations_token_is_forbidden(self, mock_make_scm: MagicMock) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            self.pull_request.id,
+            status_code=403,
+            extra_headers={"HTTP_AUTHORIZATION": _org_integrations_auth_header(self)},
+        )
+        mock_make_scm.assert_not_called()
+
     def test_nonexistent_pull_request_returns_404(self) -> None:
         self.get_error_response(self.organization.slug, 999999, status_code=404)
 
@@ -240,6 +258,16 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
             qs_params={"repo": "getsentry/sentry", "number": "42"},
             status_code=403,
             extra_headers={"HTTP_AUTHORIZATION": _org_ci_auth_header(self)},
+        )
+        mock_make_scm.assert_not_called()
+
+    @mock.patch(_MAKE_SCM)
+    def test_org_integrations_token_is_forbidden(self, mock_make_scm: MagicMock) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"repo": "getsentry/sentry", "number": "42"},
+            status_code=403,
+            extra_headers={"HTTP_AUTHORIZATION": _org_integrations_auth_header(self)},
         )
         mock_make_scm.assert_not_called()
 
