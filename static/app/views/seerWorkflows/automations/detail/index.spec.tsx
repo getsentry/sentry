@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 
-import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AutomationDetail from 'sentry/views/seerWorkflows/automations/detail';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
@@ -141,12 +141,14 @@ describe('AutomationDetail', () => {
     renderDetail();
     await findLoadedPage();
 
-    expect(
-      within(screen.getByRole('tab', {name: 'Configuration'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/42/');
-    expect(
-      within(screen.getByRole('tab', {name: 'Runs'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/42/runs/');
+    expect(screen.getByRole('tab', {name: 'Configuration'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/42/'
+    );
+    expect(screen.getByRole('tab', {name: 'Runs'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/42/runs/'
+    );
   });
 
   it.each([

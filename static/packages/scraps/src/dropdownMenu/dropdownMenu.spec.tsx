@@ -9,6 +9,29 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {lightTheme} from '@sentry/scraps/theme';
 
 describe('DropdownMenu', () => {
+  it.each(['click', 'keyboard'])(
+    'calls the link click handler once on %s activation',
+    async interaction => {
+      const onClick = jest.fn();
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          items={[{key: 'activity', label: 'Activity', to: '#activity', onClick}]}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      if (interaction === 'click') {
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Activity'}));
+      } else {
+        await userEvent.keyboard('{Enter}');
+      }
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+    }
+  );
+
   it('filters a searchable root menu', async () => {
     render(
       <DropdownMenu

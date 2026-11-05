@@ -20,18 +20,17 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
 import type {TabProps} from './tab';
 import {TabsContext} from './tabs';
-import {tabsShouldForwardProp} from './utils';
+import {isModifiedClick, tabsShouldForwardProp} from './utils';
 
 const StyledTabListWrap = styled('ul', {
   shouldForwardProp: tabsShouldForwardProp,
@@ -241,14 +240,51 @@ function useOverflowTabs({
   return overflowTabs.filter(key => !hiddenKeys.has(key));
 }
 
+type OverflowMenuItem = SelectOption<string | number> & Pick<TabListItemProps, 'to'>;
+
 interface OverflowMenuProps {
   disabled: boolean | undefined;
-  overflowMenuItems: Array<SelectOption<string | number>>;
+  overflowMenuItems: OverflowMenuItem[];
   state: TabListState<TabListItemProps>;
 }
 
 function OverflowMenu({state, overflowMenuItems, disabled}: OverflowMenuProps) {
   const {t} = useTranslation();
+
+  if (overflowMenuItems.some(item => item.to)) {
+    return (
+      <TabListOverflowWrap>
+        <DropdownMenu
+          items={overflowMenuItems.map(({value, to, ...item}) => ({
+            ...item,
+            key: String(value),
+            to,
+            isSelected: state.selectedKey === value,
+            onAction: to ? undefined : () => state.setSelectedKey(value),
+            onClick: to
+              ? event => {
+                  if (!isModifiedClick(event)) {
+                    state.setSelectedKey(value);
+                  }
+                }
+              : undefined,
+          }))}
+          isDisabled={disabled}
+          position="bottom-end"
+          size="sm"
+          offset={4}
+          trigger={triggerProps => (
+            <OverflowMenuTrigger
+              {...triggerProps}
+              variant="transparent"
+              icon={<IconEllipsis />}
+              aria-label={t('More tabs')}
+            />
+          )}
+        />
+      </TabListOverflowWrap>
+    );
+  }
 
   return (
     <TabListOverflowWrap>
@@ -285,9 +321,10 @@ interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabList
 }
 
 function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
-  const navigate = useNavigate();
   const outerWrapRef = useRef<HTMLDivElement>(null);
   const tabListRef = useRef<HTMLUListElement>(null);
+  const openingLinkRef = useRef(false);
+  const automaticActivationRef = useRef<{key?: string | number} | null>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
     value,
@@ -306,13 +343,9 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
     defaultSelectedKey: defaultValue,
     onSelectionChange: (key: any) => {
       onChange?.(key);
-
-      // If the newly selected tab is a tab link, then navigate to the specified link
-      const linkTo = [...(props.items ?? [])].find(item => item.key === key)?.to;
-      if (!linkTo) {
-        return;
+      if (automaticActivationRef.current) {
+        automaticActivationRef.current.key = key;
       }
-      navigate(linkTo);
     },
     isDisabled: disabled,
     keyboardActivation,
@@ -356,6 +389,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
 
       return {
         value: key,
+        to: itemProps.to,
         label: (
           <Flex align="center" gap="md">
             {itemProps.children}
@@ -365,7 +399,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
         tooltip: itemProps.tooltip?.title,
         tooltipOptions: itemProps.tooltip,
         textValue: item.textValue,
-      } satisfies SelectOption<string | number>;
+      } satisfies OverflowMenuItem;
     });
   }, [state.collection, overflowTabs]);
 
@@ -373,6 +407,30 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
     <Container position="relative" style={outerWrapStyles} ref={outerWrapRef}>
       <TabListWrap
         {...tabListProps}
+        onKeyDown={event => {
+          const activation: {key?: string | number} = {};
+          automaticActivationRef.current =
+            keyboardActivation === 'automatic' ? activation : null;
+          try {
+            tabListProps.onKeyDown?.(event);
+          } finally {
+            automaticActivationRef.current = null;
+          }
+          if (activation.key !== undefined) {
+            const link = tabItemsRef.current[
+              activation.key
+            ]?.querySelector<HTMLAnchorElement>(':scope > a[role="tab"]');
+            if (link) {
+              openingLinkRef.current = true;
+              try {
+                link.focus();
+                link.click();
+              } finally {
+                openingLinkRef.current = false;
+              }
+            }
+          }
+        }}
         orientation={orientation}
         ref={tabListRef}
         variant={variant}
@@ -382,6 +440,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
             key={item.key}
             item={item}
             state={state}
+            openingLinkRef={openingLinkRef}
             orientation={orientation}
             size={size}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
