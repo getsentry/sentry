@@ -1,3 +1,4 @@
+import traceback
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, cast
@@ -144,6 +145,15 @@ class DummyOwnerTagOuterEndpoint(Endpoint):
         self.seen_owner_tags.append(_current_owner_tag())
         DummyOwnerTagInnerEndpoint.as_view(seen_owner_tags=self.seen_owner_tags)(request._request)
         self.seen_owner_tags.append(_current_owner_tag())
+        return Response(status=200)
+
+
+class DummyStackRecordingEndpoint(Endpoint):
+    permission_classes = ()
+    seen_stacks: list[traceback.StackSummary] = []
+
+    def get(self, request: Request) -> Response:
+        self.seen_stacks.append(traceback.extract_stack())
         return Response(status=200)
 
 
@@ -633,6 +643,24 @@ class EndpointOwnerTagTest(APITestCase):
         assert response.status_code == 500
         assert seen == [ApiOwner.UNOWNED.value]
         assert _current_owner_tag() is None
+
+
+class EndpointDispatchStackTest(APITestCase):
+    def test_dispatch_adds_a_single_wrapper_frame(self) -> None:
+        # These frames feed the grouping hash of every endpoint error, so a new one regroups
+        # existing issues.
+        seen: list[traceback.StackSummary] = []
+        view = DummyStackRecordingEndpoint.as_view(seen_stacks=seen)
+
+        view(self.make_request(method="GET"))
+
+        (stack,) = seen
+        base_wrappers = [
+            frame
+            for frame in stack
+            if frame.filename.endswith("sentry/api/base.py") and frame.name == "wrapper"
+        ]
+        assert len(base_wrappers) == 1
 
 
 class CursorGenerationTest(APITestCase):
