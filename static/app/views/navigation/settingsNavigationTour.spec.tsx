@@ -123,9 +123,9 @@ describe('Settings navigation tour', () => {
     await userEvent.keyboard('{Escape}');
     expect(screen.getByText('Tour entry')).toBeInTheDocument();
 
-    await userEvent.tab();
-    await userEvent.tab();
-    await userEvent.tab();
+    await userEvent.tab(); // Move from entry to the projects button.
+    await userEvent.tab(); // Enter the guide at Close.
+    await userEvent.tab(); // Reach Next.
     expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
@@ -148,8 +148,8 @@ describe('Settings navigation tour', () => {
   it('moves focus to the next guide when the tour changes step from the guide', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
-    await userEvent.tab();
-    await userEvent.tab();
+    await userEvent.tab(); // Move from the autofocused guide to Close.
+    await userEvent.tab(); // Reach Next.
     expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
     await userEvent.keyboard('{Enter}');
     expect(await screen.findByText('Tour projects')).toBeInTheDocument();
@@ -164,8 +164,8 @@ describe('Settings navigation tour', () => {
   it('returns focus to the highlighted element when a focused guide closes', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
-    await userEvent.tab();
-    await userEvent.tab();
+    await userEvent.tab(); // Move from the autofocused guide to Close.
+    await userEvent.tab(); // Reach Next.
     expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
