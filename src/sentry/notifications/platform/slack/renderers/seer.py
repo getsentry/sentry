@@ -229,7 +229,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                     project_id=data.project_id,
                 )
             )
-        elif data.has_credits_for_next_step and data.next_seer_stopping_point is not None:
+        elif data.has_next_trigger and data.has_credits_for_next_step:
             action_elements.append(
                 cls._render_autofix_button(data=SeerAutofixTrigger.from_update(data))
             )

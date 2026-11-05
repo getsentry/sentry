@@ -128,16 +128,6 @@ class SeerAutofixUpdate(NotificationData):
             case AutofixStoppingPoint.OPEN_PR:
                 return False
 
-    @property
-    def next_seer_stopping_point(self) -> AutofixStoppingPoint | None:
-        """The Seer step the update's next-step button starts, or None if it has no such button."""
-        # At root cause, a configured handoff replaces the next-step button with a handoff button.
-        if self.handoff_target and self.current_point == AutofixStoppingPoint.ROOT_CAUSE:
-            return None
-        if not self.has_next_trigger:
-            return None
-        return _get_next_stopping_point(self.current_point)
-
 
 @template_registry.register(NotificationSource.SEER_AUTOFIX_UPDATE)
 class SeerAutofixUpdateTemplate(NotificationTemplate[SeerAutofixUpdate]):
