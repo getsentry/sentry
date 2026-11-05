@@ -107,6 +107,37 @@ describe('InputSection', () => {
     expect(screen.queryByText('Out of credits')).not.toBeInTheDocument();
   });
 
+  it('shows the usage meter between the composer and the send button', () => {
+    render(<InputSection {...makeProps({usageMeter: 'Credit usage'})} />);
+
+    const meter = screen.getByText('Credit usage');
+    expect(
+      screen.getByTestId('seer-explorer-input').compareDocumentPosition(meter) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      meter.compareDocumentPosition(screen.getByRole('button', {name: 'Send message'})) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('keeps the usage meter while Seer is responding', () => {
+    render(
+      <InputSection
+        {...makeProps({usageMeter: 'Credit usage', interruptState: 'can-interrupt'})}
+      />
+    );
+
+    expect(screen.getByText('Credit usage')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Interrupt button'})).toBeInTheDocument();
+  });
+
+  it('leaves the usage meter out of a read-only conversation', () => {
+    render(<InputSection {...makeProps({usageMeter: 'Credit usage', enabled: false})} />);
+
+    expect(screen.queryByText('Credit usage')).not.toBeInTheDocument();
+  });
+
   describe('with ask-seer-create-pr', () => {
     const organization = OrganizationFixture({features: ['ask-seer-create-pr']});
 

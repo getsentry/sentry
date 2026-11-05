@@ -8,6 +8,7 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type {UseScmFeatureMetaResult} from 'sentry/components/onboarding/scm/useScmFeatureMeta';
 import type {InstallationInfo} from 'sentry/components/pipeline/integrationGitHub';
+import type {SeerCreditUsageMeterProps} from 'sentry/components/seer/outOfCredits/seerCreditUsageMeter';
 import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
@@ -219,6 +220,7 @@ type ComponentOverrides = {
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-settings-alert': () => React.ComponentType | null;
   'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
+  'component:seer-credit-usage-meter': () => React.ComponentType<SeerCreditUsageMeterProps>;
   'component:seer-out-of-credits-cta': () => React.ComponentType<SeerOutOfCreditsCtaProps>;
   'component:seer-trial-cta': () => React.ComponentType | null;
   'component:superuser-access-category': React.ComponentType<SuperuserAccessCategoryProps>;

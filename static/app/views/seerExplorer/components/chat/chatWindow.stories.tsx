@@ -31,6 +31,16 @@ const APPROVAL_ID = '11111111-1111-4111-8111-111111111111';
 type Session = NonNullable<SeerExplorerResponse['session']>;
 
 /**
+ * The organization's Seer credits, which getsentry reads for the usage meter beside the send
+ * button and for the out-of-credits copy.
+ */
+interface Wallet {
+  autoReloadEnabled: boolean;
+  remaining: number;
+  total: number;
+}
+
+/**
  * Answers every query the chat window makes from fixtures, so the story never reaches the API.
  * Per-query options outrank client defaults, which is why this replaces `queryFn` after
  * defaulting rather than setting a default. Sending a message is a mutation and is not stubbed.
@@ -38,11 +48,13 @@ type Session = NonNullable<SeerExplorerResponse['session']>;
 class FixtureQueryClient extends QueryClient {
   session: Session | null;
   hasEnoughCredits: boolean;
+  wallet: Wallet | undefined;
 
-  constructor(session: Session | null, hasEnoughCredits: boolean) {
+  constructor(session: Session | null, hasEnoughCredits: boolean, wallet?: Wallet) {
     super({defaultOptions: {queries: {retry: false}}});
     this.session = session;
     this.hasEnoughCredits = hasEnoughCredits;
+    this.wallet = wallet;
   }
 
   respond(url: string): unknown {
@@ -51,6 +63,23 @@ class FixtureQueryClient extends QueryClient {
     }
     if (url.includes('/seer/credit-check/')) {
       return {hasEnoughCredits: this.hasEnoughCredits};
+    }
+    if (this.wallet && url.includes('/seer-wallet/auto-top-up/')) {
+      return {
+        enabled: this.wallet.autoReloadEnabled,
+        thresholdCredits: 100,
+        topUpCredits: 500,
+        dailySpendCapCents: 5000,
+      };
+    }
+    if (this.wallet && url.includes('/seer-wallet/')) {
+      const {remaining, total} = this.wallet;
+      return {
+        balance: remaining,
+        percentUsed: 1 - remaining / total,
+        included: {remaining, resetsAt: null, total},
+        purchased: {remaining: 0, expiresAt: null, total: 0},
+      };
     }
     // Run history, integrations and the like: every other query in the window is a list.
     return [];
@@ -73,22 +102,26 @@ interface ChatWindowProps {
   /** Turns on `seer-credit-checks` and answers the chat's credit check with this. */
   hasEnoughCredits?: boolean;
   initialQuery?: string;
+  /** Viewed by a billing member of an organization with these credits. */
+  wallet?: Wallet;
 }
 
 /**
  * The whole Explorer chat window — header, transcript, pending-input blocks, and composer — as
  * the sidebar renders it, for a fixed run.
  */
-function ChatWindow({session, hasEnoughCredits, initialQuery}: ChatWindowProps) {
+function ChatWindow({session, hasEnoughCredits, initialQuery, wallet}: ChatWindowProps) {
   const organization = useOrganization();
   const [queryClient] = useState(
-    () => new FixtureQueryClient(session, hasEnoughCredits ?? true)
+    () => new FixtureQueryClient(session, hasEnoughCredits ?? true, wallet)
   );
 
   return (
     <OrganizationContext.Provider
       value={{
         ...organization,
+        // The meter and the alert's copy are for billing members.
+        access: wallet ? [...organization.access, 'org:billing'] : organization.access,
         openMembership: true,
         hideAiFeatures: false,
         features: [
@@ -455,19 +488,27 @@ export default Storybook.story('ChatWindow', story => {
     <Fragment>
       <p>
         A new chat for an organization with credits, to compare with the out-of-credits
-        stories below: the suggested questions show and the composer sends.
+        stories below: the suggested questions show and the composer sends. Billing
+        members see how much of the organization's Seer credits are used next to the send
+        button; hover it for the details. Open source renders no meter; getsentry fills it
+        in.
       </p>
-      <ChatWindow session={null} hasEnoughCredits />
+      <ChatWindow
+        session={null}
+        hasEnoughCredits
+        wallet={{autoReloadEnabled: false, remaining: 250, total: 1000}}
+      />
     </Fragment>
   ));
 
   story('Out of credits in a new chat', () => (
     <Fragment>
       <p>
-        The organization can't afford another message. The out-of-credits CTA sits right
-        above the composer, the suggested questions are gone, and nothing sends: not the
-        send button, Enter, or the /investigate command. Typing still works so a draft
-        isn't lost. A question forwarded from elsewhere in Sentry (here, the one in the
+        The organization can't afford another message and auto reload is off. The
+        out-of-credits CTA sits right above the composer, the usage meter turns
+        warning-colored, the suggested questions are gone, and nothing sends: not the send
+        button, Enter, or the /investigate command. Typing still works so a draft isn't
+        lost. A question forwarded from elsewhere in Sentry (here, the one in the
         composer) waits there instead of being sent. Open source renders no CTA; getsentry
         fills it in.
       </p>
@@ -475,6 +516,7 @@ export default Storybook.story('ChatWindow', story => {
         session={null}
         hasEnoughCredits={false}
         initialQuery="Why is checkout slow since this morning?"
+        wallet={{autoReloadEnabled: false, remaining: 50, total: 1000}}
       />
     </Fragment>
   ));
@@ -482,14 +524,15 @@ export default Storybook.story('ChatWindow', story => {
   story('Out of credits in a conversation', () => (
     <Fragment>
       <p>
-        The same gate partway through a conversation. The transcript stays readable, the
-        CTA sits above the composer, and the follow-up in the composer can't be sent until
-        someone tops up.
+        The same gate partway through a conversation, for an organization that has used
+        every auto reload it allows. The transcript stays readable, the CTA sits above the
+        composer, and the follow-up in the composer can't be sent until someone tops up.
       </p>
       <ChatWindow
         session={COMPLETED_SESSION}
         hasEnoughCredits={false}
         initialQuery="Open a pull request that prefetches product in the cart query."
+        wallet={{autoReloadEnabled: true, remaining: 50, total: 1000}}
       />
     </Fragment>
   ));

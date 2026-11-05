@@ -26,6 +26,7 @@ import {
   AutofixChatProvider,
   type SendMessageOptions,
 } from 'sentry/components/seer/autofixChatContext';
+import {SeerCreditUsageMeter} from 'sentry/components/seer/outOfCredits/seerCreditUsageMeter';
 import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -936,10 +937,11 @@ export function SeerExplorerContent({
           notice={
             isOutOfCredits ? (
               <Container data-test-id="seer-explorer-out-of-credits">
-                <SeerOutOfCreditsCta />
+                <SeerOutOfCreditsCta reason="agent-chat" />
               </Container>
             ) : undefined
           }
+          usageMeter={<SeerCreditUsageMeter hasEnoughCredits={hasEnoughCredits} />}
           interruptState={interruptState}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}
