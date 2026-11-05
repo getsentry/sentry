@@ -71,17 +71,19 @@ function mockMultiOutcomeDroppedData() {
 
 function DroppedDataTrigger({
   dataset,
+  datetime,
   enabled,
   interval = '1h',
   projects,
 }: {
   dataset: DiscoverDatasets;
+  datetime?: {statsPeriod: string};
   enabled?: boolean;
   interval?: string;
   projects?: number[];
 }) {
   const openDroppedDataDrawer = useDroppedDataDrawer(
-    {dataset, interval, projects, surface: 'explore_spans'},
+    {dataset, interval, datetime, projects, surface: 'explore_spans'},
     {enabled}
   );
   return <Button onClick={openDroppedDataDrawer}>Open dropped data</Button>;
@@ -439,6 +441,37 @@ describe('useDroppedDataDrawer', () => {
         expect.objectContaining({query: expect.objectContaining({project: [3]})})
       )
     );
+    expect(
+      screen.getByRole('complementary', {name: 'Dropped and Filtered Spans'})
+    ).toBeInTheDocument();
+  });
+
+  it('refetches in place when the chart date range changes', async () => {
+    mockDroppedData(5, '7d');
+    mockDroppedData(2, '24h');
+
+    const {rerender} = render(
+      <DroppedDataTrigger
+        dataset={DiscoverDatasets.SPANS}
+        datetime={{statsPeriod: '7d'}}
+      />,
+      {
+        organization,
+        initialRouterConfig: {location: {pathname: '/monitors/1/'}},
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('5 dropped and filtered spans')).toBeInTheDocument();
+
+    rerender(
+      <DroppedDataTrigger
+        dataset={DiscoverDatasets.SPANS}
+        datetime={{statsPeriod: '24h'}}
+      />
+    );
+
+    expect(await screen.findByText('2 dropped and filtered spans')).toBeInTheDocument();
     expect(
       screen.getByRole('complementary', {name: 'Dropped and Filtered Spans'})
     ).toBeInTheDocument();

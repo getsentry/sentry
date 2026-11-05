@@ -43,6 +43,7 @@ interface DroppedDataDrawerProps extends UseDroppedDataParams {
 export function DroppedDataDrawer({
   dataset,
   interval,
+  datetime,
   projects,
   surface,
   onAskSeer,
@@ -52,6 +53,7 @@ export function DroppedDataDrawer({
   const {droppedEvents, acceptedEvents, isPending, isError, refetch} = useDroppedData({
     dataset,
     interval,
+    datetime,
     projects,
   });
 

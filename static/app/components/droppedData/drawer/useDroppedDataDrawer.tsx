@@ -29,7 +29,7 @@ interface UseDroppedDataDrawerOptions {
 }
 
 export function useDroppedDataDrawer(
-  {dataset, interval, projects, surface}: UseDroppedDataDrawerParams,
+  {dataset, interval, datetime, projects, surface}: UseDroppedDataDrawerParams,
   {enabled = true}: UseDroppedDataDrawerOptions = {}
 ) {
   const organization = useOrganization();
@@ -65,7 +65,7 @@ export function useDroppedDataDrawer(
     },
     [navigate, paramValue]
   );
-  const renderedQueryRef = useRef({interval, projects});
+  const renderedQueryRef = useRef({interval, datetime, projects});
 
   const {openSeerExplorer} = useSeerExplorerContext();
   const openSeerExplorerRef = useRef(openSeerExplorer);
@@ -97,7 +97,7 @@ export function useDroppedDataDrawer(
     if (!enabled || !isDrawerInUrl) {
       return;
     }
-    const query = {interval, projects};
+    const query = {interval, datetime, projects};
     const isStale = isDrawerOpen && !isEqual(renderedQueryRef.current, query);
     if (isAnyDrawerOpen && !isStale) {
       return;
@@ -108,6 +108,7 @@ export function useDroppedDataDrawer(
         <DroppedDataDrawer
           dataset={dataset}
           interval={interval}
+          datetime={datetime}
           projects={projects}
           surface={surface}
           onAskSeer={onAskSeer}
@@ -133,6 +134,7 @@ export function useDroppedDataDrawer(
     dataset,
     paramValue,
     interval,
+    datetime,
     projects,
     surface,
     onAskSeer,
