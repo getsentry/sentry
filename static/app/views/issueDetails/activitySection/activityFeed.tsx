@@ -1,13 +1,10 @@
 import type {TimeSince} from 'sentry/components/timeSince';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivityNote} from 'sentry/types/group';
-import {
-  ActivityLineImpact,
-  isImpactActivity,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/impact';
 
 import type {DisplayedActivityFeedItem} from './activityLineItem/activityFeedItem';
 import {CollapsedStatusActivityRow} from './activityLineItem/collapsedStatusActivityRow';
+import {ActivityLineImpact, isImpactActivity} from './activityLineItem/impact';
 import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
 import {ActivityLine} from './activityLineItem';
 import {Timeline} from './timeline';
