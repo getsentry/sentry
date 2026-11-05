@@ -11,8 +11,8 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -416,10 +416,10 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
         })
         .then(() => {
           scrubbingConfiguration.reset();
-          addSuccessMessage(t('Scrubbing configuration updated'));
+          toast.success(t('Scrubbing configuration updated'));
         })
         .catch(() => {
-          addErrorMessage(t('Unable to save change'));
+          toast.error(t('Unable to save change'));
         }),
   });
 

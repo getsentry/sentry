@@ -31,7 +31,8 @@ import type {
   TraceItemAttributeType,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 type AttributeDataset = 'spans' | 'logs' | 'tracemetrics';
 

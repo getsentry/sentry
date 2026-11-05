@@ -7,8 +7,9 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import * as Storybook from 'sentry/stories';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {SectionKey} from './context';
+import {FoldSection} from './foldSection';
 
 export default Storybook.story('FoldSection', story => {
   story('Usage', () => (

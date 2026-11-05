@@ -14,10 +14,6 @@ import {
   investigationOrchestrationQueryOptions,
   useInvestigationOrchestrationCommandMutation,
 } from 'sentry/views/investigations/api';
-import {
-  HypothesisList,
-  HypothesisListPlaceholder,
-} from 'sentry/views/investigations/hypotheses/hypothesisList';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {
@@ -26,6 +22,8 @@ import type {
   InvestigationOrchestrationPhase,
   InvestigationOrchestrationStatus,
 } from 'sentry/views/investigations/types';
+
+import {HypothesisList, HypothesisListPlaceholder} from './hypothesisList';
 
 /** How often to re-read the projection while a workflow is still moving. */
 const POLL_INTERVAL_MS = 2000;

@@ -28,17 +28,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
-import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 
 import {FOOTER_HEIGHT} from './components/genericFooter';
 import {NewWelcomeUI} from './components/newWelcome';
 import {OnboardingSkipButton} from './components/onboardingSkipButton';
+import {ONBOARDING_STAGGER} from './animations';
 import {ScmConnect} from './scmConnect';
 import {ScmMessaging, SCM_MESSAGING_TITLE} from './scmMessaging';
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
+import {useBackActions} from './useBackActions';
 
 // Genuine new-org onboarding happens shortly after org creation. Existing orgs
 // only reach /onboarding via stale links + login replay and are far older than

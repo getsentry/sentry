@@ -1,4 +1,4 @@
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from './modal';
 
 export async function redirectToProject(newProjectSlug: string) {
   const {RedirectToProjectModal} =

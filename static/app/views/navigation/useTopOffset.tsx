@@ -3,10 +3,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  PRIMARY_HEADER_HEIGHT,
-  SUPERUSER_MARQUEE_HEIGHT,
-} from 'sentry/views/navigation/constants';
+
+import {PRIMARY_HEADER_HEIGHT, SUPERUSER_MARQUEE_HEIGHT} from './constants';
 
 export function useTopOffset() {
   const organization = useOrganization({allowNull: true});

@@ -1,5 +1,6 @@
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKey, FieldKind} from 'sentry/utils/fields';
+
+import {FieldKey, FieldKind} from './fields';
 
 export const getHasTag = (tags: TagCollection) => ({
   key: FieldKey.HAS,

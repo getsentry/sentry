@@ -6,9 +6,9 @@ import {useQuery} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -219,9 +219,9 @@ export default function TeamNotificationSettings() {
           method: 'DELETE',
         }
       );
-      addSuccessMessage(t('Deletion successful'));
+      toast.success(t('Deletion successful'));
     } catch {
-      addErrorMessage(t('An error occurred'));
+      toast.error(t('An error occurred'));
     }
 
     refetchTeam();

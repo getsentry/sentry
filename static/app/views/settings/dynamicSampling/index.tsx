@@ -13,10 +13,11 @@ import {
 } from 'sentry/utils/dynamicSampling/features';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
-import {ProjectSampling} from 'sentry/views/settings/dynamicSampling/projectSampling';
-import {useHasDynamicSamplingReadAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
+
+import {useHasDynamicSamplingReadAccess} from './utils/access';
+import {OrganizationSampling} from './organizationSampling';
+import {ProjectSampling} from './projectSampling';
 
 export default function DynamicSamplingSettings() {
   const organization = useOrganization();

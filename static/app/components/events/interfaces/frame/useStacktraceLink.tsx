@@ -1,10 +1,11 @@
-import {isUnlinkableFilename} from 'sentry/components/events/interfaces/frame/utils';
 import type {Event, Frame} from 'sentry/types/event';
 import type {StacktraceLinkResult} from 'sentry/types/integrations';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+
+import {isUnlinkableFilename} from './utils';
 
 interface UseStacktraceLinkProps {
   event: Partial<Pick<Event, 'platform' | 'release' | 'sdk' | 'groupID'>>;

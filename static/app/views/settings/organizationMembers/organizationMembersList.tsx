@@ -6,9 +6,9 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
@@ -31,9 +31,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 import {MembersFilter} from './components/membersFilter';
+import {InviteBanner} from './inviteBanner';
 import {InviteRequestRow} from './inviteRequestRow';
 import {OrganizationMemberRow} from './organizationMemberRow';
 
@@ -164,18 +164,18 @@ function OrganizationMembersList() {
     try {
       await removeMember(id);
     } catch {
-      addErrorMessage(tct('Error removing [name] from [orgName]', {name, orgName}));
+      toast.error(tct('Error removing [name] from [orgName]', {name, orgName}));
       return;
     }
 
-    addSuccessMessage(tct('Removed [name] from [orgName]', {name, orgName}));
+    toast.success(tct('Removed [name] from [orgName]', {name, orgName}));
   };
 
   const handleLeave = async ({id}: Member) => {
     try {
       await removeMember(id);
     } catch {
-      addErrorMessage(tct('Error leaving [orgName]', {orgName: organization.slug}));
+      toast.error(tct('Error leaving [orgName]', {orgName: organization.slug}));
       return;
     }
 
@@ -184,7 +184,7 @@ function OrganizationMembersList() {
       orgId: organization.slug,
       removeOrg: true,
     });
-    addSuccessMessage(tct('You left [orgName]', {orgName: organization.slug}));
+    toast.success(tct('You left [orgName]', {orgName: organization.slug}));
   };
 
   const handleSendInvite = async ({id, expired}: any) => {
@@ -198,7 +198,7 @@ function OrganizationMembersList() {
       });
     } catch {
       setInvited(state => ({...state, [id]: null}));
-      addErrorMessage(t('Error sending invite'));
+      toast.error(t('Error sending invite'));
       return;
     }
 
@@ -248,14 +248,14 @@ function OrganizationMembersList() {
       );
 
       removeInviteRequest(inviteRequest.id);
-      addSuccessMessage(successMessage);
+      toast.success(successMessage);
       trackAnalytics(eventKey, {
         member_id: parseInt(inviteRequest.id, 10),
         invite_status: inviteRequest.inviteStatus,
         organization,
       });
     } catch {
-      addErrorMessage(errorMessage);
+      toast.error(errorMessage);
     }
   };
 

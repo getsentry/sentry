@@ -2,7 +2,7 @@ import {
   EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
   normalizeToMessages,
-} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
+} from './aiMessageNormalizer';
 
 describe('normalizeToMessages', () => {
   describe('parts-format array', () => {

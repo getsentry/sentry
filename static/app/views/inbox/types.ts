@@ -2,16 +2,26 @@ import type {Avatar} from 'sentry/types/core';
 
 export type InboxSubjectType = 'issue' | 'notebook';
 
+interface InboxIssueAssignedData {
+  assignmentSource:
+    | 'codeowners'
+    | 'projectOwnership'
+    | 'slack'
+    | 'msteams'
+    | 'discord'
+    | 'suspectCommitter'
+    | 'seerSuggested'
+    | null;
+}
+
 interface InboxEventDataByType {
-  'issue.assigned': {
-    assignmentSource: string | null;
-  };
   'issue.pr_ready_for_review': {prUrl: string; seerRunId: string};
+  'issue.team_assigned': InboxIssueAssignedData;
   'issue.team_mentioned': {commentId: string};
+  'issue.user_assigned': InboxIssueAssignedData;
   'issue.user_mentioned': {commentId: string};
   'notebook.completed': {seerRunId: string};
-  'notebook.mentioned': {commentId: string};
-  'notebook.needs_attention': Record<string, unknown>;
+  'notebook.mentioned': {blockId: string | null; commentId: string};
   'notebook.participant_added': Record<string, never>;
 }
 
@@ -20,7 +30,7 @@ type InboxEventType = keyof InboxEventDataByType;
 type InboxSystemActor = {
   avatar: null;
   id: null;
-  name: string;
+  name: 'Sentry';
   type: 'system';
 };
 

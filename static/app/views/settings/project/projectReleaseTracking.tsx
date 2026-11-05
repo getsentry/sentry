@@ -7,8 +7,8 @@ import {FieldGroup as FormFieldGroup} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
@@ -23,7 +23,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 type TokenResponse = {
   token: string;
@@ -74,14 +75,14 @@ export default function ProjectReleaseTracking() {
         releaseTokenOptions(organization.slug, project.slug).queryKey,
         oldData => ({...oldData, json: data, headers: oldData?.headers ?? {}})
       );
-      addSuccessMessage(
+      toast.success(
         t(
           'Your deploy token has been regenerated. You will need to update any existing deploy hooks.'
         )
       );
     },
     onError: () => {
-      addErrorMessage(t('Unable to regenerate deploy token, please try again'));
+      toast.error(t('Unable to regenerate deploy token, please try again'));
     },
   });
 

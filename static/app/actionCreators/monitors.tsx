@@ -1,11 +1,7 @@
 import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -26,15 +22,15 @@ function getMonitorUrl(orgId: string, projectId: string, monitorId: string) {
 }
 
 export async function deleteMonitor(api: Client, orgId: string, monitor: Monitor) {
-  addLoadingMessage(t('Deleting Monitor...'));
+  toast.loading(t('Deleting Monitor...'));
 
   try {
     await api.requestPromise(getMonitorUrl(orgId, monitor.project.slug, monitor.slug), {
       method: 'DELETE',
     });
-    clearIndicators();
+    toast.dismiss();
   } catch {
-    addErrorMessage(t('Unable to remove monitor.'));
+    toast.error(t('Unable to remove monitor.'));
   }
 }
 
@@ -44,17 +40,17 @@ export async function deleteMonitorEnvironment(
   monitor: Monitor,
   environment: string
 ): Promise<boolean> {
-  addLoadingMessage(t('Deleting Environment...'));
+  toast.loading(t('Deleting Environment...'));
 
   try {
     await api.requestPromise(getMonitorUrl(orgId, monitor.project.slug, monitor.slug), {
       method: 'DELETE',
       query: {environment},
     });
-    clearIndicators();
+    toast.dismiss();
     return true;
   } catch {
-    addErrorMessage(t('Unable to remove environment from monitor.'));
+    toast.error(t('Unable to remove environment from monitor.'));
   }
   return false;
 }
@@ -65,20 +61,18 @@ export async function updateMonitor(
   monitor: Monitor,
   data: Partial<Monitor>
 ): Promise<Monitor | null> {
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
 
   try {
     const resp = await api.requestPromise(
       getMonitorUrl(orgId, monitor.project.slug, monitor.slug),
       {method: 'PUT', data}
     );
-    clearIndicators();
+    toast.dismiss();
 
     if (data.status !== undefined) {
       const isEnabled = data.status === 'active';
-      addSuccessMessage(
-        isEnabled ? t('Cron Monitor enabled') : t('Cron Monitor disabled')
-      );
+      toast.success(isEnabled ? t('Cron Monitor enabled') : t('Cron Monitor disabled'));
     }
 
     return resp;
@@ -94,7 +88,7 @@ export async function updateMonitor(
         : undefined;
 
     Sentry.captureException(err);
-    addErrorMessage(validationError ?? t('Unable to update monitor.'));
+    toast.error(validationError ?? t('Unable to update monitor.'));
   }
 
   return null;
@@ -107,7 +101,7 @@ export async function setEnvironmentIsMuted(
   environment: string,
   isMuted: boolean
 ) {
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
 
   try {
     const resp = await api.requestPromise(
@@ -124,11 +118,11 @@ export async function setEnvironmentIsMuted(
       ),
       {method: 'PUT', data: {isMuted}}
     );
-    clearIndicators();
+    toast.dismiss();
     return resp;
   } catch (err) {
     Sentry.captureException(err);
-    addErrorMessage(
+    toast.error(
       isMuted ? t('Unable to mute environment.') : t('Unable to unmute environment.')
     );
   }
@@ -143,7 +137,7 @@ export async function deleteMonitorProcessingErrorByType(
   monitorSlug: string,
   errortype: ProcessingErrorType
 ) {
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
 
   try {
     await api.requestPromise(
@@ -162,13 +156,13 @@ export async function deleteMonitorProcessingErrorByType(
         query: {errortype},
       }
     );
-    clearIndicators();
+    toast.dismiss();
   } catch (err: any) {
     Sentry.captureException(err);
     if (err.status === 403) {
-      addErrorMessage(t('You do not have permission to dismiss these processing errors'));
+      toast.error(t('You do not have permission to dismiss these processing errors'));
     } else {
-      addErrorMessage(t('Unable to dismiss the processing errors'));
+      toast.error(t('Unable to dismiss the processing errors'));
     }
   }
 }
@@ -179,7 +173,7 @@ export async function deleteProjectProcessingErrorByType(
   projectId: string,
   errortype: ProcessingErrorType
 ) {
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
 
   try {
     await api.requestPromise(
@@ -191,13 +185,13 @@ export async function deleteProjectProcessingErrorByType(
         query: {errortype},
       }
     );
-    clearIndicators();
+    toast.dismiss();
   } catch (err: any) {
     Sentry.captureException(err);
     if (err.status === 403) {
-      addErrorMessage(t('You do not have permission to dismiss these processing errors'));
+      toast.error(t('You do not have permission to dismiss these processing errors'));
     } else {
-      addErrorMessage(t('Unable to dismiss the processing errors'));
+      toast.error(t('Unable to dismiss the processing errors'));
     }
   }
 }

@@ -3,12 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  DEFAULT_VISUALIZATION,
-  DEFAULT_VISUALIZATION_AGGREGATE,
-  DEFAULT_VISUALIZATION_FIELD,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   useQueryParams,
   useSetQueryParams,
@@ -23,6 +17,13 @@ import {
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {Mode} from './mode';
+import {
+  DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_AGGREGATE,
+  DEFAULT_VISUALIZATION_FIELD,
+} from './visualizes';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;

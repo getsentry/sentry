@@ -7,8 +7,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Broadcast} from 'sentry/types/system';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -78,7 +78,7 @@ export function CreateBroadcastModal({
       ) {
         return;
       }
-      addErrorMessage('An error occurred while submitting this form.');
+      toast.error('An error occurred while submitting this form.');
     },
   });
 

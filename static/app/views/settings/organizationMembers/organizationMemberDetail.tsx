@@ -8,14 +8,10 @@ import isEqual from 'lodash/isEqual';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {removeAuthenticator} from 'sentry/actionCreators/account';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
@@ -104,19 +100,18 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       });
     },
     onMutate: () => {
-      addLoadingMessage(t('Saving\u2026'));
+      toast.loading(t('Saving\u2026'));
     },
     onSuccess: data => {
-      addSuccessMessage(t('Saved'));
+      toast.success(t('Saved'));
       queryClient.setQueryData(
         memberOptions(organization.slug, member.id).queryKey,
         oldData => ({...oldData, json: data, headers: oldData?.headers ?? {}})
       );
     },
     onError: error => {
-      addErrorMessage(
-        (error?.responseJSON?.detail as string) ?? t('Failed to update member')
-      );
+      const detail = error?.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Failed to update member'));
     },
   });
 
@@ -130,7 +125,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         });
       },
       onSuccess: data => {
-        addSuccessMessage(t('Sent invite!'));
+        toast.success(t('Sent invite!'));
 
         queryClient.setQueryData(
           memberOptions(organization.slug, member.id).queryKey,
@@ -138,7 +133,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         );
       },
       onError: () => {
-        addErrorMessage(t('Could not send invite'));
+        toast.error(t('Could not send invite'));
       },
     }
   );
@@ -152,11 +147,11 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       return Promise.all(promises);
     },
     onSuccess: () => {
-      addSuccessMessage(t('All authenticators have been removed'));
+      toast.success(t('All authenticators have been removed'));
       navigate(`/settings/${organization.slug}/members/`);
     },
     onError: error => {
-      addErrorMessage(t('Error removing authenticators'));
+      toast.error(t('Error removing authenticators'));
       Sentry.captureException(error);
     },
   });

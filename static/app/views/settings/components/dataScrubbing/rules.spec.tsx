@@ -3,8 +3,8 @@ import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRe
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
-import {Rules} from 'sentry/views/settings/components/dataScrubbing/rules';
+import {convertRelayPiiConfig} from './convertRelayPiiConfig';
+import {Rules} from './rules';
 
 const relayPiiConfig = convertRelayPiiConfig(
   JSON.stringify(DataScrubbingRelayPiiConfigFixture())

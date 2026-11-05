@@ -24,12 +24,13 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
-import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
-import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
-import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {AddCodeOwnerModal} from './addCodeOwnerModal';
+import {CodeOwnerErrors} from './codeownerErrors';
+import {CodeOwnerFileTable} from './codeOwnerFileTable';
+import {OwnershipRulesTable} from './ownershipRulesTable';
 
 const ownershipSchema = z.object({
   autoAssignment: z.string(),

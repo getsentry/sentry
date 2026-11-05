@@ -14,8 +14,8 @@ import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ClaudeCodeIntegrationCta} from 'sentry/components/events/autofix/claudeCodeIntegrationCta';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
@@ -464,7 +464,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
                 autofixAutomationTuning: DetailedProject['autofixAutomationTuning'];
               }) => updateProject.mutateAsync(data),
               onSuccess: () => {
-                addSuccessMessage(t('Automatic Seer settings updated'));
+                toast.success(t('Automatic Seer settings updated'));
               },
             }}
           >
@@ -496,7 +496,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
                 automated_run_stopping_point: StoppingPointFieldValue;
               }) => handleStoppingPointChange(data.automated_run_stopping_point),
               onSuccess: () => {
-                addSuccessMessage(t('Stopping point updated'));
+                toast.success(t('Stopping point updated'));
               },
             }}
           >

@@ -1,17 +1,14 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import type {
-  InviteRow,
-  InviteStatus,
-  NormalizedInvite,
-} from 'sentry/components/modals/inviteMembersModal/types';
 import {t} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniqueId} from 'sentry/utils/guid';
 import {useApi} from 'sentry/utils/useApi';
+
+import type {InviteRow, InviteStatus, NormalizedInvite} from './types';
 
 interface Props {
   organization: Organization;

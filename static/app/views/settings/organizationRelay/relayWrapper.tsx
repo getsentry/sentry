@@ -8,8 +8,8 @@ import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -82,7 +82,7 @@ export function RelayWrapper() {
         savedRelays={relays}
         orgSlug={organization.slug}
         onSubmitSuccess={response => {
-          addSuccessMessage(t('Successfully added Relay public key'));
+          toast.success(t('Successfully added Relay public key'));
           setRelays(response.trustedRelays ?? []);
         }}
       />
@@ -253,11 +253,11 @@ function RelayUsageList({
       });
     },
     onSuccess: response => {
-      addSuccessMessage(t('Successfully deleted Relay public key'));
+      toast.success(t('Successfully deleted Relay public key'));
       onRelaysChange(response.trustedRelays ?? []);
     },
     onError: () => {
-      addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
+      toast.error(t('An unknown error occurred while deleting Relay public key'));
     },
   });
 
@@ -275,7 +275,7 @@ function RelayUsageList({
         orgSlug={orgSlug}
         relay={editRelay}
         onSubmitSuccess={response => {
-          addSuccessMessage(t('Successfully updated Relay public key'));
+          toast.success(t('Successfully updated Relay public key'));
           onRelaysChange(response.trustedRelays ?? []);
         }}
       />

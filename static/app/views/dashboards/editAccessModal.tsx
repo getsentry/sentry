@@ -27,11 +27,8 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import type {
-  DashboardDetails,
-  DashboardListItem,
-  DashboardPermissions,
-} from 'sentry/views/dashboards/types';
+
+import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
 
 const TEAMS_PER_PAGE = 100;
 const MAX_TEAM_PAGES = 10;

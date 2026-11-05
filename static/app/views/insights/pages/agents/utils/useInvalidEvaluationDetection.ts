@@ -2,10 +2,7 @@ import {useEffect, useEffectEvent} from 'react';
 import * as Sentry from '@sentry/react';
 import {z} from 'zod';
 
-import type {
-  Evaluation,
-  InvalidEvaluationEntry,
-} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import type {Evaluation, InvalidEvaluationEntry} from './evaluation';
 
 const typedValueSchema = z.object({type: z.string()});
 
