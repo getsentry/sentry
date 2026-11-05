@@ -1,9 +1,9 @@
+import {useQuery} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {ProjectSdkUpdates} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 import {MIN_SDK_VERSION_BY_PLATFORM} from 'sentry/views/insights/database/settings';
@@ -19,15 +19,17 @@ interface Options {
  */
 export function useOutdatedSDKProjects({enabled, projectId}: Options) {
   const organization = useOrganization();
-  const response = useApiQuery<ProjectSdkUpdates[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sdk-updates/', {
+  const response = useQuery({
+    ...apiOptions.as<ProjectSdkUpdates[]>()(
+      '/organizations/$organizationIdOrSlug/sdk-updates/',
+      {
         path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {project: projectId}},
-    ],
-    {staleTime: 5000, enabled}
-  );
+        query: {project: projectId},
+        staleTime: 5000,
+      }
+    ),
+    enabled,
+  });
   const {data: availableUpdates} = response;
 
   const projects = (availableUpdates ?? [])
@@ -47,6 +49,7 @@ export function useOutdatedSDKProjects({enabled, projectId}: Options) {
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
   return {
+    // oxlint-disable-next-line @tanstack/query/no-rest-destructuring -- Preserve the existing hook result interface.
     ...response,
     projects: uniqBy(projects, 'id'),
   };

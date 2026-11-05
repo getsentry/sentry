@@ -1,6 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {MonitorBucket} from 'sentry/views/insights/crons/types';
@@ -33,29 +34,18 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
   const organization = useOrganization();
   const location = useLocation();
 
-  const monitorStatsQueryKey = getApiUrl(
-    '/organizations/$organizationIdOrSlug/monitors-stats/',
-    {
+  return useQuery({
+    ...apiOptions.as<Result>()('/organizations/$organizationIdOrSlug/monitors-stats/', {
       path: {organizationIdOrSlug: organization.slug},
-    }
-  );
-
-  return useApiQuery<Result>(
-    [
-      monitorStatsQueryKey,
-      {
-        query: {
-          monitor: monitors,
-          project: location.query.project,
-          environment: location.query.environment,
-          ...selectionQuery,
-        },
+      query: {
+        monitor: monitors,
+        project: location.query.project,
+        environment: location.query.environment,
+        ...selectionQuery,
       },
-    ],
-    {
       staleTime: 0,
-      enabled: rollupConfig.totalBuckets > 0,
-      retry: false,
-    }
-  );
+    }),
+    enabled: rollupConfig.totalBuckets > 0,
+    retry: false,
+  });
 }

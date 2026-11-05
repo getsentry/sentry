@@ -1,34 +1,35 @@
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {CheckinProcessingError} from 'sentry/views/insights/crons/types';
 
-export function makeMonitorErrorsQueryKey(
+export function monitorErrorsApiOptions(
   organization: Organization,
   projectId: string,
   monitorSlug: string
 ) {
-  return [
-    getApiUrl(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/processing-errors/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projectId,
-          monitorIdOrSlug: monitorSlug,
-        },
-      }
-    ),
-    {},
-  ] as const;
+  return apiOptions.as<CheckinProcessingError[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/processing-errors/',
+    {
+      staleTime: 0,
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: projectId,
+        monitorIdOrSlug: monitorSlug,
+      },
+    }
+  );
 }
 
-export function makeMonitorListErrorsQueryKey(
+export function monitorListErrorsApiOptions(
   organization: Organization,
   project?: string[]
 ) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/processing-errors/', {
+  return apiOptions.as<CheckinProcessingError[]>()(
+    '/organizations/$organizationIdOrSlug/processing-errors/',
+    {
+      staleTime: 0,
+      query: {project},
       path: {organizationIdOrSlug: organization.slug},
-    }),
-    {query: {project}},
-  ] as const;
+    }
+  );
 }

@@ -1,6 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Series} from 'sentry/types/echarts';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
@@ -99,21 +100,18 @@ export function useMetricDetectorAnomalies({
     historical_data: filteredHistoricalData,
   };
 
-  const {data, isLoading, error, refetch} = useApiQuery<Anomaly[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events/anomalies/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {data, isLoading, error, refetch} = useQuery({
+    ...apiOptions.as<Anomaly[]>()(
+      '/organizations/$organizationIdOrSlug/events/anomalies/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         method: 'POST',
         data: payload,
-      },
-    ],
-    {
-      staleTime: Infinity,
-      enabled: filteredHistoricalData.length > 0 && currentData.length > 0 && enabled,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    enabled: filteredHistoricalData.length > 0 && currentData.length > 0 && enabled,
+  });
 
   return {
     data,

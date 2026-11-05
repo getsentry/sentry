@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -33,20 +33,17 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
   const organization = useOrganization();
   const {projects, fetching} = useProjects();
 
-  const {data, isPending, isError, refetch} = useApiQuery<MetricsQueryApiResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sampling/project-root-counts/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {data, isPending, isError, refetch} = useQuery(
+    apiOptions.as<MetricsQueryApiResponse>()(
+      '/organizations/$organizationIdOrSlug/sampling/project-root-counts/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           statsPeriod: period,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
+        staleTime: 0,
+      }
+    )
   );
 
   const queryResult = data?.data?.[0];
