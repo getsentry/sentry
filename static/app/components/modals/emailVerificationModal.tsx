@@ -21,14 +21,17 @@ function EmailVerificationModal({
       <Header closeButton>{t('Action Required')}</Header>
       <Body>
         <TextBlock>
-          {tct('Please verify your email before [actionMessage], or [link].', {
-            actionMessage,
-            link: (
-              <Link to="/settings/account/emails/" data-test-id="email-settings-link">
-                {t('go to your email settings')}
-              </Link>
-            ),
-          })}
+          {tct(
+            'Please verify your primary email address before [actionMessage], or [link].',
+            {
+              actionMessage,
+              link: (
+                <Link to="/settings/account/emails/" data-test-id="email-settings-link">
+                  {t('go to your email settings')}
+                </Link>
+              ),
+            }
+          )}
         </TextBlock>
         <EmailAddresses />
       </Body>

@@ -1,0 +1,405 @@
+import type * as React from 'react';
+import {Fragment, useContext, useId, useMemo} from 'react';
+import {useFocusManager} from '@react-aria/focus';
+import type {AriaGridListOptions} from '@react-aria/gridlist';
+import type {AriaListBoxOptions} from '@react-aria/listbox';
+import type {ListProps} from '@react-stately/list';
+import {useListState} from '@react-stately/list';
+
+import {ControlContext} from '@sentry/scraps/menu';
+import type {FormSize} from '@sentry/scraps/theme';
+
+import {GridList} from './gridList';
+import {ListBox} from './listBox';
+import {SelectFilterContext} from './selectFilterContext';
+import type {
+  ListItemBase,
+  SelectKey,
+  SelectOption,
+  SelectOptionOrSectionWithKey,
+  SelectOptionWithKey,
+} from './types';
+import {
+  getDisabledOptions,
+  getEscapedKey,
+  getHiddenOptions,
+  getSelectedOptions,
+  getSortedItems,
+  HiddenSectionToggle,
+  shouldCloseOnSelect,
+} from './utils';
+
+interface BaseListProps<Value extends SelectKey>
+  extends
+    Omit<ListProps<any>, 'disallowEmptySelection'>,
+    Omit<
+      AriaListBoxOptions<any>,
+      | 'disallowEmptySelection'
+      | 'disabledKeys'
+      | 'selectedKeys'
+      | 'defaultSelectedKeys'
+      | 'onSelectionChange'
+      | 'autoFocus'
+      | 'shouldUseVirtualFocus'
+      | 'isVirtualized'
+    >,
+    Omit<
+      AriaGridListOptions<any>,
+      | 'disallowEmptySelection'
+      | 'disabledKeys'
+      | 'selectedKeys'
+      | 'defaultSelectedKeys'
+      | 'onSelectionChange'
+      | 'autoFocus'
+      | 'shouldUseVirtualFocus'
+      | 'isVirtualized'
+    > {
+  items: Array<SelectOptionOrSectionWithKey<Value>>;
+  /**
+   * Custom function to determine whether an option is disabled. By default, an option
+   * is considered disabled when it has {disabled: true}.
+   */
+  isOptionDisabled?: (opt: SelectOptionWithKey<Value>) => boolean;
+  /**
+   * Text label to be rendered as heading on top of grid list.
+   */
+  label?: React.ReactNode;
+  /**
+   * Controls the selection widget type.
+   *
+   * - `'list'` (default) — a one-dimensional listbox navigated with Arrow Up/Down.
+   * - `'grid'` — a two-dimensional grid list where Arrow Up/Down moves between rows
+   *   and Arrow Left/Right moves between columns. Use this when options contain
+   *   interactive child elements (buttons/links) that need to be keyboard-reachable.
+   */
+  mode?: 'list' | 'grid';
+  size?: FormSize;
+  /**
+   * Upper limit for the number of options to display in the menu at a time. Users can
+   * still find overflowing options by using the search box (if `searchable` is true).
+   * If used, make sure to hoist selected options to the top, otherwise they may be
+   * hidden from view.
+   */
+  sizeLimit?: number;
+  /**
+   * Message to be displayed when some options are hidden due to `sizeLimit`.
+   */
+  sizeLimitMessage?: string;
+
+  /**
+   * If true, virtualization will be enabled for the list
+   */
+  virtualized?: boolean;
+}
+
+/**
+ * A single-selection (only one option can be selected at a time) list that allows
+ * clearing the selection.
+ * `value` can be `undefined` to represent no selection.
+ */
+interface SingleClearableListProps<Value extends SelectKey> extends BaseListProps<Value> {
+  /**
+   * If true, there will be a "Clear" button in the menu header.
+   */
+  clearable: true;
+  onChange: (selectedOption: SelectOption<Value> | undefined) => void;
+  value: Value | undefined;
+  /**
+   * Whether to close the menu. Accepts either a boolean value or a callback function
+   * that receives the newly selected option and returns whether to close the menu.
+   */
+  closeOnSelect?:
+    | boolean
+    | ((selectedOption: SelectOption<Value> | undefined) => boolean);
+  multiple?: false;
+}
+
+export type SingleListProps<Value extends SelectKey> =
+  | SingleClearableListProps<Value>
+  | SingleUnclearableListProps<Value>;
+
+interface SingleUnclearableListProps<
+  Value extends SelectKey,
+> extends BaseListProps<Value> {
+  onChange: (selectedOption: SelectOption<Value>) => void;
+  value: Value | undefined;
+  clearable?: false;
+  /**
+   * Whether to close the menu. Accepts either a boolean value or a callback function
+   * that receives the newly selected option and returns whether to close the menu.
+   */
+  closeOnSelect?: boolean | ((selectedOption: SelectOption<Value>) => boolean);
+  multiple?: false;
+}
+
+export interface MultipleListProps<Value extends SelectKey> extends BaseListProps<Value> {
+  multiple: true;
+  onChange: (selectedOptions: Array<SelectOption<Value>>) => void;
+  value: Value[] | undefined;
+  clearable?: boolean; // set to a regular boolean here because the empty type can be represented as an empty array
+
+  /**
+   * Whether to close the menu. Accepts either a boolean value or a callback function
+   * that receives the newly selected options and returns whether to close the menu.
+   */
+  closeOnSelect?: boolean | ((selectedOptions: Array<SelectOption<Value>>) => boolean);
+}
+
+/**
+ * A list containing selectable options. Depending on the `mode` prop, this may be a
+ * grid list or list box.
+ *
+ * In composite selectors, there may be multiple self-contained lists, each
+ * representing a select "region".
+ */
+export function List<Value extends SelectKey>({
+  items,
+  value,
+  onChange,
+  mode = 'list',
+  multiple,
+  clearable,
+  isOptionDisabled,
+  shouldFocusWrap = true,
+  shouldFocusOnHover = true,
+  sizeLimit,
+  sizeLimitMessage,
+  closeOnSelect,
+  ...props
+}: SingleListProps<Value> | MultipleListProps<Value>) {
+  const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
+    useContext(ControlContext);
+
+  const hasSections = useMemo(() => items.some(item => 'options' in item), [items]);
+  // Searchable flat menus can build their initial React Aria collection from only the
+  // visible items. Once a query is entered, use the existing search path unchanged.
+  const isFlatCollectionTruncated =
+    searchable &&
+    !hasSections &&
+    !search &&
+    sizeLimit !== undefined &&
+    items.length > sizeLimit;
+
+  const {hidden: hiddenOptions, scores} = useMemo(
+    () =>
+      isFlatCollectionTruncated
+        ? {hidden: new Set<SelectKey>(), scores: new Map<SelectKey, number>()}
+        : getHiddenOptions(items, search, sizeLimit, searchMatcher),
+    [isFlatCollectionTruncated, items, search, sizeLimit, searchMatcher]
+  );
+
+  const sortedItems = useMemo(
+    () => (scores.size > 0 ? getSortedItems(items, scores) : items),
+    [items, scores]
+  );
+
+  const collectionItems = useMemo(
+    () => (isFlatCollectionTruncated ? sortedItems.slice(0, sizeLimit) : sortedItems),
+    [isFlatCollectionTruncated, sizeLimit, sortedItems]
+  );
+  /**
+   * Props to be passed into useListState()
+   */
+  const listStateProps = useMemo<Partial<ListProps<ListItemBase>>>(() => {
+    const disabledKeys = [
+      ...getDisabledOptions(collectionItems, isOptionDisabled),
+      ...hiddenOptions,
+    ];
+
+    if (multiple) {
+      return {
+        selectionMode: 'multiple' as const,
+        disabledKeys,
+        // react-aria turns all keys into strings
+        selectedKeys: value?.map(getEscapedKey) ?? [],
+        allowDuplicateSelectionEvents: true,
+        onSelectionChange: selection => {
+          const selectedOptions = getSelectedOptions<Value>(items, selection);
+          onChange?.(selectedOptions);
+
+          if (shouldCloseOnSelect({multiple, closeOnSelect, selectedOptions})) {
+            overlayState?.close();
+          }
+        },
+      };
+    }
+
+    return {
+      selectionMode: 'single' as const,
+      disabledKeys,
+      // react-aria turns all keys into strings
+      // we're setting selectedKeys to an empty array when value is undefined, because
+      // undefined makes react-aria treat it as uncontrolled
+      selectedKeys: value == null ? [] : [getEscapedKey(value)],
+      disallowEmptySelection: !clearable,
+      allowDuplicateSelectionEvents: true,
+      onSelectionChange: selection => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const selectedOption = getSelectedOptions(items, selection)[0]!;
+        onChange?.(selectedOption);
+
+        // Close menu if closeOnSelect is true or undefined (by default single-selection
+        // menus will close on selection)
+        if (
+          shouldCloseOnSelect({
+            multiple,
+            closeOnSelect,
+            selectedOptions: [selectedOption],
+          })
+        ) {
+          overlayState?.close();
+        }
+      },
+    };
+  }, [
+    value,
+    onChange,
+    items,
+    collectionItems,
+    isOptionDisabled,
+    hiddenOptions,
+    multiple,
+    clearable,
+    closeOnSelect,
+    overlayState,
+  ]);
+
+  const listState = useListState({
+    ...props,
+    ...listStateProps,
+    items: collectionItems,
+  });
+
+  // In composite selects, focus should seamlessly move from one region (list) to
+  // another when the ArrowUp/Down key is pressed
+  const focusManager = useFocusManager();
+  const firstFocusableKey = useMemo(() => {
+    let firstKey = listState.collection.getFirstKey();
+
+    while (
+      firstKey &&
+      (listState.collection.getItem(firstKey)?.type === 'section' ||
+        listState.selectionManager.isDisabled(firstKey))
+    ) {
+      firstKey = listState.collection.getKeyAfter(firstKey);
+    }
+
+    return firstKey;
+  }, [listState.collection, listState.selectionManager]);
+  const lastFocusableKey = useMemo(() => {
+    let lastKey = listState.collection.getLastKey();
+
+    while (
+      lastKey &&
+      (listState.collection.getItem(lastKey)?.type === 'section' ||
+        listState.selectionManager.isDisabled(lastKey))
+    ) {
+      lastKey = listState.collection.getKeyBefore(lastKey);
+    }
+
+    return lastKey;
+  }, [listState.collection, listState.selectionManager]);
+
+  /**
+   * Keyboard event handler to seamlessly move focus from one composite list to another
+   * when an arrow key is pressed. Returns a boolean indicating whether the keyboard
+   * event was intercepted. If yes, then no further callback function should be run.
+   */
+  const keyDownHandler = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    // Don't handle ArrowDown/Up key presses if focus already wraps
+    if (shouldFocusWrap && mode !== 'grid') {
+      return true;
+    }
+
+    // Move focus to next region when ArrowDown is pressed and the last item in this
+    // list is currently focused
+    if (
+      e.key === 'ArrowDown' &&
+      listState.selectionManager.focusedKey === lastFocusableKey
+    ) {
+      focusManager?.focusNext({
+        wrap: true,
+        accept: element =>
+          (element.getAttribute('role') === 'option' ||
+            element.getAttribute('role') === 'row') &&
+          element.getAttribute('aria-disabled') !== 'true',
+      });
+
+      return false; // event intercepted, don't run any further callbacks
+    }
+
+    // Move focus to previous region when ArrowUp is pressed and the first item in this
+    // list is currently focused
+    if (
+      e.key === 'ArrowUp' &&
+      listState.selectionManager.focusedKey === firstFocusableKey
+    ) {
+      focusManager?.focusPrevious({
+        wrap: true,
+        accept: element =>
+          (element.getAttribute('role') === 'option' ||
+            element.getAttribute('role') === 'row') &&
+          element.getAttribute('aria-disabled') !== 'true',
+      });
+
+      return false; // event intercepted, don't run any further callbacks
+    }
+
+    return true;
+  };
+
+  const listId = useId();
+
+  const sections = useMemo(
+    () =>
+      [...listState.collection].filter(
+        item =>
+          // This is a section
+          item.type === 'section' &&
+          // Options inside the section haven't been all filtered out
+          ![...item.childNodes].every(child => hiddenOptions.has(child.key))
+      ),
+
+    [listState.collection, hiddenOptions]
+  );
+
+  return (
+    <Fragment>
+      {mode === 'grid' ? (
+        <SelectFilterContext value={hiddenOptions}>
+          <GridList
+            {...props}
+            id={listId}
+            listState={listState}
+            sizeLimitMessage={sizeLimitMessage}
+            keyDownHandler={keyDownHandler}
+          />
+        </SelectFilterContext>
+      ) : (
+        <ListBox
+          {...props}
+          searchable={searchable}
+          overlayIsOpen={overlayIsOpen}
+          hiddenOptions={hiddenOptions}
+          id={listId}
+          listState={listState}
+          shouldFocusWrap={shouldFocusWrap}
+          shouldFocusOnHover={shouldFocusOnHover}
+          sizeLimitMessage={sizeLimitMessage}
+          keyDownHandler={keyDownHandler}
+        />
+      )}
+      {multiple &&
+        sections.map(section =>
+          section.value?.showToggleAllButton ? (
+            <HiddenSectionToggle
+              key={section.key}
+              item={section}
+              listState={listState}
+              listId={listId}
+            />
+          ) : null
+        )}
+    </Fragment>
+  );
+}

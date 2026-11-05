@@ -16,8 +16,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -62,9 +62,9 @@ const askSeerOrganization = OrganizationFixture({
   hideAiFeatures: false,
   openMembership: true,
 });
-const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
+const detailUrl = '/organizations/org-slug/notebooks/investigation-1/';
 const titleGenerationUrl =
-  '/organizations/org-slug/investigations/investigation-1/title-generation/';
+  '/organizations/org-slug/notebooks/investigation-1/title-generation/';
 const orchestrationUrl =
   '/organizations/org-slug/investigations/investigation-1/orchestration/';
 
@@ -199,8 +199,7 @@ async function chooseBlockAction(
 describe('Investigation detail', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({url: `${detailUrl}comment-counts/`, body: {}});
-    jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
-    jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+    jest.spyOn(toast, 'success').mockImplementation();
     createFeedbackForm.mockClear();
     ConfigStore.set('customerDomain', null);
     MockApiClient.addMockResponse({
@@ -3510,20 +3509,20 @@ describe('Investigation detail', () => {
       body: InvestigationDetailFixture({id: 'investigation-2'}),
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/investigation-2/presence/',
+      url: '/organizations/org-slug/notebooks/investigation-2/presence/',
       method: 'PUT',
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/investigation-2/comments/',
+      url: '/organizations/org-slug/notebooks/investigation-2/comments/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/investigation-2/comment-counts/',
+      url: '/organizations/org-slug/notebooks/investigation-2/comment-counts/',
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/investigation-2/',
+      url: '/organizations/org-slug/notebooks/investigation-2/',
       body: InvestigationDetailFixture({id: 'investigation-2'}),
     });
 

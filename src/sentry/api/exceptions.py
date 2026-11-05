@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import TYPE_CHECKING, cast
 
 from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.urls import reverse
 from rest_framework import status
@@ -10,6 +12,11 @@ from rest_framework.exceptions import APIException, PermissionDenied
 
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+
+if TYPE_CHECKING:
+    from rest_framework.exceptions import _Detail
 from sentry.utils.auth import construct_link_with_query
 from sentry.utils.http import is_using_customer_domain
 
@@ -43,7 +50,13 @@ class SentryAPIException(APIException):
     code = ""
     message = ""
 
-    def __init__(self, code=None, message=None, detail=None, **kwargs):
+    def __init__(
+        self,
+        code: str | None = None,
+        message: str | None = None,
+        detail: object = None,
+        **kwargs: object,
+    ) -> None:
         # Note that we no longer call the base `__init__` here. This is because
         # DRF now forces all detail messages that subclass `APIException` to a
         # string, which breaks our format.
@@ -55,7 +68,7 @@ class SentryAPIException(APIException):
                 "extra": kwargs,
             }
 
-        self.detail = {"detail": detail}
+        self.detail = cast("dict[str, _Detail]", {"detail": detail})
 
 
 class BadRequest(SentryAPIException):
@@ -81,8 +94,8 @@ class SsoRequired(SentryAPIException):
         self,
         organization: Organization | RpcOrganization,
         request: HttpRequest,
-        after_login_redirect=None,
-    ):
+        after_login_redirect: str | None = None,
+    ) -> None:
         login_url = reverse("sentry-auth-organization", args=[organization.slug])
         if is_using_customer_domain(request):
             login_url = organization.absolute_url(path=login_url)
@@ -99,7 +112,7 @@ class MemberDisabledOverLimit(SentryAPIException):
     code = "member-disabled-over-limit"
     message = "Organization over member limit"
 
-    def __init__(self, organization):
+    def __init__(self, organization: Organization | RpcOrganization) -> None:
         super().__init__(
             next=reverse("sentry-organization-disabled-member", args=[organization.slug])
         )
@@ -135,7 +148,7 @@ class SudoRequired(SentryAPIException):
     code = "sudo-required"
     message = "Account verification required."
 
-    def __init__(self, user):
+    def __init__(self, user: User | RpcUser | AnonymousUser) -> None:
         super().__init__(username=user.username)
 
 
@@ -144,7 +157,7 @@ class PrimaryEmailVerificationRequired(SentryAPIException):
     code = "primary-email-verification-required"
     message = "Primary email verification required."
 
-    def __init__(self, user):
+    def __init__(self, user: User | RpcUser | AnonymousUser) -> None:
         super().__init__(username=user.username)
 
 

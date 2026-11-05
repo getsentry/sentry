@@ -9,8 +9,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SeerRepoTable} from 'sentry/components/seer/repoTable/seerRepoTable';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
+
+import {SeerRepoTable} from './seerRepoTable';
 
 // jsdom has no layout, so the virtualizer would render zero rows. Force it to
 // render a row per item so the table body is present.

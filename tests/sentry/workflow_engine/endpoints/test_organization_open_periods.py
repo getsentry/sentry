@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues import grouptype
 from sentry.issues.grouptype import (
     AIDetectedHTTPGroupType,
     FeedbackGroup,
@@ -50,6 +51,10 @@ class OrganizationOpenPeriodsTest(APITestCase):
     def endpoint(self) -> str:
         return "sentry-api-0-organization-open-periods"
 
+    def priority_str(self) -> str:
+        assert self.group.priority is not None
+        return PriorityLevel(self.group.priority).to_str()
+
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -82,6 +87,26 @@ class OrganizationOpenPeriodsTest(APITestCase):
         )
         assert resp.data == []
 
+    def test_history_uses_associated_issue_types_without_matching_detector_group_type(self) -> None:
+        detector = self.create_detector(type=MetricIssue.slug)
+        allowed_issue = self.create_group(type=ErrorGroupType.type_id)
+        denied_issue = self.create_group(type=MetricIssue.type_id)
+        self.create_detector_group(detector=detector, group=allowed_issue)
+        self.create_detector_group(detector=detector, group=denied_issue)
+        assert GroupOpenPeriod.objects.filter(group=denied_issue).exists()
+
+        with (
+            patch.dict(grouptype.registry._slug_lookup),
+            self.options(
+                {"workflow_engine.group.type_id.open_periods_type_denylist": [MetricIssue.type_id]}
+            ),
+        ):
+            del grouptype.registry._slug_lookup[MetricIssue.slug]
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"detectorId": detector.id}
+            )
+        assert [period["groupId"] for period in response.data] == [str(allowed_issue.id)]
+
     def test_open_period_linked_to_group(self) -> None:
         response = self.get_success_response(
             *self.get_url_args(), qs_params={"detectorId": self.detector.id}
@@ -96,7 +121,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["activities"][0] == {
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": self.opened_gopa.date_added,
             "eventId": None,
         }
@@ -328,7 +353,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["activities"][0] == {
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": self.opened_gopa.date_added,
             "eventId": None,
         }
@@ -414,7 +439,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["activities"][0] == {
             "id": str(opened_gopa2.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": opened_gopa2.date_added,
             "eventId": None,
         }
@@ -435,7 +460,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp2["activities"][0] == {
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": self.opened_gopa.date_added,
             "eventId": None,
         }
@@ -669,7 +694,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["activities"][0] == {
             "id": str(update_gopa.id),
             "type": OpenPeriodActivityType.STATUS_CHANGE.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": update_gopa.date_added,
             "eventId": "a" * 32,
         }
@@ -824,9 +849,7 @@ def test_detector_registration_does_not_enable_open_period_activities(
     start_time = timezone.now()
     resolution_time = start_time + timedelta(minutes=1)
 
-    with patch.dict(detector_settings_registry.registrations):
-        detector_settings_registry.register(issue_type.slug)(DetectorSettings)
-
+    with patch.dict(detector_settings_registry.registrations, {issue_type.slug: DetectorSettings}):
         create_open_period(group, start_time)
         open_period = GroupOpenPeriod.objects.get(group=group)
         open_period.close_open_period(resolution_time)

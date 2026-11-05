@@ -4,9 +4,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, type LinkButtonProps} from '@sentry/scraps/button';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
-import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
-import {ReplayPreviewPlayer} from 'sentry/components/events/eventReplay/replayPreviewPlayer';
-import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
 import {MissingReplayAlert} from 'sentry/components/replays/alerts/missingReplayAlert';
@@ -20,6 +17,10 @@ import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/repl
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
+
+import {REPLAY_LOADING_HEIGHT} from './constants';
+import {ReplayPreviewPlayer} from './replayPreviewPlayer';
+import {StaticReplayPreview} from './staticReplayPreview';
 
 interface Props {
   analyticsContext: string;

@@ -1,3 +1,4 @@
+from typing import cast
 from unittest import TestCase, mock
 from unittest.mock import MagicMock, Mock, patch
 
@@ -395,7 +396,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         }
 
         assert javascript_filter_states["browser-extensions"]
-        assert set(javascript_filter_states["legacy-browsers"]) == {
+        assert set(cast(list[str], javascript_filter_states["legacy-browsers"])) == {
             "ie",
             "firefox",
             "chrome",
@@ -409,10 +410,10 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert javascript_filter_states["filtered-transaction"]
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
-    def test_similarity_project_option_valid(self) -> None:
+    def test_similarity_project_option_region_enabled(self) -> None:
         """
-        Test that project option for similarity grouping is created when the project platform is
-        Seer-eligible.
+        Test that project option for similarity grouping is created when new-project Seer grouping
+        is enabled in the region.
         """
         response = self.get_success_response(
             self.organization.slug,
@@ -434,25 +435,20 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             is not None
         )
 
-    def test_similarity_project_option_invalid(self) -> None:
+    @override_options({"similarity.new_project_seer_grouping.enabled": False})
+    def test_similarity_project_option_region_disabled(self) -> None:
         """
-        Test that project option for similarity grouping is not created when the project platform
-        is not seer eligible.
+        Test that project option for similarity grouping is not created when new-project Seer
+        grouping is disabled in the region.
         """
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
-            name="foo",
-            slug="bar",
-            platform="php",
+            **self.data,
             status_code=201,
         )
 
         project = Project.objects.get(id=response.data["id"])
-        assert project.name == "foo"
-        assert project.slug == "bar"
-        assert project.platform == "php"
-        assert project.teams.first() == self.team
 
         assert (
             ProjectOption.objects.get_value(
@@ -651,7 +647,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
     def test_project_autofix_tuning_defaults_to_medium_with_seat_based_tier(
-        self, mock_seat_based_tier
+        self, mock_seat_based_tier: MagicMock
     ) -> None:
         # Ensure no org-level default is set
         self.organization.delete_option("sentry:default_autofix_automation_tuning")
@@ -671,7 +667,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
     def test_project_autofix_tuning_respects_explicit_off_even_with_seat_based_tier(
-        self, mock_seat_based_tier
+        self, mock_seat_based_tier: MagicMock
     ) -> None:
         # Org explicitly sets "off" - should be respected even with seat-based tier
         self.organization.update_option("sentry:default_autofix_automation_tuning", "off")
@@ -691,7 +687,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
     def test_project_autofix_tuning_seat_based_tier_overrides_non_off_org_default(
-        self, mock_seat_based_tier
+        self, mock_seat_based_tier: MagicMock
     ) -> None:
         # Org sets "high" but seat-based tier overrides to "medium"
         self.organization.update_option("sentry:default_autofix_automation_tuning", "high")

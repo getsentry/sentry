@@ -4,9 +4,10 @@ import dataclasses
 import logging
 from random import random
 from time import time
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.conf import settings
+from django.core.cache.backends.base import BaseCache
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 from sentry_sdk.integrations.logging import ignore_logger
@@ -14,6 +15,11 @@ from sentry_sdk.integrations.logging import ignore_logger
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.options.manager import UpdateChannel
 from sentry.utils.types import Type
+
+if TYPE_CHECKING:
+    from django.utils.connection import ConnectionProxy
+
+    from sentry.models.options import ControlOption, Option
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
@@ -58,7 +64,7 @@ class Key:
         return False
 
 
-def _make_cache_value(key, value):
+def _make_cache_value(key: Key, value: object) -> tuple[object, int, int]:
     now = int(time())
     return (value, now + key.ttl, now + key.ttl + key.grace)
 
@@ -78,17 +84,19 @@ class OptionsStore:
     OptionsManager instead, unless you need raw access to something.
     """
 
-    def __init__(self, cache=None, ttl=None):
+    def __init__(
+        self, cache: BaseCache | ConnectionProxy[BaseCache] | None = None, ttl: int | None = None
+    ) -> None:
         self.cache = cache
         self.ttl = ttl
         self.flush_local_cache()
 
     @property
-    def model(self):
+    def model(self) -> type[Option] | type[ControlOption]:
         return self.model_cls()
 
     @classmethod
-    def model_cls(cls):
+    def model_cls(cls) -> type[Option] | type[ControlOption]:
         from sentry.models.options import ControlOption, Option
         from sentry.silo.base import SiloMode
 
@@ -96,7 +104,7 @@ class OptionsStore:
             return ControlOption
         return Option
 
-    def get(self, key, silent=False):
+    def get(self, key: Key, silent: bool = False) -> object | None:
         """
         Fetches a value from the options store.
         """
@@ -121,25 +129,27 @@ class OptionsStore:
         # in local cache that's possibly stale
         return self.get_local_cache(key, force_grace=True)
 
-    def get_cache(self, key, silent=False):
+    def get_cache(self, key: Key, silent: bool = False) -> object | None:
         """
         First check against our local in-process cache, falling
         back to the network cache.
         """
         assert self.cache is not None, (
-            f"Option '{key.name}' requested before cache initialization, which could result in excessive store queries"
+            f"Option '{key.name}' requested before cache initialization, "
+            "which could result in excessive store queries"
         )
 
         value = self.get_local_cache(key)
         if value is not None:
             return value
 
-        if self.cache is None:
+        cache: BaseCache | ConnectionProxy[BaseCache] | None = self.cache
+        if cache is None:
             return None
 
         cache_key = key.cache_key
         try:
-            value = self.cache.get(cache_key)
+            value = cache.get(cache_key)
         except Exception:
             if not silent:
                 logger.warning(CACHE_FETCH_ERR, key.name, extra={"key": key.name}, exc_info=True)
@@ -150,7 +160,7 @@ class OptionsStore:
 
         return value
 
-    def get_local_cache(self, key, force_grace=False):
+    def get_local_cache(self, key: Key, force_grace: bool = False) -> object | None:
         """
         Attempt to fetch a key out of the local cache.
 
@@ -195,7 +205,7 @@ class OptionsStore:
         # in grace, too bad. The value is considered bad.
         return None
 
-    def get_store(self, key, silent=False):
+    def get_store(self, key: Key, silent: bool = False) -> object | None:
         """
         Attempt to fetch value from the database. If successful,
         also set it back in the cache.
@@ -236,7 +246,7 @@ class OptionsStore:
                     )
         return value
 
-    def get_last_update_channel(self, key) -> UpdateChannel | None:
+    def get_last_update_channel(self, key: Key) -> UpdateChannel | None:
         """
         Gets how the option was last updated to check for drift.
         """
@@ -247,7 +257,7 @@ class OptionsStore:
 
         return UpdateChannel(option.last_updated_by)
 
-    def set(self, key, value, channel: UpdateChannel):
+    def set(self, key: Key, value: object, channel: UpdateChannel) -> bool | None:
         """
         Store a value in the option store. Value must get persisted to database first,
         then attempt caches. If it fails database, the entire operation blows up.
@@ -259,7 +269,7 @@ class OptionsStore:
         self.set_store(key, value, channel)
         return self.set_cache(key, value)
 
-    def set_store(self, key, value, channel: UpdateChannel):
+    def set_store(self, key: Key, value: object, channel: UpdateChannel) -> None:
         self.model.objects.update_or_create(
             key=key.name,
             defaults={
@@ -269,7 +279,7 @@ class OptionsStore:
             },
         )
 
-    def set_cache(self, key, value):
+    def set_cache(self, key: Key, value: object) -> bool | None:
         if self.cache is None:
             return None
 
@@ -285,7 +295,7 @@ class OptionsStore:
             logger.warning(CACHE_UPDATE_ERR, key.name, extra={"key": key.name}, exc_info=True)
             return False
 
-    def delete(self, key):
+    def delete(self, key: Key) -> bool:
         """
         Remove key out of option stores. This operation must succeed on the
         database first. If database fails, an exception is raised.
@@ -297,10 +307,10 @@ class OptionsStore:
         self.delete_store(key)
         return self.delete_cache(key)
 
-    def delete_store(self, key):
+    def delete_store(self, key: Key) -> None:
         self.model.objects.filter(key=key.name).delete()
 
-    def delete_cache(self, key):
+    def delete_cache(self, key: Key) -> bool:
         cache_key = key.cache_key
         try:
             del self._local_cache[cache_key]
@@ -308,13 +318,13 @@ class OptionsStore:
             pass
 
         try:
-            self.cache.delete(cache_key)
+            cast(BaseCache, self.cache).delete(cache_key)
             return True
         except Exception:
             logger.warning(CACHE_UPDATE_ERR, key.name, extra={"key": key.name}, exc_info=True)
             return False
 
-    def clean_local_cache(self):
+    def clean_local_cache(self) -> None:
         """
         Iterate over our local cache items, and
         remove the keys that are beyond their grace time.
@@ -342,13 +352,13 @@ class OptionsStore:
                 # but we'll guard ourselves against it Justin Case.
                 pass
 
-    def flush_local_cache(self):
+    def flush_local_cache(self) -> None:
         """
         Empty store's local in-process cache.
         """
-        self._local_cache = {}
+        self._local_cache: dict[str, tuple[object, int, int]] = {}
 
-    def maybe_clean_local_cache(self, **kwargs):
+    def maybe_clean_local_cache(self, **kwargs: object) -> None:
         # Periodically force an expire on the local cache.
         # This cleanup is purely to keep memory low and garbage collect
         # old values. It's not required to run to keep things consistent.
@@ -363,5 +373,5 @@ class OptionsStore:
     def close(self) -> None:
         self.clean_local_cache()
 
-    def set_cache_impl(self, cache) -> None:
+    def set_cache_impl(self, cache: BaseCache | ConnectionProxy[BaseCache]) -> None:
         self.cache = cache

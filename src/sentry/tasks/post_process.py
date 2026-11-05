@@ -1559,7 +1559,7 @@ def detect_new_escalation(job: PostProcessJob) -> None:
     group = job["event"].group
     if not group:
         return
-    extra = {
+    extra: dict[str, object] = {
         "org_id": group.organization.id,
         "project_id": job["event"].project.id,
         "group_id": group.id,
@@ -1691,7 +1691,7 @@ def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
     ):
         return
 
-    trigger_lightweight_rca_cluster_task.delay(group.id)
+    trigger_lightweight_rca_cluster_task.delay(group.id, event_id=event.event_id)
 
 
 def _noop_siem_security_log_hook(job: PostProcessJob) -> None:

@@ -166,6 +166,13 @@ class TestInvestigationCreateValidator:
 
         assert data["source"]["ref"] == {"groupId": "1", "openPeriodId": "2"}
 
+    def test_converts_multi_word_error_keys_to_camel_case(self) -> None:
+        validator = InvestigationCreateValidator(data={"title": "T", "projectIds": "nope"})
+
+        assert not validator.is_valid()
+        assert "projectIds" in validator.errors
+        assert "project_ids" not in validator.errors
+
 
 class TestInvestigationUpdateValidator:
     def test_accepts_a_status_change(self) -> None:

@@ -176,7 +176,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.data["value2"]["meta"]["dataset"] == "tracemetrics"
         assert response.data["Other"]["meta"]["dataset"] == "tracemetrics"
 
-    def test_meta_accuracy(self):
+    def test_meta_accuracy(self) -> None:
         metric_values = [1, 2, 3, 4]
 
         trace_metrics = [

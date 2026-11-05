@@ -411,8 +411,6 @@ class CircuitBreaker:
         self.limiter = RedisSlidingWindowRateLimiter(
             cluster=settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER
         )
-        self.redis_pipeline = self.limiter.client.pipeline()
-
         self.trip_strategy = trip_strategy
 
         # Initialize each strategy (validation and Redis quota setup happen here)
@@ -617,14 +615,20 @@ class CircuitBreaker:
         return True
 
     def _get_from_redis(self, keys: list[str]) -> Any:
+        # Use a fresh pipeline per call. If `execute()` fails before acquiring a connection (e.g.
+        # a connect timeout), redis-py leaves the queued commands on the pipeline, and reusing a
+        # shared pipeline would then return extra results on the next call.
+        pipeline = self.limiter.client.pipeline()
         for key in keys:
-            self.redis_pipeline.get(key)
-        return self.redis_pipeline.execute()
+            pipeline.get(key)
+        return pipeline.execute()
 
     def _set_in_redis(self, keys_values_and_timeouts: list[tuple[str, Any, int]]) -> None:
+        # See `_get_from_redis` for why this doesn't reuse a shared pipeline
+        pipeline = self.limiter.client.pipeline()
         for key, value, timeout in keys_values_and_timeouts:
-            self.redis_pipeline.set(key, value, timeout)
-        self.redis_pipeline.execute()
+            pipeline.set(key, value, timeout)
+        pipeline.execute()
 
     def _get_state_and_remaining_time(
         self,

@@ -2,10 +2,11 @@ import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DroppedDataTooltip} from 'sentry/components/droppedData/band/droppedDataTooltip';
 import {groupIntoBuckets} from 'sentry/components/droppedData/buckets';
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {DroppedDataTooltip} from './droppedDataTooltip';
 
 const START = Date.UTC(2024, 0, 12, 15, 0);
 const END = Date.UTC(2024, 0, 12, 15, 5);

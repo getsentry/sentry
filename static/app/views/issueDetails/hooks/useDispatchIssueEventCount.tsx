@@ -3,10 +3,11 @@ import {useEffect} from 'react';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
+
 import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
-} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
+} from './useIssueDetailsDiscoverQuery';
 
 type EventCountResponse = {
   data: Array<{'count()': number}>;

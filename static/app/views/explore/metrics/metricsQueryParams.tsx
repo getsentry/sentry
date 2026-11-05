@@ -2,11 +2,6 @@ import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {defined} from 'sentry/utils/defined';
-import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {
-  MetricsFrozenContextProvider,
-  type MetricsFrozenForTracesProviderProps,
-} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   QueryParamsContextProvider,
@@ -24,6 +19,12 @@ import {
   Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+
+import {type TraceMetric} from './metricQuery';
+import {
+  MetricsFrozenContextProvider,
+  type MetricsFrozenForTracesProviderProps,
+} from './metricsFrozenContext';
 
 interface TraceMetricContextValue {
   metric: TraceMetric;

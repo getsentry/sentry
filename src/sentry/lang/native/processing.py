@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import posixpath
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 import sentry_sdk
@@ -85,7 +85,9 @@ ELECTRON_FIRST_MODULE_REWRITE_RULES = [
 ]
 
 
-def _merge_frame(new_frame, symbolicated, platform="native"):
+def _merge_frame(
+    new_frame: dict[str, Any], symbolicated: Mapping[str, Any], platform: str = "native"
+) -> None:
     # il2cpp events which have the "csharp" platform have good (C#) names
     # coming from the SDK, we do not want to override those with bad (mangled) C++ names.
     if platform != "csharp" and symbolicated.get("function"):
@@ -144,7 +146,9 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
         frame_meta["symbolicator_status"] = symbolicated["status"]
 
 
-def _handle_image_status(status, image, os, data):
+def _handle_image_status(
+    status: str, image: dict[str, Any], os: str | None, data: MutableMapping[str, Any]
+) -> None:
     if status in ("found", "unused"):
         return
     elif status == "unsupported":
@@ -196,7 +200,12 @@ def _handle_image_status(status, image, os, data):
     write_error(error, data)
 
 
-def _merge_image(raw_image, complete_image, os, data):
+def _merge_image(
+    raw_image: dict[str, Any],
+    complete_image: Mapping[str, Any],
+    os: str | None,
+    data: MutableMapping[str, Any],
+) -> None:
     statuses = set()
 
     # Set image data from symbolicator as symbolicator might know more
@@ -211,7 +220,9 @@ def _merge_image(raw_image, complete_image, os, data):
         _handle_image_status(status, raw_image, os, data)
 
 
-def _handle_response_status(event_data, response_json):
+def _handle_response_status(
+    event_data: MutableMapping[str, Any], response_json: Mapping[str, Any]
+) -> bool | None:
     if not response_json:
         error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
     elif response_json["status"] == "completed":
@@ -226,9 +237,10 @@ def _handle_response_status(event_data, response_json):
         error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
 
     write_error(error, event_data)
+    return None
 
 
-def _merge_system_info(data, system_info):
+def _merge_system_info(data: dict[str, Any], system_info: Mapping[str, Any]) -> None:
     set_path(data, "contexts", "os", "type", value="os")  # Required by "get_os_from_event"
 
     os_name = system_info.get("os_name")
@@ -252,7 +264,7 @@ def _merge_system_info(data, system_info):
         setdefault_path(data, "contexts", "device", "model", value=device_model)
 
 
-def _merge_full_response(data, response):
+def _merge_full_response(data: dict[str, Any], response: Mapping[str, Any]) -> None:
     data["platform"] = "native"
     # Specifically for Unreal events: Do not overwrite the level as it has already been set in Relay when merging the context.
     if response.get("crashed") is not None and data.get("level") is None:
@@ -386,7 +398,7 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def _handles_frame(data, frame):
+def _handles_frame(data: Mapping[str, Any], frame: Mapping[str, Any] | None) -> bool:
     if not frame:
         return False
 
@@ -399,11 +411,11 @@ def _handles_frame(data, frame):
 
 
 def get_frames_for_symbolication(
-    frames,
-    data,
-    modules,
-    adjustment=None,
-):
+    frames: Sequence[Mapping[str, Any]],
+    data: Mapping[str, Any],
+    modules: Sequence[Mapping[str, Any]],
+    adjustment: str | None = None,
+) -> list[dict[str, Any]]:
     modules_by_debug_id = None
     rv = []
     adjustment = adjustment or "auto"
@@ -420,7 +432,7 @@ def get_frames_for_symbolication(
         # expand it, we keep None which is absolute.  That's not great but
         # at least won't do damage.
         addr_mode = s_frame.pop("addr_mode", None)
-        sanitized_addr_mode = None
+        sanitized_addr_mode: str | None = None
 
         # None and abs mean absolute addressing explicitly.
         if addr_mode in (None, "abs"):
@@ -685,7 +697,7 @@ def _process_native_event_stacktraces(symbolicator: Symbolicator, data: Any) -> 
     return True
 
 
-def emit_apple_symbol_stats(apple_symbol_stats, data):
+def emit_apple_symbol_stats(apple_symbol_stats: Mapping[str, Any], data: Mapping[str, Any]) -> None:
     os_name = get_path(data, "contexts", "os", "name") or get_path(
         data, "contexts", "os", "raw_description"
     )
@@ -796,7 +808,7 @@ def get_native_symbolication_functions(
     return functions
 
 
-def get_required_attachment_types(data) -> set[str]:
+def get_required_attachment_types(data: Mapping[str, object]) -> set[str]:
     if is_minidump_event(data):
         return {MINIDUMP_ATTACHMENT_TYPE}
     elif is_applecrashreport_event(data):

@@ -18,16 +18,14 @@ import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {
-  INPUT_STORAGE_KEY_PREFIX,
-  SeerExplorerContent,
-} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
+
+import {INPUT_STORAGE_KEY_PREFIX, SeerExplorerContent} from './seerExplorerContent';
 
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 
@@ -1575,7 +1573,7 @@ describe('SeerExplorerContent', () => {
       );
     });
 
-    it('does not show the debug menu without any debug feature flag', async () => {
+    it('shows the debug menu to employees', async () => {
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
@@ -1589,8 +1587,7 @@ describe('SeerExplorerContent', () => {
           organization,
         }
       );
-      await screen.findByTestId('seer-explorer-input');
-      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Debug'})).toBeInTheDocument();
     });
   });
 
@@ -1800,7 +1797,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1859,7 +1856,7 @@ describe('SeerExplorerContent', () => {
         .mockReturnValue({...defaultHookReturn, sendMessage});
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1895,7 +1892,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1928,7 +1925,7 @@ describe('SeerExplorerContent', () => {
         ProjectFixture({id: '2', slug: 'second', isMember: false}),
       ]);
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1949,7 +1946,7 @@ describe('SeerExplorerContent', () => {
 
     it('leaves out the screen capture where the page has structured context', async () => {
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1974,7 +1971,7 @@ describe('SeerExplorerContent', () => {
       // A pinned project that isn't loaded, e.g. one from a stale URL.
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [99]}));
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -2004,7 +2001,7 @@ describe('SeerExplorerContent', () => {
         })
       );
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -2034,7 +2031,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
         method: 'POST',
         statusCode: 400,
         body: {source: 'Investigation context is too large.'},
@@ -2059,7 +2056,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, isPolling: true, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
         method: 'POST',
         body: {id: '4567'},
       });

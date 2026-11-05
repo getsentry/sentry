@@ -7,7 +7,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {FeatureShowcase, useShowcaseContext} from 'sentry/components/featureShowcase';
+
+import {FeatureShowcase, useShowcaseContext} from './featureShowcase';
 
 function CustomFooter() {
   const {close} = useShowcaseContext();

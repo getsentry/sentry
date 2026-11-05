@@ -7,13 +7,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
-import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {
-  EVENT_CHOICES,
-  PERMISSIONS_MAP,
-  RESOURCE_EVENTS,
-} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {SubscriptionBox} from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
+
+import type {WebhookSubscription} from './constants';
+import {EVENT_CHOICES, PERMISSIONS_MAP, RESOURCE_EVENTS} from './constants';
+import {SubscriptionBox} from './subscriptionBox';
 
 type Resource = (typeof EVENT_CHOICES)[number];
 

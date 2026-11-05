@@ -5,8 +5,8 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
@@ -183,7 +183,7 @@ export function DocIntegrationModal(props: Props) {
     onSuccess: (response: Record<string, any>) => void,
     onError: (error: any) => void
   ) => {
-    addLoadingMessage('Saving changes\u2026');
+    toast.loading('Saving changes\u2026');
     try {
       const response = await api.requestPromise(
         docIntegration
@@ -194,10 +194,10 @@ export function DocIntegrationModal(props: Props) {
           data: prepareData(data),
         }
       );
-      clearIndicators();
+      toast.dismiss();
       onSuccess(response);
     } catch (error) {
-      clearIndicators();
+      toast.dismiss();
       onError(error);
     }
   };

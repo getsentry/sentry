@@ -28,7 +28,7 @@ class FlamegraphExpansionLimitExceeded(Exception):
     pass
 
 
-class _StringField(serializers.Field):
+class _StringField(serializers.Field[str, object, str, object]):
     default_error_messages = {"invalid": "Not a valid string."}
 
     def to_internal_value(self, data: Any) -> str:
@@ -205,7 +205,9 @@ class Flamegraphs:
             return False
         attachment = self._attachments[attachment_index]
         metadata = attachment.meta()
-        metadata.update(data=serialized, chunks=None, size=len(serialized))
+        metadata["data"] = serialized
+        metadata["chunks"] = None
+        metadata["size"] = len(serialized)
         # Checkpoint only this attachment, without reading or rewriting unrelated payloads.
         checkpoint = dict(self._event)
         store_attachments_for_event(

@@ -5,8 +5,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -52,12 +52,12 @@ function RefundVercelRequestModal({
         data,
       }),
     onSuccess: () => {
-      addSuccessMessage('Sent request to Vercel API.');
+      toast.success('Sent request to Vercel API.');
       closeModal();
       onSuccess();
     },
     onError: error => {
-      addErrorMessage(
+      toast.error(
         error instanceof RequestError ? error.responseText : 'Unable to request refund.'
       );
     },

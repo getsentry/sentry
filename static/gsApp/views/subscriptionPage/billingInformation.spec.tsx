@@ -139,19 +139,19 @@ describe('Subscription > BillingInformation', () => {
     // panels are expanded with no pre-existing information
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     expect(
+      await within(cardPanel).findByRole('button', {name: 'Save Changes'})
+    ).toBeInTheDocument();
+    expect(
       screen.queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
-    expect(
-      within(cardPanel).getByRole('button', {name: 'Save Changes'})
-    ).toBeInTheDocument();
 
     const billingDetailsPanel = await screen.findByTestId('billing-details-panel');
     expect(
+      await within(billingDetailsPanel).findByRole('button', {name: 'Save Changes'})
+    ).toBeInTheDocument();
+    expect(
       screen.queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
-    expect(
-      within(billingDetailsPanel).getByRole('button', {name: 'Save Changes'})
-    ).toBeInTheDocument();
   });
 
   it('opens credit card form with billing failure query', async () => {

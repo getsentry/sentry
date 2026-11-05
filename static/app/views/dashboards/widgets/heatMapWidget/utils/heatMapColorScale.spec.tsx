@@ -1,4 +1,4 @@
-import {createHeatMapColorScale} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/heatMapColorScale';
+import {createHeatMapColorScale} from './heatMapColorScale';
 
 describe('createHeatMapColorScale', () => {
   it('maps non-positive values and nulls to position 0', () => {

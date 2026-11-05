@@ -36,6 +36,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.explore.models import (
     TraceItemAttributeValueContext,
     TraceItemTypes,
@@ -210,7 +211,7 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         optional_fields = {field: data[field] for field in ("additional_context",) if field in data}
         defaults = {
             "brief": data["brief"],
-            "updated_by_id": request.user.id,
+            "updated_by_id": acting_user_id(request.user),
             **optional_fields,
         }
         # Race-safe: the lookup kwargs match the unique constraints, so a losing
@@ -228,7 +229,7 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
             create_defaults={
                 "additional_context": None,
                 **defaults,
-                "created_by_id": request.user.id,
+                "created_by_id": acting_user_id(request.user),
             },
         )
 

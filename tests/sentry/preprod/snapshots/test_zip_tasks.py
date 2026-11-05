@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import zipfile
+from typing import Any, BinaryIO
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -22,7 +23,7 @@ def _manifest_bytes() -> bytes:
 
 
 class BuildSnapshotImagesZipTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -44,7 +45,7 @@ class BuildSnapshotImagesZipTest(TestCase):
         if existing_archive_key is not None:
             data[existing_archive_key] = b"ZIPBYTES"
 
-        def _get(key):
+        def _get(key: str) -> MagicMock | None:
             if key not in data:
                 return None
             result = MagicMock()
@@ -57,15 +58,18 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_build_includes_manifest(self, mock_session, mock_email):
+    def test_build_includes_manifest(self, mock_session: MagicMock, mock_email: MagicMock) -> None:
         session = self._session()
         mock_session.return_value = session
         archive_bytes = b""
 
-        def upload(contents, **kwargs):
+        def upload(contents: BinaryIO, **kwargs: Any) -> str:
             nonlocal archive_bytes
             archive_bytes = contents.read()
-            return kwargs["key"]
+            key = kwargs["key"]
+            if not isinstance(key, str):
+                raise TypeError("Objectstore key is not a string")
+            return key
 
         session.put.side_effect = upload
         build_snapshot_images_zip(
@@ -89,7 +93,7 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_reuses_existing_archive(self, mock_session, mock_email):
+    def test_reuses_existing_archive(self, mock_session: MagicMock, mock_email: MagicMock) -> None:
         session = self._session(existing_archive_key=f"snapshot_archives/{self.artifact.id}.zip")
         mock_session.return_value = session
         build_snapshot_images_zip(
@@ -104,7 +108,9 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_emails_failure_when_upload_raises(self, mock_session, mock_email):
+    def test_emails_failure_when_upload_raises(
+        self, mock_session: MagicMock, mock_email: MagicMock
+    ) -> None:
         session = self._session()
         session.put.side_effect = RuntimeError("boom")
         mock_session.return_value = session
@@ -121,8 +127,11 @@ class BuildSnapshotImagesZipTest(TestCase):
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
     def test_emails_ready_when_failure_superseded_by_existing_archive(
-        self, mock_session, mock_email, mock_available
-    ):
+        self,
+        mock_session: MagicMock,
+        mock_email: MagicMock,
+        mock_available: MagicMock,
+    ) -> None:
         session = self._session()
         session.put.side_effect = RuntimeError("boom")
         mock_session.return_value = session
@@ -137,7 +146,9 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_emails_failure_when_metrics_missing(self, mock_session, mock_email):
+    def test_emails_failure_when_metrics_missing(
+        self, mock_session: MagicMock, mock_email: MagicMock
+    ) -> None:
         self.artifact.preprodsnapshotmetrics.delete()
         mock_session.return_value = self._session()
         build_snapshot_images_zip(
@@ -149,7 +160,7 @@ class BuildSnapshotImagesZipTest(TestCase):
         mock_email.assert_called_once()
         assert mock_email.call_args.kwargs["ready"] is False
 
-    def test_snapshot_page_url_targets_frontend_page(self):
+    def test_snapshot_page_url_targets_frontend_page(self) -> None:
         from sentry.preprod.snapshots.zip_tasks import _snapshot_page_url
 
         url = _snapshot_page_url(self.org, self.artifact.id)
@@ -158,7 +169,9 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_emails_failure_when_objectstore_probe_errors(self, mock_session, mock_email):
+    def test_emails_failure_when_objectstore_probe_errors(
+        self, mock_session: MagicMock, mock_email: MagicMock
+    ) -> None:
         # A non-404 error from the existence probe must surface as a failure email,
         # never a silent wedge (there is no status to poll).
         session = MagicMock()

@@ -14,15 +14,15 @@ from sentry.investigations.agent import (
     synchronize_title,
     title_generation_preview,
 )
-from sentry.investigations.services.investigations import (
-    DEFAULT_INVESTIGATION_TITLE,
-    default_investigation_title,
-)
 from sentry.investigations.telemetry import (
     record_execution_completed,
     record_investigation_completed,
 )
 from sentry.notebooks.models import NotebookBlockExecutionStatus
+from sentry.notebooks.services.notebooks import (
+    DEFAULT_INVESTIGATION_TITLE,
+    default_investigation_title,
+)
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
@@ -187,6 +187,7 @@ class InvestigationAgentTest(TestCase):
         self.execution.refresh_from_db()
         self.block.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
+        assert self.execution.result is not None
         assert self.execution.result["tableMarkdown"].startswith("| Errors |")
         assert self.execution.result["queryLinks"][0]["kind"] == "telemetry"
         params = self.execution.result["queryLinks"][0]["params"]
@@ -260,6 +261,7 @@ class InvestigationAgentTest(TestCase):
         self.execution.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
         assert list(self.execution.data_projects.all()) == [self.project]
+        assert self.execution.result is not None
         assert self.execution.result["queryLinks"] == original_links
 
     def test_start_run_requests_a_final_response_without_an_artifact_writer(self) -> None:
@@ -449,6 +451,7 @@ class InvestigationAgentTest(TestCase):
 
         self.execution.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
+        assert self.execution.result is not None
         assert self.execution.result["tableMarkdown"].startswith("| Errors |")
 
     @patch("sentry.investigations.agent.record_execution_completed")
@@ -476,8 +479,8 @@ class InvestigationAgentTest(TestCase):
         record_completed.assert_called_once()
         assert record_completed.call_args.args[0].id == self.execution.id
 
-    @patch("sentry.investigations.telemetry.metrics.distribution")
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.distribution")
     def test_completed_execution_records_duration_metrics(
         self, sdk_distribution: MagicMock, metrics_distribution: MagicMock
     ) -> None:
@@ -586,10 +589,10 @@ class InvestigationAgentTest(TestCase):
         )
         interrupt_run.assert_called_once_with(self.organization, 43)
 
-    @patch("sentry.investigations.telemetry.metrics.distribution")
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
-    @patch("sentry.investigations.telemetry.metrics.incr")
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
+    @patch("sentry.notebooks.telemetry.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.metrics.incr")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
     def test_failed_execution_records_metrics(
         self,
         metrics_count: MagicMock,
@@ -780,6 +783,7 @@ class InvestigationAgentTest(TestCase):
             synchronize_execution(self.execution, run_state)
         self.execution.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.FAILED
+        assert self.execution.error is not None
         assert self.execution.error["code"] == "unsupported_tool_use"
         interrupt_run.assert_called_once()
 
@@ -812,6 +816,7 @@ class InvestigationAgentTest(TestCase):
 
         self.execution.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.FAILED
+        assert self.execution.error is not None
         assert self.execution.error["code"] == "unsupported_tool_use"
         interrupt_run.assert_called_once_with(self.organization, 42)
 
@@ -1181,6 +1186,7 @@ class InvestigationAgentTest(TestCase):
 
         self.execution.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
+        assert self.execution.result is not None
         link = self.execution.result["queryLinks"][0]
         assert set(link) == {"kind", "params"}
         assert set(link["params"]) == {"dataset", "query", "project_slugs"}
@@ -1254,8 +1260,8 @@ class InvestigationAgentTest(TestCase):
         assert self.investigation.title == "Already titled"
         assert self.investigation.summary == "Error volume crossed threshold"
 
-    @patch("sentry.investigations.telemetry.metrics.distribution")
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.distribution")
     def test_completed_investigation_records_duration_metrics(
         self, sdk_distribution: MagicMock, metrics_distribution: MagicMock
     ) -> None:
@@ -1304,8 +1310,8 @@ class InvestigationAgentTest(TestCase):
         assert self.investigation.summary == "Error volume crossed threshold"
         assert self.investigation.title_generation_status == "completed"
 
-    @patch("sentry.investigations.telemetry.metrics.incr")
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
+    @patch("sentry.notebooks.telemetry.metrics.incr")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
     def test_invalid_title_records_failure_metrics(
         self, metrics_count: MagicMock, metrics_incr: MagicMock
     ) -> None:

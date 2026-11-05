@@ -1,15 +1,16 @@
 import {Stack} from '@sentry/scraps/layout';
 
-import {
-  ActionRequestCard,
-  isCurrentActionRequest,
-  isStaleActionRequest,
-} from 'sentry/views/investigations/actionRequests/actionRequestCard';
 import type {
   InvestigationActionRequest,
   InvestigationActionRequestAnchor,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
+
+import {
+  ActionRequestCard,
+  isCurrentActionRequest,
+  isStaleActionRequest,
+} from './actionRequestCard';
 
 type AnchoredActionRequestsProps = {
   actionRequests: InvestigationActionRequest[] | undefined;

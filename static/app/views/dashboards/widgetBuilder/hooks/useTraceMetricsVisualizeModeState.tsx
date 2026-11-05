@@ -15,11 +15,14 @@ import {
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {
+  supportsWidgetTransformations,
+  type QueryTransformations,
+} from 'sentry/views/dashboards/utils/transformations';
+import {
   dispatchYAxisUpdate,
   prepareQueriesForEquationMode,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
   getTraceMetricAggregateActionType,
   getTraceMetricAggregates,
@@ -34,15 +37,19 @@ import {
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
+import {BuilderStateAction} from './useWidgetBuilderState';
+
 interface SeriesModeSnapshot {
   fields: QueryFieldValue[];
   legendAlias: string[];
   query: string[];
+  transformations?: QueryTransformations[];
 }
 
 export interface EquationModeSnapshot {
   queries: BaseMetricQuery[];
   selectedLabel: string | undefined;
+  transformations?: QueryTransformations[];
 }
 
 export interface TraceMetricsVisualizeModeState {
@@ -103,6 +110,12 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         type: BuilderStateAction.SET_LEGEND_ALIAS,
         payload: seriesSnapshot.current.legendAlias,
       });
+      if (supportsWidgetTransformations(state.dataset, state.displayType)) {
+        dispatch({
+          type: BuilderStateAction.SET_TRANSFORMATIONS,
+          payload: seriesSnapshot.current.transformations,
+        });
+      }
       return;
     }
 
@@ -147,7 +160,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       type: BuilderStateAction.SET_LEGEND_ALIAS,
       payload: [],
     });
-  }, [state.displayType, state.fields, dispatch]);
+  }, [state.dataset, state.displayType, state.fields, dispatch]);
 
   const restoreEquationState = useCallback(() => {
     let snapshot = equationSnapshot.current;
@@ -196,6 +209,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       snapshot.queries.find(q => q.label === snapshot.selectedLabel) ??
       snapshot.queries[0];
     if (!selected) {
+      dispatch({type: BuilderStateAction.SET_TRANSFORMATIONS, payload: undefined});
       return;
     }
     const yAxis = selected.queryParams.visualizes[0]?.yAxis;
@@ -216,7 +230,13 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       type: BuilderStateAction.SET_LEGEND_ALIAS,
       payload: [],
     });
-  }, [state.displayType, state.yAxis, state.fields, dispatch]);
+    dispatch({
+      type: BuilderStateAction.SET_TRANSFORMATIONS,
+      payload: supportsWidgetTransformations(state.dataset, state.displayType)
+        ? snapshot.transformations
+        : undefined,
+    });
+  }, [state.dataset, state.displayType, state.yAxis, state.fields, dispatch]);
 
   // Detect an equation yAxis and restore the cached equation mode if
   // the user was in equation mode when they left.
@@ -263,6 +283,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
           fields: currentFields ? structuredClone(currentFields) : [],
           legendAlias: currentLegendAlias,
           query: state.query ? [...state.query] : [],
+          transformations: state.transformations,
         };
         restoreEquationState();
       } else {
@@ -278,6 +299,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       state.fields,
       state.query,
       state.legendAlias,
+      state.transformations,
       restoreSeriesState,
       restoreEquationState,
     ]

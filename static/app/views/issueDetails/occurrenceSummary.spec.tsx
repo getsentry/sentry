@@ -11,7 +11,8 @@ import {
   IssueCategory,
   IssueType,
 } from 'sentry/types/group';
-import {OccurrenceSummary} from 'sentry/views/issueDetails/occurrenceSummary';
+
+import {OccurrenceSummary} from './occurrenceSummary';
 
 describe('OccurrenceSummary', () => {
   const organization = OrganizationFixture();

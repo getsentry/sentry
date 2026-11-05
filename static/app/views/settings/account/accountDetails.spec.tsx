@@ -2,7 +2,7 @@ import {UserDetailsFixture} from 'sentry-fixture/userDetails';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AccountDetails from 'sentry/views/settings/account/accountDetails';
+import AccountDetails from './accountDetails';
 
 function mockUserDetails(params?: any) {
   MockApiClient.clearMockResponses();

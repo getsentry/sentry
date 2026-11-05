@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from functools import partial
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.db import router, transaction
 from django.db.models import QuerySet, Value
@@ -176,7 +176,7 @@ def _validate_repo_ids(project: Project, repo_ids: list[int]) -> None:
         raise ValueError(sorted(invalid_ids))
 
 
-def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
+def _apply_search_filters(queryset: Any, filters: Sequence[QueryToken]) -> Any:
     for f in filters:
         if not isinstance(f, SearchFilter):
             continue
@@ -196,7 +196,10 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
         elif key == "provider":
             if op not in ("=", "!=", "IN", "NOT IN"):
                 raise InvalidSearchQuery(f"provider does not support the {op} operator.")
-            normalize = lambda v: v.removeprefix("integrations:")
+
+            def normalize(provider: str) -> str:
+                return provider.removeprefix("integrations:")
+
             if op == "=":
                 queryset = queryset.filter(provider_normalized=normalize(value))
             elif op == "!=":
@@ -209,7 +212,9 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
     return queryset
 
 
-def _validate_branch_overrides(value):
+def _validate_branch_overrides(
+    value: Sequence[Mapping[str, str]],
+) -> Sequence[Mapping[str, str]]:
     if not value:
         return value
     seen: set[tuple[str, str]] = set()
@@ -223,7 +228,7 @@ def _validate_branch_overrides(value):
     return value
 
 
-class BranchOverrideSerializer(CamelSnakeSerializer):
+class BranchOverrideSerializer(CamelSnakeSerializer[dict[str, Any]]):
     tag_name = serializers.CharField(required=True, help_text="Event tag key to match.")
     tag_value = serializers.CharField(required=True, help_text="Event tag value to match.")
     branch_name = serializers.CharField(
@@ -235,7 +240,7 @@ class BranchOverrideSerializer(CamelSnakeSerializer):
 @sentry_schema_serializer(
     deprecate={"branch_overrides": "Tag-based branch overrides are deprecated."}
 )
-class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
+class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer[dict[str, Any]]):
     branch_name = serializers.CharField(
         required=False,
         allow_null=True,
@@ -255,10 +260,12 @@ class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
         help_text="Deprecated. Branch overrides selected by matching tags.",
     )
 
-    def validate_branch_overrides(self, value):
+    def validate_branch_overrides(
+        self, value: Sequence[Mapping[str, str]]
+    ) -> Sequence[Mapping[str, str]]:
         return _validate_branch_overrides(value)
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data:
             raise serializers.ValidationError("At least one field must be provided.")
         return data
@@ -267,7 +274,7 @@ class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
 @sentry_schema_serializer(
     deprecate={"branch_overrides": "Tag-based branch overrides are deprecated."}
 )
-class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
+class SeerProjectRepoCreateSerializer(CamelSnakeSerializer[dict[str, Any]]):
     repository_id = serializers.IntegerField(
         required=True, help_text="The ID of an active, supported repository in the organization."
     )
@@ -290,11 +297,13 @@ class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
         help_text="Deprecated. Branch overrides selected by matching tags.",
     )
 
-    def validate_branch_overrides(self, value):
+    def validate_branch_overrides(
+        self, value: Sequence[Mapping[str, str]]
+    ) -> Sequence[Mapping[str, str]]:
         return _validate_branch_overrides(value)
 
 
-class SeerProjectReposBulkSerializer(CamelSnakeSerializer):
+class SeerProjectReposBulkSerializer(CamelSnakeSerializer[dict[str, Any]]):
     repos = SeerProjectRepoCreateSerializer(
         many=True,
         required=True,
@@ -302,7 +311,7 @@ class SeerProjectReposBulkSerializer(CamelSnakeSerializer):
         help_text="Repositories to link and configure for Seer in this project.",
     )
 
-    def validate_repos(self, value):
+    def validate_repos(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         repo_ids = [r["repository_id"] for r in value]
         if len(repo_ids) != len(set(repo_ids)):
             raise serializers.ValidationError("Duplicate repository IDs are not allowed.")
@@ -396,6 +405,7 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="listProjectSeerRepositories",

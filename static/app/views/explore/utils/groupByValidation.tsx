@@ -1,7 +1,8 @@
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import type {EventValidationData} from './validateEventParamsOptions';
 
 export function filterInvalidGroupBys(
   groupBys: readonly string[],

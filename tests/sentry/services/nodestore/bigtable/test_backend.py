@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import pytest
 from google.cloud.bigtable import table
+from google.cloud.bigtable.row import PartialRowData
+from google.cloud.bigtable.row import Row as BigtableRow
 from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 from google.rpc.status_pb2 import Status
 
@@ -47,13 +49,13 @@ class MockedBigtableKVStorage(BigtableKVStorage):
         def __init__(self) -> None:
             self._rows: dict[bytes, dict[str, list[MockedBigtableKVStorage.Cell]]] = {}
 
-        def direct_row(self, key: str) -> MockedBigtableKVStorage.Row:
-            return MockedBigtableKVStorage.Row(self, key)
+        def direct_row(self, key: str) -> BigtableRow:
+            return cast("BigtableRow", MockedBigtableKVStorage.Row(self, key))
 
         def read_row(
             self, row_key: str, filter_: Any = None, retry: Any = DEFAULT_RETRY_READ_ROWS
-        ) -> MockedBigtableKVStorage.Row:
-            return MockedBigtableKVStorage.Row(self, row_key)
+        ) -> PartialRowData | None:
+            return cast("PartialRowData", MockedBigtableKVStorage.Row(self, row_key))
 
         def read_rows(
             self,
@@ -64,12 +66,12 @@ class MockedBigtableKVStorage(BigtableKVStorage):
             end_inclusive: bool = False,
             row_set: Any = None,
             retry: Any = None,
-        ) -> list[MockedBigtableKVStorage.Row]:
+        ) -> Iterable[PartialRowData]:
             assert not row_set.row_ranges, "unsupported"
-            return [self.read_row(key) for key in row_set.row_keys]
+            return [cast("PartialRowData", self.read_row(key)) for key in row_set.row_keys]
 
         def mutate_rows(
-            self, rows: list[Any], retry: Any = None, timeout: float | None = None
+            self, rows: Iterable[Any], retry: Any = None, timeout: float | None = None
         ) -> list[Status]:
             # commits not implemented, changes are applied immediately
             return [Status(code=0) for row in rows]
@@ -78,8 +80,9 @@ class MockedBigtableKVStorage(BigtableKVStorage):
         try:
             table = self.__table
         except AttributeError:
-            table = self.__table = MockedBigtableKVStorage.Table()
-
+            table = MockedBigtableKVStorage.Table()
+            self.__table = table
+        assert isinstance(table, MockedBigtableKVStorage.Table)
         return table
 
     def bootstrap(self, automatic_expiry: bool = True) -> None:

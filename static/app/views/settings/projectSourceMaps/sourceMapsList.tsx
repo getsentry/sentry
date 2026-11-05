@@ -6,7 +6,7 @@ import {IconUpload} from '@sentry/icons/upload';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -37,8 +37,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
-import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
+
+import {AssociatedReleases} from './associatedReleases';
+import {useDeleteDebugIdBundle} from './useDeleteDebugIdBundle';
 
 type Props = {
   project: Project;

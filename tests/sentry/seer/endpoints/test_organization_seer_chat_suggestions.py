@@ -185,12 +185,17 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         self.get_error_response(self.organization.slug, status_code=403, **PAYLOAD)
         mock_run_oneshot.assert_not_called()
 
-    def _can_edit_node_type(self, mock_run_oneshot: MagicMock, route: str, **route_params: str):
+    def _can_edit_node_type(
+        self, mock_run_oneshot: MagicMock, route: str, **route_params: str
+    ) -> str | None:
         mock_run_oneshot.return_value = {"suggestions": []}
         self.get_success_response(
             self.organization.slug, **{**PAYLOAD, "route": route, "route_params": route_params}
         )
-        return mock_run_oneshot.call_args.args[1]["can_edit_node_type"]
+        can_edit = mock_run_oneshot.call_args.args[1]["can_edit_node_type"]
+        if can_edit is not None and not isinstance(can_edit, str):
+            raise TypeError("Seer chat suggestion carries no editability")
+        return can_edit
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_passes_dashboard_edit_access_when_user_can_edit(
