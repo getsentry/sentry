@@ -167,6 +167,7 @@ overrides:
   '@testing-library/jest-dom>aria-query': 5.3.0
   diff@>=4.0.0 <4.0.4: 4.0.4
   diff@>=5.0.0 <5.2.2: 5.2.2
+  parse5-parser-stream>parse5: 8.1.0
 
 packageExtensionsChecksum: sha256-oxZpRfJ1dyf0c57tEzZt6sE7ZA1K4CC7SPWqZHbIs0s=
 
@@ -1076,7 +1077,7 @@ importers:
         version: 30.5.1
       '@jest/environment-jsdom-abstract':
         specifier: 30.5.1
-        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.3(@noble/hashes@1.8.0))
+        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0))
       '@rsbuild/plugin-react':
         specifier: 2.1.1
         version: 2.1.1(@rsbuild/core@2.2.12(core-js@3.45.0))(@rspack/core@2.2.8(@swc/helpers@0.5.23))
@@ -1117,8 +1118,8 @@ importers:
         specifier: 30.5.1
         version: 30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2))
       jsdom:
-        specifier: 30.1.3
-        version: 30.1.3(@noble/hashes@1.8.0)
+        specifier: 31.0.0
+        version: 31.0.0(@noble/hashes@1.8.0)
       oxlint:
         specifier: 1.90.0
         version: 1.90.0(oxlint-tsgolint@7.0.2005)
@@ -1290,7 +1291,7 @@ importers:
         version: 30.5.1
       '@jest/environment-jsdom-abstract':
         specifier: 30.5.1
-        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.3(@noble/hashes@1.8.0))
+        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0))
       '@rsbuild/plugin-react':
         specifier: 2.1.1
         version: 2.1.1(@rsbuild/core@2.2.12(core-js@3.45.0))(@rspack/core@2.2.8(@swc/helpers@0.5.23))
@@ -1337,8 +1338,8 @@ importers:
         specifier: 30.5.1
         version: 30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2))
       jsdom:
-        specifier: 30.1.3
-        version: 30.1.3(@noble/hashes@1.8.0)
+        specifier: 31.0.0
+        version: 31.0.0(@noble/hashes@1.8.0)
       oxlint:
         specifier: 1.90.0
         version: 1.90.0(oxlint-tsgolint@7.0.2005)
@@ -1404,7 +1405,7 @@ importers:
         version: 30.5.1
       '@jest/environment-jsdom-abstract':
         specifier: 30.5.1
-        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.3(@noble/hashes@1.8.0))
+        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0))
       '@jest/test-result':
         specifier: 30.5.1
         version: 30.5.1
@@ -1419,7 +1420,7 @@ importers:
         version: 11.7.0
       '@sentry/jest-environment':
         specifier: 8.1.0
-        version: 8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.3(@noble/hashes@1.8.0)))(@sentry/node@11.7.0(@babel/core@7.29.7(supports-color@8.1.1)))(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@30.1.3(@noble/hashes@1.8.0))
+        version: 8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0)))(@sentry/node@11.7.0(@babel/core@7.29.7(supports-color@8.1.1)))(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@31.0.0(@noble/hashes@1.8.0))
       '@sentry/node':
         specifier: 11.7.0
         version: 11.7.0(@babel/core@7.29.7(supports-color@8.1.1))
@@ -1502,8 +1503,8 @@ importers:
         specifier: 30.5.1
         version: 30.5.1(patch_hash=f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f)
       jsdom:
-        specifier: 30.1.3
-        version: 30.1.3(@noble/hashes@1.8.0)
+        specifier: 31.0.0
+        version: 31.0.0(@noble/hashes@1.8.0)
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
@@ -1656,14 +1657,6 @@ packages:
 
   '@apidevtools/json-schema-ref-parser@9.0.9':
     resolution: {integrity: sha512-GBD2Le9w2+lVFoc4vswGI/TjkNIZSVp7+9xPf+X3uidBfWnAeUWmquteSyt0+VCrhNMWj/FTABISQrD3Z/YA+w==}
-
-  '@asamuzakjp/css-color@7.1.9':
-    resolution: {integrity: sha512-vZ6JQVq8Ivgz6b/IBlAf90wZviXdluY13cQOPO+nJHbmXwGrPl2GcpqUY7a55/8ZVdfONXpCFMpRijOBCHNlcQ==}
-    engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
-
-  '@asamuzakjp/dom-selector@10.0.5':
-    resolution: {integrity: sha512-EgmJ7oEaGQECTn3H3wmnQpEy4hKY66VvM7VQndwPIQob3p877BgbyOUE3EX0LgXQCciF2H8KMdR+RznqjMNOLw==}
-    engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
 
   '@ast-grep/napi-darwin-arm64@0.45.3':
     resolution: {integrity: sha512-rMZJ6frSpR/xSbeV4hiA9WR5hHqk3rVYX8lOqEoUCaUnjEuFXvHdGN4WawJ8pVDq/IqM1UnTtsDSYgUdVmO5DA==}
@@ -1906,10 +1899,6 @@ packages:
     peerDependencies:
       eslint: '>=6.0.0'
 
-  '@bramus/specificity@2.4.2':
-    resolution: {integrity: sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw==}
-    hasBin: true
-
   '@cacheable/memory@2.2.0':
     resolution: {integrity: sha512-CTLKqLItRCEixEAewD3/j9DB3/o96gpTPD4eJ1v+DGOlxZRZncRQkGYqqnAGCscYd6RNeXfGeiuCphsPtqyIfQ==}
 
@@ -1925,35 +1914,11 @@ packages:
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
 
-  '@csstools/color-helpers@6.1.2':
-    resolution: {integrity: sha512-grhRy3OKmniaAEKXMjua5z/EODX0MSqBGjunw8+j/3HQjOnahs2AGhvEOIYVUWcU6ScApbhLhVrQTX8XqrMrow==}
-    engines: {node: '>=20.19.0'}
-
-  '@csstools/css-calc@3.4.3':
-    resolution: {integrity: sha512-iex20d8CHVkyvg6B7UKV7uHnI2Bqo9g+EFfT9E0y+GvTvhZ/DwONJ+9aKb1dlqm0ZiGsL5RXjp0fCoJYnkeDjA==}
-    engines: {node: '>=20.19.0'}
-    peerDependencies:
-      '@csstools/css-parser-algorithms': ^4.0.2
-      '@csstools/css-tokenizer': ^4.0.2
-
-  '@csstools/css-color-parser@4.2.7':
-    resolution: {integrity: sha512-zgm9yjQz5iJB4VL8RyVwd71TWB8Q89FSxt/NzXoWqPSkEBOVtn9L6vAPtSc9hpKfB0Awo/AL2VKFHjYetBLFHQ==}
-    engines: {node: '>=20.19.0'}
-    peerDependencies:
-      '@csstools/css-parser-algorithms': ^4.0.2
-      '@csstools/css-tokenizer': ^4.0.2
-
   '@csstools/css-parser-algorithms@3.0.5':
     resolution: {integrity: sha512-DaDeUkXZKjdGhgYaHNJTV9pV7Y9B3b644jCLs9Upc3VeNGg6LWARAT6O+Q+/COo+2gg/bM5rhpMAtf70WqfBdQ==}
     engines: {node: '>=18'}
     peerDependencies:
       '@csstools/css-tokenizer': ^3.0.4
-
-  '@csstools/css-parser-algorithms@4.0.2':
-    resolution: {integrity: sha512-40cSKyMvK+tq4qz6Awrlye2WGuOKt3FwPgtGg6KTfbHOWNw+Rk1rzbAtZnZ6IBhsY491HLRnDXwoyBAijmmILA==}
-    engines: {node: '>=20.19.0'}
-    peerDependencies:
-      '@csstools/css-tokenizer': ^4.0.2
 
   '@csstools/css-syntax-patches-for-csstree@1.1.14':
     resolution: {integrity: sha512-HpbVXyrofRXpHpgkNIjU/3EWR4WJvOkO3emNK/L6X/mTJU7bGUI3AkkpoTNXznQLp0KRjLHELTGeKI5dIkI9JQ==}
@@ -1963,21 +1928,9 @@ packages:
       css-tree:
         optional: true
 
-  '@csstools/css-syntax-patches-for-csstree@1.1.16':
-    resolution: {integrity: sha512-LsDbJPP/B8cPasUJyTA5S99F7C4G93ngW8hUluXz8CFeOaaRnBPtBiIlvgcPYU0HmHNz8CXg+1vwFrIB4F6Dgw==}
-    peerDependencies:
-      css-tree: ^3.2.1
-    peerDependenciesMeta:
-      css-tree:
-        optional: true
-
   '@csstools/css-tokenizer@3.0.4':
     resolution: {integrity: sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==}
     engines: {node: '>=18'}
-
-  '@csstools/css-tokenizer@4.0.2':
-    resolution: {integrity: sha512-OoKoR0f76dCY666JlcbhmVTs2drYj1GUXZTYTcbUgJjh9Nv41aFfZ21bPQTERm5+L5cBDo466NltB2lplS5GBw==}
-    engines: {node: '>=20.19.0'}
 
   '@csstools/media-query-list-parser@4.0.3':
     resolution: {integrity: sha512-HAYH7d3TLRHDOUQK4mZKf9k9Ph/m8Akstg66ywKR4SFAigjs3yBiUeZtFxywiTm5moZMAp/5W/ZuFnNXXYLuuQ==}
@@ -2319,15 +2272,6 @@ packages:
   '@eslint/plugin-kit@0.7.3':
     resolution: {integrity: sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
-
-  '@exodus/bytes@1.15.1':
-    resolution: {integrity: sha512-S6mL0yNB/Abt9Ei4tq8gDhcczc4S3+vQ4ra7vxnAf+YHC02srtqxKKZghx2Dq6p0e66THKwR6r8N6P95wEty7Q==}
-    engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
-    peerDependencies:
-      '@noble/hashes': ^1.8.0 || ^2.0.0
-    peerDependenciesMeta:
-      '@noble/hashes':
-        optional: true
 
   '@exodus/bytes@1.16.0':
     resolution: {integrity: sha512-IcpW84uEn3N7ETtNZMlxKhfl6Pec8rUNGOTBtWbK1FKhJxIFAptZyVrvVRVBimAJxJCgc3PxepxkdWWG4DVzfA==}
@@ -5438,8 +5382,8 @@ packages:
   bcp-47-match@2.0.3:
     resolution: {integrity: sha512-JtTezzbAibu8G0R9op9zb3vcWZd9JF6M0xOYGPn0fNCd7wOpRB1mU2mH9T8gaBGbAAyIIVgB2G7xG0GP98zMAQ==}
 
-  bidi-js@1.1.0:
-    resolution: {integrity: sha512-fX1Onk0tdVPC7obPWB5EbJ1z7NVhLq4m2xZLq2YXBkxzMXIGRpNMU88n0EPgWseKl12J7zXs7qrDxPK4sRs2fg==}
+  bcp-47@2.1.2:
+    resolution: {integrity: sha512-wsv86UuNFuPnVieKLyECTT+CP1WSAHeoIg5P3xu2kA9Z+7fVPoKt7dxzSeEhtJel0AI+NW3fIW3KtTKQKUCngg==}
 
   boolbase@1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
@@ -6068,6 +6012,10 @@ packages:
 
   entities@8.1.0:
     resolution: {integrity: sha512-kxL7msIffSuh9aaFAMD7rxAIuTRMAHMeBtgHW2yUdWw732ZNh4MehkF2gdjvtdmikkaIP9bFDDJOPlsvm7avrA==}
+    engines: {node: '>=20.19.0'}
+
+  entities@9.0.0:
+    resolution: {integrity: sha512-oJFNDJg3kTPwAD1cNn2+WmUq4wFoo09npc3Ydf1D7ED4smRiWrsKnaLxykrTWgyGEcusc87P5dxlAleol9kpkg==}
     engines: {node: '>=20.19.0'}
 
   env-paths@2.2.1:
@@ -7237,13 +7185,13 @@ packages:
     resolution: {integrity: sha512-/2uqY7x6bsrpi3i9LVU6J89352C0rpMk0as8trXxCtvd4kPk1ke/Eyif6wqfSLvoNJqcDG9Vk4UsXgygzCt2xA==}
     engines: {node: '>=20.0.0'}
 
-  jsdom@30.1.3:
-    resolution: {integrity: sha512-hQMUPvRgN7KxsfIytDQji7bimuJeRQa6Qo5+iuiZQk5CafeRxLIA10/cG5YCBFNpD9RO3oqIiN4CO1Y44kxqXg==}
+  jsdom@31.0.0:
+    resolution: {integrity: sha512-xAkhD9z1eyFC5+QUi9K24CaZJgdCQ2GOGLW1GdVDoQvkp/AxEH9TQ0pAplPOlIiV92hfcgnFOADZypbjgbBT6Q==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
     peerDependencies:
-      canvas: ^3.2.3
+      '@napi-rs/canvas': ^1.0.13
     peerDependenciesMeta:
-      canvas:
+      '@napi-rs/canvas':
         optional: true
 
   jsep@1.4.0:
@@ -8009,11 +7957,17 @@ packages:
     resolution: {integrity: sha512-3YHlOa/JgH6Mnpr05jP9eDG254US9ek25LyIxZlDItp2iJtwyaXQb57lBYLdT3MowkUFYEV2XXNAYIPlESvJlA==}
     engines: {node: '>= 0.10'}
 
+  parse5-parser-stream@8.1.0:
+    resolution: {integrity: sha512-58MPfNTA+DsIzro41rU94xghnu/h2N4yEPdPdGPlZVHM/QvA5jlVGYVo7IzlHbFLHYx3cZUnr9s9HBrA0tEYyw==}
+
   parse5@7.3.0:
     resolution: {integrity: sha512-IInvU7fabl34qmi9gY8XOVxhYyMyuH2xUNpb2q8/Y+7552KlejkRvqvD19nMoUW/uQGGbqNpA6Tufu5FL5BZgw==}
 
   parse5@8.0.1:
     resolution: {integrity: sha512-z1e/HMG90obSGeidlli3hj7cbocou0/wa5HacvI3ASx34PecNjNQeaHNo5WIZpWofN9kgkqV1q5YvXe3F0FoPw==}
+
+  parse5@8.1.0:
+    resolution: {integrity: sha512-sq3qBFpee5jeocbFbO48VHlGr8sT7mbXS0vxlKN6sottBtJzrOG3998sr0llSZcQAGgfpdmEYAIZE0P9z0dE8w==}
 
   pascal-case@3.1.2:
     resolution: {integrity: sha512-uWlGT3YSnK9x3BQJaOdcZwrnV6hPpd8jFH1/ucpiLRPh/2zCVJKS19E4GvYHvaCcACn3foXZ0cLB9Wrx1KGe5g==}
@@ -9576,21 +9530,6 @@ snapshots:
       call-me-maybe: 1.0.2
       js-yaml: 4.3.2
 
-  '@asamuzakjp/css-color@7.1.9':
-    dependencies:
-      '@csstools/css-calc': 3.4.3(@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2))(@csstools/css-tokenizer@4.0.2)
-      '@csstools/css-color-parser': 4.2.7(@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2))(@csstools/css-tokenizer@4.0.2)
-      '@csstools/css-parser-algorithms': 4.0.2(@csstools/css-tokenizer@4.0.2)
-      '@csstools/css-tokenizer': 4.0.2
-      lru-cache: 11.5.3
-
-  '@asamuzakjp/dom-selector@10.0.5':
-    dependencies:
-      bidi-js: 1.1.0
-      css-tree: 3.2.1(patch_hash=ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489)
-      is-potential-custom-element-name: 1.0.1
-      lru-cache: 11.5.3
-
   '@ast-grep/napi-darwin-arm64@0.45.3':
     optional: true
 
@@ -9850,10 +9789,6 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  '@bramus/specificity@2.4.2':
-    dependencies:
-      css-tree: 3.2.1(patch_hash=ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489)
-
   '@cacheable/memory@2.2.0':
     dependencies:
       '@cacheable/utils': 2.5.0
@@ -9876,39 +9811,15 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.9
     optional: true
 
-  '@csstools/color-helpers@6.1.2': {}
-
-  '@csstools/css-calc@3.4.3(@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2))(@csstools/css-tokenizer@4.0.2)':
-    dependencies:
-      '@csstools/css-parser-algorithms': 4.0.2(@csstools/css-tokenizer@4.0.2)
-      '@csstools/css-tokenizer': 4.0.2
-
-  '@csstools/css-color-parser@4.2.7(@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2))(@csstools/css-tokenizer@4.0.2)':
-    dependencies:
-      '@csstools/color-helpers': 6.1.2
-      '@csstools/css-calc': 3.4.3(@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2))(@csstools/css-tokenizer@4.0.2)
-      '@csstools/css-parser-algorithms': 4.0.2(@csstools/css-tokenizer@4.0.2)
-      '@csstools/css-tokenizer': 4.0.2
-
   '@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4)':
     dependencies:
       '@csstools/css-tokenizer': 3.0.4
-
-  '@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2)':
-    dependencies:
-      '@csstools/css-tokenizer': 4.0.2
 
   '@csstools/css-syntax-patches-for-csstree@1.1.14(css-tree@3.2.1(patch_hash=ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489))':
     optionalDependencies:
       css-tree: 3.2.1(patch_hash=ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489)
 
-  '@csstools/css-syntax-patches-for-csstree@1.1.16(css-tree@3.2.1(patch_hash=ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489))':
-    optionalDependencies:
-      css-tree: 3.2.1(patch_hash=ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489)
-
   '@csstools/css-tokenizer@3.0.4': {}
-
-  '@csstools/css-tokenizer@4.0.2': {}
 
   '@csstools/media-query-list-parser@4.0.3(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)':
     dependencies:
@@ -10227,10 +10138,6 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@exodus/bytes@1.15.1(@noble/hashes@1.8.0)':
-    optionalDependencies:
-      '@noble/hashes': 1.8.0
-
   '@exodus/bytes@1.16.0(@noble/hashes@1.8.0)':
     optionalDependencies:
       '@noble/hashes': 1.8.0
@@ -10408,7 +10315,7 @@ snapshots:
 
   '@jest/diff-sequences@30.5.0': {}
 
-  '@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.3(@noble/hashes@1.8.0))':
+  '@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0))':
     dependencies:
       '@jest/environment': 30.5.1
       '@jest/fake-timers': 30.5.1
@@ -10417,7 +10324,7 @@ snapshots:
       '@types/node': 26.6.4
       jest-mock: 30.5.1
       jest-util: 30.5.1
-      jsdom: 30.1.3(@noble/hashes@1.8.0)
+      jsdom: 31.0.0(@noble/hashes@1.8.0)
 
   '@jest/environment@30.5.1':
     dependencies:
@@ -11843,14 +11750,14 @@ snapshots:
     dependencies:
       '@sentry/core': 11.7.0
 
-  '@sentry/jest-environment@8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.3(@noble/hashes@1.8.0)))(@sentry/node@11.7.0(@babel/core@7.29.7(supports-color@8.1.1)))(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@30.1.3(@noble/hashes@1.8.0))':
+  '@sentry/jest-environment@8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0)))(@sentry/node@11.7.0(@babel/core@7.29.7(supports-color@8.1.1)))(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@31.0.0(@noble/hashes@1.8.0))':
     dependencies:
       '@sentry/node': 11.7.0(@babel/core@7.29.7(supports-color@8.1.1))
       jest: 30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2))
     optionalDependencies:
-      '@jest/environment-jsdom-abstract': 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.3(@noble/hashes@1.8.0))
+      '@jest/environment-jsdom-abstract': 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0))
       jest-environment-node: 30.5.1
-      jsdom: 30.1.3(@noble/hashes@1.8.0)
+      jsdom: 31.0.0(@noble/hashes@1.8.0)
 
   '@sentry/node@11.7.0(@babel/core@7.29.7(supports-color@8.1.1))':
     dependencies:
@@ -13117,9 +13024,11 @@ snapshots:
 
   bcp-47-match@2.0.3: {}
 
-  bidi-js@1.1.0:
+  bcp-47@2.1.2:
     dependencies:
-      require-from-string: 2.0.2
+      is-alphabetical: 2.0.1
+      is-alphanumerical: 2.0.1
+      is-decimal: 2.0.1
 
   boolbase@1.0.0: {}
 
@@ -13707,6 +13616,8 @@ snapshots:
   entities@6.0.1: {}
 
   entities@8.1.0: {}
+
+  entities@9.0.0: {}
 
   env-paths@2.2.1: {}
 
@@ -14652,7 +14563,7 @@ snapshots:
 
   html-encoding-sniffer@7.0.0(@noble/hashes@1.8.0):
     dependencies:
-      '@exodus/bytes': 1.15.1(@noble/hashes@1.8.0)
+      '@exodus/bytes': 1.16.0(@noble/hashes@1.8.0)
     transitivePeerDependencies:
       - '@noble/hashes'
 
@@ -15338,20 +15249,18 @@ snapshots:
 
   jsdoc-type-pratt-parser@7.1.1: {}
 
-  jsdom@30.1.3(@noble/hashes@1.8.0):
+  jsdom@31.0.0(@noble/hashes@1.8.0):
     dependencies:
-      '@asamuzakjp/css-color': 7.1.9
-      '@asamuzakjp/dom-selector': 10.0.5
-      '@bramus/specificity': 2.4.2
-      '@csstools/css-syntax-patches-for-csstree': 1.1.16(css-tree@3.2.1(patch_hash=ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489))
       '@exodus/bytes': 1.16.0(@noble/hashes@1.8.0)
-      css-tree: 3.2.1(patch_hash=ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489)
+      bcp-47: 2.1.2
+      bcp-47-match: 2.0.3
       data-urls: 8.0.0(@noble/hashes@1.8.0)
       decimal.js: 10.6.0
       html-encoding-sniffer: 7.0.0(@noble/hashes@1.8.0)
       is-potential-custom-element-name: 1.0.1
       lru-cache: 11.5.3
-      parse5: 8.0.1
+      parse5: 8.1.0
+      parse5-parser-stream: 8.1.0
       saxes: 6.0.0
       tough-cookie: 6.0.2
       undici: 8.12.3
@@ -16529,6 +16438,10 @@ snapshots:
 
   parse-node-version@1.0.1: {}
 
+  parse5-parser-stream@8.1.0:
+    dependencies:
+      parse5: 8.1.0
+
   parse5@7.3.0:
     dependencies:
       entities: 6.0.1
@@ -16536,6 +16449,10 @@ snapshots:
   parse5@8.0.1:
     dependencies:
       entities: 8.1.0
+
+  parse5@8.1.0:
+    dependencies:
+      entities: 9.0.0
 
   pascal-case@3.1.2:
     dependencies:
