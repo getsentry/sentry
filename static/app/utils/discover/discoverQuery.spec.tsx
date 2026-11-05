@@ -82,6 +82,83 @@ describe('DiscoverQuery', () => {
     );
   });
 
+  it('reads the cursor from the location query when no cursor prop is passed', async () => {
+    const getMock = MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events/',
+      body: {meta: {fields: {}}, data: []},
+    });
+
+    render(
+      <DiscoverQuery
+        orgSlug="test-org"
+        location={{...location, query: {cursor: '0:5:0'}}}
+        eventView={eventView}
+      >
+        {() => null}
+      </DiscoverQuery>
+    );
+
+    await waitFor(() =>
+      expect(getMock).toHaveBeenCalledWith(
+        '/organizations/test-org/events/',
+        expect.objectContaining({query: expect.objectContaining({cursor: '0:5:0'})})
+      )
+    );
+  });
+
+  it('refetches when the cursor prop changes', async () => {
+    const getMock = MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events/',
+      body: {meta: {fields: {}}, data: []},
+    });
+    const renderQuery = (cursor: string) => (
+      <DiscoverQuery
+        orgSlug="test-org"
+        location={location}
+        eventView={eventView}
+        cursor={cursor}
+      >
+        {() => null}
+      </DiscoverQuery>
+    );
+
+    const {rerender} = render(renderQuery('0:0:0'));
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
+    rerender(renderQuery('0:5:0'));
+
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
+    expect(getMock).toHaveBeenLastCalledWith(
+      '/organizations/test-org/events/',
+      expect.objectContaining({query: expect.objectContaining({cursor: '0:5:0'})})
+    );
+  });
+
+  it('does not refetch when rerendered with an equivalent payload', async () => {
+    const getMock = MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events/',
+      body: {
+        meta: {fields: {transaction: 'string', count: 'number'}},
+        data: [{transaction: '/health', count: 1000}],
+      },
+    });
+    const renderQuery = () => (
+      <DiscoverQuery
+        orgSlug="test-org"
+        location={{...location}}
+        eventView={eventView.clone()}
+      >
+        {({tableData}) => <p>{tableData?.data[0]?.transaction}</p>}
+      </DiscoverQuery>
+    );
+
+    const {rerender} = render(renderQuery());
+    expect(await screen.findByText('/health')).toBeInTheDocument();
+    rerender(renderQuery());
+
+    expect(await screen.findByText('/health')).toBeInTheDocument();
+    expect(getMock).toHaveBeenCalledTimes(1);
+  });
+
   it('parses string errors correctly', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/test-org/events/',
