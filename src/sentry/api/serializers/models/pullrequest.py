@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Literal, TypedDict, cast
+from typing import Annotated, Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Prefetch, prefetch_related_objects
@@ -9,6 +9,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
 from sentry.api.serializers.release_details_types import Author
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
     AggregateReviewStatus,
@@ -44,15 +45,27 @@ def get_stored_pull_request_status(pull_request: PullRequest) -> PullRequestStat
 
 
 class PullRequestSerializerResponse(TypedDict):
-    id: str
-    title: str | None
-    message: str | None
-    dateCreated: datetime
-    mergedAt: datetime | None
-    status: PullRequestStatus | None
-    repository: RepositorySerializerResponse
-    author: Author
-    externalUrl: str
+    id: Annotated[str, ApiDescription("Number or key of the pull request in the provider")]
+    title: Annotated[str | None, ApiDescription("Title of the pull request")]
+    message: Annotated[str | None, ApiDescription("Description of the pull request")]
+    dateCreated: Annotated[
+        datetime, ApiDescription("When Sentry recorded the pull request (ISO 8601)")
+    ]
+    mergedAt: Annotated[
+        datetime | None,
+        ApiDescription("When the pull request was merged (ISO 8601). Null when it isn't merged"),
+    ]
+    status: Annotated[
+        PullRequestStatus | None,
+        ApiDescription(
+            "State of the pull request: merged, open, closed, draft or unknown. Null when not known"
+        ),
+    ]
+    repository: Annotated[
+        RepositorySerializerResponse, ApiDescription("Repository of the pull request")
+    ]
+    author: Annotated[Author, ApiDescription("Author of the pull request")]
+    externalUrl: Annotated[str, ApiDescription("URL of the pull request in the provider")]
 
 
 LinkedPullRequestAttributionAgent = Literal["cursor", "github_copilot", "claude_code", "unknown"]
