@@ -17,9 +17,11 @@ from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import is_acting_user
 from sentry.auth.services.auth import auth_service
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
+from sentry.sentry_apps.services.app import app_service
 
 from .constants import SCIM_400_INVALID_FILTER, SCIM_API_ERROR, SCIM_API_LIST
 
@@ -129,7 +131,16 @@ class OrganizationSCIMPermission(OrganizationPermission):
         if isinstance(organization, RpcUserOrganizationContext):
             organization = organization.organization
         provider = auth_service.get_auth_provider(organization_id=organization.id)
-        return provider is not None and provider.flags.scim_enabled
+        if provider is None or not provider.flags.scim_enabled:
+            return False
+        # Only the identity provider may use SCIM. Sessions and other org credentials would let
+        # members change roles and IdP-managed teams outside the IdP and the regular role checks.
+        if not request.user.is_sentry_app:
+            return False
+        scim_proxy_user_id = app_service.get_proxy_user_id_for_provider(
+            organization_id=organization.id, provider=f"{provider.provider}_scim"
+        )
+        return is_acting_user(request.user, scim_proxy_user_id)
 
 
 class OrganizationSCIMMemberPermission(OrganizationSCIMPermission):
