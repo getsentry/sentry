@@ -578,10 +578,16 @@ describe('Tabs overflow', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
 
-    expect(screen.getByRole('option', {name: 'User Feedback'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Attachments'})).toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'Details'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'Activity'})).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'User Feedback'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Attachments'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Details'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Activity'})
+    ).not.toBeInTheDocument();
   });
 
   it('keeps the first tab visible when only it and the overflow trigger fit', async () => {
@@ -592,10 +598,14 @@ describe('Tabs overflow', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
 
-    expect(screen.queryByRole('option', {name: 'Details'})).not.toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Activity'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'User Feedback'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Attachments'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Details'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Activity'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'User Feedback'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Attachments'})).toBeInTheDocument();
   });
 
   it('recomputes overflow when the container is resized', async () => {
@@ -606,8 +616,10 @@ describe('Tabs overflow', () => {
 
     resizeContainerTo(260);
     await userEvent.click(await screen.findByRole('button', {name: 'More tabs'}));
-    expect(screen.getByRole('option', {name: 'User Feedback'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Attachments'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'User Feedback'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Attachments'})).toBeInTheDocument();
 
     resizeContainerTo(1000);
     await waitForElementToBeRemoved(() =>
@@ -615,19 +627,27 @@ describe('Tabs overflow', () => {
     );
   });
 
-  it('activates an overflowing tab when selected from the menu', async () => {
-    containerWidth = 260;
-    renderTabs();
+  it.each(['click', 'keyboard'])(
+    'activates an overflowing tab by %s and closes the menu',
+    async interaction => {
+      containerWidth = 260;
+      renderTabs();
 
-    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Attachments'}));
+      await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
+      if (interaction === 'click') {
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Attachments'}));
+      } else {
+        await userEvent.keyboard('{End}{Enter}');
+      }
 
-    expect(screen.getByRole('tab', {name: 'Attachments'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
-    expect(screen.getByText(TABS[3].content)).toBeInTheDocument();
-  });
+      expect(screen.getByRole('tab', {name: 'Attachments'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByText(TABS[3].content)).toBeInTheDocument();
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    }
+  );
 
   it.each(['click', 'keyboard'])(
     'navigates once to an overflowing link by %s',
@@ -747,7 +767,9 @@ describe('Tabs overflow', () => {
 
     // The new trailing tab overflows; the previously-overflowing one is now
     // visible (not stuck in the menu based on the old order).
-    expect(screen.getByRole('option', {name: 'Activity'})).toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'Attachments'})).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Activity'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Attachments'})
+    ).not.toBeInTheDocument();
   });
 });

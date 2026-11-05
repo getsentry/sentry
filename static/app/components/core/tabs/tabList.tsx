@@ -13,14 +13,12 @@ import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
 import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
-import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
+import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
-import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
@@ -240,52 +238,19 @@ function useOverflowTabs({
   return overflowTabs.filter(key => !hiddenKeys.has(key));
 }
 
-type OverflowMenuItem = SelectOption<string | number> & Pick<TabListItemProps, 'to'>;
-
 interface OverflowMenuProps {
   disabled: boolean | undefined;
-  overflowMenuItems: OverflowMenuItem[];
-  state: TabListState<TabListItemProps>;
+  overflowMenuItems: MenuItemProps[];
 }
 
-function OverflowMenu({state, overflowMenuItems, disabled}: OverflowMenuProps) {
+function OverflowMenu({overflowMenuItems, disabled}: OverflowMenuProps) {
   const {t} = useTranslation();
-
-  if (overflowMenuItems.some(item => item.to)) {
-    return (
-      <TabListOverflowWrap>
-        <DropdownMenu
-          items={overflowMenuItems.map(({value, to, ...item}) => ({
-            ...item,
-            key: String(value),
-            to,
-            isSelected: state.selectedKey === value,
-            onAction: to ? undefined : () => state.setSelectedKey(value),
-          }))}
-          isDisabled={disabled}
-          position="bottom-end"
-          size="sm"
-          offset={4}
-          trigger={triggerProps => (
-            <OverflowMenuTrigger
-              {...triggerProps}
-              variant="transparent"
-              icon={<IconEllipsis />}
-              aria-label={t('More tabs')}
-            />
-          )}
-        />
-      </TabListOverflowWrap>
-    );
-  }
 
   return (
     <TabListOverflowWrap>
-      <CompactSelect
-        options={overflowMenuItems}
-        value={[...state.selectionManager.selectedKeys][0]}
-        onChange={opt => state.setSelectedKey(opt.value)}
-        disabled={disabled}
+      <DropdownMenu
+        items={overflowMenuItems}
+        isDisabled={disabled}
         position="bottom-end"
         size="sm"
         offset={4}
@@ -380,8 +345,10 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
       const itemProps: TabListItemProps = item.props;
 
       return {
-        value: key,
+        key: String(key),
         to: itemProps.to,
+        isSelected: state.selectedKey === key,
+        onAction: itemProps.to ? undefined : () => state.setSelectedKey(key),
         label: (
           <Flex align="center" gap="md">
             {itemProps.children}
@@ -391,9 +358,9 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
         tooltip: itemProps.tooltip?.title,
         tooltipOptions: itemProps.tooltip,
         textValue: item.textValue,
-      } satisfies OverflowMenuItem;
+      } satisfies MenuItemProps;
     });
-  }, [state.collection, overflowTabs]);
+  }, [state, overflowTabs]);
 
   return (
     <Container position="relative" style={outerWrapStyles} ref={outerWrapRef}>
@@ -440,11 +407,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <OverflowMenu
-          state={state}
-          overflowMenuItems={overflowMenuItems}
-          disabled={disabled}
-        />
+        <OverflowMenu overflowMenuItems={overflowMenuItems} disabled={disabled} />
       )}
     </Container>
   );
