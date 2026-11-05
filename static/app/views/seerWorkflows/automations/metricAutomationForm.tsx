@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
-import {useQuery} from '@tanstack/react-query';
+import {queryOptions, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -83,8 +83,10 @@ export function MetricAutomationForm(props: Props) {
       query: 'type:metric_issue',
       projects: [-1],
       limit: 100,
+      sortBy: '-latestGroup',
     })
   );
+  // For typing
   const monitors =
     monitorsQuery.data?.filter(monitor => monitor.type === 'metric_issue') ?? [];
   const getProjectSlug = (projectId: string) =>
@@ -219,21 +221,44 @@ export function MetricAutomationForm(props: Props) {
                           <field.Layout.Stack
                             label={t('Connected monitors')}
                             hintText={t(
-                              'Search by monitor or project name. You can connect more than one.'
+                              'Search by monitor name. You can connect more than one.'
                             )}
                           >
-                            <field.Select
+                            <field.SelectAsync
                               multiple
                               clearable
-                              searchable
                               value={field.state.value}
                               onChange={field.handleChange}
-                              isLoading={monitorsQuery.isPending}
                               placeholder={t('Connect metric monitors…')}
-                              options={monitors.map(monitor => ({
-                                value: monitor.id,
-                                label: `${monitor.name} · ${getProjectSlug(monitor.projectId)}`,
-                              }))}
+                              queryOptions={debouncedInput => {
+                                // Filter query by form input
+                                const baseOptions = detectorListApiOptions(organization, {
+                                  query: debouncedInput
+                                    ? `type:metric_issue name:"*${debouncedInput.replace(/"/g, '\\"')}*"`
+                                    : 'type:metric_issue',
+                                  projects: [-1],
+                                  limit: 100,
+                                  sortBy: '-latestGroup',
+                                });
+                                return queryOptions({
+                                  ...baseOptions,
+                                  select: ({json}) => {
+                                    const results = json.filter(
+                                      monitor => monitor.type === 'metric_issue'
+                                    );
+                                    // Keep already-selected monitors in the options so their labels still render
+                                    const selected = monitors.filter(
+                                      monitor =>
+                                        field.state.value.includes(monitor.id) &&
+                                        !results.some(result => result.id === monitor.id)
+                                    );
+                                    return [...selected, ...results].map(monitor => ({
+                                      value: monitor.id,
+                                      label: `${monitor.name} · ${getProjectSlug(monitor.projectId)}`,
+                                    }));
+                                  },
+                                });
+                              }}
                             />
                           </field.Layout.Stack>
                         )}
