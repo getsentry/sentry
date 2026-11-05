@@ -163,6 +163,7 @@ describe('UsageCharts', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: /Cumulative/}));
     await userEvent.click(screen.getByRole('option', {name: 'Periodic'}));
+    expect(screen.getByRole('button', {name: /Periodic/})).toBeInTheDocument();
 
     await waitFor(() => expect(router.location.query.transform).toBe('periodic'));
     expect(router.location.query.product).toBe('errors');

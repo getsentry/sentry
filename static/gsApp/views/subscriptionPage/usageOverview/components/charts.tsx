@@ -1,4 +1,4 @@
-import {useQueryState} from 'nuqs';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 
@@ -6,8 +6,10 @@ import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {ChartControls, InlineContainer} from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {useLocation} from 'sentry/utils/useLocation';
-import {CHART_OPTIONS_DATA_TRANSFORM} from 'sentry/views/organizationStats/usageChart';
+import {
+  CHART_OPTIONS_DATA_TRANSFORM,
+  ChartDataTransform,
+} from 'sentry/views/organizationStats/usageChart';
 
 import {addBillingStatTotals, checkIsAddOn} from 'getsentry/utils/billing';
 import {
@@ -16,10 +18,7 @@ import {
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {
-  ProductUsageChart,
-  selectedTransform,
-} from 'getsentry/views/subscriptionPage/reservedUsageChart';
+import {ProductUsageChart} from 'getsentry/views/subscriptionPage/reservedUsageChart';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 import {UsageTotalsTable} from 'getsentry/views/subscriptionPage/usageTotalsTable';
 
@@ -33,15 +32,17 @@ const EMPTY_STAT_TOTAL = {
   projected: 0,
 };
 
+const transformParser = parseAsStringLiteral(
+  Object.values(ChartDataTransform)
+).withDefault(ChartDataTransform.CUMULATIVE);
+
 export function UsageCharts({
   selectedProduct,
   usageData,
   subscription,
   organization,
 }: BreakdownPanelProps) {
-  const location = useLocation();
-  const [, setTransform] = useQueryState('transform');
-  const transform = selectedTransform(location);
+  const [transform, setTransform] = useQueryState('transform', transformParser);
   if (checkIsAddOn(selectedProduct)) {
     return null;
   }
@@ -105,7 +106,7 @@ export function UsageCharts({
                 transform: val,
               }
             );
-            setTransform(val, {history: 'push'});
+            setTransform(transformParser.parse(val), {history: 'push'});
           }}
         />
       </InlineContainer>
