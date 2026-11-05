@@ -76,13 +76,7 @@ export function KeySettings({
   const {mutateAsync: removeKey} = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectId,
-            keyId,
-          },
-        }),
+        url: apiEndpoint,
         method: 'DELETE',
       }),
   });
