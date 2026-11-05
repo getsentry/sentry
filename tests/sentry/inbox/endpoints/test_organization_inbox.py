@@ -20,7 +20,7 @@ from sentry.inbox.endpoints.organization_inbox_item_events import (
 )
 from sentry.inbox.event_retention import cleanup_inbox_item_events
 from sentry.inbox.issue import ISSUE_PR_READY_FOR_REVIEW, IssuePRReadyForReviewData
-from sentry.inbox.types import SYSTEM_ACTOR
+from sentry.inbox.types import SYSTEM_ACTOR, InboxEventSummary
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.silo.base import SiloMode
@@ -96,7 +96,7 @@ class OrganizationInboxIndexTest(APITestCase):
             ISSUE_PR_READY_FOR_REVIEW.record(
                 subject=self.group,
                 data=IssuePRReadyForReviewData(
-                    summary="Pull request ready for review",
+                    summary=InboxEventSummary.ISSUE_PR_READY_FOR_REVIEW,
                     pr_url="https://github.com/example/repo/pull/1",
                     seer_run_id=123,
                 ),
