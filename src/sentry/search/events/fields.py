@@ -14,7 +14,11 @@ from sentry_sdk import traces
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidFunctionArgumentQuery,
+    InvalidSearchQuery,
+)
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -1482,7 +1486,11 @@ class DiscoverFunction:
                         normalized_value = ["arrayJoin", [normalized_value]]
                 arguments[argument.name] = normalized_value
             except InvalidFunctionArgument as e:
-                raise InvalidSearchQuery(f"{field}: {argument.name} argument invalid: {e}")
+                raise InvalidFunctionArgumentQuery(
+                    f"{field}: {argument.name} argument invalid: {e}",
+                    function=self.name,
+                    argument=column,
+                )
 
         # populate any computed args
         for calculation in self.calculated_args:

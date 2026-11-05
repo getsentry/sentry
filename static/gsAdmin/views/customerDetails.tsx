@@ -54,6 +54,7 @@ import {deleteBillingMetricHistory} from 'admin/components/deleteBillingMetricHi
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {ForkCustomerAction} from 'admin/components/forkCustomer';
+import {triggerGrantLedgerCreditModal} from 'admin/components/grantLedgerCreditAction';
 import MigrateLegacySeerAction from 'admin/components/migrateLegacySeerAction';
 import {triggerEndPeriodEarlyModal} from 'admin/components/nextBillingPeriodAction';
 import {triggerProvisionSubscription} from 'admin/components/provisionSubscriptionAction';
@@ -542,6 +543,18 @@ export function CustomerDetails() {
               triggerAddToStartupProgramModal({
                 orgId,
                 subscription,
+                onSuccess: reloadData,
+              }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
+            key: 'grantLedgerCredit',
+            name: 'Grant Ledger Credit',
+            help: 'Add free credit to a credit-only line item, such as Seer credits.',
+            skipConfirmModal: true,
+            onAction: () =>
+              triggerGrantLedgerCreditModal({
+                orgId,
                 onSuccess: reloadData,
               }),
             ...actionRequiresBillingAdmin,

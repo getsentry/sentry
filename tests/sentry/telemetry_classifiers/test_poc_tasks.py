@@ -136,8 +136,8 @@ def test_user_messages_from_rows_keeps_latest_content_within_limit() -> None:
 
 
 class FetchConversationRowsTest(BaseAIConversationsTestCase):
-    def test_fetches_gen_ai_rows_once_for_message_extraction(self) -> None:
-        start = timezone.now() - timedelta(minutes=30)
+    def test_fetches_rows_within_last_span_second(self) -> None:
+        start = (timezone.now() - timedelta(minutes=30)).replace(microsecond=500_000)
         self.store_ai_span(
             "conversation",
             start,
@@ -159,7 +159,7 @@ class FetchConversationRowsTest(BaseAIConversationsTestCase):
         rows, source_truncated = _fetch_conversation_rows(
             self.project,
             "conversation",
-            (start + timedelta(seconds=3)).timestamp(),
+            (start + timedelta(seconds=1)).replace(microsecond=0).timestamp(),
         )
         messages, input_truncated = _user_messages_from_rows(
             rows, source_truncated=source_truncated

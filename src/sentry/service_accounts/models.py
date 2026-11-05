@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -97,9 +98,11 @@ class ServiceAccount(ReplicatedControlModel):
         app_label = "service_accounts"
         db_table = "service_accounts_serviceaccount"
         constraints = [
+            # Inactive accounts don't reserve their name, so a deleted account's name can be reused.
             models.UniqueConstraint(
                 fields=["organization_id", "name"],
-                name="service_accounts_serviceaccount_org_name_unique",
+                condition=Q(is_active=True),
+                name="service_accounts_serviceaccount_org_name_unique_active",
             ),
         ]
 

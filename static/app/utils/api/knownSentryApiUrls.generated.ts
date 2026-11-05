@@ -80,6 +80,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/'
   | '/organizations/$organizationIdOrSlug/access-requests/'
   | '/organizations/$organizationIdOrSlug/access-requests/$requestId/'
+  | '/organizations/$organizationIdOrSlug/agent-handoff/prompts/'
   | '/organizations/$organizationIdOrSlug/agent/approve/'
   | '/organizations/$organizationIdOrSlug/agent/token/'
   | '/organizations/$organizationIdOrSlug/agents/conversations/'

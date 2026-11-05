@@ -45,7 +45,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -78,6 +77,7 @@ import type {
 } from 'sentry/views/investigations/types';
 import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
@@ -194,7 +194,7 @@ function useZoomTimeRangeToOpenPeriod({
   openPeriodStart: string | null;
 }) {
   const organization = useOrganization();
-  const params = useParams<{groupId: string; eventId?: string}>();
+  const groupId = useGroupId();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -220,7 +220,7 @@ function useZoomTimeRangeToOpenPeriod({
       navigate(
         {
           pathname: normalizeUrl(
-            `/organizations/${organization.slug}/issues/${params.groupId}/events/${eventId}/`
+            `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
           ),
           query,
         },

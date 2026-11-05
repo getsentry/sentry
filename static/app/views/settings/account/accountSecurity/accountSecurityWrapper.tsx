@@ -110,7 +110,10 @@ export default function AccountSecurityWrapper() {
   const countEnrolled = enrolled.length;
   const orgsRequire2fa = organizations.filter(org => org.require2FA) || [];
   const deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
-  const hasVerifiedEmail = emails.some(({isVerified}) => isVerified);
+  // Enrollment requires the primary address specifically, not any verified address
+  const hasVerifiedPrimaryEmail = emails.some(
+    ({isPrimary, isVerified}) => isPrimary && isVerified
+  );
 
   return (
     <Outlet
@@ -119,7 +122,7 @@ export default function AccountSecurityWrapper() {
         countEnrolled,
         deleteDisabled,
         handleRefresh,
-        hasVerifiedEmail,
+        hasVerifiedPrimaryEmail,
         onDisable: disableAuthenticatorMutation.mutate,
         onRegenerateBackupCodes: regenerateBackupCodesMutation.mutate,
         orgsRequire2fa,
@@ -133,7 +136,7 @@ type OutletContext = {
   countEnrolled: number;
   deleteDisabled: boolean;
   handleRefresh: () => void;
-  hasVerifiedEmail: boolean;
+  hasVerifiedPrimaryEmail: boolean;
   onDisable: (auth: Authenticator) => void;
   onRegenerateBackupCodes: () => void;
   orgsRequire2fa: OrganizationSummary[];
