@@ -177,6 +177,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
 
         if not environments or len(environments) != 1:
             raise InvalidSearchQuery("Choose a single environment to filter by release stage.")
+        environment = environments[0]
 
         filters: dict[str, Q] = {
             ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
@@ -195,7 +196,6 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
             release__organization_id=organization_id,
         ).select_related("release")
 
-        environment = environments[0]
         # Tag value autocomplete passes environment ids; search filters pass names.
         if isinstance(environment, int):
             rpes = rpes.filter(environment_id=environment)
