@@ -9,10 +9,10 @@ import {Alert, type AlertProps} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
 import {useInvertedTheme} from '@sentry/scraps/theme';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {batchedPromptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';

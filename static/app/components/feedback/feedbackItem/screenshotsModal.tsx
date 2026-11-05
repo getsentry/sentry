@@ -2,7 +2,8 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
 import {ScreenshotPagination} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotPagination';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {tct} from 'sentry/locale';

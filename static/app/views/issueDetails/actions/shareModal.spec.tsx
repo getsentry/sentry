@@ -5,7 +5,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {GroupStore} from 'sentry/stores/groupStore';
 
 import {ShareIssueModal} from './shareModal';

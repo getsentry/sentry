@@ -1,12 +1,12 @@
 import type {Location, Query} from 'history';
 
+import {openModal} from '@sentry/scraps/modal';
+
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-
-import {openModal} from './modal';
 
 export function navigateTo(
   to: string | {pathname: string; query?: Query},
