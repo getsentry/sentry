@@ -6,7 +6,7 @@ from functools import wraps
 from types import TracebackType
 from typing import ParamSpec, TypeVar, cast
 
-from django.db import DEFAULT_DB_ALIAS, connections, router, transaction
+from django.db import connections, router, transaction
 from django.db.models import Model
 from django.db.utils import OperationalError, ProgrammingError
 from sentry_sdk import traces
@@ -112,7 +112,3 @@ class DjangoAtomicIntegration(Integration):
 
         Atomic.__enter__ = _enter  # type: ignore[method-assign]
         Atomic.__exit__ = _exit  # type: ignore[method-assign]
-
-
-def table_exists(name: str, using: str = DEFAULT_DB_ALIAS) -> bool:
-    return name in connections[using].introspection.table_names()
