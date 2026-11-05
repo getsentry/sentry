@@ -3612,9 +3612,6 @@
     }
   },
   "views/issueDetails/eventDetailsHeader.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 2
-    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     }
@@ -3643,11 +3640,6 @@
     }
   },
   "views/issueDetails/groupEventAttachments/groupEventAttachments.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
-  "views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter.tsx": {
     "@sentry/prefer-nuqs": {
       "count": 1
     }
@@ -4057,11 +4049,6 @@
       "count": 1
     }
   },
-  "views/performance/traceDetails/traceRenderers/virtualizedViewManager.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/performance/traceDetails/traceRow/traceAutogroupedRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4125,16 +4112,6 @@
   },
   "views/performance/traceDetails/traceWaterfallState.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/performance/traceDetails/useTraceLayoutTabs.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
-  "views/performance/traceDetails/useTraceQueryParamStateSync.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
