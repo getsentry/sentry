@@ -30,6 +30,7 @@ from sentry.snuba.utils import build_query_strings
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import alerts_tasks
 from sentry.utils import metrics, snuba_rpc
+from sentry.utils.cursored_scheduler import CursoredScheduler
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
 
 logger = logging.getLogger(__name__)
@@ -454,3 +455,50 @@ def subscription_checker(**kwargs: Any) -> None:
                 delete_subscription_from_snuba.delay(query_subscription_id=subscription.id)
 
     metrics.incr("snuba.subscriptions.repair", amount=count)
+
+
+@instrumented_task(
+    name="sentry.snuba.tasks.recheck_broken_subscription",
+    namespace=alerts_tasks,
+)
+def recheck_broken_subscription(query_subscription_id: int, **kwargs: Any) -> None:
+    """
+    Checks whether a BROKEN subscription's query can be built now (e.g. a removed
+    environment was restored), and if so, recreates it in Snuba.
+    """
+    try:
+        subscription = QuerySubscription.objects.get(id=query_subscription_id)
+    except QuerySubscription.DoesNotExist:
+        return
+    if subscription.status != QuerySubscription.Status.BROKEN.value:
+        return
+
+    try:
+        _build_snuba_request(subscription)
+    except SubscriptionError:
+        metrics.incr("snuba.subscriptions.broken.verified")
+        return
+
+    updated = QuerySubscription.objects.filter(
+        id=subscription.id, status=QuerySubscription.Status.BROKEN.value
+    ).update(status=QuerySubscription.Status.CREATING.value, date_updated=timezone.now())
+    if not updated:
+        return
+    metrics.incr("snuba.subscriptions.broken.recovered")
+    create_subscription_in_snuba.delay(query_subscription_id=subscription.id)
+
+
+# Re-check regularly so that broken subscriptions get re-enabled automatically once
+# their queries can be built again.
+@instrumented_task(
+    name="sentry.snuba.tasks.schedule_broken_subscription_rechecks",
+    namespace=alerts_tasks,
+)
+def schedule_broken_subscription_rechecks(**kwargs: Any) -> None:
+    CursoredScheduler(
+        name="snuba_broken_subscription_recheck",
+        schedule_key="snuba-broken-subscription-recheck",
+        queryset=QuerySubscription.objects.filter(status=QuerySubscription.Status.BROKEN.value),
+        task=recheck_broken_subscription,
+        cycle_duration=timedelta(days=1),
+    ).tick()

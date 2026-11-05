@@ -35,6 +35,7 @@ from sentry.snuba.tasks import (
     SubscriptionError,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
+    recheck_broken_subscription,
     subscription_checker,
     update_subscription_in_snuba,
 )
@@ -1402,3 +1403,51 @@ class SubscriptionCheckerTest(TestCase):
                 sub_new = QuerySubscription.objects.get(id=sub_new.id)
                 assert sub_new.status == status.value
                 assert sub_new.subscription_id is None
+
+
+class RecheckBrokenSubscriptionTest(TestCase):
+    @pytest.fixture(autouse=True)
+    def _setup_metrics(self) -> object:
+        with patch("sentry.snuba.tasks.metrics") as self.metrics:
+            yield
+
+    def create_subscription(
+        self, status: QuerySubscription.Status, query: str
+    ) -> QuerySubscription:
+        snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset=Dataset.Events.value,
+            aggregate="count()",
+            query=query,
+            time_window=60,
+            resolution=60,
+        )
+        return QuerySubscription.objects.create(
+            snuba_query=snuba_query,
+            status=status.value,
+            project=self.project,
+            type="something",
+        )
+
+    def test_still_broken(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.BROKEN, "issue:INVALID-1")
+        recheck_broken_subscription(sub.id)
+        sub.refresh_from_db()
+        assert sub.status == QuerySubscription.Status.BROKEN.value
+        self.metrics.incr.assert_called_once_with("snuba.subscriptions.broken.verified")
+
+    def test_recovered(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.BROKEN, "hello")
+        with self.tasks():
+            recheck_broken_subscription(sub.id)
+        sub.refresh_from_db()
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+        self.metrics.incr.assert_any_call("snuba.subscriptions.broken.recovered")
+
+    def test_not_broken(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.ACTIVE, "issue:INVALID-1")
+        recheck_broken_subscription(sub.id)
+        sub.refresh_from_db()
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        self.metrics.incr.assert_not_called()
