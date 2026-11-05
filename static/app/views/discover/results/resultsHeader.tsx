@@ -10,7 +10,7 @@ import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {withApi} from 'sentry/utils/withApi';
 import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
-import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
+import {SavedQueryButtonGroup} from 'sentry/views/discover/savedQuery';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 

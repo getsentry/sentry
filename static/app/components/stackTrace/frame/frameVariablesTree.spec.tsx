@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {FrameVariablesTree} from 'sentry/components/stackTrace/frame/frameVariablesTree';
-import {getJsonFrameVariables} from 'sentry/components/stackTrace/frame/getJsonFrameVariables';
+import {FrameVariablesTree} from './frameVariablesTree';
+import {getJsonFrameVariables} from './getJsonFrameVariables';
 
 it('opens small collections two levels deep and keeps larger collections collapsed', async () => {
   render(

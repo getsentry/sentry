@@ -8,8 +8,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
-import type {CreateTeamAccessRequestModalProps} from 'sentry/components/modals/teamAccessRequestModal';
-import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
+import type {CreateTeamAccessRequestModalProps} from './teamAccessRequestModal';
+import TeamAccessRequestModal from './teamAccessRequestModal';
 
 describe('TeamAccessRequestModal', () => {
   let createMock: any;

@@ -2,13 +2,14 @@ import {useCallback, type ReactNode} from 'react';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreQueryParamsProvider} from 'sentry/views/explore/exploreQueryParamsProvider';
-import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
+
+import {hasMultiAggregateCharts} from './sharedChartAggregates';
 import {
   getReadableSpansQueryParams,
   getSpansQueryParamsUpdates,
   isDefaultSpansFields,
   SPANS_QUERY_PARSERS,
-} from 'sentry/views/explore/spans/spansQueryParams';
+} from './spansQueryParams';
 
 interface SpansQueryParamsProviderProps {
   children: ReactNode;

@@ -9,7 +9,8 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
+
+import {FieldRenderer} from './fieldRenderer';
 
 const mockedEventData = {
   id: 'spanId',

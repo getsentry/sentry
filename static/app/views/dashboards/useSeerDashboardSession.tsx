@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -185,7 +186,7 @@ export function useSeerDashboardSession({
         }
       } catch {
         setIsUpdating(false);
-        addErrorMessage(errorMessage);
+        toast.error(errorMessage);
       }
     },
     [organization.slug, queryClient, seerRunId, dashboard]

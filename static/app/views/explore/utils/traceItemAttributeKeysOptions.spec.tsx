@@ -5,10 +5,11 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import {FieldKind} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
 import {
   getTraceItemTagCollection,
   traceItemAttributeKeysOptions,
-} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
+} from './traceItemAttributeKeysOptions';
 
 type Attribute = {
   attributeSource: {

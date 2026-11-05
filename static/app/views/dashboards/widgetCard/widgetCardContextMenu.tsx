@@ -40,11 +40,12 @@ import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExplor
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
-import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+
+import {getReferrer} from './genericWidgetQueries';
 
 export const useTransactionsDeprecationWarning = ({
   widget,

@@ -4,7 +4,7 @@ import {
 } from 'sentry-fixture/sessions';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
-import {transformSessionsResponseToSeries} from 'sentry/views/dashboards/utils/transformSessionsResponseToSeries';
+import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
 
 describe('transformSessionsResponseToSeries', () => {
   it('transforms sessions into series', () => {

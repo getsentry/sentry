@@ -1,7 +1,8 @@
 import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
-import type {useTagFilters} from 'sentry/views/explore/replays/detail/tagPanel/useTagFilters';
+
+import type {useTagFilters} from './useTagFilters';
 
 type Props = {
   tags: undefined | Record<string, string[]>;

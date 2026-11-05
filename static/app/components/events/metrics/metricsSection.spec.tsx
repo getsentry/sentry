@@ -11,7 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
+import {MetricsSection} from './metricsSection';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,

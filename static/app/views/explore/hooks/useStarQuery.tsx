@@ -3,12 +3,13 @@ import {useCallback} from 'react';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   SavedQueryType,
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
   type SavedQueryRef,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
+} from './useGetSavedQueries';
 
 export function useStarQuery() {
   const api = useApi();

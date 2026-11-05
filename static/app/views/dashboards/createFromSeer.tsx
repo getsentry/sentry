@@ -2,14 +2,15 @@ import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsInteger, useQueryState} from 'nuqs';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {CreateFromSeerLoading} from 'sentry/views/dashboards/createFromSeerLoading';
-import {CreateFromSeerPrompt} from 'sentry/views/dashboards/createFromSeerPrompt';
 
 import {WidgetErrorProvider} from './contexts/widgetErrorContext';
+import {CreateFromSeerLoading} from './createFromSeerLoading';
+import {CreateFromSeerPrompt} from './createFromSeerPrompt';
 import {statusIsTerminal, validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {DashboardChatPanel, type WidgetError} from './dashboardChatPanel';
 import {EMPTY_DASHBOARD} from './data';
@@ -105,7 +106,7 @@ export default function CreateFromSeer() {
 
   useEffect(() => {
     if (sessionStatus === 'error' || isError) {
-      addErrorMessage(t('Failed to generate dashboard'));
+      toast.error(t('Failed to generate dashboard'));
       Sentry.metrics.count('dashboards.seer.generation.session.error', 1, {
         attributes: {
           organization_slug: organization.slug,

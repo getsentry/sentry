@@ -471,7 +471,7 @@ describe('GlobalDrawer', () => {
       ).not.toBeInTheDocument();
     }
   );
-  it('keeps the drawer open when a modal portal is clicked', async () => {
+  it('keeps the drawer open when another overlay is clicked', async () => {
     render(
       <GlobalDrawerTestComponent
         config={{
@@ -484,7 +484,7 @@ describe('GlobalDrawer', () => {
     expect(await screen.findByText('Drawer content')).toBeInTheDocument();
 
     const portal = document.createElement('div');
-    portal.id = 'modal-portal';
+    portal.dataset.overlay = 'modal';
     const button = document.createElement('button');
     button.textContent = 'Modal action';
     portal.append(button);

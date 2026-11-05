@@ -24,12 +24,12 @@ jest.mock('@tanstack/react-virtual', () => ({
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
+import {CommandPaletteSlot} from './commandPaletteSlot';
+import {CommandPaletteHotkeys} from './commandPaletteStateContext';
 import {
   FeatureFlagCommandPaletteActions,
   setLocalFeatureFlagOverride,

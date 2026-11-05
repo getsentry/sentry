@@ -9,14 +9,14 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
-import type {Project, ProjectSummaryWithOptions} from 'sentry/types/project';
+import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {withProjects} from 'sentry/utils/withProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 import type {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
 import {
@@ -210,7 +210,6 @@ function getSpikeDetails({
 
 interface EnhancedUsageStatsOrganizationProps extends UsageStatsOrganizationProps {
   isSingleProject: boolean;
-  projects: Project[];
   subscription: Subscription;
   chartTransform?: string;
   spikeCursor?: string;
@@ -224,7 +223,6 @@ interface EnhancedUsageStatsOrganizationProps extends UsageStatsOrganizationProp
  */
 function EnhancedUsageStatsOrganization({
   organization,
-  projects,
   subscription,
   projectIds,
   dataDatetime,
@@ -237,6 +235,7 @@ function EnhancedUsageStatsOrganization({
   handleChangeState,
   chartTransform,
 }: EnhancedUsageStatsOrganizationProps) {
+  const {projects} = useProjects();
   const project = projects.find(p => p.id === `${projectIds[0]}`);
   const endpointQueryDatetime = getEndpointQueryDatetime(dataDatetime);
   const endpointQuery = useMemo(
@@ -488,4 +487,4 @@ const DroppedFromSpikesStat = styled('div')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-export default withProjects(withSubscription(EnhancedUsageStatsOrganization));
+export default withSubscription(EnhancedUsageStatsOrganization);

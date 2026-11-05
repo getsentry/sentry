@@ -30,37 +30,6 @@ import {
   type CustomComboboxMenu,
   type CustomComboboxMenuProps,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
-import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
-import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
-import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
-import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
-import {
-  escapeTagValueForSearch,
-  formatFilterValue,
-  getFilterValueType,
-  unescapeAsteriskSearchValue,
-  unescapeTagValue,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {
-  useValueComboboxContext,
-  useValueComboboxMenuContext,
-  ValueComboboxContext,
-  ValueComboboxMenuContext,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueComboboxContext';
-import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
-import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
-import {shouldUseDefaultNumericSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/numeric';
-import {SeverityValueIndicator} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/severityValueIndicator';
-import {isSeverityFilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/utils';
-import type {
-  SuggestionItem,
-  SuggestionSection,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
-import {
-  cleanFilterValue,
-  getValueSuggestions,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/utils';
 import {
   getDefaultFilterValue,
   resolveFilterKey,
@@ -93,6 +62,32 @@ import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {parseMultiSelectFilterValue} from './parsers/string/parser';
+import {getDefaultAbsoluteDateValue} from './valueSuggestions/date';
+import {shouldUseDefaultNumericSuggestions} from './valueSuggestions/numeric';
+import {SeverityValueIndicator} from './valueSuggestions/severity/severityValueIndicator';
+import {isSeverityFilterKey} from './valueSuggestions/severity/utils';
+import type {SuggestionItem, SuggestionSection} from './valueSuggestions/types';
+import {cleanFilterValue, getValueSuggestions} from './valueSuggestions/utils';
+import {renderRegexPattern} from './highlightedRegexPattern';
+import {RegexDelimiter} from './regexDelimiter';
+import {SpecificDatePicker} from './specificDatePicker';
+import {useFrozenSuggestionSectionItems} from './useFrozenSuggestionSectionItems';
+import {
+  escapeTagValueForSearch,
+  formatFilterValue,
+  getFilterValueType,
+  unescapeAsteriskSearchValue,
+  unescapeTagValue,
+} from './utils';
+import {
+  useValueComboboxContext,
+  useValueComboboxMenuContext,
+  ValueComboboxContext,
+  ValueComboboxMenuContext,
+} from './valueComboboxContext';
+import {ValueListBox} from './valueListBox';
 
 type SearchQueryValueBuilderProps = {
   editingCommittedValue: boolean;

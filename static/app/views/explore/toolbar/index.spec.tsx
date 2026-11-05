@@ -30,7 +30,8 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
+
+import {ToolbarSaveAs} from './toolbarSaveAs';
 
 /**
  * Returns the y axes of each chart written to the URL, one entry per chart.

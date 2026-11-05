@@ -8,10 +8,10 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {DashboardState, type DashboardDetails} from 'sentry/views/dashboards/types';
 
 import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import {OrgDashboards} from './orgDashboards';
+import {DashboardState, type DashboardDetails} from './types';
 
 export default function ViewEditDashboard() {
   const api = useApi();

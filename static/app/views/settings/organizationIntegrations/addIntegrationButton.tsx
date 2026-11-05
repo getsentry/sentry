@@ -9,7 +9,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useAutoOpenInstallModal} from 'sentry/utils/integrations/useAutoOpenInstallModal';
-import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
+
+import {IntegrationContext} from './integrationContext';
 
 interface AddIntegrationButtonProps
   extends

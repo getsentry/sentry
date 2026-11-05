@@ -13,7 +13,6 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
-import {ChartContextMenu} from 'sentry/views/explore/errors/charts/chartContextMenu';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {
   ChartList,
@@ -23,6 +22,8 @@ import {
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {ChartContextMenu} from './chartContextMenu';
 
 const ERRORS_CHART_GROUP = 'errors-charts_group';
 

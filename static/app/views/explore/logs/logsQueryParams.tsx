@@ -18,7 +18,6 @@ import {
   LOGS_AGGREGATE_SORT_BYS_KEY,
   LOGS_SORT_BYS_KEY,
 } from 'sentry/views/explore/contexts/logs/sortBys';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getAggregateFields} from 'sentry/views/explore/queryParams/aggregateField';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateSortBys} from 'sentry/views/explore/queryParams/aggregateSortBy';
@@ -45,6 +44,8 @@ import {getSortBys} from 'sentry/views/explore/queryParams/sortBy';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+
+import {OurLogKnownFieldKey} from './types';
 
 const LOGS_MODE_KEY = 'mode';
 export const LOGS_AGGREGATE_FIELD_KEY = 'aggregateField';

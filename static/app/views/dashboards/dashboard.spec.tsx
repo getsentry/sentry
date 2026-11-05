@@ -10,23 +10,15 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useLocation} from 'sentry/utils/useLocation';
-import {Dashboard} from 'sentry/views/dashboards/dashboard';
-import {FiltersBar} from 'sentry/views/dashboards/filtersBar';
-import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
-import type {
-  DashboardDetails,
-  DashboardFilters,
-  Widget,
-} from 'sentry/views/dashboards/types';
-import {
-  DashboardFilterKeys,
-  DisplayType,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
-import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
+import {useDashboardChartInterval} from './hooks/useDashboardChartInterval';
+import {Dashboard} from './dashboard';
+import {FiltersBar} from './filtersBar';
+import type {DashboardDetails, DashboardFilters, Widget} from './types';
+import {DashboardFilterKeys, DisplayType, WidgetType} from './types';
+import {getSavedFiltersAsPageFilters} from './utils';
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 // Widgets only render and fetch once they intersect the viewport

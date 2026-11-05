@@ -18,8 +18,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import * as dashboardActions from 'sentry/actionCreators/dashboards';
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {registerOverride} from 'sentry/overrideRegistry';
@@ -27,20 +28,19 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {UNSAVED_FILTERS_MESSAGE} from 'sentry/views/dashboards/constants';
-import CreateDashboard from 'sentry/views/dashboards/create';
-import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
-import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
-import * as types from 'sentry/views/dashboards/types';
-import {DashboardState} from 'sentry/views/dashboards/types';
-import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import ViewEditDashboard from 'sentry/views/dashboards/view';
-import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
-jest.mock('sentry/actionCreators/indicator');
+import {useGetStarredDashboards} from './hooks/useGetStarredDashboards';
+import {PrebuiltDashboardId} from './utils/prebuiltConfigs';
+import {useWidgetBuilderState} from './widgetBuilder/hooks/useWidgetBuilderState';
+import {UNSAVED_FILTERS_MESSAGE} from './constants';
+import CreateDashboard from './create';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
+import * as types from './types';
+import {DashboardState} from './types';
+import ViewEditDashboard from './view';
 
+jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 function StarredDashboardTitle() {
   const {data: dashboards = []} = useGetStarredDashboards();
   return <span aria-label="Starred dashboard title">{dashboards[0]?.title}</span>;
@@ -139,6 +139,7 @@ describe('Dashboards > Detail', () => {
     let initialData!: ReturnType<typeof initializeOrg>;
 
     beforeEach(() => {
+      jest.spyOn(toast, 'loading').mockClear();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/members/',
         body: [],
@@ -2289,6 +2290,7 @@ describe('Dashboards > Detail', () => {
     describe('widget builder redesign', () => {
       let mockUpdateDashboard!: jest.SpyInstance;
       beforeEach(() => {
+        jest.spyOn(toast, 'loading').mockClear();
         initialData = initializeOrg({
           organization: OrganizationFixture({
             features: ['discover-query'],
@@ -2605,7 +2607,7 @@ describe('Dashboards > Detail', () => {
           {revisionSource: undefined}
         );
         await waitFor(() => {
-          expect(addLoadingMessage).toHaveBeenCalledWith('Saving widget');
+          expect(toast.loading).toHaveBeenCalledWith('Saving widget');
         });
       });
     });

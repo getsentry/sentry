@@ -8,14 +8,15 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
+import {EntryType} from 'sentry/types/event';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+
+import {BreadcrumbsDataSection} from './breadcrumbsDataSection';
 import {
   MOCK_BREADCRUMBS,
   MOCK_DATA_SECTION_PROPS,
   MOCK_EXCEPTION_ENTRY,
-} from 'sentry/components/events/breadcrumbs/testUtils';
-import {EntryType} from 'sentry/types/event';
-import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+} from './testUtils';
 
 mockElementSize({width: 0, height: 30});
 

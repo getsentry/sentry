@@ -14,7 +14,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {
   useAddToSpanDashboard,
@@ -22,6 +21,8 @@ import {
 } from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import type {SpanFields} from 'sentry/views/insights/types';
+
+import type {ChartType} from './chart';
 
 type Props = {
   chartType: ChartType;

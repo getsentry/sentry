@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.slack.message_builder.routing import (
-    TRACKING_SEPARATOR,
     SlackActionTracking,
     encode_action_id,
 )
@@ -32,7 +31,12 @@ class TrackedClickTest(BaseEventTest):
         )
 
     def _tracked(self, tracking: SlackActionTracking) -> str:
-        return f"{self.action_id}{TRACKING_SEPARATOR}{tracking.encode()}"
+        return encode_action_id(
+            action=SlackAction.SEER_AGENT_WRITE_REJECT,
+            organization_id=self.organization.id,
+            project_id=None,
+            tracking=tracking,
+        )
 
     def _click(self, action_id: str) -> None:
         resp = self.post_webhook_block_kit(
