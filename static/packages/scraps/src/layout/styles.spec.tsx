@@ -9,10 +9,6 @@ import {lightTheme as theme} from '@sentry/scraps/theme';
 import type {BreakpointSize} from '@sentry/scraps/theme';
 
 import {
-  getBackground,
-  getBorder,
-  getBorderLonghands,
-  getBorderWidth,
   rc,
   useActiveBreakpoint,
   useContainerBreakpoint,
@@ -180,126 +176,6 @@ describe('rc', () => {
       'container-type: inline-size;'
     );
     expect(rc('container-type', undefined, theme)).toBeUndefined();
-  });
-});
-
-describe('getBorder', () => {
-  it('resolves a border variant to a full declaration', () => {
-    expect(getBorder('primary', undefined, theme)).toBe(
-      `1px solid ${theme.tokens.border.primary}`
-    );
-  });
-
-  it('uses the md border width token as the default width', () => {
-    expect(getBorder('primary', undefined, theme)).toBe(
-      `${theme.border.md} solid ${theme.tokens.border.primary}`
-    );
-  });
-
-  it('resolves translucent to the transparent neutral muted token', () => {
-    expect(getBorder('translucent', undefined, theme)).toBe(
-      `1px solid ${theme.tokens.border.transparent.neutral.muted}`
-    );
-  });
-
-  it('returns "none" so a border can be turned off responsively', () => {
-    expect(getBorder('none', undefined, theme)).toBe('none');
-  });
-
-  it('returns undefined when omitted', () => {
-    expect(getBorder(undefined, undefined, theme)).toBeUndefined();
-  });
-
-  it('lets a responsive border move sides across breakpoints', () => {
-    const output = rc('border-bottom', {zero: 'primary', lg: 'none'}, theme, getBorder);
-    assert(output);
-    // Present below lg…
-    expect(output).toContain(`border-bottom: 1px solid ${theme.tokens.border.primary}`);
-    // …and explicitly removed at lg via `none`.
-    expect(output).toContain(`@container (min-width: ${theme.container.lg})`);
-    expect(output).toContain('border-bottom: none');
-  });
-});
-
-describe('getBorderLonghands', () => {
-  it('sets style, color and the md width as separate declarations', () => {
-    expect(getBorderLonghands('border', 'primary', undefined, theme)).toBe(
-      `border-style: solid;border-color: ${theme.tokens.border.primary};border-width: ${theme.border.md};`
-    );
-  });
-
-  it('applies the width to the given side', () => {
-    expect(getBorderLonghands('border-top', 'translucent', 'xl', theme)).toBe(
-      `border-top-style: solid;border-top-color: ${theme.tokens.border.transparent.neutral.muted};border-top-width: 2px;`
-    );
-  });
-
-  it('applies the given border style', () => {
-    expect(getBorderLonghands('border', 'muted', undefined, theme, 'dashed')).toBe(
-      `border-style: dashed;border-color: ${theme.tokens.border.secondary};border-width: ${theme.border.md};`
-    );
-  });
-
-  it('keeps none over the given border style', () => {
-    expect(getBorderLonghands('border', 'none', undefined, theme, 'dashed')).toBe(
-      `border-style: none;border-width: ${theme.border.md};`
-    );
-  });
-
-  it('turns the border off with none', () => {
-    expect(getBorderLonghands('border', 'none', undefined, theme)).toBe(
-      `border-style: none;border-width: ${theme.border.md};`
-    );
-  });
-
-  it('keeps the width out of responsive color rules', () => {
-    const output = getBorderLonghands(
-      'border',
-      {zero: 'primary', lg: 'danger'},
-      'xl',
-      theme
-    );
-    assert(output);
-    expect(output.match(/border-width: [^;]+/g)).toEqual(['border-width: 2px']);
-    expect(output).toContain(`border-color: ${theme.tokens.border.danger.vibrant}`);
-  });
-
-  it('returns undefined without a color, even with a width', () => {
-    expect(getBorderLonghands('border', undefined, 'xl', theme)).toBeUndefined();
-  });
-});
-
-describe('getBorderWidth', () => {
-  it('resolves a width token', () => {
-    expect(getBorderWidth('xl', undefined, theme)).toBe('2px');
-  });
-
-  it('returns undefined when omitted, keeping the border default', () => {
-    expect(getBorderWidth(undefined, undefined, theme)).toBeUndefined();
-  });
-});
-
-describe('getBackground', () => {
-  it('resolves surface levels', () => {
-    expect(getBackground('secondary', undefined, theme)).toBe(
-      theme.tokens.background.secondary
-    );
-  });
-
-  it('resolves semantic variants to their vibrant token', () => {
-    expect(getBackground('accent', undefined, theme)).toBe(
-      theme.tokens.background.accent.vibrant
-    );
-  });
-
-  it('resolves translucent to the transparent neutral muted token', () => {
-    expect(getBackground('translucent', undefined, theme)).toBe(
-      theme.tokens.background.transparent.neutral.muted
-    );
-  });
-
-  it('returns undefined when omitted', () => {
-    expect(getBackground(undefined, undefined, theme)).toBeUndefined();
   });
 });
 

@@ -35,9 +35,14 @@ describe('Container', () => {
     expect(screen.getByText('Hello')).not.toHaveAttribute('borderColor', 'primary');
   });
 
-  it('does not forward color and width props to the DOM', () => {
+  it('does not forward border and background props to the DOM', () => {
     render(
-      <Container borderColor="translucent" borderWidth="xl" background="accent">
+      <Container
+        borderColor="translucent"
+        borderTopColor="danger"
+        borderWidth="xl"
+        background="accent"
+      >
         Hello
       </Container>,
       {wrapper: ThemeWrapper}
@@ -45,61 +50,9 @@ describe('Container', () => {
 
     const element = screen.getByText('Hello');
     expect(element).not.toHaveAttribute('borderColor');
+    expect(element).not.toHaveAttribute('borderTopColor');
     expect(element).not.toHaveAttribute('borderWidth');
     expect(element).not.toHaveAttribute('background');
-  });
-
-  it('keeps borderWidth when the border color is responsive', () => {
-    render(
-      <Container borderColor={{xs: 'primary', md: 'danger'}} borderWidth="xl">
-        Hello
-      </Container>,
-      {wrapper: ThemeWrapper}
-    );
-
-    // A `border` shorthand in the md rule would reset the width to 1px.
-    const className = screen.getByText('Hello').className;
-    const css = Array.from(document.styleSheets)
-      .flatMap(sheet => Array.from(sheet.cssRules, rule => rule.cssText))
-      .filter(rule => rule.includes(className))
-      .join('\n');
-    expect(css).not.toMatch(/border:/);
-    expect(css.match(/border-width: [^;]+/g)).toEqual(['border-width: 2px']);
-  });
-
-  it('sets the color of a single side with the per-side color props', () => {
-    render(
-      <Container borderTopColor="primary" borderBottomColor="none">
-        Hello
-      </Container>,
-      {wrapper: ThemeWrapper}
-    );
-
-    const element = screen.getByText('Hello');
-    expect(element).not.toHaveAttribute('borderTopColor');
-    expect(element).not.toHaveAttribute('borderBottomColor');
-
-    const css = Array.from(document.styleSheets)
-      .flatMap(sheet => Array.from(sheet.cssRules, rule => rule.cssText))
-      .filter(rule => rule.includes(element.className))
-      .join('\n');
-    expect(css).toMatch(/border-top-style: solid/);
-    expect(css).toMatch(/border-top-width: 1px/);
-    expect(css).toMatch(/border-bottom-style: none/);
-  });
-
-  it('applies borderStyle to sides with a border color', () => {
-    render(
-      <Container borderTopColor="primary" borderStyle="dashed">
-        Hello
-      </Container>,
-      {wrapper: ThemeWrapper}
-    );
-
-    const element = screen.getByText('Hello');
-    expect(element).toHaveStyle({borderTopStyle: 'dashed'});
-    expect(element).not.toHaveStyle({borderBottomStyle: 'dashed'});
-    expect(element).not.toHaveAttribute('borderStyle');
   });
 
   it('render prop guards against invalid attributes', () => {

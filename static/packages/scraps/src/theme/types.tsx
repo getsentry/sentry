@@ -40,11 +40,6 @@ export type RadiusSize = SizeRange<'0', '2xl'> | 'full';
 export type BorderWidth = keyof (typeof size)['border'];
 
 /**
- * Border line style. `solid` is the default.
- */
-export type BorderStyle = 'solid' | 'dashed';
-
-/**
  * Animation easing curve preset.
  */
 export type MotionEasing = 'smooth' | 'snap' | 'enter' | 'exit' | 'spring';

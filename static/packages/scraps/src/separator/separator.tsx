@@ -3,7 +3,12 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import type {ContainerProps} from '@sentry/scraps/layout/container';
-import {getBorder, getMargin, getSpacing, rc} from '@sentry/scraps/layout/styles';
+import {
+  getBorderLonghands,
+  getMargin,
+  getSpacing,
+  rc,
+} from '@sentry/scraps/layout/styles';
 
 export type SeparatorProps = Pick<
   ContainerProps,
@@ -43,10 +48,11 @@ export const Separator = styled(
 
   border: none;
   ${p =>
-    rc(
+    getBorderLonghands(
       p.orientation === 'horizontal' ? 'border-bottom' : 'border-left',
       p.borderColor ?? 'primary',
+      undefined,
       p.theme,
-      (...args) => `${getBorder(...args)} !important`
+      {important: true}
     )};
 `;

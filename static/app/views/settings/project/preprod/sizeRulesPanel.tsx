@@ -176,7 +176,7 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
                     background="secondary"
                     borderColor="primary"
                     radius="md"
-                    borderStyle="dashed"
+                    style={{borderStyle: 'dashed'}}
                   >
                     <Text align="center" variant="muted">
                       {copy.emptyRulesText}

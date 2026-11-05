@@ -12,7 +12,6 @@ import {useTheme} from '@emotion/react';
 
 import type {
   BackgroundVariant,
-  BorderStyle,
   BorderVariant,
   BorderWidth,
   BreakpointSize,
@@ -237,40 +236,16 @@ function borderValue(key: Exclude<BorderVariant, 'none'>, theme: Theme): string 
   return theme.tokens.border[key].vibrant;
 }
 
-export function getBorder(
+function getBorderStyle(
   border: BorderVariant | undefined,
   _breakpoint: ResponsiveBreakpoint | undefined,
-  theme: Theme
+  _theme: Theme
 ): string | undefined {
   if (border === undefined) {
     return undefined;
   }
 
-  if (border === 'none') {
-    return 'none';
-  }
-
-  return border
-    .split(' ')
-    .map(
-      b =>
-        `${theme.border.md} solid ${borderValue(b as Exclude<BorderVariant, 'none'>, theme)}`
-    )
-    .join(' ');
-}
-
-function getBorderStyle(style: BorderStyle) {
-  return (
-    border: BorderVariant | undefined,
-    _breakpoint: ResponsiveBreakpoint | undefined,
-    _theme: Theme
-  ): string | undefined => {
-    if (border === undefined) {
-      return undefined;
-    }
-
-    return border === 'none' ? 'none' : style;
-  };
+  return border === 'none' ? 'none' : 'solid';
 }
 
 function getBorderColor(
@@ -288,24 +263,37 @@ function getBorderColor(
 /**
  * Border style, color and width for one side, or for all sides with `border`.
  * They're separate declarations, not the `border` shorthand, so a responsive
- * color never resets the width. The style defaults to `solid` (`none` turns the
- * border off), and the width defaults to `md`.
+ * color never resets the width. The style is always `solid` (or `none`), and
+ * the width defaults to `md`.
  */
+type Resolver<T> = (
+  value: T | undefined,
+  breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+) => string | undefined;
+
 export function getBorderLonghands(
   property: 'border' | 'border-top' | 'border-bottom' | 'border-left' | 'border-right',
   color: Responsive<BorderVariant> | undefined,
   width: Responsive<BorderWidth> | undefined,
   theme: Theme,
-  style: BorderStyle = 'solid'
+  {important = false}: {important?: boolean} = {}
 ): string | undefined {
   if (color === undefined) {
     return undefined;
   }
 
+  const withPriority =
+    <T,>(resolver: Resolver<T>): Resolver<T> =>
+    (...args) => {
+      const value = resolver(...args);
+      return important && value !== undefined ? `${value} !important` : value;
+    };
+
   return [
-    rc(`${property}-style`, color, theme, getBorderStyle(style)),
-    rc(`${property}-color`, color, theme, getBorderColor),
-    rc(`${property}-width`, width ?? 'md', theme, getBorderWidth),
+    rc(`${property}-style`, color, theme, withPriority(getBorderStyle)),
+    rc(`${property}-color`, color, theme, withPriority(getBorderColor)),
+    rc(`${property}-width`, width ?? 'md', theme, withPriority(getBorderWidth)),
   ].join('');
 }
 
