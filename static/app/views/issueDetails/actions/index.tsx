@@ -21,7 +21,7 @@ import {toast} from '@sentry/scraps/toast';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {ArchiveActions} from 'sentry/components/actions/archive';
 import {ResolveActions} from 'sentry/components/actions/resolve';

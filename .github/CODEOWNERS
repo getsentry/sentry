@@ -818,7 +818,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issues-feed @getsentry/issue-detection-backend
 /src/sentry/tasks/auto_resolve_issues.py                    @getsentry/issue-detection-backend
 /src/sentry/tasks/auto_source_code_config.py                @getsentry/agent-interfaces-sentry-backend
-/src/sentry/tasks/check_new_issue_threshold_met.py          @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_resolutions.py              @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_snoozes.py                  @getsentry/issue-detection-backend
 /src/sentry/tasks/codeowners/                               @getsentry/agent-interfaces-sentry-backend
@@ -833,11 +832,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tasks/llm_issue_detection/                      @getsentry/issue-detection-backend
 /static/app/components/issues/                              @getsentry/issues-feed
 /static/app/components/stackTrace/                          @getsentry/issue-details
-/static/app/components/stream/supergroups/                  @getsentry/supergroups @getsentry/issue-detection-frontend
 /static/app/views/issueList/                                @getsentry/issues-feed
 /static/app/views/issueList/issueListSeerComboBox.tsx       @getsentry/issues-feed @getsentry/machine-learning-ai
-/static/app/views/issueList/pages/supergroups.tsx           @getsentry/supergroups @getsentry/issue-detection-frontend
-/static/app/views/issueList/supergroups/                    @getsentry/supergroups @getsentry/issue-detection-frontend
 /static/app/views/issueDetails/                             @getsentry/issue-details
 /static/app/views/sharedGroupDetails/                       @getsentry/issues-feed @getsentry/issue-details
 /tests/sentry/deletions/test_group.py                       @getsentry/issue-detection-backend
@@ -862,7 +858,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issue-detection-backend
 /tests/sentry/tasks/seer/test_delete_seer_grouping_records.py @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_console_platform_cleanup.py        @getsentry/gdx
-/tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_snoozes.py           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_code_owners.py                     @getsentry/agent-interfaces-sentry-backend

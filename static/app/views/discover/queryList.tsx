@@ -10,7 +10,7 @@ import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import {TimeSince} from 'sentry/components/timeSince';
