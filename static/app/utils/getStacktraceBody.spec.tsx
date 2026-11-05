@@ -5,7 +5,7 @@ import {
   EventStacktraceThreadsFixture,
 } from 'sentry-fixture/eventStacktraceException';
 
-import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
+import {getStacktraceBody} from './getStacktraceBody';
 
 describe('getStacktraceBody', () => {
   const eventException = EventStacktraceExceptionFixture({platform: 'python'});

@@ -2,11 +2,11 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useTraceState} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 
 import {TraceScheduler} from './traceRenderers/traceScheduler';
 import {TraceView} from './traceRenderers/traceView';
 import {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import {useTraceState} from './traceState/traceStateProvider';
 
 export function useTraceWaterfallModels() {
   const theme = useTheme();

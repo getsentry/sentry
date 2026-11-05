@@ -1,7 +1,7 @@
 import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 type InsightInfoModalOptions = {
   children: ReactNode;

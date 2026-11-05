@@ -166,6 +166,7 @@ class SCIMMetaResponse(TypedDict):
 @extend_schema(tags=["SCIM"])
 class SCIMEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FOUNDATIONS
+    requires_user = True
     content_negotiation_class = SCIMClientNegotiation
     cursor_name = "startIndex"
 

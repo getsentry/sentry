@@ -1,8 +1,9 @@
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {PlatformizedMobileSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedMobileOverview';
-import {PlatformizedSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedOverview';
+
+import {PlatformizedMobileSessionsOverview} from './platformizedMobileOverview';
+import {PlatformizedSessionsOverview} from './platformizedOverview';
 
 function PageWithProviders() {
   const {view = ''} = useDomainViewFilters();

@@ -9,6 +9,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry import audit_log
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
@@ -185,7 +186,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -206,10 +206,24 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.DYNAMIC.value,
             },
         }
+
+    def _assert_documented_create_request_is_valid(self, example_index: int) -> None:
+        example = WorkflowEngineExamples.CREATE_DETECTOR[example_index]
+        validator = MetricIssueDetectorValidator(data=example.value, context=self.context)
+
+        assert validator.is_valid(), validator.errors
+
+    def test_documented_static_create_request_is_valid(self, *mocks: Any) -> None:
+        self._assert_documented_create_request_is_valid(0)
+
+    def test_documented_percent_create_request_is_valid(self, *mocks: Any) -> None:
+        self._assert_documented_create_request_is_valid(1)
+
+    def test_documented_dynamic_create_request_is_valid(self, *mocks: Any) -> None:
+        self._assert_documented_create_request_is_valid(2)
 
     def create_static_detector(self) -> Detector:
         validator = MetricIssueDetectorValidator(
@@ -370,7 +384,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
                 ],
             },
             "config": {
-                "threshold_period": 1,
                 "detection_type": AlertRuleDetectionType.DYNAMIC.value,
             },
         }
@@ -678,7 +691,6 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -835,7 +847,6 @@ class TestMetricAlertsResolution(TestMetricAlertsDetectorValidator):
             **self.valid_data,
             "dataSources": [self._make_data_source(timeWindow=3600)],
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.PERCENT.value,
                 "comparisonDelta": 86400,
             },
@@ -878,7 +889,6 @@ class TestMetricAlertsResolution(TestMetricAlertsDetectorValidator):
         update_data = {
             **self.valid_data,
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -1150,7 +1160,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }

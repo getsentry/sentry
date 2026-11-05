@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.db.models import OuterRef, Subquery
 
@@ -9,6 +9,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
@@ -25,12 +26,16 @@ from sentry.workflow_engine.types import DetectorType
 
 
 class DetectorSerializerResponseOptional(TypedDict, total=False):
-    owner: ActorSerializerResponse | None
-    createdBy: str | None
+    owner: Annotated[
+        ActorSerializerResponse | None, ApiDescription("Team or user that owns the monitor")
+    ]
+    createdBy: Annotated[str | None, ApiDescription("ID of the user who created the monitor")]
     alertRuleId: int | None
     ruleId: int | None
-    latestGroup: dict[str, Any] | None
-    description: str | None
+    latestGroup: Annotated[
+        dict[str, Any] | None, ApiDescription("Latest issue the monitor created")
+    ]
+    description: Annotated[str | None, ApiDescription("Description of the monitor")]
 
 
 @sentry_schema_serializer(
@@ -40,17 +45,26 @@ class DetectorSerializerResponseOptional(TypedDict, total=False):
     }
 )
 class DetectorSerializerResponse(DetectorSerializerResponseOptional):
-    id: str
-    projectId: str | None
-    name: str
-    type: str
-    workflowIds: list[str] | None
-    dateCreated: datetime
-    dateUpdated: datetime
-    dataSources: list[dict[str, Any]] | None
-    conditionGroup: dict[str, Any] | None
-    config: dict[str, Any]
-    enabled: bool
+    id: Annotated[str, ApiDescription("Monitor ID")]
+    projectId: Annotated[str | None, ApiDescription("ID of the project the monitor belongs to")]
+    name: Annotated[str, ApiDescription("Monitor name")]
+    type: Annotated[str, ApiDescription("Type of the monitor, such as metric_issue or error")]
+    workflowIds: Annotated[
+        list[str] | None, ApiDescription("IDs of the alerts connected to the monitor")
+    ]
+    dateCreated: Annotated[datetime, ApiDescription("When the monitor was created (ISO 8601)")]
+    dateUpdated: Annotated[datetime, ApiDescription("When the monitor was last updated (ISO 8601)")]
+    dataSources: Annotated[
+        list[dict[str, Any]] | None,
+        ApiDescription("Data sources the monitor evaluates, such as a query subscription"),
+    ]
+    conditionGroup: Annotated[
+        dict[str, Any] | None, ApiDescription("Conditions that decide the monitor's status")
+    ]
+    config: Annotated[
+        dict[str, Any], ApiDescription("Configuration of the monitor, which depends on its type")
+    ]
+    enabled: Annotated[bool, ApiDescription("Whether the monitor is enabled")]
 
 
 @register(Detector)

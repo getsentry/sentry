@@ -23,6 +23,7 @@ from sentry.api.serializers.types import (
     GroupEventReleaseSerializerResponse,
     ReleaseSerializerResponse,
 )
+from sentry.auth.principal import RequestPrincipal
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -364,7 +365,7 @@ def get_cached_results(
 def get_users_for_authors(
     organization_id: int,
     authors: list[CommitAuthor],
-    user: User | AnonymousUser | RpcUser | None = None,
+    user: RequestPrincipal | None = None,
 ) -> Mapping[str, Author]:
     """
     Returns a dictionary of commit_author_id => user, if a Sentry

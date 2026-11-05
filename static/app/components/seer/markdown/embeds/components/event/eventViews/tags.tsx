@@ -6,10 +6,6 @@ import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {EmbedSection} from 'sentry/components/seer/markdown/embeds/components/embedSection';
-import {
-  EventTagsRendererMap,
-  type EventTagRendererExtra,
-} from 'sentry/components/seer/markdown/embeds/components/event/eventViews/eventTagRenderers';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {
   INERT_LOCATION,
@@ -24,6 +20,8 @@ import type {
   TraceItemDetailsMeta,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
+
+import {EventTagsRendererMap, type EventTagRendererExtra} from './eventTagRenderers';
 
 /**
  * Dropped from the tree the way issue details drops it: the replay is its own

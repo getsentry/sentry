@@ -13,7 +13,6 @@ import {
   NavigationCrumbs,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -33,6 +32,8 @@ import {
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {useEventLogsUrl} from './useEventLogsUrl';
 
 interface LogIssueDrawerProps {
   event: Event;

@@ -3,7 +3,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
-import {InlineCode} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
+
+import {InlineCode} from './insightInfoModal';
 
 function getMainBinaryExportedSymbolsContent() {
   return (

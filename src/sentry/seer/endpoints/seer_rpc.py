@@ -655,6 +655,11 @@ def send_seer_webhook(
             extra={"event_type": event_type},
         )
         return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
+    # Internal only: Sentry raises it itself from the autofix completion hook, and it must not
+    # reach Sentry Apps until its payload is settled.
+    if sentry_app_event_type == SentryAppEventType.SEER_ERRORED:
+        logger.warning("seer.webhook_internal_event_type", extra={"event_type": event_type})
+        return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
 
     # Handle organization lookup safely
     try:

@@ -9,9 +9,10 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {TagDetailsLink} from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
-import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+
+import {TagDetailsLink} from './tagDetailsLink';
+import {TagDistribution} from './tagDistribution';
+import {useGroupTags} from './useGroupTags';
 
 export function TagDrawerContent({
   group,

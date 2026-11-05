@@ -6,13 +6,13 @@ import type {
 } from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiFetch, QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
-import {selectJson} from 'sentry/utils/api/apiOptions';
-import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
-import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
-import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+import type {ApiResponse} from './api/apiFetch';
+import {apiFetch, QUERY_API_CLIENT} from './api/apiFetch';
+import {selectJson} from './api/apiOptions';
+import {normalizeQueryKey} from './api/apiQueryKey';
+import type {ApiQueryKey, QueryKeyEndpointOptions} from './api/apiQueryKey';
+import type {getApiUrl} from './api/getApiUrl';
+import {RequestError} from './requestError/requestError';
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError> extends Omit<
   UseQueryOptions<ApiResponse<TApiResponse>, TError, TApiResponse, ApiQueryKey>,

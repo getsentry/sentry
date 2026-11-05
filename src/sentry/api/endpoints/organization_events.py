@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping, Sequence
 from concurrent.futures import as_completed
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -28,6 +28,7 @@ from sentry.api.helpers.ingestion_delay import (
 from sentry.api.paginator import EAPPageTokenPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import (
     CursorQueryParam,
@@ -37,6 +38,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.explore.models import ExploreSavedFormula, ExploreSavedQueryDataset
 from sentry.ingestion_delay.meta import IngestionMeta
@@ -107,24 +109,50 @@ class EventsMeta(TypedDict, total=False):
     no-projects path only carries `tips`, the standard path carries
     everything below."""
 
-    fields: dict[str, str]
-    units: dict[str, str | None]
-    tips: dict[str, str]
+    fields: Annotated[
+        dict[str, str], ApiDescription("Type of each returned field, keyed by field name")
+    ]
+    units: Annotated[
+        dict[str, str | None],
+        ApiDescription(
+            "Unit of each returned field, keyed by field name, or null if the field has no unit"
+        ),
+    ]
+    tips: Annotated[
+        dict[str, str],
+        ApiDescription("Suggestions for improving the query, under the `query` and `columns` keys"),
+    ]
     datasetReason: str
-    isMetricsData: bool
-    isMetricsExtractedData: bool
-    dataset: str
-    discoverSplitDecision: Any
-    dataScanned: str
-    bytesScanned: int
+    isMetricsData: Annotated[bool, ApiDescription("Whether the results came from metrics data")]
+    isMetricsExtractedData: Annotated[
+        bool, ApiDescription("Whether the results came from metrics extracted on demand")
+    ]
+    dataset: Annotated[str, ApiDescription("Dataset that was queried")]
+    discoverSplitDecision: Annotated[
+        Any,
+        ApiDescription(
+            "Dataset the results were taken from when a Discover dashboard widget query was split between errors and transactions"
+        ),
+    ]
+    dataScanned: Annotated[
+        str,
+        ApiDescription("Whether the query scanned the `full` data set or only a `partial` sample"),
+    ]
+    bytesScanned: Annotated[int, ApiDescription("Number of bytes the query scanned")]
     routingHint: str
-    debug_info: Any
+    debug_info: Annotated[
+        Any,
+        ApiDescription("Debug information about the query. Only present when `debug` is passed"),
+    ]
     ingestion: IngestionMeta
 
 
 # Only used for api docs
 class EventsApiResponse(TypedDict):
-    data: list[dict[str, Any]]
+    data: Annotated[
+        list[dict[str, Any]],
+        ApiDescription("Rows returned by the query, keyed by the requested fields"),
+    ]
     meta: EventsMeta
 
 
@@ -159,7 +187,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         batch_features = features.batch_has(
             feature_names,
             organization=organization,
-            actor=request.user,
+            actor=acting_user(request.user),
         )
 
         all_features: dict[str, bool] = {}

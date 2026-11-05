@@ -12,8 +12,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -46,7 +46,7 @@ function FingerprintRulesForm({
         .mutateAsync(value)
         .then(() => {
           formApi.reset(value);
-          addSuccessMessage(t('Fingerprint rules updated.'));
+          toast.success(t('Fingerprint rules updated.'));
         })
         .catch((error: unknown) => {
           // Surface API validation errors (e.g. invalid rule syntax) inline.
@@ -59,7 +59,7 @@ function FingerprintRulesForm({
           ) {
             return;
           }
-          addErrorMessage(t('Unable to save changes.'));
+          toast.error(t('Unable to save changes.'));
         }),
   });
 
@@ -152,7 +152,7 @@ function StackTraceRulesForm({
         .mutateAsync(value)
         .then(() => {
           formApi.reset(value);
-          addSuccessMessage(t('Stack trace rules updated.'));
+          toast.success(t('Stack trace rules updated.'));
         })
         .catch((error: unknown) => {
           // Surface API validation errors (e.g. invalid rule syntax) inline.
@@ -165,7 +165,7 @@ function StackTraceRulesForm({
           ) {
             return;
           }
-          addErrorMessage(t('Unable to save changes.'));
+          toast.error(t('Unable to save changes.'));
         }),
   });
 

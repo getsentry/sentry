@@ -12,7 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectEnvironments from 'sentry/views/settings/project/projectEnvironments';
+import ProjectEnvironments from './projectEnvironments';
 
 function renderComponent(isHidden: boolean) {
   const {organization, project} = initializeOrg();
