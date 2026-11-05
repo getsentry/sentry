@@ -3,12 +3,12 @@ import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 import {createBarSeries} from 'sentry/components/charts/series/barSeries';
-import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 
 import {
   ContinuousTimeSeries,
   type ContinuousTimeSeriesConfig,
   type ContinuousTimeSeriesPlottingOptions,
+  isLowConfidenceDataPoint,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
@@ -55,14 +55,14 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
           opacity: 1,
         },
         data: scaledTimeSeries.values.map(datum => {
-          const dataPoint = timeSeriesItemToEChartsDataPoint(datum);
+          const dataPoint = this.toDataPoint(datum);
 
-          if (!this.segmentBy.includes('confidence') || datum.confidence !== 'low') {
+          if (!isLowConfidenceDataPoint(dataPoint)) {
             return dataPoint;
           }
 
           return {
-            value: dataPoint,
+            ...dataPoint,
             itemStyle: {
               decal: {
                 ...LOW_CONFIDENCE_DECAL,

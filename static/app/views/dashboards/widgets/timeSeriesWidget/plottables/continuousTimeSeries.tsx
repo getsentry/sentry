@@ -2,9 +2,11 @@ import type {SeriesOption} from 'echarts';
 
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
+import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import type {
   TimeSeries,
+  TimeSeriesItem,
   TimeSeriesValueUnit,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
@@ -34,6 +36,12 @@ export type ContinuousTimeSeriesConfig = {
   segmentBy?: readonly TimeSeriesSegmentField[];
 };
 
+export type ContinuousTimeSeriesDataPoint = {
+  value: ReturnType<typeof timeSeriesItemToEChartsDataPoint>;
+  confidence?: TimeSeriesItem['confidence'];
+  incomplete?: boolean;
+};
+
 export type ContinuousTimeSeriesPlottingOptions = {
   /**
    * Final plottable color. If no color is specified in configuration, a fallback must be provided while attempting to plot
@@ -58,17 +66,11 @@ export abstract class ContinuousTimeSeries<
   // Ideally both the `timeSeries` and `config` would be protected properties.
   timeSeries: Readonly<TimeSeries>;
   #timestamps: readonly number[];
-  #lowConfidenceTimestamps: ReadonlySet<number>;
   config?: Readonly<TConfig>;
 
   constructor(timeSeries: TimeSeries, config?: TConfig) {
     this.timeSeries = timeSeries;
     this.#timestamps = timeSeries.values.map(datum => datum.timestamp).toSorted();
-    this.#lowConfidenceTimestamps = new Set(
-      timeSeries.values
-        .filter(datum => datum.confidence === 'low')
-        .map(datum => datum.timestamp)
-    );
     this.config = config;
   }
 
@@ -130,11 +132,15 @@ export abstract class ContinuousTimeSeries<
     return this.config?.segmentBy ?? DEFAULT_SEGMENT_BY;
   }
 
-  isLowConfidenceAt(timestamp: number): boolean {
-    return (
-      this.segmentBy.includes('confidence') &&
-      this.#lowConfidenceTimestamps.has(timestamp)
-    );
+  /**
+   * Converts an item to an ECharts data point. Fields the plottable segments by ride along on the point, so the tooltip can read them for whichever point is hovered
+   */
+  protected toDataPoint(item: TimeSeriesItem): ContinuousTimeSeriesDataPoint {
+    return {
+      value: timeSeriesItemToEChartsDataPoint(item),
+      confidence: this.segmentBy.includes('confidence') ? item.confidence : undefined,
+      incomplete: this.segmentBy.includes('completeness') ? item.incomplete : undefined,
+    };
   }
 
   scaleToUnit(destinationUnit: TimeSeriesValueUnit): TimeSeries {
@@ -145,3 +151,12 @@ export abstract class ContinuousTimeSeries<
 }
 
 const DEFAULT_SEGMENT_BY: readonly TimeSeriesSegmentField[] = ['completeness'];
+
+export function isLowConfidenceDataPoint(data: unknown): boolean {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'confidence' in data &&
+    data.confidence === 'low'
+  );
+}

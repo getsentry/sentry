@@ -6,7 +6,6 @@ import {
   segmentTimeSeriesByDisplayStyle,
   type TimeSeriesDisplayStyle,
 } from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
-import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 
 import {
   ContinuousTimeSeries,
@@ -35,8 +34,8 @@ export class Line extends ContinuousTimeSeries implements Plottable {
       createLineSeries({
         ...commonOptions,
         ...STYLE_OPTIONS[style],
-        data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
-          timeSeriesItemToEChartsDataPoint
+        data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(item =>
+          this.toDataPoint(item)
         ),
       })
     );

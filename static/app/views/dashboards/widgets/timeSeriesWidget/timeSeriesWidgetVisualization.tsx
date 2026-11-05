@@ -62,7 +62,7 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
-import {ContinuousTimeSeries} from './plottables/continuousTimeSeries';
+import {isLowConfidenceDataPoint} from './plottables/continuousTimeSeries';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
@@ -413,17 +413,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
         );
 
-        // Look up by timestamp, not `dataIndex`. Lines are split into several
-        // series by display style, so `dataIndex` is relative to each segment
-        const timestamp = Array.isArray(valueFormatterParams.value)
-          ? valueFormatterParams.value[0]
-          : undefined;
-
-        if (
-          correspondingPlottable instanceof ContinuousTimeSeries &&
-          typeof timestamp === 'number' &&
-          correspondingPlottable.isLowConfidenceAt(timestamp)
-        ) {
+        if (isLowConfidenceDataPoint(valueFormatterParams.data)) {
           return `${formattedValue} <span style="color: ${theme.tokens.content.warning}">${escape(t('(Low confidence)'))}</span>`;
         }
 

@@ -1,5 +1,7 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
+import {defined} from 'sentry/utils/defined';
+
 import {Line} from './line';
 
 describe('Line', () => {
@@ -29,5 +31,28 @@ describe('Line', () => {
     const series = new Line(timeSeries, {segmentBy}).toSeries(plottingOptions);
 
     expect(series.map(s => s.lineStyle?.type)).toEqual(lineStyles);
+  });
+
+  it.each([
+    {segmentBy: [], flags: [{}, {}, {}]},
+    {segmentBy: ['completeness'], flags: [{}, {}, {incomplete: true}]},
+    {segmentBy: ['confidence'], flags: [{}, {confidence: 'low'}, {}]},
+  ] as const)('attaches flags for $segmentBy to data points', ({segmentBy, flags}) => {
+    const series = new Line(timeSeries, {segmentBy}).toSeries(plottingOptions);
+    const dataPoints = series.flatMap(s => s.data as Array<Record<string, unknown>>);
+
+    const flagsByTimestamp = new Map(
+      dataPoints.map(({value, confidence, incomplete}) => [
+        (value as [number, number])[0],
+        {
+          ...(defined(confidence) && {confidence}),
+          ...(defined(incomplete) && {incomplete}),
+        },
+      ])
+    );
+
+    expect(timeSeries.values.map(item => flagsByTimestamp.get(item.timestamp))).toEqual(
+      flags
+    );
   });
 });

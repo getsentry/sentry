@@ -1,5 +1,7 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
+import {defined} from 'sentry/utils/defined';
+
 import {Bars} from './bars';
 
 describe('Bars', () => {
@@ -38,7 +40,11 @@ describe('Bars', () => {
     const [series] = new Bars(timeSeries, {segmentBy}).toSeries(plottingOptions);
     const getColor = series!.itemStyle!.color as (params: {dataIndex: number}) => string;
 
-    expect(series!.data!.map(datum => !Array.isArray(datum))).toEqual(hatched);
+    expect(
+      series!.data!.map(datum =>
+        defined((datum as {itemStyle?: {decal?: unknown}}).itemStyle?.decal)
+      )
+    ).toEqual(hatched);
     expect(
       timeSeries.values.map(
         (_, dataIndex) => getColor({dataIndex}) !== plottingOptions.color
