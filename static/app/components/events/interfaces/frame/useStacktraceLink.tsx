@@ -1,11 +1,8 @@
-import type {UseQueryOptions} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
 import type {Event, Frame} from 'sentry/types/event';
 import type {StacktraceLinkResult} from 'sentry/types/integrations';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 import {isUnlinkableFilename} from './utils';
 
@@ -67,17 +64,7 @@ const stacktraceLinkOptions = (
 
 export function useStacktraceLink(
   {event, frame, orgSlug, projectSlug}: UseStacktraceLinkProps,
-  options: Partial<
-    Omit<
-      UseQueryOptions<
-        ApiResponse<StacktraceLinkResult>,
-        Error,
-        StacktraceLinkResult,
-        ApiQueryKey
-      >,
-      'queryKey' | 'queryFn' | 'select'
-    >
-  > = {}
+  options: {enabled?: boolean} = {}
 ) {
   const query = buildStacktraceLinkQuery(event, frame);
   return useQuery({

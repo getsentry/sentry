@@ -1,10 +1,7 @@
-import type {UseQueryOptions} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
 import type {Event, Frame} from 'sentry/types/event';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 import {buildStacktraceLinkQuery} from './useStacktraceLink';
 
@@ -42,17 +39,7 @@ const sourceContextOptions = (
 
 export function useSourceContext(
   {event, frame, orgSlug, projectSlug}: UseSourceContextProps,
-  options: Partial<
-    Omit<
-      UseQueryOptions<
-        ApiResponse<SourceContextResponse>,
-        Error,
-        SourceContextResponse,
-        ApiQueryKey
-      >,
-      'queryKey' | 'queryFn' | 'select'
-    >
-  > = {}
+  options: {enabled?: boolean} = {}
 ) {
   const query = {
     ...buildStacktraceLinkQuery(event, frame),
