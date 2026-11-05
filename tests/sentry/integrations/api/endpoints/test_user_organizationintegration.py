@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import orjson
 
+from sentry.roles.manager import OrganizationRole
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -26,13 +27,13 @@ class MockOrganizationRoles:
         {"id": "alice", "name": "Alice", "desc": "In Wonderland"},
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         from sentry.roles.manager import RoleManager
 
         self.default_manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
         self.organization_roles = self.default_manager.organization_roles
 
-    def get(self, x):
+    def get(self, x: str) -> OrganizationRole:
         return self.organization_roles.get(x)
 
 

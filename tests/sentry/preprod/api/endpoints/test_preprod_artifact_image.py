@@ -20,14 +20,14 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         self.image_id = "test-image-123"
         self.base_path = f"/api/0/{self.org.slug}/{self.project.slug}/files/images/{self.image_id}/"
 
-    def _get_url(self, image_id=None):
+    def _get_url(self, image_id: str | None = None) -> str:
         image_id = image_id or self.image_id
         return reverse(
             "sentry-api-0-project-preprod-artifact-image",
             args=[self.org.slug, self.project.slug, image_id],
         )
 
-    def _create_mock_session(self, image_data, content_type):
+    def _create_mock_session(self, image_data: bytes, content_type: str) -> MagicMock:
         """Create a mock object store session that returns the given data and content type."""
         mock_result = MagicMock()
         mock_result.payload.read.return_value = image_data
@@ -41,7 +41,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.logger")
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
     def test_explicit_app_icon_type_does_not_require_prefix(
-        self, mock_get_session, mock_logger
+        self, mock_get_session: MagicMock, mock_logger: MagicMock
     ) -> None:
         image_id = "opaque-icon-id"
         icon_data = b"app icon"
@@ -57,7 +57,9 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         mock_logger.info.assert_not_called()
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_explicit_snapshot_type_uses_shared_fallback(self, mock_get_snapshot_storage) -> None:
+    def test_explicit_snapshot_type_uses_shared_fallback(
+        self, mock_get_snapshot_storage: MagicMock
+    ) -> None:
         image_id = "opaque-snapshot-id"
         object_key = f"{self.org.id}/{self.project.id}/{image_id}"
         image_data = b"snapshot image"
@@ -76,7 +78,9 @@ class ProjectPreprodArtifactImageTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
-    def test_rejects_unknown_image_type(self, mock_get_session, mock_get_snapshot_storage) -> None:
+    def test_rejects_unknown_image_type(
+        self, mock_get_session: MagicMock, mock_get_snapshot_storage: MagicMock
+    ) -> None:
         response = self.client.get(self._get_url("opaque-image-id"), {"image_type": "attachments"})
 
         assert response.status_code == 400
@@ -85,7 +89,9 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         mock_get_snapshot_storage.assert_not_called()
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_omitted_image_type_ignores_icon_prefix(self, mock_get_snapshot_storage) -> None:
+    def test_omitted_image_type_ignores_icon_prefix(
+        self, mock_get_snapshot_storage: MagicMock
+    ) -> None:
         image_id = "icn_123456789abc"
         icon_data = b"app icon"
         session = self._create_mock_session(icon_data, "image/png")
@@ -101,7 +107,9 @@ class ProjectPreprodArtifactImageTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.logger")
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
-    def test_app_icon_falls_back_to_preprod(self, mock_get_session, mock_logger) -> None:
+    def test_app_icon_falls_back_to_preprod(
+        self, mock_get_session: MagicMock, mock_logger: MagicMock
+    ) -> None:
         image_id = "opaque-icon-id"
         object_key = f"{self.org.id}/{self.project.id}/{image_id}"
         icon_data = b"legacy app icon"
@@ -127,7 +135,9 @@ class ProjectPreprodArtifactImageTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.logger")
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
-    def test_app_icon_missing_from_both_usecases(self, mock_get_session, mock_logger) -> None:
+    def test_app_icon_missing_from_both_usecases(
+        self, mock_get_session: MagicMock, mock_logger: MagicMock
+    ) -> None:
         session = MagicMock()
         session.get.return_value = None
         mock_get_session.return_value = session
@@ -149,7 +159,9 @@ class ProjectPreprodArtifactImageTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.logger")
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
-    def test_app_icon_storage_error_does_not_fall_back(self, mock_get_session, mock_logger) -> None:
+    def test_app_icon_storage_error_does_not_fall_back(
+        self, mock_get_session: MagicMock, mock_logger: MagicMock
+    ) -> None:
         mock_get_session.return_value.get.side_effect = RequestError("unavailable", 503, "")
 
         response = self.client.get(
@@ -161,7 +173,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         mock_logger.info.assert_not_called()
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_successful_image_retrieval_png(self, mock_get_session):
+    def test_successful_image_retrieval_png(self, mock_get_session: MagicMock) -> None:
         png_data = b"\x89PNG\r\n\x1a\n" + b"fake png content" * 100
         mock_session = self._create_mock_session(png_data, "image/png")
         mock_get_session.return_value = mock_session
@@ -178,7 +190,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_successful_image_retrieval_jpeg(self, mock_get_session):
+    def test_successful_image_retrieval_jpeg(self, mock_get_session: MagicMock) -> None:
         jpeg_data = b"\xff\xd8\xff" + b"fake jpeg content" * 100
         mock_session = self._create_mock_session(jpeg_data, "image/jpeg")
         mock_get_session.return_value = mock_session
@@ -195,7 +207,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_successful_image_retrieval_webp(self, mock_get_session):
+    def test_successful_image_retrieval_webp(self, mock_get_session: MagicMock) -> None:
         webp_data = b"RIFF" + b"1234" + b"WEBP" + b"fake webp content" * 100
         mock_session = self._create_mock_session(webp_data, "image/webp")
         mock_get_session.return_value = mock_session
@@ -212,7 +224,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_unknown_image_format(self, mock_get_session):
+    def test_unknown_image_format(self, mock_get_session: MagicMock) -> None:
         unknown_data = b"unknown binary data" * 50
         mock_session = self._create_mock_session(unknown_data, "application/octet-stream")
         mock_get_session.return_value = mock_session
@@ -229,7 +241,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_content_disposition_with_filename(self, mock_get_session):
+    def test_content_disposition_with_filename(self, mock_get_session: MagicMock) -> None:
         mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
         mock_get_session.return_value = mock_session
 
@@ -245,7 +257,9 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response["Content-Disposition"] == 'inline; filename="alert-dark-danger-no-icon.png"'
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_no_content_disposition_without_filename_param(self, mock_get_session):
+    def test_no_content_disposition_without_filename_param(
+        self, mock_get_session: MagicMock
+    ) -> None:
         mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
         mock_get_session.return_value = mock_session
 
@@ -258,7 +272,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert not response.has_header("Content-Disposition")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_content_disposition_strips_path_traversal(self, mock_get_session):
+    def test_content_disposition_strips_path_traversal(self, mock_get_session: MagicMock) -> None:
         mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
         mock_get_session.return_value = mock_session
 
@@ -274,7 +288,9 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response["Content-Disposition"] == 'inline; filename="alert-dark-danger-no-icon.png"'
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_content_disposition_strips_parent_dir_traversal(self, mock_get_session):
+    def test_content_disposition_strips_parent_dir_traversal(
+        self, mock_get_session: MagicMock
+    ) -> None:
         mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
         mock_get_session.return_value = mock_session
 
@@ -290,7 +306,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response["Content-Disposition"] == 'inline; filename="passwd"'
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_content_disposition_strips_header_injection(self, mock_get_session):
+    def test_content_disposition_strips_header_injection(self, mock_get_session: MagicMock) -> None:
         mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
         mock_get_session.return_value = mock_session
 
@@ -309,7 +325,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert not response.has_header("Set-Cookie")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_content_disposition_strips_quotes(self, mock_get_session):
+    def test_content_disposition_strips_quotes(self, mock_get_session: MagicMock) -> None:
         mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
         mock_get_session.return_value = mock_session
 
@@ -325,7 +341,9 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response["Content-Disposition"] == 'inline; filename="foo.png"'
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_no_content_disposition_when_filename_empties_out(self, mock_get_session):
+    def test_no_content_disposition_when_filename_empties_out(
+        self, mock_get_session: MagicMock
+    ) -> None:
         mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
         mock_get_session.return_value = mock_session
 
@@ -341,7 +359,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert not response.has_header("Content-Disposition")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_content_disposition_non_ascii_filename(self, mock_get_session):
+    def test_content_disposition_non_ascii_filename(self, mock_get_session: MagicMock) -> None:
         mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
         mock_get_session.return_value = mock_session
 
@@ -372,7 +390,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response.status_code == 403
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_objectstore_404_returns_404(self, mock_get_session):
+    def test_objectstore_404_returns_404(self, mock_get_session: MagicMock) -> None:
         mock_session = MagicMock()
         mock_session.get.return_value = None
         mock_get_session.return_value = mock_session
@@ -386,7 +404,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response.json() == {"detail": "Image not found"}
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    def test_error_handling_returns_json(self, mock_get_session):
+    def test_error_handling_returns_json(self, mock_get_session: MagicMock) -> None:
         mock_session = MagicMock()
         mock_session.get.side_effect = Exception("Storage error")
         mock_get_session.return_value = mock_session

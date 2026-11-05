@@ -1,6 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
-import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {areAiFeaturesAllowed} from './areAiFeaturesAllowed';
 
 /**
  * Checks if Seer Explorer is enabled for the organization.

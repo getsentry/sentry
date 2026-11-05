@@ -13,7 +13,6 @@ import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {commentStoryAuthors} from 'sentry/views/investigations/__stories__/commentStoryFixtures';
 import type {ActionRequestError} from 'sentry/views/investigations/api';
 import {
   InvestigationBlockExecutionFixture,
@@ -36,6 +35,8 @@ import type {
   InvestigationOrchestrationCommand,
   InvestigationTitleGeneration,
 } from 'sentry/views/investigations/types';
+
+import {commentStoryAuthors} from './commentStoryFixtures';
 
 type FixtureApiMode = 'success' | 'loading' | 'error';
 

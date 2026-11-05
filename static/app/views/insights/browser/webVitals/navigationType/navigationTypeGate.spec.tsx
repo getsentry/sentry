@@ -6,14 +6,15 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DashboardFilterKeys, WidgetType} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {NavigationTypeGate} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeGate';
+import {SpanFields} from 'sentry/views/insights/types';
+
+import {NavigationTypeGate} from './navigationTypeGate';
 import {
   buildNavigationTypeGlobalFilter,
   NAVIGATION_TYPE_BUCKET_ORDER,
   NavigationTypeBucket,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
-import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
-import {SpanFields} from 'sentry/views/insights/types';
+} from './settings';
+import {navigationTypeSuppressesThresholds} from './utils';
 
 describe('NavigationTypeGate', () => {
   const organization = OrganizationFixture({

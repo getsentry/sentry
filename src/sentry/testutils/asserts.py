@@ -1,10 +1,12 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from functools import reduce
+from typing import Any
 from unittest import mock
 
 from django.db import models
 from django.db.models.functions import Cast
+from django.http import HttpResponse
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.types import EventLifecycleOutcome
@@ -16,7 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-def assert_mock_called_once_with_partial(mock, *args, **kwargs):
+def assert_mock_called_once_with_partial(mock: mock.Mock, *args: object, **kwargs: object) -> None:
     """
     Similar to ``mock.assert_called_once_with()``, but we don't require all
     args and kwargs to be specified.
@@ -29,7 +31,7 @@ def assert_mock_called_once_with_partial(mock, *args, **kwargs):
         assert m_kwargs[kwarg] == kwargs[kwarg], (m_kwargs[kwarg], kwargs[kwarg])
 
 
-def assert_commit_shape(commit):
+def assert_commit_shape(commit: Mapping[str, Any]) -> None:
     assert commit["id"]
     assert commit["repository"]
     assert commit["author_email"]
@@ -43,7 +45,7 @@ def assert_commit_shape(commit):
         assert patch["path"]
 
 
-def assert_status_code(response, minimum: int, maximum: int | None = None):
+def assert_status_code(response: HttpResponse, minimum: int, maximum: int | None = None) -> None:
     # Omit max to assert status_code == minimum.
     maximum = maximum or minimum + 1
     assert minimum <= response.status_code < maximum, response
@@ -69,7 +71,7 @@ def assert_no_organization_resource_hydration() -> Iterator[None]:
 
 def assert_existing_projects_status(
     org: Organization, active_project_ids: list[int], deleted_project_ids: list[int]
-):
+) -> None:
     all_projects = Project.objects.filter(organization=org).values_list("id", "status")
     active_ids = []
     deleted_or_to_be_deleted_ids = []
@@ -85,10 +87,13 @@ def assert_existing_projects_status(
 
 
 @assume_test_silo_mode(SiloMode.CONTROL)
-def org_audit_log_exists(**kwargs):
+def org_audit_log_exists(**kwargs: object) -> bool:
     assert kwargs
-    if "organization" in kwargs:
-        kwargs["organization_id"] = kwargs.pop("organization").id
+    organization = kwargs.get("organization")
+    if organization is not None:
+        assert isinstance(organization, Organization)
+        kwargs["organization_id"] = organization.id
+        kwargs.pop("organization")
     if "data" in kwargs:
         kwargs["data__asjsonb"] = kwargs.pop("data")
     return (
@@ -99,7 +104,7 @@ def org_audit_log_exists(**kwargs):
     )
 
 
-def assert_org_audit_log_exists(**kwargs):
+def assert_org_audit_log_exists(**kwargs: object) -> None:
     assert org_audit_log_exists(**kwargs)
 
 
@@ -108,7 +113,7 @@ Helper functions to assert integration SLO metrics
 """
 
 
-def assert_halt_metric(mock_record, error_msg):
+def assert_halt_metric(mock_record: mock.Mock, error_msg: object) -> None:
     (event_halts,) = (
         call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.HALTED
     )
@@ -118,7 +123,7 @@ def assert_halt_metric(mock_record, error_msg):
         assert event_halts.args[1] == error_msg
 
 
-def assert_failure_metric(mock_record, error_msg):
+def assert_failure_metric(mock_record: mock.Mock, error_msg: object) -> None:
     (event_failures,) = (
         call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
     )
@@ -128,7 +133,7 @@ def assert_failure_metric(mock_record, error_msg):
         assert event_failures.args[1] == error_msg
 
 
-def assert_success_metric(mock_record):
+def assert_success_metric(mock_record: mock.Mock) -> None:
     event_success = (
         call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.SUCCESS
     )
@@ -136,8 +141,9 @@ def assert_success_metric(mock_record):
 
 
 def assert_slo_metric(
-    mock_record, event_outcome: EventLifecycleOutcome = EventLifecycleOutcome.SUCCESS
-):
+    mock_record: mock.Mock,
+    event_outcome: EventLifecycleOutcome = EventLifecycleOutcome.SUCCESS,
+) -> None:
     assert len(mock_record.mock_calls) == 2
     start, end = mock_record.mock_calls
     assert start.args[0] == EventLifecycleOutcome.STARTED
@@ -145,14 +151,15 @@ def assert_slo_metric(
 
 
 def assert_slo_metric_calls(
-    mock_calls, event_outcome: EventLifecycleOutcome = EventLifecycleOutcome.SUCCESS
-):
+    mock_calls: Sequence[mock._Call],
+    event_outcome: EventLifecycleOutcome = EventLifecycleOutcome.SUCCESS,
+) -> None:
     start, end = mock_calls
     assert start.args[0] == EventLifecycleOutcome.STARTED
     assert end.args[0] == event_outcome
 
 
-def assert_middleware_metrics(middleware_calls):
+def assert_middleware_metrics(middleware_calls: Sequence[mock._Call]) -> None:
     start1, end1, start2, end2 = middleware_calls
     assert start1.args[0] == EventLifecycleOutcome.STARTED
     assert end1.args[0] == EventLifecycleOutcome.SUCCESS
@@ -160,7 +167,9 @@ def assert_middleware_metrics(middleware_calls):
     assert end2.args[0] == EventLifecycleOutcome.SUCCESS
 
 
-def assert_count_of_metric(mock_record, outcome, outcome_count):
+def assert_count_of_metric(
+    mock_record: mock.Mock, outcome: EventLifecycleOutcome, outcome_count: int
+) -> None:
     calls = reduce(
         lambda acc, calls: (acc + 1 if calls.args[0] == outcome else acc),
         mock_record.mock_calls,
@@ -170,7 +179,7 @@ def assert_count_of_metric(mock_record, outcome, outcome_count):
 
 
 # Given messages_or_errors need to align 1:1 to the calls :bufo-big-eyes:
-def assert_many_halt_metrics(mock_record, messages_or_errors):
+def assert_many_halt_metrics(mock_record: mock.Mock, messages_or_errors: Sequence[object]) -> None:
     halts = (
         call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.HALTED
     )
@@ -182,7 +191,9 @@ def assert_many_halt_metrics(mock_record, messages_or_errors):
 
 
 # Given messages_or_errors need to align 1:1 to the calls :bufo-big-eyes:
-def assert_many_failure_metrics(mock_record, messages_or_errors):
+def assert_many_failure_metrics(
+    mock_record: mock.Mock, messages_or_errors: Sequence[object]
+) -> None:
     failures = (
         call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
     )

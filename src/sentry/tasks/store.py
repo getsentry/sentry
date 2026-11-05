@@ -5,7 +5,7 @@ import random
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from time import time
-from typing import Any
+from typing import Any, cast
 
 import orjson
 from sentry_relay.processing import StoreNormalizer
@@ -223,7 +223,7 @@ def _do_preprocess_event(
     # The event will be submitted to Symbolicator for all returned platforms,
     # one after the other, so we handle mixed stacktraces.
     stacktraces = find_stacktraces_in_data(data)
-    symbolicate_functions = get_symbolication_functions(data, stacktraces)
+    symbolicate_functions = get_symbolication_functions(data, stacktraces, project)
     metrics.incr(
         "events.to-symbolicate",
         tags={f.value: True for f in symbolicate_functions},
@@ -566,7 +566,7 @@ def _do_save_event(
     Saves an event to the database.
     """
 
-    set_current_event_project(project_id)
+    set_current_event_project(cast("int", project_id))
 
     from sentry.event_manager import EventManager, resolve_project
     from sentry.exceptions import HashDiscarded

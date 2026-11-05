@@ -13,9 +13,9 @@ from sentry.constants import ObjectStatus
 from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import (
+    InboxCountResponse,
     InboxItemEventResponse,
     InboxItemResponse,
-    InboxUnreadCountResponse,
 )
 from sentry.inbox.types import (
     SYSTEM_ACTOR,
@@ -73,7 +73,7 @@ class MentionedData(InboxEventData):
 
 
 @pytest.mark.parametrize(
-    "response_type", [InboxItemResponse, InboxItemEventResponse, InboxUnreadCountResponse]
+    "response_type", [InboxItemResponse, InboxItemEventResponse, InboxCountResponse]
 )
 def test_response_types_support_openapi(response_type: type) -> None:
     OAS30Validator.check_schema(resolve_type_hint(response_type))
@@ -156,6 +156,23 @@ class RecordTest(TestCase):
                     recipient_user_ids=recipients,
                     actor=InboxActor.user(123),
                 )
+
+    def test_query_count_for_multiple_recipients(self) -> None:
+        group = self.group
+        recipients = [self.user.id, *[self.create_user().id for _ in range(19)]]
+        Organization.objects.get_from_cache(id=self.organization.id)
+
+        for user_ids in ([recipients[0]], recipients, list(reversed(recipients))):
+            with self.subTest(recipient_count=len(user_ids)), self.assertNumQueries(5):
+                ISSUE_USER_MENTIONED.record(
+                    subject=group,
+                    data=IssueMentionedData(summary="Mentioned you", comment_id=123),
+                    recipient_user_ids=user_ids,
+                    actor=SYSTEM_ACTOR,
+                )
+
+        assert InboxItem.objects.count() == 20
+        assert InboxItemEvent.objects.count() == 41
 
     def test_recording_flag(self) -> None:
         for recording, ui in [(False, False), (False, True), (True, False), (True, True)]:
@@ -286,7 +303,7 @@ class RecordTest(TestCase):
     def test_event_failure_rolls_back_item(self) -> None:
         with (
             patch(
-                "sentry.inbox.types.InboxItemEvent.objects.create",
+                "sentry.inbox.types.InboxItemEvent.objects.bulk_create",
                 side_effect=RuntimeError("write failed"),
             ),
             pytest.raises(RuntimeError, match="write failed"),
@@ -301,39 +318,118 @@ class RecordTest(TestCase):
         assert not InboxItem.objects.exists()
         assert not InboxItemEvent.objects.exists()
 
+    def test_update_failure_rolls_back_fanout(self) -> None:
+        read_at = before_now(days=1)
+        item = self.create_inbox_item(
+            subject_id=str(self.group.id),
+            last_read_at=read_at,
+            last_activity_at=before_now(days=2),
+            status=ObjectStatus.PENDING_DELETION,
+        )
+        activity_at, updated_at = item.last_activity_at, item.date_updated
+        other = self.create_user()
+
+        with (
+            patch(
+                "sentry.inbox.types.InboxItem.objects.bulk_update",
+                side_effect=RuntimeError("write failed"),
+            ),
+            pytest.raises(RuntimeError, match="write failed"),
+        ):
+            ISSUE_USER_MENTIONED.record(
+                subject=self.group,
+                data=IssueMentionedData(summary="Mentioned you", comment_id=123),
+                recipient_user_ids=[self.user.id, other.id],
+                actor=SYSTEM_ACTOR,
+            )
+
+        item.refresh_from_db()
+        assert InboxItem.objects.count() == 1
+        assert item.status == ObjectStatus.PENDING_DELETION
+        assert item.last_read_at == read_at
+        assert item.last_activity_at == activity_at
+        assert item.date_updated == updated_at
+        assert not InboxItemEvent.objects.exists()
+
+    def test_activity_timestamp_does_not_move_backwards(self) -> None:
+        activity_at = before_now(days=-1)
+        item = self.create_inbox_item(subject_id=str(self.group.id), last_activity_at=activity_at)
+
+        ISSUE_USER_MENTIONED.record(
+            subject=self.group,
+            data=IssueMentionedData(summary="Mentioned you", comment_id=123),
+            recipient_user_ids=[self.user.id],
+            actor=SYSTEM_ACTOR,
+        )
+
+        item.refresh_from_db()
+        assert item.last_activity_at == activity_at
+        assert item.date_updated == item.events.get().date_added
+
 
 @with_feature("organizations:universal-inbox-recording")
 class RecordConcurrencyTest(TransactionTestCase):
-    def test_concurrent_creates_keep_both_events(self) -> None:
-        group, user = self.group, self.user
+    def _record_concurrently(self, recipient_user_ids: list[int]) -> None:
+        group = self.group
         ready = Barrier(2, timeout=20)
-        save = InboxItem.save
+        bulk_create = InboxItem.objects.bulk_create
 
-        def concurrent_save(item: InboxItem, *args: Any, **kwargs: Any) -> None:
+        def concurrent_create(items: list[InboxItem], **kwargs: Any) -> list[InboxItem]:
             ready.wait()
-            save(item, *args, **kwargs)
+            return bulk_create(items, **kwargs)
 
-        def record(comment_id: int) -> None:
+        def record(comment_id: int, user_ids: list[int]) -> None:
             try:
                 ISSUE_USER_MENTIONED.record(
                     subject=group,
                     data=IssueMentionedData(summary="Mentioned you", comment_id=comment_id),
-                    recipient_user_ids=[user.id],
+                    recipient_user_ids=user_ids,
                     actor=SYSTEM_ACTOR,
                 )
             finally:
                 connections.close_all()
 
         with (
-            patch.object(InboxItem, "save", concurrent_save),
+            patch.object(InboxItem.objects, "bulk_create", concurrent_create),
             ContextPropagatingThreadPoolExecutor(max_workers=2) as executor,
         ):
-            futures = [executor.submit(record, comment_id) for comment_id in (123, 456)]
+            futures = [
+                executor.submit(record, 123, recipient_user_ids),
+                executor.submit(record, 456, list(reversed(recipient_user_ids))),
+            ]
             for future in futures:
                 future.result(timeout=30)
 
-        item = InboxItem.objects.get()
-        events = list(item.events.order_by("date_added"))
-        assert len(events) == 2
-        assert {event.data["comment_id"] for event in events} == {123, 456}
-        assert item.last_activity_at == events[-1].date_added
+    def test_concurrent_creates_keep_both_events(self) -> None:
+        recipients = [self.user.id, self.create_user().id]
+
+        self._record_concurrently(recipients)
+
+        assert InboxItem.objects.count() == 2
+        for item in InboxItem.objects.all():
+            events = list(item.events.order_by("date_added"))
+            assert len(events) == 2
+            assert {event.data["comment_id"] for event in events} == {123, 456}
+            assert item.last_activity_at == events[-1].date_added
+
+    def test_concurrent_fanout_to_existing_and_new_items(self) -> None:
+        read_at = before_now(days=1)
+        existing = self.create_inbox_item(
+            subject_id=str(self.group.id),
+            last_read_at=read_at,
+            last_activity_at=before_now(days=2),
+            status=ObjectStatus.PENDING_DELETION,
+        )
+        recipients = [self.user.id, self.create_user().id, self.create_user().id]
+
+        self._record_concurrently(recipients)
+
+        assert InboxItem.objects.count() == 3
+        for item in InboxItem.objects.all():
+            events = list(item.events.order_by("date_added"))
+            assert len(events) == 2
+            assert {event.data["comment_id"] for event in events} == {123, 456}
+            assert item.last_activity_at == events[-1].date_added
+            assert item.status == ObjectStatus.ACTIVE
+        existing.refresh_from_db()
+        assert existing.last_read_at == read_at

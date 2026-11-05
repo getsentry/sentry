@@ -10,10 +10,11 @@ import {
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {useValidateLogsTab} from './useValidateLogsTab';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (

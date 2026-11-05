@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryStates} from 'nuqs';
+import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -17,19 +17,7 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import {AutomationListTable} from 'sentry/views/automations/components/automationListTable';
-import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
-import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
-import {useAutomationListQueryOptions} from 'sentry/views/automations/hooks/useAutomationListDetectors';
-import {
-  getNoAlertWritePermissionTooltip,
-  useCanCreateAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
-import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {
   LLM_CONTEXT_MAX_ROWS,
   useLLMContext,
@@ -39,6 +27,17 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+
+import {AutomationFeedbackButton} from './components/automationFeedbackButton';
+import {AutomationListTable} from './components/automationListTable';
+import {AutomationSearch} from './components/automationListTable/search';
+import {useAutomationListQueryOptions} from './hooks/useAutomationListDetectors';
+import {
+  getNoAlertWritePermissionTooltip,
+  useCanCreateAutomation,
+} from './hooks/useCanEditAutomation';
+import {AUTOMATION_LIST_PAGE_LIMIT} from './constants';
+import {makeAutomationCreatePathname} from './pathnames';
 
 const CONTEXT_HINT =
   'Sentry alerts list page. Alerts watch monitors and run actions when one fires — Slack and email ' +
@@ -73,8 +72,7 @@ function formatAutomationRows(automations: Automation[]): string {
 
 function AutomationsListInner() {
   const getPaginationCaption = useGetPaginationCaption();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setCursor] = useQueryState('cursor', {history: 'push'});
 
   const {queryOptions, enabled, cursor, sort, query} = useAutomationListQueryOptions();
   const {data, isLoading, isError, isSuccess} = useQuery({
@@ -151,10 +149,7 @@ function AutomationsListInner() {
             pageLinks={pageLinks}
             caption={paginationCaption}
             onCursor={newCursor => {
-              navigate({
-                pathname: location.pathname,
-                query: {...location.query, cursor: newCursor},
-              });
+              setCursor(newCursor ?? null);
             }}
           />
         </div>

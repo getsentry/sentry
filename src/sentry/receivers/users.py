@@ -6,7 +6,7 @@ from sentry.users.models.user import User
 from sentry.utils.settings import is_self_hosted
 
 
-def create_first_user(**kwargs):
+def create_first_user(**kwargs: object) -> None:
     if User.objects.filter(is_superuser=True).exists():
         return
 

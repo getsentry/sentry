@@ -3,8 +3,9 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StackTrace as ExceptionStacktraceContent} from 'sentry/components/events/interfaces/crashContent/exception/stackTrace';
 import {StackType, StackView} from 'sentry/types/stacktrace';
+
+import {StackTrace as ExceptionStacktraceContent} from './stackTrace';
 
 const frames = [
   {

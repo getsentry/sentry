@@ -6,12 +6,8 @@ import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -110,7 +106,7 @@ function OrganizationCreate() {
     },
     validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) => {
-      addLoadingMessage(t('Creating Organization\u2026'));
+      toast.loading(t('Creating Organization\u2026'));
 
       const data: CreateOrganizationPayload = {
         name: schema.parse(value).name,
@@ -132,14 +128,14 @@ function OrganizationCreate() {
           error instanceof RequestError &&
           setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values))
         ) {
-          clearIndicators();
+          toast.dismiss();
           return;
         }
         const detail =
           error instanceof RequestError ? error.responseJSON?.detail : undefined;
-        addErrorMessage(
-          (typeof detail === 'string' ? detail : detail?.message) ??
-            t('Unable to create organization.')
+        const message = typeof detail === 'string' ? detail : detail?.message;
+        toast.error(
+          typeof message === 'string' ? message : t('Unable to create organization.')
         );
       });
     },

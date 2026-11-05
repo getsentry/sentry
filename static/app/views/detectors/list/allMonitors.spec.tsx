@@ -23,11 +23,12 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import AllMonitors from 'sentry/views/detectors/list/allMonitors';
 import {
   LLM_CONTEXT_MAX_ROWS,
   useLLMContext,
 } from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import AllMonitors from './allMonitors';
 
 describe('DetectorsList', () => {
   const organization = OrganizationFixture({

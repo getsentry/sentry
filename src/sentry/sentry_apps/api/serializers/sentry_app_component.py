@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, NotRequired, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.base import serialize
@@ -8,6 +11,8 @@ from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.services.app import SentryAppEventDataInterface
 from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 class SentryAppComponentAppResponse(TypedDict):
@@ -28,7 +33,13 @@ class SentryAppComponentSerializerResponse(TypedDict):
 
 @register(SentryAppComponent)
 class SentryAppComponentSerializer(Serializer[SentryAppComponentSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> SentryAppComponentSerializerResponse:
+    def serialize(
+        self,
+        obj: SentryAppComponent,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> SentryAppComponentSerializerResponse:
         errors = kwargs["errors"]
         installation_uuids: dict[int, str] | None = kwargs.get("installation_uuids")
         data: SentryAppComponentSerializerResponse = {
@@ -49,7 +60,13 @@ class SentryAppComponentSerializer(Serializer[SentryAppComponentSerializerRespon
 
 
 class SentryAppAlertRuleActionSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: SentryAppComponent,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[str, object]:
         event_action: SentryAppEventDataInterface | None = kwargs.get("event_action")
         if not event_action:
             raise AssertionError("Requires event_action keyword argument of type EventAction")

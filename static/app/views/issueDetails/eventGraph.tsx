@@ -41,16 +41,17 @@ import {
   useReleaseBubbles,
 } from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
-import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/constants';
-import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/hooks/useEventMarkLineSeries';
+
+import {useCurrentEventMarklineSeries} from './hooks/useEventMarkLineSeries';
 import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
-} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
-import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/hooks/useReleaseMarkLineSeries';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+} from './hooks/useIssueDetailsDiscoverQuery';
+import {useReleaseMarkLineSeries} from './hooks/useReleaseMarkLineSeries';
+import {EVENT_GRAPH_WIDGET_ID} from './constants';
+import {useIssueDetails} from './context';
+import {Tab} from './types';
+import {useGroupDetailsRoute} from './useGroupDetailsRoute';
 
 enum EventGraphSeries {
   EVENT = 'event',

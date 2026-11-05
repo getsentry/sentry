@@ -1,3 +1,6 @@
+from collections.abc import Mapping
+from typing import cast
+
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
@@ -18,6 +21,12 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+
+
+def _float_comparison(value: float) -> str | int | Mapping[str, object]:
+    return cast("str | int | Mapping[str, object]", value)
+
+
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
@@ -328,8 +337,8 @@ class GetResolveThresholdsTest(TestCase):
         self.create_data_condition(
             condition_group=dcg,
             condition_result=DetectorPriorityLevel.OK,
-            comparison=5.0,
-            type="gte",
+            comparison=_float_comparison(5.0),
+            type=Condition.GREATER_OR_EQUAL,
         )
 
         assert get_resolve_thresholds([dcg]) == {dcg.id: 5.0}
@@ -339,8 +348,8 @@ class GetResolveThresholdsTest(TestCase):
         self.create_data_condition(
             condition_group=dcg,
             condition_result=DetectorPriorityLevel.HIGH,
-            comparison=100.0,
-            type="gte",
+            comparison=_float_comparison(100.0),
+            type=Condition.GREATER_OR_EQUAL,
         )
 
         assert get_resolve_thresholds([dcg]) == {}
@@ -353,20 +362,20 @@ class GetResolveThresholdsTest(TestCase):
         self.create_data_condition(
             condition_group=dcg1,
             condition_result=DetectorPriorityLevel.OK,
-            comparison=10.0,
-            type="gte",
+            comparison=_float_comparison(10.0),
+            type=Condition.GREATER_OR_EQUAL,
         )
         self.create_data_condition(
             condition_group=dcg2,
             condition_result=DetectorPriorityLevel.HIGH,
-            comparison=200.0,
-            type="gte",
+            comparison=_float_comparison(200.0),
+            type=Condition.GREATER_OR_EQUAL,
         )
         self.create_data_condition(
             condition_group=dcg3,
             condition_result=DetectorPriorityLevel.OK,
-            comparison=25.0,
-            type="gte",
+            comparison=_float_comparison(25.0),
+            type=Condition.GREATER_OR_EQUAL,
         )
 
         assert get_resolve_thresholds([dcg1, dcg2, dcg3]) == {

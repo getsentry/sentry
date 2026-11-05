@@ -16,6 +16,8 @@ import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid'
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {IssueListSearchBar} from 'sentry/views/issueList/searchBar';
+
 import {
   AUTOFIX_PHASE_LABELS,
   type AutofixIssue,
@@ -23,8 +25,7 @@ import {
   DEFAULT_ISSUE_QUERY,
   REQUIRED_ISSUE_FILTER,
   useAutofixIssues,
-} from 'sentry/views/autofixIssuesDemo/useAutofixIssues';
-import {IssueListSearchBar} from 'sentry/views/issueList/searchBar';
+} from './useAutofixIssues';
 
 // Tag color per phase: neutral early, warning mid, promotion/success at PR.
 const AUTOFIX_PHASE_VARIANTS: Record<AutofixPhase, TagVariant> = {

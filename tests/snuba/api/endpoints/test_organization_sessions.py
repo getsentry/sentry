@@ -1,24 +1,29 @@
 import datetime
+from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.snuba.metrics import to_intervals
 from sentry.testutils.cases import APITestCase, BaseMetricsTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.link_header import parse_link_header
+from sentry.users.models.user import User
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-def result_sorted(result):
+def result_sorted(result: dict[str, Any]) -> dict[str, Any]:
     """sort the groups of the results array by the `by` object, ensuring a stable order"""
 
-    def stable_dict(d):
+    def stable_dict(d: dict[str, Any]) -> tuple[tuple[str, Any], ...]:
         return tuple(sorted(d.items(), key=lambda t: t[0]))
 
     result["groups"].sort(key=lambda group: stable_dict(group["by"]))
@@ -51,12 +56,12 @@ TEMPLATE = {
 }
 
 
-def make_duration(kwargs):
+def make_duration(kwargs: dict[str, object]) -> float:
     """Randomish but deterministic duration"""
     return float(len(str(kwargs)))
 
 
-def make_session(project, **kwargs):
+def make_session(project: Project, **kwargs: object) -> dict[str, object]:
     return dict(
         dict(
             TEMPLATE,
@@ -88,7 +93,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         super().setUp()
         self.setup_fixture()
 
-    def setup_fixture(self):
+    def setup_fixture(self) -> None:
         self.organization1 = self.organization
         self.organization2 = self.create_organization()
         self.organization3 = self.create_organization()
@@ -128,13 +133,19 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             ]
         )
 
-    def do_request(self, query, user=None, org=None):
+    def do_request(
+        self,
+        query: dict[str, Any],
+        user: User | None = None,
+        org: Organization | None = None,
+    ) -> Response:
         self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-sessions",
             kwargs={"organization_id_or_slug": (org or self.organization).slug},
         )
-        return self.client.get(url, query, format="json")
+        response: Response[Any] = self.client.get(url, query, format="json")
+        return response
 
     def test_empty_request(self) -> None:
         response = self.do_request({})
@@ -382,7 +393,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             "field": ["anr_rate()", "crash_free_rate(user)"],
         }
 
-        def req(**kwargs):
+        def req(**kwargs: object) -> Response:
             return self.do_request(dict(default_request, **kwargs))
 
         response = req()
@@ -1505,7 +1516,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             "interval": "1d",
         }
 
-        def req(**kwargs):
+        def req(**kwargs: object) -> Response:
             return self.do_request(dict(default_request, **kwargs))
 
         response = req(field=["sum(session)"], query="release:foo@*")
@@ -1532,7 +1543,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             "interval": "1d",
         }
 
-        def req(**kwargs):
+        def req(**kwargs: object) -> Response:
             return self.do_request(dict(default_request, **kwargs))
 
         response = req(field=["sum(session)"], query="session.status:bogus")
@@ -1601,7 +1612,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             "groupBy": "release",
         }
 
-        def req(**kwargs):
+        def req(**kwargs: object) -> Response:
             return self.do_request(dict(default_request, **kwargs))
 
         response = req(field=["sum(session)"], query="session.status:healthy")
@@ -1632,7 +1643,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             "interval": "1d",
         }
 
-        def req(**kwargs):
+        def req(**kwargs: object) -> Response:
             return self.do_request(dict(default_request, **kwargs))
 
         response = req(
@@ -1655,7 +1666,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
 
     @freeze_time(MOCK_DATETIME)
     def test_anr_rate(self) -> None:
-        def store_anr_session(user_id, mechanism):
+        def store_anr_session(user_id: str, mechanism: str) -> None:
             self.store_session(
                 make_session(
                     self.project2,
@@ -1699,7 +1710,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             "field": ["anr_rate()"],
         }
 
-        def req(**kwargs):
+        def req(**kwargs: object) -> Response:
             return self.do_request(dict(default_request, **kwargs))
 
         # basic test case
@@ -1748,7 +1759,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             "field": ["crash_rate(session)"],
         }
 
-        def req(**kwargs):
+        def req(**kwargs: object) -> Response:
             return self.do_request(dict(default_request, **kwargs))
 
         # 1 - filter session.status
@@ -1824,7 +1835,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             "field": ["unhealthy_rate(session)"],
         }
 
-        def req(**kwargs):
+        def req(**kwargs: object) -> Response:
             return self.do_request(dict(default_request, **kwargs))
 
         # 1 - filter session.status
@@ -1890,7 +1901,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             "field": ["unhandled_rate(session)"],
         }
 
-        def req(**kwargs):
+        def req(**kwargs: object) -> Response:
             return self.do_request(dict(default_request, **kwargs))
 
         response = req(
@@ -1934,7 +1945,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert group["totals"]["unhandled_rate(session)"] == pytest.approx(2 / 11)
 
     @freeze_time(MOCK_DATETIME)
-    def test_errored_rate(self):
+    def test_errored_rate(self) -> None:
         """
         Test errored_rate(session) metric
         """
@@ -1948,7 +1959,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             ],
         }
 
-        def req(**kwargs):
+        def req(**kwargs: object) -> Response:
             return self.do_request(dict(default_request, **kwargs))
 
         response = req(
@@ -1983,7 +1994,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert group["totals"]["errored_rate(session)"] == pytest.approx(4 / 11)
 
     @freeze_time(MOCK_DATETIME)
-    def test_abnormal_rate(self):
+    def test_abnormal_rate(self) -> None:
         """
         Test abnormal_rate(session) metric
         """
@@ -2004,7 +2015,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             ],
         }
 
-        def req(**kwargs):
+        def req(**kwargs: object) -> Response:
             return self.do_request(dict(default_request, **kwargs))
 
         response = req(
@@ -2040,7 +2051,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
 
     @freeze_time(MOCK_DATETIME)
     def test_pagination(self) -> None:
-        def do_request(cursor):
+        def do_request(cursor: str | None) -> Response:
             return self.do_request(
                 {
                     "project": self.project.id,  # project without users

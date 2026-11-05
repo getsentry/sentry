@@ -187,6 +187,13 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
 
 @cell_silo_test
 class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
+    def test_discovery_exclusion_does_not_block_detail(self) -> None:
+        with override_detector_api_availability(
+            MetricIssue.slug, {DetectorAPIOperation.DISCOVER: False}
+        ):
+            response = self.get_success_response(self.organization.slug, self.detector.id)
+        assert response.data == serialize(self.detector)
+
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.detector.id)
         assert response.data == serialize(self.detector)

@@ -1,5 +1,6 @@
 import {AnsiText} from 'sentry/components/ansiText';
-import {LogsHighlight} from 'sentry/views/explore/logs/styles';
+
+import {LogsHighlight} from './styles';
 
 interface LogsAnsiHighlightProps {
   children: string;

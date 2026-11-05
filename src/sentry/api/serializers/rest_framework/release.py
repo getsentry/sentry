@@ -5,6 +5,8 @@ from sentry.api.serializers.rest_framework import CommitSerializer
 from sentry.constants import COMMIT_RANGE_DELIMITER, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release, ReleaseStatus
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 class ReleaseHeadCommitSerializerDeprecated(serializers.Serializer):
@@ -22,7 +24,7 @@ class ReleaseHeadCommitSerializer(serializers.Serializer):
         max_length=MAX_COMMIT_LENGTH, required=False, allow_null=True, allow_blank=True
     )
 
-    def validate_commit(self, value):
+    def validate_commit(self, value: str) -> str:
         """
         Value can be either a single commit or a commit range (1a2b3c..6f5e4d)
         """
@@ -82,7 +84,7 @@ class ReleaseSerializer(serializers.Serializer):
         help_text="The status of the release. Can be `open` or `archived`.",
     )
 
-    def validate_status(self, value):
+    def validate_status(self, value: str) -> int:
         try:
             return ReleaseStatus.from_string(value)
         except ValueError:
@@ -101,12 +103,12 @@ class ReleaseWithVersionSerializer(ReleaseSerializer):
         help_text="The username of the user to set as the release owner.",
     )
 
-    def validate_version(self, value):
+    def validate_version(self, value: str) -> str:
         if not Release.is_valid_version(value):
             raise serializers.ValidationError("Release with name %s is not allowed" % value)
         return value
 
-    def validate_owner(self, owner):
+    def validate_owner(self, owner: User | RpcUser) -> User | RpcUser:
         if not OrganizationMember.objects.filter(
             organization=self.context["organization"], user_id=owner.id
         ).exists():

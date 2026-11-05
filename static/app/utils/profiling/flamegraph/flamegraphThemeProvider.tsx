@@ -4,11 +4,9 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {
-  makeDarkFlamegraphTheme,
-  makeLightFlamegraphTheme,
-} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+
+import type {FlamegraphTheme} from './flamegraphTheme';
+import {makeDarkFlamegraphTheme, makeLightFlamegraphTheme} from './flamegraphTheme';
 
 export const FlamegraphThemeContext = createContext<FlamegraphTheme | null>(null);
 

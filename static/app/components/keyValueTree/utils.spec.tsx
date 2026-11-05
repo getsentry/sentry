@@ -1,7 +1,4 @@
-import {
-  buildKeyValueTree,
-  getKeyValueTreeColumns,
-} from 'sentry/components/keyValueTree/utils';
+import {buildKeyValueTree, getKeyValueTreeColumns} from './utils';
 
 function item(key: string, value: string) {
   return {key, value, original: {key, value}};

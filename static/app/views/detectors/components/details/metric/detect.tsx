@@ -21,7 +21,6 @@ import type {
   MetricDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
-import {AggregateSummaryTable} from 'sentry/views/detectors/components/details/metric/aggregateSummaryTable';
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
@@ -32,6 +31,8 @@ import {
 } from 'sentry/views/detectors/utils/anomalyDetectionLabels';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
+
+import {AggregateSummaryTable} from './aggregateSummaryTable';
 
 function getDetectorTypeLabel(detector: MetricDetector) {
   if (detector.config.detectionType === 'dynamic') {

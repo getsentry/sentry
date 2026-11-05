@@ -3,12 +3,8 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {
@@ -63,7 +59,7 @@ export function IntegrationServerlessRow({
       setIsSubmitting(true);
       // don't know the latest version but at least optimistically remove the update button
       onUpdate({outOfDate: false});
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       recordAction('updateVersion');
       const resp = await api.requestPromise(endpoint, {
         method: 'POST',
@@ -71,11 +67,12 @@ export function IntegrationServerlessRow({
       });
       // update remaining after response
       onUpdate(resp);
-      addSuccessMessage(t('Success'));
+      toast.success(t('Success'));
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
-      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
+      const detail: unknown = err.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Error occurred'));
     }
     setIsSubmitting(false);
   }, [api, endpoint, onUpdate, recordAction, serverlessFunction]);
@@ -87,7 +84,7 @@ export function IntegrationServerlessRow({
       target: serverlessFunction.name,
     };
     try {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       setIsSubmitting(true);
       // optimistically update enable state
       onUpdate({enabled: !serverlessFunction.enabled});
@@ -98,11 +95,12 @@ export function IntegrationServerlessRow({
       });
       // update remaining after response
       onUpdate(resp);
-      addSuccessMessage(t('Success'));
+      toast.success(t('Success'));
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
-      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
+      const detail: unknown = err.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Error occurred'));
     }
     setIsSubmitting(false);
   };

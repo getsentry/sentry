@@ -7,12 +7,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {
-  BuilderStateAction,
-  useWidgetBuilderState,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/utils/serialization.ts';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+import {BuilderStateAction, useWidgetBuilderState} from './useWidgetBuilderState';
 
 type Query = Record<string, string | number | string[]>;
 
@@ -1709,6 +1707,52 @@ describe('useWidgetBuilderState', () => {
       });
       expect(result.current.state.dataset).toBe(WidgetType.LOGS);
       expect(result.current.state.transformations).toBeUndefined();
+    });
+
+    it('loads pipelines when setting the state', () => {
+      const {result} = renderWidgetBuilderState();
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['count()', 'count()'],
+            transformations: '[{"1":["fill(zero)"]}]',
+          },
+        });
+      });
+      expect(result.current.state.transformations).toEqual([{1: ['fill(zero)']}]);
+    });
+
+    it('clears previous pipelines when loading a widget with malformed transformations', () => {
+      const {result} = renderWidgetBuilderState({
+        transformations: '[{"0":["fill(zero)"]}]',
+      });
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['count()'],
+            transformations: '[{"0":"fill(zero)"}]',
+          },
+        });
+      });
+      expect(result.current.state.transformations).toBeUndefined();
+    });
+
+    it('writes pipelines to the URL as JSON', () => {
+      const {result, router} = renderWidgetBuilderState({yAxis: ['count()', 'count()']});
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS,
+          payload: {index: 1, transformations: ['fill(zero)']},
+        });
+      });
+      flushUrlUpdates();
+      expect(router.location.query.transformations).toBe('[{"1":["fill(zero)"]}]');
     });
 
     it.each([
