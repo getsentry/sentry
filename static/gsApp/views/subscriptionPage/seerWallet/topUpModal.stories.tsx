@@ -15,10 +15,10 @@ export default Storybook.story('Seer top-up modal', story => {
     return (
       <Stack gap="md" align="start">
         <Text as="p">
-          What a billing member sees after clicking "Configure auto reload" in the out-of-credits CTA:
-          the balance, then the auto top-up settings from the billing page. This one opens
-          with sample wallet data instead of loading yours; Save still writes your
-          organization's settings.
+          What a billing member sees after clicking "Configure auto reload" in the
+          out-of-credits CTA: the balance, then the auto top-up settings from the billing
+          page. This one opens with sample wallet data instead of loading yours; Save
+          still writes your organization's settings.
         </Text>
         <Button
           onClick={() =>
