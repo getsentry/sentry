@@ -11,12 +11,9 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.auth.principal import acting_user_id, has_user
-from sentry.telemetry_classifiers.models import (
-    TelemetryClassifier,
-    TelemetryClassifierDataset,
-    TelemetryClassifierStatus,
-)
+from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS, PrebuiltClassifier
+from sentry.telemetry_classifiers.types import Dataset, TelemetryClassifierStatus
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -124,7 +121,7 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
         max_length=256,
         help_text="The attribute the classifier writes its result to. Must be unique per project.",
     )
-    dataset = serializers.ChoiceField(choices=TelemetryClassifierDataset.choices)
+    dataset = serializers.ChoiceField(choices=Dataset.choices)
     filter_query = serializers.CharField(
         required=False,
         allow_blank=True,
