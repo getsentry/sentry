@@ -45,6 +45,7 @@ class IssueItemType(InboxItemType[Group]):
 @dataclass(frozen=True, kw_only=True)
 class IssueAssignedData(InboxEventData):
     assignment_source: ActivityIntegration | None
+    activity_id: int
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -110,6 +111,7 @@ def record_issue_assignment(
     *,
     group: Group,
     assignee: Team | User | RpcUser,
+    activity_id: int,
     assignment_source: ActivityIntegration | None,
     actor: InboxActor,
 ) -> None:
@@ -125,6 +127,7 @@ def record_issue_assignment(
             if is_team
             else InboxEventSummary.ISSUE_USER_ASSIGNED,
             assignment_source=assignment_source,
+            activity_id=activity_id,
         ),
         recipient_user_ids=_get_recipient_user_ids(
             group,

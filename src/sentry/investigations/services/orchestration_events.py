@@ -304,7 +304,11 @@ def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
     # Remember skipped completions too: enabling recording or restoring access must
     # not backfill old notifications when Seer replays a completed projection.
     control["inboxCompletedGeneration"] = run.generation
-    record_notebook_completed(notebook=run.investigation, seer_run_id=seer_run.seer_run_state_id)
+    record_notebook_completed(
+        notebook=run.investigation,
+        seer_run_id=seer_run.seer_run_state_id,
+        generation=run.generation,
+    )
 
 
 def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -> None:

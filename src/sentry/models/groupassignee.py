@@ -227,7 +227,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             )
             data = self.get_assigned_to_data(assigned_to, assignee_type, extra)
 
-            Activity.objects.create_group_activity(
+            activity = Activity.objects.create_group_activity(
                 group,
                 ActivityType.ASSIGNED,
                 user=acting_user,
@@ -245,6 +245,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                     record_issue_assignment,
                     group=group,
                     assignee=assigned_to,
+                    activity_id=activity.id,
                     assignment_source=inbox_assignment_source,
                     actor=InboxActor.user(acting_user.id)
                     if acting_user is not None

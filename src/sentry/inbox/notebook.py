@@ -41,6 +41,7 @@ class NotebookItemType(InboxItemType[Notebook]):
 @dataclass(frozen=True, kw_only=True)
 class NotebookCompletedData(InboxEventData):
     seer_run_id: int  # Seer DbRunState ID, matching issue inbox events.
+    generation: int
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -76,7 +77,7 @@ inbox_item_event_type_registry.register(NOTEBOOK_PARTICIPANT_ADDED.event_type)(
 )
 
 
-def record_notebook_completed(*, notebook: Notebook, seer_run_id: int) -> None:
+def record_notebook_completed(*, notebook: Notebook, seer_run_id: int, generation: int) -> None:
     user_id = notebook.created_by_id
     if user_id is None:
         return
@@ -95,7 +96,9 @@ def record_notebook_completed(*, notebook: Notebook, seer_run_id: int) -> None:
     NOTEBOOK_COMPLETED.record(
         subject=notebook,
         data=NotebookCompletedData(
-            summary=InboxEventSummary.NOTEBOOK_COMPLETED, seer_run_id=seer_run_id
+            summary=InboxEventSummary.NOTEBOOK_COMPLETED,
+            seer_run_id=seer_run_id,
+            generation=generation,
         ),
         recipient_user_ids=[user_id],
         actor=SYSTEM_ACTOR,

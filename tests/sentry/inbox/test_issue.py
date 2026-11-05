@@ -103,7 +103,12 @@ class IssueProducerRecordingTest(TestCase):
         assert event.inbox_item.user_id == assignee.id
         assert event.inbox_item.organization_id == self.organization.id
         assert event.inbox_item.subject_id == str(self.group.id)
-        assert event.data == {"summary": "Assigned to you", "assignment_source": None}
+        activity = Activity.objects.get(group=self.group, type=ActivityType.ASSIGNED.value)
+        assert event.data == {
+            "summary": "Assigned to you",
+            "assignment_source": None,
+            "activity_id": activity.id,
+        }
         assert event.actor_type == InboxActorType.USER
         assert event.actor_id == self.user.id
         assert (
@@ -125,7 +130,30 @@ class IssueProducerRecordingTest(TestCase):
         event = InboxItemEvent.objects.get()
         assert event.type == "issue.team_assigned"
         assert event.inbox_item.user_id == teammate.id
-        assert event.data == {"summary": "Assigned to your team", "assignment_source": None}
+        activity = Activity.objects.get(group=self.group, type=ActivityType.ASSIGNED.value)
+        assert event.data == {
+            "summary": "Assigned to your team",
+            "assignment_source": None,
+            "activity_id": activity.id,
+        }
+
+    def test_separate_assignments_include_distinct_activity_ids(self) -> None:
+        assignee = self.create_user()
+        self.create_member(organization=self.organization, user=assignee)
+        GroupAssignee.objects.assign(self.group, assignee, acting_user=self.user)
+        GroupAssignee.objects.deassign(self.group, acting_user=self.user)
+        GroupAssignee.objects.assign(self.group, assignee, acting_user=self.user)
+
+        events = list(InboxItemEvent.objects.order_by("id"))
+        activities = list(
+            Activity.objects.filter(group=self.group, type=ActivityType.ASSIGNED.value).order_by(
+                "id"
+            )
+        )
+        assert len(events) == 2
+        assert [event.data["activity_id"] for event in events] == [
+            activity.id for activity in activities
+        ]
 
     def test_assignment_integrations(self) -> None:
         for integration in ActivityIntegration:
