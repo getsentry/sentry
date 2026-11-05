@@ -16,10 +16,11 @@ import {
 } from 'sentry/types/group';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
 import {ImpactChip} from './chips/impactChip';
-import {ActivityLineContent, ActivityLineHeadline, ActivityLineRow} from './layout';
-import {ActivityLineMarker} from './progressMarker';
+import {ActivityLineHeadline} from './layout';
+import {ActivityLineMarker} from './marker';
 
 export function isImpactActivity(
   activity: GroupActivity
@@ -36,36 +37,35 @@ export function ActivityLineImpact({
   group: Group;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
-  const organization = useOrganization();
-  const showProgress = organization.features.includes('issue-activity-progress');
   const {level, score} = activity.data;
   const assessed = level !== null && score !== null;
 
   return (
-    <ActivityLineRow>
-      <ActivityLineMarker item={activity} showProgress={showProgress} />
-      <ActivityLineHeadline
-        title={assessed ? t('Impact assessed') : t("Impact wasn't assessed")}
-        details={
-          assessed
-            ? tct('as [impact]', {
-                impact: <ImpactChip level={level} score={score} />,
-              })
-            : undefined
-        }
-        timestamp={
-          <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
-        }
-        trailingItems={<FeatureBadge type="alpha" />}
-      />
-      <ActivityLineContent>
-        <Container paddingTop="sm">
-          <Container width="100%" padding="sm md" border="muted" radius="md">
-            <ImpactActivityDetails activity={activity} group={group} />
-          </Container>
+    <Timeline.Item
+      marker={<ActivityLineMarker item={activity} />}
+      headline={
+        <ActivityLineHeadline
+          title={assessed ? t('Impact assessed') : t("Impact wasn't assessed")}
+          details={
+            assessed
+              ? tct('as [impact]', {
+                  impact: <ImpactChip level={level} score={score} />,
+                })
+              : undefined
+          }
+          timestamp={
+            <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
+          }
+          trailingItems={<FeatureBadge type="alpha" />}
+        />
+      }
+    >
+      <Container paddingTop="sm">
+        <Container width="100%" padding="sm md" border="muted" radius="md">
+          <ImpactActivityDetails activity={activity} group={group} />
         </Container>
-      </ActivityLineContent>
-    </ActivityLineRow>
+      </Container>
+    </Timeline.Item>
   );
 }
 
