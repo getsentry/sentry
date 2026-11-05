@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any
 
 from emmett55 import request
 
@@ -91,6 +91,7 @@ proxy.route(
         "/api/0/organizations/<str:org>/integrations/<str:subp>/repo-sync",
         "/api/0/organizations/<str:org>/integrations/direct-enable(/<any:subp>)?",
         "/api/0/organizations/<str:org>/intercom-jwt",
+        "/api/0/organizations/<str:org>/agent-handoff/prompts",
         "/api/0/organizations/<str:org>/monitoring-providers(/<any:subp>)?",
         "/api/0/organizations/<str:org>/org-auth-tokens(/<any:subp>)?",
         "/api/0/organizations/<str:org>/partnership-agreements",
@@ -172,7 +173,7 @@ async def proxy_cell_from_dsn_qp() -> Any:
     if not request.query_params.dsn:
         abort_with_json(400, {"error": "apigateway", "detail": "Invalid request"})
     try:
-        cell = get_cell_from_dsn(cast(str, request.query_params.dsn), app.config.cells.default)
+        cell = get_cell_from_dsn(request.query_params.dsn, app.config.cells.default)  # type: ignore[arg-type]
     except ValueError:
         abort_with_json(400, {"error": "apigateway", "detail": "Invalid request"})
     except CellResolutionError:

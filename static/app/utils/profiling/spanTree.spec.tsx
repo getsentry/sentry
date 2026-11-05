@@ -1,6 +1,7 @@
-import type {SpanNodeData, TransactionSpanData} from 'sentry/utils/profiling/spanTree';
-import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import type {SpanNodeData, TransactionSpanData} from './spanTree';
+import {SpanTree} from './spanTree';
 
 function s(partial: Partial<SpanNodeData> = {}): SpanNodeData {
   return {

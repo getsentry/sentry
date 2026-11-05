@@ -27,6 +27,7 @@ from sentry.preprod.api.models.public.shared import create_app_info_dict, create
 from sentry.preprod.api.models.public.size_analysis import (
     AppComponentResponseDict,
     SizeAnalysisResponseDict,
+    SizeAnalysisStateName,
     build_comparison_data,
 )
 from sentry.preprod.models import (
@@ -158,7 +159,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
                 {"detail": "There was an error retrieving size analysis results"}, status=500
             )
 
-        response_data["state"] = state_enum.name
+        response_data["state"] = cast(SizeAnalysisStateName, state_enum.name)
 
         match state_enum:
             case (
@@ -253,7 +254,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             cast(
                 list[AppComponentResponseDict],
                 [
-                    convert_dict_key_case(c.dict(exclude={"model_config"}), snake_to_camel_case)
+                    convert_dict_key_case(c.dict(), snake_to_camel_case)
                     | {
                         "componentType": PreprodArtifactSizeMetrics.MetricsArtifactType(
                             c.component_type

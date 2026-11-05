@@ -1,11 +1,12 @@
 /* global process */
 
-import type {Scope} from 'sentry/constants/scopes';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/dataCategory';
 import {DataCategory, DataCategoryExact} from 'sentry/types/dataCategory';
 import type {PermissionResource} from 'sentry/types/permissions';
 import type {OrgRole} from 'sentry/types/roles';
+
+import type {Scope} from './scopes';
 
 export {API_ACCESS_SCOPES, ALLOWED_SCOPES} from 'sentry/constants/scopes';
 

@@ -4,9 +4,10 @@ import type {Location} from 'history';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
-import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
-import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
+
+import {LOGS_CURSOR_KEY} from './constants';
+import {defaultLogFields} from './fields';
+import {logsTimestampDescendingSortBy} from './sortBys';
 
 const LOGS_PARAMS_VERSION = 2;
 export const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.

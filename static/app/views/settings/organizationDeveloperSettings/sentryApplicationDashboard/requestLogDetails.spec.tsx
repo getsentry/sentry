@@ -4,7 +4,8 @@ import {SentryAppWebhookRequestFixture} from 'sentry-fixture/sentryAppWebhookReq
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {SentryAppWebhookRequest} from 'sentry/types/integrations';
-import {RequestLog} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLog';
+
+import {RequestLog} from './requestLog';
 
 describe('RequestLog details drawer', () => {
   const sentryApp = SentryAppFixture({status: 'published'});

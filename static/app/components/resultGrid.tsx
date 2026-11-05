@@ -19,11 +19,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {t, tct, tn} from 'sentry/locale';
 import type {Cell} from 'sentry/types/system';
 import {getCells} from 'sentry/utils/cells';
@@ -31,6 +26,12 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {Panel} from './panels/panel';
+import {PanelHeader} from './panels/panelHeader';
+import {SimpleTable} from './tables/simpleTable';
+import type {ColumnAlign} from './tables/sortableHeaderCell';
+import {LoadingIndicator} from './loadingIndicator';
 
 type Option = [key: string, label: string];
 

@@ -9,7 +9,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectAttributes from 'sentry/views/settings/project/projectAttributes';
+import ProjectAttributes from './projectAttributes';
 
 describe('ProjectAttributes', () => {
   const {organization} = initializeOrg({

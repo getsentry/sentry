@@ -1,4 +1,4 @@
-import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
+import {parseIssuePrioritySearch} from './parseIssuePrioritySearch';
 
 describe('parseIssuePrioritySearch', () => {
   it('can parse array values', () => {

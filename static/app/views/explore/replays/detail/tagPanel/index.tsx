@@ -12,9 +12,10 @@ import {t} from 'sentry/locale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TabItemContainer} from 'sentry/views/explore/replays/detail/tabItemContainer';
-import {TagFilters} from 'sentry/views/explore/replays/detail/tagPanel/tagFilters';
-import {useTagFilters} from 'sentry/views/explore/replays/detail/tagPanel/useTagFilters';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+
+import {TagFilters} from './tagFilters';
+import {useTagFilters} from './useTagFilters';
 
 export function TagPanel() {
   const organization = useOrganization();

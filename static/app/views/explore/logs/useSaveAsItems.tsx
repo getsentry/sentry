@@ -1,14 +1,9 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -34,10 +29,14 @@ import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBy
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useLogsSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
-import {useQueryParamsId} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsHasTransformations,
+  useQueryParamsId,
+} from 'sentry/views/explore/queryParams/context';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {visualizesToWidgetTransformations} from 'sentry/views/explore/utils/visualizesToWidgetTransformations';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 import {isLogsEnabled} from './isLogsEnabled';
@@ -65,6 +64,7 @@ export function useSaveAsItems({
   const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useLogsSaveQuery();
   const id = useQueryParamsId();
+  const hasTransformations = useQueryParamsHasTransformations();
   const {data: savedQuery} = useGetSavedQuery(id);
 
   const project =
@@ -87,16 +87,16 @@ export function useSaveAsItems({
         label: <span>{t('Existing Query')}</span>,
         onAction: async () => {
           try {
-            addLoadingMessage(t('Updating query...'));
+            toast.loading(t('Updating query...'));
             await updateQuery();
-            addSuccessMessage(t('Query updated successfully'));
+            toast.success(t('Query updated successfully'));
             trackAnalytics('logs.save_as', {
               save_type: 'update_query',
               ui_source: 'searchbar',
               organization,
             });
           } catch (error) {
-            addErrorMessage(t('Failed to update query'));
+            toast.error(t('Failed to update query'));
             Sentry.captureException(error);
           }
         },
@@ -153,8 +153,20 @@ export function useSaveAsItems({
       };
     });
 
-    return getSaveAsAlertMenuItem({alertsUrls, submenu: true});
-  }, [aggregates, interval, organization, pageFilters, project, search]);
+    return getSaveAsAlertMenuItem({
+      alertsUrls,
+      submenu: true,
+      disabled: hasTransformations,
+    });
+  }, [
+    aggregates,
+    interval,
+    organization,
+    pageFilters,
+    project,
+    search,
+    hasTransformations,
+  ]);
 
   const saveAsDashboard = useMemo(() => {
     const dashboardsUrls = aggregates.map((yAxis: string, index: number) => {
@@ -208,6 +220,9 @@ export function useSaveAsItems({
             yAxis: eventView.yAxis,
             widgetType: WidgetType.LOGS,
             source: DashboardWidgetSource.LOGS,
+            transformations: visualize
+              ? visualizesToWidgetTransformations([visualize])
+              : undefined,
           });
         },
       };
@@ -215,15 +230,7 @@ export function useSaveAsItems({
 
     return {
       key: 'add-to-dashboard',
-      label: (
-        <Feature
-          overrideName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
-        >
-          {t('Dashboard widget')}
-        </Feature>
-      ),
+      label: t('Dashboard widget'),
       textValue: t('Dashboard widget'),
       children: dashboardsUrls,
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
@@ -249,7 +256,3 @@ export function useSaveAsItems({
     return saveAs;
   }, [organization, saveAsQuery, saveAsAlert, saveAsDashboard]);
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

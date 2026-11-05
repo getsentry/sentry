@@ -861,3 +861,22 @@ def test_before_send_error_level() -> None:
     event_with_before_send = sdk.before_send(event, hint)  # type: ignore[arg-type]
     assert event_with_before_send
     assert event_with_before_send["level"] == "warning"
+
+
+def test_before_send_adds_tags_when_event_has_none() -> None:
+    event = sdk.before_send({"level": "error"}, {})
+    assert event
+    assert event["tags"] == {
+        "silo_mode": str(settings.SILO_MODE),
+        "sentry_region": settings.SENTRY_LOCAL_CELL,
+    }
+
+
+def test_before_send_preserves_existing_tags() -> None:
+    event = sdk.before_send({"level": "error", "tags": {"foo": "bar"}}, {})
+    assert event
+    assert event["tags"] == {
+        "foo": "bar",
+        "silo_mode": str(settings.SILO_MODE),
+        "sentry_region": settings.SENTRY_LOCAL_CELL,
+    }

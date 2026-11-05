@@ -6,11 +6,11 @@ import {
   getDataCollectionStep,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {AwsLambdaArn} from 'sentry/gettingStartedDocs/node-awslambda/awslambdaArnSelector';
-import {InstallationMethod} from 'sentry/gettingStartedDocs/node-awslambda/utils';
 import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 
+import {AwsLambdaArn} from './awslambdaArnSelector';
+import {InstallationMethod} from './utils';
 import type {Params, PlatformOptions} from './utils';
 
 const getEnvSetupSnippet = (params: Params) => `

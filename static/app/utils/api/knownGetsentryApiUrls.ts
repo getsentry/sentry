@@ -36,6 +36,7 @@ export type KnownGetsentryApiUrls =
   | '/_admin/customers/$organizationIdOrSlug/contract/'
   | '/_admin/customers/$organizationIdOrSlug/contract/package/'
   | '/_admin/customers/$organizationIdOrSlug/contracts/'
+  | '/_admin/customers/$organizationIdOrSlug/ledger-grants/'
   | '/customers/$organizationIdOrSlug/'
   | '/customers/$organizationIdOrSlug/billing-config/'
   | '/customers/$organizationIdOrSlug/billing-details/'

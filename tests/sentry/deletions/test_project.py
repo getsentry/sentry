@@ -1,5 +1,6 @@
 from unittest import mock
 
+from sentry import deletions
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.activity import Activity
@@ -28,6 +29,8 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     ScheduleType,
 )
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.services import eventstore
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -55,6 +58,20 @@ pytestmark = [requires_snuba]
 
 
 class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMixin):
+    def test_deletes_issue_inbox_items(self) -> None:
+        project = self.create_project()
+        project.update_option("sentry:similarity_backfill_completed", 1)
+        group = self.create_group(project=project)
+        item = self.create_inbox_item(subject_id=str(group.id), organization=project.organization)
+        event = self.create_inbox_item_event(item)
+
+        with mock.patch.dict("os.environ", {"_SENTRY_CLEANUP": "1"}), self.tasks():
+            deletions.exec_sync(project)
+
+        assert not Project.objects.filter(id=project.id).exists()
+        assert not InboxItem.objects.filter(id=item.id).exists()
+        assert not InboxItemEvent.objects.filter(id=event.id).exists()
+
     @mock.patch(
         "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )

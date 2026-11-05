@@ -3,9 +3,9 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {closeModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {closeModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';

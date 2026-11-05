@@ -1,7 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import {IncidentStatus} from 'sentry/views/alerts/types';
+
+import {AlertBadge} from './alertBadge';
 
 describe('AlertBadge', () => {
   it('renders', () => {

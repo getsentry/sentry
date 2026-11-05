@@ -16,19 +16,6 @@ import {
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
-import {
-  type DatasetConfig,
-  type SearchBarData,
-  type SearchBarDataProviderProps,
-  type WidgetBuilderSearchBarProps,
-} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  getTableSortOptions,
-  getTimeseriesSortOptions,
-} from 'sentry/views/dashboards/datasetConfig/events';
-import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
-import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
-import {traceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {
@@ -51,6 +38,17 @@ import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceI
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {combineBaseFieldsWithTags} from './utils/combineBaseFieldsWithEapTags';
+import {traceMetricsResponseTransforms} from './utils/traceMetricsResponseTransforms';
+import {
+  type DatasetConfig,
+  type SearchBarData,
+  type SearchBarDataProviderProps,
+  type WidgetBuilderSearchBarProps,
+} from './base';
+import {getTableSortOptions, getTimeseriesSortOptions} from './events';
+import {formatTraceMetricsFunction} from './formatTraceMetricsFunction';
 
 // This is a placeholder that currently signals that no metric is selected
 // When the metrics are loaded up, the first metric is selected and this will be filled out

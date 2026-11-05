@@ -7,6 +7,7 @@ from django.http.request import HttpRequest
 from rest_framework.fields import CharField
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -34,7 +35,6 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -126,7 +126,7 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
         return ["assignedTo", "reportedBy"]
 
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs: object
+        self, group: Group | None, user: RequestPrincipal, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "example_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)

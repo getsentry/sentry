@@ -112,3 +112,23 @@ class DiscordUninstallTest(APITestCase):
             integration=self.integration, organization_id=other_org.id
         ).exists()
         self.assert_leave_guild_api_call_count(0)
+
+    @responses.activate
+    def test_repeat_delete_does_not_leave_shared_guild(self) -> None:
+        self.mock_discord_guild_leave()
+
+        other_org = self.create_organization(owner=self.user)
+        self.integration.add_organization(other_org)
+
+        self.uninstall()
+        # A retried DELETE must not uninstall again: with this org's row now
+        # pending deletion, other_org looks like the last install and the bot
+        # would leave the guild that other_org still uses.
+        self.get_success_response(self.organization.slug, self.integration.id)
+
+        assert OrganizationIntegration.objects.filter(
+            integration=self.integration,
+            organization_id=other_org.id,
+            status=ObjectStatus.ACTIVE,
+        ).exists()
+        self.assert_leave_guild_api_call_count(0)

@@ -17,13 +17,14 @@ import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
+
+import {AddCredentialsButton} from './addCredentialsButton';
 import {
   ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
   AllowListIPAddresses,
-} from 'sentry/views/settings/project/tempest/allowListIPAddresses';
-import {CredentialRow} from 'sentry/views/settings/project/tempest/CredentialRow';
-import type {TempestCredentials} from 'sentry/views/settings/project/tempest/types';
+} from './allowListIPAddresses';
+import {CredentialRow} from './CredentialRow';
+import type {TempestCredentials} from './types';
 
 interface EmptyStateProps {
   hasWriteAccess: boolean;
