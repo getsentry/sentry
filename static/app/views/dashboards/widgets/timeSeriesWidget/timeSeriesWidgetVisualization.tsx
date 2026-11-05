@@ -197,8 +197,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // the backend zerofills the data
 
   const organization = useOrganization({allowNull: true});
-  const showLowConfidence =
-    organization?.features.includes('data-browsing-time-series-confidence') ?? false;
+  const showLowConfidence = organization?.features.includes('dashboards-basic') ?? false;
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const connectChartRef = useCallback((e: ReactEchartsRef | null) => {
