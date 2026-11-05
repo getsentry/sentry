@@ -4,7 +4,7 @@ import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 import {ExternalLink} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {

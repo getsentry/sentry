@@ -95,7 +95,7 @@ describe('Cart', () => {
   }
 
   it('renders with default selections', async () => {
-    render(<AMCheckout api={new MockApiClient()} {...props} />);
+    render(<AMCheckout {...props} />);
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');
     expect(cart).toHaveTextContent('Pay-as-you-go spend limitup to $300/mo');
