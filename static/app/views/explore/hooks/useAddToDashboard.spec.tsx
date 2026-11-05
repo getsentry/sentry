@@ -55,7 +55,7 @@ describe('AddToDashboardButton', () => {
         <ToolbarSaveAs />
       </Wrapper>,
       {
-        organization: OrganizationFixture({features: ['dashboards-edit']}),
+        organization: OrganizationFixture(),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
@@ -340,8 +340,7 @@ describe('AddToDashboardButton', () => {
     render(
       <Wrapper>
         <TestPage visualizeIndex={0} includeChartGroup />
-      </Wrapper>,
-      {organization: OrganizationFixture({features: ['explore-multi-aggregate-charts']})}
+      </Wrapper>
     );
 
     act(() => setMode(Mode.AGGREGATE));

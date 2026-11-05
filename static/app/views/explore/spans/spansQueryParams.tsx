@@ -85,18 +85,9 @@ export function isDefaultSpansFields(values: SpansQueryValues): boolean {
   return getFields(values[SPANS_FIELD_KEY]) === null;
 }
 
-interface SpansQueryParamsOptions {
-  /**
-   * Plots the y axes listed together in one entry on the same chart when they
-   * can share it, instead of giving each its own chart.
-   */
-  multiAggregateCharts?: boolean;
-}
-
 export function getReadableSpansQueryParams(
   values: SpansQueryValues,
-  fieldsOverride?: string[],
-  options?: SpansQueryParamsOptions
+  fieldsOverride?: string[]
 ): ReadableQueryParams {
   const extrapolate = (values[SPANS_EXTRAPOLATE_KEY] ?? '1') === '1';
   const mode = values[SPANS_MODE_KEY] ?? defaultMode();
@@ -109,7 +100,7 @@ export function getReadableSpansQueryParams(
   const sortBys = getSortBys(values[SPANS_SORT_KEY], fields) ?? defaultSortBys(fields);
 
   const aggregateCursor = values[SPANS_AGGREGATE_CURSOR] ?? defaultCursor();
-  const aggregateFields = getSpansAggregateFields(values, options);
+  const aggregateFields = getSpansAggregateFields(values);
   const aggregateSortBys =
     getAggregateSortBys(values[SPANS_AGGREGATE_SORT_KEY], aggregateFields) ??
     defaultAggregateSortBys(aggregateFields);
@@ -144,13 +135,11 @@ export function getReadableSpansQueryParams(
 /** @internal used in tests */
 export function getReadableQueryParamsFromLocation(
   location: Location,
-  fieldsOverride?: string[],
-  options?: SpansQueryParamsOptions
+  fieldsOverride?: string[]
 ): ReadableQueryParams {
   return getReadableSpansQueryParams(
     loadQueryParamsFromLocation(SPANS_QUERY_PARSERS, location),
-    fieldsOverride,
-    options
+    fieldsOverride
   );
 }
 
@@ -250,13 +239,8 @@ export function defaultVisualizes(): [Visualize] {
   return [new VisualizeFunction(DEFAULT_VISUALIZATION)];
 }
 
-function getSpansAggregateFields(
-  values: SpansQueryValues,
-  options?: SpansQueryParamsOptions
-): AggregateField[] {
-  const parseOptions = options?.multiAggregateCharts
-    ? {groupYAxes: canShareChart}
-    : undefined;
+function getSpansAggregateFields(values: SpansQueryValues): AggregateField[] {
+  const parseOptions = {groupYAxes: canShareChart};
   const aggregateFields = getAggregateFields(
     values[SPANS_AGGREGATE_FIELD_KEY],
     parseOptions

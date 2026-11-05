@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {InboxItemFixture} from 'sentry-fixture/inboxItem';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import Inbox from 'sentry/views/inbox';
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
@@ -195,7 +195,9 @@ describe('Inbox', () => {
     expect(await screen.findByText('No item selected')).toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByRole('link', {name: /OperationalError: could not connect to server/})
+      await screen.findByRole('link', {
+        name: /OperationalError: could not connect to server/,
+      })
     );
 
     expect(await screen.findByRole('textbox', {name: 'Investigation title'})).toHaveValue(
@@ -281,6 +283,197 @@ describe('Inbox', () => {
     await userEvent.click(checkbox);
 
     expect(checkbox).not.toBeChecked();
+  });
+
+  describe('filters', () => {
+    it('filters by subject', async () => {
+      const filteredRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [MockApiClient.matchQuery({subject_type: ['notebook']})],
+        body: [notebookItem, readNotebookItem],
+      });
+
+      const {router} = render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Subject'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigation'}));
+
+      await waitFor(() => expect(filteredRequest).toHaveBeenCalled());
+      expect(
+        await screen.findByRole('link', {name: /Checkout latency regression/})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {name: /TypeError: Cannot read properties/})
+      ).not.toBeInTheDocument();
+      expect(router.location.query).toEqual({subjectType: 'notebook'});
+      expect(
+        screen.getByRole('button', {name: 'Remove Subject filter'})
+      ).toBeInTheDocument();
+    });
+
+    it('filters by multiple notification types', async () => {
+      const filteredRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [
+          MockApiClient.matchQuery({
+            event_type: ['issue.user_assigned', 'notebook.mentioned'],
+          }),
+        ],
+        body: [issueItem, notebookItem],
+      });
+
+      const {router} = render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Type'}));
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Issue assigned to you'})
+      );
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Investigation mentioned you'})
+      );
+
+      await waitFor(() => expect(filteredRequest).toHaveBeenCalled());
+      expect(router.location.query).toEqual({
+        eventType: ['issue.user_assigned', 'notebook.mentioned'],
+      });
+      expect(screen.getByText('Issue assigned to you +1')).toBeInTheDocument();
+    });
+
+    it('loads filters from the url and removes them', async () => {
+      const filteredRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [MockApiClient.matchQuery({subject_type: ['notebook']})],
+        body: [notebookItem],
+      });
+
+      const {router} = render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/inbox/',
+            query: {subjectType: 'notebook'},
+          },
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {
+          name: /OperationalError: could not connect to server/,
+        })
+      ).toBeInTheDocument();
+      expect(filteredRequest).toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Remove Subject filter'}));
+
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+      expect(router.location.query).toEqual({});
+    });
+
+    it('shows an empty state when no items match the filters', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [MockApiClient.matchQuery({event_type: ['issue.user_assigned']})],
+        body: [],
+      });
+
+      const {router} = render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/inbox/',
+            query: {eventType: 'issue.user_assigned'},
+          },
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      expect(await screen.findByText('No items match these filters')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Clear filters'}));
+
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+      expect(router.location.query).toEqual({});
+    });
+
+    it('keeps filters in item links', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [MockApiClient.matchQuery({subject_type: ['notebook']})],
+        body: [notebookItem],
+      });
+
+      render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/inbox/',
+            query: {subjectType: 'notebook', project: '1'},
+          },
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {
+          name: /OperationalError: could not connect to server/,
+        })
+      ).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/inbox/notebook/1000210/?subjectType=notebook'
+      );
+    });
+
+    it('ignores unknown filter values in the url', async () => {
+      const unfilteredRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [
+          MockApiClient.matchQuery({subject_type: undefined, event_type: undefined}),
+        ],
+        body: [issueItem],
+      });
+
+      render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/inbox/',
+            query: {subjectType: 'bogus'},
+          },
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+      expect(unfilteredRequest).toHaveBeenCalled();
+      expect(
+        screen.queryByRole('button', {name: 'Remove Subject filter'})
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('renders not found without the feature flag', () => {

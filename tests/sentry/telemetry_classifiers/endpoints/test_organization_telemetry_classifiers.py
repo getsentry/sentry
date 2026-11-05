@@ -138,7 +138,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             "resultAttribute": "sentry.classifier.frustration",
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
-            "prebuiltClassifierKey": "frustration",
+            "prebuiltClassifierKey": "user_frustration",
             **overrides,
         }
 
@@ -165,7 +165,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
             "status": "enabled",
-            "prebuiltClassifierKey": "frustration",
+            "prebuiltClassifierKey": "user_frustration",
             "naturalLanguagePrompt": None,
             "outputType": None,
             "dateAdded": classifier.date_added,
@@ -194,6 +194,37 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             response = self.get_error_response(self.organization.slug, **custom, status_code=400)
             assert "prebuiltClassifierKey" in response.data
 
+        assert not TelemetryClassifier.objects.exists()
+
+    def test_creates_prebuilt_classifier_for_trace_spans(self) -> None:
+        payload = self.payload(dataset="trace_spans", prebuiltClassifierKey="failed_operation")
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug, **payload, status_code=201)
+
+        assert response.data["dataset"] == "trace_spans"
+        assert response.data["prebuiltClassifierKey"] == "failed_operation"
+
+    def test_rejects_unknown_prebuilt_classifier_key(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                **self.payload(prebuiltClassifierKey="unknown"),
+                status_code=400,
+            )
+
+        assert "prebuiltClassifierKey" in response.data
+        assert not TelemetryClassifier.objects.exists()
+
+    def test_rejects_prebuilt_classifier_for_other_dataset(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug, **self.payload(dataset="trace_spans"), status_code=400
+            )
+
+        assert response.data["prebuiltClassifierKey"] == [
+            "This prebuilt classifier doesn't support this dataset."
+        ]
         assert not TelemetryClassifier.objects.exists()
 
     def test_rejects_duplicate_result_attribute_in_project(self) -> None:
