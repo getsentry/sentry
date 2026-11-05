@@ -34,8 +34,8 @@ export type ContinuousTimeSeriesConfig = {
 
 export type ContinuousTimeSeriesDataPoint = {
   value: ReturnType<typeof timeSeriesItemToEChartsDataPoint>;
+  completeness?: 'complete' | 'incomplete';
   confidence?: TimeSeriesItem['confidence'];
-  incomplete?: boolean;
 };
 
 export type ContinuousTimeSeriesPlottingOptions = {
@@ -138,7 +138,9 @@ export abstract class ContinuousTimeSeries<
     return {
       value: timeSeriesItemToEChartsDataPoint(item),
       confidence: segmentBy.includes('confidence') ? item.confidence : undefined,
-      incomplete: segmentBy.includes('completeness') ? item.incomplete : undefined,
+      completeness: segmentBy.includes('completeness')
+        ? getCompleteness(item)
+        : undefined,
     };
   }
 
@@ -158,4 +160,14 @@ export function isLowConfidenceDataPoint(data: unknown): boolean {
     'confidence' in data &&
     data.confidence === 'low'
   );
+}
+
+function getCompleteness(
+  item: TimeSeriesItem
+): ContinuousTimeSeriesDataPoint['completeness'] {
+  if (item.incomplete === undefined) {
+    return undefined;
+  }
+
+  return item.incomplete ? 'incomplete' : 'complete';
 }

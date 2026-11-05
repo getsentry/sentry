@@ -35,18 +35,18 @@ describe('Line', () => {
 
   it.each([
     {segmentBy: [], flags: [{}, {}, {}]},
-    {segmentBy: ['completeness'], flags: [{}, {}, {incomplete: true}]},
+    {segmentBy: ['completeness'], flags: [{}, {}, {completeness: 'incomplete'}]},
     {segmentBy: ['confidence'], flags: [{}, {confidence: 'low'}, {}]},
   ] as const)('attaches flags for $segmentBy to data points', ({segmentBy, flags}) => {
     const series = new Line(timeSeries).toSeries({...plottingOptions, segmentBy});
     const dataPoints = series.flatMap(s => s.data as Array<Record<string, unknown>>);
 
     const flagsByTimestamp = new Map(
-      dataPoints.map(({value, confidence, incomplete}) => [
+      dataPoints.map(({value, confidence, completeness}) => [
         (value as [number, number])[0],
         {
           ...(defined(confidence) && {confidence}),
-          ...(defined(incomplete) && {incomplete}),
+          ...(defined(completeness) && {completeness}),
         },
       ])
     );
