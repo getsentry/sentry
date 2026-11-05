@@ -1,12 +1,10 @@
 import type {Theme} from '@emotion/react';
 import {Replayer} from '@sentry/rrweb';
 
-import type {VideoReplayerConfig} from 'sentry/components/replays/videoReplayer';
-import {
-  VideoReplayer,
-  DEFAULT_MAX_VIDEO_ELEMENTS,
-} from 'sentry/components/replays/videoReplayer';
 import type {ClipWindow, RecordingFrame, VideoEvent} from 'sentry/utils/replays/types';
+
+import type {VideoReplayerConfig} from './videoReplayer';
+import {VideoReplayer, DEFAULT_MAX_VIDEO_ELEMENTS} from './videoReplayer';
 
 interface VideoReplayerWithInteractionsOptions {
   durationMs: number;

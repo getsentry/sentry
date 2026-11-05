@@ -21,9 +21,10 @@ import {useReplayViewers} from 'sentry/utils/replays/hooks/useReplayViewers';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ReplayErrorsTooltip} from 'sentry/views/explore/replays/detail/header/replayErrorsTooltip';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+
+import {ReplayErrorsTooltip} from './replayErrorsTooltip';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;

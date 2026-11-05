@@ -5,12 +5,8 @@ import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -35,17 +31,17 @@ export function Row({app, onRemove}: Props) {
     }
 
     setLoading(true);
-    addLoadingMessage();
+    toast.loading(t('Saving changes...'));
 
     try {
       await api.requestPromise(`/api-applications/${app.id}/`, {
         method: 'DELETE',
       });
 
-      clearIndicators();
+      toast.dismiss();
       onRemove(app);
     } catch (_err) {
-      addErrorMessage(t('Unable to remove application. Please try again.'));
+      toast.error(t('Unable to remove application. Please try again.'));
     }
   }
 

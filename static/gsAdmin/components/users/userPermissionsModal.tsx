@@ -4,8 +4,8 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -115,7 +115,7 @@ export function UserPermissionsModal({
       onSubmit(newUser);
       closeModal();
     },
-    onError: () => addErrorMessage('Unable to update user permissions.'),
+    onError: () => toast.error('Unable to update user permissions.'),
   });
 
   const defaultValues = {

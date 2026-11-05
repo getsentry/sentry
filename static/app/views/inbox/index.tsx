@@ -18,11 +18,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {inboxItemsApiOptions} from 'sentry/views/inbox/inboxApiOptions';
-import {InboxItemList} from 'sentry/views/inbox/inboxItemList';
-import {InboxItemPreview} from 'sentry/views/inbox/inboxItemPreview';
-import {getInboxSubjectFromPath} from 'sentry/views/inbox/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {inboxItemsApiOptions} from './inboxApiOptions';
+import {InboxItemList} from './inboxItemList';
+import {InboxItemPreview} from './inboxItemPreview';
+import {getInboxSubjectFromPath} from './utils';
 
 const INBOX_LIST_SIZE_STORAGE_KEY = 'universal-inbox-list-size';
 const INBOX_LIST_DEFAULT_SIZE = 480;

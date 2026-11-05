@@ -8,24 +8,25 @@ import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {t, tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   ConnectionModalFrame,
   LockedProjectField,
   getApiErrorMessage,
-} from 'sentry/components/connectRepository/connectionModalFrame';
-import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
+} from './connectionModalFrame';
+import {PathMappingList} from './pathMappingList';
 import {
   projectCodeMappingsOptions,
   saveProjectRepoConnection,
   useGroupedRepoOptions,
   useInvalidateRepoQueries,
   type RepoSelectOption,
-} from 'sentry/components/connectRepository/queries';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
-import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './queries';
+import type {PathMappingValue} from './type';
+import {hasExactDuplicate} from './warnings';
 
 function PathsPlaceholder() {
   return (

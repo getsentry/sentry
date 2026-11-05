@@ -12,19 +12,6 @@ import {Grid} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
-  BreadcrumbControlOptions,
-  BreadcrumbsDrawer,
-} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
-import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
-import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
-import {
-  BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-  BREADCRUMB_TIME_DISPLAY_OPTIONS,
-  BreadcrumbTimeDisplay,
-  getEnhancedBreadcrumbs,
-  getSummaryBreadcrumbs,
-} from 'sentry/components/events/breadcrumbs/utils';
-import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
@@ -37,6 +24,17 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {BreadcrumbControlOptions, BreadcrumbsDrawer} from './breadcrumbsDrawer';
+import {BreadcrumbsTimeline} from './breadcrumbsTimeline';
+import {CopyBreadcrumbsDropdown} from './copyBreadcrumbs';
+import {
+  BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+  BREADCRUMB_TIME_DISPLAY_OPTIONS,
+  BreadcrumbTimeDisplay,
+  getEnhancedBreadcrumbs,
+  getSummaryBreadcrumbs,
+} from './utils';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;

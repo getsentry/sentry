@@ -4,8 +4,8 @@ import Jed from 'jed';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
 import {sprintf} from 'sprintf-js';
 
-import {toArray} from 'sentry/utils/array/toArray';
-import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {toArray} from './utils/array/toArray';
+import {localStorageWrapper} from './utils/localStorage';
 
 const markerStyles = {
   background: '#ff801790',

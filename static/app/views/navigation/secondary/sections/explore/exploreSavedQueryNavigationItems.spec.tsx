@@ -5,8 +5,9 @@ import {
   SavedQueryType,
   type CombinedSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+
+import {ExploreSavedQueryNavigationItems} from './exploreSavedQueryNavigationItems';
 
 describe('ExploreSavedQueryNavigationItems', () => {
   const queries = [

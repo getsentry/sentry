@@ -357,6 +357,16 @@
       "count": 14
     }
   },
+  "views/subscriptionPage/usageLog.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 3
+    }
+  },
+  "views/subscriptionPage/usageOverview/components/charts.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/subscriptionPage/usageOverview/components/productTrialRibbon.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -376,6 +386,11 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "views/subscriptionPage/usageOverview/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
     }
   },
   "views/subscriptionPage/usageTotalsTable.tsx": {

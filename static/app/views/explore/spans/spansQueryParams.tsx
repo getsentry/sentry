@@ -35,8 +35,9 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
-import {canShareChart} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {canShareChart} from './sharedChartAggregates';
 
 const SPANS_MODE_KEY = 'mode';
 const SPANS_QUERY_KEY = 'query';

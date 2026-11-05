@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 
-import {getSeverityColorVariant} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/utils';
+import {getSeverityColorVariant} from './utils';
 
 interface SeverityValueIndicatorProps {
   value: string;

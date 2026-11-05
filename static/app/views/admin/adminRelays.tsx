@@ -3,8 +3,8 @@ import {IconDelete} from '@sentry/icons/delete';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {ResultGrid, type ResultGridColumn} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -34,7 +34,7 @@ export default function AdminRelays() {
         method: 'DELETE',
       });
     } catch {
-      addErrorMessage(t('Unable to delete relay'));
+      toast.error(t('Unable to delete relay'));
       // oxlint-disable-next-line react/todo
     } finally {
       setLoading(false);

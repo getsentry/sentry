@@ -2,7 +2,8 @@ import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -76,7 +77,7 @@ export function ModalManager({
           setErrors(prev => ({...prev, name: relayError.message}));
           break;
         default:
-          addErrorMessage(relayError.message);
+          toast.error(relayError.message);
       }
     },
   });

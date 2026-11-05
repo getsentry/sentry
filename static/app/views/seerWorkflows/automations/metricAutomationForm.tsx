@@ -16,8 +16,8 @@ import {
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';

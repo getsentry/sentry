@@ -16,15 +16,13 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
-import {
-  useDetectorDraft,
-  type DetectorDraftSchema,
-} from 'sentry/views/detectors/components/forms/common/detectorDraft';
-import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 import {hasDetectorWriteAccess} from 'sentry/views/detectors/utils/permissions';
+
+import {DetectorFormBreadcrumbs} from './common/breadcrumbs';
+import {useDetectorDraft, type DetectorDraftSchema} from './common/detectorDraft';
+import {NewDetectorFooter} from './common/footer';
 
 type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   children: React.ReactNode;

@@ -8,9 +8,10 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationsList, {getNextUpdate} from 'sentry/views/seerWorkflows/automations';
-import AutomationDetail from 'sentry/views/seerWorkflows/automations/detail';
-import AutomationRuns from 'sentry/views/seerWorkflows/automations/detail/runs';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
+
+import AutomationRuns from './detail/runs';
+import AutomationDetail from './detail';
 
 function getCard(title: string) {
   return within(screen.getByRole('heading', {name: title}).closest('li')!);

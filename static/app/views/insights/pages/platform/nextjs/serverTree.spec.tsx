@@ -2,11 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {
-  BaseServerTree,
-  getFileAndFunctionName,
-  mapResponseToTree,
-} from 'sentry/views/insights/pages/platform/nextjs/serverTree';
+import {BaseServerTree, getFileAndFunctionName, mapResponseToTree} from './serverTree';
 
 describe('getFileAndFunctionName', () => {
   it('handles server components', () => {

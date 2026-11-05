@@ -9,11 +9,9 @@ import {
   InvestigationOrchestrationFixture,
   InvestigationVerificationStepFixture,
 } from 'sentry/views/investigations/fixtures';
-import {
-  HypothesisList,
-  HypothesisListPlaceholder,
-} from 'sentry/views/investigations/hypotheses/hypothesisList';
-import {InvestigationHypotheses} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
+
+import {HypothesisList, HypothesisListPlaceholder} from './hypothesisList';
+import {InvestigationHypotheses} from './investigationHypotheses';
 
 export default Storybook.story('Investigations — Hypotheses', story => {
   story('The hypothesis row', () => (

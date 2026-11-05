@@ -4,10 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
 
-import {
-  AuthPageLoadingProvider,
-  useAuthPageLoading,
-} from 'sentry/views/authV2/useAuthPageLoading';
+import {AuthPageLoadingProvider, useAuthPageLoading} from './useAuthPageLoading';
 
 function LoadingReporter({isLoading}: {isLoading: boolean}) {
   useAuthPageLoading(isLoading);

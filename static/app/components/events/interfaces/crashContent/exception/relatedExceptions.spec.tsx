@@ -2,7 +2,7 @@ import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryChainedE
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {RelatedExceptions} from 'sentry/components/events/interfaces/crashContent/exception/relatedExceptions';
+import {RelatedExceptions} from './relatedExceptions';
 
 describe('ExceptionGroupContext', () => {
   const entry = EventEntryExceptionGroupFixture();

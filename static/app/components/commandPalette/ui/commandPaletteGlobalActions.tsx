@@ -35,11 +35,6 @@ import {
 } from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
@@ -130,6 +125,8 @@ export function isNavItemVisible(
   }
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
+import {toast} from '@sentry/scraps/toast';
+
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 
 import {CMDKAction} from './cmdk';
@@ -267,7 +264,7 @@ function ResolvedIdentifierCommandPaletteAction() {
 async function openCurrentReplay() {
   const replay = Sentry.getReplay();
   if (!replay) {
-    addErrorMessage(t('Session Replay is not enabled for this session'));
+    toast.error(t('Session Replay is not enabled for this session'));
     return;
   }
 
@@ -283,7 +280,7 @@ async function openCurrentReplay() {
     replayId = replay.getReplayId();
   }
   if (!replayId) {
-    addErrorMessage(t('No replay is currently recording'));
+    toast.error(t('No replay is currently recording'));
     return;
   }
 
@@ -1132,27 +1129,27 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('System')}}
             keywords={['default theme', 'system theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'system'});
-              addSuccessMessage(t('Theme preference saved: System'));
+              toast.success(t('Theme preference saved: System'));
             }}
           />
           <CMDKAction
             display={{label: t('Light')}}
             keywords={['light mode', 'light theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'light'});
-              addSuccessMessage(t('Theme preference saved: Light'));
+              toast.success(t('Theme preference saved: Light'));
             }}
           />
           <CMDKAction
             display={{label: t('Dark')}}
             keywords={['dark mode', 'dark theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'dark'});
-              addSuccessMessage(t('Theme preference saved: Dark'));
+              toast.success(t('Theme preference saved: Dark'));
             }}
           />
         </CMDKAction>
