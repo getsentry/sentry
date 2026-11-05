@@ -1,13 +1,20 @@
 import {Fragment} from 'react';
 import {Outlet} from 'react-router';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconPause} from '@sentry/icons/pause';
+import {IconPlay} from '@sentry/icons/play';
+import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {NotFound} from 'sentry/components/errors/notFound';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -15,9 +22,13 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {
   getNextUpdate,
@@ -44,6 +55,8 @@ export default function AutomationDetail() {
   const automationsEnabled = useAutomationsEnabled();
   const {automationId} = useParams<{automationId: string}>();
   const basePath = getAutomationDetailPath(organization.slug, automationId);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const {data, isPending, isError, refetch} = useQuery(
     apiOptions.as<SeerWorkflowConfigsResponse>()(
@@ -61,6 +74,44 @@ export default function AutomationDetail() {
     ? STRATEGY_META[strategy as WorkflowStrategy]
     : undefined;
   const title = config?.name ?? strategyMeta?.label ?? strategy;
+  const toggleEnabled = useMutation({
+    mutationFn: (enabled: boolean) =>
+      fetchMutation({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
+          {path: {organizationIdOrSlug: organization.slug, configId: automationId}}
+        ),
+        method: 'PUT',
+        data: {enabled},
+      }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/configs/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+        ],
+      }),
+    onError: () => addErrorMessage(t('Unable to update automation.')),
+  });
+  const deleteAutomation = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
+          {path: {organizationIdOrSlug: organization.slug, configId: automationId}}
+        ),
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      addSuccessMessage(t('Automation deleted.'));
+      navigate(getAutomationsPath(organization.slug));
+    },
+    onError: () => addErrorMessage(t('Unable to delete automation.')),
+  });
+  const {data: createdByUser} = useUserFromId({
+    id: config?.createdBy ? Number(config.createdBy) : undefined,
+  });
   const nextUpdate =
     config?.enabled && config.strategy !== 'breached_metric_investigation'
       ? getNextUpdate(config.schedule)
@@ -92,7 +143,7 @@ export default function AutomationDetail() {
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-      <Stack gap="lg" padding="xl">
+      <Stack>
         <TopBar.Slot
           name="breadcrumbs"
           title={{type: 'page-title', label: title}}
@@ -104,72 +155,162 @@ export default function AutomationDetail() {
             },
           ]}
         />
-        <Stack gap="xs">
-          <Flex gap="md" align="center">
-            <Heading as="h1" size="xl">
-              {title}
-            </Heading>
-            {!config.enabled && <Tag variant="warning">{t('Paused')}</Tag>}
+        <Stack
+          gap="lg"
+          padding="xl xl 0 xl"
+          background="secondary"
+          borderBottom="primary"
+        >
+          <Flex justify="between" align="start" gap="xl">
+            <Stack gap="xs">
+              <Flex gap="md" align="center">
+                <Heading as="h1" size="xl">
+                  {title}
+                </Heading>
+                {config.enabled ? (
+                  <Tag variant="success">{t('Active')}</Tag>
+                ) : (
+                  <Tag variant="warning">{t('Paused')}</Tag>
+                )}
+              </Flex>
+              <Text>{strategyMeta?.description ?? t('No description')}</Text>
+              <Stack direction="row" align="center" gap="md" wrap="wrap">
+                <Text size="sm" variant="muted">
+                  {config.dateLastRun === undefined
+                    ? t('No runs yet')
+                    : tct('Last run [time]', {
+                        time: (
+                          <TimeSince
+                            date={config.dateLastRun}
+                            tooltipPrefix={t('Last run')}
+                          />
+                        ),
+                      })}
+                </Text>
+                <Stack.Separator />
+                {nextUpdate && (
+                  <Fragment>
+                    <Text size="sm" variant="muted">
+                      {tct('Next run [time]', {
+                        time: (
+                          <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />
+                        ),
+                      })}
+                    </Text>
+                    <Stack.Separator />
+                  </Fragment>
+                )}
+                <Text size="sm" variant="muted">
+                  {config.strategy === 'breached_metric_investigation'
+                    ? tn(
+                        '%s monitor connected',
+                        '%s monitors connected',
+                        config.monitorIds.length
+                      )
+                    : config.projects.includes(ALL_ACCESS_PROJECTS)
+                      ? t('All projects')
+                      : tn('%s project', '%s projects', config.projects.length)}
+                </Text>
+                {config.createdBy !== undefined && (
+                  <Fragment>
+                    <Stack.Separator />
+                    <Flex gap="xs" align="center">
+                      <Text size="sm" variant="muted">
+                        {t('Created by')}
+                      </Text>
+                      {createdByUser ? (
+                        <UserBadge
+                          user={createdByUser}
+                          hideEmail
+                          avatarSize={16}
+                          avatarProps={{hasTooltip: true}}
+                          displayName={
+                            <Text size="sm" variant="muted">
+                              {createdByUser.name || createdByUser.email}
+                            </Text>
+                          }
+                        />
+                      ) : (
+                        <Text size="sm" variant="muted">
+                          {config.createdBy}
+                        </Text>
+                      )}
+                    </Flex>
+                  </Fragment>
+                )}
+              </Stack>
+            </Stack>
+            <Stack gap="md" align="end">
+              <Flex gap="sm">
+                <Button
+                  size="sm"
+                  disabled={toggleEnabled.isPending}
+                  icon={
+                    toggleEnabled.isPending ? (
+                      <LoadingIndicator size={14} style={{margin: 0}} />
+                    ) : config.enabled ? (
+                      <IconPause />
+                    ) : (
+                      <IconPlay />
+                    )
+                  }
+                  onClick={() => toggleEnabled.mutate(!config.enabled)}
+                >
+                  {config.enabled ? t('Pause') : t('Resume')}
+                </Button>
+                <Button
+                  size="sm"
+                  icon={<IconDelete />}
+                  aria-label={t('Delete')}
+                  onClick={() =>
+                    openConfirmModal({
+                      message: t('Are you sure you want to delete this automation?'),
+                      confirmText: t('Delete'),
+                      priority: 'danger',
+                      onConfirm: () => deleteAutomation.mutate(),
+                    })
+                  }
+                />
+              </Flex>
+              {/* TODO: Placeholder costs until the API provides them */}
+              <Flex gap="xl">
+                <Stack align="end">
+                  <Text size="sm" variant="muted">
+                    {t('Cost 30D')}
+                  </Text>
+                  <Text size="lg">$140.69</Text>
+                </Stack>
+                <Stack align="end">
+                  <Text size="sm" variant="muted">
+                    {t('Cost per Run')}
+                  </Text>
+                  <Text size="lg">$2.50</Text>
+                </Stack>
+              </Flex>
+            </Stack>
           </Flex>
-          <Text>{strategyMeta?.description ?? t('No description')}</Text>
-          <Stack direction="row" align="center" gap="md" wrap="wrap">
-            {config?.dateLastRun !== undefined && (
-              <Fragment>
-                <Text size="sm" variant="muted">
-                  {tct('Last run [time]', {
-                    time: (
-                      <TimeSince
-                        date={config.dateLastRun}
-                        tooltipPrefix={t('Last run')}
-                      />
-                    ),
-                  })}
+          <Tabs value={activeTab} size="sm">
+            <TabList>
+              <TabList.Item
+                key="configuration"
+                to={basePath}
+                textValue={t('Configuration')}
+              >
+                <Text bold={activeTab === 'configuration'} variant="inherit">
+                  {t('Configuration')}
                 </Text>
-                <Stack.Separator />
-              </Fragment>
-            )}
-            {nextUpdate && (
-              <Fragment>
-                <Text size="sm" variant="muted">
-                  {tct('Next run [time]', {
-                    time: <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />,
-                  })}
+              </TabList.Item>
+              <TabList.Item key="runs" to={`${basePath}runs/`} textValue={t('Runs')}>
+                <Text bold={activeTab === 'runs'} variant="inherit">
+                  {t('Runs')}
                 </Text>
-                <Stack.Separator />
-              </Fragment>
-            )}
-            <Text size="sm" variant="muted">
-              {config.strategy === 'breached_metric_investigation'
-                ? tn(
-                    '%s monitor connected',
-                    '%s monitors connected',
-                    config.monitorIds.length
-                  )
-                : config.projects.includes(ALL_ACCESS_PROJECTS)
-                  ? t('All projects')
-                  : tn('%s project', '%s projects', config.projects.length)}
-            </Text>
-          </Stack>
+              </TabList.Item>
+            </TabList>
+          </Tabs>
         </Stack>
-        <Tabs value={activeTab} size="sm">
-          <TabList>
-            <TabList.Item
-              key="configuration"
-              to={basePath}
-              textValue={t('Configuration')}
-            >
-              <Text bold={activeTab === 'configuration'} variant="inherit">
-                {t('Configuration')}
-              </Text>
-            </TabList.Item>
-            <TabList.Item key="runs" to={`${basePath}runs/`} textValue={t('Runs')}>
-              <Text bold={activeTab === 'runs'} variant="inherit">
-                {t('Runs')}
-              </Text>
-            </TabList.Item>
-          </TabList>
-        </Tabs>
-        <Outlet context={config} />
+        <Container padding="xl">
+          <Outlet context={config} />
+        </Container>
       </Stack>
     </SentryDocumentTitle>
   );

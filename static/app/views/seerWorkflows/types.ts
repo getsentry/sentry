@@ -98,6 +98,10 @@ export type SeerWorkflowConfigResponse = {
   strategy: string;
   version: number;
   /**
+   * ID of the user who created the config. Omitted if unset
+   */
+  createdBy?: string;
+  /**
    * When the latest visible run started. Omitted if there are none
    */
   dateLastRun?: string;

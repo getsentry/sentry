@@ -184,8 +184,8 @@ export function MetricAutomationForm(props: Props) {
               )}
             </Alert>
           )}
-          <form.FieldGroup title={t('Details')}>
-            {props.mode === 'create' ? (
+          <form.FieldGroup title={t('Description')}>
+            {props.mode === 'create' && (
               <form.AppField name="name">
                 {field => (
                   <field.Layout.Stack label={t('Name')} required>
@@ -198,18 +198,14 @@ export function MetricAutomationForm(props: Props) {
                   </field.Layout.Stack>
                 )}
               </form.AppField>
-            ) : (
-              <DisplayField.Row label={t('Name')}>
-                <Text>{props.config.name ?? t('Breached metrics')}</Text>
-              </DisplayField.Row>
             )}
-            <DisplayField.Stack label={t('Description')}>
+            <Container padding="lg xl">
               <Text variant="muted">
                 {t(
                   'Investigate metric breaches using related errors, traces, and recent changes to find likely causes.'
                 )}
               </Text>
-            </DisplayField.Stack>
+            </Container>
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Trigger')}>
