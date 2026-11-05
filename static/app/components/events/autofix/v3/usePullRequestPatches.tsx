@@ -2,8 +2,10 @@ import {useMemo} from 'react';
 import {useQueries} from '@tanstack/react-query';
 
 import {DiffLineType, type FilePatch} from 'sentry/components/events/autofix/types';
+import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {PullRequestFileChangeType} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {parseFilePatch} from 'sentry/views/seerWorkflows/overview/filePatch';
 
@@ -30,6 +32,9 @@ export type PullRequestPatches =
       pushFailed: boolean;
       status: 'success';
     };
+
+const POST_PUSH_REFETCH_INTERVAL_MS = 10_000;
+const POST_PUSH_REFETCH_WINDOW_MS = 30_000;
 
 const CHANGE_TYPE_BY_STATUS: Record<string, PullRequestFileChangeType> = {
   added: 'ADDED',
@@ -83,6 +88,33 @@ function hasUnpushedEdits(blocks: Block[], repoName: string): boolean {
   return lastEdit > lastPush;
 }
 
+/**
+ * Whether Seer is pushing to the repo's PR, or has finished editing and is about to push.
+ * The Code Changes card, the Pull Requests button and the iteration feedback all use this,
+ * so they agree on when a push is underway.
+ */
+export function isPushingToPullRequest(
+  state: RepoPRState,
+  runState: ExplorerAutofixState | null | undefined
+): boolean {
+  if (state.pr_creation_status === 'creating') {
+    return true;
+  }
+  return (
+    runState?.status !== 'processing' &&
+    defined(state.pr_number) &&
+    state.pr_creation_status !== 'error' &&
+    hasUnpushedEdits(runState?.blocks ?? [], state.repo_name)
+  );
+}
+
+function isRecent(timestamp: string | undefined): boolean {
+  return (
+    defined(timestamp) &&
+    Date.now() - new Date(timestamp).getTime() < POST_PUSH_REFETCH_WINDOW_MS
+  );
+}
+
 function pickResults(
   results: Array<{data: PullRequestFilesResponse | undefined; isError: boolean}>
 ) {
@@ -94,16 +126,15 @@ function pickResults(
  * pushed, the PR's diff is about to change, so the repo is `pushing` instead.
  */
 export function usePullRequestPatches({
-  blocks,
   enabled,
   organizationSlug,
-  repoPRStates,
+  runState,
 }: {
-  blocks: Block[];
   enabled: boolean;
   organizationSlug: string;
-  repoPRStates: Record<string, RepoPRState> | undefined;
+  runState: ExplorerAutofixState | null | undefined;
 }): Map<string, PullRequestPatches> {
+  const repoPRStates = runState?.repo_pr_states;
   const prStates = useMemo(
     () =>
       enabled ? Object.values(repoPRStates ?? {}).filter(state => state.pr_number) : [],
@@ -113,34 +144,33 @@ export function usePullRequestPatches({
     () =>
       new Set(
         prStates
-          .filter(
-            state =>
-              state.pr_creation_status === 'creating' ||
-              (state.pr_creation_status !== 'error' &&
-                hasUnpushedEdits(blocks, state.repo_name))
-          )
+          .filter(state => isPushingToPullRequest(state, runState))
           .map(state => state.repo_name)
       ),
-    [blocks, prStates]
+    [prStates, runState]
   );
 
   const results = useQueries({
-    queries: prStates.map(state => ({
-      ...apiOptions.as<PullRequestFilesResponse>()(
+    queries: prStates.map(state => {
+      const options = apiOptions.as<PullRequestFilesResponse>()(
         '/organizations/$organizationIdOrSlug/repos/pull-request-files/',
         {
           path: {organizationIdOrSlug: organizationSlug},
-          // The endpoint ignores `commit`; it keys the query to the PR's head, so a push refetches.
-          query: {
-            repo: state.repo_name,
-            number: state.pr_number,
-            commit: state.commit_sha,
-          },
-          staleTime: 60_000,
+          query: {repo: state.repo_name, number: state.pr_number},
+          staleTime: Infinity,
         }
-      ),
-      enabled: !pushing.has(state.repo_name),
-    })),
+      );
+      return {
+        ...options,
+        // The endpoint returns the PR's current diff. The SHA of Seer's last push only keys
+        // the cache, so that push refetches. Other pushes show up after reloading the page.
+        queryKey: [...options.queryKey, state.commit_sha] as never,
+        enabled: !pushing.has(state.repo_name),
+        // GitHub can still return the old diff just after a push, so check again for a bit.
+        refetchInterval: () =>
+          isRecent(runState?.updated_at) ? POST_PUSH_REFETCH_INTERVAL_MS : false,
+      };
+    }),
     combine: pickResults,
   });
 
