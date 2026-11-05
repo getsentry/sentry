@@ -153,24 +153,9 @@ This is the longest step. Tell the user:
 
 > **This will take 10-20 minutes** on first run. It installs Python, Node, all pip/npm dependencies, and runs database migrations. Subsequent syncs are much faster (2-5 min).
 
-### If direnv hangs
+### Before the first sync
 
-The `.envrc` runs Docker checks. If the Docker runtime isn't running, direnv will hang. Symptoms:
-
-```
-direnv: ([...]/direnv export zsh) is taking a while to execute. Use CTRL-C to give up.
-```
-
-**Fix**: Start the Docker runtime first:
-
-- OrbStack: Open OrbStack.app or `open -a OrbStack`
-- Colima: `devenv colima start`
-
-Then `direnv allow` again.
-
-### Chicken-and-Egg Problem
-
-direnv checks node version and sentry installation. On a fresh setup, these don't exist yet, so direnv will fail. This is normal. **Bypass direnv and run devenv sync directly:**
+`.envrc` only sets environment variables and PATH. On a fresh checkout it still loads and prints a `Run: devenv sync` hint. Run sync directly:
 
 ```bash
 ~/.local/share/sentry-devenv/bin/devenv sync
@@ -182,7 +167,7 @@ Or if devenv is on PATH:
 devenv sync
 ```
 
-After sync completes, `direnv allow` should succeed.
+After sync completes, `direnv allow` activates the environment.
 
 ### If devenv sync fails
 
@@ -314,7 +299,6 @@ Each worktree has its own `.venv`. When you create a worktree with `git worktree
 
 | Symptom                                         | Likely Cause                              | Fix                                                  |
 | ----------------------------------------------- | ----------------------------------------- | ---------------------------------------------------- |
-| direnv hangs                                    | Docker runtime not running                | Start OrbStack / Colima                              |
 | `devenv sync` fails with version error          | Outdated devenv                           | `devenv update` or reinstall                         |
 | `devservices up` says "colima not running"      | Using OrbStack, script only checks Colima | Patch `devservices.py` — see Step 6                  |
 | Server 500s on every page                       | DB not seeded                             | `.venv/bin/sentry upgrade --noinput`                 |

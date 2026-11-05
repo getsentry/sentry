@@ -4,6 +4,8 @@ on:
     paths:
       - 'src/sentry/**/migrations/**.py'
       - 'tools/migrations/drop_pending_deletions.py'
+      - 'tools/dev_db.py'
+      - 'Makefile'
       - '.github/workflows/migrations-drift.yml'
 
 # Cancel in progress workflows on pull_requests.
