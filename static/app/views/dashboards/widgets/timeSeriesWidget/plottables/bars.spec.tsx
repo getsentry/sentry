@@ -37,7 +37,7 @@ describe('Bars', () => {
       faded: [false, false, true],
     },
   ] as const)('segments by $segmentBy', ({segmentBy, hatched, faded}) => {
-    const [series] = new Bars(timeSeries, {segmentBy}).toSeries(plottingOptions);
+    const [series] = new Bars(timeSeries).toSeries({...plottingOptions, segmentBy});
     const getColor = series!.itemStyle!.color as (params: {dataIndex: number}) => string;
 
     expect(

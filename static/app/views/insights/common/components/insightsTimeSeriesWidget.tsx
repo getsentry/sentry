@@ -27,7 +27,6 @@ import {
   TimeSeriesWidgetVisualization,
   type TimeSeriesWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {useTimeSeriesSegmentBy} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useTimeSeriesSegmentBy';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
 import {
@@ -93,7 +92,6 @@ export interface InsightsTimeSeriesWidgetProps
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const theme = useTheme();
-  const segmentBy = useTimeSeriesSegmentBy();
   const pageFilters = usePageFilters();
   const pageFiltersSelection = props.pageFilters || pageFilters.selection;
   const {releases: releasesWithDate} = useReleaseStats(pageFiltersSelection, {
@@ -132,7 +130,6 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         color: serie.color ?? COMMON_COLORS(theme)[delayedTimeSeries.yAxis],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
         alias: aliases?.[delayedTimeSeries.yAxis],
-        segmentBy,
       });
     }),
     ...(props.timeSeries?.filter(Boolean) ?? []).map((timeSeries, idx) => {
@@ -151,7 +148,6 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         color: props.colorPalette?.[idx] ?? COMMON_COLORS(theme)[plottableName],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
         alias,
-        segmentBy,
       });
     }),
     ...(props.extraPlottables ?? []),

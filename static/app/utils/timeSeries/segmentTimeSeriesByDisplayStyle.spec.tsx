@@ -4,6 +4,7 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {markDelayedData} from './markDelayedData';
+import {markLowConfidence} from './markLowConfidence';
 import {segmentTimeSeriesByDisplayStyle} from './segmentTimeSeriesByDisplayStyle';
 
 describe('segmentTimeSeriesByDisplayStyle', () => {
@@ -369,16 +370,6 @@ function makeSerie(values: number[]): TimeSeries {
       valueUnit: DurationUnit.MILLISECOND,
       interval: 60 * 1000,
     },
-  };
-}
-
-function markLowConfidence(serie: TimeSeries, lowConfidenceValues: number[]): TimeSeries {
-  return {
-    ...serie,
-    values: serie.values.map(item => ({
-      ...item,
-      confidence: lowConfidenceValues.includes(item.value!) ? 'low' : 'high',
-    })),
   };
 }
 

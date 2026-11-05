@@ -6,6 +6,7 @@ import {segmentTimeSeriesByDisplayStyle} from 'sentry/utils/timeSeries/segmentTi
 
 import {
   ContinuousTimeSeries,
+  DEFAULT_SEGMENT_BY,
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
@@ -13,6 +14,7 @@ import type {Plottable} from './plottable';
 export class Area extends ContinuousTimeSeries implements Plottable {
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): LineSeriesOption[] {
     const {config = {}} = this;
+    const segmentBy = plottingOptions.segmentBy ?? DEFAULT_SEGMENT_BY;
 
     const color = plottingOptions.color ?? config.color ?? undefined;
 
@@ -29,12 +31,12 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     const stackPrefix = plottingOptions.yAxisPosition;
 
     const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {
-      segmentBy: this.segmentBy,
+      segmentBy,
     });
 
     segments.forEach(([timeSeries, style], index) => {
       const data = scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
-        item => this.toDataPoint(item)
+        item => this.toDataPoint(item, segmentBy)
       );
 
       if (style === 'incomplete') {

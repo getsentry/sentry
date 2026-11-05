@@ -28,7 +28,7 @@ describe('Line', () => {
       lineStyles: [undefined, 'dashed', 'dotted'],
     },
   ] as const)('segments by $segmentBy', ({segmentBy, lineStyles}) => {
-    const series = new Line(timeSeries, {segmentBy}).toSeries(plottingOptions);
+    const series = new Line(timeSeries).toSeries({...plottingOptions, segmentBy});
 
     expect(series.map(s => s.lineStyle?.type)).toEqual(lineStyles);
   });
@@ -38,7 +38,7 @@ describe('Line', () => {
     {segmentBy: ['completeness'], flags: [{}, {}, {incomplete: true}]},
     {segmentBy: ['confidence'], flags: [{}, {confidence: 'low'}, {}]},
   ] as const)('attaches flags for $segmentBy to data points', ({segmentBy, flags}) => {
-    const series = new Line(timeSeries, {segmentBy}).toSeries(plottingOptions);
+    const series = new Line(timeSeries).toSeries({...plottingOptions, segmentBy});
     const dataPoints = series.flatMap(s => s.data as Array<Record<string, unknown>>);
 
     const flagsByTimestamp = new Map(

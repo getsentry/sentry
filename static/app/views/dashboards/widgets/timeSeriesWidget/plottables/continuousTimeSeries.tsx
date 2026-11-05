@@ -30,10 +30,6 @@ export type ContinuousTimeSeriesConfig = {
    * (alias or computed from `formatTimeSeriesLabel`), not this name.
    */
   name?: string;
-  /**
-   * Which item properties get their own visual treatment (e.g., incomplete or low-confidence buckets). Defaults to `['completeness']`
-   */
-  segmentBy?: readonly TimeSeriesSegmentField[];
 };
 
 export type ContinuousTimeSeriesDataPoint = {
@@ -55,6 +51,10 @@ export type ContinuousTimeSeriesPlottingOptions = {
    * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
    */
   yAxisPosition: 'left' | 'right';
+  /**
+   * Which item properties get their own visual treatment (e.g., incomplete or low-confidence buckets). Defaults to `['completeness']`
+   */
+  segmentBy?: readonly TimeSeriesSegmentField[];
 };
 
 /**
@@ -128,18 +128,17 @@ export abstract class ContinuousTimeSeries<
     };
   }
 
-  get segmentBy(): readonly TimeSeriesSegmentField[] {
-    return this.config?.segmentBy ?? DEFAULT_SEGMENT_BY;
-  }
-
   /**
    * Converts an item to an ECharts data point. Fields the plottable segments by ride along on the point, so the tooltip can read them for whichever point is hovered
    */
-  protected toDataPoint(item: TimeSeriesItem): ContinuousTimeSeriesDataPoint {
+  protected toDataPoint(
+    item: TimeSeriesItem,
+    segmentBy: readonly TimeSeriesSegmentField[]
+  ): ContinuousTimeSeriesDataPoint {
     return {
       value: timeSeriesItemToEChartsDataPoint(item),
-      confidence: this.segmentBy.includes('confidence') ? item.confidence : undefined,
-      incomplete: this.segmentBy.includes('completeness') ? item.incomplete : undefined,
+      confidence: segmentBy.includes('confidence') ? item.confidence : undefined,
+      incomplete: segmentBy.includes('completeness') ? item.incomplete : undefined,
     };
   }
 
@@ -150,7 +149,7 @@ export abstract class ContinuousTimeSeries<
   abstract toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): SeriesOption[];
 }
 
-const DEFAULT_SEGMENT_BY: readonly TimeSeriesSegmentField[] = ['completeness'];
+export const DEFAULT_SEGMENT_BY: readonly TimeSeriesSegmentField[] = ['completeness'];
 
 export function isLowConfidenceDataPoint(data: unknown): boolean {
   return (

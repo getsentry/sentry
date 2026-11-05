@@ -63,7 +63,8 @@ describe('Area', () => {
         {timestamp: 1729800000000, value: 30, incomplete: true},
       ],
     });
-    const series = new Area(segmentedTimeSeries, {segmentBy}).toSeries({
+    const series = new Area(segmentedTimeSeries).toSeries({
+      segmentBy,
       color: '#7553FF',
       unit: segmentedTimeSeries.meta.valueUnit,
       yAxisPosition: 'left',

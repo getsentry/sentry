@@ -12,7 +12,6 @@ import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
-import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
@@ -21,7 +20,6 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {useTimeSeriesSegmentBy} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useTimeSeriesSegmentBy';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
@@ -51,7 +49,7 @@ interface ChartVisualizationProps {
 function createChartInfoPlottables(
   chartInfo: ChartInfo,
   theme: Theme,
-  {combined, segmentBy}: {combined: boolean; segmentBy: readonly TimeSeriesSegmentField[]}
+  {combined}: {combined: boolean}
 ): Plottable[] {
   const DataPlottableConstructor =
     chartInfo.chartType === ChartType.LINE
@@ -73,7 +71,6 @@ function createChartInfoPlottables(
     return new DataPlottableConstructor(markDelayedData(s, INGESTION_DELAY), {
       alias,
       color: s.meta.isOther ? theme.tokens.content.secondary : undefined,
-      segmentBy,
       stack: 'all',
     });
   });
@@ -81,11 +78,10 @@ function createChartInfoPlottables(
 
 export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
   const theme = useTheme();
-  const segmentBy = useTimeSeriesSegmentBy();
 
   return useMemo(
-    () => createChartInfoPlottables(chartInfo, theme, {combined: false, segmentBy}),
-    [chartInfo, theme, segmentBy]
+    () => createChartInfoPlottables(chartInfo, theme, {combined: false}),
+    [chartInfo, theme]
   );
 }
 
@@ -94,14 +90,13 @@ export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
  */
 export function useChartInfosPlottables(chartInfos: ChartInfo[]) {
   const theme = useTheme();
-  const segmentBy = useTimeSeriesSegmentBy();
 
   return useMemo(() => {
     const combined = chartInfos.length > 1;
     return chartInfos.flatMap(chartInfo =>
-      createChartInfoPlottables(chartInfo, theme, {combined, segmentBy})
+      createChartInfoPlottables(chartInfo, theme, {combined})
     );
-  }, [chartInfos, theme, segmentBy]);
+  }, [chartInfos, theme]);
 }
 
 export function ChartVisualization({

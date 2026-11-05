@@ -9,6 +9,7 @@ import {
 
 import {
   ContinuousTimeSeries,
+  DEFAULT_SEGMENT_BY,
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
@@ -16,6 +17,7 @@ import type {Plottable} from './plottable';
 export class Line extends ContinuousTimeSeries implements Plottable {
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions) {
     const {config = {}} = this;
+    const segmentBy = plottingOptions.segmentBy ?? DEFAULT_SEGMENT_BY;
 
     const color = plottingOptions.color ?? config.color ?? undefined;
 
@@ -27,7 +29,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
     };
 
     const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {
-      segmentBy: this.segmentBy,
+      segmentBy,
     });
 
     return segments.map(([timeSeries, style]) =>
@@ -35,7 +37,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
         ...commonOptions,
         ...STYLE_OPTIONS[style],
         data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(item =>
-          this.toDataPoint(item)
+          this.toDataPoint(item, segmentBy)
         ),
       })
     );

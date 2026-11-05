@@ -6,6 +6,7 @@ import {createBarSeries} from 'sentry/components/charts/series/barSeries';
 
 import {
   ContinuousTimeSeries,
+  DEFAULT_SEGMENT_BY,
   type ContinuousTimeSeriesConfig,
   type ContinuousTimeSeriesPlottingOptions,
   isLowConfidenceDataPoint,
@@ -24,6 +25,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
     plottingOptions: ContinuousTimeSeriesPlottingOptions
   ): Array<BarSeriesOption | LineSeriesOption> {
     const {config = {}} = this;
+    const segmentBy = plottingOptions.segmentBy ?? DEFAULT_SEGMENT_BY;
 
     const colorValue = plottingOptions.color ?? config.color ?? undefined;
     const colorObject = color(colorValue);
@@ -48,14 +50,14 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
           color: params => {
             const datum = scaledTimeSeries.values[params.dataIndex]!;
 
-            return this.segmentBy.includes('completeness') && datum.incomplete
+            return segmentBy.includes('completeness') && datum.incomplete
               ? colorObject.alpha(0.5).string()
               : colorValue;
           },
           opacity: 1,
         },
         data: scaledTimeSeries.values.map(datum => {
-          const dataPoint = this.toDataPoint(datum);
+          const dataPoint = this.toDataPoint(datum, segmentBy);
 
           if (!isLowConfidenceDataPoint(dataPoint)) {
             return dataPoint;
