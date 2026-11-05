@@ -236,9 +236,15 @@ export function FiltersBar({
     setPriority,
   } = useDashboardQueryPriority(dashboard?.queryPriority);
   const {mutateAsync: saveQueryPriority} = useSaveDashboardQueryPriority();
-  // Bumps on every click so a selection that was replaced before its request
-  // starts does not go out, and a stale response does not update the page.
+  // Bumps when the selection is replaced or this bar unmounts, so a response
+  // for a selection that is no longer on screen does not update the page.
   const queryPrioritySaveId = useRef(0);
+  useEffect(
+    () => () => {
+      queryPrioritySaveId.current += 1;
+    },
+    []
+  );
   const handleQueryPriorityChange = (value: DashboardQueryPriority) => {
     const previous = priority;
     setPriority(value);

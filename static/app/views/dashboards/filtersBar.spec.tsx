@@ -6,7 +6,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
@@ -616,6 +616,39 @@ describe('FiltersBar', () => {
           data: {queryPriority: 'normal'},
         })
       );
+    });
+
+    it('does not apply a priority save after the bar unmounts', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      let releaseSave = () => {};
+      const saveSettled = new Promise<void>(resolve => {
+        releaseSave = resolve;
+      });
+      const onDashboardQueryPrioritySaved = jest.fn();
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {queryPriority: 'faster'}),
+        asyncDelay: saveSettled,
+      });
+      const {unmount} = renderFilterBar({
+        dashboard: DashboardFixture([], {id: '1', queryPriority: 'normal'}),
+        onDashboardQueryPrioritySaved,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+      expect(updateMock).toHaveBeenCalledTimes(1);
+
+      unmount();
+      releaseSave();
+      await act(async () => {
+        await saveSettled;
+      });
+
+      expect(onDashboardQueryPrioritySaved).not.toHaveBeenCalled();
     });
   });
 });

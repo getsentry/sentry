@@ -140,16 +140,13 @@ export function useSaveDashboardQueryPriority() {
 
 // One chain for every dashboard PUT. A full save loads `query_priority` when
 // the request starts and writes that value back when the field is omitted, so
-// it must not run beside a priority save. Later clicks wait behind the write
-// that is already going out.
+// it must not run beside a priority save. A failed write does not block the
+// next one; the caller still sees that failure.
 let dashboardWriteQueue: Promise<unknown> = Promise.resolve();
 
 export function enqueueDashboardWrite<T>(task: () => Promise<T>): Promise<T> {
-  const run = dashboardWriteQueue.then(task, task);
-  dashboardWriteQueue = run.then(
-    () => {},
-    () => {}
-  );
+  const run = dashboardWriteQueue.then(task);
+  dashboardWriteQueue = run.catch(() => {});
   return run;
 }
 

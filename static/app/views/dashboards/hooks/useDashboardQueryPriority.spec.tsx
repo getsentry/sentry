@@ -30,4 +30,21 @@ describe('enqueueDashboardWrite', () => {
 
     expect(order).toEqual(['priority-start', 'priority-end', 'dashboard']);
   });
+
+  it('runs the next save after the previous one fails', async () => {
+    const order: string[] = [];
+
+    const failedWrite = enqueueDashboardWrite(() => {
+      order.push('failed');
+      return Promise.reject(new Error('save failed'));
+    });
+    const nextWrite = enqueueDashboardWrite(() => {
+      order.push('next');
+      return Promise.resolve();
+    });
+
+    await expect(failedWrite).rejects.toThrow('save failed');
+    await nextWrite;
+    expect(order).toEqual(['failed', 'next']);
+  });
 });
