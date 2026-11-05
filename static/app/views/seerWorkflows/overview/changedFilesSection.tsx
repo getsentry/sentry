@@ -150,7 +150,12 @@ export function ChangedFilesSection({
           {t('Code Changes')}
         </Text>
       </Flex>
-      <Container border="primary" radius="md" overflow="hidden" background="secondary">
+      <Container
+        borderColor="primary"
+        radius="md"
+        overflow="hidden"
+        background="secondary"
+      >
         {groups.map((group, groupIndex) => (
           <RepoGroup
             key={JSON.stringify([group.repoName])}

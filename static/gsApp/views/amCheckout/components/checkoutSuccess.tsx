@@ -121,7 +121,7 @@ function ScheduledChanges({
       padding="xl 0"
       width="100%"
       maxWidth={{zero: '100%', md: '445px'}}
-      border="primary"
+      borderColor="primary"
       radius="md"
     >
       <Container padding="0 xl">
@@ -327,7 +327,7 @@ function Receipt({
             times: [0.1, 0.2, 0.3, 0.34, 0.36, 0.37, 1],
           }}
         >
-          <ReceiptPaper background="primary" border="primary">
+          <ReceiptPaper background="primary" borderColor="primary">
             <Stack gap="xl" padding="xl" align="center">
               <img src={SentryLogo} alt={t('Sentry logo')} />
               <Grid columns="1fr 2fr 1fr" align="center" gap="sm">

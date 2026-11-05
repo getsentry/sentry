@@ -268,7 +268,7 @@ function WidgetDiffCard({change}: {change: WidgetChange}) {
   const {label: statusLabel, variant: tagVariant} = STATUS_MAP[status];
 
   return (
-    <Stack gap="sm" border="secondary" radius="sm" padding="md">
+    <Stack gap="sm" borderColor="secondary" radius="sm" padding="md">
       <Flex align="center" justify="between" gap="sm">
         <Flex align="center" gap="xs" style={{minWidth: 0}}>
           <Flex

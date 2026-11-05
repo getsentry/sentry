@@ -27,7 +27,7 @@ export function LinkedIssueRows({linkedIssues}: LinkedIssueRowsProps) {
     <Stack
       as="ul"
       aria-label={t('Linked issues')}
-      border="primary"
+      borderColor="primary"
       radius="md"
       overflow="hidden"
       margin="0"

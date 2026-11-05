@@ -268,7 +268,7 @@ function OnionView({
       {displayBaseUrl && displayHeadUrl && (
         <Flex
           justify="center"
-          border="primary"
+          borderColor="primary"
           radius="md"
           overflow="hidden"
           background="secondary"

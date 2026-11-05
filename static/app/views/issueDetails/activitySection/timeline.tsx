@@ -29,7 +29,7 @@ function Item({marker, headline, children, variant = 'default'}: TimelineItemPro
           width={`calc(100% + ${theme.space.lg})`}
           padding="lg"
           gap="lg"
-          border="primary"
+          borderColor="primary"
           radius="md"
           background="primary"
         >

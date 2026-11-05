@@ -282,7 +282,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           </KeyValueColumns>
         </Container>
       ) : (
-        <Container width="100%" border="primary" radius="md">
+        <Container width="100%" borderColor="primary" radius="md">
           <EmptyStateWarning small>
             {t('No feature flags were found for this event')}
           </EmptyStateWarning>

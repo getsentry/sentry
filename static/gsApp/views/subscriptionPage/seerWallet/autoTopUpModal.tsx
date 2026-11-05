@@ -120,7 +120,7 @@ function AutoTopUpModal({
               )}
             </Text>
           </Stack>
-          <Separator orientation="horizontal" border="primary" />
+          <Separator orientation="horizontal" borderColor="primary" />
           <Stack gap="sm">
             <Text as="label" htmlFor="seer-auto-top-up-threshold">
               {t('If credits fall below:')}
@@ -175,7 +175,7 @@ function AutoTopUpModal({
               })}
             </Text>
           </Stack>
-          <Separator orientation="horizontal" border="primary" />
+          <Separator orientation="horizontal" borderColor="primary" />
           <Stack gap="sm">
             <Text as="label" htmlFor="seer-auto-top-up-daily-cap">
               {t('Daily spending cap')}

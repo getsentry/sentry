@@ -12,7 +12,7 @@ import {getBorder, getRadius, rc} from './styles';
 
 interface FlatSurfaceProps<T extends ContainerElement = 'div'> extends Omit<
   ContainerProps<T>,
-  'background' | 'border'
+  'background' | 'borderColor'
 > {
   elevation?: never;
   variant?: SurfaceVariant;
@@ -20,7 +20,7 @@ interface FlatSurfaceProps<T extends ContainerElement = 'div'> extends Omit<
 
 interface OverlaySurfaceProps<T extends ContainerElement = 'div'> extends Omit<
   ContainerProps<T>,
-  'background' | 'border'
+  'background' | 'borderColor'
 > {
   variant: 'overlay';
   elevation?: 'low' | 'medium' | 'high';
@@ -98,7 +98,7 @@ export const Surface = styled(
 
     const {variant, elevation: _, ...rest} = props;
     if (variant === 'overlay') {
-      return <Container border="primary" radius={rest.radius ?? 'md'} {...rest} />;
+      return <Container borderColor="primary" radius={rest.radius ?? 'md'} {...rest} />;
     }
     return <Container radius={rest.radius} {...rest} />;
   }

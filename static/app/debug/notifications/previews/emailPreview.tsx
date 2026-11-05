@@ -45,7 +45,7 @@ export function EmailPreview({
         </SegmentedControl>
       }
     >
-      <Container border="primary" radius="md">
+      <Container borderColor="primary" radius="md">
         <Stack padding="xl">
           <Text bold>{subject}</Text>
           <Text variant="muted">To: user@example.com</Text>

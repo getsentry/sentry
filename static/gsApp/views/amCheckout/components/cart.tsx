@@ -593,7 +593,7 @@ function TotalSummary({
       : t('Confirm');
 
   return (
-    <Stack border="primary" radius="lg" background="secondary" overflow="hidden">
+    <Stack borderColor="primary" radius="lg" background="secondary" overflow="hidden">
       <Stack padding="xl xl 0" gap="md">
         <Fragment>
           {!previewDataLoading && (
@@ -914,7 +914,7 @@ export function Cart({
         onToggle={setChangesIsOpen}
         organization={organization}
       />
-      <Stack border="primary" radius="lg" background="primary" overflow="hidden">
+      <Stack borderColor="primary" radius="lg" background="primary" overflow="hidden">
         <Stack align="start" width="100%" height="100%">
           <Stack
             direction="row"

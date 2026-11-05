@@ -649,7 +649,7 @@ function CodeBlock({children}: {children: React.ReactNode}) {
   return (
     <Container
       background="secondary"
-      border="primary"
+      borderColor="primary"
       radius="md"
       padding="md"
       overflow="auto"

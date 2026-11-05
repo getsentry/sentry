@@ -133,7 +133,7 @@ export function AppSizeInsightsSidebarRow({
   };
 
   return (
-    <Stack border="muted" radius="md" padding="xl" gap="md">
+    <Stack borderColor="muted" radius="md" padding="xl" gap="md">
       <Flex align="start" justify="between">
         <Flex align="center" gap="xs">
           <Text variant="primary" size="md" bold>

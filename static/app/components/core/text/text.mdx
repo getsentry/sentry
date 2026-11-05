@@ -149,16 +149,16 @@ Control text alignment with the `align` prop: `left` (default), `center`, `right
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
     <Stack gap="md">
-      <Container width="200px" padding="md" border="primary">
+      <Container width="200px" padding="md" borderColor="primary">
         <Text align="left">Left aligned text</Text>
       </Container>
-      <Container width="200px" padding="md" border="primary">
+      <Container width="200px" padding="md" borderColor="primary">
         <Text align="center">Center aligned text</Text>
       </Container>
-      <Container width="200px" padding="md" border="primary">
+      <Container width="200px" padding="md" borderColor="primary">
         <Text align="right">Right aligned text</Text>
       </Container>
-      <Container width="200px" padding="md" border="primary">
+      <Container width="200px" padding="md" borderColor="primary">
         <Text align="justify">
           Justified text that will wrap to multiple lines and be justified.
         </Text>
@@ -225,12 +225,12 @@ Control line height with the `density` prop: `compressed` (1.0), `default` (1.2)
 Handle text overflow with the `ellipsis` prop to truncate long text with an ellipsis.
 
 <Storybook.Demo>
-  <Container width="200px" padding="md" border="primary">
+  <Container width="200px" padding="md" borderColor="primary">
     <Text ellipsis>This is a very long text that will be truncated with an ellipsis</Text>
   </Container>
 </Storybook.Demo>
 ```jsx
-<Container width="200px" padding="md" border="primary">
+<Container width="200px" padding="md" borderColor="primary">
   <Text ellipsis>This is a very long text that will be truncated with an ellipsis</Text>
 </Container>
 ```
@@ -251,13 +251,13 @@ Use the `textWrap` prop to control how the text wraps, and the `wordBreak` prop 
 
 <Storybook.Demo>
   <Stack gap="md">
-    <Container width="200px" padding="md" border="primary">
+    <Container width="200px" padding="md" borderColor="primary">
       <Text wordBreak="break-word">
         A URL string that breaks on word boundaries:
         https://example.com/path/?marketingParam1=value1&amp;marketingParam2=some-awkward-long-value
       </Text>
     </Container>
-    <Container width="200px" padding="md" border="primary">
+    <Container width="200px" padding="md" borderColor="primary">
       <Text textWrap="balance">
         Balanced text wrapping for a string of words of varying lengths
       </Text>
@@ -265,14 +265,14 @@ Use the `textWrap` prop to control how the text wraps, and the `wordBreak` prop 
   </Stack>
 </Storybook.Demo>
 ```jsx
-<Container width="200px" padding="md" border="primary">
+<Container width="200px" padding="md" borderColor="primary">
   <Text wordBreak="break-word">
     A URL string that breaks on word boundaries:
     https://example.com/path/?marketingParam1=value1&amp;marketingParam2=some-awkward-long-value
   </Text>
 </Container>
 
-<Container width="200px" padding="md" border="primary">
+<Container width="200px" padding="md" borderColor="primary">
   <Text textWrap="balance">
     Balanced text wrapping for a string of words of varying lengths
   </Text>
@@ -346,7 +346,7 @@ Use `tabular` for consistent number alignment and `fraction` for diagonal fracti
 Text components support responsive sizes using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
 
 <Storybook.Demo>
-  <Container width="200px" border="primary">
+  <Container width="200px" borderColor="primary">
     <Text
       size={{
         'screen:xs': 'xs',

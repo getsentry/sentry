@@ -84,7 +84,7 @@ export function Screenshot({
                 justify="between"
                 padding="md"
                 width="100%"
-                border="primary"
+                borderColor="primary"
                 borderBottom="none"
                 radius="md md 0 0"
                 background="primary"
@@ -119,7 +119,7 @@ export function Screenshot({
               minHeight="48px"
               overflow="hidden"
               position="relative"
-              border="primary"
+              borderColor="primary"
               radius={totalScreenshots > 1 ? undefined : 'md md 0 0'}
             >
               {loadingImage && (
@@ -133,7 +133,7 @@ export function Screenshot({
                   openVisualizationModal(screenshot, `${downloadUrl}?download=1`)
                 }
               >
-                <Container width="100%" border="none" padding="0">
+                <Container width="100%" borderColor="none" padding="0">
                   {containerProps => (
                     <AttachmentComponent
                       {...containerProps}
@@ -153,7 +153,7 @@ export function Screenshot({
             <Container
               padding="md"
               width="100%"
-              border="primary"
+              borderColor="primary"
               borderTop="none"
               radius="0 0 md md"
             >

@@ -304,19 +304,19 @@ export function SizeCompareMainContent() {
       {comparisonDataQuery.data?.insight_diff_items &&
         comparisonDataQuery.data.insight_diff_items.length > 0 && (
           <Stack gap="xl">
-            <Separator orientation="horizontal" border="primary" />
+            <Separator orientation="horizontal" borderColor="primary" />
             <InsightComparisonSection
               totalInstallSizeBytes={
                 comparisonDataQuery.data.size_metric_diff_item.head_install_size
               }
               insightDiffItems={comparisonDataQuery.data.insight_diff_items}
             />
-            <Separator orientation="horizontal" border="primary" />
+            <Separator orientation="horizontal" borderColor="primary" />
           </Stack>
         )}
 
       {/* Items Changed Section */}
-      <Container background="primary" radius="lg" padding="0" border="primary">
+      <Container background="primary" radius="lg" padding="0" borderColor="primary">
         <Stack gap="0">
           <Flex align="center" justify="between" padding="xl">
             <Flex align="center">
@@ -396,7 +396,7 @@ export function SizeCompareMainContent() {
       {comparisonDataQuery.data?.diff_items &&
         comparisonDataQuery.data.diff_items.length > 0 && (
           <Stack gap="xl">
-            <Separator orientation="horizontal" border="primary" />
+            <Separator orientation="horizontal" borderColor="primary" />
             <Stack gap="md">
               <Heading as="h2">{t('X-Ray Diff')}</Heading>
               <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />

@@ -82,7 +82,7 @@ export function AgentSetupCard({
       columns={`${SETUP_CARD_MARKER_PX} 1fr`}
       gap="0 md"
       background="primary"
-      border="primary"
+      borderColor="primary"
       radius="xl"
       padding="xl"
       areas={`
@@ -145,7 +145,7 @@ export function AgentSetupCard({
               paddingTop="xs"
               justify="center"
             >
-              <Separator orientation="vertical" border="muted" />
+              <Separator orientation="vertical" borderColor="muted" />
             </Flex>
           </ListItem>
           <ListItem>

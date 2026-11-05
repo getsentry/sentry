@@ -18,7 +18,7 @@ export default Storybook.story('Investigations — Comments', story => {
       details={[commentedInvestigation]}
       comments={{[commentedInvestigation.id]: commentedInvestigationComments}}
     >
-      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+      <Container minHeight="720px" borderColor="primary" radius="md" overflow="hidden">
         <StoryTopBar>
           <InvestigationBootstrapPage investigationId={commentedInvestigation.id} />
         </StoryTopBar>
