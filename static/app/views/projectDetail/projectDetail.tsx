@@ -187,9 +187,9 @@ export function ProjectDetail() {
       leadingItems: <IconSettings size="md" />,
       to: `/settings/${params.orgId}/projects/${params.projectId}/`,
       onAction: () =>
-        trackAnalytics('settings.settings_link_clicked', {
+        trackAnalytics('settings.entry_point_clicked', {
           organization,
-          source: 'project_details_menu',
+          entry_point: 'project_details_menu',
         }),
     },
   ];
