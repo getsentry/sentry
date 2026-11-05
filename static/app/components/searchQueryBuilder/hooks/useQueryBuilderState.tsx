@@ -302,6 +302,38 @@ function deleteQueryTokens(
   };
 }
 
+function expandTokenToEmptyParens(
+  query: string,
+  token: ParseResultToken,
+  parseQuery: (query: string) => ParseResult | null
+): ParseResultToken[] {
+  if (token.type === Token.L_PAREN || token.type === Token.R_PAREN) {
+    return [token];
+  }
+
+  const tokens = (parseQuery(query) ?? []).filter(
+    t => t.type !== Token.FREE_TEXT || t.text.trim().length > 0
+  );
+  let start = tokens.findIndex(
+    t => t.location.start.offset === token.location.start.offset
+  );
+
+  if (start === -1) {
+    return [token];
+  }
+
+  let end = start;
+  while (
+    tokens[start - 1]?.type === Token.L_PAREN &&
+    tokens[end + 1]?.type === Token.R_PAREN
+  ) {
+    start--;
+    end++;
+  }
+
+  return [tokens[start]!, tokens[end]!];
+}
+
 function deleteToCursor(
   state: QueryBuilderState,
   action: DeleteToCursorAction,
@@ -1210,7 +1242,7 @@ export function useQueryBuilderState({
         case 'DELETE_TOKEN': {
           return {
             ...replaceTokensWithText(state, {
-              tokens: [action.token],
+              tokens: expandTokenToEmptyParens(state.query, action.token, parseQuery),
               text: '',
               parseQuery,
               shouldCommitQuery: true,
