@@ -21,6 +21,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
+import {getTraceItemAttribute} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useTraceItemDetails,
@@ -202,6 +203,9 @@ function LogBlockContent({
 export default function LogBlock(props: LogData) {
   const {id, traceId, timestamp, attribute} = props;
   const organization = useOrganization();
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
   const projectId = toProjectId(props.projectId);
   const theme = useTheme();
 
@@ -270,12 +274,26 @@ export default function LogBlock(props: LogData) {
   const attributeValues = useMemo(() => toAttributeValues(attributes), [attributes]);
   const attributeTypes = useMemo(() => toAttributeTypes(attributes), [attributes]);
 
+  const severity = getTraceItemAttribute(
+    attributes,
+    OurLogKnownFieldKey.SEVERITY,
+    useRawAttributeNames
+  )?.value;
+  const severityNumber = getTraceItemAttribute(
+    attributes,
+    OurLogKnownFieldKey.SEVERITY_NUMBER,
+    useRawAttributeNames
+  )?.value;
   const level = getLogSeverityLevel(
-    Number(attributeValues[OurLogKnownFieldKey.SEVERITY_NUMBER]) || null,
-    (attributeValues[OurLogKnownFieldKey.SEVERITY] as string | undefined) ?? null
+    Number(severityNumber) || null,
+    (severity as string | undefined) ?? null
   );
   const logColors = getLogColors(level, theme);
-  const message = attributeValues[OurLogKnownFieldKey.MESSAGE];
+  const message = getTraceItemAttribute(
+    attributes,
+    OurLogKnownFieldKey.MESSAGE,
+    useRawAttributeNames
+  )?.value;
   const displayTimestampMs =
     parseTimestampMillis(details?.timestamp) ?? lookupTimestampMs;
 
@@ -320,18 +338,18 @@ export default function LogBlock(props: LogData) {
           {/* The logs table's row, left to right: severity, time, message. */}
           <Flex align="baseline" gap="md">
             <Flex align="center" flexShrink="0" alignSelf="center">
-              <LogSeverityDot
-                severity={attributeValues[OurLogKnownFieldKey.SEVERITY]}
-                severityNumber={attributeValues[OurLogKnownFieldKey.SEVERITY_NUMBER]}
-              />
+              <LogSeverityDot severity={severity} severityNumber={severityNumber} />
             </Flex>
             <Flex flexShrink="0">
               <Text size="sm">
                 <LogTimestamp
                   timestamp={displayTimestampMs ?? undefined}
                   timestampPrecise={
-                    attributeValues[OurLogKnownFieldKey.TIMESTAMP_PRECISE] ??
-                    row?.[OurLogKnownFieldKey.TIMESTAMP_PRECISE]
+                    getTraceItemAttribute(
+                      attributes,
+                      OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+                      useRawAttributeNames
+                    )?.value ?? row?.[OurLogKnownFieldKey.TIMESTAMP_PRECISE]
                   }
                 />
               </Text>

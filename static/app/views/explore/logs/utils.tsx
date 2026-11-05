@@ -524,7 +524,10 @@ export function getLogsUrlFromSavedQueryUrl({
   });
 }
 
-export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): string {
+export function ourlogToJson(
+  ourlog: TraceItemDetailsResponse | undefined,
+  useRawAttributeNames = false
+): string {
   if (!ourlog) {
     warn(fmt`cannot copy undefined ourlog`);
     return '';
@@ -548,6 +551,9 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
   for (const key in copy) {
     if (DeprecatedLogDetailFields.includes(key)) {
       delete copy[key];
+      continue;
+    }
+    if (useRawAttributeNames) {
       continue;
     }
     if (key.startsWith('sentry.')) {

@@ -826,6 +826,20 @@ const config = defineConfig({
       },
     },
     {
+      files: ['static/app/utils/fields/getTraceItemAttributeFieldDefinition.ts'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: restrictedImportPatterns,
+            paths: restrictedImportPaths.filter(
+              ({name}) => name !== '@sentry/conventions/attributes'
+            ),
+          },
+        ],
+      },
+    },
+    {
       files: ['**/*.figma.{tsx,jsx}'],
       rules: {
         'no-restricted-imports': [

@@ -43,7 +43,10 @@ function getExactStringAttribute(
 export function slowDBQuerySpanFromTraceItem(
   item: TraceItemDetailsResponse
 ): SlowDBQuerySpan {
-  const {attributes} = item;
+  const attributes = item.attributes.map(attribute => ({
+    ...attribute,
+    name: attribute.queryName ?? attribute.name,
+  }));
   const durationMs = getAttributeValue(attributes, 'span.duration', 'number');
 
   return {
@@ -69,7 +72,10 @@ export function resolveSlowDBQuerySpan(
     }
 
     // A removed query is not missing data: do not restore it from an older snapshot.
-    if (data.meta?.['span.description']?.meta?.value?.['']?.rem?.length) {
+    if (
+      data.meta?.['span.description']?.meta?.value?.['']?.rem?.length ||
+      data.meta?.['sentry.raw_description']?.meta?.value?.['']?.rem?.length
+    ) {
       return undefined;
     }
   }

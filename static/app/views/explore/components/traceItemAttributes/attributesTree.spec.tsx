@@ -18,6 +18,115 @@ describe('attributesTree', () => {
 
   const theme = ThemeFixture();
 
+  it.each([
+    ['sentry.logger.name', 'logger.name'],
+    ['log.custom.name', 'custom.name'],
+    ['tags[sentry.custom,number]', 'custom'],
+    ['tags[message,string]', 'message'],
+  ])('gates display normalization for %s', (name, legacyName) => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {name, type: 'str', value: 'test value'},
+    ];
+    const rendererExtra = {theme, location, navigate: jest.fn(), organization};
+    const {rerender} = render(
+      <AttributesTree attributes={attributes} rendererExtra={rendererExtra} />
+    );
+
+    expect(screen.getByTitle(legacyName)).toBeInTheDocument();
+    expect(screen.getByText('test value')).toBeInTheDocument();
+
+    rerender(
+      <AttributesTree
+        attributes={attributes}
+        rendererExtra={{
+          ...rendererExtra,
+          organization: OrganizationFixture({
+            features: ['trace-item-details-raw-attribute-names'],
+          }),
+        }}
+      />
+    );
+
+    expect(screen.getByTitle(name)).toBeInTheDocument();
+    expect(screen.queryByTitle(legacyName)).not.toBeInTheDocument();
+    expect(screen.getByText('test value')).toBeInTheDocument();
+  });
+
+  it('preserves raw keys in tooltips and scrubbing metadata with the flag enabled', async () => {
+    const rawOrganization = OrganizationFixture({
+      features: ['trace-item-details-raw-attribute-names'],
+    });
+    render(
+      <AttributesTree
+        attributes={[{name: 'sentry.project_id', type: 'str', value: '[Filtered]'}]}
+        getAdjustedAttributeKey={() => 'project.id'}
+        config={{attributeDetailsType: 'log'}}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization: rawOrganization,
+          traceItemMeta: {
+            'sentry.project_id': {
+              meta: {value: {'': {len: 10, rem: [['!config', 's']]}}},
+            },
+          },
+        }}
+      />,
+      {organization: rawOrganization}
+    );
+
+    await userEvent.hover(screen.getByText('project_id'));
+
+    expect(await screen.findByText('Data scrubbed for privacy')).toBeInTheDocument();
+    expect(screen.getByText('project_id')).toHaveAccessibleDescription(
+      expect.stringContaining('sentry.project_id')
+    );
+    expect(screen.queryByText('project.id')).not.toBeInTheDocument();
+    expect(screen.getByText('[Filtered]')).toBeInTheDocument();
+  });
+
+  it.each<TraceItemResponseAttribute>([
+    {name: 'retry_count', queryName: 'tags[retry_count,number]', type: 'int', value: 42},
+    {name: 'enabled', queryName: 'tags[enabled,boolean]', type: 'bool', value: true},
+    {name: 'trace', queryName: 'tags[trace,string]', type: 'str', value: 'custom'},
+    {name: 'sentry.trace_id', queryName: 'trace', type: 'str', value: 'trace-id'},
+    {name: 'labels', queryName: 'tags[labels,array]', type: 'array', value: ['one']},
+  ])(
+    'uses the query name for actions on $name without changing its display',
+    async attribute => {
+      render(
+        <AttributesTree
+          attributes={[attribute]}
+          pinnedAttribute={attribute.queryName}
+          rendererExtra={{
+            theme,
+            location,
+            navigate: jest.fn(),
+            organization: OrganizationFixture({
+              features: ['trace-item-details-raw-attribute-names'],
+            }),
+          }}
+          getCustomActions={content => [
+            {key: 'query', label: content.original!.original_attribute_key},
+          ]}
+        />
+      );
+
+      expect(screen.getByTitle(attribute.name)).toBeInTheDocument();
+      expect(screen.getByRole('img', {name: 'Pinned attribute'})).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Attribute Actions Menu'}),
+        {
+          pointerEventsCheck: 0,
+        }
+      );
+      expect(
+        screen.getByRole('menuitemradio', {name: attribute.queryName})
+      ).toBeInTheDocument();
+    }
+  );
+
   it('correctly renders attributes tree', () => {
     const attributes: TraceItemResponseAttribute[] = [
       {
@@ -197,38 +306,46 @@ describe('attributesTree', () => {
     expect(await screen.findByText('array')).toBeInTheDocument();
   });
 
-  it('describes an attribute key when an attribute details type is given', async () => {
-    const attributes: TraceItemResponseAttribute[] = [
-      {
-        type: 'str',
-        value: 'sentry.python',
-        name: 'sentry.logger.name',
-      },
-    ];
+  it.each([
+    {features: [], expectedKey: 'span.op'},
+    {
+      features: ['trace-item-details-raw-attribute-names'],
+      expectedKey: 'sentry.op',
+    },
+  ])(
+    'describes $expectedKey when an attribute details type is given',
+    async ({features, expectedKey}) => {
+      const attributes: TraceItemResponseAttribute[] = [
+        {
+          type: 'str',
+          value: 'http.client',
+          name: 'sentry.op',
+        },
+      ];
 
-    render(
-      <AttributesTree
-        attributes={attributes}
-        config={{attributeDetailsType: 'log'}}
-        getAdjustedAttributeKey={() => 'logger.name'}
-        rendererExtra={{
-          theme,
-          location,
-          navigate: jest.fn(),
-          organization,
-        }}
-      />
-    );
+      render(
+        <AttributesTree
+          attributes={attributes}
+          config={{attributeDetailsType: 'span'}}
+          getAdjustedAttributeKey={() => 'span.op'}
+          rendererExtra={{
+            theme,
+            location,
+            navigate: jest.fn(),
+            organization: OrganizationFixture({features}),
+          }}
+        />,
+        {organization: OrganizationFixture({features})}
+      );
 
-    await userEvent.hover(
-      within(screen.getByTestId('tree-key-logger.name')).getByText('name')
-    );
+      await userEvent.hover(
+        within(screen.getByTestId(`tree-key-${expectedKey}`)).getByText('op')
+      );
 
-    expect(
-      await screen.findByText('The name of the logger that generated this event.')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
-  });
+      expect(await screen.findByText('The operation of a span.')).toBeInTheDocument();
+      expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+    }
+  );
 
   it('notes an attribute was scrubbed when its trace item meta carries a remark', async () => {
     const attributes: TraceItemResponseAttribute[] = [

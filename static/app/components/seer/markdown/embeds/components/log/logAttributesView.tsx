@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {getTraceItemAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
 import {
@@ -43,13 +44,22 @@ export function LogAttributesView({
 }: LogAttributesViewProps) {
   const organization = useOrganization();
   const theme = useTheme();
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
 
   const visibleAttributes = useMemo(
     () =>
       attributes
-        .filter(attribute => !HiddenLogDetailFields.includes(attribute.name))
+        .filter(
+          attribute =>
+            !HiddenLogDetailFields.some(
+              field =>
+                getTraceItemAttributeName(field, useRawAttributeNames) === attribute.name
+            )
+        )
         .toSorted((a, b) => a.name.localeCompare(b.name)),
-    [attributes]
+    [attributes, useRawAttributeNames]
   );
 
   const rendererExtra = useMemo<RendererExtra>(
@@ -66,6 +76,7 @@ export function LogAttributesView({
       organization,
       projectSlug,
       theme,
+      useRawAttributeNames,
       // The attributes are already on screen, so nothing should wait to render.
       disableLazyLoad: true,
     }),
@@ -77,6 +88,7 @@ export function LogAttributesView({
       organization,
       projectSlug,
       theme,
+      useRawAttributeNames,
     ]
   );
 

@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {QueryObserver} from '@tanstack/react-query';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -477,6 +478,73 @@ describe('SpansTable', () => {
       await screen.findByText('No attributes found for this span')
     ).toBeInTheDocument();
   });
+
+  it.each([false, true])(
+    'preserves detail links and timestamp cards (raw names: %s)',
+    async useRawAttributeNames => {
+      const profileId = '0123456789abcdef0123456789abcdef';
+      const replayId = 'fedcba9876543210fedcba9876543210';
+      mockSpanDetails(firstRow, [
+        {
+          name: useRawAttributeNames ? 'sentry.profile_id' : 'profile.id',
+          type: 'str',
+          value: profileId,
+        },
+        {
+          name: useRawAttributeNames ? 'sentry.replay_id' : 'replayId',
+          type: 'str',
+          value: replayId,
+        },
+        {
+          name: useRawAttributeNames ? 'sentry.trace_id' : 'trace',
+          type: 'str',
+          value: firstRow.trace,
+        },
+        {
+          name: useRawAttributeNames
+            ? 'sentry.start_timestamp_precise'
+            : 'precise.start_ts',
+          type: 'float',
+          value: 1740787200.123,
+        },
+        {
+          name: useRawAttributeNames
+            ? 'sentry.end_timestamp_precise'
+            : 'precise.finish_ts',
+          type: 'float',
+          value: 1740787201.123,
+        },
+      ]);
+      render(<ExampleSpansTable result={makeQueryResult([firstRow])} />, {
+        ...renderOptions(),
+        organization: OrganizationFixture({
+          ...organization,
+          features: useRawAttributeNames
+            ? ['trace-item-details-raw-attribute-names']
+            : [],
+        }),
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Show span details'}));
+      const tree = within(await screen.findByTestId('fields-tree'));
+      expect(tree.getByRole('link', {name: profileId})).toHaveAttribute(
+        'href',
+        expect.stringContaining(profileId)
+      );
+      expect(tree.getByRole('link', {name: replayId})).toHaveAttribute(
+        'href',
+        expect.stringContaining(replayId)
+      );
+      expect(tree.getByRole('link', {name: firstRow.trace})).toHaveAttribute(
+        'href',
+        expect.stringContaining(firstRow.trace)
+      );
+      await userEvent.hover(tree.getByText('1740787200.123'));
+      expect(await screen.findByText('Timestamp')).toBeInTheDocument();
+      await userEvent.unhover(tree.getByText('1740787200.123'));
+      await userEvent.hover(tree.getByText('1740787201.123'));
+      expect(await screen.findByText('Timestamp')).toBeInTheDocument();
+    }
+  );
 
   it('does not link empty span detail identifiers', async () => {
     mockSpanDetails(firstRow, [

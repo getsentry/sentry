@@ -28,13 +28,14 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {ATTRIBUTE_VALUE_TYPES, hasScrubbedValue} from 'sentry/views/explore/utils';
 
 import {AttributesTreeValue} from './attributesTreeValue';
-import {prettifyAttributeName} from './utils';
+import {prettifyAttributeName, withRawAttributeRenderers} from './utils';
 
 interface Attribute {
   attribute_key: string;
   attribute_value: string | number | null;
   original_attribute_key: string;
   type: TraceItemResponseAttribute['type'];
+  query_attribute_key?: string;
 }
 
 export type AttributesTreeContent = KeyValueTreeContent<
@@ -111,11 +112,22 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>({
   getAdjustedAttributeKey,
   pinnedAttribute,
 }: AttributesTreeProps<RendererExtra>) {
+  const useRawAttributeNames = renderExtra.organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
+  const attributeRenderers = useMemo(
+    () => withRawAttributeRenderers(renderers, useRawAttributeNames),
+    [renderers, useRawAttributeNames]
+  );
   const attributesTree = useMemo(
     () =>
       buildKeyValueTree(
         attributes.flatMap(attribute => {
-          const shaped = getAttribute(attribute, getAdjustedAttributeKey);
+          const shaped = getAttribute(
+            attribute,
+            useRawAttributeNames,
+            getAdjustedAttributeKey
+          );
           return shaped
             ? [
                 {
@@ -127,7 +139,7 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>({
             : [];
         })
       ),
-    [attributes, getAdjustedAttributeKey]
+    [attributes, getAdjustedAttributeKey, useRawAttributeNames]
   );
 
   return (
@@ -146,7 +158,7 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>({
               spacerCount={row.spacerCount}
               hasStem={row.hasStem}
               data-test-id="attribute-tree-row"
-              renderers={renderers}
+              renderers={attributeRenderers}
               rendererExtra={renderExtra}
               config={config}
               getCustomActions={getCustomActions}
@@ -222,7 +234,9 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
           ) : (
             <Text monospace>{attributeKey}</Text>
           )}
-          {pinnedAttribute === originalAttribute.original_attribute_key && (
+          {pinnedAttribute ===
+            (originalAttribute.query_attribute_key ??
+              originalAttribute.original_attribute_key) && (
             <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
           )}
         </Flex>
@@ -251,7 +265,17 @@ function AttributesTreeRowDropdown({
 
   let customActions: MenuItemProps[] = [];
   if (getCustomActions) {
-    customActions = getCustomActions(content);
+    customActions = getCustomActions({
+      ...content,
+      original: content.original
+        ? {
+            ...content.original,
+            original_attribute_key:
+              content.original.query_attribute_key ??
+              content.original.original_attribute_key,
+          }
+        : content.original,
+    });
   }
 
   const items: MenuItemProps[] = [
@@ -270,11 +294,12 @@ function AttributesTreeRowDropdown({
   return <KeyValueTreeRowActions ariaLabel={t('Attribute Actions Menu')} items={items} />;
 }
 
-/**
- * Replaces sentry. prefixed keys, and simplifies the value
- */
+//
+// Conditionally replaces sentry. prefixed keys, and simplifies the value
+//
 function getAttribute(
   attribute: TraceItemResponseAttribute,
+  useRawAttributeNames: boolean,
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
 ): Attribute | undefined {
   const attributeValue =
@@ -289,11 +314,15 @@ function getAttribute(
   }
 
   return {
-    attribute_key: prettifyAttributeName(attribute.name),
+    attribute_key: useRawAttributeNames
+      ? attribute.name
+      : prettifyAttributeName(attribute.name),
     attribute_value: attributeValue,
-    original_attribute_key: getAdjustedAttributeKey
-      ? getAdjustedAttributeKey(attribute)
-      : attribute.name,
+    original_attribute_key:
+      !useRawAttributeNames && getAdjustedAttributeKey
+        ? getAdjustedAttributeKey(attribute)
+        : attribute.name,
+    query_attribute_key: useRawAttributeNames ? attribute.queryName : undefined,
     type: attribute.type,
   };
 }

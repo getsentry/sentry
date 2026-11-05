@@ -18,6 +18,8 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {prettifyTagKey} from 'sentry/utils/fields';
+import {getTraceItemAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
@@ -131,6 +133,30 @@ describe('logsTableRow', () => {
     password: '[Filtered]',
     not_zzz_not_exact_match: 'redacted2',
   });
+
+  function mockFullMessageDetails(
+    useRawAttributeNames: boolean,
+    asyncDelay?: Promise<void>
+  ) {
+    return MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID]}/`,
+      method: 'GET',
+      asyncDelay,
+      body: {
+        itemId: rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID],
+        links: null,
+        meta: {},
+        timestamp: rowDataWithTruncatedMessage[OurLogKnownFieldKey.TIMESTAMP],
+        attributes: [
+          {
+            name: useRawAttributeNames ? 'sentry.body' : OurLogKnownFieldKey.MESSAGE,
+            type: 'str',
+            value: fullMessage,
+          },
+        ],
+      },
+    });
+  }
 
   const initialRouterConfig = {
     location: {
@@ -609,93 +635,100 @@ describe('logsTableRow', () => {
     ]);
   });
 
-  it('uses the untruncated message for the connected spans link when the table value was truncated', async () => {
-    render(
-      <LogRowContent
-        dataRow={rowDataWithTruncatedMessage}
-        highlightTerms={[]}
-        meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
-        showExploreConnectedSpansLink
-      />,
-      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
-    );
+  it.each([false, true])(
+    'uses the untruncated message for the connected spans link when the table value was truncated (raw names: %s)',
+    async useRawAttributeNames => {
+      const testOrganization = OrganizationFixture({
+        ...organization,
+        features: useRawAttributeNames
+          ? ['ourlogs-enabled', 'trace-item-details-raw-attribute-names']
+          : ['ourlogs-enabled'],
+      });
+      mockFullMessageDetails(useRawAttributeNames);
+      render(
+        <LogRowContent
+          dataRow={rowDataWithTruncatedMessage}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+          sharedHoverTimeoutRef={{
+            current: null,
+          }}
+          showExploreConnectedSpansLink
+        />,
+        {
+          organization: testOrganization,
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
 
-    const logTableRow = await screen.findByTestId('log-table-row');
-    await userEvent.hover(logTableRow);
-    const messageCell = await screen.findByTestId('log-table-cell-message');
-    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+      const logTableRow = await screen.findByTestId('log-table-row');
+      await userEvent.hover(logTableRow);
+      const messageCell = await screen.findByTestId('log-table-cell-message');
+      await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
 
-    await waitFor(() => {
-      const href = screen
-        .getByText('Explore connected spans')
-        .closest('a')!
-        .getAttribute('href')!;
-      expect(JSON.parse(qs.parse(href.split('?')[1]!).crossEvents as string)).toEqual([
-        {type: 'logs', query: `message:"${fullMessage}"`},
-      ]);
-    });
-  });
+      await waitFor(() => {
+        const href = screen
+          .getByText('Explore connected spans')
+          .closest('a')!
+          .getAttribute('href')!;
+        expect(JSON.parse(qs.parse(href.split('?')[1]!).crossEvents as string)).toEqual([
+          {type: 'logs', query: `message:"${fullMessage}"`},
+        ]);
+      });
+    }
+  );
 
-  it('resolves the untruncated message when connected spans is clicked before the details load', async () => {
-    // Hold the details response open so the item is still unresolved when clicked,
-    // rather than racing the hover prefetch for that window.
-    let releaseDetails = () => {};
-    const detailsHeld = new Promise<void>(resolve => {
-      releaseDetails = resolve;
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID]}/`,
-      method: 'GET',
-      asyncDelay: detailsHeld,
-      body: {
-        itemId: rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID],
-        links: null,
-        meta: {},
-        timestamp: rowDataWithTruncatedMessage[OurLogKnownFieldKey.TIMESTAMP],
-        attributes: Object.entries({
-          ...rowDataWithTruncatedMessage,
-          [OurLogKnownFieldKey.MESSAGE]: fullMessage,
-        }).map(
-          ([k, v]) =>
-            ({
-              name: k,
-              value: v,
-              type: typeof v === 'string' ? 'str' : 'float',
-            }) as TraceItemResponseAttribute
-        ),
-      },
-    });
+  it.each([false, true])(
+    'resolves the untruncated message when connected spans is clicked before the details load (raw names: %s)',
+    async useRawAttributeNames => {
+      const testOrganization = OrganizationFixture({
+        ...organization,
+        features: useRawAttributeNames
+          ? ['ourlogs-enabled', 'trace-item-details-raw-attribute-names']
+          : ['ourlogs-enabled'],
+      });
+      mockFullMessageDetails(useRawAttributeNames);
+      // Hold the details response open so the item is still unresolved when clicked,
+      // rather than racing the hover prefetch for that window.
+      let releaseDetails = () => {};
+      const detailsHeld = new Promise<void>(resolve => {
+        releaseDetails = resolve;
+      });
+      mockFullMessageDetails(useRawAttributeNames, detailsHeld);
 
-    const {router} = render(
-      <LogRowContent
-        dataRow={rowDataWithTruncatedMessage}
-        highlightTerms={[]}
-        meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
-        showExploreConnectedSpansLink
-      />,
-      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
-    );
+      const {router} = render(
+        <LogRowContent
+          dataRow={rowDataWithTruncatedMessage}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+          sharedHoverTimeoutRef={{
+            current: null,
+          }}
+          showExploreConnectedSpansLink
+        />,
+        {
+          organization: testOrganization,
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
 
-    const logTableRow = await screen.findByTestId('log-table-row');
-    await userEvent.hover(logTableRow, {delay: null});
-    const messageCell = await screen.findByTestId('log-table-cell-message');
-    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
-    await userEvent.click(await screen.findByText('Explore connected spans'));
+      const logTableRow = await screen.findByTestId('log-table-row');
+      await userEvent.hover(logTableRow, {delay: null});
+      const messageCell = await screen.findByTestId('log-table-cell-message');
+      await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+      await userEvent.click(await screen.findByText('Explore connected spans'));
 
-    releaseDetails();
+      releaseDetails();
 
-    await waitFor(() => {
-      expect(JSON.parse(router.location.query.crossEvents as string)).toEqual([
-        {type: 'logs', query: `message:"${fullMessage}"`},
-      ]);
-    });
-  });
+      await waitFor(() => {
+        expect(JSON.parse(router.location.query.crossEvents as string)).toEqual([
+          {type: 'logs', query: `message:"${fullMessage}"`},
+        ]);
+      });
+    }
+  );
 
   it('navigates with the truncated message when connected spans cannot load the details', async () => {
     const onExpand = jest.fn();
@@ -829,29 +862,123 @@ describe('logsTableRow', () => {
     });
   });
 
-  it('filters on the untruncated value when the table value was truncated', async () => {
-    const {router} = render(
-      <LogRowContent
-        dataRow={rowDataWithTruncatedMessage}
-        highlightTerms={[]}
-        meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{current: null}}
-      />,
-      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
-    );
+  it.each([false, true])(
+    'filters on the untruncated value when the table value was truncated (raw names: %s)',
+    async useRawAttributeNames => {
+      const testOrganization = OrganizationFixture({
+        ...organization,
+        features: useRawAttributeNames
+          ? ['ourlogs-enabled', 'trace-item-details-raw-attribute-names']
+          : ['ourlogs-enabled'],
+      });
+      mockFullMessageDetails(useRawAttributeNames);
+      const {router} = render(
+        <LogRowContent
+          dataRow={rowDataWithTruncatedMessage}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: testOrganization,
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
 
-    const logTableRow = await screen.findByTestId('log-table-row');
-    await userEvent.hover(logTableRow, {delay: null});
-    const messageCell = await screen.findByTestId('log-table-cell-message');
-    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Add to filter'})
-    );
+      const logTableRow = await screen.findByTestId('log-table-row');
+      await userEvent.hover(logTableRow, {delay: null});
+      const messageCell = await screen.findByTestId('log-table-cell-message');
+      await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Add to filter'})
+      );
 
-    await waitFor(() => {
-      expect(router.location.query[LOGS_QUERY_KEY]).toBe(`message:${fullMessage}`);
-    });
-  });
+      await waitFor(() => {
+        expect(router.location.query[LOGS_QUERY_KEY]).toBe(`message:${fullMessage}`);
+      });
+    }
+  );
+
+  it.each([false, true])(
+    'copies and filters on the full typed-tag value (raw names: %s)',
+    async useRawAttributeNames => {
+      const field = 'tags[message,string]';
+      const dataRow = LogFixture({
+        ...rowDataWithTruncatedMessage,
+        [field]: truncatedMessage,
+      });
+      const testOrganization = OrganizationFixture({
+        ...organization,
+        features: useRawAttributeNames
+          ? ['ourlogs-enabled', 'trace-item-details-raw-attribute-names']
+          : ['ourlogs-enabled'],
+      });
+      const mockWriteText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(window.navigator, 'clipboard', {
+        value: {writeText: mockWriteText},
+        writable: true,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${dataRow.id}/`,
+        body: {
+          itemId: dataRow.id,
+          links: null,
+          meta: {},
+          timestamp: dataRow.timestamp,
+          attributes: [
+            {
+              name: useRawAttributeNames ? 'sentry.body' : 'message',
+              queryName: 'message',
+              type: 'str',
+              value: 'log message',
+            },
+            {
+              name: useRawAttributeNames ? 'message' : field,
+              queryName: field,
+              type: 'str',
+              value: fullMessage,
+            },
+          ],
+        },
+      });
+      const {router} = render(
+        <LogRowContent
+          dataRow={dataRow}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(dataRow)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: testOrganization,
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              ...initialRouterConfig.location,
+              query: {...initialRouterConfig.location.query, [LOGS_FIELDS_KEY]: [field]},
+            },
+          },
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await userEvent.hover(await screen.findByTestId('log-table-row'), {delay: null});
+      const cell = screen.getByTestId(`log-table-cell-${field}`);
+      await userEvent.click(within(cell).getByRole('button', {name: 'Actions'}));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Copy to clipboard'})
+      );
+      await waitFor(() => expect(mockWriteText).toHaveBeenCalledWith(fullMessage));
+
+      await userEvent.click(within(cell).getByRole('button', {name: 'Actions'}));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Add to filter'})
+      );
+      await waitFor(() => {
+        expect(router.location.query[LOGS_QUERY_KEY]).toBe(`${field}:${fullMessage}`);
+      });
+    }
+  );
 
   it('shows a link when hovering over code file path in the table', async () => {
     render(
@@ -921,6 +1048,84 @@ describe('logsTableRow', () => {
       'https://github.com/example/repo/blob/main/file.py'
     );
   });
+
+  it.each([
+    {features: ['ourlogs-enabled'], expectedKey: 'custom'},
+    {
+      features: ['ourlogs-enabled', 'trace-item-details-raw-attribute-names'],
+      expectedKey: 'sentry.custom',
+    },
+  ])(
+    'displays and copies log attribute names as $expectedKey',
+    async ({features, expectedKey}) => {
+      const mockWriteText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(window.navigator, 'clipboard', {
+        value: {writeText: mockWriteText},
+        writable: true,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowData[OurLogKnownFieldKey.ID]}/`,
+        body: {
+          itemId: rowData[OurLogKnownFieldKey.ID],
+          timestamp: rowData[OurLogKnownFieldKey.TIMESTAMP],
+          meta: {},
+          attributes: [
+            ...rowDetails.map(attribute => ({
+              ...attribute,
+              name: features.includes('trace-item-details-raw-attribute-names')
+                ? getTraceItemAttributeName(prettifyTagKey(attribute.name), true)
+                : attribute.name,
+              queryName: attribute.name,
+            })),
+            {name: 'sentry.custom', type: 'str', value: 'custom value'},
+          ],
+        },
+      });
+
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: OrganizationFixture({features}),
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await userEvent.click(await screen.findByTestId('log-table-row'));
+      expect(await screen.findByText('custom value')).toBeInTheDocument();
+      await waitFor(() =>
+        expect(stacktraceLinkMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              lineNo: 10,
+              file: 'herp/merp/derp.py',
+              sdkName: 'sentry.python',
+            }),
+          })
+        )
+      );
+      const attributeLabel = within(
+        screen.getByTestId('tree-key-sentry.custom')
+      ).getByText('custom');
+      await userEvent.hover(attributeLabel);
+      await waitFor(() =>
+        expect(attributeLabel).toHaveAccessibleDescription(
+          expect.stringContaining(expectedKey)
+        )
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as JSON'}));
+      expect(mockWriteText).toHaveBeenCalledWith(
+        expect.stringContaining(`"${expectedKey}": "custom value"`)
+      );
+    }
+  );
 
   it('copies log as JSON when Copy as JSON button is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
@@ -1311,43 +1516,159 @@ describe('logsTableRow', () => {
     });
   });
 
-  it('copies the untruncated value when the table value was truncated', async () => {
-    const mockWriteText = jest.fn().mockResolvedValue(undefined);
-    Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
-      writable: true,
-    });
+  it.each([false, true])(
+    'copies the untruncated value when the table value was truncated (raw names: %s)',
+    async useRawAttributeNames => {
+      const testOrganization = OrganizationFixture({
+        ...organization,
+        features: useRawAttributeNames
+          ? ['ourlogs-enabled', 'trace-item-details-raw-attribute-names']
+          : ['ourlogs-enabled'],
+      });
+      mockFullMessageDetails(useRawAttributeNames);
+      const mockWriteText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(window.navigator, 'clipboard', {
+        value: {
+          writeText: mockWriteText,
+        },
+        writable: true,
+      });
 
-    render(
-      <LogRowContent
-        dataRow={rowDataWithTruncatedMessage}
-        highlightTerms={[]}
-        meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
-      />,
-      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
-    );
+      render(
+        <LogRowContent
+          dataRow={rowDataWithTruncatedMessage}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+          sharedHoverTimeoutRef={{
+            current: null,
+          }}
+        />,
+        {
+          organization: testOrganization,
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
 
-    const logTableRow = await screen.findByTestId('log-table-row');
-    await userEvent.hover(logTableRow, {delay: null});
+      const logTableRow = await screen.findByTestId('log-table-row');
+      await userEvent.hover(logTableRow, {delay: null});
 
-    await userEvent.click(
-      within(screen.getByTestId('log-table-cell-message')).getByRole('button', {
-        name: 'Actions',
-      })
-    );
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Copy to clipboard'})
-    );
+      await userEvent.click(
+        within(screen.getByTestId('log-table-cell-message')).getByRole('button', {
+          name: 'Actions',
+        })
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Copy to clipboard'})
+      );
 
-    await waitFor(() => {
-      expect(mockWriteText).toHaveBeenCalledWith(fullMessage);
-    });
-  });
+      await waitFor(() => {
+        expect(mockWriteText).toHaveBeenCalledWith(fullMessage);
+      });
+    }
+  );
+
+  it.each([false, true])(
+    'uses the full message in expanded details and filters (raw names: %s)',
+    async useRawAttributeNames => {
+      mockFullMessageDetails(useRawAttributeNames);
+      const {router} = render(
+        <LogRowContent
+          dataRow={rowDataWithTruncatedMessage}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: OrganizationFixture({
+            ...organization,
+            features: useRawAttributeNames
+              ? ['ourlogs-enabled', 'trace-item-details-raw-attribute-names']
+              : ['ourlogs-enabled'],
+          }),
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+      await userEvent.click(await screen.findByTestId('log-table-row'));
+      expect(await screen.findAllByText(fullMessage)).toHaveLength(1);
+      await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+      await waitFor(() => {
+        expect(router.location.query[LOGS_QUERY_KEY]).toBe(`message:${fullMessage}`);
+      });
+    }
+  );
+
+  it.each([false, true])(
+    'hides internal fields in expanded details without hiding custom attributes (raw names: %s)',
+    async useRawAttributeNames => {
+      const attributes: TraceItemResponseAttribute[] = [
+        {
+          name: OurLogKnownFieldKey.MESSAGE,
+          type: 'str',
+          value: fullMessage,
+        },
+        {name: OurLogKnownFieldKey.SEVERITY_NUMBER, type: 'int', value: 9},
+        {
+          name: OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+          type: 'str',
+          value: String(
+            rowDataWithTruncatedMessage[OurLogKnownFieldKey.TIMESTAMP_PRECISE]
+          ),
+        },
+        {name: 'tags[sentry.trace_flags,number]', type: 'int', value: 1},
+      ];
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID]}/`,
+        body: {
+          itemId: rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID],
+          timestamp: rowDataWithTruncatedMessage[OurLogKnownFieldKey.TIMESTAMP],
+          meta: {},
+          attributes: [
+            ...attributes.map(attribute => ({
+              ...attribute,
+              name: useRawAttributeNames
+                ? prettifyTagKey(getTraceItemAttributeName(attribute.name, true))
+                : attribute.name,
+              queryName: useRawAttributeNames ? attribute.name : undefined,
+            })),
+            {
+              name: useRawAttributeNames ? 'message' : 'tags[message,string]',
+              queryName: 'tags[message,string]',
+              type: 'str',
+              value: 'custom-message-attribute',
+            },
+          ],
+        },
+      });
+      render(
+        <LogRowContent
+          dataRow={rowDataWithTruncatedMessage}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: OrganizationFixture({
+            ...organization,
+            features: useRawAttributeNames
+              ? ['ourlogs-enabled', 'trace-item-details-raw-attribute-names']
+              : ['ourlogs-enabled'],
+          }),
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await userEvent.click(await screen.findByTestId('log-table-row'));
+      expect(await screen.findByText('custom-message-attribute')).toBeInTheDocument();
+      const tree = within(screen.getByTestId('fields-tree'));
+      expect(tree.queryByText(fullMessage)).not.toBeInTheDocument();
+      expect(tree.queryByText('severity_number')).not.toBeInTheDocument();
+      expect(tree.queryByText('timestamp_precise')).not.toBeInTheDocument();
+      expect(tree.queryByText('trace_flags')).not.toBeInTheDocument();
+    }
+  );
 
   it('renders fields with data scrubbing meta information', async () => {
     const traceItemMock = MockApiClient.addMockResponse({

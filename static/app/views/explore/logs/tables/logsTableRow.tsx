@@ -50,6 +50,10 @@ import {
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
+  getTraceItemAttribute,
+  getTraceItemAttributeName,
+} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
@@ -285,6 +289,9 @@ export const LogRowContent = memo(function LogRowContentImpl({
   const {selection} = usePageFilters();
   const fields = useQueryParamsFields();
   const projects = useProjects();
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
 
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
@@ -419,7 +426,11 @@ export const LogRowContent = memo(function LogRowContentImpl({
     }
 
     const attributes = traceItemAttributes ?? (await fetchTraceItemDetails())?.attributes;
-    const fullValue = attributes?.find(attribute => attribute.name === field)?.value;
+    const fullValue = getTraceItemAttribute(
+      attributes,
+      field,
+      useRawAttributeNames
+    )?.value;
 
     return typeof fullValue === 'string' ? fullValue : cellValue;
   }
@@ -470,8 +481,10 @@ export const LogRowContent = memo(function LogRowContentImpl({
   // The table asks the API to truncate long strings for display, so the row's
   // message can be cut short. Trace item details come back untruncated, and
   // hovering the row prefetches them before the cell actions are reachable.
-  const fullMessage = traceItemAttributes?.find(
-    a => a.name === OurLogKnownFieldKey.MESSAGE
+  const fullMessage = getTraceItemAttribute(
+    traceItemAttributes,
+    OurLogKnownFieldKey.MESSAGE,
+    useRawAttributeNames
   )?.value;
 
   const rendererExtra: RendererExtra = {
@@ -832,6 +845,9 @@ function LogRowDetails({
   });
   const projectSlug = project?.slug ?? '';
   const getActions = useLogAttributesTreeActions({embedded});
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
   const [caseInsensitivity] = useCaseInsensitivity();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
@@ -887,7 +903,13 @@ function LogRowDetails({
   }
 
   const message = String(
-    attributes[OurLogKnownFieldKey.MESSAGE] ?? dataRow[OurLogKnownFieldKey.MESSAGE] ?? ''
+    getTraceItemAttribute(
+      data?.attributes,
+      OurLogKnownFieldKey.MESSAGE,
+      useRawAttributeNames
+    )?.value ??
+      dataRow[OurLogKnownFieldKey.MESSAGE] ??
+      ''
   );
 
   return (
@@ -919,6 +941,7 @@ function LogRowDetails({
                       meta,
                       theme,
                       traceItemMeta: data?.meta,
+                      useRawAttributeNames,
                     }}
                   />
                 ) : (
@@ -929,7 +952,13 @@ function LogRowDetails({
                 <AttributesTree<RendererExtra>
                   attributes={toSplicedSorted(
                     data.attributes.filter(
-                      attribute => !HiddenLogDetailFields.includes(attribute.name)
+                      attribute =>
+                        !HiddenLogDetailFields.some(field =>
+                          attribute.queryName === undefined
+                            ? attribute.name ===
+                              getTraceItemAttributeName(field, useRawAttributeNames)
+                            : attribute.queryName === field
+                        )
                     ),
                     {
                       name: OurLogKnownFieldKey.TIMESTAMP,
@@ -957,6 +986,7 @@ function LogRowDetails({
                     meta,
                     project,
                     traceItemMeta: data?.meta,
+                    useRawAttributeNames,
                     disableLazyLoad: true, // We disable lazy loading in the log details view since a user has to open it first.
                   }}
                 />
@@ -1035,8 +1065,15 @@ function LogRowDetailsActions({
   const organization = useOrganization();
   const user = useUser();
   const showFilterButtons = !isFrozen;
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
   const message = String(
-    data?.attributes?.find(attr => attr.name === OurLogKnownFieldKey.MESSAGE)?.value ??
+    getTraceItemAttribute(
+      data?.attributes,
+      OurLogKnownFieldKey.MESSAGE,
+      useRawAttributeNames
+    )?.value ??
       tableDataRow[OurLogKnownFieldKey.MESSAGE] ??
       ''
   );
@@ -1049,7 +1086,10 @@ function LogRowDetailsActions({
   const {copy} = useCopyToClipboard();
 
   // Memoize in case we are attempting to copy large JSON objects.
-  const json = useMemo(() => ourlogToJson(data), [data]);
+  const json = useMemo(
+    () => ourlogToJson(data, useRawAttributeNames),
+    [data, useRawAttributeNames]
+  );
   let logDebugEndpoint: string | undefined;
 
   if (user.isSuperuser && projectSlug && isRegularLogResponseItem(tableDataRow)) {

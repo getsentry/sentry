@@ -176,6 +176,9 @@ export function MetricDetails({
                     project,
                     traceItemMeta: traceDetailsData?.meta,
                     traceViewSource: TraceViewSources.TRACE_METRICS,
+                    useRawAttributeNames: organization.features.includes(
+                      'trace-item-details-raw-attribute-names'
+                    ),
                     theme,
                   }}
                 />

@@ -68,7 +68,12 @@ function recordedSpanEntries(
   ];
 }
 
-function spanResponse() {
+function spanResponse(useRawAttributeNames = false) {
+  const rawNames: Record<string, string> = {
+    'span.description': 'sentry.raw_description',
+    'span.op': 'sentry.op',
+    'span.duration': 'sentry.duration_ms',
+  };
   // Integer attributes are strings on the wire, including duration and code lines.
   return {
     itemId: spanId,
@@ -81,7 +86,15 @@ function spanResponse() {
       {name: 'code.filepath', type: 'str', value: '/app/books.py'},
       {name: 'code.function', type: 'str', value: 'getBooks'},
       {name: 'code.lineno', type: 'int', value: '42'},
-    ],
+    ].map(attribute => ({
+      ...attribute,
+      ...(useRawAttributeNames
+        ? {
+            name: rawNames[attribute.name] ?? attribute.name,
+            queryName: attribute.name,
+          }
+        : {}),
+    })),
   };
 }
 
@@ -151,16 +164,27 @@ describe('Slow-query evidence from the spans dataset', () => {
     }
   );
 
-  it('prefers dataset evidence over the recorded copy', async () => {
-    MockApiClient.addMockResponse({url: detailsUrl, body: spanResponse()});
-    renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}));
+  it.each([false, true])(
+    'prefers dataset evidence over the recorded copy (raw names: %s)',
+    async useRawAttributeNames => {
+      MockApiClient.addMockResponse({
+        url: detailsUrl,
+        body: spanResponse(useRawAttributeNames),
+      });
+      renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}), [
+        ...organization.features,
+        ...(useRawAttributeNames ? ['trace-item-details-raw-attribute-names'] : []),
+      ]);
 
-    const evidence = await screen.findByTestId(
-      'span-evidence-key-value-list.slow-db-query'
-    );
-    expect(evidence).toHaveTextContent('SELECT id FROM books');
-    expect(evidence).not.toHaveTextContent('recorded_books');
-  });
+      const evidence = await screen.findByTestId(
+        'span-evidence-key-value-list.slow-db-query'
+      );
+      expect(evidence).toHaveTextContent('SELECT id FROM books');
+      expect(evidence).toHaveTextContent('/app/books.py in getBooks at line 42');
+      expect(evidence).not.toHaveTextContent('recorded_books');
+      expect(screen.getByText(/25%/)).toBeInTheDocument();
+    }
+  );
 
   it.each([undefined, '', '   '])(
     'retains recorded SQL and duration when the dataset query is %p',
@@ -207,20 +231,25 @@ describe('Slow-query evidence from the spans dataset', () => {
     }
   );
 
-  it('does not restore SQL removed from the dataset', async () => {
-    MockApiClient.addMockResponse({
-      url: detailsUrl,
-      body: {
-        ...spanResponse(),
-        attributes: [{name: 'span.description', type: 'str', value: ''}],
-        meta: {'span.description': {meta: {value: {'': {rem: [['!config', 'x']]}}}}},
-      },
-    });
-    renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}));
+  it.each(['span.description', 'sentry.raw_description'])(
+    'does not restore SQL removed from %s',
+    async name => {
+      MockApiClient.addMockResponse({
+        url: detailsUrl,
+        body: {
+          ...spanResponse(),
+          attributes: [{name, queryName: 'span.description', type: 'str', value: ''}],
+          meta: {[name]: {meta: {value: {'': {rem: [['!config', 'x']]}}}}},
+        },
+      });
+      renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}));
 
-    expect(await screen.findByText('Span evidence is unavailable.')).toBeInTheDocument();
-    expect(screen.queryByText(/recorded_books/)).not.toBeInTheDocument();
-  });
+      expect(
+        await screen.findByText('Span evidence is unavailable.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/recorded_books/)).not.toBeInTheDocument();
+    }
+  );
 
   it('retains dataset SQL when optional span attributes are missing', async () => {
     MockApiClient.addMockResponse({
@@ -339,24 +368,42 @@ describe('Slow-query evidence from the spans dataset', () => {
     expect(screen.getByRole('button', {name: 'View Full Trace'})).toBeInTheDocument();
   });
 
-  it('uses the dataset group for summary links, independently of the detector hash', () => {
-    expect(
-      slowDBQuerySpanFromTraceItem({
-        itemId: spanId,
-        timestamp: new Date(startTimestamp * 1000).toISOString(),
-        meta: {},
-        attributes: [
-          {name: 'category', type: 'str', value: 'custom-category'},
-          {name: 'group', type: 'str', value: 'custom-group'},
-          {name: 'hash', type: 'str', value: 'detector-hash'},
-          {name: 'op', type: 'str', value: 'custom-op'},
-          {name: 'span.category', type: 'str', value: 'db'},
-          {name: 'span.group', type: 'str', value: 'dataset-group'},
-          {name: 'span.op', type: 'str', value: 'db.sql.query'},
-        ],
-      })
-    ).toMatchObject({group: 'dataset-group', category: 'db', op: 'db.sql.query'});
-  });
+  it.each([false, true])(
+    'uses the dataset group for summary links, independently of the detector hash (raw names: %s)',
+    useRawAttributeNames => {
+      expect(
+        slowDBQuerySpanFromTraceItem({
+          itemId: spanId,
+          timestamp: new Date(startTimestamp * 1000).toISOString(),
+          meta: {},
+          attributes: [
+            {name: 'category', type: 'str', value: 'custom-category'},
+            {name: 'group', type: 'str', value: 'custom-group'},
+            {name: 'hash', type: 'str', value: 'detector-hash'},
+            {name: 'op', type: 'str', value: 'custom-op'},
+            {
+              name: useRawAttributeNames ? 'sentry.category' : 'span.category',
+              queryName: 'span.category',
+              type: 'str',
+              value: 'db',
+            },
+            {
+              name: useRawAttributeNames ? 'sentry.group' : 'span.group',
+              queryName: 'span.group',
+              type: 'str',
+              value: 'dataset-group',
+            },
+            {
+              name: useRawAttributeNames ? 'sentry.op' : 'span.op',
+              queryName: 'span.op',
+              type: 'str',
+              value: 'db.sql.query',
+            },
+          ],
+        })
+      ).toMatchObject({group: 'dataset-group', category: 'db', op: 'db.sql.query'});
+    }
+  );
 
   it('does not invent a duration when the dataset has none', async () => {
     const response = spanResponse();

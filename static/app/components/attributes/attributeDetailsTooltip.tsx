@@ -1,3 +1,5 @@
+import {queryOptions, skipToken, useQuery} from '@tanstack/react-query';
+
 import {InfoText} from '@sentry/scraps/info';
 
 import {
@@ -8,9 +10,24 @@ import {
   isTypedTagKey,
 } from 'sentry/utils/fields';
 import {getAttributeVisibility} from 'sentry/utils/fields/getAttributeVisibility';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 import {AttributeDetails} from './attributeDetails';
+
+async function loadTraceItemAttributeFieldDefinition() {
+  const {getTraceItemAttributeFieldDefinition} =
+    await import('sentry/utils/fields/getTraceItemAttributeFieldDefinition');
+  return getTraceItemAttributeFieldDefinition;
+}
+
+function traceItemAttributeFieldDefinitionQueryOptions(enabled: boolean) {
+  return queryOptions({
+    queryKey: ['trace-item-attribute-field-definitions'],
+    queryFn: enabled ? loadTraceItemAttributeFieldDefinition : skipToken,
+    staleTime: Infinity,
+  });
+}
 
 export interface AttributeDetailsTooltipProps {
   /**
@@ -53,15 +70,23 @@ export function AttributeDetailsTooltip({
   name,
 }: AttributeDetailsTooltipProps) {
   const user = useUser();
+  const organization = useOrganization();
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
+  const {data: getRawFieldDefinition} = useQuery(
+    traceItemAttributeFieldDefinitionQueryOptions(useRawAttributeNames)
+  );
   // A typed tag key (e.g. `tags[message,string]`) is never looked up by its
   // unwrapped name: a user attribute colliding with a Sentry alias comes back
   // wrapped and must not borrow that alias's definition. Other names fall back to
   // `name` for keys that only differ by a prefix, e.g. `sentry.logger.name`.
-  const fieldDefinition =
-    getFieldDefinition(attributeKey, fieldDefinitionType) ??
-    (name === undefined || isTypedTagKey(attributeKey)
-      ? null
-      : getFieldDefinition(name, fieldDefinitionType));
+  const fieldDefinition = useRawAttributeNames
+    ? getRawFieldDefinition?.(attributeKey)
+    : (getFieldDefinition(attributeKey, fieldDefinitionType) ??
+      (name === undefined || isTypedTagKey(attributeKey)
+        ? null
+        : getFieldDefinition(name, fieldDefinitionType)));
   const attributeName = name ?? attributeKey;
 
   return (

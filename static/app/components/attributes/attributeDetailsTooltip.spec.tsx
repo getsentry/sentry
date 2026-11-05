@@ -1,9 +1,12 @@
+import {QueryClientProvider} from '@tanstack/react-query';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {FieldValueType} from 'sentry/utils/fields';
+import {FieldValueType, type GetFieldDefinitionType} from 'sentry/utils/fields';
 
 import {AttributeDetailsTooltip} from './attributeDetailsTooltip';
 
@@ -66,6 +69,194 @@ describe('AttributeDetailsTooltip', () => {
       screen.getByText('The name of the logger that generated this event.')
     ).toBeInTheDocument();
     expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+  });
+
+  it.each<{
+    attributeKey: string;
+    description: string;
+    fieldDefinitionType: GetFieldDefinitionType;
+    valueType: string;
+  }>([
+    {
+      attributeKey: 'logger.name',
+      fieldDefinitionType: 'log',
+      description: 'The name of the logger that generated this event.',
+      valueType: 'string',
+    },
+    {
+      attributeKey: 'sentry.op',
+      fieldDefinitionType: 'span',
+      description: 'The operation of a span.',
+      valueType: 'string',
+    },
+    {
+      attributeKey: 'sentry.exclusive_time',
+      fieldDefinitionType: 'span',
+      description: 'The exclusive time duration of the span in milliseconds.',
+      valueType: 'number',
+    },
+    {
+      attributeKey: 'sentry.dsc.sampled',
+      fieldDefinitionType: 'span',
+      description:
+        'Whether the event was sampled according to the dynamic sampling context.',
+      valueType: 'boolean',
+    },
+    {
+      attributeKey: 'gen_ai.usage.input_tokens',
+      fieldDefinitionType: 'span',
+      description:
+        'The number of tokens used to process the AI input (prompt) including cached input tokens.',
+      valueType: 'integer',
+    },
+    {
+      attributeKey: 'ai.citations',
+      fieldDefinitionType: 'span',
+      description: 'References or sources cited by the AI model in its response.',
+      valueType: 'array',
+    },
+    {
+      attributeKey: 'http.method',
+      fieldDefinitionType: 'span',
+      description: 'The HTTP method used.',
+      valueType: 'string',
+    },
+    {
+      attributeKey: 'code.line.number',
+      fieldDefinitionType: 'log',
+      description:
+        'The line number in code.filepath best representing the operation. It SHOULD point within the code unit named in code.function',
+      valueType: 'integer',
+    },
+  ])(
+    'uses conventions metadata for $attributeKey without renaming it when the flag is enabled',
+    async ({attributeKey, fieldDefinitionType, description, valueType}) => {
+      render(
+        <AttributeDetailsTooltip
+          attributeKey={attributeKey}
+          fieldDefinitionType={fieldDefinitionType}
+          defaultValueType={FieldValueType.NUMBER}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['trace-item-details-raw-attribute-names'],
+          }),
+        }
+      );
+
+      const label = screen.getByText(attributeKey);
+      await userEvent.hover(label);
+
+      expect(await screen.findByText(description)).toBeInTheDocument();
+      expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+      expect(screen.getByText(valueType)).toBeInTheDocument();
+      expect(label).toHaveAccessibleDescription(expect.stringContaining(attributeKey));
+    }
+  );
+
+  it('does not resolve raw aliases when the flag is disabled', async () => {
+    render(
+      <AttributeDetailsTooltip attributeKey="sentry.op" fieldDefinitionType="span" />,
+      {organization: OrganizationFixture({features: []})}
+    );
+
+    await userEvent.hover(screen.getByText('sentry.op'));
+
+    expect(
+      await screen.findByText('A tag sent with one or more events')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    'custom.unknown',
+    'sentry.custom.unknown',
+    'tags[message,string]',
+    'tags[code.line.number,number]',
+    'sentry.logger.name',
+    'sentry.duration_ms',
+    'sentry.body',
+    'message',
+    'span.duration',
+    'toString',
+  ])(
+    'does not borrow a legacy or normalized definition for %s when the flag is enabled',
+    async attributeKey => {
+      render(
+        <AttributeDetailsTooltip
+          attributeKey={attributeKey}
+          fieldDefinitionType="log"
+          defaultValueType={FieldValueType.BOOLEAN}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['trace-item-details-raw-attribute-names'],
+          }),
+        }
+      );
+
+      await userEvent.hover(screen.getByText(attributeKey));
+
+      expect(
+        await screen.findByText('A tag sent with one or more events')
+      ).toBeInTheDocument();
+      expect(screen.getByText('boolean')).toBeInTheDocument();
+      expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
+    }
+  );
+
+  it('does not load raw metadata with the flag disabled', async () => {
+    const queryClient = makeTestQueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AttributeDetailsTooltip attributeKey="sentry.op" fieldDefinitionType="span" />
+      </QueryClientProvider>,
+      {organization: OrganizationFixture({features: []})}
+    );
+
+    await userEvent.hover(screen.getByText('sentry.op'));
+
+    expect(
+      await screen.findByText('A tag sent with one or more events')
+    ).toBeInTheDocument();
+    expect(
+      queryClient.getQueryState(['trace-item-attribute-field-definitions'])
+    ).toMatchObject({fetchStatus: 'idle', data: undefined, dataUpdateCount: 0});
+  });
+
+  it('loads raw metadata once and reuses it across tooltips', async () => {
+    const queryClient = makeTestQueryClient();
+    const organization = OrganizationFixture({
+      features: ['trace-item-details-raw-attribute-names'],
+    });
+    const {unmount} = render(
+      <QueryClientProvider client={queryClient}>
+        <AttributeDetailsTooltip attributeKey="sentry.op" fieldDefinitionType="span" />
+      </QueryClientProvider>,
+      {organization}
+    );
+
+    expect(
+      queryClient.getQueryState(['trace-item-attribute-field-definitions'])
+    ).toMatchObject({fetchStatus: 'fetching', data: undefined});
+    await userEvent.hover(screen.getByText('sentry.op'));
+    expect(await screen.findByText('The operation of a span.')).toBeInTheDocument();
+    unmount();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AttributeDetailsTooltip attributeKey="logger.name" fieldDefinitionType="log" />
+      </QueryClientProvider>,
+      {organization}
+    );
+
+    await userEvent.hover(screen.getByText('logger.name'));
+    expect(
+      await screen.findByText('The name of the logger that generated this event.')
+    ).toBeInTheDocument();
+    expect(
+      queryClient.getQueryState(['trace-item-attribute-field-definitions'])
+    ).toMatchObject({fetchStatus: 'idle', status: 'success', dataUpdateCount: 1});
   });
 
   it('renders Markdown in the description', async () => {

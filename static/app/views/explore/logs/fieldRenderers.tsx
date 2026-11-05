@@ -28,12 +28,14 @@ import {type ColumnValueType} from 'sentry/utils/discover/fields';
 import {VersionContainer} from 'sentry/utils/discover/styles';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
+import {isTypedTagKey, prettifyTagKey} from 'sentry/utils/fields';
 import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {getTraceItemAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {
   TraceItemDetailsResponse,
@@ -97,7 +99,17 @@ export interface RendererExtra extends RenderFunctionBaggage {
   traceItemMeta?: TraceItemDetailsResponse['meta'];
   traceViewSource?: TraceViewSources;
   useFullSeverityText?: boolean;
+  useRawAttributeNames?: boolean;
   wrapBody?: true;
+}
+
+function getRendererAttribute(extra: RendererExtra, key: OurLogFieldKey) {
+  const name = extra.useRawAttributeNames
+    ? isTypedTagKey(key)
+      ? prettifyTagKey(key)
+      : getTraceItemAttributeName(key, true)
+    : key;
+  return extra.attributes[name];
 }
 
 function SeverityCircle(props: {
@@ -121,7 +133,10 @@ function SeverityCircle(props: {
 
 function SeverityTextRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
-  const _severityNumber = props.extra.attributes?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
+  const _severityNumber = getRendererAttribute(
+    props.extra,
+    OurLogKnownFieldKey.SEVERITY_NUMBER
+  );
   const severityNumber = _severityNumber ? Number(_severityNumber) : null;
   const useFullSeverityText = props.extra.useFullSeverityText ?? false;
   const level = getLogSeverityLevel(severityNumber, attribute_value);
@@ -138,8 +153,11 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   if (!props.extra.attributes) {
     return null;
   }
-  const _severityText = props.extra.attributes?.[OurLogKnownFieldKey.SEVERITY];
-  const _severityNumber = props.extra.attributes?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
+  const _severityText = getRendererAttribute(props.extra, OurLogKnownFieldKey.SEVERITY);
+  const _severityNumber = getRendererAttribute(
+    props.extra,
+    OurLogKnownFieldKey.SEVERITY_NUMBER
+  );
 
   const severityNumber = _severityNumber ? Number(_severityNumber) : null;
   const severityText = _severityText ? String(_severityText) : 'unknown';
@@ -159,7 +177,10 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
 }
 
 function TimestampRenderer(props: LogFieldRendererProps) {
-  const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+  const preciseTimestamp = getRendererAttribute(
+    props.extra,
+    OurLogKnownFieldKey.TIMESTAMP_PRECISE
+  );
 
   const timestampToUse = preciseTimestamp
     ? new Date(Number(String(preciseTimestamp).slice(0, -6))) // Truncate last 6 digits (nanoseconds)
@@ -180,13 +201,18 @@ function TimestampRenderer(props: LogFieldRendererProps) {
 }
 
 function InternalIngestedAtRenderer(props: LogFieldRendererProps) {
-  const ingestedAt =
-    props.extra.attributes[OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT];
+  const ingestedAt = getRendererAttribute(
+    props.extra,
+    OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT
+  );
   return <DateTime seconds milliseconds date={new Date(Number(ingestedAt))} />;
 }
 
 function RelativeTimestampRenderer(props: LogFieldRendererProps) {
-  const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+  const preciseTimestamp = getRendererAttribute(
+    props.extra,
+    OurLogKnownFieldKey.TIMESTAMP_PRECISE
+  );
   const startTimestampMs = props.extra.timestampRelativeTo!;
 
   const timestampToUse = preciseTimestamp
@@ -239,12 +265,17 @@ function CodePathRenderer(props: LogFieldRendererProps) {
     LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT,
     props
   );
-  const codeLineNumber = props.extra.attributes?.[OurLogKnownFieldKey.CODE_LINE_NUMBER];
-  const codeFunctionName =
-    props.extra.attributes?.[OurLogKnownFieldKey.CODE_FUNCTION_NAME];
-  const releaseVersion = props.extra.attributes?.[OurLogKnownFieldKey.RELEASE];
-  const sdkName = props.extra.attributes?.[OurLogKnownFieldKey.SDK_NAME];
-  const sdkVersion = props.extra.attributes?.[OurLogKnownFieldKey.SDK_VERSION];
+  const codeLineNumber = getRendererAttribute(
+    props.extra,
+    OurLogKnownFieldKey.CODE_LINE_NUMBER
+  );
+  const codeFunctionName = getRendererAttribute(
+    props.extra,
+    OurLogKnownFieldKey.CODE_FUNCTION_NAME
+  );
+  const releaseVersion = getRendererAttribute(props.extra, OurLogKnownFieldKey.RELEASE);
+  const sdkName = getRendererAttribute(props.extra, OurLogKnownFieldKey.SDK_NAME);
+  const sdkVersion = getRendererAttribute(props.extra, OurLogKnownFieldKey.SDK_VERSION);
   const sdk =
     typeof sdkVersion === 'string' && typeof sdkName === 'string'
       ? {
@@ -417,7 +448,7 @@ function FilteredTooltip({
 
 function TraceIDRenderer(props: LogFieldRendererProps) {
   const traceId = adjustLogTraceID(props.item.value as string);
-  const timestamp = props.extra.attributes?.[OurLogKnownFieldKey.TIMESTAMP] as
+  const timestamp = getRendererAttribute(props.extra, OurLogKnownFieldKey.TIMESTAMP) as
     | string
     | number
     | undefined;
@@ -439,14 +470,14 @@ function TraceIDRenderer(props: LogFieldRendererProps) {
 export function SpanIDRenderer(props: LogFieldRendererProps) {
   const spanId = props.item.value;
   const traceId = adjustLogTraceID(
-    (props.extra.attributes?.[OurLogKnownFieldKey.TRACE_ID] as string) ?? ''
+    (getRendererAttribute(props.extra, OurLogKnownFieldKey.TRACE_ID) as string) ?? ''
   );
 
   if (typeof spanId !== 'string' || !spanId || !traceId) {
     return props.basicRendered;
   }
 
-  const timestamp = props.extra.attributes?.[OurLogKnownFieldKey.TIMESTAMP] as
+  const timestamp = getRendererAttribute(props.extra, OurLogKnownFieldKey.TIMESTAMP) as
     | string
     | number
     | undefined;
@@ -490,7 +521,7 @@ function ReleaseRenderer(props: LogFieldRendererProps) {
 export function LogBodyRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
   const highlightTerms = props.extra?.highlightTerms ?? [];
-  const template = props.extra.attributes?.[OurLogKnownFieldKey.TEMPLATE];
+  const template = getRendererAttribute(props.extra, OurLogKnownFieldKey.TEMPLATE);
   const templateText =
     props.extra.canAppendTemplateToBody && template ? template : undefined;
   const isBodyFiltered = props.item.value === '[Filtered]';

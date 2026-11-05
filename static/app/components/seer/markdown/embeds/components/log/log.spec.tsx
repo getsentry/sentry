@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -12,6 +13,8 @@ import {
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import LogBlock from './logBlock';
 
 const LOG_ID = '019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e';
 const TRACE_ID = 'a1b2c3d4e5f678901234567890abcdef';
@@ -128,6 +131,59 @@ describe('Seer log embed', () => {
     );
   });
 
+  it.each([false, true])(
+    'renders message, severity and precise timestamp (raw names: %s)',
+    async useRawAttributeNames => {
+      mockLogDetails([
+        {
+          name: useRawAttributeNames ? 'sentry.body' : OurLogKnownFieldKey.MESSAGE,
+          type: 'str',
+          value: 'Payment provider timed out',
+        },
+        {
+          name: useRawAttributeNames
+            ? 'sentry.severity_text'
+            : OurLogKnownFieldKey.SEVERITY,
+          type: 'str',
+          value: 'error',
+        },
+        {
+          name: useRawAttributeNames
+            ? 'sentry.severity_number'
+            : OurLogKnownFieldKey.SEVERITY_NUMBER,
+          type: 'int',
+          value: 17,
+        },
+        {
+          name: useRawAttributeNames
+            ? 'sentry.timestamp_precise'
+            : OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+          type: 'str',
+          value: String(BigInt(new Date(TIMESTAMP).getTime() + 123) * 1_000_000n),
+        },
+      ]);
+      render(
+        <LogBlock
+          id={LOG_ID}
+          traceId={TRACE_ID}
+          projectId={PROJECT_ID}
+          timestamp={TIMESTAMP}
+          view="summary"
+        />,
+        {
+          organization: OrganizationFixture({
+            features: useRawAttributeNames
+              ? ['trace-item-details-raw-attribute-names']
+              : [],
+          }),
+        }
+      );
+      expect(await screen.findByText('Payment provider timed out')).toBeInTheDocument();
+      expect(screen.getByTestId('seer-log-severity')).toHaveTextContent('error');
+      expect(screen.getByText(/12\.123/)).toBeInTheDocument();
+    }
+  );
+
   it('renders an ANSI-colored message without escape codes', async () => {
     mockLogDetails([
       {
@@ -168,6 +224,45 @@ describe('Seer log embed', () => {
     expect(screen.getByText('us-east-1')).toBeInTheDocument();
     // The message is the summary line, not a tree row.
     expect(screen.getAllByText('Payment provider timed out')).toHaveLength(1);
+  });
+
+  it('preserves raw attribute names and links without duplicating the summary message', async () => {
+    mockLogDetails([
+      {name: 'sentry.body', type: 'str', value: 'Payment provider timed out'},
+      {name: 'sentry.severity_text', type: 'str', value: 'error'},
+      {name: 'sentry.severity_number', type: 'int', value: 17},
+      {name: 'sentry.trace_id', type: 'str', value: TRACE_ID},
+      {name: 'sentry.span_id', type: 'str', value: '0123456789abcdef'},
+      {name: 'trace', type: 'float', value: 1.5},
+      {name: 'region', type: 'str', value: 'us-east-1'},
+    ]);
+    render(
+      <LogBlock
+        id={LOG_ID}
+        traceId={TRACE_ID}
+        projectId={PROJECT_ID}
+        timestamp={TIMESTAMP}
+        view="attributes"
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['trace-item-details-raw-attribute-names'],
+        }),
+      }
+    );
+    expect(await screen.findByTestId('seer-log-attributes')).toBeInTheDocument();
+    expect(screen.getByTestId('tree-key-sentry.trace_id')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: TRACE_ID})).toHaveAttribute(
+      'href',
+      expect.stringContaining(TRACE_ID)
+    );
+    expect(screen.getByRole('link', {name: '0123456789abcdef'})).toHaveAttribute(
+      'href',
+      expect.stringContaining(TRACE_ID)
+    );
+    expect(screen.getByText('1.5')).toBeInTheDocument();
+    expect(screen.getAllByText('Payment provider timed out')).toHaveLength(1);
+    expect(screen.getByText('us-east-1')).toBeInTheDocument();
   });
 
   it('breaks a single attribute down for view "attribute"', async () => {

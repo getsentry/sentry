@@ -12,7 +12,10 @@ import {DateTimeProvider} from '@sentry/scraps/datetime';
 
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {
+  AttributesTree,
+  type AttributesFieldRendererProps,
+} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 
 import type {RendererExtra} from './fieldRenderers';
 import {LogAttributesRendererMap, SpanIDRenderer} from './fieldRenderers';
@@ -65,6 +68,26 @@ describe('Logs Field Renderers', () => {
 
   beforeEach(() => {
     ConfigStore.set('user', UserFixture());
+  });
+
+  it('does not apply the trace renderer to a colliding custom numeric attribute', () => {
+    const props = makeRendererProps('2024-01-15T14:30:45.123Z');
+    render(
+      <AttributesTree
+        attributes={[{name: 'trace', type: 'float', value: 1.5}]}
+        renderers={LogAttributesRendererMap}
+        rendererExtra={{
+          ...props.extra,
+          organization: OrganizationFixture({
+            features: ['trace-item-details-raw-attribute-names'],
+          }),
+          useRawAttributeNames: true,
+        }}
+      />
+    );
+
+    expect(screen.getByText('1.5')).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
   describe('TimestampRenderer', () => {
@@ -125,6 +148,24 @@ describe('Logs Field Renderers', () => {
         </DateTimeProvider>
       );
       expect(screen.getByText(/2:30:45\.123/)).toBeInTheDocument();
+    });
+
+    it('uses the raw precise timestamp rather than a colliding alias', () => {
+      const props = makeRendererProps(timestamp, {
+        'sentry.timestamp_precise': '1705329045123456789',
+        timestamp_precise: '1705329045999000000',
+      });
+      render(
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
+          {TimestampRenderer!({
+            ...props,
+            extra: {...props.extra, useRawAttributeNames: true},
+          })}
+        </DateTimeProvider>
+      );
+
+      expect(screen.getByText(/2:30:45\.123/)).toBeInTheDocument();
+      expect(screen.queryByText(/2:30:45\.999/)).not.toBeInTheDocument();
     });
 
     it('renders in different timezone', () => {
@@ -308,6 +349,30 @@ describe('Logs Field Renderers', () => {
         tab: 'waterfall',
         timestamp: '1705329045.123',
       });
+    });
+
+    it('reads the raw trace ID without using a colliding custom trace attribute', () => {
+      const props = makeRendererProps(logTimestamp, {
+        'sentry.trace_id': traceId,
+        trace: 'custom-trace',
+        timestamp: logTimestamp,
+      });
+      render(
+        <Fragment>
+          {
+            <SpanIDRenderer
+              {...props}
+              item={{fieldKey: 'sentry.span_id', value: spanId}}
+              basicRendered={<span>{spanId}</span>}
+              extra={{...props.extra, useRawAttributeNames: true}}
+            />
+          }
+        </Fragment>
+      );
+
+      const href = screen.getByRole('link', {name: spanId}).getAttribute('href')!;
+      expect(href).toContain('/trace/' + traceId + '/');
+      expect(qs.parse(href.split('?')[1]!)).toHaveProperty('node', 'span-' + spanId);
     });
 
     it('falls back to plain text when the log has no trace', () => {
