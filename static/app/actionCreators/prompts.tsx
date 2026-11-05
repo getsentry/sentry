@@ -67,7 +67,7 @@ type PromptResponseItem = {
    */
   snoozed_ts?: number;
 };
-export type PromptResponse = {
+type PromptResponse = {
   data?: PromptResponseItem;
   features?: Record<string, PromptResponseItem>;
 };
