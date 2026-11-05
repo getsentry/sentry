@@ -33,7 +33,7 @@ function RecoveryOptionsModal({
   } = useQuery(
     apiOptions.as<Authenticator[]>()('/users/$userId/authenticators/', {
       path: {userId: 'me'},
-      staleTime: 5000,
+      staleTime: 5000, // expire after 5 seconds
     })
   );
   const [skipSms, setSkipSms] = useState(false);

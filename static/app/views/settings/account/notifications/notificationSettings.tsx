@@ -38,7 +38,11 @@ type NotificationFields = z.infer<typeof notificationSchema>;
 
 const notificationsOptions = apiOptions.as<NotificationFields>()(
   '/users/$userId/notifications/',
-  {path: {userId: 'me'}, staleTime: 0}
+  {
+    path: {userId: 'me'},
+    // use 0 as stale time because we change the values elsewhere
+    staleTime: 0,
+  }
 );
 
 export function NotificationSettings() {
@@ -70,7 +74,6 @@ export function NotificationSettings() {
     );
   };
 
-  // use 0 as stale time because we change the values elsewhere
   const {data: initialData, isPending, isError, refetch} = useQuery(notificationsOptions);
 
   const notificationMutationOptions = mutationOptions({
