@@ -301,19 +301,14 @@ class MarkOkTestCase(TestCase):
         )
 
     @patch("sentry.models.groupopenperiod.metrics")
-    def test_mark_ok_clamps_close_of_open_period_opened_by_a_delayed_failure_occurrence(
+    def test_mark_ok_closes_open_period_opened_by_a_delayed_failure_occurrence(
         self, mock_metrics: MagicMock
     ) -> None:
         """
         A failure occurrence can reach the issue platform after relay has already received the
-        recovering OK check-in.
+        recovering OK check-in
 
-        This causes the end date to be before the start date of an open period and raises a DataError
-
-        We are deciding to clamp the end date to the start date as a band-aid for this race condition.
-
-        TODO: Investigate what we must do to fix the root cause of this race condition and properly manage the
-        timestamps of each check-in.
+        This test checks for this race condition
         """
         now = timezone.now().replace(second=0, microsecond=0)
 
@@ -385,10 +380,7 @@ class MarkOkTestCase(TestCase):
 
         assert [(period.date_started, period.date_ended) for period in open_periods] == [
             (first_failed_at, first_recovered_at),
-            (second_failure_processed_at, second_failure_processed_at),
+            (second_failed_at, second_recovered_at),
         ]
 
-        mock_metrics.incr.assert_called_once_with(
-            "group_open_period.close.resolution_time_before_start",
-            tags={"group_type": MonitorIncidentType.slug},
-        )
+        mock_metrics.incr.assert_not_called()

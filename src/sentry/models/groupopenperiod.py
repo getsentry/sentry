@@ -223,6 +223,12 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
         logger.warning("Latest open period is not closed", extra={"group_id": group.id})
         return
 
+    # A regressing event can be older than the resolution that closed the previous period
+    # For example, a failing uptime check-in could be delayed and a resolution could have already been processed
+    # Open periods have inclusive bounds and may not overlap, so start just after it ended
+    if latest_open_period and latest_open_period.date_ended is not None:
+        start_time = max(start_time, latest_open_period.date_ended + timedelta(microseconds=1))
+
     # There are some historical cases where we log multiple regressions for the same group,
     # but we only want to create a new open period for the first regression
     with transaction.atomic(router.db_for_write(Group)):

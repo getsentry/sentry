@@ -700,18 +700,61 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert not group.is_resolved()
         assert send_robust.called
 
-        regression_activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_REGRESSION.value
-        )
-
         open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
         assert len(open_periods) == 2
         open_period = open_periods[0]
-        assert open_period.date_started == regression_activity.datetime
+        assert open_period.date_started == event2.datetime
         assert open_period.date_ended is None
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
         assert open_period.date_ended == resolved_at
+
+    @mock.patch("sentry.signals.issue_unresolved.send_robust")
+    @mock.patch("sentry.models.groupopenperiod.get_group_type_by_type_id")
+    def test_unresolves_group_with_event_from_before_the_resolution(
+        self, mock_get_group_type: mock.MagicMock, send_robust: mock.MagicMock
+    ) -> None:
+        mock_get_group_type.return_value = MetricIssue
+
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32, checksum="a" * 32, timestamp=before_now(minutes=5).isoformat()
+            )
+        )
+
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        assert event.group_id is not None
+
+        group = Group.objects.get(id=event.group_id)
+
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        resolved_at = before_now(minutes=3)
+
+        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
+            resolution_time=resolved_at,
+        )
+
+        manager = EventManager(
+            make_event(
+                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=4).isoformat()
+            )
+        )
+
+        manager.save(self.project.id)
+
+        group = Group.objects.get(id=group.id)
+
+        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("date_started")
+
+        assert not group.is_resolved()
+
+        assert [(period.date_started, period.date_ended) for period in open_periods] == [
+            (group.first_seen, resolved_at),
+            (resolved_at + timedelta(microseconds=1), None),
+        ]
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
