@@ -1,9 +1,7 @@
 import {IconDashboard} from '@sentry/icons/dashboard';
-import qs from 'query-string';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -35,19 +33,17 @@ export function AiSpanDashboardLink({field, value}: Props) {
     return null;
   }
 
-  const locationQuery = {...pageFiltersToQueryParams(selection), ...location.query};
-  // Detail routes can carry absolute bounds without updating the page filter store.
-  if (location.query.start && location.query.end && !location.query.statsPeriod) {
-    delete locationQuery.statsPeriod;
-  }
-
   const url = getLinkedDashboardUrl({
     linkedDashboard: {dashboardId: dashboard.id, field},
     organizationSlug: organization.slug,
     field,
     value,
     dashboardFilters: getDashboardFiltersFromURL(location) ?? undefined,
-    locationQuery,
+    locationQuery: {
+      project: location.query.project ?? selection.projects,
+      environment: location.query.environment ?? selection.environments,
+      release: location.query.release,
+    },
   });
   if (!url) {
     return null;
@@ -57,11 +53,7 @@ export function AiSpanDashboardLink({field, value}: Props) {
 
   return (
     <LinkButton
-      to={
-        typeof url === 'string'
-          ? qs.stringifyUrl({url, query: {utc: locationQuery.utc}})
-          : url
-      }
+      to={url}
       size="zero"
       variant="secondary"
       icon={<IconDashboard size="xs" />}

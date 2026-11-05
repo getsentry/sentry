@@ -129,7 +129,13 @@ describe('ConversationSpanDetail', () => {
           initialRouterConfig: {
             location: {
               pathname: '/',
-              query: {project: ['1', '2'], environment: 'production', statsPeriod: '7d'},
+              query: {
+                project: ['1', '2'],
+                environment: 'production',
+                start: '2026-06-01T00:00:00',
+                end: '2026-06-01T00:00:05',
+                utc: 'true',
+              },
             },
           },
         }
@@ -140,7 +146,10 @@ describe('ConversationSpanDetail', () => {
       expect(url.pathname).toBe(`/organizations/${organization.slug}/dashboard/${id}/`);
       expect(url.searchParams.getAll('project')).toEqual(['1', '2']);
       expect(url.searchParams.get('environment')).toBe('production');
-      expect(url.searchParams.get('statsPeriod')).toBe('7d');
+      expect(url.searchParams.has('statsPeriod')).toBe(false);
+      expect(url.searchParams.has('start')).toBe(false);
+      expect(url.searchParams.has('end')).toBe(false);
+      expect(url.searchParams.has('utc')).toBe(false);
       expect(JSON.parse(url.searchParams.get('globalFilter')!).value).toBe(
         `${field}:[${value}]`
       );
