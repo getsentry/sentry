@@ -239,7 +239,7 @@ describe('IssueList', () => {
       });
     });
 
-    it('does not request derived data when the progress UI flag is disabled', async () => {
+    it('does not request derived data when the issue inbox flag is disabled', async () => {
       render(<IssueListOverview />, {
         organization,
         initialRouterConfig,
