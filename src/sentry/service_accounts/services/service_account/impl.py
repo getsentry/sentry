@@ -46,7 +46,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         self, *, organization_id: int, service_account_id: int
     ) -> RpcServiceAccount | None:
         service_account = ServiceAccount.objects.filter(
-            id=service_account_id, organization_id=organization_id
+            id=service_account_id, organization_id=organization_id, is_active=True
         ).first()
         if service_account is None:
             return None
@@ -114,7 +114,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
             service_account = (
                 ServiceAccount.objects.select_for_update()
-                .filter(id=service_account_id, organization_id=organization_id)
+                .filter(id=service_account_id, organization_id=organization_id, is_active=True)
                 .first()
             )
             if service_account is None:
@@ -132,4 +132,4 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
             id=service_account_id, organization_id=organization_id
         ).first()
         if service_account is not None:
-            service_account.delete()
+            service_account.deactivate()
