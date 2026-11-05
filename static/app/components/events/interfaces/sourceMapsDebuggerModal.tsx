@@ -19,9 +19,9 @@ import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import {ProgressRing} from 'sentry/components/progressRing';

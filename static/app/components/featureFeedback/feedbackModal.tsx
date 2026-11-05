@@ -14,10 +14,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {TextArea} from '@sentry/scraps/textarea';
 import {toast} from '@sentry/scraps/toast';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Data} from 'sentry/components/forms/types';
