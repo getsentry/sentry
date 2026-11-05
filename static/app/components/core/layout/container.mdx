@@ -27,7 +27,7 @@ export function ContainerBreakpointLabel() {
   );
 }
 
-The `Container` component is a foundational layout component that extends HTML elements with responsive CSS properties through props. It serves as the building block for other layout components like `Flex` and `Grid` to provides a consistent API for spacing, sizing, positioning, and styling.
+The `Container` component is a foundational layout component that extends HTML elements with responsive CSS properties through props. It serves as the building block for other layout components like `Flex` and `Grid` to provide a consistent API for spacing, sizing, positioning, and styling.
 
 You can specialize the `Container` component yourself and tailor it to your use case if neither `Grid` nor `Flex` are sufficient, but that should be an exception and you should try to use the higher order components instead.
 
@@ -94,7 +94,7 @@ The `padding` prop uses the theme's spacing system with shorthand support:
 ```jsx
 <Container padding="md">8px padding on all sides</Container>
 <Container padding="md lg">8px top/bottom, 12px left/right</Container>
-<Container padding="xs sm md lg">2px top, 6px right, 8px bottom, 12px left</Container>
+<Container padding="xs sm md lg">4px top, 6px right, 8px bottom, 12px left</Container>
 ```
 
 ### Border Radius
@@ -219,7 +219,7 @@ Set positioning for absolute/relative layouts:
     'screen:sm': 'secondary',
     'screen:lg': 'primary',
   }}
-  // Adds borderColor="primary" radius at sm breakpoint
+  // Adds border radius at sm breakpoint
   radius={{'screen:xs': '0', 'screen:sm': 'md'}}
 >
   <div>Responsive layout content</div>
