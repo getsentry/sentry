@@ -21,12 +21,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {ReplayDetailsProviders} from 'sentry/views/explore/replays/detail/body/replayDetailsProviders';
-import {ReplayDetailsEntityHeader} from 'sentry/views/explore/replays/detail/header/replayDetailsEntityHeader';
-import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/explore/replays/detail/header/replayDetailsPageBreadcrumbs';
-import {ReplayDetailsPage} from 'sentry/views/explore/replays/detail/page';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {ReplayDetailsProviders} from './detail/body/replayDetailsProviders';
+import {ReplayDetailsEntityHeader} from './detail/header/replayDetailsEntityHeader';
+import {ReplayDetailsPageBreadcrumbs} from './detail/header/replayDetailsPageBreadcrumbs';
+import {ReplayDetailsPage} from './detail/page';
 
 function ReplayDetailsInner() {
   return (

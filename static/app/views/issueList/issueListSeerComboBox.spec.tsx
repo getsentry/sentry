@@ -4,7 +4,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {IssueListSeerComboBox} from 'sentry/views/issueList/issueListSeerComboBox';
+
+import {IssueListSeerComboBox} from './issueListSeerComboBox';
 
 describe('IssueListSeerComboBox', () => {
   beforeEach(() => {

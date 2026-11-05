@@ -3,7 +3,8 @@ import {BroadcastFixture} from 'sentry-fixture/broadcast';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
+
+import {PrimaryNavigationWhatsNew} from './whatsNew';
 
 jest.mock('sentry/utils/analytics');
 

@@ -17,7 +17,6 @@ import {
   useInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
-import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -25,6 +24,8 @@ import {
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {ExploreSavedQueryNavigationItems} from './exploreSavedQueryNavigationItems';
 
 function ExploreSecondaryNavigationImpl() {
   const settingsV3 = useSettingsV3();
@@ -264,11 +265,11 @@ function ExploreSecondaryNavigationImpl() {
         <Feature features={['visibility-explore-view', 'performance-view']}>
           <Fragment>
             <SecondaryNavigation.Separator />
-            <SecondaryNavigation.Section id="explore-all-queries">
+            <SecondaryNavigation.Section id="explore-saved-queries">
               <SecondaryNavigation.List>
                 <SecondaryNavigation.ListItem>
                   <SecondaryNavigation.Link to={`${baseUrl}/saved-queries/`}>
-                    {t('All Queries')}
+                    {t('Saved Queries')}
                   </SecondaryNavigation.Link>
                 </SecondaryNavigation.ListItem>
                 <Feature features="organizations:explore-saved-formulas">

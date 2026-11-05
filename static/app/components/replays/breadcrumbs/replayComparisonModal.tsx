@@ -7,9 +7,9 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Hovercard} from 'sentry/components/hovercard';

@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectCspReports from 'sentry/views/settings/projectSecurityHeaders/csp';
+import ProjectCspReports from './csp';
 
 describe('ProjectCspReports', () => {
   const {project, organization} = initializeOrg();

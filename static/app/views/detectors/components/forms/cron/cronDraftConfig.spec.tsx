@@ -1,4 +1,4 @@
-import {CRON_DETECTOR_DRAFT_SCHEMA} from 'sentry/views/detectors/components/forms/cron/cronDraftConfig';
+import {CRON_DETECTOR_DRAFT_SCHEMA} from './cronDraftConfig';
 
 describe('CRON_DETECTOR_DRAFT_SCHEMA', () => {
   it('converts edited number inputs to numbers', () => {

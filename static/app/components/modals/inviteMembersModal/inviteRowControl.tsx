@@ -7,7 +7,6 @@ import {Stack, Grid} from '@sentry/scraps/layout';
 import type {StylesConfig, SelectValue} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 
-import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
@@ -15,6 +14,7 @@ import type {Organization, OrgRole} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {EmailValue} from './emailValue';
+import {useInviteMembersContext} from './inviteMembersContext';
 import type {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;

@@ -1,4 +1,4 @@
-import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
+import {parsePercent} from './parsePercent';
 
 describe('parsePercent', () => {
   it('parses a valid percent', () => {

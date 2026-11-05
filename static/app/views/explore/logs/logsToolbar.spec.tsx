@@ -11,15 +11,16 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
   useQueryParamsGroupBys,
   useQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {LOGS_AGGREGATE_FIELD_KEY} from './logsQueryParams';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {LogsToolbar} from './logsToolbar';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (

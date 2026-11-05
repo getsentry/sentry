@@ -78,16 +78,22 @@ import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {useGlobalAlerts, type AddAlert} from 'sentry/views/app/globalAlerts';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {
-  DEFAULT_EVENT_VIEW,
-  DEFAULT_EVENT_VIEW_MAP,
-} from 'sentry/views/discover/results/data';
-import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart';
-import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
-import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
-import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
-import {Tags} from 'sentry/views/discover/results/tags';
-import {getDatasetFromLocationOrSavedQueryDataset} from 'sentry/views/discover/savedQuery/datasets';
+import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import {DEFAULT_EVENT_VIEW, DEFAULT_EVENT_VIEW_MAP} from './results/data';
+import {ResultsChartContainer} from './results/resultsChart';
+import {ResultsHeader} from './results/resultsHeader';
+import {ResultsSearchQueryBuilder} from './results/resultsSearchQueryBuilder';
+import {SampleDataAlert} from './results/sampleDataAlert';
+import {Tags} from './results/tags';
+import {getDatasetFromLocationOrSavedQueryDataset} from './savedQuery/datasets';
 import {
   getSavedQueryDataset,
   getSavedQueryWithDataset,
@@ -97,23 +103,15 @@ import {
   handleResetHomepageQuery,
   handleUpdateHomepageQuery,
   handleUpdateQuery as handleUpdateSavedQuery,
-} from 'sentry/views/discover/savedQuery/utils';
-import {Table} from 'sentry/views/discover/table';
+} from './savedQuery/utils';
+import {Table} from './table';
 import {
   canCreateAlerts,
   generateTitle,
   getCreateAlertFromViewUrl,
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
-} from 'sentry/views/discover/utils';
-import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {TraceItemDataset} from 'sentry/views/explore/types';
-import {getExploreUrl} from 'sentry/views/explore/utils';
-import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
-import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
-import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+} from './utils';
 
 type Props = {
   addAlert: AddAlert;

@@ -11,9 +11,10 @@ import {
   ExploreContentSection,
   ExploreControlSection,
 } from 'sentry/views/explore/components/styles';
-import {ErrorsCharts} from 'sentry/views/explore/errors/charts';
-import {ErrorsToolbar} from 'sentry/views/explore/errors/toolbar';
 import {ChevronButton} from 'sentry/views/explore/spans/spansTab';
+
+import {ErrorsCharts} from './charts';
+import {ErrorsToolbar} from './toolbar';
 
 interface ErrorsControlSectionProps {
   controlSectionExpanded: boolean;

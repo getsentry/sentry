@@ -2,7 +2,7 @@ import {
   getCreateAlertForLabel,
   getCreateAlertLabel,
   getSaveAsAlertMenuItem,
-} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+} from './saveAsAlertMenuItem';
 
 describe('getCreateAlertLabel', () => {
   it('returns the monitor label', () => {

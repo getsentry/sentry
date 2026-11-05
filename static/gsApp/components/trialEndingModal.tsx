@@ -6,8 +6,8 @@ import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

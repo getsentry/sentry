@@ -6,15 +6,16 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackActions} from 'sentry/components/feedback/feedbackItem/feedbackActions';
-import {FeedbackShortId} from 'sentry/components/feedback/feedbackItem/feedbackShortId';
-import {FeedbackViewers} from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
+
+import {FeedbackActions} from './feedbackActions';
+import {FeedbackShortId} from './feedbackShortId';
+import {FeedbackViewers} from './feedbackViewers';
 
 interface Props {
   eventData: Event | undefined;

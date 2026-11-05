@@ -20,9 +20,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
-import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
-import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
-import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   replayBackendPlatforms,
@@ -42,6 +39,10 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {pickPlatformOptions} from './pickPlatformOptions';
+import {ReplayOnboardingLayout} from './replayOnboardingLayout';
+import {replayJsFrameworkOptions} from './utils';
 
 export function useReplaysOnboardingDrawer() {
   const organization = useOrganization();

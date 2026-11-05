@@ -3759,6 +3759,33 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         field_links = DashboardFieldLink.objects.filter(dashboard_widget_query=queries[0])
         assert len(field_links) == 0
 
+    def test_create_widget_with_query_priority(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Query Priority",
+            "queryPriority": "faster",
+            "widgets": [],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["queryPriority"] == "faster"
+
+    def test_update_widget_with_query_priority(self) -> None:
+        dashboard = self.create_dashboard(
+            title="Dashboard with Links",
+            organization=self.organization,
+            query_priority=1,
+        )
+        data: dict[str, Any] = {
+            "title": "Dashboard with Links",
+            "widgets": [],
+            "queryPriority": "normal",
+        }
+
+        response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["queryPriority"] == "normal"
+
     def test_does_not_update_non_table_dashboard_links(self) -> None:
         dashboard = self.create_dashboard(
             title="Dashboard with Links", organization=self.organization

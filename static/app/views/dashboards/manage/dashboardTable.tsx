@@ -16,10 +16,10 @@ import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {updateDashboardPermissions} from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -237,7 +237,7 @@ function DashboardTable({
       updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
         (newDashboard: DashboardDetails) => {
           onDashboardsChange();
-          addSuccessMessage(t('Dashboard Edit Access updated.'));
+          toast.success(t('Dashboard Edit Access updated.'));
           return newDashboard;
         }
       );

@@ -3,8 +3,6 @@ import isEqual from 'lodash/isEqual';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
-import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
-import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
 import type {UseDroppedDataParams} from 'sentry/components/droppedData/useDroppedData';
@@ -16,6 +14,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {buildAskSeerPrompt} from './askSeer';
+import {DroppedDataDrawer} from './droppedDataDrawer';
 
 const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
 

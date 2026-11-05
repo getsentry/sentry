@@ -11,8 +11,9 @@ import type {Event, EventEvidenceDisplay} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {DowntimeDuration} from 'sentry/views/issueDetails/downtimeDuration';
-import {getDetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorSection';
+
+import {getDetectorDetails} from './sidebar/detectorSection';
+import {DowntimeDuration} from './downtimeDuration';
 
 enum KnownEvidence {
   ENVIRONMENT = 'Environment',
