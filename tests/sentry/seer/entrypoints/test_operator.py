@@ -5,6 +5,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.test import override_settings
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsResponse,
+)
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
@@ -32,8 +35,10 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
 )
+from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.operator import (
+    AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION,
     SEER_EVENT_TO_ACTIVITY_TYPE,
     SeerAgentOperator,
     SeerAutofixOperator,
@@ -57,6 +62,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 from sentry.utils.locking import UnableToAcquireLock
@@ -74,6 +80,7 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
     def __init__(self) -> None:
         self.thread_id = str(uuid.uuid4())
         self.autofix_errors: list[str] = []
+        self.autofix_out_of_credits: list[bool] = []
         self.autofix_run_ids: list[int] = []
         self.autofix_update_cache_payloads: list[object] = []
         self.autofix_already_exists_states: list[tuple[int, bool]] = []
@@ -90,6 +97,9 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
         self.autofix_errors.append(error)
+
+    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
+        self.autofix_out_of_credits.append(started)
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         self.autofix_run_ids.append(run_id)
@@ -224,6 +234,91 @@ class SeerOperatorTest(TestCase):
             "name": self.user.get_display_name(),
             "email": "583231+octocat@users.noreply.github.com",
             "scm_login": "octocat",
+        }
+
+    @with_feature("organizations:seer-credit-checks")
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
+    def test_trigger_root_cause_without_credits_reports_not_started(
+        self,
+        mock_trigger_autofix: MagicMock,
+        _mock_get_autofix_state: MagicMock,
+        mock_check_seer_credits: MagicMock,
+    ) -> None:
+        self.operator.trigger_autofix(
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+        )
+
+        mock_trigger_autofix.assert_not_called()
+        assert self.entrypoint.autofix_out_of_credits == [False]
+        assert self.entrypoint.autofix_errors == []
+        assert self.entrypoint.autofix_run_ids == []
+
+    @with_feature("organizations:seer-credit-checks")
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
+    def test_trigger_solution_without_credits_reports_started(
+        self,
+        mock_trigger_autofix: MagicMock,
+        _mock_get_autofix_state: MagicMock,
+        mock_check_seer_credits: MagicMock,
+    ) -> None:
+        self.operator.trigger_autofix(
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.SOLUTION,
+            run_id=MOCK_RUN_ID,
+        )
+
+        mock_trigger_autofix.assert_not_called()
+        assert self.entrypoint.autofix_out_of_credits == [True]
+        assert self.entrypoint.autofix_errors == []
+        assert self.entrypoint.autofix_run_ids == []
+        request = mock_check_seer_credits.call_args.args[0]
+        assert request.feature_id == "autofix"
+        assert request.organization_id == self.organization.id
+
+    @with_feature("organizations:seer-credit-checks")
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_push_changes")
+    def test_open_pr_without_credits_reports_started(
+        self,
+        mock_push_changes: MagicMock,
+        _mock_get_autofix_state: MagicMock,
+        _mock_check_seer_credits: MagicMock,
+    ) -> None:
+        self.operator.trigger_autofix(
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.OPEN_PR,
+            run_id=MOCK_RUN_ID,
+        )
+
+        mock_push_changes.assert_not_called()
+        assert self.entrypoint.autofix_out_of_credits == [True]
+        assert self.entrypoint.autofix_errors == []
+
+    def test_stopping_point_to_seer_operation_covers_every_stopping_point(self) -> None:
+        assert set(AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION) == set(AutofixStoppingPoint)
+        assert AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION == {
+            AutofixStoppingPoint.ROOT_CAUSE: SeerOperation.AUTOFIX_ROOT_CAUSE,
+            AutofixStoppingPoint.SOLUTION: SeerOperation.AUTOFIX_SOLUTION,
+            AutofixStoppingPoint.CODE_CHANGES: SeerOperation.AUTOFIX_CODE_CHANGES,
+            AutofixStoppingPoint.OPEN_PR: SeerOperation.AUTOFIX_OPEN_PR,
         }
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
@@ -585,6 +680,35 @@ class SeerOperatorTest(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
     def test_can_trigger_autofix_returns_false_without_quota(self, mock_quota: MagicMock) -> None:
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
+
+    @with_feature("organizations:seer-credit-checks")
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    def test_can_trigger_autofix_returns_false_without_root_cause_credits(
+        self, _mock_quota: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
+        mock_check_seer_credits.assert_called_once()
+
+    @patch("sentry.seer_credit.backend.check_seer_credits")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    def test_can_trigger_autofix_skips_credit_check_when_flag_off(
+        self, _mock_quota: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
+        mock_check_seer_credits.assert_not_called()
+
+    @with_feature("organizations:seer-credit-checks")
+    @patch("sentry.seer_credit.backend.check_seer_credits")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
+    def test_can_trigger_autofix_skips_credit_check_without_quota(
+        self, _mock_quota: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
+        mock_check_seer_credits.assert_not_called()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_seer_event_creates_activity_rca_completed(self, _mock_has_access: MagicMock) -> None:

@@ -29,6 +29,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerInvestigationStarted,
     SeerInvestigationStatus,
     SeerInvestigationStatusTemplate,
+    SeerOutOfCredits,
 )
 from sentry.notifications.platform.tracking import (
     NotificationLink,
@@ -44,6 +45,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.credits import can_run_seer_operation
 from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestData,
     AgentApprovalRequestSerializer,
@@ -56,6 +58,7 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
 )
+from sentry.seer.entrypoints.operator import AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
@@ -236,6 +239,28 @@ def _get_handoff_target(project: Project) -> CodingAgentProviderType | None:
     return target
 
 
+def _has_credits_for_next_step(data: SeerAutofixUpdate) -> bool:
+    """Whether the org can afford the Seer step the update's next-step button starts."""
+    next_point = data.next_seer_stopping_point
+    if next_point is None:
+        return True
+    try:
+        organization = Organization.objects.get_from_cache(id=data.organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "seer.entrypoint.slack.next_step_credit_check.organization_missing",
+            extra={
+                "organization_id": data.organization_id,
+                "run_id": data.run_id,
+                "group_id": data.group_id,
+            },
+        )
+        return False
+    return can_run_seer_operation(
+        organization, AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION[next_point]
+    )
+
+
 def _get_missing_scope_settings_url(
     *,
     integration_id: int,
@@ -386,6 +411,14 @@ class SlackAutofixEntrypoint(
             install=self.install,
             thread=self.thread,
             data=SeerAutofixError(organization_id=self.organization_id, error_message=error),
+            ephemeral_user_id=self.slack_request.user_id,
+        )
+
+    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
+        send_thread_update(
+            install=self.install,
+            thread=self.thread,
+            data=SeerOutOfCredits(organization_id=self.organization_id, started=started),
             ephemeral_user_id=self.slack_request.user_id,
         )
 
@@ -587,6 +620,8 @@ class SlackAutofixEntrypoint(
                 return
 
         data = SeerAutofixUpdate(**data_kwargs)
+        if not _has_credits_for_next_step(data):
+            data = data.copy(update={"has_credits_for_next_step": False})
         schedule_all_thread_updates(
             threads=cache_payload["threads"],
             integration_id=cache_payload["integration_id"],

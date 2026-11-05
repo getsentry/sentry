@@ -48,6 +48,15 @@ class SeerAutofixEntrypoint[CachePayloadT](Protocol):
         """
         ...
 
+    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
+        """
+        Called when the organization doesn't have enough Seer credits to run the requested step.
+        `started` is False when the run was never started, True when it stopped partway through.
+
+        Example Usage: Sending an 'out of credits' message, etc.
+        """
+        ...
+
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         """
         Called when an autofix run has been started successfully.
