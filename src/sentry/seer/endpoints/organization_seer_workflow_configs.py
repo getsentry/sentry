@@ -151,6 +151,8 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
         allow_empty=True,
     )
     name = serializers.CharField(default=None, allow_null=True, max_length=64)
+    # TODO(telkins): Rename the agent request and response fields and the grant error
+    # messages to service account, with a matching frontend change.
     agent = ServiceAccountGrantSerializer()
     # Metric automations only; their projects come from the connected monitors.
     monitorIds = serializers.ListField(
