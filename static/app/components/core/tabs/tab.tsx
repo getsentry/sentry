@@ -189,7 +189,6 @@ const StyledTabSelectionIndicator = styled('div')<{
 
 export interface TabProps extends AriaTabProps {
   item: Node<any>;
-  openingLinkRef: React.RefObject<boolean>;
   orientation: Orientation;
   /**
    * Whether this tab is overflowing the TabList container. If so, the tab
@@ -209,7 +208,6 @@ export function Tab({
   ref,
   item,
   state,
-  openingLinkRef,
   orientation,
   overflowing,
   variant = 'flat',
@@ -273,7 +271,7 @@ export function Tab({
             }
           }}
           onClick={event => {
-            if (!isModifiedClick(event) && !openingLinkRef.current) {
+            if (!isModifiedClick(event)) {
               tabProps.onClick?.(event);
             }
           }}

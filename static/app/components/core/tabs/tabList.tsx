@@ -316,7 +316,6 @@ interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabList
 function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
   const outerWrapRef = useRef<HTMLDivElement>(null);
   const tabListRef = useRef<HTMLUListElement>(null);
-  const openingLinkRef = useRef(false);
   const automaticActivationRef = useRef<{key?: string | number} | null>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
@@ -414,13 +413,8 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
               activation.key
             ]?.querySelector<HTMLAnchorElement>(':scope > a[role="tab"]');
             if (link) {
-              openingLinkRef.current = true;
-              try {
-                link.focus();
-                link.click();
-              } finally {
-                openingLinkRef.current = false;
-              }
+              link.focus();
+              link.click();
             }
           }
         }}
@@ -433,7 +427,6 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
             key={item.key}
             item={item}
             state={state}
-            openingLinkRef={openingLinkRef}
             orientation={orientation}
             size={size}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
