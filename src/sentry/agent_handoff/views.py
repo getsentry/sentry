@@ -16,7 +16,7 @@ from sentry.web.frontend.base import control_silo_view
 
 _CLAIM_WINDOW = 60
 _MAX_CLAIM_BYTES = 1024
-_HANDOFF_CODE = re.compile(r"sntryh_[A-Za-z0-9_-]{43}")
+_HANDOFF_CODE = re.compile(r"(?:sntryh_)?[A-Za-z0-9_-]{43}")
 _UNAVAILABLE = "# This Sentry Guide Is No Longer Available\n\nAsk the user to return to Sentry and generate a new private handoff prompt.\n"
 
 

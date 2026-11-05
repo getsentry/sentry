@@ -67,7 +67,7 @@ def issue_handoff(
         application_id=application_id,
         scope_list=tuple(scope_list),
     )
-    code = f"sntryh_{secrets.token_urlsafe(32)}"
+    code = secrets.token_urlsafe(32)
     expires_at = timezone.now() + HANDOFF_LIFETIME
     # Keep default handoffs readable by servers during a rolling deploy.
     stored = _get_redis_client().set(

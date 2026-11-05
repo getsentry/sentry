@@ -86,6 +86,16 @@ class AgentHandoffViewTest(TestCase):
         assert handoff.user_id == self.user.id
         assert handoff.organization_id == self.organization.id
 
+    def test_prefixed_handoff_can_be_claimed(self) -> None:
+        code = "sntryh_" + "a" * 43
+        with patch(
+            "sentry.agent_handoff.views.claim_handoff", return_value="Private guide"
+        ) as claim:
+            response = self.claim(code)
+
+        assert response.status_code == 200
+        claim.assert_called_once_with(code)
+
     def test_organization_scoped_application_retains_selected_organization(self) -> None:
         self.application.update(requires_org_level_access=True, scopes=["org:read"])
         assert self.claim(self.issue()).status_code == 200
@@ -176,7 +186,7 @@ class AgentHandoffViewTest(TestCase):
         assert self.claim("invalid").status_code == 400
 
     def test_oversized_code_is_rejected(self) -> None:
-        assert self.claim("sntryh_" + "a" * 2000).status_code == 400
+        assert self.claim("a" * 2000).status_code == 400
 
     def test_rate_limit_preserves_the_code(self) -> None:
         code = self.issue()

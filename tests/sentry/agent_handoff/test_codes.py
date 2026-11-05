@@ -38,8 +38,7 @@ class AgentHandoffTest(TestCase):
         key = _handoff_key(issued.code)
         raw = client.get(key)
         assert raw is not None
-        assert issued.code.startswith("sntryh_")
-        assert len(issued.code) == 50
+        assert len(issued.code) == 43
         assert issued.code not in key
         assert issued.code.encode() not in raw
         assert issued.code not in repr(issued)
