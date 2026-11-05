@@ -27,8 +27,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
     SeerAgentWriteApproval,
+    SeerAutofixOutOfCredits,
     SeerAutofixUpdate,
-    SeerOutOfCredits,
 )
 from sentry.notifications.platform.tracking import NotificationLink, NotificationTrackingContext
 from sentry.notifications.platform.types import (
@@ -157,7 +157,7 @@ class SlackAutofixEntrypointTest(TestCase):
         mock_send_thread_update.assert_called_once()
         kwargs = mock_send_thread_update.call_args.kwargs
         data = kwargs["data"]
-        assert isinstance(data, SeerOutOfCredits)
+        assert isinstance(data, SeerAutofixOutOfCredits)
         assert data.organization_id == self.organization.id
         assert data.started is True
         assert kwargs["ephemeral_user_id"] == self.slack_request.user_id

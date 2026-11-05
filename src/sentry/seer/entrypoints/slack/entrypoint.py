@@ -24,12 +24,12 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixError,
+    SeerAutofixOutOfCredits,
     SeerAutofixUpdate,
     SeerInvestigationError,
     SeerInvestigationStarted,
     SeerInvestigationStatus,
     SeerInvestigationStatusTemplate,
-    SeerOutOfCredits,
 )
 from sentry.notifications.platform.tracking import (
     NotificationLink,
@@ -418,7 +418,7 @@ class SlackAutofixEntrypoint(
         send_thread_update(
             install=self.install,
             thread=self.thread,
-            data=SeerOutOfCredits(organization_id=self.organization_id, started=started),
+            data=SeerAutofixOutOfCredits(organization_id=self.organization_id, started=started),
             ephemeral_user_id=self.slack_request.user_id,
         )
 
