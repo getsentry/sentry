@@ -113,6 +113,7 @@ def _claim_send(key: str) -> bool:
         return True
 
     if state == _SENT:
+        _record_dedupe("duplicate")
         return False
     # Either a concurrent delivery is mid-send, or its claim expired between
     # our add() and get(). Both resolve on retry.
@@ -138,7 +139,6 @@ def _send_email_once(message: dict[str, Any]) -> None:
         return
 
     if not _claim_send(key):
-        _record_dedupe("duplicate")
         logger.info(
             "mail.send_dedupe.duplicate_skipped",
             extra={"message_id": message["headers"]["Message-Id"]},

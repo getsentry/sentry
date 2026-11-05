@@ -119,6 +119,13 @@ class TestSendEmailDedupe:
 
         assert send_messages.call_count == 1
 
+    def test_duplicate_is_recorded_once(self, send_messages: MagicMock) -> None:
+        send_email(message=_message())
+        with patch("sentry.tasks.email._record_dedupe") as record_dedupe:
+            send_email(message=_message())
+
+        record_dedupe.assert_called_once_with("duplicate")
+
     def test_different_recipients_with_same_message_id_are_both_sent(
         self, send_messages: MagicMock
     ) -> None:
