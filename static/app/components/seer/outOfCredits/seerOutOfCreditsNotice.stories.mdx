@@ -62,6 +62,27 @@ the request shows a toast.
 />
 ```
 
+## Request sent
+
+After a member sends a request, the button shows "Request sent" until the
+billing period ends.
+
+<Storybook.Demo>
+  <SeerOutOfCreditsNotice
+    escalation="request"
+    onRequestCredits={() => {}}
+    hasRequestedCredits
+  />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice
+  escalation="request"
+  onRequestCredits={handleRequestCredits}
+  hasRequestedCredits
+/>
+```
+
 ## Orgs that can't self-serve
 
 Orgs that buy through an account team get no request button.
