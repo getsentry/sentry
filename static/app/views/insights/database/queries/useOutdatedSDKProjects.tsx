@@ -19,7 +19,7 @@ interface Options {
  */
 export function useOutdatedSDKProjects({enabled, projectId}: Options) {
   const organization = useOrganization();
-  const response = useQuery({
+  const {data: availableUpdates, isFetching} = useQuery({
     ...apiOptions.as<ProjectSdkUpdates[]>()(
       '/organizations/$organizationIdOrSlug/sdk-updates/',
       {
@@ -30,7 +30,6 @@ export function useOutdatedSDKProjects({enabled, projectId}: Options) {
     ),
     enabled,
   });
-  const {data: availableUpdates} = response;
 
   const projects = (availableUpdates ?? [])
     .filter(update => {
@@ -49,8 +48,7 @@ export function useOutdatedSDKProjects({enabled, projectId}: Options) {
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
   return {
-    // oxlint-disable-next-line @tanstack/query/no-rest-destructuring -- Preserve the existing hook result interface.
-    ...response,
+    isFetching,
     projects: uniqBy(projects, 'id'),
   };
 }

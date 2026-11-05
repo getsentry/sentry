@@ -1,10 +1,4 @@
-import {
-  queryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-  type UseQueryOptions,
-} from '@tanstack/react-query';
+import {queryOptions, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -17,9 +11,7 @@ import {
   type IssueStreamDetector,
   type UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -205,11 +197,9 @@ export const makeDetectorDetailsQueryKey = (params: {
 
 export function useDetectorQuery<T extends Detector = Detector>(
   detectorId: string,
-  options: Partial<
-    Omit<
-      UseQueryOptions<ApiResponse<T>, Error, T, ApiQueryKey>,
-      'queryKey' | 'queryFn' | 'select'
-    >
+  options: Pick<
+    ReturnType<typeof detectorDetailsApiOptions<T>>,
+    'enabled' | 'retry' | 'staleTime' | 'refetchOnWindowFocus' | 'refetchInterval'
   > = {}
 ) {
   const org = useOrganization();
