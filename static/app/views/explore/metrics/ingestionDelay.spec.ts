@@ -1,4 +1,4 @@
-import {ingestionDelayedRelativePeriod} from 'sentry/views/explore/metrics/ingestionDelay';
+import {ingestionDelayedRelativePeriod} from './ingestionDelay';
 
 function datetime({end = null, period}: {period: string | null; end?: string | null}) {
   return {start: null, end, period, utc: null};

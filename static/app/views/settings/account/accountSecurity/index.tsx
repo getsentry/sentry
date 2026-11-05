@@ -5,8 +5,8 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {Confirm} from 'sentry/components/confirm';
@@ -21,12 +21,13 @@ import {t} from 'sentry/locale';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
-import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
-import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
-import {TwoFactorRequired} from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
 import {PasswordForm} from 'sentry/views/settings/account/passwordForm';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+
+import {RemoveConfirm} from './components/removeConfirm';
+import {TwoFactorRequired} from './components/twoFactorRequired';
+import {useAccountSecurityContext} from './accountSecurityWrapper';
 
 /**
  * Lists 2fa devices + password change form
@@ -52,7 +53,7 @@ export default function AccountSecurity() {
       });
       testableWindowLocation.assign('/auth/login/');
     } catch (err) {
-      addErrorMessage(t('There was a problem closing all sessions'));
+      toast.error(t('There was a problem closing all sessions'));
       throw err;
     }
   }

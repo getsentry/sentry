@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {EvaluationTab} from 'sentry/views/explore/conversations/components/evaluationSpanTab';
+import {EvaluationTab} from './evaluationSpanTab';
 
 const RAW_INPUT = JSON.stringify([
   {type: 'evaluation', state: 'I cannot log in.', rawOnlyInputKey: true},

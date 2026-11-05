@@ -1,4 +1,4 @@
-import {toPythonString} from 'sentry/utils/string/toPythonString';
+import {toPythonString} from './toPythonString';
 
 describe('toPythonString', () => {
   it('converts strings', () => {

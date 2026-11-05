@@ -4,8 +4,9 @@ import {useQuery} from '@tanstack/react-query';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {apiOptions} from './api/apiOptions';
+import {useOrganization} from './useOrganization';
 
 interface UseTeamsById {
   ids: string[] | undefined;

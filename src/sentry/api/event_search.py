@@ -14,7 +14,7 @@ from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery, SearchQueryParseError
 from sentry.search.events.constants import (
     DURATION_UNITS,
     NOT_HAS_FILTER_ERROR_MESSAGE,
@@ -2162,7 +2162,7 @@ def parse_search_query(
         idx = e.column()
         prefix = query[max(0, idx - 5) : idx]
         suffix = query[idx : (idx + 5)]
-        err = InvalidSearchQuery(
+        err = SearchQueryParseError(
             "{} {}".format(
                 f"Parse error at '{prefix}{suffix}' (column {e.column():d}).",
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
@@ -2171,9 +2171,17 @@ def parse_search_query(
         err.extra = {"idx": idx}
         raise err
 
-    return SearchVisitor(
-        config,
-        params=params,
-        get_field_type=get_field_type,
-        get_function_result_type=get_function_result_type,
-    ).visit(tree)
+    try:
+        return SearchVisitor(
+            config,
+            params=params,
+            get_field_type=get_field_type,
+            get_function_result_type=get_function_result_type,
+        ).visit(tree)
+    except InvalidSearchQuery as e:
+        # Subclasses already carry a more specific meaning; keep them as they are
+        if type(e) is not InvalidSearchQuery:
+            raise
+        err = SearchQueryParseError(*e.args)
+        err.extra = e.extra
+        raise err from e

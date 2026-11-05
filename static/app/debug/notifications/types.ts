@@ -1,7 +1,7 @@
 import type {
   NotificationBodyFormattingBlock,
   NotificationBodyTextBlock,
-} from 'sentry/debug/notifications/components/notificationBodyRenderer';
+} from './components/notificationBodyRenderer';
 
 export enum NotificationProviderKey {
   EMAIL = 'email',

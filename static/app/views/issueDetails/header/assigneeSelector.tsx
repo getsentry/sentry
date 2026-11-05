@@ -28,7 +28,8 @@ import {selectUsersFromMembers} from 'sentry/utils/members/shared';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {getOwnerList} from 'sentry/views/issueDetails/header/getOwnerList';
+
+import {getOwnerList} from './getOwnerList';
 
 interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;

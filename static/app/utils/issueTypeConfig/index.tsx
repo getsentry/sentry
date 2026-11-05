@@ -1,30 +1,25 @@
 import {t} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {aiDetectedConfig} from 'sentry/utils/issueTypeConfig/aiDetectedConfig';
-import {configurationIssuesConfig} from 'sentry/utils/issueTypeConfig/configurationIssuesConfig';
-import {cronConfig} from 'sentry/utils/issueTypeConfig/cronConfig';
-import {dbQueryConfig} from 'sentry/utils/issueTypeConfig/dbQueryConfig';
-import {
-  errorConfig,
-  getErrorHelpResource,
-} from 'sentry/utils/issueTypeConfig/errorConfig';
-import {feedbackConfig} from 'sentry/utils/issueTypeConfig/feedbackConfig';
-import {frontendConfig} from 'sentry/utils/issueTypeConfig/frontendConfig';
-import {httpClientConfig} from 'sentry/utils/issueTypeConfig/httpClientConfig';
-import {metricConfig} from 'sentry/utils/issueTypeConfig/metricConfig';
-import {metricIssueConfig} from 'sentry/utils/issueTypeConfig/metricIssueConfig';
-import {mobileConfig} from 'sentry/utils/issueTypeConfig/mobileConfig';
-import {outageConfig} from 'sentry/utils/issueTypeConfig/outageConfig';
-import {performanceConfig} from 'sentry/utils/issueTypeConfig/performanceConfig';
-import {preprodConfig} from 'sentry/utils/issueTypeConfig/preprodConfig';
-import {replayConfig} from 'sentry/utils/issueTypeConfig/replayConfig';
-import type {
-  IssueCategoryConfigMapping,
-  IssueTypeConfig,
-} from 'sentry/utils/issueTypeConfig/types';
-import {uptimeConfig} from 'sentry/utils/issueTypeConfig/uptimeConfig';
 import {Tab} from 'sentry/views/issueDetails/types';
+
+import {aiDetectedConfig} from './aiDetectedConfig';
+import {configurationIssuesConfig} from './configurationIssuesConfig';
+import {cronConfig} from './cronConfig';
+import {dbQueryConfig} from './dbQueryConfig';
+import {errorConfig, getErrorHelpResource} from './errorConfig';
+import {feedbackConfig} from './feedbackConfig';
+import {frontendConfig} from './frontendConfig';
+import {httpClientConfig} from './httpClientConfig';
+import {metricConfig} from './metricConfig';
+import {metricIssueConfig} from './metricIssueConfig';
+import {mobileConfig} from './mobileConfig';
+import {outageConfig} from './outageConfig';
+import {performanceConfig} from './performanceConfig';
+import {preprodConfig} from './preprodConfig';
+import {replayConfig} from './replayConfig';
+import type {IssueCategoryConfigMapping, IssueTypeConfig} from './types';
+import {uptimeConfig} from './uptimeConfig';
 
 type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 

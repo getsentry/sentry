@@ -5,7 +5,8 @@ import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import type {InboxSubject, InboxSubjectType} from 'sentry/views/inbox/types';
+
+import type {InboxSubject, InboxSubjectType} from './types';
 
 interface InboxSubjectConfig {
   icon: ComponentType<SVGIconProps>;

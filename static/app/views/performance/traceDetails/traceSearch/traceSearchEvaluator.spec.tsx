@@ -4,8 +4,9 @@ import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {makeEAPSpan} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
-import {searchInTraceTreeTokens} from 'sentry/views/performance/traceDetails/traceSearch/traceSearchEvaluator';
-import {parseTraceSearch} from 'sentry/views/performance/traceDetails/traceSearch/traceTokenConverter';
+
+import {searchInTraceTreeTokens} from './traceSearchEvaluator';
+import {parseTraceSearch} from './traceTokenConverter';
 
 const search = (query: string, tree: TraceTree, cb: any) => {
   searchInTraceTreeTokens(tree, parseTraceSearch(query) as any, null, cb);

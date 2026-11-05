@@ -26,8 +26,6 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
 import {getNoAllProjectsWritePermissionTooltip} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {
@@ -39,6 +37,9 @@ import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
+
+import {AutomationBuilderErrorContext} from './automationBuilderErrorContext';
+import {ConnectedMonitorsList} from './connectedMonitorsList';
 
 const PROJECT_GROUPS = [
   {key: 'member', label: t('My Projects')},
