@@ -1,24 +1,37 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.debugfile import ProjectDebugFile
 
 
 class DebugFileSerializerResponse(TypedDict):
-    id: str
-    uuid: str
-    debugId: str
-    codeId: str | None
-    cpuName: str
-    objectName: str
-    symbolType: str
-    headers: dict[str, str]
-    size: int
-    sha1: str
-    dateCreated: datetime
-    data: dict[str, Any]
+    id: Annotated[str, ApiDescription("ID of the debug file")]
+    uuid: Annotated[str, ApiDescription("Debug ID without the age suffix, as a UUID")]
+    debugId: Annotated[str, ApiDescription("Debug ID of the file")]
+    codeId: Annotated[
+        str | None,
+        ApiDescription(
+            "Code ID of the file, such as the GNU build ID. Null when the file has none"
+        ),
+    ]
+    cpuName: Annotated[str, ApiDescription("CPU architecture of the file, such as x86_64 or arm64")]
+    objectName: Annotated[str, ApiDescription("Name of the object file")]
+    symbolType: Annotated[
+        str, ApiDescription("Format of the file, such as macho, elf, pe, pdb, breakpad or proguard")
+    ]
+    headers: Annotated[
+        dict[str, str],
+        ApiDescription("HTTP headers to download the file with, such as Content-Type"),
+    ]
+    size: Annotated[int, ApiDescription("Size of the file in bytes")]
+    sha1: Annotated[str, ApiDescription("SHA-1 checksum of the file")]
+    dateCreated: Annotated[datetime, ApiDescription("When the file was uploaded (ISO 8601)")]
+    data: Annotated[
+        dict[str, Any], ApiDescription("Extra data about the file, such as its features")
+    ]
 
 
 @register(ProjectDebugFile)
