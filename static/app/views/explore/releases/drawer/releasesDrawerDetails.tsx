@@ -51,6 +51,7 @@ interface ReleasesDrawerDetailsProps {
 interface ReleasesDrawerContentProps {
   isLoadingMeta: boolean;
   isMetaError: boolean;
+  onProjectSelect: (selectedProjectId: string) => void;
   project: Project;
   projectId: string | undefined;
   release: string;
@@ -64,9 +65,8 @@ function ReleasesDrawerContent({
   releaseMeta,
   isMetaError,
   isLoadingMeta,
+  onProjectSelect,
 }: ReleasesDrawerContentProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
   const releaseProjects = releaseMeta?.projects ?? [];
 
   return (
@@ -82,18 +82,7 @@ function ReleasesDrawerContent({
                 label: releaseProject.slug,
                 leadingItems: <ProjectAvatar project={releaseProject} size={16} />,
               }))}
-              onChange={option => {
-                navigate(
-                  {
-                    pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      [ReleasesDrawerFields.RELEASE_PROJECT_ID]: option.value,
-                    },
-                  },
-                  {replace: true}
-                );
-              }}
+              onChange={option => onProjectSelect(option.value)}
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} prefix={t('Project')} />
               )}
@@ -328,6 +317,7 @@ export function ReleasesDrawerDetails({
             releaseMeta={releaseMeta}
             isMetaError={isMetaError}
             isLoadingMeta={isLoadingMeta}
+            onProjectSelect={handleProjectSelect}
           />
         ) : isLoadingMeta ? (
           <LoadingIndicator />
