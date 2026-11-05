@@ -3,8 +3,8 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
+import {markLowConfidence} from './fixtures/markLowConfidence';
 import {markDelayedData} from './markDelayedData';
-import {markLowConfidence} from './markLowConfidence';
 import {segmentTimeSeriesByDisplayStyle} from './segmentTimeSeriesByDisplayStyle';
 
 describe('segmentTimeSeriesByDisplayStyle', () => {

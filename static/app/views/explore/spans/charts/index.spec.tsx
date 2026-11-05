@@ -26,11 +26,13 @@ jest.mock('echarts-for-react/lib/core', () => {
   return function Chart({
     option,
   }: {
-    option: {series: Array<{data?: Array<[number, number]>}>};
+    option: {series: Array<{data?: Array<{value: [number, number]}>}>};
   }) {
     return (
       <output aria-label="Chart values">
-        {JSON.stringify(option.series.map(series => series.data))}
+        {JSON.stringify(
+          option.series.map(series => series.data?.map(point => point.value))
+        )}
       </output>
     );
   };
