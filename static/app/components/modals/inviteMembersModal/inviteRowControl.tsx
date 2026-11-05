@@ -25,7 +25,7 @@ type Props = {
 };
 
 // Address lists copied from mail clients look like `Jane Doe <jane@example.com>`.
-const EMAIL_PATTERN = /[^\s<>,;"()]+@[^\s<>,;"()]+/g;
+const EMAIL_PATTERN = /[^\s<>[\],;"()]+@[^\s<>[\],;"()]+/g;
 const SEPARATOR_PATTERN = /[\s,;<>]/;
 
 export function parseEmails(input: string): string[] {
@@ -33,8 +33,7 @@ export function parseEmails(input: string): string[] {
   if (emails) {
     return emails;
   }
-  const trimmed = input.trim();
-  return trimmed ? trimmed.split(/[\s,;]+/) : [];
+  return input.split(/[\s,;]+/).filter(Boolean);
 }
 
 function mapToOptions(values: string[]): SelectOption[] {
@@ -98,6 +97,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
     switch (e.key) {
       case 'Enter':
       case ',':
+      case ';':
       case ' ':
         e.preventDefault();
         handleInput(inputValue);

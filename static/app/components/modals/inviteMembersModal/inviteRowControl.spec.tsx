@@ -234,7 +234,10 @@ describe('parseEmails', () => {
     ],
     ['<mailto:jane@example.com>', ['jane@example.com']],
     ["Jane O'Brien <jane.o'brien@example.com>", ["jane.o'brien@example.com"]],
+    ['[mailto:jane@example.com]', ['jane@example.com']],
     ['not-an-email', ['not-an-email']],
+    ['not-an-email;', ['not-an-email']],
+    [';', []],
     ['   ', []],
   ])('parses %j', (input, expected) => {
     expect(parseEmails(input)).toEqual(expected);
