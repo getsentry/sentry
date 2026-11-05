@@ -23,7 +23,7 @@ import type {Project} from 'sentry/types/project';
 import type {UserEmail} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -35,7 +35,7 @@ type EmailSelectOption = {label: string; value: string};
 
 type ANBPProps = {
   emailChoices: EmailSelectOption[];
-  emailsByProject: Record<string, any>;
+  emailsByProject: Record<string, string>;
   projects: Project[];
   refetchEmailsByProject: () => void;
 };
@@ -139,24 +139,24 @@ export function AccountNotificationFineTuning() {
     data: emails = [],
     isPending: isPendingEmails,
     isError: isErrorEmails,
-  } = useApiQuery<UserEmail[]>(
-    [getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}})],
-    {
+  } = useQuery(
+    apiOptions.as<UserEmail[]>()('/users/$userId/emails/', {
+      path: {userId: 'me'},
       staleTime: 0,
-    }
+    })
   );
   const {
     data: emailsByProject,
     isPending: isPendingEmailsByProject,
     isError: isErrorEmailsByProject,
     refetch: refetchEmailsByProject,
-  } = useApiQuery<Record<string, any>>(
-    [getApiUrl('/users/$userId/notifications/email/', {path: {userId: 'me'}})],
-    {
+  } = useQuery({
+    ...apiOptions.as<Record<string, string>>()('/users/$userId/notifications/email/', {
+      path: {userId: 'me'},
       staleTime: 0,
-      placeholderData: keepPreviousData,
-    }
-  );
+    }),
+    placeholderData: keepPreviousData,
+  });
 
   const field = ACCOUNT_NOTIFICATION_FIELDS.email!;
   const isPending = isPendingProjects || isPendingEmailsByProject || isPendingEmails;
