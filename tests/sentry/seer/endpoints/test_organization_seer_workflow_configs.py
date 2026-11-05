@@ -418,6 +418,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         updater = self.create_user()
         self.create_member(organization=self.organization, user=updater, role="owner")
         self.login_as(updater)
+        version = config.version
 
         response = self.get_success_response(
             self.organization.slug, config.id, method="put", enabled=True
@@ -425,8 +426,25 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         assert response.data["createdBy"] == str(self.user.id)
         assert response.data["updatedBy"] == str(updater.id)
+        # Recording the updater is part of the same save, so the version bumps once.
+        assert response.data["version"] == version + 1
         config.refresh_from_db()
         assert config.extras == {"created_by": self.user.id, "updated_by": updater.id}
+
+    def test_put_by_another_user_replaces_updated_by(self) -> None:
+        config = self.create_config()
+        self.get_success_response(self.organization.slug, config.id, method="put", enabled=True)
+        other = self.create_user()
+        self.create_member(organization=self.organization, user=other, role="owner")
+        self.login_as(other)
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", enabled=False
+        )
+
+        assert response.data["updatedBy"] == str(other.id)
+        config.refresh_from_db()
+        assert config.extras == {"updated_by": other.id}
 
     @patch(
         "sentry.seer.endpoints.organization_seer_workflow_configs.acting_user_id",

@@ -107,7 +107,7 @@ class SeerWorkflow:
         strategy: SeerWorkflowStrategy,
         enabled: bool,
         filters: SeerWorkflowFilters,
-        extras: SeerWorkflowConfigExtras,
+        extras: SeerWorkflowConfigExtras | None = None,
     ) -> SeerWorkflowConfig:
         """
         Create a config within the org's automation limit. Call inside a transaction on
@@ -131,7 +131,7 @@ class SeerWorkflow:
             strategy=strategy,
             enabled=enabled,
             filters=filters.dict(),
-            extras=extras.dict(exclude_none=True),
+            extras=(extras or SeerWorkflowConfigExtras()).dict(exclude_none=True),
         )
 
     @classmethod
@@ -173,7 +173,7 @@ class SeerWorkflow:
                     all_projects=all_projects,
                     environments=list(environments),
                 ),
-                extras=extras or SeerWorkflowConfigExtras(),
+                extras=extras,
             )
             config.schedule = schedule
             config.save(using=database, update_fields=["schedule"])
@@ -412,7 +412,8 @@ class ConfigUpdate:
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
         new_extras = extras.dict(exclude_none=True)
-        if self.config.extras == new_extras:
+        current_extras = {k: v for k, v in self.config.extras.items() if v is not None}
+        if current_extras == new_extras:
             return
         self.config.extras = new_extras
         self.mark("extras")

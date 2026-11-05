@@ -201,7 +201,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
                 enabled=enabled,
                 filters=SeerWorkflowFilters(environments=list(environments)),
-                extras=extras or SeerWorkflowConfigExtras(),
+                extras=extras,
             )
             workflow = cls(config_id=config.id, organization_id=organization_id)
             change = (
