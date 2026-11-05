@@ -1,122 +1,245 @@
 from __future__ import annotations
 
-from typing import Literal, TypedDict
+from typing import Annotated, Literal, TypedDict
+
+from sentry.apidocs.descriptions import ApiDescription
 
 
 class VcsInfoResponseDict(TypedDict, total=False):
-    head_sha: str | None
-    base_sha: str | None
-    provider: str | None
-    head_repo_name: str | None
-    base_repo_name: str | None
-    head_ref: str | None
-    base_ref: str | None
-    pr_number: int | None
+    head_sha: Annotated[str | None, ApiDescription("Commit SHA of the build")]
+    base_sha: Annotated[
+        str | None, ApiDescription("Commit SHA of the base the build is compared against")
+    ]
+    provider: Annotated[str | None, ApiDescription("Version control provider, such as github")]
+    head_repo_name: Annotated[str | None, ApiDescription("Repository name of the head commit")]
+    base_repo_name: Annotated[str | None, ApiDescription("Repository name of the base commit")]
+    head_ref: Annotated[str | None, ApiDescription("Branch or ref of the head commit")]
+    base_ref: Annotated[str | None, ApiDescription("Branch or ref of the base commit")]
+    pr_number: Annotated[int | None, ApiDescription("Pull request number")]
 
 
 class SnapshotImageResponseDict(TypedDict, total=False):
-    key: str
-    display_name: str | None
-    group: str | None
-    image_file_name: str
-    width: int
-    height: int
-    canvas_theme: Literal["light", "dark"] | None
+    key: Annotated[str, ApiDescription("Content hash of the image")]
+    display_name: Annotated[str | None, ApiDescription("Display name of the image")]
+    group: Annotated[str | None, ApiDescription("Group the image belongs to")]
+    image_file_name: Annotated[
+        str, ApiDescription("File name of the image, which identifies it within the snapshot")
+    ]
+    width: Annotated[int, ApiDescription("Width of the image in pixels")]
+    height: Annotated[int, ApiDescription("Height of the image in pixels")]
+    canvas_theme: Annotated[
+        Literal["light", "dark"] | None,
+        ApiDescription("Theme the image was rendered with: light or dark"),
+    ]
 
 
 class SnapshotDiffPairResponseDict(TypedDict, total=False):
-    base_image: SnapshotImageResponseDict
-    head_image: SnapshotImageResponseDict
-    diff_image_key: str | None
-    diff: float | None
+    base_image: Annotated[SnapshotImageResponseDict, ApiDescription("Image from the base snapshot")]
+    head_image: Annotated[SnapshotImageResponseDict, ApiDescription("Image from the head snapshot")]
+    diff_image_key: Annotated[
+        str | None,
+        ApiDescription(
+            "ID of the diff mask image highlighting changed pixels. Only set for changed images"
+        ),
+    ]
+    diff: Annotated[
+        float | None,
+        ApiDescription("Fraction of pixels that changed, from 0 to 1. Only set for changed images"),
+    ]
 
 
 class SnapshotApproverResponseDict(TypedDict, total=False):
-    id: str | None
-    name: str | None
-    email: str | None
-    username: str | None
-    avatar_url: str | None
-    approved_at: str | None
-    source: Literal["sentry", "github"]
+    id: Annotated[
+        str | None, ApiDescription("Sentry user ID, or GitHub user ID for approvals from GitHub")
+    ]
+    name: Annotated[
+        str | None,
+        ApiDescription("Display name of the approver, or GitHub login for approvals from GitHub"),
+    ]
+    email: Annotated[
+        str | None, ApiDescription("Email address of the approver. Only set for Sentry users")
+    ]
+    username: Annotated[
+        str | None,
+        ApiDescription("Username of the approver, or GitHub login for approvals from GitHub"),
+    ]
+    avatar_url: Annotated[
+        str | None, ApiDescription("Avatar URL of the approver. Only set for approvals from GitHub")
+    ]
+    approved_at: Annotated[str | None, ApiDescription("When the approval was given (ISO 8601)")]
+    source: Annotated[
+        Literal["sentry", "github"],
+        ApiDescription("Where the approval was given: sentry or github"),
+    ]
 
 
 class SnapshotDetailsResponseDict(TypedDict, total=False):
-    head_artifact_id: str
-    base_artifact_id: str | None
-    project_id: str
-    comparison_type: str
-    state: str
-    vcs_info: VcsInfoResponseDict
-    app_id: str | None
-    is_selective: bool
-    images: list[SnapshotImageResponseDict]
-    image_count: int
-    added: list[SnapshotImageResponseDict]
-    added_count: int
-    removed: list[SnapshotImageResponseDict]
-    removed_count: int
-    renamed: list[SnapshotDiffPairResponseDict]
-    renamed_count: int
-    changed: list[SnapshotDiffPairResponseDict]
-    changed_count: int
-    unchanged: list[SnapshotImageResponseDict]
-    unchanged_count: int
-    errored: list[SnapshotDiffPairResponseDict]
-    errored_count: int
-    skipped: list[SnapshotImageResponseDict]
-    skipped_count: int
-    diff_threshold: float | None
-    comparison_state: str | None
-    approval_status: str | None
-    comparison_error_message: str | None
-    approvers: list[SnapshotApproverResponseDict]
+    head_artifact_id: Annotated[str, ApiDescription("ID of the build the snapshot belongs to")]
+    base_artifact_id: Annotated[
+        str | None, ApiDescription("ID of the base build the snapshot is compared against")
+    ]
+    project_id: Annotated[str, ApiDescription("ID of the project")]
+    comparison_type: Annotated[
+        str,
+        ApiDescription(
+            "How the snapshot is compared: diff when a comparison exists, waiting_for_base when the build has a base commit but no comparison yet, or solo otherwise"
+        ),
+    ]
+    state: Annotated[
+        str, ApiDescription("State of the build: UPLOADING, UPLOADED, PROCESSED or FAILED")
+    ]
+    vcs_info: Annotated[VcsInfoResponseDict, ApiDescription("Version control details of the build")]
+    app_id: Annotated[str | None, ApiDescription("App identifier of the build")]
+    is_selective: Annotated[
+        bool, ApiDescription("Whether the upload contained only a subset of the app's images")
+    ]
+    images: Annotated[
+        list[SnapshotImageResponseDict],
+        ApiDescription("All images in the snapshot. Empty when comparison_type is diff"),
+    ]
+    image_count: Annotated[int, ApiDescription("Number of images in the snapshot")]
+    added: Annotated[
+        list[SnapshotImageResponseDict],
+        ApiDescription("Images in the head snapshot but not the base"),
+    ]
+    added_count: Annotated[int, ApiDescription("Number of added images")]
+    removed: Annotated[
+        list[SnapshotImageResponseDict],
+        ApiDescription("Images in the base snapshot but not the head"),
+    ]
+    removed_count: Annotated[int, ApiDescription("Number of removed images")]
+    renamed: Annotated[
+        list[SnapshotDiffPairResponseDict],
+        ApiDescription("Images whose file name changed but whose content didn't"),
+    ]
+    renamed_count: Annotated[int, ApiDescription("Number of renamed images")]
+    changed: Annotated[
+        list[SnapshotDiffPairResponseDict],
+        ApiDescription(
+            "Images whose changed pixels exceed the diff threshold, sorted by most changed first"
+        ),
+    ]
+    changed_count: Annotated[int, ApiDescription("Number of changed images")]
+    unchanged: Annotated[
+        list[SnapshotImageResponseDict], ApiDescription("Images that match the base snapshot")
+    ]
+    unchanged_count: Annotated[int, ApiDescription("Number of unchanged images")]
+    errored: Annotated[
+        list[SnapshotDiffPairResponseDict], ApiDescription("Images that couldn't be compared")
+    ]
+    errored_count: Annotated[int, ApiDescription("Number of errored images")]
+    skipped: Annotated[
+        list[SnapshotImageResponseDict],
+        ApiDescription("Base images that a selective upload didn't include"),
+    ]
+    skipped_count: Annotated[int, ApiDescription("Number of skipped images")]
+    diff_threshold: Annotated[
+        float | None,
+        ApiDescription(
+            "Fraction of changed pixels, from 0 to 1, above which an image counts as changed. Images can override it"
+        ),
+    ]
+    comparison_state: Annotated[
+        str | None,
+        ApiDescription(
+            "State of the latest comparison: pending, processing, success, failed, waiting_for_base or no_base_build"
+        ),
+    ]
+    approval_status: Annotated[
+        str | None,
+        ApiDescription(
+            "Approval status of the latest comparison: approved, auto_approved or requires_approval"
+        ),
+    ]
+    comparison_error_message: Annotated[
+        str | None, ApiDescription("Error message when the latest comparison failed")
+    ]
+    approvers: Annotated[
+        list[SnapshotApproverResponseDict],
+        ApiDescription("People who approved the snapshot changes"),
+    ]
 
 
 class SnapshotCreateResponseDict(TypedDict):
-    artifactId: str
-    snapshotMetricsId: str
-    imageCount: int
-    snapshotUrl: str
+    artifactId: Annotated[str, ApiDescription("ID of the build created for the snapshot")]
+    snapshotMetricsId: Annotated[str, ApiDescription("ID of the snapshot")]
+    imageCount: Annotated[int, ApiDescription("Number of images in the snapshot")]
+    snapshotUrl: Annotated[str, ApiDescription("URL of the snapshot in Sentry")]
 
 
 class SnapshotImageDetailImageInfoResponseDict(SnapshotImageResponseDict, total=False):
-    diff_threshold: float | None
-    description: str | None
-    tags: dict[str, str] | None
-    image_url: str
+    diff_threshold: Annotated[
+        float | None,
+        ApiDescription(
+            "Fraction of changed pixels, from 0 to 1, above which the image counts as changed"
+        ),
+    ]
+    description: Annotated[str | None, ApiDescription("Description of the image")]
+    tags: Annotated[dict[str, str] | None, ApiDescription("Tags attached to the image")]
+    image_url: Annotated[str, ApiDescription("API URL to download the image")]
 
 
 class SnapshotImageDetailResponseDict(TypedDict, total=False):
-    image_file_name: str
-    comparison_status: str | None
-    head_image: SnapshotImageDetailImageInfoResponseDict | None
-    base_image: SnapshotImageDetailImageInfoResponseDict | None
-    diff_image_url: str | None
-    diff_percentage: float | None
-    previous_image_file_name: str | None
+    image_file_name: Annotated[str, ApiDescription("File name of the image")]
+    comparison_status: Annotated[
+        str | None,
+        ApiDescription(
+            "Comparison result for the image: added, removed, changed, unchanged, renamed, errored or skipped. Null when there is no comparison"
+        ),
+    ]
+    head_image: Annotated[
+        SnapshotImageDetailImageInfoResponseDict | None,
+        ApiDescription("Image in the head snapshot. Null when the image was removed"),
+    ]
+    base_image: Annotated[
+        SnapshotImageDetailImageInfoResponseDict | None,
+        ApiDescription("Image in the base snapshot"),
+    ]
+    diff_image_url: Annotated[
+        str | None,
+        ApiDescription("API URL to download the diff mask image. Only set for changed images"),
+    ]
+    diff_percentage: Annotated[
+        float | None,
+        ApiDescription("Fraction of pixels that changed, from 0 to 1. Only set for changed images"),
+    ]
+    previous_image_file_name: Annotated[
+        str | None, ApiDescription("Previous file name of the image. Only set for renamed images")
+    ]
 
 
 class LatestBaseSnapshotImageResponseDict(SnapshotImageResponseDict, total=False):
-    image_url: str
+    image_url: Annotated[str, ApiDescription("API URL to download the image")]
 
 
 class LatestBaseSnapshotVcsInfoResponseDict(TypedDict, total=False):
-    head_sha: str | None
-    base_sha: str | None
-    head_ref: str | None
-    base_ref: str | None
-    head_repo_name: str | None
-    pr_number: int | None
+    head_sha: Annotated[str | None, ApiDescription("Commit SHA of the build")]
+    base_sha: Annotated[
+        str | None, ApiDescription("Commit SHA of the base. Empty or null for base snapshots")
+    ]
+    head_ref: Annotated[str | None, ApiDescription("Branch or ref of the build")]
+    base_ref: Annotated[str | None, ApiDescription("Branch or ref of the base")]
+    head_repo_name: Annotated[str | None, ApiDescription("Repository name of the build")]
+    pr_number: Annotated[int | None, ApiDescription("Pull request number")]
 
 
 class LatestBaseSnapshotResponseDict(TypedDict, total=False):
-    head_artifact_id: str
-    project_id: str
-    project_slug: str
-    app_id: str | None
-    image_count: int
-    images: list[LatestBaseSnapshotImageResponseDict]
-    diff_threshold: float | None
-    date_added: str
-    vcs_info: LatestBaseSnapshotVcsInfoResponseDict
+    head_artifact_id: Annotated[str, ApiDescription("ID of the build the snapshot belongs to")]
+    project_id: Annotated[str, ApiDescription("ID of the project")]
+    project_slug: Annotated[str, ApiDescription("Slug of the project")]
+    app_id: Annotated[str | None, ApiDescription("App identifier of the build")]
+    image_count: Annotated[int, ApiDescription("Number of images in the snapshot")]
+    images: Annotated[
+        list[LatestBaseSnapshotImageResponseDict], ApiDescription("Images in the snapshot")
+    ]
+    diff_threshold: Annotated[
+        float | None,
+        ApiDescription(
+            "Fraction of changed pixels, from 0 to 1, above which an image counts as changed. Images can override it"
+        ),
+    ]
+    date_added: Annotated[str, ApiDescription("When the build was uploaded (ISO 8601)")]
+    vcs_info: Annotated[
+        LatestBaseSnapshotVcsInfoResponseDict,
+        ApiDescription("Version control details of the build"),
+    ]
