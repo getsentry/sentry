@@ -173,34 +173,75 @@ class SeerWorkflowCreateTest(TestCase):
         assert not SeerWorkflowConfigProject.objects.exists()
 
 
-class SeerWorkflowUpdatedByTest(TestCase):
-    def test_records_user_and_bot_updaters(self) -> None:
-        config = Factories.create_seer_workflow_config(
-            self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-            extras={"name": "Triage"},
+class SeerWorkflowUpdateConfigTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.selected = self.create_project()
+        self.config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
         )
-        workflow = SeerWorkflow(config_id=config.id, organization_id=self.organization.id)
-
-        workflow.set_updated_by(self.user.id)
-        assert workflow.get_config().extras == {"name": "Triage", "updated_by": self.user.id}
-
-        workflow.set_updated_by(None)
-        updated = workflow.get_config()
-        assert updated.extras == {"name": "Triage", "updated_by": "bot"}
-        assert updated.version == config.version
-
-    def test_same_updater_does_not_save(self) -> None:
-        config = Factories.create_seer_workflow_config(
-            self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-            extras={"updated_by": self.user.id},
+        Factories.create_seer_workflow_config_project(self.config, self.selected)
+        self.workflow = SeerWorkflow(
+            config_id=self.config.id, organization_id=self.config.organization_id
         )
-        workflow = SeerWorkflow(config_id=config.id, organization_id=self.organization.id)
 
-        workflow.set_updated_by(self.user.id)
+    def test_changes_in_one_update_bump_version_once(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_enabled(True)
+            update.set_project_selection(AllProjects())
 
-        assert workflow.get_config().date_updated == config.date_updated
+        config = self.workflow.get_config()
+        assert config.version == 2
+        assert config.enabled is True
+        assert self.workflow.filters.all_projects is True
+
+    def test_unchanged_update_does_not_save(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_enabled(False)
+            update.set_project_selection(SelectedProjects(project_ids=(self.selected.id,)))
+
+        config = self.workflow.get_config()
+        assert config.version == 1
+        assert config.date_updated == self.config.date_updated
+
+    def test_set_extras_saves_and_bumps_version(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_extras(SeerWorkflowConfigExtras(name="Triage", updated_by="bot"))
+
+        config = self.workflow.get_config()
+        assert config.extras == {"name": "Triage", "updated_by": "bot"}
+        assert config.version == 2
+
+    def test_unchanged_extras_does_not_save(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_extras(SeerWorkflowConfigExtras.parse_obj(self.config.extras))
+
+        config = self.workflow.get_config()
+        assert config.version == 1
+        assert config.date_updated == self.config.date_updated
+
+    def test_project_link_change_bumps_version(self) -> None:
+        other = self.create_project()
+
+        with self.workflow.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=(other.id,)))
+
+        assert self.workflow.get_config().version == 2
+        assert self.workflow.filters.all_projects is False
+        assert self.workflow.get_project_ids() == [other.id]
+
+    def test_error_rolls_back_every_change(self) -> None:
+        other = self.create_project()
+
+        with pytest.raises(RuntimeError, match="failed"), self.workflow.update_config() as update:
+            update.set_enabled(True)
+            update.set_project_selection(SelectedProjects(project_ids=(other.id,)))
+            raise RuntimeError("failed")
+
+        config = self.workflow.get_config()
+        assert config.version == 1
+        assert config.enabled is False
+        assert self.workflow.get_project_ids() == [self.selected.id]
 
 
 class SeerWorkflowScopeTest(TestCase):
@@ -219,7 +260,8 @@ class SeerWorkflowScopeTest(TestCase):
         later = self.create_project(organization=self.organization)
         assert workflow.matches_scope(later.id, None) is False
         other = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
-        other.set_project_selection(AllProjects())
+        with other.update_config() as update:
+            update.set_project_selection(AllProjects())
         assert workflow.filters.all_projects is True
         assert workflow.matches_scope(later.id, None) is True
         foreign = self.create_project(organization=self.create_organization())
@@ -275,10 +317,11 @@ class SeerWorkflowScopeTest(TestCase):
         with pytest.raises(SeerWorkflowConfig.DoesNotExist):
             workflow.get_project_ids()
         with pytest.raises(SeerWorkflowConfig.DoesNotExist):
-            workflow.set_project_selection(AllProjects())
+            with workflow.update_config() as update:
+                update.set_project_selection(AllProjects())
         with pytest.raises(SeerWorkflowConfig.DoesNotExist):
-            workflow.set_service_account(None)
-
+            with workflow.update_config() as update:
+                update.set_service_account(None)
         config.refresh_from_db()
         assert config.version == 1
 
@@ -309,8 +352,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
             version=3,
         )
 
-        workflow.set_project_selection(SelectedProjects(project_ids=(selected.id, selected.id)))
-
+        with workflow.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=(selected.id, selected.id)))
         config.refresh_from_db()
         assert config.filters == {
             "all_projects": False,
@@ -332,7 +375,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         initial_filters = workflow.filters
         assert initial_filters.all_projects is False
 
-        workflow.set_project_selection(AllProjects())
+        with workflow.update_config() as update:
+            update.set_project_selection(AllProjects())
         later = self.create_project()
 
         config.refresh_from_db()
@@ -352,8 +396,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         config = self.create_config(all_projects=True)
         workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
 
-        workflow.set_project_selection(SelectedProjects(project_ids=()))
-
+        with workflow.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=()))
         config.refresh_from_db()
         assert (
             SeerWorkflow(
@@ -372,8 +416,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
 
         with pytest.raises(ValueError, match="Selected projects must exist"):
-            workflow.set_project_selection(SelectedProjects(project_ids=(valid.id, foreign.id)))
-
+            with workflow.update_config() as update:
+                update.set_project_selection(SelectedProjects(project_ids=(valid.id, foreign.id)))
         config.refresh_from_db()
         assert workflow.get_project_ids() == [previous.id]
         assert config.filters == {"all_projects": False}
@@ -390,8 +434,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
             ),
             pytest.raises(RuntimeError, match="failed"),
         ):
-            workflow.set_project_selection(SelectedProjects(project_ids=(selected.id,)))
-
+            with workflow.update_config() as update:
+                update.set_project_selection(SelectedProjects(project_ids=(selected.id,)))
         config.refresh_from_db()
         assert workflow.get_project_ids() == [previous.id]
         assert config.filters == {"all_projects": False}
@@ -406,7 +450,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
             pytest.raises(RuntimeError, match="failed"),
             transaction.atomic(router.db_for_write(SeerWorkflowConfig)),
         ):
-            workflow.set_project_selection(AllProjects())
+            with workflow.update_config() as update:
+                update.set_project_selection(AllProjects())
             assert workflow.filters.all_projects is True
             raise RuntimeError("failed")
 
@@ -435,7 +480,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         assert workflow.has_all_projects() is False
 
         # An explicit selection of every active project counts, even without the flag.
-        workflow.set_project_selection(SelectedProjects(project_ids=(first.id, second.id)))
+        with workflow.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=(first.id, second.id)))
         assert workflow.filters.all_projects is False
         assert workflow.has_all_projects() is True
 
@@ -456,7 +502,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         assert workflow.get_project_ids() == []
         assert workflow.has_all_projects() is False
 
-        workflow.set_project_selection(SelectedProjects(project_ids=(project.id,)))
+        with workflow.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=(project.id,)))
         assert workflow.has_all_projects() is False
 
     def create_config(self, *selected: Project, all_projects: bool = False) -> SeerWorkflowConfig:
@@ -496,8 +543,8 @@ class SeerWorkflowServiceAccountTest(TestCase):
         assert replica.id != self.account.id
         SeerWorkflowConfig.objects.filter(id=self.config.id).update(version=4, enabled=True)
 
-        self.workflow.set_service_account(self.account.id)
-
+        with self.workflow.update_config() as update:
+            update.set_service_account(self.account.id)
         self.config.refresh_from_db()
         assert self.config.service_account_id == self.account.id
         assert self.config.version == self.workflow.get_config().version == 5
@@ -507,37 +554,50 @@ class SeerWorkflowServiceAccountTest(TestCase):
         assert self.workflow.resolve_service_account().service_account_id == self.account.id
 
     def test_assignment_versions_only_changes(self) -> None:
-        self.workflow.set_service_account(None)
+        with self.workflow.update_config() as update:
+            update.set_service_account(None)
         assert self.workflow.get_config().version == 1
-        self.workflow.set_service_account(self.account.id)
-        self.workflow.set_service_account(self.account.id)
+
+        with self.workflow.update_config() as update:
+            update.set_service_account(self.account.id)
+        with self.workflow.update_config() as update:
+            update.set_service_account(self.account.id)
         assert self.workflow.get_config().version == 2
 
         with outbox_runner():
             replacement = Factories.create_service_account(self.organization, name="replacement")
-        self.workflow.set_service_account(replacement.id)
+        with self.workflow.update_config() as update:
+            update.set_service_account(replacement.id)
         assert self.workflow.get_config().version == 3
-        self.workflow.set_service_account(None)
+
+        with self.workflow.update_config() as update:
+            update.set_service_account(None)
         assert self.workflow.get_config().version == 4
-        self.workflow.set_service_account(None)
+
+        with self.workflow.update_config() as update:
+            update.set_service_account(None)
         assert self.workflow.get_config().version == 4
 
     def test_resolution_reads_assignment_changes_from_another_instance(self) -> None:
         other = SeerWorkflow(config_id=self.config.id, organization_id=self.organization.id)
-        other.set_service_account(self.account.id)
+        with other.update_config() as update:
+            update.set_service_account(self.account.id)
         assert self.workflow.resolve_service_account().service_account_id == self.account.id
 
         with outbox_runner():
             replacement = Factories.create_service_account(self.organization, name="replacement")
-        other.set_service_account(replacement.id)
+        with other.update_config() as update:
+            update.set_service_account(replacement.id)
         assert self.workflow.resolve_service_account().service_account_id == replacement.id
 
-        other.set_service_account(None)
+        with other.update_config() as update:
+            update.set_service_account(None)
         with pytest.raises(ValueError, match="no service account"):
             self.workflow.resolve_service_account()
 
     def test_rejects_unavailable_and_inactive_accounts_without_mutation(self) -> None:
-        self.workflow.set_service_account(self.account.id)
+        with self.workflow.update_config() as update:
+            update.set_service_account(self.account.id)
         with outbox_runner():
             inactive = Factories.create_service_account(
                 self.organization, name="inactive", is_active=False
@@ -549,7 +609,8 @@ class SeerWorkflowServiceAccountTest(TestCase):
             (999999999, "unavailable"),
         ]:
             with pytest.raises(ValueError, match=message):
-                self.workflow.set_service_account(account_id)
+                with self.workflow.update_config() as update:
+                    update.set_service_account(account_id)
             self.config.refresh_from_db()
             assert self.config.service_account_id == self.account.id
             assert self.config.version == 2
@@ -559,7 +620,8 @@ class SeerWorkflowServiceAccountTest(TestCase):
             patch.object(SeerWorkflowConfig, "save", side_effect=RuntimeError("failed")),
             pytest.raises(RuntimeError, match="failed"),
         ):
-            self.workflow.set_service_account(self.account.id)
+            with self.workflow.update_config() as update:
+                update.set_service_account(self.account.id)
         self.config.refresh_from_db()
         assert self.config.service_account_id is None
         assert self.config.version == 1
@@ -568,17 +630,20 @@ class SeerWorkflowServiceAccountTest(TestCase):
         with outbox_context(flush=False):
             pending = Factories.create_service_account(self.organization, name="pending")
         with pytest.raises(ValueError, match="unavailable"):
-            self.workflow.set_service_account(pending.id)
+            with self.workflow.update_config() as update:
+                update.set_service_account(pending.id)
         self.config.refresh_from_db()
         assert self.config.service_account_id is None
         assert self.config.version == 1
         with outbox_runner():
             pass
-        self.workflow.set_service_account(pending.id)
+        with self.workflow.update_config() as update:
+            update.set_service_account(pending.id)
         assert self.workflow.resolve_service_account().service_account_id == pending.id
 
     def test_resolution_reads_current_replica_state(self) -> None:
-        self.workflow.set_service_account(self.account.id)
+        with self.workflow.update_config() as update:
+            update.set_service_account(self.account.id)
         assert self.workflow.resolve_service_account().is_active
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.account.update(name="updated", scope_list=["project:read"])
@@ -590,7 +655,8 @@ class SeerWorkflowServiceAccountTest(TestCase):
         with pytest.raises(ValueError, match="inactive"):
             self.workflow.resolve_service_account()
         with pytest.raises(ValueError, match="inactive"):
-            self.workflow.set_service_account(self.account.id)
+            with self.workflow.update_config() as update:
+                update.set_service_account(self.account.id)
         self.config.refresh_from_db()
         assert self.config.service_account_id == self.account.id
         assert self.config.version == 2
@@ -607,14 +673,15 @@ class SeerWorkflowServiceAccountTest(TestCase):
     def test_control_deletion_clears_associations_and_resolution_reads_current_config(self) -> None:
         selected = self.create_project()
         Factories.create_seer_workflow_config_project(self.config, selected)
-        self.workflow.set_service_account(self.account.id)
+        with self.workflow.update_config() as update:
+            update.set_service_account(self.account.id)
         other = Factories.create_seer_workflow_config(
             self.organization,
             strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
         )
-        SeerWorkflow(config_id=other.id, organization_id=other.organization_id).set_service_account(
-            self.account.id
-        )
+        other_workflow = SeerWorkflow(config_id=other.id, organization_id=other.organization_id)
+        with other_workflow.update_config() as update:
+            update.set_service_account(self.account.id)
         with outbox_runner():
             unrelated = Factories.create_service_account(self.organization, name="unrelated")
         unrelated_config = Factories.create_seer_workflow_config(
@@ -623,7 +690,8 @@ class SeerWorkflowServiceAccountTest(TestCase):
         unrelated_workflow = SeerWorkflow(
             config_id=unrelated_config.id, organization_id=self.organization.id
         )
-        unrelated_workflow.set_service_account(unrelated.id)
+        with unrelated_workflow.update_config() as update:
+            update.set_service_account(unrelated.id)
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.account.delete()
         with self.tasks():
@@ -646,7 +714,8 @@ class SeerWorkflowServiceAccountTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(flush=False):
             self.account.delete()
         # Control deletion has not reached the cell, so assignment sees the active replica.
-        self.workflow.set_service_account(account_id)
+        with self.workflow.update_config() as update:
+            update.set_service_account(account_id)
         with outbox_runner():
             pass
         with self.tasks():
@@ -656,7 +725,8 @@ class SeerWorkflowServiceAccountTest(TestCase):
         assert self.config.version == 2
 
     def test_missing_replica_does_not_clear_account_identity(self) -> None:
-        self.workflow.set_service_account(self.account.id)
+        with self.workflow.update_config() as update:
+            update.set_service_account(self.account.id)
         ServiceAccountReplica.objects.filter(service_account_id=self.account.id).delete()
         with pytest.raises(ValueError, match="unavailable"):
             self.workflow.resolve_service_account()
