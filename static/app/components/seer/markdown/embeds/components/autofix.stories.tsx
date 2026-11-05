@@ -748,10 +748,11 @@ export default Storybook.story('Autofix', story => {
       description={
         <Fragment>
           The organization ran out of Seer credits while Autofix was writing code changes,
-          so the run ended with <code>failure_reason: out_of_credits</code>. The card keeps
-          what Seer wrote and the partial diff, and the out-of-credits CTA replaces “Try
-          again”, which would only fail again. No “Draft a pull request” is offered for
-          the unfinished changes.
+          so the run ended with <code>failure_reason: out_of_credits</code>. The card
+          keeps what Seer wrote and the partial diff, then says why it stopped. The credit
+          check for <code>autofix_code_changes</code> says the organization still can't
+          afford it, so “Try again” is disabled (hover it for why). No “Draft a pull
+          request” is offered for the unfinished changes.
         </Fragment>
       }
       run={CODE_CHANGES_STOPPED_RUN}
@@ -770,9 +771,10 @@ export default Storybook.story('Autofix', story => {
         <Fragment>
           The code changes finished, then opening the PR failed because the organization
           ran out of credits (<code>pr_creation_error_code: out_of_credits</code>). The
-          Pull Request card shows the CTA in place of Seer's generic failure, and the Code
-          Changes card stops offering “Draft a pull request”, which would fail the same
-          way.
+          Pull Request card says so in place of Seer's generic failure. The credit check
+          for <code>autofix_open_pr</code> says the organization still can't afford it, so
+          the Code Changes card's “Draft a pull request” is disabled (hover it for why),
+          and the notice above the composer offers more credits.
         </Fragment>
       }
       run={PR_STOPPED_RUN}

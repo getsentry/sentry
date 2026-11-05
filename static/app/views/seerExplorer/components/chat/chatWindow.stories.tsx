@@ -417,7 +417,7 @@ const AWAITING_ANSWER_SESSION: Session = {
 };
 
 // Seer ran out of credits after two tool calls. It keeps the blocks it wrote and appends a
-// plain-text error block, which the chat swaps for the out-of-credits CTA.
+// plain-text error block, which the chat swaps for a line saying why it stopped.
 const OUT_OF_CREDITS_SESSION: Session = {
   status: 'error',
   failure_reason: 'out_of_credits',
@@ -570,8 +570,9 @@ export default Storybook.story('ChatWindow', story => {
       <p>
         The organization ran out of Seer credits mid-response. The run ends with{' '}
         <code>failure_reason: out_of_credits</code>. The reasoning and tool calls Seer
-        made before it stopped stay in the thinking block, and the out-of-credits CTA
-        replaces Seer's plain-text error message.
+        made before it stopped stay in the thinking block, and a muted line saying Seer
+        stopped for credits replaces Seer's plain-text error message. There is no CTA in
+        the transcript: the out-of-credits alert above the composer covers it.
       </p>
       <ChatWindow session={OUT_OF_CREDITS_SESSION} />
     </Fragment>

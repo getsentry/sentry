@@ -6,6 +6,7 @@ import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
@@ -15,8 +16,11 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {getOutOfCreditsPRsMessage} from 'sentry/components/seer/outOfCredits/messages';
-import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {
+  getOutOfCreditsPRMessage,
+  getOutOfCreditsPRsMessage,
+} from 'sentry/components/seer/outOfCredits/messages';
+import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -43,11 +47,15 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
     [artifact]
   );
 
+  const outOfCreditsPullRequests = artifact?.filter(isOutOfCreditsPRState) ?? [];
+  // Their "Retry PR" fails the same way until the organization can afford it.
+  const outOfCreditsRetry = useOutOfCreditsRetry('autofix_create_pr', {
+    enabled: defined(runId) && outOfCreditsPullRequests.length > 0,
+  });
+
   if (!runId) {
     return null;
   }
-
-  const outOfCreditsPullRequests = artifact?.filter(isOutOfCreditsPRState) ?? [];
 
   return (
     <ArtifactCard
@@ -60,12 +68,6 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
       }
     >
       {artifact?.map(pullRequest => {
-        // Retrying fails the same way until someone adds credits, so the CTA
-        // below stands in for the retry.
-        if (isOutOfCreditsPRState(pullRequest)) {
-          return null;
-        }
-
         if (pullRequest.pr_creation_status === 'creating') {
           const isUpdating = defined(pullRequest.pr_number);
           return (
@@ -94,13 +96,19 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
           );
         }
 
+        const isOutOfCredits = isOutOfCreditsPRState(pullRequest);
         return (
           <Flex key={pullRequest.repo_name} gap="xs" align="center">
             <Button
               variant="primary"
               icon={<IconRefresh size="xs" />}
               onClick={() => createPR(runId, pullRequest.repo_name)}
-              tooltipProps={{title: pullRequest.pr_creation_error}}
+              disabled={isOutOfCredits && outOfCreditsRetry.disabled}
+              tooltipProps={{
+                title: isOutOfCredits
+                  ? (outOfCreditsRetry.tooltip ?? getOutOfCreditsPRMessage(pullRequest))
+                  : pullRequest.pr_creation_error,
+              }}
             >
               {t('Retry PR in %s', pullRequest.repo_name)}
             </Button>
@@ -108,9 +116,7 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
         );
       })}
       {outOfCreditsPullRequests.length > 0 && (
-        <SeerOutOfCreditsCta
-          message={getOutOfCreditsPRsMessage(outOfCreditsPullRequests)}
-        />
+        <Text variant="muted">{getOutOfCreditsPRsMessage(outOfCreditsPullRequests)}</Text>
       )}
     </ArtifactCard>
   );

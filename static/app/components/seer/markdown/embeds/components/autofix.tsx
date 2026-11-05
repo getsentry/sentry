@@ -48,9 +48,14 @@ import {
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {
   getOutOfCreditsPRsMessage,
+  OUT_OF_CREDITS_RETRY_TOOLTIP,
   OUT_OF_CREDITS_STEP_MESSAGE,
 } from 'sentry/components/seer/outOfCredits/messages';
 import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {
+  AUTOFIX_STEP_CREDIT_OPERATION,
+  useOutOfCreditsRetry,
+} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
@@ -303,12 +308,25 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const nextStep = isSingleRunAutofix(runState ?? null) ? undefined : NEXT_STEP[step];
   const pendingNextStep =
     nextStep && !findStepSection(sections, nextStep) ? nextStep : undefined;
-  // A failed create also lands in `repo_pr_states`; that one should stay
-  // retryable, unless it failed for credits and would fail the same way again.
+  // A failed create also lands in `repo_pr_states`; that one should stay retryable.
   const canCreatePR =
-    step === 'code_changes' &&
-    !hasCreatedPullRequests(runState?.repo_pr_states) &&
-    !Object.values(runState?.repo_pr_states ?? {}).some(isOutOfCreditsPRState);
+    step === 'code_changes' && !hasCreatedPullRequests(runState?.repo_pr_states);
+
+  // A step or PR that stopped for credits fails the same way until the
+  // organization can afford it again, so its retry waits for the credit check.
+  const outOfCreditsSection =
+    section && isOutOfCreditsSection(section) ? section : undefined;
+  const stepRetry = useOutOfCreditsRetry(
+    AUTOFIX_STEP_CREDIT_OPERATION[
+      outOfCreditsSection ? getStoppedStep(outOfCreditsSection, step) : step
+    ],
+    {enabled: defined(outOfCreditsSection)}
+  );
+  // Draft a pull request retries a create that failed for credits. The credit
+  // check below holds it back like any other create; this only explains why.
+  const prFailedForCredits = Object.values(runState?.repo_pr_states ?? {}).some(
+    isOutOfCreditsPRState
+  );
 
   const showsNextAction =
     section?.status === 'completed' && (canCreatePR || !!pendingNextStep);
@@ -354,9 +372,14 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
           step={step}
           iterationOutOfCredits={iterationOutOfCredits}
         />
-        {section?.status === 'error' && !isOutOfCreditsSection(section) && (
+        {section?.status === 'error' && (
           <Flex>
-            <Button size="sm" onClick={handleRetry} disabled={!canAct}>
+            <Button
+              size="sm"
+              onClick={handleRetry}
+              disabled={!canAct || stepRetry.disabled}
+              tooltipProps={{title: stepRetry.tooltip}}
+            >
               {t('Try again')}
             </Button>
           </Flex>
@@ -377,6 +400,12 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
                 variant="primary"
                 onClick={handleCreatePR}
                 disabled={!canContinue}
+                tooltipProps={{
+                  title:
+                    prFailedForCredits && !creditCheck.hasEnoughCredits
+                      ? OUT_OF_CREDITS_RETRY_TOOLTIP
+                      : undefined,
+                }}
               >
                 {t('Draft a pull request')}
               </Button>
@@ -435,21 +464,21 @@ function AutofixRefBody({
     // The PR section never reads as errored, so a create or push that ran out
     // of credits only shows on its repo's state.
     const outOfCreditsPullRequests = pullRequests.filter(isOutOfCreditsPRState);
-    let outOfCreditsCta: ReactNode = null;
+    let outOfCreditsStatus: ReactNode = null;
     if (outOfCreditsPullRequests.length > 0) {
-      outOfCreditsCta = (
-        <SeerOutOfCreditsCta
-          message={getOutOfCreditsPRsMessage(outOfCreditsPullRequests)}
-        />
+      outOfCreditsStatus = (
+        <Text variant="danger">
+          {getOutOfCreditsPRsMessage(outOfCreditsPullRequests)}
+        </Text>
       );
     } else if (iterationOutOfCredits) {
-      outOfCreditsCta = (
-        <SeerOutOfCreditsCta message={OUT_OF_CREDITS_STEP_MESSAGE.pr_iteration} />
+      outOfCreditsStatus = (
+        <Text variant="danger">{OUT_OF_CREDITS_STEP_MESSAGE.pr_iteration}</Text>
       );
     }
 
     if (!links.length) {
-      return outOfCreditsCta ?? <Text variant="muted">{ERROR_TEXT.pr_iteration}</Text>;
+      return outOfCreditsStatus ?? <Text variant="muted">{ERROR_TEXT.pr_iteration}</Text>;
     }
 
     return (
@@ -467,7 +496,7 @@ function AutofixRefBody({
             </LinkButton>
           ))}
         </Flex>
-        {outOfCreditsCta}
+        {outOfCreditsStatus}
       </Stack>
     );
   }
@@ -504,8 +533,35 @@ function AutofixRefBody({
 }
 
 /**
+ * The blocks of the step a section stopped in. A code_changes section also
+ * holds every PR iteration, and only the one that stopped is relevant.
+ */
+function getStoppedStepBlocks(section: AutofixSection): AutofixSection['blocks'] {
+  const stepStart = section.blocks.findLastIndex(block =>
+    defined(block.message.metadata?.step)
+  );
+  return section.blocks.slice(Math.max(stepStart, 0));
+}
+
+/**
+ * The step a section stopped in: a code_changes section can stop in a PR
+ * iteration.
+ */
+function getStoppedStep(
+  section: AutofixSection,
+  step: AutofixExplorerStep
+): AutofixExplorerStep {
+  if (!isCodeChangesSection(section)) {
+    return step;
+  }
+  const firstBlock = getStoppedStepBlocks(section)[0];
+  return firstBlock && isPrIterationBlock(firstBlock) ? 'pr_iteration' : 'code_changes';
+}
+
+/**
  * A step that stopped for credits: what it wrote and, for code changes, the
- * diff it got to, then the CTA in place of a retry that would fail again.
+ * diff it got to, then a line saying why it stopped. The credit gates show the
+ * CTA to add credits, so this has none of its own.
  */
 function OutOfCreditsStepBody({
   section,
@@ -514,28 +570,16 @@ function OutOfCreditsStepBody({
   section: AutofixSection;
   step: AutofixExplorerStep;
 }) {
-  // A code_changes section also holds every PR iteration; only the one that
-  // stopped is relevant here.
-  const stepStart = section.blocks.findLastIndex(block =>
-    defined(block.message.metadata?.step)
-  );
-  const stepBlocks = section.blocks.slice(Math.max(stepStart, 0));
-  let stoppedStep = step;
-  if (isCodeChangesSection(section)) {
-    stoppedStep =
-      stepBlocks[0] && isPrIterationBlock(stepBlocks[0])
-        ? 'pr_iteration'
-        : 'code_changes';
-  }
-
   const partialPatches = section.artifacts.findLast(isCodeChangesArtifact);
   const patchesByRepo = collectPatches(partialPatches ?? []);
 
   return (
     <Stack gap="lg">
-      <ArtifactPartialDetails blocks={stepBlocks} />
+      <ArtifactPartialDetails blocks={getStoppedStepBlocks(section)} />
       {patchesByRepo.size > 0 && <CodeChangesBody patchesByRepo={patchesByRepo} />}
-      <SeerOutOfCreditsCta message={OUT_OF_CREDITS_STEP_MESSAGE[stoppedStep]} />
+      <Text variant="danger">
+        {OUT_OF_CREDITS_STEP_MESSAGE[getStoppedStep(section, step)]}
+      </Text>
     </Stack>
   );
 }

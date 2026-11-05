@@ -494,14 +494,29 @@ describe('AutofixRef embed', () => {
   );
 
   describe('out of credits', () => {
-    // getsentry fills in the CTA; this stand-in shows the headline it was given.
-    function StubOutOfCreditsCta({message}: SeerOutOfCreditsCtaProps) {
-      return <div data-test-id="seer-out-of-credits">{message}</div>;
+    const creditsOrganization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['seer-credit-checks'],
+    });
+    const retryTooltip = 'Your organization does not have enough Seer credits for this.';
+
+    function mockCreditCheck(operation: string, hasEnoughCredits: boolean) {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation})],
+        body: {hasEnoughCredits},
+      });
     }
 
-    beforeEach(() => {
-      registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
-    });
+    // While the check is in flight the button is natively disabled. Once it
+    // settles it is only aria-disabled, so it stays focusable and its tooltip
+    // can say why.
+    async function expectDisabledForCredits(button: HTMLElement) {
+      await waitFor(() => expect(button).toBeEnabled());
+      expect(button).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.hover(button);
+      expect(await screen.findByText(retryTooltip)).toBeInTheDocument();
+    }
 
     function makeStoppedRun(step: AutofixExplorerStep): ExplorerAutofixState {
       const run = makeRunThrough(step, {status: 'error'});
@@ -533,50 +548,112 @@ describe('AutofixRef embed', () => {
     }
 
     it.each([
-      ['root_cause', 'Seer stopped before finishing the root cause'],
-      ['solution', 'Seer stopped before finishing the plan'],
-      ['code_changes', 'Seer stopped before finishing the code changes'],
+      [
+        'root_cause',
+        'autofix_root_cause',
+        'Seer stopped before finishing the root cause',
+      ],
+      ['solution', 'autofix_solution', 'Seer stopped before finishing the plan'],
+      [
+        'code_changes',
+        'autofix_code_changes',
+        'Seer stopped before finishing the code changes',
+      ],
     ] as const)(
-      'keeps what the %s step wrote and offers the CTA instead of a retry',
-      async (step, message) => {
+      'keeps what the %s step wrote and disables Try again while out of credits',
+      async (step, operation, message) => {
         mockRun(makeStoppedRun(step));
+        mockCreditCheck(operation, false);
         render(
           <AutofixChatProvider sendMessage={jest.fn()}>
             <AutofixRefFor step={step} />
           </AutofixChatProvider>,
-          {organization}
+          {organization: creditsOrganization}
         );
         await expandAll(1);
 
         expect(screen.getByText(`Finished ${step}`)).toBeInTheDocument();
-        expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(message);
+        expect(screen.getByText(new RegExp(message))).toBeInTheDocument();
         expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
-        expect(getButtons('Try again')).toHaveLength(0);
+        expect(
+          screen.queryByText(/doesn't have enough Seer credits/)
+        ).not.toBeInTheDocument();
         expect(getButtons('Draft a pull request')).toHaveLength(0);
+        await expectDisabledForCredits(screen.getByRole('button', {name: 'Try again'}));
       }
     );
 
-    it('does not offer the pull request again after a create failed for credits', async () => {
+    it('retries a step that stopped for credits once the organization can afford it', async () => {
+      mockRun(makeStoppedRun('code_changes'));
+      mockCreditCheck('autofix_code_changes', true);
+      const sendMessage = jest.fn();
+      render(
+        <AutofixChatProvider sendMessage={sendMessage}>
+          <AutofixRefFor step="code_changes" />
+        </AutofixChatProvider>,
+        {organization: creditsOrganization}
+      );
+      await expandAll(1);
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Try again'})).toHaveAttribute(
+          'aria-disabled',
+          'false'
+        )
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
+      expect(sendMessage).toHaveBeenCalledWith(
+        'Retry the Code Changes step for JAVASCRIPT-1.'
+      );
+    });
+
+    it('disables drafting the pull request again while out of credits', async () => {
       mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
+      mockCreditCheck('autofix_create_pr', false);
       render(
         <AutofixChatProvider sendMessage={jest.fn()}>
           <AutofixRefFor step="code_changes" />
         </AutofixChatProvider>,
-        {organization}
+        {organization: creditsOrganization}
       );
       await expandAll(1);
 
-      expect(getButtons('Draft a pull request')).toHaveLength(0);
+      await expectDisabledForCredits(
+        screen.getByRole('button', {name: 'Draft a pull request'})
+      );
     });
 
-    it('offers the CTA on the pull request step when the create failed for credits', async () => {
+    it('drafts the pull request again once the organization can afford it', async () => {
       mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
-      render(<AutofixRefFor step="pr_iteration" />, {organization});
+      mockCreditCheck('autofix_create_pr', true);
+      const sendMessage = jest.fn();
+      render(
+        <AutofixChatProvider sendMessage={sendMessage}>
+          <AutofixRefFor step="code_changes" />
+        </AutofixChatProvider>,
+        {organization: creditsOrganization}
+      );
       await expandAll(1);
 
-      expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(
-        "Seer couldn't open a pull request in getsentry/sentry because your organization is out of credits."
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', {name: 'Draft a pull request'})
+        ).toHaveAttribute('aria-disabled', 'false')
       );
+      await userEvent.click(screen.getByRole('button', {name: 'Draft a pull request'}));
+      expect(sendMessage).toHaveBeenCalledWith('Draft a pull request for JAVASCRIPT-1.');
+    });
+
+    it('says the pull request step failed for credits', async () => {
+      mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
+      render(<AutofixRefFor step="pr_iteration" />, {organization: creditsOrganization});
+      await expandAll(1);
+
+      expect(
+        screen.getByText(
+          "Seer couldn't open a pull request in getsentry/sentry because your organization is out of credits."
+        )
+      ).toBeInTheDocument();
       expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
     });
   });

@@ -123,9 +123,9 @@ export default Storybook.story('PRLinksBar', story => {
     <Stack gap="md">
       <Text variant="muted">
         The PR could not be opened because the organization ran out of Seer credits. The
-        button's tooltip says so instead of the raw backend error, and the out-of-credits
-        CTA sits under the bar, since the failure toast is gone by the time anyone reads
-        it.
+        button has no retry; hover it and its tooltip says the PR failed for credits
+        instead of the raw backend error. There is no CTA under the bar: the
+        out-of-credits alert above the chat composer covers it.
       </Text>
       <Frame>
         <PRLinksBar repoPRStates={byRepo(COMPLETED, OUT_OF_CREDITS)} />

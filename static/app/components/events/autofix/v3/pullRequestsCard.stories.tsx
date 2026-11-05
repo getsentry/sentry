@@ -8,6 +8,7 @@ import type {
   ExplorerAutofixState,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {SeerCreditCheckStub} from 'sentry/components/seer/outOfCredits/__stories__/seerCreditCheckStub';
 import * as Storybook from 'sentry/stories';
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -159,28 +160,35 @@ export default Storybook.story('PullRequestsCard', story => {
       <Stack gap="xl">
         <Text size="sm" variant="muted">
           Creating the PR failed because the organization ran out of Seer credits (
-          <code>pr_creation_error_code: out_of_credits</code>). A retry would fail the
-          same way, so the out-of-credits CTA replaces the “Retry PR” button.
+          <code>pr_creation_error_code: out_of_credits</code>). A line under the PRs says
+          so, and the credit check for <code>autofix_create_pr</code> says the
+          organization still can't afford it, so its “Retry PR” is disabled (hover it for
+          why). The out-of-credits CTA is not here: the alert at the top of the Autofix
+          tab and drawer covers it.
         </Text>
 
-        <DrawerExample label="One repo whose PR failed for credits.">
-          <PullRequestsCard
-            autofix={makeAutofix()}
-            section={makeSection([outOfCreditsPR()])}
-          />
-        </DrawerExample>
+        <SeerCreditCheckStub hasEnoughCredits={false}>
+          <Stack gap="xl">
+            <DrawerExample label="One repo whose PR failed for credits.">
+              <PullRequestsCard
+                autofix={makeAutofix()}
+                section={makeSection([outOfCreditsPR()])}
+              />
+            </DrawerExample>
 
-        <DrawerExample label="Several repos: one PR opened before credits ran out, two failed for credits, and one failed for another reason and stays retryable. One CTA covers both credit failures.">
-          <PullRequestsCard
-            autofix={makeAutofix()}
-            section={makeSection([
-              completedPR(1290, 'org/worker'),
-              outOfCreditsPR('org/api'),
-              outOfCreditsPR('org/frontend'),
-              failedPR('org/infra'),
-            ])}
-          />
-        </DrawerExample>
+            <DrawerExample label="Several repos: one PR opened before credits ran out, two failed for credits, and one failed for another reason and stays retryable. One line covers both credit failures.">
+              <PullRequestsCard
+                autofix={makeAutofix()}
+                section={makeSection([
+                  completedPR(1290, 'org/worker'),
+                  outOfCreditsPR('org/api'),
+                  outOfCreditsPR('org/frontend'),
+                  failedPR('org/infra'),
+                ])}
+              />
+            </DrawerExample>
+          </Stack>
+        </SeerCreditCheckStub>
       </Stack>
     );
   });

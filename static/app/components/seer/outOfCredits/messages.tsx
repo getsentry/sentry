@@ -3,8 +3,9 @@ import {t} from 'sentry/locale';
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
 /**
- * Headlines for `SeerOutOfCreditsCta` when an autofix step stopped part way.
- * The CTA follows each with what the viewer can do about it.
+ * Inline status for an autofix step that stopped part way for credits. The
+ * out-of-credits CTA is shown by the credit gates, so this only says what
+ * happened.
  */
 export const OUT_OF_CREDITS_STEP_MESSAGE: Record<AutofixExplorerStep, string> = {
   root_cause: t(
@@ -26,6 +27,13 @@ export const OUT_OF_CREDITS_CHAT_MESSAGE = t(
 );
 
 /**
+ * Tooltip for a retry that stays disabled until the organization can afford it.
+ */
+export const OUT_OF_CREDITS_RETRY_TOOLTIP = t(
+  'Your organization does not have enough Seer credits for this.'
+);
+
+/**
  * Stands in for the backend's `pr_creation_error` on a PR that failed for
  * credits. A PR number means the PR already exists, so the push failed.
  */
@@ -43,8 +51,8 @@ export function getOutOfCreditsPRMessage(state: RepoPRState): string {
 }
 
 /**
- * One headline for every PR in a run that failed for credits, so a surface
- * shows a single CTA however many repos the run touched.
+ * One status for every PR in a run that failed for credits, however many repos
+ * the run touched.
  */
 export function getOutOfCreditsPRsMessage(states: RepoPRState[]): string {
   if (states.length === 1) {

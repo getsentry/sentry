@@ -23,7 +23,10 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
-import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {
+  AUTOFIX_STEP_CREDIT_OPERATION,
+  useOutOfCreditsRetry,
+} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -36,6 +39,7 @@ import {ArtifactDetails} from './artifactDetails';
 import {ArtifactLoadingDetails, ArtifactPartialDetails} from './artifactLoadingDetails';
 import {AutofixResetPrompt} from './autofixResetPrompt';
 import {FeedbackList, usePrIterationFeedback} from './feedbackList';
+import {OutOfCreditsStatus} from './outOfCreditsStatus';
 import {
   PR_ITERATION_PAUSED_TOOLTIP,
   PrIterationFeedbackForm,
@@ -89,6 +93,11 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const {feedback, latestIterationIndex} = usePrIterationFeedback(section, autofix);
 
   const isOutOfCredits = isOutOfCreditsSection(section);
+  const stoppedStep = isLatestStepPrIteration ? 'pr_iteration' : 'code_changes';
+  const outOfCreditsRetry = useOutOfCreditsRetry(
+    AUTOFIX_STEP_CREDIT_OPERATION[stoppedStep],
+    {enabled: isOutOfCredits}
+  );
 
   // The blocks of the step that is running, or that stopped for credits.
   const currentStepBlocks = useMemo(() => {
@@ -134,13 +143,14 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   // Once a PR exists, reset opens the PR iteration form, so it stays available
   // while an iteration is processing.
-  const isResetEligible =
+  const isResetAvailable =
     !isPaused &&
     !hasFailedOnlyPRs &&
-    // A re-run fails the same way until someone adds credits.
-    !isOutOfCredits &&
     noCodingAgents &&
     (hasPRs || autofix.runState?.status !== 'processing');
+  // A step that stopped for credits fails the same way until the organization
+  // can afford it again.
+  const isResetEligible = isResetAvailable && !outOfCreditsRetry.disabled;
 
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
@@ -315,17 +325,37 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       </Fragment>
     );
   } else if (isOutOfCredits) {
+    let retry: React.ReactNode = null;
+    if (shouldShowReset) {
+      retry = resetPrompt(
+        t('What additional context should Seer use?'),
+        t('Add context that could unblock the change, e.g. the repo or files to edit.')
+      );
+    } else if (isResetAvailable) {
+      // An iteration is retried with feedback, through the PR iteration form.
+      retry = (
+        <Flex>
+          <Button
+            variant="primary"
+            icon={<IconRefresh />}
+            disabled={!canReset}
+            tooltipProps={{title: outOfCreditsRetry.tooltip}}
+            onClick={() =>
+              stoppedStep === 'pr_iteration' ? setShouldShowReset(true) : handleReset()
+            }
+          >
+            {stoppedStep === 'pr_iteration' ? t('Add context & retry') : t('Re-run')}
+          </Button>
+        </Flex>
+      );
+    }
     content = (
       <Fragment>
         <ArtifactPartialDetails blocks={currentStepBlocks} />
         {patchesByRepo.size > 0 && diffDetails}
-        <SeerOutOfCreditsCta
-          message={
-            isLatestStepPrIteration
-              ? OUT_OF_CREDITS_STEP_MESSAGE.pr_iteration
-              : OUT_OF_CREDITS_STEP_MESSAGE.code_changes
-          }
-        />
+        <OutOfCreditsStatus message={OUT_OF_CREDITS_STEP_MESSAGE[stoppedStep]}>
+          {retry}
+        </OutOfCreditsStatus>
       </Fragment>
     );
   } else if (explanation && isLatestStepPrIteration) {
@@ -412,7 +442,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       allowReset={!isSingleRun}
       onReset={canReset ? (resetInChat ?? (() => setShouldShowReset(true))) : undefined}
       resetInChat={defined(resetInChat)}
-      resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : undefined}
+      resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : outOfCreditsRetry.tooltip}
     >
       <FeedbackList items={feedback} />
       {content}
