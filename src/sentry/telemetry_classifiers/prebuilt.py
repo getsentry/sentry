@@ -16,36 +16,37 @@ class PrebuiltClassifier:
 
 
 # Development set only. The final list is decided in AGT-3252.
+ALL_PREBUILT_CLASSIFIERS: tuple[PrebuiltClassifier, ...] = (
+    PrebuiltClassifier(
+        key="user_frustration",
+        dataset=TelemetryClassifierDataset.CONVERSATION,
+        name="User frustration",
+        description="When your users become frustrated with the agent they are speaking with.",
+        attribute_name="sentry.classifier.user_frustration",
+    ),
+    PrebuiltClassifier(
+        key="tool_failure",
+        dataset=TelemetryClassifierDataset.CONVERSATION,
+        name="Tool failure",
+        description="When a tool the agent calls fails or returns an error.",
+        attribute_name="sentry.classifier.tool_failure",
+    ),
+    PrebuiltClassifier(
+        key="task_failure",
+        dataset=TelemetryClassifierDataset.CONVERSATION,
+        name="Task failure",
+        description="When the agent fails to complete the task the user asked for.",
+        attribute_name="sentry.classifier.task_failure",
+    ),
+    PrebuiltClassifier(
+        key="stuck_in_loop",
+        dataset=TelemetryClassifierDataset.CONVERSATION,
+        name="Stuck in a loop",
+        description="When the agent repeats the same steps without making progress.",
+        attribute_name="sentry.classifier.stuck_in_loop",
+    ),
+)
+
 PREBUILT_CLASSIFIERS: dict[str, PrebuiltClassifier] = {
-    classifier.key: classifier
-    for classifier in (
-        PrebuiltClassifier(
-            key="user_frustration",
-            dataset=TelemetryClassifierDataset.CONVERSATION,
-            name="User frustration",
-            description="When your users become frustrated with the agent they are speaking with.",
-            attribute_name="sentry.classifier.user_frustration",
-        ),
-        PrebuiltClassifier(
-            key="tool_failure",
-            dataset=TelemetryClassifierDataset.CONVERSATION,
-            name="Tool failure",
-            description="When a tool the agent calls fails or returns an error.",
-            attribute_name="sentry.classifier.tool_failure",
-        ),
-        PrebuiltClassifier(
-            key="task_failure",
-            dataset=TelemetryClassifierDataset.CONVERSATION,
-            name="Task failure",
-            description="When the agent fails to complete the task the user asked for.",
-            attribute_name="sentry.classifier.task_failure",
-        ),
-        PrebuiltClassifier(
-            key="stuck_in_loop",
-            dataset=TelemetryClassifierDataset.CONVERSATION,
-            name="Stuck in a loop",
-            description="When the agent repeats the same steps without making progress.",
-            attribute_name="sentry.classifier.stuck_in_loop",
-        ),
-    )
+    classifier.key: classifier for classifier in ALL_PREBUILT_CLASSIFIERS
 }
