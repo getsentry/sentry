@@ -8,9 +8,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {HeatMapWindow} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
+
+import type {HeatMapWindow} from './partitionHeatMapWindows';
 
 interface MetricHeatMapApiOptions {
   organization: Organization;

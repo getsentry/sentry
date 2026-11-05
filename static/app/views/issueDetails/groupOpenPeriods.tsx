@@ -24,8 +24,9 @@ import {
   getInvestigationPath,
   useInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
-import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
-import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
+
+import {EventListTable} from './eventListTable';
+import {useGroupId} from './groupIdContext';
 
 interface OpenPeriodDisplayData {
   description: string;
@@ -50,7 +51,6 @@ function getOpenPeriodActivityTypeLabel(activity: GroupOpenPeriodActivity): stri
   }
 }
 
-// TODO(snigdha): make this work for the old UI
 function IssueOpenPeriodsList() {
   const organization = useOrganization();
   const [cursor] = useQueryState('cursor', parseAsString);

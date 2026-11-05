@@ -2,8 +2,8 @@ import {useCallback, useEffect} from 'react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -105,7 +105,7 @@ export function useTransactionThreshold({
       projectThresholdError instanceof RequestError
         ? projectThresholdError.responseJSON?.threshold
         : undefined;
-    addErrorMessage(
+    toast.error(
       typeof thresholdMessage === 'string'
         ? thresholdMessage
         : getRequestErrorUserMessage(

@@ -1,4 +1,4 @@
-import {isValidDate} from 'sentry/utils/date/isValidDate';
+import {isValidDate} from './isValidDate';
 
 describe('isValidDate', () => {
   it.each([

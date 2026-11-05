@@ -212,6 +212,13 @@ owning integration or notification package rather than in `workflow_engine`.
 An action can be reachable from more than one Workflow. The data model does not define
 action execution order.
 
+API serializers load this graph in bulk: `WorkflowSerializer.get_attrs()` prefetches
+environments and joins each `WorkflowDataConditionGroup` to its condition group;
+`DataConditionGroupSerializer.get_attrs()` joins each `DataConditionGroupAction` to
+its action. The latter also serves detector trigger groups. Per-object `serialize()`
+methods use the loaded attributes without database queries. Keep these joins within
+the cell silo; owner and integration references must not introduce cross-silo joins.
+
 ## Runtime State and History
 
 ### `DetectorState`

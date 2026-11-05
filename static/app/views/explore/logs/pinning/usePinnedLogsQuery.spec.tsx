@@ -9,9 +9,10 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import type {LogsPinning} from './useLogsPinning';
+import {usePinnedLogsQuery} from './usePinnedLogsQuery';
 
 const organization = OrganizationFixture({
   features: ['ourlogs-enabled'],

@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {ProjectList} from 'sentry/components/projectList';
 import * as Storybook from 'sentry/stories';
+
+import {ProjectList} from './projectList';
 
 const PROJECT_SLUGS = ['sentry', 'javascript', 'snuba', 'seer'];
 

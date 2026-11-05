@@ -6,7 +6,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
-import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
+
+import {SeerStatusBlock} from './seerStatusBlock';
 
 // A story has no run behind it, so each clock pretends its run started this
 // long before the stories loaded.

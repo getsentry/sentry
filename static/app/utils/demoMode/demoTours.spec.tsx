@@ -7,6 +7,8 @@ import {
 
 import {recordFinish} from 'sentry/actionCreators/guides';
 import type {TourState} from 'sentry/components/tours/tourContext';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+
 import {
   DEMO_TOURS_STATE_KEY,
   DemoTour,
@@ -14,8 +16,7 @@ import {
   DemoToursProvider,
   DemoTourStep,
   useDemoTour,
-} from 'sentry/utils/demoMode/demoTours';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+} from './demoTours';
 
 jest.mock('sentry/actionCreators/guides', () => ({
   recordFinish: jest.fn(),

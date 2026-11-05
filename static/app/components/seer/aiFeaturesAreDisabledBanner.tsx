@@ -6,12 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -26,7 +22,7 @@ export function AiFeaturesAreDisabledBanner() {
 
   const {mutate} = useMutation({
     mutationFn: () => {
-      addLoadingMessage(t('Saving changes...'));
+      toast.loading(t('Saving changes...'));
       return fetchMutation<Organization>({
         method: 'PUT',
         url: getApiUrl('/organizations/$organizationIdOrSlug/', {
@@ -36,10 +32,10 @@ export function AiFeaturesAreDisabledBanner() {
       });
     },
     onSuccess: updated => {
-      addSuccessMessage(t('Generative AI features enabled'));
+      toast.success(t('Generative AI features enabled'));
       updateOrganization(updated);
     },
-    onError: () => addErrorMessage(t('Unable to save change')),
+    onError: () => toast.error(t('Unable to save change')),
   });
 
   return (
