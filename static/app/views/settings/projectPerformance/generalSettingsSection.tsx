@@ -1,6 +1,6 @@
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 
 import {generalSettingsSchema, type GeneralSettings} from './projectPerformanceSettings';

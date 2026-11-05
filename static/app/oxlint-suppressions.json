@@ -208,16 +208,6 @@
       "count": 3
     }
   },
-  "components/core/modal/components.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 2
-    }
-  },
-  "components/core/modal/index.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 1
-    }
-  },
   "components/core/relativeTime/relativeTime.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -2284,11 +2274,6 @@
       "count": 1
     }
   },
-  "views/autofixIssuesDemo/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/automations/components/actionFilters/subfiltersList.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
@@ -2329,11 +2314,6 @@
   },
   "views/automations/components/editConnectedMonitors.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/automations/list.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -2711,11 +2691,6 @@
   },
   "views/detectors/components/uptime/uptimeHeadersField.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/detectors/list/common/detectorListHeader.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -4421,11 +4396,6 @@
   },
   "views/seerExplorer/xray/seerXRayOverlay.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/seerRunsDemo/index.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },

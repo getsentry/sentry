@@ -4,9 +4,9 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';

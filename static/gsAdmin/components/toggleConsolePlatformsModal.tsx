@@ -7,12 +7,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
 import {Form} from 'sentry/components/forms/form';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
