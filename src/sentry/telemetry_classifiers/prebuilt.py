@@ -45,6 +45,13 @@ ALL_PREBUILT_CLASSIFIERS: tuple[PrebuiltClassifier, ...] = (
         description="When the agent repeats the same steps without making progress.",
         attribute_name="sentry.classifier.stuck_in_loop",
     ),
+    PrebuiltClassifier(
+        key="refusal",
+        dataset=TelemetryClassifierDataset.TRACE_SPANS,
+        name="Refusal",
+        description="When the model declines to answer or complete a request.",
+        attribute_name="sentry.classifier.refusal",
+    ),
 )
 
 PREBUILT_CLASSIFIERS: dict[str, PrebuiltClassifier] = {

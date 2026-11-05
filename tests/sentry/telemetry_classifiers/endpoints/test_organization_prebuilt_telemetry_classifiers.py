@@ -33,9 +33,13 @@ class OrganizationPrebuiltTelemetryClassifiersTest(APITestCase):
             conversation = self.get_success_response(self.organization.slug, dataset="conversation")
             trace_spans = self.get_success_response(self.organization.slug, dataset="trace_spans")
 
-        assert {c["dataset"] for c in conversation.data} == {"conversation"}
-        assert len(conversation.data) == len(PREBUILT_CLASSIFIERS)
-        assert trace_spans.data == []
+        assert [c["key"] for c in conversation.data] == [
+            "user_frustration",
+            "tool_failure",
+            "task_failure",
+            "stuck_in_loop",
+        ]
+        assert [c["key"] for c in trace_spans.data] == ["refusal"]
 
     def test_rejects_unknown_dataset(self) -> None:
         with self.feature(self.features):
