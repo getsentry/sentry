@@ -18,7 +18,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.workflow import (
     AllProjects,
-    SeerAgentAccess,
+    SeerServiceAccountGrant,
     SeerWorkflow,
     SelectedProjects,
     WorkflowUpdateError,
@@ -34,7 +34,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
-AGENT = SeerAgentAccess(scopes=["event:read"])
+GRANT = SeerServiceAccountGrant(scopes=["event:read"])
 
 
 class SeerWorkflowEnsureDefaultsTest(TestCase):
@@ -101,7 +101,9 @@ class SeerWorkflowCreateTest(TestCase):
             project_ids=[second.id, first.id],
             environments=["production"],
             extras=SeerWorkflowConfigExtras(name="Daily triage", created_by=self.user.id),
-            agent=SeerAgentAccess(scopes=["event:read"], project_ids=[first.id]),
+            service_account_grant=SeerServiceAccountGrant(
+                scopes=["event:read"], project_ids=[first.id]
+            ),
         )
 
         config = workflow.get_config()
@@ -132,7 +134,7 @@ class SeerWorkflowCreateTest(TestCase):
             strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
             schedule=SeerWorkflowSchedule.DAILY,
             project_ids=[-1],
-            agent=AGENT,
+            service_account_grant=GRANT,
         )
 
         config = workflow.get_config()
@@ -149,7 +151,7 @@ class SeerWorkflowCreateTest(TestCase):
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[],
-                agent=AGENT,
+                service_account_grant=GRANT,
             )
         assert not SeerWorkflowConfig.objects.exists()
 
@@ -160,7 +162,7 @@ class SeerWorkflowCreateTest(TestCase):
                 strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[],
-                agent=AGENT,
+                service_account_grant=GRANT,
             )
         assert not isinstance(excinfo.value, WorkflowUpdateError)
         assert not SeerWorkflowConfig.objects.exists()
@@ -174,7 +176,7 @@ class SeerWorkflowCreateTest(TestCase):
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[self.project.id, foreign.id],
-                agent=AGENT,
+                service_account_grant=GRANT,
             )
         with pytest.raises(WorkflowUpdateError, match="must exist in the workflow's organization"):
             SeerWorkflow.create(
@@ -182,7 +184,9 @@ class SeerWorkflowCreateTest(TestCase):
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[self.project.id],
-                agent=SeerAgentAccess(scopes=["event:read"], project_ids=[foreign.id]),
+                service_account_grant=SeerServiceAccountGrant(
+                    scopes=["event:read"], project_ids=[foreign.id]
+                ),
             )
         assert not SeerWorkflowConfig.objects.exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -201,7 +205,7 @@ class SeerWorkflowCreateTest(TestCase):
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[self.project.id],
-                agent=AGENT,
+                service_account_grant=GRANT,
             )
         assert SeerWorkflowConfig.objects.filter(organization=self.organization).count() == 2
         assert not SeerWorkflowConfigProject.objects.exists()
@@ -574,18 +578,18 @@ class SeerWorkflowServiceAccountTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             return ServiceAccount.objects.get(id=service_account_id)
 
-    def test_get_agent_service_account_reads_control(self) -> None:
-        assert self.workflow.get_agent_service_account() is None
+    def test_get_service_account_reads_control(self) -> None:
+        assert self.workflow.get_service_account() is None
         with outbox_context(flush=False):
             workflow = SeerWorkflow.create(
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[self.project.id],
-                agent=AGENT,
+                service_account_grant=GRANT,
             )
 
-        account = workflow.get_agent_service_account()
+        account = workflow.get_service_account()
 
         assert account is not None
         assert account.id == workflow.get_config().service_account_id

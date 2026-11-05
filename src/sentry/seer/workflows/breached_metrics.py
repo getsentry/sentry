@@ -40,7 +40,7 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer.workflows.workflow import (
     ConfigUpdate,
-    SeerAgentAccess,
+    SeerServiceAccountGrant,
     SeerWorkflow,
     WorkflowUpdateError,
 )
@@ -194,12 +194,12 @@ class BreachedMetricWorkflow(SeerWorkflow):
         environments: Sequence[str] = (),
         monitor_ids: Sequence[int] = (),
         extras: SeerWorkflowConfigExtras | None = None,
-        agent: SeerAgentAccess,
+        service_account_grant: SeerServiceAccountGrant,
     ) -> BreachedMetricWorkflow:
         """
         Create an automation whose project coverage comes from connected monitors.
-        ``agent`` sets the access of the automation's service account; its projects are
-        independent of the monitors. Callers must authorize the grant and audit it.
+        ``service_account_grant`` sets the access of the automation's service account; its
+        projects are independent of the monitors. Callers must authorize the grant and audit it.
         """
         # TODO(telkins): Connect existing default Error Spike monitors when seeding the
         # default automation, and connect new projects' default monitors as they are created.
@@ -210,7 +210,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
             enabled=enabled,
             filters=SeerWorkflowFilters(environments=list(environments)),
-            agent=agent,
+            service_account_grant=service_account_grant,
             extras=extras,
         ) as config:
             workflow = cls(config_id=config.id, organization_id=organization_id)
@@ -250,8 +250,8 @@ class BreachedMetricWorkflow(SeerWorkflow):
         return BreachedMetricConfigUpdate(config)
 
     def delete(self) -> None:
-        """Delete the config and its agent account, and schedule its backing workflow for deletion."""
-        self._delete_agent_service_account()
+        """Delete the config and its service account, and schedule its backing workflow for deletion."""
+        self._delete_service_account()
         with self._lock_config() as config:
             if config.backing_workflow_id is not None:
                 workflow = Workflow.objects_for_deletion.filter(

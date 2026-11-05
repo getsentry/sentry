@@ -43,7 +43,7 @@ from sentry.seer.workflows.breached_metrics import (
 )
 from sentry.seer.workflows.workflow import (
     AllProjects,
-    SeerAgentAccess,
+    SeerServiceAccountGrant,
     SeerWorkflow,
     SelectedProjects,
 )
@@ -73,7 +73,7 @@ from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
-AGENT = SeerAgentAccess(scopes=["event:read"])
+GRANT = SeerServiceAccountGrant(scopes=["event:read"])
 
 
 class BreachedMetricWorkflowTestCase(OccurrenceTestMixin, TestCase):
@@ -128,7 +128,7 @@ class BreachedMetricWorkflowTestCase(OccurrenceTestMixin, TestCase):
 class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
     def test_creates_config_without_projects_preserving_environment_filter(self) -> None:
         workflow = BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, environments=["production"], agent=AGENT
+            self.organization.id, environments=["production"], service_account_grant=GRANT
         )
 
         config = workflow.get_config()
@@ -757,10 +757,12 @@ class GetConfigMonitorsBulkTest(TestCase):
         ]
         hidden = self.create_detector(project=hidden_project, type=MetricIssue.slug)
         connected = BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, monitor_ids=[*(m.id for m in monitors), hidden.id], agent=AGENT
+            self.organization.id,
+            monitor_ids=[*(m.id for m in monitors), hidden.id],
+            service_account_grant=GRANT,
         ).get_config()
         unconnected = BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, agent=AGENT
+            self.organization.id, service_account_grant=GRANT
         ).get_config()
         triage = Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
@@ -890,7 +892,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             environments=["production"],
             monitor_ids=self.monitor_ids,
             extras=SeerWorkflowConfigExtras(name="Latency breaches"),
-            agent=AGENT,
+            service_account_grant=GRANT,
         )
 
         config = workflow.get_config()
@@ -913,7 +915,9 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
 
         with pytest.raises(ValueError, match="active metric monitors in this organization"):
             BreachedMetricWorkflow.create_with_monitors(
-                self.organization.id, monitor_ids=[self.monitor_ids[0], foreign.id], agent=AGENT
+                self.organization.id,
+                monitor_ids=[self.monitor_ids[0], foreign.id],
+                service_account_grant=GRANT,
             )
 
         assert list(SeerWorkflowConfig.objects.filter(organization=self.organization)) == [
@@ -930,7 +934,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
 
         with pytest.raises(ValueError, match="at most 2 automations"):
             BreachedMetricWorkflow.create_with_monitors(
-                self.organization.id, monitor_ids=self.monitor_ids, agent=AGENT
+                self.organization.id, monitor_ids=self.monitor_ids, service_account_grant=GRANT
             )
 
         assert SeerWorkflowConfig.objects.filter(organization=self.organization).count() == 2
@@ -944,12 +948,12 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[],
-                agent=AGENT,
+                service_account_grant=GRANT,
             )
 
         def create_metric() -> BreachedMetricWorkflow:
             return BreachedMetricWorkflow.create_with_monitors(
-                self.organization.id, monitor_ids=self.monitor_ids, agent=AGENT
+                self.organization.id, monitor_ids=self.monitor_ids, service_account_grant=GRANT
             )
 
         # setUp already created one metric automation.

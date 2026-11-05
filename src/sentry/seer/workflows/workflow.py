@@ -60,7 +60,7 @@ type ProjectSelection = AllProjects | SelectedProjects
 
 
 @dataclass(frozen=True)
-class SeerAgentAccess:
+class SeerServiceAccountGrant:
     """The scopes and projects an automation's investigations run with."""
 
     scopes: Sequence[str]
@@ -113,22 +113,18 @@ class SeerWorkflow:
             )
 
     @classmethod
-    def _validate_agent_project_ids(cls, organization_id: int, agent: SeerAgentAccess) -> None:
-        if not agent.all_projects:
-            _validate_project_ids(organization_id, set(agent.project_ids))
-
-    @classmethod
     @contextmanager
-    def _create_agent_service_account(
+    def _create_service_account(
         cls,
         organization_id: int,
-        agent: SeerAgentAccess,
+        grant: SeerServiceAccountGrant,
         *,
         automation_name: str | None,
         created_by_id: int | None,
     ) -> Iterator[RpcServiceAccount]:
-        """Create the agent's service account, deleting it again if the block raises."""
-        cls._validate_agent_project_ids(organization_id, agent)
+        """Create the automation's service account, deleting it again if the block raises."""
+        if not grant.all_projects:
+            _validate_project_ids(organization_id, set(grant.project_ids))
         # TODO(telkins): Suffix the name with the config ID instead. The account is created
         # before the config exists, so this needs a rename after linking.
         suffix = uuid4().hex[:8]
@@ -136,9 +132,9 @@ class SeerWorkflow:
         account = service_account_service.create_service_account(
             organization_id=organization_id,
             name=f"{prefix[: MAX_NAME_LENGTH - len(suffix) - 1]} {suffix}",
-            scope_list=list(agent.scopes),
-            project_ids=[] if agent.all_projects else list(agent.project_ids),
-            all_projects=agent.all_projects,
+            scope_list=list(grant.scopes),
+            project_ids=[] if grant.all_projects else list(grant.project_ids),
+            all_projects=grant.all_projects,
             created_by_id=created_by_id,
         )
         try:
@@ -161,19 +157,19 @@ class SeerWorkflow:
         strategy: SeerWorkflowStrategy,
         enabled: bool,
         filters: SeerWorkflowFilters,
-        agent: SeerAgentAccess,
+        service_account_grant: SeerServiceAccountGrant,
         extras: SeerWorkflowConfigExtras | None = None,
     ) -> Iterator[SeerWorkflowConfig]:
         """
-        Create a config and its agent's service account within the org's automation limit.
+        Create a config and its service account within the org's automation limit.
         Writes in the block share the config's transaction, and the account is deleted if
         the block raises.
         """
         extras = extras or SeerWorkflowConfigExtras()
         with (
-            cls._create_agent_service_account(
+            cls._create_service_account(
                 organization_id,
-                agent,
+                service_account_grant,
                 automation_name=extras.name,
                 created_by_id=extras.created_by,
             ) as account,
@@ -212,12 +208,12 @@ class SeerWorkflow:
         project_ids: Collection[int],
         environments: Sequence[str] = (),
         extras: SeerWorkflowConfigExtras | None = None,
-        agent: SeerAgentAccess,
+        service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow:
         """
         Create a user-defined automation. Use ``project_ids=[-1]`` to select all
-        projects and ``environments=[]`` for all environments. ``agent`` sets the access of
-        the automation's service account. Callers must authorize the grant and audit it.
+        projects and ``environments=[]`` for all environments. ``service_account_grant`` sets
+        the access of the automation's service account. Callers must authorize the grant and audit it.
         """
         if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
@@ -241,7 +237,7 @@ class SeerWorkflow:
                 all_projects=all_projects,
                 environments=list(environments),
             ),
-            agent=agent,
+            service_account_grant=service_account_grant,
             extras=extras,
         ) as config:
             config.schedule = schedule
@@ -363,19 +359,19 @@ class SeerWorkflow:
         return counts["selected"] > 0 and counts["selected"] == counts["total"]
 
     def delete(self) -> None:
-        """Delete the config with its project links, runs, trigger bindings, and agent account."""
-        self._delete_agent_service_account()
+        """Delete the config with its project links, runs, trigger bindings, and service account."""
+        self._delete_service_account()
         with self._lock_config() as config:
             config.delete()
 
-    def _delete_agent_service_account(self) -> None:
+    def _delete_service_account(self) -> None:
         service_account_id = self.get_config().service_account_id
         if service_account_id is not None:
             service_account_service.delete_service_account(
                 organization_id=self.organization_id, service_account_id=service_account_id
             )
 
-    def get_agent_service_account(self) -> RpcServiceAccount | None:
+    def get_service_account(self) -> RpcServiceAccount | None:
         """Read the automation's service account from control, which the replica may lag."""
         config = self.get_config()
         if config.service_account_id is None:

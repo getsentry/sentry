@@ -31,7 +31,11 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow, ConnectedMonitor
-from sentry.seer.workflows.workflow import ConfigUpdate, SeerAgentAccess, WorkflowUpdateError
+from sentry.seer.workflows.workflow import (
+    ConfigUpdate,
+    SeerServiceAccountGrant,
+    WorkflowUpdateError,
+)
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
@@ -45,7 +49,7 @@ from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.workflow_engine.models import Detector, Workflow
 
-AGENT = SeerAgentAccess(scopes=["event:read"])
+GRANT = SeerServiceAccountGrant(scopes=["event:read"])
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -280,7 +284,9 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         ]
         disabled = self.create_detector(project=self.create_project(), type=MetricIssue.slug)
         metric = BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, monitor_ids=[*(m.id for m in monitors), disabled.id], agent=AGENT
+            self.organization.id,
+            monitor_ids=[*(m.id for m in monitors), disabled.id],
+            service_account_grant=GRANT,
         )
         disabled.update(status=ObjectStatus.DISABLED)
         triage = self.create_config()
@@ -308,7 +314,9 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             type=MetricIssue.slug,
         )
         BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, monitor_ids=[accessible.id, hidden.id], agent=AGENT
+            self.organization.id,
+            monitor_ids=[accessible.id, hidden.id],
+            service_account_grant=GRANT,
         )
         self.login_as(member)
 
@@ -699,14 +707,16 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
         with outbox_runner():
             workflow = self.create_metric_workflow(
-                agent=SeerAgentAccess(scopes=["event:read"], project_ids=[accessible.id, hidden.id])
+                service_account_grant=SeerServiceAccountGrant(
+                    scopes=["event:read"], project_ids=[accessible.id, hidden.id]
+                )
             )
         self.login_as(member)
 
         response = self.get_success_response(self.organization.slug, workflow.config_id)
 
         assert response.data["agent"]["projectIds"] == [accessible.id]
-        assert agent_project_ids(get_agent_service_account(workflow.config_id)) == sorted(
+        assert service_account_project_ids(get_service_account(workflow.config_id)) == sorted(
             [accessible.id, hidden.id]
         )
 
@@ -854,11 +864,11 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         with outbox_runner():
             workflow = self.create_metric_workflow(
                 monitor_ids=[monitor.id],
-                agent=SeerAgentAccess(
+                service_account_grant=SeerServiceAccountGrant(
                     scopes=["event:read"], project_ids=[self.project.id, additional_project.id]
                 ),
             )
-        account = get_agent_service_account(workflow.config_id)
+        account = get_service_account(workflow.config_id)
 
         response = self.get_success_response(
             self.organization.slug, workflow.config_id, method="put", monitorIds=[]
@@ -950,10 +960,14 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         return self.create_detector(project=project, type=MetricIssue.slug)
 
     def create_metric_workflow(
-        self, monitor_ids: list[int] | None = None, agent: SeerAgentAccess = AGENT
+        self,
+        monitor_ids: list[int] | None = None,
+        service_account_grant: SeerServiceAccountGrant = GRANT,
     ) -> BreachedMetricWorkflow:
         return BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, monitor_ids=monitor_ids or [], agent=agent
+            self.organization.id,
+            monitor_ids=monitor_ids or [],
+            service_account_grant=service_account_grant,
         )
 
     def connected_monitor_ids(self, workflow: BreachedMetricWorkflow) -> set[int]:
@@ -1069,9 +1083,9 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             status_code=201,
         )
 
-        account = get_agent_service_account(int(response.data["id"]))
+        account = get_service_account(int(response.data["id"]))
         assert account.name.startswith("Seer: Checkout errors ")
-        assert agent_project_ids(account) == [self.project.id, additional_project.id]
+        assert service_account_project_ids(account) == [self.project.id, additional_project.id]
         assert SeerWorkflowConfig.objects.get(id=response.data["id"]).version == 1
         assert response.data["agent"] == {"serviceAccountId": str(account.id), **agent}
         assert response.data["projects"] == [self.project.id]
@@ -1087,7 +1101,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             status_code=201,
         )
 
-        account = get_agent_service_account(int(response.data["id"]))
+        account = get_service_account(int(response.data["id"]))
         assert account.name.startswith("Seer automation ")
         assert account.all_projects
         assert response.data["agent"] == {
@@ -1098,7 +1112,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         }
 
     @with_feature("organizations:service-accounts")
-    def test_failed_create_removes_the_agent_service_account(self) -> None:
+    def test_failed_create_removes_the_service_account(self) -> None:
         for _ in range(MAX_WORKFLOW_CONFIGS_PER_ORG):
             Factories.create_seer_workflow_config(
                 self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
@@ -1127,9 +1141,9 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             status_code=201,
         )
 
-        account = get_agent_service_account(int(response.data["id"]))
+        account = get_service_account(int(response.data["id"]))
         assert account.scope_list == ["event:read", "project:read"]
-        assert agent_project_ids(account) == [self.project.id]
+        assert service_account_project_ids(account) == [self.project.id]
         assert response.data["agent"]["scopes"] == ["event:read", "project:read"]
         assert response.data["agent"]["projectIds"] == [self.project.id]
 
@@ -1536,14 +1550,14 @@ class WithNoAccessIdsTest(TestCase):
             assert {monitor_id for monitor_id, _ in curr} & no_access_ids <= set(result)
 
 
-def get_agent_service_account(config_id: int) -> ServiceAccount:
+def get_service_account(config_id: int) -> ServiceAccount:
     service_account_id = SeerWorkflowConfig.objects.get(id=config_id).service_account_id
     assert service_account_id is not None
     with assume_test_silo_mode(SiloMode.CONTROL):
         return ServiceAccount.objects.get(id=service_account_id)
 
 
-def agent_project_ids(account: ServiceAccount) -> list[int]:
+def service_account_project_ids(account: ServiceAccount) -> list[int]:
     with assume_test_silo_mode(SiloMode.CONTROL):
         return sorted(
             ServiceAccountProject.objects.filter(service_account=account).values_list(
