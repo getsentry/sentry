@@ -30,7 +30,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     const stackPrefix = plottingOptions.yAxisPosition;
 
     const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {
-      showLowConfidence: plottingOptions.showLowConfidence,
+      segmentBy: this.segmentBy,
     });
 
     segments.forEach(([timeSeries, style], index) => {

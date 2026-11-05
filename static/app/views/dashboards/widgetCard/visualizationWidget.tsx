@@ -49,6 +49,7 @@ import {createPlottableFromTimeSeriesAndWidget} from 'sentry/views/dashboards/wi
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {useTimeSeriesSegmentBy} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useTimeSeriesSegmentBy';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -258,6 +259,7 @@ function VisualizationWidgetContent({
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const segmentBy = useTimeSeriesSegmentBy();
   const location = useLocation();
   const {selection} = usePageFilters();
 
@@ -294,7 +296,8 @@ function VisualizationWidgetContent({
         widget,
         label,
         seriesName,
-        timeSeries.meta.isOther ? theme.tokens.dataviz.semantic.neutral : undefined
+        timeSeries.meta.isOther ? theme.tokens.dataviz.semantic.neutral : undefined,
+        segmentBy
       );
       if (!plottable) {
         return null;

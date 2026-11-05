@@ -28,7 +28,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
     };
 
     const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {
-      showLowConfidence: plottingOptions.showLowConfidence,
+      segmentBy: this.segmentBy,
     });
 
     return segments.map(([timeSeries, style]) =>

@@ -42,7 +42,6 @@ import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
@@ -195,10 +194,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // TODO: It would be polite to also scan for gaps (i.e., the items don't all
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
-
-  const organization = useOrganization({allowNull: true});
-  const showLowConfidence =
-    organization?.features.includes('data-browsing-time-series-confidence') ?? false;
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const connectChartRef = useCallback((e: ReactEchartsRef | null) => {
@@ -425,7 +420,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           : undefined;
 
         if (
-          showLowConfidence &&
           correspondingPlottable instanceof ContinuousTimeSeries &&
           typeof timestamp === 'number' &&
           correspondingPlottable.isLowConfidenceAt(timestamp)
@@ -653,7 +647,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       color,
       yAxisPosition: getYAxisPosition(plottable),
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
-      showLowConfidence,
       theme,
       maxOffset: thresholdMaxOffset,
     });

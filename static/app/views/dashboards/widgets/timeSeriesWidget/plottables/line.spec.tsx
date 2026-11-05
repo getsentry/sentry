@@ -24,10 +24,9 @@ describe('Line', () => {
   });
 
   it('draws low confidence segments dashed when enabled', () => {
-    const series = new Line(timeSeries).toSeries({
-      ...plottingOptions,
-      showLowConfidence: true,
-    });
+    const series = new Line(timeSeries, {
+      segmentBy: ['incomplete', 'confidence'],
+    }).toSeries(plottingOptions);
 
     expect(series.map(s => s.lineStyle?.type)).toEqual([undefined, 'dashed', 'dotted']);
   });

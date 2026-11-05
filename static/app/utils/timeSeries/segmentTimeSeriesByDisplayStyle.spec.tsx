@@ -42,7 +42,7 @@ describe('segmentTimeSeriesByDisplayStyle', () => {
       90
     );
 
-    const segments = segmentTimeSeriesByDisplayStyle(serie);
+    const segments = segmentTimeSeriesByDisplayStyle(serie, {segmentBy: ['incomplete']});
     const completeSerie = segments?.[0]?.[0];
     const incompleteSerie = segments?.[1]?.[0];
 
@@ -98,7 +98,7 @@ describe('segmentTimeSeriesByDisplayStyle', () => {
       90
     );
 
-    const segments = segmentTimeSeriesByDisplayStyle(serie);
+    const segments = segmentTimeSeriesByDisplayStyle(serie, {segmentBy: ['incomplete']});
     const incompleteSerie = segments?.[0]?.[0];
     const completeSerie = segments?.[1]?.[0];
 
@@ -167,7 +167,7 @@ describe('segmentTimeSeriesByDisplayStyle', () => {
       90
     );
 
-    const segments = segmentTimeSeriesByDisplayStyle(serie);
+    const segments = segmentTimeSeriesByDisplayStyle(serie, {segmentBy: ['incomplete']});
     const completeSerie = segments?.[0]?.[0];
     const incompleteSerie = segments?.[1]?.[0];
 
@@ -244,7 +244,7 @@ describe('segmentTimeSeriesByDisplayStyle', () => {
       90
     );
 
-    const segments = segmentTimeSeriesByDisplayStyle(serie);
+    const segments = segmentTimeSeriesByDisplayStyle(serie, {segmentBy: ['incomplete']});
     const completeSerie = segments?.[0]?.[0];
     const incompleteSerie = segments?.[1]?.[0];
 
@@ -288,10 +288,28 @@ describe('segmentTimeSeriesByDisplayStyle', () => {
         {value: 2, timestamp: 2, confidence: 'high'},
       ]);
 
-      const segments = segmentTimeSeriesByDisplayStyle(serie);
+      const segments = segmentTimeSeriesByDisplayStyle(serie, {
+        segmentBy: ['incomplete'],
+      });
 
       expect(segments).toHaveLength(1);
       expect(segments[0]![1]).toBe('normal');
+    });
+
+    it('Ignores incomplete data unless enabled', () => {
+      const serie = makeSerie([
+        {value: 1, timestamp: 1, confidence: 'low'},
+        {value: 2, timestamp: 2, incomplete: true},
+      ]);
+
+      const segments = segmentTimeSeriesByDisplayStyle(serie, {
+        segmentBy: ['confidence'],
+      });
+
+      expect(summarize(segments)).toEqual([
+        ['lowConfidence', [1, 2]],
+        ['normal', [2]],
+      ]);
     });
 
     it('Splits normal, low confidence, normal runs with shared boundary points', () => {
@@ -303,7 +321,7 @@ describe('segmentTimeSeriesByDisplayStyle', () => {
       ]);
 
       const segments = segmentTimeSeriesByDisplayStyle(serie, {
-        showLowConfidence: true,
+        segmentBy: ['incomplete', 'confidence'],
       });
 
       expect(summarize(segments)).toEqual([
@@ -320,7 +338,7 @@ describe('segmentTimeSeriesByDisplayStyle', () => {
       ]);
 
       const segments = segmentTimeSeriesByDisplayStyle(serie, {
-        showLowConfidence: true,
+        segmentBy: ['incomplete', 'confidence'],
       });
 
       expect(summarize(segments)).toEqual([['lowConfidence', [1, 2]]]);
@@ -334,7 +352,7 @@ describe('segmentTimeSeriesByDisplayStyle', () => {
       ]);
 
       const segments = segmentTimeSeriesByDisplayStyle(serie, {
-        showLowConfidence: true,
+        segmentBy: ['incomplete', 'confidence'],
       });
 
       expect(summarize(segments)).toEqual([

@@ -48,14 +48,16 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
           color: params => {
             const datum = scaledTimeSeries.values[params.dataIndex]!;
 
-            return datum.incomplete ? colorObject.alpha(0.5).string() : colorValue;
+            return this.segmentBy.includes('incomplete') && datum.incomplete
+              ? colorObject.alpha(0.5).string()
+              : colorValue;
           },
           opacity: 1,
         },
         data: scaledTimeSeries.values.map(datum => {
           const dataPoint = timeSeriesItemToEChartsDataPoint(datum);
 
-          if (!plottingOptions.showLowConfidence || datum.confidence !== 'low') {
+          if (!this.segmentBy.includes('confidence') || datum.confidence !== 'low') {
             return dataPoint;
           }
 

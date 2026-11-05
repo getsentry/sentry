@@ -26,10 +26,9 @@ describe('Bars', () => {
   });
 
   it('hatches low confidence bars when enabled', () => {
-    const [series] = new Bars(timeSeries).toSeries({
-      ...plottingOptions,
-      showLowConfidence: true,
-    });
+    const [series] = new Bars(timeSeries, {
+      segmentBy: ['incomplete', 'confidence'],
+    }).toSeries(plottingOptions);
 
     expect(series!.data).toEqual([
       [1729796400000, 10],

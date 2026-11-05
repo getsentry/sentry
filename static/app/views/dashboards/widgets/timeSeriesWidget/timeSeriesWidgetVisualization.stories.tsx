@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
@@ -14,8 +14,6 @@ import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {DAY, HOUR, MINUTE} from 'sentry/utils/formatters';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   LegendSelection,
   Release,
@@ -831,45 +829,51 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
       <Fragment>
         <p>
           Data points with <code>confidence: 'low'</code> are estimated from too few
-          samples to be reliable. Lines and areas draw those sections dashed and faded,
-          bars get a hatch pattern, and the tooltip labels the value as low confidence.
-          This only happens when the organization has the{' '}
-          <code>data-browsing-time-series-confidence</code> feature, which these examples
-          turn on.
+          samples to be reliable. <code>TimeSeriesWidgetVisualization</code> draws them
+          differently from high-confidence data, and the tooltip labels them, when a
+          plottable's <code>segmentBy</code> config includes <code>'confidence'</code>.
         </p>
 
-        <WithTimeSeriesConfidenceFeature>
-          <Storybook.SideBySide>
-            <MediumWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={[
-                  new Line(lowConfidenceDurationTimeSeries),
-                  new Line(lowConfidenceDurationP50TimeSeries),
-                ]}
-              />
-            </MediumWidget>
-            <MediumWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={[
-                  new Area(lowConfidenceDurationTimeSeries),
-                  new Area(lowConfidenceDurationP50TimeSeries),
-                ]}
-              />
-            </MediumWidget>
-            <MediumWidget>
-              <TimeSeriesWidgetVisualization
-                plottables={[
-                  new Bars(lowConfidenceDurationTimeSeries, {
-                    stack: 'all',
-                  }),
-                  new Bars(lowConfidenceDurationP50TimeSeries, {
-                    stack: 'all',
-                  }),
-                ]}
-              />
-            </MediumWidget>
-          </Storybook.SideBySide>
-        </WithTimeSeriesConfidenceFeature>
+        <Storybook.SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(lowConfidenceDurationTimeSeries, {
+                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                }),
+                new Line(lowConfidenceDurationP50TimeSeries, {
+                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                }),
+              ]}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Area(lowConfidenceDurationTimeSeries, {
+                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                }),
+                new Area(lowConfidenceDurationP50TimeSeries, {
+                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                }),
+              ]}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Bars(lowConfidenceDurationTimeSeries, {
+                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                  stack: 'all',
+                }),
+                new Bars(lowConfidenceDurationP50TimeSeries, {
+                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                  stack: 'all',
+                }),
+              ]}
+            />
+          </MediumWidget>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
@@ -1356,20 +1360,7 @@ export default function DatabaseLandingDurationChartWidget(
   ));
 });
 
-function WithTimeSeriesConfidenceFeature({children}: {children: ReactNode}) {
-  const organization = useOrganization();
-
-  return (
-    <OrganizationContext
-      value={{
-        ...organization,
-        features: [...organization.features, 'data-browsing-time-series-confidence'],
-      }}
-    >
-      {children}
-    </OrganizationContext>
-  );
-}
+const SEGMENT_BY_CONFIDENCE = ['incomplete', 'confidence'] as const;
 
 const FillParent = styled('div')`
   width: 100%;

@@ -59,13 +59,13 @@ describe('Area', () => {
       unit: lowConfidenceTimeSeries.meta.valueUnit,
       yAxisPosition: 'left' as const,
     };
-    const area = new Area(lowConfidenceTimeSeries);
-
-    const disabled = area.toSeries(plottingOptions);
+    const disabled = new Area(lowConfidenceTimeSeries).toSeries(plottingOptions);
     expect(disabled).toHaveLength(1);
     expect(disabled[0]!.lineStyle?.type).toBeUndefined();
 
-    const enabled = area.toSeries({...plottingOptions, showLowConfidence: true});
+    const enabled = new Area(lowConfidenceTimeSeries, {
+      segmentBy: ['incomplete', 'confidence'],
+    }).toSeries(plottingOptions);
     expect(enabled).toHaveLength(2);
     expect(enabled[0]!.lineStyle?.type).toBeUndefined();
     expect(enabled[1]!.lineStyle?.type).toBe('dashed');

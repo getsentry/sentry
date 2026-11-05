@@ -1,6 +1,7 @@
 import type {SeriesOption} from 'echarts';
 
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
+import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import type {
   TimeSeries,
@@ -27,6 +28,10 @@ export type ContinuousTimeSeriesConfig = {
    * (alias or computed from `formatTimeSeriesLabel`), not this name.
    */
   name?: string;
+  /**
+   * Which item properties get their own visual treatment (e.g., incomplete or low-confidence buckets). Defaults to `['incomplete']`
+   */
+  segmentBy?: readonly TimeSeriesSegmentField[];
 };
 
 export type ContinuousTimeSeriesPlottingOptions = {
@@ -42,10 +47,6 @@ export type ContinuousTimeSeriesPlottingOptions = {
    * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
    */
   yAxisPosition: 'left' | 'right';
-  /**
-   * Whether to visually de-emphasize low-confidence data points
-   */
-  showLowConfidence?: boolean;
 };
 
 /**
@@ -125,8 +126,15 @@ export abstract class ContinuousTimeSeries<
     };
   }
 
+  get segmentBy(): readonly TimeSeriesSegmentField[] {
+    return this.config?.segmentBy ?? DEFAULT_SEGMENT_BY;
+  }
+
   isLowConfidenceAt(timestamp: number): boolean {
-    return this.#lowConfidenceTimestamps.has(timestamp);
+    return (
+      this.segmentBy.includes('confidence') &&
+      this.#lowConfidenceTimestamps.has(timestamp)
+    );
   }
 
   scaleToUnit(destinationUnit: TimeSeriesValueUnit): TimeSeries {
@@ -135,3 +143,5 @@ export abstract class ContinuousTimeSeries<
 
   abstract toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): SeriesOption[];
 }
+
+const DEFAULT_SEGMENT_BY: readonly TimeSeriesSegmentField[] = ['incomplete'];

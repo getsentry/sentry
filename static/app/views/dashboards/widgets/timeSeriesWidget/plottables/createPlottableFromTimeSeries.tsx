@@ -1,3 +1,4 @@
+import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -11,6 +12,7 @@ type PlottableConfig = {
   alias?: string;
   color?: string;
   name?: string;
+  segmentBy?: readonly TimeSeriesSegmentField[];
   stack?: string;
 };
 
@@ -36,7 +38,8 @@ export function createPlottableFromTimeSeriesAndWidget(
   widget: Widget,
   alias?: string,
   name?: string,
-  color?: string
+  color?: string,
+  segmentBy?: readonly TimeSeriesSegmentField[]
 ): Plottable | null {
   const shouldStack = (widget.queries[0]?.columns.length ?? 0) > 0;
 
@@ -44,6 +47,7 @@ export function createPlottableFromTimeSeriesAndWidget(
     alias,
     name,
     color,
+    segmentBy,
     stack: shouldStack ? 'widgetStack' : undefined,
   });
 }
