@@ -266,7 +266,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     onAction: () =>
                       trackAnalytics('settings.entry_point_clicked', {
                         organization,
-                        entry_point: 'org_menu_settings_navigation',
+                        entry_point: 'settings_navigation_org_menu',
                       }),
                     hidden:
                       props.hideCurrentOrganizationLinks ||
@@ -395,7 +395,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     onAction: () =>
                       trackAnalytics('settings.entry_point_clicked', {
                         organization,
-                        entry_point: 'org_menu_settings_navigation',
+                        entry_point: 'settings_navigation_org_menu',
                       }),
                     hidden: !organization.access?.includes('org:read'),
                   },

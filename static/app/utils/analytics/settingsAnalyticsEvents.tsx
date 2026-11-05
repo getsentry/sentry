@@ -2,15 +2,15 @@ import type {SettingsScope} from 'sentry/views/settings/settingsScope';
 
 /**
  * Links outside of the settings navigation that take people into settings.
- * - `org_menu_settings_navigation`: "Settings" item in the organization avatar menu
- * - `user_menu_settings_navigation`: "Settings" item in the user avatar menu
+ * - `settings_navigation_org_menu`: "Settings" item in the organization avatar menu
+ * - `settings_navigation_user_menu`: "Settings" item in the user avatar menu
  * - `project_page_filter`: settings icon on a project in the project page filter
  * - `project_details_menu`: "Project Settings" item on the project details page
  * - `project_card`: settings icon on a project card in the projects list
  */
 export type SettingsEntryPoint =
-  | 'org_menu_settings_navigation'
-  | 'user_menu_settings_navigation'
+  | 'settings_navigation_org_menu'
+  | 'settings_navigation_user_menu'
   | 'project_page_filter'
   | 'project_details_menu'
   | 'project_card';
