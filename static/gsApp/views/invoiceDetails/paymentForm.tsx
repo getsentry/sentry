@@ -6,12 +6,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
+import {paymentIntentOptions} from 'getsentry/hooks/useIntentData';
 import type {Invoice} from 'getsentry/types';
 import {displayPriceWithCents} from 'getsentry/utils/billing';
 
@@ -30,11 +29,7 @@ export default function InvoiceDetailsPaymentForm({
   reloadInvoice,
 }: Props) {
   const location = useLocation();
-  const endpoint = [
-    getApiUrl('/organizations/$organizationIdOrSlug/payments/$paymentId/new/', {
-      path: {organizationIdOrSlug: organization.slug, paymentId: invoice.id},
-    }),
-  ] satisfies ApiQueryKey;
+  const endpoint = paymentIntentOptions(organization.slug, invoice.id).queryKey;
 
   return (
     <Fragment>

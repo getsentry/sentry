@@ -16,7 +16,7 @@ import {
 } from 'sentry/components/events/autofix/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
-import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
+import {repositoryWithSettingsOptions} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t, tct} from 'sentry/locale';
@@ -155,7 +155,7 @@ export function SeerRepoTable() {
         });
         (mutations ?? []).forEach(mutation => {
           queryClient.invalidateQueries({
-            queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),
+            queryKey: repositoryWithSettingsOptions(organization, mutation.id).queryKey,
           });
         });
       },
