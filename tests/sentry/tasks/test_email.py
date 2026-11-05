@@ -169,14 +169,14 @@ class TestSendEmailDedupe:
         message["headers"] = {}
 
         with (
-            patch("sentry.tasks.email.sentry_sdk.capture_message") as capture_message,
+            patch("sentry.tasks.email.logger.error") as log_error,
             patch("sentry.tasks.email._claim_send") as claim_send,
         ):
             send_email(message=message)
             send_email(message=message)
 
         assert send_messages.call_count == 2
-        assert capture_message.call_count == 2
+        assert log_error.call_count == 2
         claim_send.assert_not_called()
 
     def test_disabled_option_sends_duplicates(self, send_messages: MagicMock) -> None:

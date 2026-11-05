@@ -3,7 +3,6 @@ import logging
 from smtplib import SMTPDataError
 from typing import Any
 
-import sentry_sdk
 from django.core.cache import cache
 from taskbroker_client.retry import Retry
 
@@ -136,7 +135,7 @@ def _send_email_once(message: dict[str, Any]) -> None:
 
     message_id = (message.get("headers") or {}).get("Message-Id")
     if not message_id:
-        sentry_sdk.capture_message("mail.send_dedupe.missing_message_id", level="error")
+        logger.error("mail.send_dedupe.missing_message_id")
         _send_email(message)
         return
 
