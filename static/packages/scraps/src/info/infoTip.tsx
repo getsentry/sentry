@@ -38,11 +38,16 @@ const StyledIconWrapper = styled('span')`
   }
 `;
 
-export function InfoTip(props: InfoTooltipProps) {
+export function InfoTip({variant = 'primary', ...props}: InfoTooltipProps) {
   const {t} = useTranslation();
 
   return (
-    <IconWithTooltip {...props} icon={IconInfo} aria-label={t('More information')} />
+    <IconWithTooltip
+      {...props}
+      variant={variant}
+      icon={IconInfo}
+      aria-label={t('More information')}
+    />
   );
 }
 
