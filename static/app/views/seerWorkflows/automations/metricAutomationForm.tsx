@@ -30,7 +30,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import type {
-  SeerAgentResponse,
+  SeerServiceAccountResponse,
   SeerWorkflowConfigResponse,
 } from 'sentry/views/seerWorkflows/types';
 import {
@@ -40,7 +40,7 @@ import {
 
 import {useCreateConfig, useUpdateConfig} from './hooks/configs';
 
-const agentProjectsSchema = z.discriminatedUnion('mode', [
+const serviceAccountProjectsSchema = z.discriminatedUnion('mode', [
   z.object({mode: z.literal('monitors')}),
   z.object({mode: z.literal('selected'), projectIds: z.array(z.string())}),
   z.object({mode: z.literal('all')}),
@@ -50,11 +50,11 @@ const schema = z.object({
   name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
   enabled: z.boolean(),
   monitorIds: z.array(z.string()),
-  agentProjects: agentProjectsSchema,
+  serviceAccountProjects: serviceAccountProjectsSchema,
   scopes: z.array(z.string()).min(1, t('Select at least one permission scope.')),
 });
 
-const DEFAULT_AGENT_SCOPES = [
+const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
   'event:read',
   'member:read',
   'org:read',
@@ -68,7 +68,7 @@ export function MetricAutomationForm(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {projects} = useProjects();
-  const agent = props.mode === 'edit' ? props.config.agent : null;
+  const serviceAccount = props.mode === 'edit' ? props.config.serviceAccount : null;
   const grantableScopes = new Set<string>(organization.access);
   const availableScopes = organization.access.filter(
     scope =>
@@ -99,14 +99,14 @@ export function MetricAutomationForm(props: Props) {
     const fields = {
       enabled: value.enabled,
       monitorIds: value.monitorIds.map(Number),
-      agent: {
+      serviceAccount: {
         scopes: value.scopes,
-        projectIds: resolveAgentProjects(
-          value.agentProjects,
+        projectIds: resolveServiceAccountProjects(
+          value.serviceAccountProjects,
           value.monitorIds,
           monitors
         ).map(Number),
-        allProjects: value.agentProjects.mode === 'all',
+        allProjects: value.serviceAccountProjects.mode === 'all',
       },
     };
     if (props.mode === 'create') {
@@ -132,9 +132,10 @@ export function MetricAutomationForm(props: Props) {
           ? t('Breached Metric Investigation')
           : (props.config.name ?? t('Breached metrics')),
       monitorIds: props.mode === 'create' ? [] : props.config.monitorIds.map(String),
-      agentProjects: getAgentProjectSelection(agent),
+      serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
       scopes:
-        agent?.scopes ?? DEFAULT_AGENT_SCOPES.filter(scope => grantableScopes.has(scope)),
+        serviceAccount?.scopes ??
+        DEFAULT_SERVICE_ACCOUNT_SCOPES.filter(scope => grantableScopes.has(scope)),
     },
     validators: {onDynamic: schema},
     onSubmit: async ({value, formApi}) => {
@@ -145,8 +146,10 @@ export function MetricAutomationForm(props: Props) {
             name: value.name,
             enabled: config.enabled,
             monitorIds: config.monitorIds.map(String),
-            agentProjects: getAgentProjectSelection(config.agent),
-            scopes: config.agent?.scopes ?? value.scopes,
+            serviceAccountProjects: getServiceAccountProjectSelection(
+              config.serviceAccount
+            ),
+            scopes: config.serviceAccount?.scopes ?? value.scopes,
           });
         }
       } catch (error) {
@@ -280,21 +283,21 @@ export function MetricAutomationForm(props: Props) {
             </form.AppField>
           </form.FieldGroup>
 
-          <form.FieldGroup title={t('Agent Capabilities')}>
+          <form.FieldGroup title={t('Service account capabilities')}>
             <Stack gap="lg">
               <Text variant="muted">
                 {t(
-                  'Choose what the agent can access during an investigation. These permissions are saved on its service account.'
+                  "Choose what this automation's service account can access during an investigation."
                 )}
               </Text>
               <form.Subscribe selector={state => state.values.monitorIds}>
                 {monitorIds => (
-                  <form.AppField name="agentProjects">
+                  <form.AppField name="serviceAccountProjects">
                     {field => (
                       <field.Layout.Stack
-                        label={t('Agent projects')}
+                        label={t('Service account projects')}
                         hintText={t(
-                          'Start with monitor projects, then add other projects the agent may need to investigate.'
+                          'Start with monitor projects, then add other projects the service account may need to investigate.'
                         )}
                       >
                         <Stack gap="md">
@@ -303,7 +306,7 @@ export function MetricAutomationForm(props: Props) {
                             clearable
                             searchable
                             disabled={field.state.value.mode === 'all'}
-                            value={resolveAgentProjects(
+                            value={resolveServiceAccountProjects(
                               field.state.value,
                               monitorIds,
                               monitors
@@ -349,7 +352,7 @@ export function MetricAutomationForm(props: Props) {
                   <field.Layout.Stack
                     label={t('Permission scopes')}
                     hintText={t(
-                      'Starts with read access for investigations. Add write permissions only for actions you want the agent to perform.'
+                      'Starts with read access for investigations. Add write permissions only for actions you want the service account to perform.'
                     )}
                     required
                   >
@@ -511,19 +514,19 @@ function MonitorProjectsSummary({
   );
 }
 
-function getAgentProjectSelection(
-  agent: SeerAgentResponse | null
-): z.infer<typeof agentProjectsSchema> {
-  if (!agent) {
+function getServiceAccountProjectSelection(
+  serviceAccount: SeerServiceAccountResponse | null
+): z.infer<typeof serviceAccountProjectsSchema> {
+  if (!serviceAccount) {
     return {mode: 'monitors'};
   }
-  return agent.allProjects
+  return serviceAccount.allProjects
     ? {mode: 'all'}
-    : {mode: 'selected', projectIds: agent.projectIds.map(String)};
+    : {mode: 'selected', projectIds: serviceAccount.projectIds.map(String)};
 }
 
-function resolveAgentProjects(
-  selection: z.infer<typeof agentProjectsSchema>,
+function resolveServiceAccountProjects(
+  selection: z.infer<typeof serviceAccountProjectsSchema>,
   monitorIds: string[],
   monitors: MetricDetector[]
 ): string[] {
