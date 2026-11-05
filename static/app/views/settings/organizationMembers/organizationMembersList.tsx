@@ -21,7 +21,7 @@ import {ORG_ROLES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
-import type {Member} from 'sentry/types/organization';
+import type {Member, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -79,7 +79,7 @@ function membersApiOptions({
   });
 }
 
-const inviteRequestsOptions = ({organization}: any) =>
+const inviteRequestsOptions = ({organization}: {organization: Organization}) =>
   apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/invite-requests/', {
     path: {organizationIdOrSlug: organization.slug},
     staleTime: 0,
