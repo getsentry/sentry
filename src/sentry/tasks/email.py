@@ -92,7 +92,7 @@ def _dedupe_key(message_id: str, message: dict[str, Any]) -> str:
 
 
 def _record_dedupe(result: str) -> None:
-    metrics.incr("email.send_dedupe", skip_internal=False, tags={"result": result})
+    metrics.incr("email.send_dedupe", tags={"result": result}, sample_rate=1.0)
 
 
 def _claim_send(key: str) -> bool:
