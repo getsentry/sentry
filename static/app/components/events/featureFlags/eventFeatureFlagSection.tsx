@@ -166,7 +166,6 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
         <GroupIdProvider groupId={group.id}>
           <EventFeatureFlagDrawer
             event={event}
-
             hydratedFlags={hydratedFlags}
             initialOrderBy={orderBy}
             focusControl={focusControl}

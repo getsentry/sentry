@@ -222,12 +222,12 @@ export function EventDetailsContent({
       <BreadcrumbsDataSection event={event} />
       <ErrorBoundary mini message={t('There was a problem loading logs.')}>
         <Feature features="ourlogs-enabled" organization={organization}>
-          <OurlogsSection event={event} group={group} project={project} />
+          <OurlogsSection event={event} group={group} />
         </Feature>
       </ErrorBoundary>
       <ErrorBoundary mini message={t('There was a problem loading metrics.')}>
         <Feature features="tracemetrics-enabled" organization={organization}>
-          <MetricsSection event={event} project={project} />
+          <MetricsSection event={event} />
         </Feature>
       </ErrorBoundary>
       {issueTypeConfig.trace.enabled &&
