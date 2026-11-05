@@ -13,41 +13,21 @@ export type SeerCreditOperation =
   | 'autofix_root_cause'
   | 'autofix_solution'
   | 'autofix_code_changes'
-  | 'autofix_create_pr'
+  | 'autofix_open_pr'
   | 'autofix_pr_iteration';
 
 interface SeerCreditCheckResponse {
   hasEnoughCredits: boolean;
 }
 
+/**
+ * Whether Seer credit gating applies to the organization at all. Orgs without
+ * token-billed Seer have no wallet to check, so they make no billing calls.
+ */
 export function hasSeerCreditChecks(organization: Organization) {
-  return organization.features.includes('seer-credit-checks');
-}
-
-interface SeerCreditCheckOptionsParams {
-  operation: SeerCreditOperation;
-  organization: Organization;
-  enabled?: boolean;
-}
-
-export function seerCreditCheckOptions({
-  organization,
-  operation,
-  enabled = true,
-}: SeerCreditCheckOptionsParams) {
-  return apiOptions.as<SeerCreditCheckResponse>()(
-    '/organizations/$organizationIdOrSlug/seer/credit-check/',
-    {
-      path:
-        enabled && hasSeerCreditChecks(organization)
-          ? {organizationIdOrSlug: organization.slug}
-          : skipToken,
-      query: {operation},
-      // Credits move outside this page: a run elsewhere spends them and a
-      // billing member can top up from another tab. Refetch on every mount and
-      // window focus so a gate never outlives the balance it was based on.
-      staleTime: 0,
-    }
+  return (
+    organization.features.includes('seer-credit-checks') &&
+    organization.features.includes('token-billed-seer-enabled')
   );
 }
 
@@ -66,8 +46,9 @@ interface UseSeerCreditCheckOptions {
  * Seer on this plan" and is mounted on many pages that should not make a
  * billing call. Only mount this where a Seer trigger is about to be shown.
  *
- * The check fails open. Without `seer-credit-checks`, or when the request
- * fails, `hasEnoughCredits` is `true` and the backend has the final say.
+ * The check fails open. Without `seer-credit-checks` and
+ * `token-billed-seer-enabled`, or when the request fails, `hasEnoughCredits`
+ * is `true` and the backend has the final say.
  */
 export function useSeerCreditCheck(
   operation: SeerCreditOperation,
@@ -77,7 +58,21 @@ export function useSeerCreditCheck(
   const isChecking = enabled && hasSeerCreditChecks(organization);
 
   const query = useQuery({
-    ...seerCreditCheckOptions({organization, operation, enabled}),
+    ...apiOptions.as<SeerCreditCheckResponse>()(
+      '/organizations/$organizationIdOrSlug/seer/credit-check/',
+      {
+        path: isChecking ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query: {operation},
+        staleTime: 0,
+      }
+    ),
+    // Credits move outside this page: a run elsewhere spends them and a billing
+    // member can top up from another tab. Recheck on every mount and window
+    // focus (which the app's query client turns off by default) so a gate
+    // never outlives the balance it was based on.
+    refetchOnWindowFocus: true,
+    // Fail open on the first error instead of holding callers' placeholders
+    // through the default retries.
     retry: false,
   });
 
