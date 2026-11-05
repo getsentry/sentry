@@ -224,6 +224,56 @@ class LoadedSegment(NamedTuple):
     def score(self) -> float:
         return self.flush_candidate.score
 
+    @property
+    def has_payloads(self) -> bool:
+        return bool(self.payloads)
+
+
+class CompressedSegment(NamedTuple):
+    """
+    A flush candidate with its payload keys, ingest metadata and payload set
+    members as read from Redis, not decompressed yet: zstd-compressed batches
+    of span payloads, or single span payloads when compression is disabled.
+
+    Every member decompresses into at least one payload, so a segment has
+    payloads exactly when it has members.
+    """
+
+    flush_candidate: FlushCandidate
+    compressed_payloads: list[bytes]
+    payload_keys: list[PayloadKey]
+    ingest_metadata: SegmentIngestMetadata = SegmentIngestMetadata()
+
+    @property
+    def segment_key(self) -> SegmentKey:
+        return self.flush_candidate.segment_key
+
+    @property
+    def has_payloads(self) -> bool:
+        return bool(self.compressed_payloads)
+
+
+class FlushBatch(NamedTuple):
+    """
+    The segments selected and loaded for one flush cycle, before they are
+    built into FlushedSegments.
+
+    `segments` holds LoadedSegments when payloads were decompressed while
+    loading (`decompressed`), or CompressedSegments when each segment is
+    decompressed only when it is built. flush_segments loads decompressed
+    batches and builds all of their segments before any is produced. The
+    streaming flush cycle loads compressed batches and produces each segment
+    before it builds the next one.
+    """
+
+    now: int
+    max_segments_per_shard: int
+    segments: Sequence[LoadedSegment | CompressedSegment]
+    decompressed: bool
+    load_ids_latency_ms: int
+    load_data_latency_ms: int
+    decompress_latency_ms: int
+
 
 class FlushedSegment(NamedTuple):
     """
@@ -238,6 +288,22 @@ class FlushedSegment(NamedTuple):
     spans: list[OutputSpan]
     project_id: int  # Used to track outcomes
     payload_keys: list[PayloadKey] = []  # For cleanup
+
+    @property
+    def span_ids(self) -> list[str]:
+        return [span.payload["span_id"] for span in self.spans]
+
+    def without_spans(self) -> ProducedSegment:
+        """
+        Keep what cleanup needs, so that the span payloads can be freed while
+        the rest of the flush cycle is produced.
+        """
+        return ProducedSegment(
+            queue_key=self.queue_key,
+            span_ids=self.span_ids,
+            project_id=self.project_id,
+            payload_keys=self.payload_keys,
+        )
 
     def to_messages(self) -> list[dict[str, Any]]:
         """
@@ -284,3 +350,17 @@ class FlushedSegment(NamedTuple):
             metrics.timing("spans.buffer.oversized_segments_size", sum(sizes))
 
         return messages
+
+
+class ProducedSegment(NamedTuple):
+    """
+    A FlushedSegment without its spans, kept after its messages were handed
+    to the producer until done_flush_segments cleans it up.
+
+    `span_ids` are needed to remove the segment's spans from the redirect map.
+    """
+
+    queue_key: QueueKey
+    span_ids: list[str]
+    project_id: int
+    payload_keys: list[PayloadKey] = []

@@ -336,6 +336,13 @@ def test_produce_to_kafka_exception(kafka_slice_id: int | None) -> None:
 
 _HOLD_PROJECT_ID = 999_011
 
+# The flusher reads spans.buffer.flusher.stream-segments in every flush cycle,
+# and the first-batch hold waits for the first cycle, so the tests that run
+# that cycle cover both modes.
+parametrize_stream_segments = pytest.mark.parametrize(
+    "stream_segments", [False, True], ids=["batch", "streaming"]
+)
+
 
 def _hold_test_buffer() -> SpansBuffer:
     buffer = SpansBuffer(assigned_shards=[0], slice_id=_HOLD_PROJECT_ID)
@@ -437,7 +444,8 @@ def _consume(
         "spans.buffer.flusher.wait-for-drift-seconds": 60,
     }
 )
-def test_consumer_holds_first_batch_until_first_flush_cycle() -> None:
+@parametrize_stream_segments
+def test_consumer_holds_first_batch_until_first_flush_cycle(stream_segments: bool) -> None:
     buffer = _hold_test_buffer()
     now = int(time.time())
     # The consumer resumes 300 seconds behind. Segment "a" was due before
@@ -463,13 +471,16 @@ def test_consumer_holds_first_batch_until_first_flush_cycle() -> None:
         kafka_slice_id=_HOLD_PROJECT_ID,
     )
     commits: list[Mapping[Partition, int]] = []
-    step = fac.create_with_partitions(_record_commits(commits), {Partition(Topic("test"), 0): 0})
     try:
-        _consume(
-            step,
-            [_hold_test_message(1, "c" * 32, message_time)],
-            until=lambda: bool(commits),
-        )
+        with override_options({"spans.buffer.flusher.stream-segments": stream_segments}):
+            step = fac.create_with_partitions(
+                _record_commits(commits), {Partition(Topic("test"), 0): 0}
+            )
+            _consume(
+                step,
+                [_hold_test_message(1, "c" * 32, message_time)],
+                until=lambda: bool(commits),
+            )
 
         # The first flush cycle used the drift of the held batch, and finished
         # before the batch was written into Redis and committed.
@@ -479,7 +490,8 @@ def test_consumer_holds_first_batch_until_first_flush_cycle() -> None:
         assert commits == [{Partition(Topic("test"), 0): 2}]
         assert fac._flusher.current_drift.value == pytest.approx(message_time - now, abs=5)
     finally:
-        fac._flusher.join()
+        if hasattr(fac, "_flusher"):
+            fac._flusher.join()
         _hold_test_buffer()
 
 
@@ -493,8 +505,9 @@ def test_consumer_holds_first_batch_until_first_flush_cycle() -> None:
 @override_options(
     {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
 )
+@parametrize_stream_segments
 def test_consumer_does_not_write_if_first_flush_cycle_fails(
-    wait_for_drift_seconds: int, error: str
+    wait_for_drift_seconds: int, error: str, stream_segments: bool
 ) -> None:
     # A due segment that a previous consumer left in Redis has a payload
     # member that is not JSON, so every flush cycle that loads it fails.
@@ -519,7 +532,10 @@ def test_consumer_does_not_write_if_first_flush_cycle_fails(
     try:
         with (
             override_options(
-                {"spans.buffer.flusher.wait-for-drift-seconds": wait_for_drift_seconds}
+                {
+                    "spans.buffer.flusher.wait-for-drift-seconds": wait_for_drift_seconds,
+                    "spans.buffer.flusher.stream-segments": stream_segments,
+                }
             ),
             pytest.raises(RuntimeError) as excinfo,
         ):
@@ -558,8 +574,9 @@ def test_consumer_does_not_write_if_first_flush_cycle_fails(
         "spans.buffer.flusher.wait-for-drift-seconds": 60,
     }
 )
+@parametrize_stream_segments
 def test_consumer_does_not_write_if_first_flush_cycle_fails_after_flush_segments(
-    target: type, attribute: str
+    target: type, attribute: str, stream_segments: bool
 ) -> None:
     # The first flush cycle loads and builds the due segment, and then fails
     # while it produces it or cleans it up.
@@ -579,6 +596,7 @@ def test_consumer_does_not_write_if_first_flush_cycle_fails_after_flush_segments
     commits: list[Mapping[Partition, int]] = []
     try:
         with (
+            override_options({"spans.buffer.flusher.stream-segments": stream_segments}),
             mock.patch.object(target, attribute, side_effect=ValueError("first cycle fails")),
             pytest.raises(RuntimeError) as excinfo,
         ):

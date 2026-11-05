@@ -403,30 +403,28 @@ def test_flusher_logger_accumulates_segments_and_spans(mock_time: MagicMock) -> 
 
 
 @mock.patch("sentry.spans.buffer_logger.time")
-def test_flusher_logger_records_loaded_segments(mock_time: MagicMock) -> None:
+def test_flusher_logger_records_flushed_segments(mock_time: MagicMock) -> None:
     with override_options({"spans.buffer.flusher-cumulative-logger-enabled": True}):
         mock_time.time.return_value = 1000.0
         flusher_logger = FlusherLogger()
         first_segment_key = _segment_id(1, "a" * 32, "b" * 16)
         second_segment_key = _segment_id(2, "c" * 32, "d" * 16)
-        empty_segment_key = _segment_id(3, "e" * 32, "f" * 16)
 
-        flusher_logger.log_loaded_segments(
+        flusher_logger.log_flushed_segments(
             [
-                LoadedSegment(
-                    FlushCandidate(0, b"queue", first_segment_key, 5),
-                    [b"first", b"second"],
-                    [],
+                FlusherLogEntry.from_loaded_segment(
+                    LoadedSegment(
+                        FlushCandidate(0, b"queue", first_segment_key, 5),
+                        [b"first", b"second"],
+                        [],
+                    )
                 ),
-                LoadedSegment(
-                    FlushCandidate(0, b"queue", empty_segment_key, 5),
-                    [],
-                    [],
-                ),
-                LoadedSegment(
-                    FlushCandidate(0, b"queue", second_segment_key, 5),
-                    [b"third"],
-                    [],
+                FlusherLogEntry.from_loaded_segment(
+                    LoadedSegment(
+                        FlushCandidate(0, b"queue", second_segment_key, 5),
+                        [b"third"],
+                        [],
+                    )
                 ),
             ],
             load_ids_latency_ms=5,
@@ -438,7 +436,6 @@ def test_flusher_logger_records_loaded_segments(mock_time: MagicMock) -> None:
         second_trace = flusher_logger._metrics_per_trace[f"2:{'c' * 32}"]
         assert first_trace == FlusherAggregate(1, 2, len(b"first") + len(b"second"))
         assert second_trace == FlusherAggregate(1, 1, len(b"third"))
-        assert f"3:{'e' * 32}" not in flusher_logger._metrics_per_trace
         assert flusher_logger._cumulative_load_ids_latency_ms == 5
         assert flusher_logger._cumulative_load_data_latency_ms == 10
         assert flusher_logger._cumulative_decompress_latency_ms == 3

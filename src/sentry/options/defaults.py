@@ -3652,6 +3652,25 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Build and produce each flush cycle one segment at a time. Payloads stay
+# compressed until their segment is built, and a segment's spans and messages
+# are freed once they were handed to the producer, so the flusher holds one
+# decompressed segment at a time instead of up to max-flush-segments of them.
+# (With spans.buffer.compression.level -1, the cycle's span JSON is still held
+# until the cycle ends, and only the parsed spans are per segment.)
+# Redis commands, produced messages, outcomes and metric values are unchanged,
+# except for timers: spans.buffer.flusher.produce then also covers
+# decompression, parsing, and the cycle's dropped-span outcomes and flusher
+# logger entries, while spans.buffer.flush_segments.load_segment_data and the
+# flusher logger's load latency no longer include decompression. A failure to
+# track the dropped-span outcomes is logged instead of failing the cycle,
+# because its segments were already produced. Read once per flush cycle.
+register(
+    "spans.buffer.flusher.stream-segments",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # TTL (in seconds) for the per-segment lock acquired at flush time to
 # prevent two flushers from producing the same segment concurrently.
 # The lock is explicitly released by the flusher after the segment payloads
