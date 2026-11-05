@@ -65,11 +65,12 @@ class ShouldCallSeerTest(TestCase):
 
     def test_obeys_global_and_rollout_options(self) -> None:
         # No per-project option: only the global option or the rollout rate can turn Seer on
-        for overrides, expected_result in [
+        cases: list[tuple[dict[str, Any], bool]] = [
             ({}, False),
             ({"similarity.seer_grouping.rollout_rate": 1.0}, True),
             ({"similarity.seer_grouping.enabled": True}, True),
-        ]:
+        ]
+        for overrides, expected_result in cases:
             with override_options(overrides):
                 assert (
                     should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)

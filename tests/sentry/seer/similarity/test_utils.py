@@ -1207,11 +1207,12 @@ class ProjectsUsingSeerSimilarityTest(TestCase):
 
         assert projects_using_seer_similarity([]) == {}
 
-        for overrides in (
+        option_overrides: list[dict[str, Any]] = [
             {},
             {"similarity.seer_grouping.rollout_rate": 1.0},
             {"similarity.seer_grouping.enabled": True},
-        ):
+        ]
+        for overrides in option_overrides:
             with override_options(overrides):
                 assert projects_using_seer_similarity(projects) == {
                     project: project_uses_seer_similarity(project) for project in projects
