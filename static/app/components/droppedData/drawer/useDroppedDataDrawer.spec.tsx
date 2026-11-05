@@ -1,5 +1,5 @@
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {
@@ -15,7 +15,6 @@ import {Button} from '@sentry/scraps/button';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -24,6 +23,8 @@ import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplo
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
+import {useDroppedDataDrawer} from './useDroppedDataDrawer';
+
 jest.mock('sentry/utils/analytics');
 
 const organization = OrganizationFixture({
@@ -31,8 +32,8 @@ const organization = OrganizationFixture({
 });
 
 function mockDroppedData(count: number, statsPeriod: string) {
-  const dropped = [DroppedEventFixture({count})];
-  const accepted = [DroppedEventFixture({outcome: 'accepted', count: 90})];
+  const dropped = [OutcomeRowFixture({count})];
+  const accepted = [OutcomeRowFixture({outcome: 'accepted', count: 90})];
 
   return MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-dropped/`,
@@ -51,27 +52,37 @@ function mockMultiOutcomeDroppedData() {
     body: {
       meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
       droppedEvents: [
-        DroppedEventFixture({outcome: 'client_discard', reason: 'before_send', count: 4}),
-        DroppedEventFixture({
+        OutcomeRowFixture({outcome: 'client_discard', reason: 'before_send', count: 4}),
+        OutcomeRowFixture({
           outcome: 'client_discard',
           reason: 'network_error',
           count: 6,
         }),
-        DroppedEventFixture({
+        OutcomeRowFixture({
           outcome: 'filtered',
           reason: 'ignore_spans',
           count: 30,
           tags: ['intentional'],
         }),
       ],
-      acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
+      acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 60})],
     },
   });
 }
 
-function DroppedDataTrigger({enabled, interval}: {enabled?: boolean; interval?: string}) {
+function DroppedDataTrigger({
+  dataset,
+  enabled,
+  interval = '1h',
+  projects,
+}: {
+  dataset: DiscoverDatasets;
+  enabled?: boolean;
+  interval?: string;
+  projects?: number[];
+}) {
   const openDroppedDataDrawer = useDroppedDataDrawer(
-    {dataset: DiscoverDatasets.SPANS, interval},
+    {dataset, interval, projects},
     {enabled}
   );
   return <Button onClick={openDroppedDataDrawer}>Open dropped data</Button>;
@@ -94,14 +105,14 @@ describe('useDroppedDataDrawer', () => {
   it('adds the drawer to the URL when opened and removes it when closed', async () => {
     mockDroppedData(10, '14d');
 
-    const {router} = render(<DroppedDataTrigger />, {
+    const {router} = render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization,
       initialRouterConfig: {location: {pathname: '/explore/traces/'}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
     expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
-    expect(router.location.query.droppedData).toBe('true');
+    expect(router.location.query.droppedData).toBe('spans');
     expect(trackAnalytics).toHaveBeenCalledWith(
       'explore.dropped_data.drawer_opened',
       expect.objectContaining({dataset: DiscoverDatasets.SPANS})
@@ -115,7 +126,7 @@ describe('useDroppedDataDrawer', () => {
   it('shows the dropped total as a heading above a description', async () => {
     mockDroppedData(10, '14d');
 
-    render(<DroppedDataTrigger />, {
+    render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization,
       initialRouterConfig: {location: {pathname: '/explore/traces/'}},
     });
@@ -132,7 +143,7 @@ describe('useDroppedDataDrawer', () => {
   it('points to the docs instead of Seer when Seer Explorer is disabled', async () => {
     mockDroppedData(10, '14d');
 
-    render(<DroppedDataTrigger />, {
+    render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization,
       initialRouterConfig: {location: {pathname: '/explore/traces/'}},
     });
@@ -154,7 +165,7 @@ describe('useDroppedDataDrawer', () => {
     });
     mockDroppedData(10, '14d');
 
-    render(<DroppedDataTrigger />, {
+    render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization: seerOrganization,
       initialRouterConfig: {location: {pathname: '/explore/traces/'}},
     });
@@ -169,7 +180,7 @@ describe('useDroppedDataDrawer', () => {
   it('uses the singular heading for one dropped event', async () => {
     mockDroppedData(1, '14d');
 
-    render(<DroppedDataTrigger />, {
+    render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization,
       initialRouterConfig: {location: {pathname: '/explore/traces/'}},
     });
@@ -187,7 +198,7 @@ describe('useDroppedDataDrawer', () => {
       body: {detail: 'Internal Error'},
     });
 
-    render(<DroppedDataTrigger />, {
+    render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization,
       initialRouterConfig: {location: {pathname: '/explore/traces/'}},
     });
@@ -208,10 +219,10 @@ describe('useDroppedDataDrawer', () => {
   it('opens when the URL already has the drawer param', async () => {
     mockDroppedData(10, '14d');
 
-    render(<DroppedDataTrigger />, {
+    render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization,
       initialRouterConfig: {
-        location: {pathname: '/explore/traces/', query: {droppedData: 'true'}},
+        location: {pathname: '/explore/traces/', query: {droppedData: 'spans'}},
       },
     });
 
@@ -222,7 +233,7 @@ describe('useDroppedDataDrawer', () => {
     mockDroppedData(10, '14d');
     localStorage.setItem('drawer-width:dropped-data-drawer', '70');
 
-    render(<DroppedDataTrigger />, {
+    render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization,
       initialRouterConfig: {location: {pathname: '/explore/traces/'}},
     });
@@ -239,10 +250,41 @@ describe('useDroppedDataDrawer', () => {
   it('does not open from the URL param when disabled', async () => {
     const droppedDataRequest = mockDroppedData(10, '14d');
 
-    render(<DroppedDataTrigger enabled={false} />, {
+    render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} enabled={false} />, {
       organization,
       initialRouterConfig: {
-        location: {pathname: '/discover/results/', query: {droppedData: 'true'}},
+        location: {pathname: '/discover/results/', query: {droppedData: 'spans'}},
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Open dropped data'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('complementary', {name: 'Dropped and Filtered Spans'})
+    ).not.toBeInTheDocument();
+    expect(droppedDataRequest).not.toHaveBeenCalled();
+  });
+
+  it('uses a public name in the URL param for internal datasets', async () => {
+    mockDroppedData(10, '14d');
+
+    const {router} = render(<DroppedDataTrigger dataset={DiscoverDatasets.OURLOGS} />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/logs/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(router.location.query.droppedData).toBe('logs');
+  });
+
+  it('does not open when the URL param names a different dataset', async () => {
+    const droppedDataRequest = mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/explore/traces/', query: {droppedData: 'ourlogs'}},
       },
     });
 
@@ -260,13 +302,13 @@ describe('useDroppedDataDrawer', () => {
 
     render(
       <div>
-        <DroppedDataTrigger />
-        <DroppedDataTrigger />
+        <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />
+        <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />
       </div>,
       {
         organization,
         initialRouterConfig: {
-          location: {pathname: '/explore/traces/', query: {droppedData: 'true'}},
+          location: {pathname: '/explore/traces/', query: {droppedData: 'spans'}},
         },
       }
     );
@@ -280,7 +322,7 @@ describe('useDroppedDataDrawer', () => {
   it('closes when navigating back', async () => {
     mockDroppedData(10, '14d');
 
-    const {router} = render(<DroppedDataTrigger />, {
+    const {router} = render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization,
       initialRouterConfig: {location: {pathname: '/explore/traces/'}},
     });
@@ -295,7 +337,7 @@ describe('useDroppedDataDrawer', () => {
   it('reopens when navigating forward', async () => {
     mockDroppedData(10, '14d');
 
-    const {router} = render(<DroppedDataTrigger />, {
+    const {router} = render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization,
       initialRouterConfig: {location: {pathname: '/explore/traces/'}},
     });
@@ -310,14 +352,14 @@ describe('useDroppedDataDrawer', () => {
     expect(
       await screen.findByRole('complementary', {name: 'Dropped and Filtered Spans'})
     ).toBeInTheDocument();
-    expect(router.location.query.droppedData).toBe('true');
+    expect(router.location.query.droppedData).toBe('spans');
   });
 
   it('stays open and refreshes when zooming changes the time range', async () => {
     mockDroppedData(10, '14d');
     mockDroppedData(3, '1h');
 
-    const {router} = render(<DroppedDataTrigger />, {
+    const {router} = render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization,
       initialRouterConfig: {location: {pathname: '/explore/traces/'}},
     });
@@ -326,7 +368,7 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
 
     act(() => {
-      router.navigate('/explore/traces/?droppedData=true&statsPeriod=1h');
+      router.navigate('/explore/traces/?droppedData=spans&statsPeriod=1h');
       PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: false});
     });
 
@@ -336,7 +378,7 @@ describe('useDroppedDataDrawer', () => {
   it('fetches with the interval passed by the chart', async () => {
     const droppedDataRequest = mockDroppedData(10, '14d');
 
-    render(<DroppedDataTrigger interval="1d" />, {
+    render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} interval="1d" />, {
       organization,
       initialRouterConfig: {location: {pathname: '/discover/results/'}},
     });
@@ -352,15 +394,18 @@ describe('useDroppedDataDrawer', () => {
   it('refetches in place when the chart interval changes', async () => {
     const droppedDataRequest = mockDroppedData(10, '14d');
 
-    const {rerender} = render(<DroppedDataTrigger interval="1d" />, {
-      organization,
-      initialRouterConfig: {location: {pathname: '/discover/results/'}},
-    });
+    const {rerender} = render(
+      <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} interval="1d" />,
+      {
+        organization,
+        initialRouterConfig: {location: {pathname: '/discover/results/'}},
+      }
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
     expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
 
-    rerender(<DroppedDataTrigger interval="4h" />);
+    rerender(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} interval="4h" />);
 
     await waitFor(() =>
       expect(droppedDataRequest).toHaveBeenLastCalledWith(
@@ -373,10 +418,37 @@ describe('useDroppedDataDrawer', () => {
     ).toBeInTheDocument();
   });
 
+  it('refetches in place when the chart projects change', async () => {
+    const droppedDataRequest = mockDroppedData(10, '14d');
+
+    const {rerender} = render(
+      <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} projects={[2]} />,
+      {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
+
+    rerender(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} projects={[3]} />);
+
+    await waitFor(() =>
+      expect(droppedDataRequest).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({query: expect.objectContaining({project: [3]})})
+      )
+    );
+    expect(
+      screen.getByRole('complementary', {name: 'Dropped and Filtered Spans'})
+    ).toBeInTheDocument();
+  });
+
   it('closes when navigating to another page', async () => {
     mockDroppedData(10, '14d');
 
-    const {router} = render(<DroppedDataTrigger />, {
+    const {router} = render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
       organization,
       initialRouterConfig: {location: {pathname: '/explore/traces/'}},
     });
@@ -400,7 +472,7 @@ describe('useDroppedDataDrawer', () => {
     it('filters the total and outcome list to the selected outcomes', async () => {
       mockMultiOutcomeDroppedData();
 
-      render(<DroppedDataTrigger />, {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
         organization,
         initialRouterConfig: {location: {pathname: '/explore/traces/'}},
       });
@@ -435,7 +507,7 @@ describe('useDroppedDataDrawer', () => {
     it('lists unintentional and intentional drops under their headings', async () => {
       mockMultiOutcomeDroppedData();
 
-      render(<DroppedDataTrigger />, {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
         organization,
         initialRouterConfig: {location: {pathname: '/explore/traces/'}},
       });
@@ -466,7 +538,7 @@ describe('useDroppedDataDrawer', () => {
     it('shows an empty state when every outcome is deselected', async () => {
       mockMultiOutcomeDroppedData();
 
-      render(<DroppedDataTrigger />, {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
         organization,
         initialRouterConfig: {location: {pathname: '/explore/traces/'}},
       });
@@ -505,7 +577,7 @@ describe('useDroppedDataDrawer', () => {
     it('shows only unintentional drops by default', async () => {
       mockMultiOutcomeDroppedData();
 
-      render(<DroppedDataTrigger />, {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
         organization,
         initialRouterConfig: {location: {pathname: '/explore/traces/'}},
       });
@@ -532,7 +604,7 @@ describe('useDroppedDataDrawer', () => {
     it('recomputes shares when switching to all values and back', async () => {
       mockMultiOutcomeDroppedData();
 
-      render(<DroppedDataTrigger />, {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
         organization,
         initialRouterConfig: {location: {pathname: '/explore/traces/'}},
       });
@@ -569,18 +641,18 @@ describe('useDroppedDataDrawer', () => {
         body: {
           meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
           droppedEvents: [
-            DroppedEventFixture({
+            OutcomeRowFixture({
               outcome: 'filtered',
               reason: 'ignore_spans',
               count: 30,
               tags: ['intentional'],
             }),
           ],
-          acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
+          acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 60})],
         },
       });
 
-      render(<DroppedDataTrigger />, {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
         organization,
         initialRouterConfig: {location: {pathname: '/explore/traces/'}},
       });
@@ -607,11 +679,11 @@ describe('useDroppedDataDrawer', () => {
         body: {
           meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
           droppedEvents: [],
-          acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
+          acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 60})],
         },
       });
 
-      render(<DroppedDataTrigger />, {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
         organization,
         initialRouterConfig: {location: {pathname: '/explore/traces/'}},
       });
@@ -631,30 +703,30 @@ describe('useDroppedDataDrawer', () => {
       ).toBeInTheDocument();
     });
 
-    it('keeps contributing shares when a legend outcome is deselected', async () => {
+    it('keeps unexpected shares when a legend outcome is deselected', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-dropped/`,
         body: {
           meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
           droppedEvents: [
-            DroppedEventFixture({
+            OutcomeRowFixture({
               outcome: 'client_discard',
               reason: 'before_send',
               count: 10,
             }),
-            DroppedEventFixture({count: 20}),
-            DroppedEventFixture({
+            OutcomeRowFixture({count: 20}),
+            OutcomeRowFixture({
               outcome: 'filtered',
               reason: 'ignore_spans',
               count: 30,
               tags: ['intentional'],
             }),
           ],
-          acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 40})],
+          acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 40})],
         },
       });
 
-      render(<DroppedDataTrigger />, {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
         organization,
         initialRouterConfig: {location: {pathname: '/explore/traces/'}},
       });
@@ -708,7 +780,7 @@ describe('useDroppedDataDrawer', () => {
             <GlobalDrawer>
               <SeerExplorerContextProvider>
                 <SeerExplorerSidebarLayout>
-                  <DroppedDataTrigger />
+                  <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />
                 </SeerExplorerSidebarLayout>
               </SeerExplorerContextProvider>
             </GlobalDrawer>

@@ -9,10 +9,11 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {WidgetContainer} from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
+
+import {WidgetContainer} from './widgetContainer';
 
 const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   const data = _initializeData({
@@ -29,7 +30,6 @@ const DEFAULT_ALLOWED_CHARTS = [
   PerformanceWidgetSetting.TPM_AREA,
   PerformanceWidgetSetting.FAILURE_RATE_AREA,
   PerformanceWidgetSetting.USER_MISERY_AREA,
-  PerformanceWidgetSetting.DURATION_HISTOGRAM,
 ];
 
 function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
@@ -320,40 +320,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
         }),
       })
     );
-  });
-
-  it('LCP Histogram Widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.LCP_HISTOGRAM}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'LCP Distribution'
-    );
-
-    // TODO(k-fish): Add histogram mock
-  });
-
-  it('FCP Histogram Widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.FCP_HISTOGRAM}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'FCP Distribution'
-    );
-
-    // TODO(k-fish): Add histogram mock
   });
 
   it('Most errors widget', async () => {

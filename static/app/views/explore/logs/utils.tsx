@@ -39,23 +39,7 @@ import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {
-  DeprecatedLogDetailFields,
-  LogAttributesHumanLabel,
-  LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
-} from 'sentry/views/explore/logs/constants';
-import {
-  getTargetWithReadableQueryParams,
-  LOGS_AGGREGATE_FIELD_KEY,
-} from 'sentry/views/explore/logs/logsQueryParams';
-import {
-  OurLogKnownFieldKey,
-  type EventsLogsResult,
-  type LogAttributeUnits,
-  type LogRowItem,
-  type OurLogFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
+import type {ExploreCaseSensitivity} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
   type BaseVisualize,
@@ -64,6 +48,24 @@ import {
 import {generateTargetQuery} from 'sentry/views/explore/utils/generateTargetQuery';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import {
+  DeprecatedLogDetailFields,
+  LogAttributesHumanLabel,
+  LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
+} from './constants';
+import {
+  getTargetWithReadableQueryParams,
+  LOGS_AGGREGATE_FIELD_KEY,
+} from './logsQueryParams';
+import {
+  OurLogKnownFieldKey,
+  type EventsLogsResult,
+  type LogAttributeUnits,
+  type LogRowItem,
+  type OurLogFieldKey,
+  type OurLogsResponseItem,
+} from './types';
 const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(
@@ -405,7 +407,7 @@ type BaseGetLogsUrlParams = {
   aggregateFields?: Array<GroupBy | BaseVisualize>;
   aggregateFn?: string;
   aggregateParam?: string;
-  caseInsensitive?: '1' | null;
+  caseInsensitive?: ExploreCaseSensitivity;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -518,7 +520,7 @@ export function getLogsUrlFromSavedQueryUrl({
       environments: savedQuery.environment ? [...savedQuery.environment] : [],
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
-    caseInsensitive: firstQuery.caseInsensitive ? '1' : null,
+    caseInsensitive: firstQuery.caseInsensitive ? '1' : '0',
   });
 }
 

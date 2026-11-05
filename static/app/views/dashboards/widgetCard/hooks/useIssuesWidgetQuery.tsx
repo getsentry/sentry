@@ -8,29 +8,38 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import {
-  type IssuesSeriesResponse,
-  transformIssuesResponseToSeries,
-} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToSeries';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToTable';
 import {DEFAULT_TABLE_LIMIT} from 'sentry/views/dashboards/types';
-import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import {
+  transformTimeSeriesResponse,
+  type WidgetTimeSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {combineWidgetJsonQueryResults} from './utils/combineWidgetQueryResults';
+import {getWidgetStaleTime} from './utils/getStaleTime';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_EXPAND = ['owners'];
 
 type IssuesTableResponse = Group[];
+
+export type IssuesSeriesResponse = {
+  timeSeries: TimeSeries[];
+  meta?: {
+    dataset: string;
+    end: number;
+    start: number;
+  };
+};
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -150,8 +159,8 @@ export function useIssuesSeriesQuery(
 
       const responseData = q.data.json;
 
-      const transformedResult = transformMultipleWidgetSeriesToTimeSeries(
-        transformIssuesResponseToSeries(responseData),
+      const transformedResult = transformTimeSeriesResponse(
+        responseData,
         filteredWidget,
         requestIndex
       );
@@ -262,6 +271,7 @@ export function useIssuesTableQuery(
 
   const tableResults: any[] = [];
   let responsePageLinks: string | undefined;
+  let totalCount: string | undefined;
 
   queryResults.forEach((q, i) => {
     if (!q?.data?.json) {
@@ -288,6 +298,8 @@ export function useIssuesTableQuery(
     tableResults.push(transformedDataItem);
 
     responsePageLinks = q.data.headers.Link;
+    const hits = q.data.headers['X-Hits'];
+    totalCount = hits === undefined ? undefined : String(hits);
   });
 
   return {
@@ -295,6 +307,7 @@ export function useIssuesTableQuery(
     errorMessage: undefined,
     tableResults,
     pageLinks: responsePageLinks,
+    totalCount,
     rawData,
   };
 }

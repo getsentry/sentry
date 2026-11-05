@@ -14,10 +14,6 @@ import {
   investigationOrchestrationQueryOptions,
   useInvestigationOrchestrationCommandMutation,
 } from 'sentry/views/investigations/api';
-import {
-  HypothesisList,
-  HypothesisListPlaceholder,
-} from 'sentry/views/investigations/hypotheses/hypothesisList';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {
@@ -26,6 +22,8 @@ import type {
   InvestigationOrchestrationPhase,
   InvestigationOrchestrationStatus,
 } from 'sentry/views/investigations/types';
+
+import {HypothesisList, HypothesisListPlaceholder} from './hypothesisList';
 
 /** How often to re-read the projection while a workflow is still moving. */
 const POLL_INTERVAL_MS = 2000;
@@ -101,6 +99,13 @@ type InvestigationHypothesesProps = {
    * orchestration endpoint 404s for those, and there is nothing to poll.
    */
   enabled?: boolean;
+  /** Lets the page outline scroll to the hypotheses. */
+  id?: string;
+  /**
+   * Adds "Ask Seer" to each hypothesis's menu. Left out where Seer Agent can't
+   * take the question.
+   */
+  onAskSeer?: (hypothesis: InvestigationHypothesis) => void;
   /**
    * The run's phase from the investigation summary. Only used before the
    * projection arrives, so a finished run opens collapsed instead of showing a
@@ -131,7 +136,9 @@ type InvestigationHypothesesProps = {
  */
 export function InvestigationHypotheses({
   enabled = true,
+  id,
   investigationId,
+  onAskSeer,
   phase: summaryPhase,
   status: summaryStatus,
 }: InvestigationHypothesesProps) {
@@ -141,7 +148,11 @@ export function InvestigationHypotheses({
   // rewrite the projection behind it.
   const [commandSentAt, setCommandSentAt] = useState<number | null>(null);
 
-  const {data: projection, isPending} = useQuery({
+  const {
+    data: projection,
+    dataUpdatedAt,
+    isPending,
+  } = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigationId),
     enabled,
     refetchInterval: query => {
@@ -221,7 +232,7 @@ export function InvestigationHypotheses({
   // A finished run has nothing left to report here: the findings below speak
   // for themselves, and the header badge still says it completed. Every other
   // state — running, waiting on input, failed, stopped — keeps the block.
-  const seerStatus = getSeerStatusBlock(projection);
+  const seerStatus = getSeerStatusBlock(projection, dataUpdatedAt);
   const statusBlock = seerStatus?.variant === 'complete' ? null : seerStatus;
   const {workflowVersion} = projection;
   const commandPending = commandMutation.isPending;
@@ -251,6 +262,15 @@ export function InvestigationHypotheses({
     const decidedByUser = hypothesis.decisionSource === 'user';
 
     return [
+      ...(onAskSeer
+        ? [
+            {
+              key: 'ask-seer',
+              label: t('Ask Seer'),
+              onAction: () => onAskSeer(hypothesis),
+            },
+          ]
+        : []),
       {
         key: 'accept',
         label:
@@ -292,7 +312,7 @@ export function InvestigationHypotheses({
     !SETTLED_PHASES.has(projection.phase);
 
   return (
-    <Stack gap="3xl">
+    <Stack id={id} gap="3xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
       {hasHypotheses || awaitingFirstHypothesis ? (
         <HypothesesPanel

@@ -10,6 +10,7 @@ from sentry.issue_detection.detectors.utils import (
     does_overlap_previous_span,
     get_notification_attachment_body,
     get_numeric_value_from_span,
+    get_span_description,
     get_span_evidence_value,
     safer_urlparse,
     span_has_obfuscated_hostname,
@@ -157,7 +158,7 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         fingerprint = f"1-{PerformanceHTTPOverheadGroupType.type_id}-{location}"
         example_span = location_spans[-1]
-        desc: str = example_span.get("description", "")
+        desc = get_span_description(example_span)
 
         location_span_ids = [span["span_id"] for span in location_spans]
 

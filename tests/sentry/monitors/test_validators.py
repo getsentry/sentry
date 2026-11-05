@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -57,7 +58,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         }
 
     @patch("sentry.analytics.record")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: MagicMock) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -209,7 +210,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert monitor.config["checkin_margin"] == 1
 
     def test_max_runtime_limit(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "project": self.project.slug,
             "name": "My Monitor",
             "slug": "cron_job",
@@ -227,7 +228,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         ]
 
     @patch("sentry.quotas.backend.assign_seat")
-    def test_create_monitor_assigns_seat(self, assign_seat):
+    def test_create_monitor_assigns_seat(self, assign_seat: MagicMock) -> None:
         assign_seat.return_value = Outcome.ACCEPTED
 
         data = {
@@ -245,7 +246,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.assign_seat")
-    def test_create_monitor_without_seat(self, assign_seat):
+    def test_create_monitor_without_seat(self, assign_seat: MagicMock) -> None:
         assign_seat.return_value = Outcome.RATE_LIMITED
 
         data = {
@@ -653,7 +654,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert not Detector.objects.get(id=detector.id).enabled
 
     @patch("sentry.quotas.backend.check_assign_seat")
-    def test_update_status_to_active_with_quota_check(self, mock_check_seat):
+    def test_update_status_to_active_with_quota_check(self, mock_check_seat: MagicMock) -> None:
         """Test updating monitor status to active checks quota."""
         # Start with disabled monitor
         self.monitor.update(status=ObjectStatus.DISABLED)
@@ -684,7 +685,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert Detector.objects.get(id=detector.id).enabled
 
     @patch("sentry.quotas.backend.check_assign_seat")
-    def test_update_status_to_active_quota_exceeded(self, mock_check_seat):
+    def test_update_status_to_active_quota_exceeded(self, mock_check_seat: MagicMock) -> None:
         """Test updating monitor status to active fails when quota exceeded."""
         # Start with disabled monitor
         self.monitor.update(status=ObjectStatus.DISABLED)
@@ -963,7 +964,7 @@ class BaseMonitorValidatorTestCase(MonitorTestCase):
             "access": access,
         }
 
-    def _get_base_config(self, schedule_type="crontab", **overrides):
+    def _get_base_config(self, schedule_type: str = "crontab", **overrides: Any) -> dict[str, Any]:
         """Get base monitor config with optional overrides."""
         config = {
             "schedule": "0 * * * *",
@@ -983,7 +984,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         super().setUp()
         self.valid_data = self._get_valid_data()
 
-    def _get_valid_data(self, **overrides):
+    def _get_valid_data(self, **overrides: Any) -> dict[str, Any]:
         data = {
             "name": "Test Monitor",
             "slug": "test-monitor",
@@ -992,7 +993,12 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         data.update(overrides)
         return data
 
-    def _create_validator(self, data=None, instance=None, partial=False):
+    def _create_validator(
+        self,
+        data: dict[str, Any] | None = None,
+        instance: Monitor | None = None,
+        partial: bool = False,
+    ) -> MonitorDataSourceValidator:
         return MonitorDataSourceValidator(
             data=data or self.valid_data,
             instance=instance,
@@ -1001,8 +1007,13 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         )
 
     def _assert_valid_monitor_data(
-        self, validator, expected_name, expected_slug, expected_schedule, expected_type
-    ):
+        self,
+        validator: MonitorDataSourceValidator,
+        expected_name: str,
+        expected_slug: str,
+        expected_schedule: object,
+        expected_type: object,
+    ) -> None:
         """Helper to assert common monitor validation results."""
         assert validator.is_valid(), validator.errors
         validated_data = validator.validated_data
@@ -1076,7 +1087,14 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert validator.is_valid(), validator.errors
         assert validator.validated_data["config"]["schedule"] == "0 * * * *"
 
-    def _assert_monitor_attributes(self, monitor, name, slug, schedule, status=ObjectStatus.ACTIVE):
+    def _assert_monitor_attributes(
+        self,
+        monitor: Monitor,
+        name: str,
+        slug: str,
+        schedule: object,
+        status: int = ObjectStatus.ACTIVE,
+    ) -> None:
         """Helper to assert monitor attributes after creation."""
         assert isinstance(monitor, Monitor)
         assert monitor.name == name
@@ -1129,7 +1147,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert "slug" in validator.errors
         assert 'The slug "test-monitor" is already in use.' in str(validator.errors["slug"])
 
-    def _create_monitor_without_slug(self, name):
+    def _create_monitor_without_slug(self, name: str) -> Monitor:
         validator = self._create_validator({"name": name, "config": self._get_base_config()})
         assert validator.is_valid(), validator.errors
         return validator.create_source(validator.validated_data)
@@ -1202,7 +1220,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         super().setUp()
         self.valid_data = self._get_valid_detector_data()
 
-    def _get_valid_detector_data(self, **overrides):
+    def _get_valid_detector_data(self, **overrides: Any) -> dict[str, Any]:
         data = {
             "type": "monitor_check_in_failure",
             "name": "Test Monitor Detector",
@@ -1217,7 +1235,12 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         data.update(overrides)
         return data
 
-    def _create_validator(self, data=None, instance=None, partial=False):
+    def _create_validator(
+        self,
+        data: dict[str, Any] | None = None,
+        instance: Detector | None = None,
+        partial: bool = False,
+    ) -> MonitorIncidentDetectorValidator:
         return MonitorIncidentDetectorValidator(
             data=data or self.valid_data,
             instance=instance,
@@ -1280,7 +1303,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert validator.validated_data["data_sources"][0]["data_source_type"] == "cron_monitor"
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
-    def test_create_enabled_assigns_seat(self, mock_assign_seat):
+    def test_create_enabled_assigns_seat(self, mock_assign_seat: MagicMock) -> None:
         """Test that creating an enabled detector assigns a billing seat."""
 
         condition_group = DataConditionGroup.objects.create(
@@ -1303,7 +1326,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         mock_assign_seat.assert_called_once_with(seat_object=monitor)
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.RATE_LIMITED)
-    def test_create_enabled_no_seat_available(self, mock_assign_seat):
+    def test_create_enabled_no_seat_available(self, mock_assign_seat: MagicMock) -> None:
         """
         Test that creating a detector with no seats available creates it but
         leaves it disabled.
@@ -1330,7 +1353,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         mock_assign_seat.assert_called_once_with(seat_object=monitor)
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
-    def test_create_with_monitor_status_disabled(self, mock_assign_seat):
+    def test_create_with_monitor_status_disabled(self, mock_assign_seat: MagicMock) -> None:
         condition_group = DataConditionGroup.objects.create(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
@@ -1348,7 +1371,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert detector.enabled is False
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
-    def test_update_enable_assigns_seat(self, mock_assign_seat):
+    def test_update_enable_assigns_seat(self, mock_assign_seat: MagicMock) -> None:
         """
         Test that enabling a previously disabled detector assigns a seat.
         """
@@ -1389,7 +1412,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         "sentry.quotas.backend.check_assign_seat",
         return_value=SeatAssignmentResult(assignable=False, reason="No seats available"),
     )
-    def test_update_enable_no_seat_available(self, mock_check_seat):
+    def test_update_enable_no_seat_available(self, mock_check_seat: MagicMock) -> None:
         """
         Test that enabling fails with validation error when no seats are
         available.
@@ -1432,7 +1455,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         mock_check_seat.assert_called_with(seat_object=monitor)
 
     @patch("sentry.quotas.backend.disable_seat")
-    def test_update_disable_disables_seat(self, mock_disable_seat):
+    def test_update_disable_disables_seat(self, mock_disable_seat: MagicMock) -> None:
         """Test that disabling a previously enabled detector disables the seat."""
         # Create an enabled detector
         detector = self.create_detector(

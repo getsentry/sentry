@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
-import {WidgetPreview} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+
+import {WidgetPreview} from './widgetPreview';
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';

@@ -1,9 +1,3 @@
-import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
-import {
-  findCompleteOrOverdueTasks,
-  findCompleteTasks,
-  taskIsDone,
-} from 'sentry/components/onboardingWizard/utils';
 import {
   OnboardingTaskGroup,
   type OnboardingTask,
@@ -13,6 +7,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {getMergedTasks} from './taskConfig';
+import {findCompleteOrOverdueTasks, findCompleteTasks, taskIsDone} from './utils';
 
 // Merge supported onboarding tasks with their completion status from the server.
 function mergeTasks({

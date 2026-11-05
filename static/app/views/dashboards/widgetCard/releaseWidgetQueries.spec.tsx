@@ -14,7 +14,8 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+
+import {ReleaseWidgetQueries} from './releaseWidgetQueries';
 
 // Matches a widget time series that plots the same points as the legacy series
 function matchesLegacySeries({seriesName, data}: Series) {
@@ -174,7 +175,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     expect(mockRelease).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({
-        data: {
+        query: {
           environment: ['prod'],
           per_page: 50,
           project: [1],

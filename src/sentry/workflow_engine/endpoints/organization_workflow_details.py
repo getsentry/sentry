@@ -44,6 +44,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.ALERTS_MONITORS
 
     @extend_schema(

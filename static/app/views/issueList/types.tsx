@@ -6,7 +6,8 @@ import type {
   TagValue,
 } from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
-import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import type {IssueSortOptions} from './utils';
 
 export type TagValueLoader = (key: string, search: string) => Promise<TagValue[]>;
 

@@ -2,7 +2,7 @@ import {createRef} from 'react';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Sticky} from 'sentry/components/sticky';
+import {Sticky} from './sticky';
 
 describe('Sticky', () => {
   const originalIntersectionObserver = window.IntersectionObserver;
@@ -87,5 +87,33 @@ describe('Sticky', () => {
     );
     expect(stackedObserverOffset).not.toBeNaN();
     expect(stackedObserverOffset).toBe(initialObserverOffset - 20);
+  });
+
+  it('sticks relative to its scroll container instead of the top bar', () => {
+    render(
+      <div role="region" aria-label="Preview" style={{overflowY: 'auto'}}>
+        <Sticky relativeTo="scrollContainer" topOffset={16}>
+          Sticky content
+        </Sticky>
+      </div>
+    );
+
+    const sticky = screen.getByText('Sticky content');
+    const scrollContainer = screen.getByRole('region', {name: 'Preview'});
+
+    // The global getComputedStyle stub only reads inline styles.
+    const rules = Array.from(document.styleSheets).flatMap(sheet =>
+      Array.from(sheet.cssRules)
+    );
+    expect(
+      rules.some(
+        rule =>
+          rule instanceof CSSStyleRule &&
+          sticky.matches(rule.selectorText) &&
+          rule.style.getPropertyValue('top') === '16px'
+      )
+    ).toBe(true);
+    expect(observerOptions.at(-1)?.root).toBe(scrollContainer);
+    expect(observerOptions.at(-1)?.rootMargin).toBe('-17px 0px 0px 0px');
   });
 });

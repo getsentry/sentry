@@ -19,12 +19,9 @@ import {setWindowLocation} from 'sentry-test/utils';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
-import TraceView from 'sentry/views/performance/traceDetails/index';
-import {
-  makeEAPError,
-  makeEAPSpan,
-  makeEAPTrace,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
+import {makeEAPError, makeEAPSpan, makeEAPTrace} from './traceModels/traceTreeTestUtils';
+import TraceView from './index';
 
 class MockResizeObserver {
   callback: ResizeObserverCallback;
@@ -701,7 +698,9 @@ describe('trace view', () => {
       await waitFor(() =>
         expect(router.location.query.pinnedAttribute).toBe('tags[custom.size,number]')
       );
-      expect(screen.queryByText('waterfall-region')).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByText('waterfall-region')).not.toBeInTheDocument()
+      );
       expect(
         within(screen.getByTestId('tree-key-custom.region')).queryByRole('img', {
           name: 'Pinned attribute',

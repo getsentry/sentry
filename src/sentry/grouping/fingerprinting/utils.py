@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
 from sentry.grouping.fingerprinting.types import FingerprintInfo
 from sentry.grouping.utils import get_canonical_message_from_event, normalize_message_for_grouping
@@ -120,7 +120,7 @@ class EventDatastore:
             self._frames = frames = []
 
             def _push_frame(frame: dict[str, object]) -> None:
-                platform = frame.get("platform") or self.event.get("platform")
+                platform = cast("str | None", frame.get("platform") or self.event.get("platform"))
                 func = get_function_name_for_frame(frame, platform)
                 frames.append(
                     {

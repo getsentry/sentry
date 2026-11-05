@@ -57,7 +57,7 @@ describe('MobileAppSizeConfig with events-timeseries responses', () => {
       ]);
     });
 
-    it('names grouped series by group value, in order', () => {
+    it('keys grouped series by y-axis and group value, in order', () => {
       const result = MobileAppSizeConfig.transformTimeSeries!(
         {
           timeSeries: [
@@ -75,7 +75,10 @@ describe('MobileAppSizeConfig with events-timeseries responses', () => {
         0
       );
 
-      expect(result.map(({seriesName}) => seriesName)).toEqual(['ios', 'android']);
+      expect(result.map(({seriesName}) => seriesName)).toEqual([
+        'max(install_size) : platform : ios',
+        'max(install_size) : platform : android',
+      ]);
     });
   });
 });

@@ -5,6 +5,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
+import {isUnlinkableFilename} from './utils';
+
 interface UseStacktraceLinkProps {
   event: Partial<Pick<Event, 'platform' | 'release' | 'sdk' | 'groupID'>>;
   frame: Partial<
@@ -69,6 +71,7 @@ export function useStacktraceLink(
       staleTime: Infinity,
       retry: false,
       ...options,
+      enabled: (options.enabled ?? true) && !isUnlinkableFilename(frame.filename ?? ''),
     }
   );
 }

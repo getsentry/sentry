@@ -331,11 +331,11 @@ def test_caching_function_control() -> None:
             org.update(name=org.name + " updated")
 
     # Does not include updates
-    for org in old:
-        next_org = get_org(org.id)
-        assert next_org == org
+    for cached_org in old:
+        next_org = get_org(cached_org.id)
+        assert next_org == cached_org
 
-        control_caching_service.clear_key(key=get_org.key_from(org.id))
+        control_caching_service.clear_key(key=get_org.key_from(cached_org.id))
 
     cached_orgs = [get_org.get_one(o.id) for o in orgs]
     for o, cached in zip(orgs, cached_orgs):
@@ -561,13 +561,13 @@ def test_caching_list() -> None:
 
     # Read from cache - does not include updates made to db
     after_update_wrapped = get_org_members(org.id)
-    for member in after_update_wrapped:
-        assert member.role == "owner"
+    for cached_member in after_update_wrapped:
+        assert cached_member.role == "owner"
 
     # DB read is updated
     after_update_direct = get_org_members.cb(org.id)
-    for member in after_update_direct:
-        assert member.role == "member"
+    for direct_member in after_update_direct:
+        assert direct_member.role == "member"
 
     # Clear cache simulating outbox logic
     control_caching_service.clear_key(key=get_org_members.key_from(org.id))

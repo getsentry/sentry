@@ -88,6 +88,17 @@ def send_thread_update(
         renderable, links = NotificationService.render_template(
             data=data, template=template_cls(), provider=provider
         )
+        tracking_context = NotificationTrackingContext(
+            source=data.source,
+            provider=NotificationProviderKey.SLACK,
+            category=template_cls.category,
+            notification_uuid=data.notification_uuid,
+            organization_id=data.organization_id,
+        )
+        tracked = {
+            *links,
+            *provider.track_actions(renderable=renderable, context=tracking_context),
+        }
         try:
             if ephemeral_user_id:
                 response = install.send_threaded_ephemeral_message(
@@ -105,16 +116,7 @@ def send_thread_update(
                 )
                 message_ts = response.get("ts") if response else None
             if response is not None:
-                record_sent(
-                    NotificationTrackingContext(
-                        source=data.source,
-                        provider=NotificationProviderKey.SLACK,
-                        category=template_cls.category,
-                        notification_uuid=data.notification_uuid,
-                        organization_id=data.organization_id,
-                    ),
-                    links=links,
-                )
+                record_sent(tracking_context, links=tracked)
             run_id = getattr(data, "run_id", None)
             if (
                 message_ts
@@ -143,6 +145,18 @@ def send_thread_update(
             # Retry, hopefully it's transient
             raise
     return message_ts
+
+
+def edit_thread_message(
+    *, install: SlackIntegration, channel_id: str, message_ts: str, data: NotificationData
+) -> None:
+    """Re-render a message we already posted from new data."""
+    renderable, _ = NotificationService.render_template(
+        data=data,
+        template=template_registry.get(data.source)(),
+        provider=provider_registry.get(NotificationProviderKey.SLACK),
+    )
+    install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
 
 
 @instrumented_task(

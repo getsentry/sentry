@@ -1,5 +1,4 @@
-import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
-
+import {NUM_DESKTOP_COLS} from './constants';
 import type {WidgetLayout} from './types';
 
 /**

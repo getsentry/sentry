@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_explore_formulas import sync_prebuilt_formulas
@@ -9,8 +10,13 @@ from sentry.explore.models import (
     ParamItemTypes,
 )
 from sentry.models.organization import Organization
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class BaseFormulaTest(APITestCase):
@@ -130,6 +136,31 @@ class TestFormulaDetails(BaseFormulaTest):
         assert response.data["description"] == "test description"
         assert response.data["dataset"] == "logs"
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    def test_update_explore_formula_as_service_account(self) -> None:
+        formula = self.create_formula()
+        formula.update(created_by_id=self.user.id, updated_by_id=self.user.id)
+        service_account = self.create_service_account(
+            organization=self.org, scope_list=["org:read", "org:write"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+        self.formula_object["name"] = "formula.by_service_account"
+        with self.feature({**self.feature_flags, "organizations:service-accounts": True}):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["createdBy"]["email"] == self.user.email
+        assert response.data["updatedBy"] is None
+
     def test_too_many_input_parameters(self) -> None:
         formula = self.create_formula()
         self.formula_object["name"] = "formula.hello"
@@ -215,6 +246,20 @@ class TestFormulaDetails(BaseFormulaTest):
             assert response.status_code == 400, response.content
         assert str(response.data["detail"]) == "Formula name must be unique"
 
+    def test_update_explore_formula_with_invalid_param_default(self) -> None:
+        formula = self.create_formula()
+        self.formula_object["params"][1]["value"] = "foobar"
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert (
+            str(response.data["params"]["value"][0])
+            == "'foobar' is an invalid value for a numeric default"
+        )
+
 
 class TestFormulas(BaseFormulaTest):
     def setUp(self) -> None:
@@ -248,6 +293,31 @@ class TestFormulas(BaseFormulaTest):
             )
             assert response.status_code == 200, response.content
         assert response.data["name"] == "formula.member_edit"
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    def test_create_explore_formula_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, scope_list=["org:read", "org:write"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+        self.formula_object["name"] = "formula.by_service_account"
+        with self.feature({**self.feature_flags, "organizations:service-accounts": True}):
+            response = self.client.post(
+                self.url,
+                data=self.formula_object,
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+        assert response.status_code == 201, response.content
+        formula = ExploreSavedFormula.objects.get(id=response.data["id"])
+        assert formula.created_by_id is None
+        assert formula.created_by_service_account_id == service_account.id
+        assert formula.created_by_org_auth_token_id is None
 
     def test_no_feature_flags(self) -> None:
         response = self.client.post(
@@ -474,14 +544,17 @@ class TestFormulas(BaseFormulaTest):
         params = formula.variables.filter(kind=KindItemTypes.PARAM).order_by("order")
         assert len(params) == 3
         assert params[0].name == data["params"][0]["name"]
+        assert params[0].param_type is not None
         assert ParamItemTypes.get_type_name(params[0].param_type) == data["params"][0]["type"]
         assert params[0].order == data["params"][0]["order"]
         assert params[0].value == data["params"][0]["value"]
         assert params[1].name == data["params"][1]["name"]
+        assert params[1].param_type is not None
         assert ParamItemTypes.get_type_name(params[1].param_type) == data["params"][1]["type"]
         assert params[1].order == data["params"][1]["order"]
         assert params[1].value == data["params"][1]["value"]
         assert params[2].name == data["params"][2]["name"]
+        assert params[2].param_type is not None
         assert ParamItemTypes.get_type_name(params[2].param_type) == data["params"][2]["type"]
         assert params[2].order == data["params"][2]["order"]
         assert params[2].value == data["params"][2]["value"]
@@ -517,14 +590,17 @@ class TestFormulas(BaseFormulaTest):
         params = formula.variables.filter(kind=KindItemTypes.PARAM).order_by("order")
         assert len(params) == 3
         assert params[0].name == data["params"][0]["name"]
+        assert params[0].param_type is not None
         assert ParamItemTypes.get_type_name(params[0].param_type) == data["params"][0]["type"]
         assert params[0].order == data["params"][0]["order"]
         assert params[0].value == data["params"][0]["value"]
         assert params[1].name == data["params"][1]["name"]
+        assert params[1].param_type is not None
         assert ParamItemTypes.get_type_name(params[1].param_type) == data["params"][1]["type"]
         assert params[1].order == data["params"][1]["order"]
         assert params[1].value == data["params"][1]["value"]
         assert params[2].name == data["params"][2]["name"]
+        assert params[2].param_type is not None
         assert ParamItemTypes.get_type_name(params[2].param_type) == data["params"][2]["type"]
         assert params[2].order == data["params"][2]["order"]
         assert params[2].value == data["params"][2]["value"]
@@ -553,6 +629,7 @@ class TestFormulas(BaseFormulaTest):
         assert len(response.data) == 2
         assert response.data[0]["name"] == "formula.apdex"
         assert response.data[1]["name"] == "formula.user_misery"
+        assert response.data[0]["params"][0]["value"] == "span.duration"
 
     def test_list_with_orderby(self) -> None:
         for i in range(5):
@@ -692,5 +769,100 @@ class TestFormulas(BaseFormulaTest):
             "name": "duration",
             "type": "column",
             "order": 0,
-            "value": "",
+            "value": "span.duration",
         }
+
+
+@with_feature(["organizations:granular-permission-scopes", "organizations:explore-saved-formulas"])
+class ExploreSavedFormulaScopeTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization(owner=self.user)
+        self.formula = self.create_explore_saved_formula(organization=self.org)
+        self.url = reverse("sentry-api-0-explore-formulas", args=[self.org.slug])
+        self.details_url = reverse(
+            "sentry-api-0-explore-formulas-detail", args=[self.org.slug, self.formula.id]
+        )
+        self.formula_data = Factories.explore_apdex_formula_data()
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_read_scope_can_read(self) -> None:
+        self._use_token(["saved_query:read"])
+        assert self.client.get(self.url).status_code == 200
+        assert self.client.get(self.details_url).status_code == 200
+
+    def test_read_scope_cannot_create(self) -> None:
+        self._use_token(["saved_query:read"])
+        response = self.client.post(
+            self.url, {**self.formula_data, "name": "formula.created"}, format="json"
+        )
+        assert response.status_code == 403
+        assert not ExploreSavedFormula.objects.filter(name="formula.created").exists()
+
+    def test_read_scope_cannot_update(self) -> None:
+        self._use_token(["saved_query:read"])
+        response = self.client.put(
+            self.details_url, {**self.formula_data, "name": "formula.renamed"}, format="json"
+        )
+        assert response.status_code == 403
+        self.formula.refresh_from_db()
+        assert self.formula.name == "formula.custom_apdex"
+
+    def test_read_scope_cannot_delete(self) -> None:
+        self._use_token(["saved_query:read"])
+        assert self.client.delete(self.details_url).status_code == 403
+        assert ExploreSavedFormula.objects.filter(id=self.formula.id).exists()
+
+    def test_write_scope_can_create_update_and_delete(self) -> None:
+        self._use_token(["saved_query:write"])
+        response = self.client.post(
+            self.url, {**self.formula_data, "name": "formula.created"}, format="json"
+        )
+        assert response.status_code == 201, response.content
+        assert ExploreSavedFormula.objects.filter(name="formula.created").exists()
+
+        response = self.client.put(
+            self.details_url, {**self.formula_data, "name": "formula.renamed"}, format="json"
+        )
+        assert response.status_code == 200, response.content
+        self.formula.refresh_from_db()
+        assert self.formula.name == "formula.renamed"
+
+        assert self.client.delete(self.details_url).status_code == 204
+        assert not ExploreSavedFormula.objects.filter(id=self.formula.id).exists()
+
+    def test_write_scope_cannot_read(self) -> None:
+        # Write does not imply read.
+        self._use_token(["saved_query:write"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.get(self.details_url).status_code == 403
+
+    def test_read_and_write_scopes_can_read_and_write(self) -> None:
+        self._use_token(["saved_query:read", "saved_query:write"])
+        assert self.client.get(self.details_url).status_code == 200
+        assert self.client.delete(self.details_url).status_code == 204
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.details_url).status_code == 200
+        assert self.client.delete(self.details_url).status_code == 204
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_not_accepted(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.delete(self.details_url).status_code == 403
+        assert ExploreSavedFormula.objects.filter(id=self.formula.id).exists()
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    @with_feature({"organizations:granular-permission-scopes": False})
+    def test_org_read_accepted_without_granular_scopes(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200

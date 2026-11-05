@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -15,7 +14,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {encodeSort} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,15 +25,13 @@ import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {GenericPerformanceWidgetDataType} from 'sentry/views/performance/landing/widgets/types';
 import {
   _setChartSetting,
-  filterAllowedChartsMetrics,
   getChartSetting,
 } from 'sentry/views/performance/landing/widgets/utils';
 import type {
   ChartDefinition,
   PerformanceWidgetSetting,
 } from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {WIDGET_DEFINITIONS} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {HistogramWidget} from 'sentry/views/performance/landing/widgets/widgets/histogramWidget';
+import {useWidgetDefinitions} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LineChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/lineChartListWidget';
 import {MobileReleaseComparisonListWidget} from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
 import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
@@ -73,7 +69,6 @@ function trackChartSettingChange(
 export function WidgetContainer(props: Props) {
   const organization = useOrganization();
   const {index, chartHeight, rowChartSettings, setRowChartSettings, ...rest} = props;
-  const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
     index,
@@ -81,18 +76,14 @@ export function WidgetContainer(props: Props) {
     performanceType,
     rest.defaultChartSetting
   );
-  const mepSetting = useMEPSettingContext();
-  const allowedCharts = filterAllowedChartsMetrics(
-    organization,
-    props.allowedCharts,
-    mepSetting
-  );
+  const {allowedCharts} = props;
 
   if (!allowedCharts.includes(_chartSetting)) {
     _chartSetting = rest.defaultChartSetting;
   }
 
   const [chartSetting, setChartSettingState] = useState(_chartSetting);
+  const widgetDefinitions = useWidgetDefinitions();
 
   const setChartSetting = (setting: PerformanceWidgetSetting) => {
     _setChartSetting(index, chartHeight, performanceType, setting);
@@ -114,7 +105,7 @@ export function WidgetContainer(props: Props) {
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [rest.defaultChartSetting, _chartSetting]);
 
-  const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];
+  const chartDefinition = widgetDefinitions[chartSetting];
 
   // Construct an EventView that matches this widget's definition. The
   // `eventView` from the props is the _landing page_ EventView, which is different
@@ -149,8 +140,6 @@ export function WidgetContainer(props: Props) {
       return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.LINE_LIST:
       return <LineChartListWidget {...passedProps} {...widgetProps} />;
-    case GenericPerformanceWidgetDataType.HISTOGRAM:
-      return <HistogramWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.STACKED_AREA:
       return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE_LIST:
@@ -179,13 +168,12 @@ function WidgetInteractiveTitle({
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) {
-  const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
   const menuOptions: Array<SelectOption<string>> = [];
   const useEap = useInsightsEap();
 
-  const settingsMap = WIDGET_DEFINITIONS({theme});
+  const settingsMap = useWidgetDefinitions();
   for (const setting of allowedCharts) {
     const options = settingsMap[setting];
     menuOptions.push({
@@ -195,7 +183,7 @@ function WidgetInteractiveTitle({
     });
   }
 
-  const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];
+  const chartDefinition = settingsMap[chartSetting];
 
   if (chartDefinition.allowsOpenInDiscover) {
     if (useEap) {

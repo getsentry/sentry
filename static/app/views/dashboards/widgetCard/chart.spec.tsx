@@ -9,8 +9,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import WidgetCardChart from 'sentry/views/dashboards/widgetCard/chart';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
+
+import WidgetCardChart from './chart';
 
 describe('WidgetCardChart', () => {
   const organization = OrganizationFixture();

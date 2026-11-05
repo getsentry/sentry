@@ -1,6 +1,7 @@
 import type {SidebarItem, SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {buildRowIndex, buildRows, rowFrameEdges} from './snapshotListView';
+import {viewedKeyForPair} from './useViewedSnapshots';
 
 const mockZoom = {
   containerRef: {current: null},
@@ -215,6 +216,33 @@ describe('rowFrameEdges', () => {
   it('closes the frame on the last card and boxes an ungrouped card fully', () => {
     expect(rowFrameEdges(lastCard!)).toMatchObject({frameBottom: true, separator: false});
     expect(rowFrameEdges(ungroupedCard!)).toEqual({
+      frameTop: true,
+      frameBottom: true,
+      separator: false,
+    });
+  });
+
+  it('boxes the header of a fully viewed group fully', () => {
+    const pair = {
+      base_image: image({image_file_name: 'a.base.png'}),
+      head_image: image({image_file_name: 'a.png'}),
+      diff: null,
+      diff_image_key: null,
+    };
+    const [viewedHeader] = buildRows(
+      [
+        {
+          key: 'changed:Screens',
+          name: 'Screens',
+          displayName: 'Screens',
+          type: 'changed',
+          pairs: [pair],
+        },
+      ],
+      900,
+      {[viewedKeyForPair(pair)]: 1}
+    );
+    expect(rowFrameEdges(viewedHeader!)).toEqual({
       frameTop: true,
       frameBottom: true,
       separator: false,

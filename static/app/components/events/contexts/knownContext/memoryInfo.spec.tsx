@@ -3,7 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
+
+import {getMemoryInfoContext} from './memoryInfo';
 
 const MOCK_MEMORY_INFO_CONTEXT = {
   type: 'memory_info' as const,

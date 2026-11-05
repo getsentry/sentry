@@ -43,7 +43,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidFunctionArgumentQuery, InvalidSearchQuery
 from sentry.search.eap import utils as eap_utils
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
@@ -204,6 +204,31 @@ class SearchResolverQueryTest(TestCase):
                 key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_EQUALS,
                 value=AttributeValue(val_int=123),
+            )
+        )
+        assert having is None
+
+    def test_replacement_with_different_type_than_deprecated_attribute(self) -> None:
+        # `deviceMemory` is a string, but its replacement is an integer convention.
+        where, having, _ = self.resolver.resolve_query("device.memory.estimated_capacity:>4")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="device.memory.estimated_capacity", type=AttributeKey.Type.TYPE_INT
+                ),
+                op=ComparisonFilter.OP_GREATER_THAN,
+                value=AttributeValue(val_int=4),
+            )
+        )
+        assert having is None
+
+    def test_deprecated_attribute_with_different_type_than_replacement(self) -> None:
+        where, having, _ = self.resolver.resolve_query('deviceMemory:"8 GB"')
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="deviceMemory", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="8 GB"),
             )
         )
         assert having is None
@@ -1123,8 +1148,21 @@ class SearchResolverColumnTest(TestCase):
         )
 
     def test_max_string_field_raises(self) -> None:
-        with pytest.raises(InvalidSearchQuery):
+        with pytest.raises(InvalidFunctionArgumentQuery) as excinfo:
             self.resolver.resolve_column("max(span.description)")
+        assert excinfo.value.function == "max"
+        assert excinfo.value.argument == "span.description"
+        assert excinfo.value.hint is None
+
+    def test_transaction_duration_argument_hints_span_duration(self) -> None:
+        with pytest.raises(InvalidFunctionArgumentQuery) as excinfo:
+            self.resolver.resolve_column("sum(transaction.duration)")
+        assert excinfo.value.function == "sum"
+        assert excinfo.value.argument == "transaction.duration"
+        assert (
+            excinfo.value.hint
+            == "Use span.duration instead of transaction.duration on the spans dataset."
+        )
 
     def test_resolver_cache_attribute(self) -> None:
         self.resolver.resolve_columns(["span.op"])
@@ -1570,3 +1608,57 @@ def test_normalize_deprecated_attribute_preserves_existing_definition() -> None:
     assert replacement_attr.public_alias == "gen_ai.input.messages"
     assert replacement_attr.internal_name == "gen_ai.input.messages"
     assert replacement_attr.search_type == "string"
+
+
+def test_deprecated_attribute_replacement_uses_replacement_convention_type() -> None:
+    attribute_definitions: dict[str, ResolvedAttribute] = {}
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        {
+            "deviceMemory": _make_deprecated_metadata(
+                AttributeType.STRING, "device.memory.estimated_capacity"
+            ),
+            "device.memory.estimated_capacity": AttributeMetadata(
+                brief="",
+                type=AttributeType.INTEGER,
+                keys=(),
+                apply_scrubbing=ApplyScrubbingInfo(key=ApplyScrubbing.NEVER),
+                is_in_otel=False,
+                visibility=Visibility.PUBLIC,
+            ),
+        },
+    )
+
+    deprecated_attr = attribute_definitions["deviceMemory"]
+    replacement_attr = attribute_definitions["device.memory.estimated_capacity"]
+
+    assert deprecated_attr.search_type == "string"
+    assert deprecated_attr.deprecation_status == "backfill"
+    assert deprecated_attr.replacement == "device.memory.estimated_capacity"
+    assert replacement_attr.public_alias == "device.memory.estimated_capacity"
+    assert replacement_attr.internal_name == "device.memory.estimated_capacity"
+    assert replacement_attr.search_type == "integer"
+    assert replacement_attr.deprecation_status is None
+    assert replacement_attr.replacement is None
+
+
+@pytest.mark.parametrize(
+    ("deprecated", "replacement"),
+    [
+        ("deviceMemory", "device.memory.estimated_capacity"),
+        ("hardwareConcurrency", "device.processor_count"),
+    ],
+)
+def test_loaded_replacement_with_different_type_than_deprecated_attribute(
+    deprecated: str, replacement: str
+) -> None:
+    deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS[deprecated]
+    replacement_attr = SPAN_ATTRIBUTE_DEFINITIONS[replacement]
+
+    assert deprecated_attr.search_type == "string"
+    assert deprecated_attr.replacement == replacement
+    assert replacement_attr.search_type == "integer"
+    # Number attributes returned by the attribute names RPC map to the public alias
+    # instead of `tags[<name>,number]`.
+    assert SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"][replacement] == replacement

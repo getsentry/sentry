@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -9,12 +9,14 @@ from django.utils import timezone
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
     NotificationContext,
 )
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import (
     NotifyEventServiceAction,
@@ -104,8 +106,11 @@ class NotifyEventServiceWebhookActionTest(RuleTestCase, BaseWorkflowTest):
 class NotifyEventServiceSentryAppActionTest(RuleTestCase, BaseWorkflowTest):
     rule_cls = NotifyEventServiceAction
 
+    def get_rule(self, **kwargs: Any) -> NotifyEventServiceAction:
+        return cast(NotifyEventServiceAction, super().get_rule(**kwargs))
+
     def test_applies_correctly_for_sentry_apps(self) -> None:
-        event = self.get_event()
+        event = self.get_group_event()
 
         self.create_sentry_app(
             organization=event.organization, name="Test Application", is_alertable=True
@@ -147,15 +152,23 @@ class TestSendIncidentAlertNotification(TestCase):
         self.project = self.create_project(organization=self.organization)
         self.sentry_app = self.create_sentry_app(organization=self.organization)
         self.alert_rule = self.create_alert_rule()
-        self.incident = self.create_incident(alert_rule=self.alert_rule)
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        open_period = GroupOpenPeriod.objects.get(group=group)
         self.alert_context = AlertContext.from_alert_rule_incident(self.alert_rule)
-        self.metric_issue_context = MetricIssueContext.from_legacy_models(
-            self.incident, IncidentStatus.CRITICAL, metric_value=100.0
+        self.metric_issue_context = MetricIssueContext(
+            id=group.id,
+            open_period_identifier=open_period.id,
+            snuba_query=self.alert_rule.snuba_query,
+            subscription=None,
+            new_status=IncidentStatus.CRITICAL,
+            metric_value=100.0,
+            group=group,
+            title=group.title,
         )
         self.incident_serialized_response = cast(IncidentSerializerResponse, {})
         self.notification_context = NotificationContext(
             id=1,
-            sentry_app_id=self.sentry_app.id,
+            sentry_app_id=str(self.sentry_app.id),
         )
         self.notification_uuid = str(uuid4())
 

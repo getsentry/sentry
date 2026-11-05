@@ -149,7 +149,6 @@ export function InvestigationDetailFixture(
     parameters: [],
     projectIds: [],
     source: {type: 'manual', ref: {}, revision: null},
-    template: null,
     // Manual by default: an agentic investigation carries a summary here, and
     // that is what gates the hypothesis row.
     orchestration: null,
@@ -244,8 +243,11 @@ export function InvestigationActionRequestFixture(
     },
     appliedBy: null,
     appliedDetails: null,
+    canApply: true,
+    cannotApplyReason: null,
     dateApplied: null,
     error: null,
+    followUp: null,
     dateCreated: '2026-08-27T11:10:00Z',
     ...overrides,
   };
@@ -287,7 +289,6 @@ export function InvestigationBreachedMetricDetailFixture(
     summary: 'Errors rose across releases',
     summaryDescription:
       'All active releases increased together.\nCheck shared infrastructure and dependencies.',
-    template: {key: 'breached_metric', version: 1},
     source: InvestigationMetricSourceFixture(),
     blocks: [
       InvestigationBlockFixture({
@@ -339,7 +340,6 @@ export function InvestigationBreachedMetricDetailFixture(
         }),
         outputStatus: 'completed',
         config: {autoRun: true},
-        dependencies: ['summary-block'],
       }),
       InvestigationBlockFixture({
         id: 'table-block',
@@ -352,7 +352,6 @@ export function InvestigationBreachedMetricDetailFixture(
         output: InvestigationQueryOutputFixture(),
         outputStatus: 'completed',
         config: {autoRun: true},
-        dependencies: ['chart-block'],
       }),
     ],
     ...overrides,
@@ -365,7 +364,6 @@ export function InvestigationRunningDetailFixture(
   return InvestigationDetailFixture({
     title: 'Untitled investigation',
     titleGeneration: {status: 'running'},
-    template: {key: 'breached_metric', version: 1},
     sourceType: 'metric_open_period',
     summary: null,
     summaryDescription: null,
@@ -405,7 +403,6 @@ export function InvestigationRunningDetailFixture(
           error: null,
         },
         config: {autoRun: true},
-        dependencies: ['block-1'],
       }),
       InvestigationBlockFixture({
         id: 'block-3',
@@ -418,7 +415,6 @@ export function InvestigationRunningDetailFixture(
         outputStatus: 'notRun',
         currentExecution: null,
         config: {autoRun: true},
-        dependencies: ['block-1', 'block-2'],
       }),
     ],
     ...overrides,
@@ -457,7 +453,6 @@ export function InvestigationFailedDetailFixture(
         outputStatus: 'notRun',
         currentExecution: null,
         config: {autoRun: true},
-        dependencies: ['block-1'],
       }),
     ],
     ...overrides,

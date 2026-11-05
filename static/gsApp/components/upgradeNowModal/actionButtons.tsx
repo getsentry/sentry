@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {closeModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {closeModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {
   OnboardingDrawerKey,
@@ -60,7 +60,7 @@ export function ActionButtons({
           onComplete();
         }
         closeModal();
-        addSuccessMessage(t('Subscription Updated!'));
+        toast.success(t('Subscription Updated!'));
 
         window.location.hash = 'replay-sidequest';
         OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);

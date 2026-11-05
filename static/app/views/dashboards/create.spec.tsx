@@ -6,8 +6,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import CreateDashboard from 'sentry/views/dashboards/create';
-import {DisplayType} from 'sentry/views/dashboards/types';
+
+import CreateDashboard from './create';
+import {DisplayType} from './types';
 
 describe('Dashboards > CreateDashboard', () => {
   const organization = OrganizationFixture({
@@ -36,10 +37,6 @@ describe('Dashboards > CreateDashboard', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {data: []},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',

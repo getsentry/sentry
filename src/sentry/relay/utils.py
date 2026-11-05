@@ -1,26 +1,42 @@
 import uuid
+from typing import TypeVar, overload
+
+from django.http import HttpRequest
 
 
-def get_header_relay_id(request):
+def get_header_relay_id(request: HttpRequest) -> str | None:
     try:
         return str(uuid.UUID(request.META["HTTP_X_SENTRY_RELAY_ID"]))
     except (LookupError, ValueError, TypeError):
         pass
+    return None
 
 
-def get_header_relay_signature(request):
+def get_header_relay_signature(request: HttpRequest) -> str | None:
     try:
         return str(request.META["HTTP_X_SENTRY_RELAY_SIGNATURE"])
     except (LookupError, ValueError, TypeError):
         pass
+    return None
 
 
-def type_to_class_name(snake_str):
+def type_to_class_name(snake_str: str) -> str:
     components = snake_str.split("_")
     return "".join(x.title() for x in components[0:])
 
 
-def to_camel_case_name(name):
+T = TypeVar("T")
+
+
+@overload
+def to_camel_case_name(name: str) -> str: ...
+
+
+@overload
+def to_camel_case_name(name: T) -> T: ...
+
+
+def to_camel_case_name(name: object) -> object:
     """
     Converts a string from snake_case to camelCase
 
@@ -45,10 +61,10 @@ def to_camel_case_name(name):
     'oneTwoThreeFour'
     """
 
-    def first_lower(s):
+    def first_lower(s: str) -> str:
         return s[:1].lower() + s[1:]
 
-    def first_upper(s):
+    def first_upper(s: str) -> str:
         return s[:1].upper() + s[1:]
 
     if not isinstance(name, str):

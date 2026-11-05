@@ -9,8 +9,9 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {processInitQueue} from 'sentry/bootstrap/processInitQueue';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
+
+import {processInitQueue} from './processInitQueue';
 
 describe('processInitQueue', () => {
   describe('renderReact', () => {

@@ -6,20 +6,19 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useProjects} from 'sentry/utils/useProjects';
 import {withApi} from 'sentry/utils/withApi';
-import {withProjects} from 'sentry/utils/withProjects';
 
 import {useEventViewProject} from './useEventViewProject';
 import {transactionSummaryRouteWithQuery} from './utils';
@@ -33,7 +32,6 @@ type Props = {
   api: Client;
   eventView: EventView;
   organization: Organization;
-  projects: Project[];
   transactionName: string;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
@@ -51,7 +49,6 @@ function TransactionThresholdModal({
   closeModal,
   onApply,
   project: projectId,
-  projects,
   transactionName,
   transactionThreshold,
   transactionThresholdMetric,
@@ -60,6 +57,7 @@ function TransactionThresholdModal({
     transactionThreshold
   );
   const [metric, setMetric] = useState(transactionThresholdMetric);
+  const {projects} = useProjects();
   const project = useEventViewProject(projects, eventView, projectId);
 
   const handleApply = (event: React.FormEvent) => {
@@ -98,7 +96,11 @@ function TransactionThresholdModal({
         if (Array.isArray(errorMessage)) {
           errorMessage = errorMessage[0];
         }
-        addErrorMessage(errorMessage as string);
+        toast.error(
+          typeof errorMessage === 'string'
+            ? errorMessage
+            : t('Unable to update threshold')
+        );
       });
   };
 
@@ -144,7 +146,9 @@ function TransactionThresholdModal({
       .catch(err => {
         const errorMessage =
           err instanceof RequestError ? err.responseJSON?.threshold : null;
-        addErrorMessage(errorMessage as string);
+        toast.error(
+          typeof errorMessage === 'string' ? errorMessage : t('Unable to reset threshold')
+        );
       });
   };
 
@@ -174,7 +178,7 @@ function TransactionThresholdModal({
             },
           ]}
           name="responseMetric"
-          value={metric}
+          value={metric ?? null}
           onChange={option => {
             setMetric(option.value);
           }}
@@ -265,4 +269,4 @@ export const modalCss = css`
   max-width: 650px;
 `;
 
-export default withApi(withProjects(TransactionThresholdModal));
+export default withApi(TransactionThresholdModal);

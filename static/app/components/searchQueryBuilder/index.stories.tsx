@@ -1,20 +1,11 @@
 import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {
-  SearchQueryBuilderProvider,
-  useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import type {
-  FieldDefinitionGetter,
-  FilterKeySection,
-} from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import * as Storybook from 'sentry/stories';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -26,6 +17,10 @@ import {
   MobileVital,
   WebVital,
 } from 'sentry/utils/fields';
+
+import {SearchQueryBuilderProvider, useSearchQueryBuilderState} from './context';
+import {ProvidedFormattedQuery} from './formattedQuery';
+import type {FieldDefinitionGetter, FilterKeySection} from './types';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.ASSIGNED]: {
@@ -718,7 +713,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
   });
 
   story('Case sensitivity', () => {
-    const [caseInsensitive, setCaseInsensitive] = useState<true | null>(null);
+    const [caseInsensitive, setCaseInsensitive] = useState<boolean | null>(null);
 
     return (
       <Fragment>

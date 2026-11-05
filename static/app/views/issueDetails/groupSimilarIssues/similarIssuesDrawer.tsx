@@ -13,7 +13,9 @@ import {
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {GroupSimilarIssues} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+
+import {GroupSimilarIssues} from './similarIssues';
 
 export function SimilarIssuesDrawer({group, project}: {group: Group; project: Project}) {
   return (
@@ -37,7 +39,9 @@ export function SimilarIssuesDrawer({group, project}: {group: Group; project: Pr
         <Header>{t('Similar Issues')}</Header>
       </EventNavigator>
       <EventDrawerBody>
-        <GroupSimilarIssues />
+        <GroupIdProvider groupId={group.id}>
+          <GroupSimilarIssues />
+        </GroupIdProvider>
       </EventDrawerBody>
     </EventDrawerContainer>
   );

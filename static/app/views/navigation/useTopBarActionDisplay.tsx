@@ -1,6 +1,6 @@
 import {useResponsivePropValue} from '@sentry/scraps/layout';
 
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {usePrimaryNavigation} from './primaryNavigationContext';
 
 export type TopBarActionDisplay = 'icon' | 'label';
 

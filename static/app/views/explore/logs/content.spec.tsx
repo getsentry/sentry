@@ -18,13 +18,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+
+import LogsPage from './content';
+import type {OurLogsResponseItem} from './types';
 import {
   LOGS_AGGREGATES_TIMESTAMP_FIELD,
   LOGS_AGGREGATES_TRACE_FIELD,
-} from 'sentry/views/explore/logs/useLogsAggregatesTable';
-
-import LogsPage from './content';
+} from './useLogsAggregatesTable';
 
 beforeEach(() => {
   mockElementSize();
@@ -387,12 +387,12 @@ describe('LogsPage', () => {
       expect(switchInput).not.toBeChecked();
       expect(switchInput).toBeEnabled();
 
-      // 3 calls total
       // - one for the table
       // - one for the normal sample mode count
       // - one for the high accuracy sample mode count
-      // - one for the table refetch triggered by resetQueries when auto-refresh is paused
-      expect(eventTableMock).toHaveBeenCalledTimes(4);
+      // - one for the live table refetch triggered by removeQueries when auto-refresh is paused
+      // - one for the high fidelity table query once auto-refresh is paused
+      expect(eventTableMock).toHaveBeenCalledTimes(5);
 
       eventTableMock.mockClear();
       eventTableMock = setupEventsMock(autorefreshBaseFixtures.slice(0, 5));

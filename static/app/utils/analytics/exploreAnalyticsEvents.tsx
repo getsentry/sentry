@@ -2,8 +2,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
+export type TransformationAnalyticsSource = 'explore' | 'dashboards';
+
 type TransformationAnalyticsContext = {
   organization: Organization;
+  source: TransformationAnalyticsSource;
   traceItemDataset:
     | TraceItemDataset.SPANS
     | TraceItemDataset.LOGS
@@ -33,7 +36,7 @@ export type ExploreAnalyticsEventParameters = {
   'explore.dropped_data.scope_toggled': {
     dataset: DiscoverDatasets;
     organization: Organization;
-    scope: 'contributing' | 'all';
+    scope: 'unexpected' | 'all';
   };
   'explore.floating_trigger.clear_selection': {
     organization: Organization;

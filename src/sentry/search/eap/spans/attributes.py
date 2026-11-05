@@ -351,6 +351,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="integer",
         ),
         ResolvedAttribute(
+            public_alias="faas.max_memory",
+            internal_name="faas.max_memory",
+            search_type="byte",
+        ),
+        ResolvedAttribute(
             public_alias="http.decoded_response_content_length",
             internal_name="http.decoded_response_content_length",
             search_type="byte",
@@ -571,6 +576,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="span_id",
             internal_name="sentry.item_id",
             search_type="string",
+            validator=validate_span_id,
         ),
         simple_sentry_field(
             "trace.status",
@@ -739,13 +745,22 @@ def _update_attribute_definitions_with_deprecations(
                     secondary_alias=False,
                 )
         else:
-            attr_type = _normalize_convention_attribute_type(metadata.type.value)
-            if attr_type is None:
+            current_attr_type = _normalize_convention_attribute_type(metadata.type.value)
+
+            if current_attr_type is None:
                 continue
+
+            replacement_metadata = convention_attributes.get(replacement)
+            replacement_attr_type = (
+                _normalize_convention_attribute_type(replacement_metadata.type.value)
+                if replacement_metadata is not None
+                else None
+            ) or current_attr_type
+
             attribute_definitions[key] = ResolvedAttribute(
                 public_alias=key,
                 internal_name=key,
-                search_type=attr_type,
+                search_type=current_attr_type,
                 replacement=replacement,
                 deprecation_status=status,
             )
@@ -757,7 +772,7 @@ def _update_attribute_definitions_with_deprecations(
                 attribute_definitions[replacement] = ResolvedAttribute(
                     public_alias=replacement,
                     internal_name=replacement,
-                    search_type=attr_type,
+                    search_type=replacement_attr_type,
                 )
 
         span_attribute_definitions_by_internal_name[key] = attribute_definitions[

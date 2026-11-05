@@ -22,7 +22,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {clearIndicators} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {
@@ -94,6 +95,10 @@ describe('IssuePreview', () => {
   }
 
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     localStorage.clear();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -107,7 +112,7 @@ describe('IssuePreview', () => {
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: []},
     });
-    clearIndicators();
+    toast.dismiss();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({

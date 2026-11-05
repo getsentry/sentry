@@ -3,8 +3,8 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {useTimezone} from '@sentry/scraps/datetime';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -25,7 +25,6 @@ import {
   type ChatPrompt,
 } from 'sentry/views/seerExplorer/chatPrompt';
 import type {LLMContextLocation} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
-import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -38,6 +37,8 @@ import type {
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
+
+import {usePageContextCapture} from './usePageContextCapture';
 
 type SeerExplorerChatResponse = {
   message: Block;
@@ -114,25 +115,21 @@ export const useSeerExplorer = () => {
   const capturePageContext = usePageContextCapture();
   const {getPageReferrer} = usePageReferrer();
   const timezone = useTimezone();
-  type CodeModeValue = 'off' | 'on' | 'only';
+  type CodeModeValue = 'off' | 'only';
   const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
     useLocalStorageState<CodeModeValue>(
       'seer-explorer.override.code-mode',
       (storedValue?: unknown): CodeModeValue => {
-        if (storedValue === 'off' || storedValue === 'on' || storedValue === 'only') {
+        if (storedValue === 'off' || storedValue === 'only') {
           return storedValue;
         }
-        // Migrate legacy boolean values
-        if (storedValue === true) {
-          return 'on';
-        }
+        // Migrate the legacy boolean
         if (storedValue === false) {
           return 'off';
         }
-        // Matches the server's own default for a flagged org. This value is sent on every
-        // request, so it is not really an override until someone picks one — leaving it at
-        // 'on' meant the server's default branch could never be reached from the UI, and
-        // flagged orgs kept getting Code Mode alongside the classic tools.
+        // Everything else, including the retired 'on' and its legacy `true`, gets the server's own
+        // default for a flagged org. This value is sent on every request, so it is not really an
+        // override until someone picks one.
         return 'only';
       }
     );
@@ -259,7 +256,7 @@ export const useSeerExplorer = () => {
       insertIndex: number;
       orgSlug: string;
       overrideBashModeEnabled: boolean;
-      overrideCodeModeEnable: 'off' | 'on' | 'only';
+      overrideCodeModeEnable: 'off' | 'only';
       pageLocation: LLMContextLocation | undefined;
       pageName: string;
       /** The pending prompt this send took from chat state, put back if it fails. */
@@ -389,63 +386,6 @@ export const useSeerExplorer = () => {
     },
   });
 
-  const {mutate: createPRMutate} = useMutation<
-    SeerExplorerUpdateResponse,
-    RequestError,
-    {orgSlug: string; runId: SeerExplorerRunId | null; repoName?: string}
-  >({
-    mutationFn: async params => {
-      setHasSentInterrupt(false);
-
-      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
-      if (params.runId !== null) {
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-          prev =>
-            prev?.session
-              ? {
-                  ...prev,
-                  session: {
-                    ...prev.session,
-                    failure_reason: null,
-                    status: 'processing',
-                    updated_at: new Date().toISOString(),
-                  },
-                }
-              : prev
-        );
-      }
-      return fetchMutation({
-        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
-        method: 'POST',
-        data: {
-          payload: {
-            type: 'create_pr',
-            repo_name: params.repoName,
-          },
-        },
-      });
-    },
-    onSuccess: (_, params) => {
-      // invalidate the query so fresh data is fetched
-      queryClient.invalidateQueries({
-        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-      });
-    },
-    onError: (e, params) => {
-      addErrorMessage(
-        typeof e.responseJSON?.detail === 'string'
-          ? e.responseJSON.detail
-          : 'Failed to create PR'
-      );
-      // Clear optimistic processing status
-      queryClient.invalidateQueries({
-        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-      });
-    },
-  });
-
   const {mutate: interruptRunMutate} = useMutation<
     SeerExplorerUpdateResponse,
     RequestError,
@@ -467,7 +407,7 @@ export const useSeerExplorer = () => {
       });
     },
     onError: () => {
-      addErrorMessage('Failed to interrupt');
+      toast.error('Failed to interrupt');
     },
   });
 
@@ -671,16 +611,6 @@ export const useSeerExplorer = () => {
     [orgSlug, runId, userInputMutate]
   );
 
-  const createPR = useCallback(
-    (repoName?: string) => {
-      if (!orgSlug || !runId) {
-        return;
-      }
-      createPRMutate({orgSlug, runId, repoName});
-    },
-    [orgSlug, runId, createPRMutate]
-  );
-
   // Detect PR creation errors and show error messages
   useEffect(() => {
     const currentPRStates = apiData?.session?.repo_pr_states ?? {};
@@ -696,7 +626,7 @@ export const useSeerExplorer = () => {
         currentState.pr_creation_status === 'error' &&
         currentState.pr_creation_error
       ) {
-        addErrorMessage(currentState.pr_creation_error ?? 'Failed to create PR');
+        toast.error(currentState.pr_creation_error ?? 'Failed to create PR');
       }
     }
 
@@ -826,7 +756,6 @@ export const useSeerExplorer = () => {
     interruptRun,
     hasSentInterrupt,
     respondToUserInput,
-    createPR,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
     overrideCodeModeEnable,
