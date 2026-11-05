@@ -462,7 +462,7 @@ export function TourGuide({
   onKeyDown,
   focusHandoffRef,
   returnFocusRef,
-  variant = 'spotlight',
+  variant,
 }: TourGuideProps) {
   const theme = useTheme();
   const invertedTheme = useInvertedTheme();

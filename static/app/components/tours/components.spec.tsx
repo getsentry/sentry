@@ -366,26 +366,23 @@ describe('Tour Components', () => {
       expect(screen.getByRole('button', {name: 'Test Action'})).toHaveFocus();
     });
 
-    it.each([undefined, 'spotlight'] as const)(
-      'does not move focus for the %s spotlight variant',
-      async variant => {
-        render(
-          <TourGuide
-            isOpen
-            variant={variant}
-            title="Test Title"
-            description="Test Description"
-            onKeyDown={jest.fn()}
-          >
-            {props => <button {...props}>Child Element</button>}
-          </TourGuide>
-        );
+    it('does not automatically move focus for spotlight guides', async () => {
+      render(
+        <TourGuide
+          isOpen
+          variant="spotlight"
+          title="Test Title"
+          description="Test Description"
+          onKeyDown={jest.fn()}
+        >
+          {props => <button {...props}>Child Element</button>}
+        </TourGuide>
+      );
 
-        const title = await screen.findByText('Test Title');
-        expect(document.body).toHaveFocus();
-        expect(title.closest('[tabindex="-1"]')).toHaveAttribute('tabindex', '-1');
-      }
-    );
+      const title = await screen.findByText('Test Title');
+      expect(document.body).toHaveFocus();
+      expect(title.closest('[tabindex="-1"]')).toHaveAttribute('tabindex', '-1');
+    });
 
     it('scrolls the highlighted element into view and pins the guide to the viewport', async () => {
       const scrolledElements: Element[] = [];
