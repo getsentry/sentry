@@ -14,9 +14,7 @@ from django.utils import timezone as django_timezone
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
-    SYSTEM_ACTOR,
     ActionSource,
-    GroupAction,
     GroupActionActor,
     GroupActionType,
     GroupActorType,
@@ -82,8 +80,8 @@ from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import publish_action_for_test
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.outbox import outbox_runner
 from sentry.types.group import IssueAutofixStep, IssueBlocker
 from sentry.utils import json
 
@@ -152,17 +150,6 @@ class ReplayFeatureFromLogTest(TestCase):
         assert replay_feature_from_log(group.id, pipeline, result, history_limit=2) == 3
 
 
-def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYSTEM_ACTOR) -> None:
-    with outbox_runner():
-        publish_action(
-            action,
-            source=SOURCE,
-            group_id=group.id,
-            project=group.project,
-            actor=actor,
-        )
-
-
 def _age_action_log_entries(group_id: int) -> None:
     GroupActionLogEntry.objects.filter(group_id=group_id).update(
         date_updated=django_timezone.now() - timedelta(minutes=11)
@@ -183,7 +170,7 @@ class ProcessGroupLogTest(TestCase):
 
     def _publish_view_without_processing(self, group: Group) -> None:
         with patch("sentry.receivers.outbox.cell.trigger_group_log_processing"):
-            _publish(
+            publish_action_for_test(
                 group=group,
                 action=ViewAction(),
                 actor=GroupActionActor.user(self.user.id),
@@ -362,9 +349,15 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
+        publish_action_for_test(
+            group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id)
+        )
 
         entries = list(GroupActionLogEntry.objects.filter(group_id=group.id).order_by("id"))
         assert len(entries) == 3
@@ -380,11 +373,15 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         first_cursor = derived.cursor_id
 
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         assert derived.cursor_id > first_cursor
 
@@ -392,14 +389,18 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         # Force a stale date_updated so the bump is observable even if the
         # second write happens in the same second as the first.
         stale = django_timezone.now() - timedelta(minutes=5)
         GroupDerivedData.objects.filter(group_id=group.id).update(date_updated=stale)
 
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         assert derived.date_updated > stale
         assert GroupDerivedData.objects.get(group_id=group.id).date_updated > stale
@@ -408,7 +409,9 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         old_updated = derived.date_updated
 
@@ -417,14 +420,18 @@ class ProcessGroupLogTest(TestCase):
 
     def test_check_derived_data_matches_replayed_state(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
 
         assert check_derived_data(derived, PIPELINE) == CheckPassed()
 
     def test_check_derived_data_skips_recently_backfilled_log_entry(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         GroupActionLogEntry.objects.filter(group_id=group.id).update(
             date_added=django_timezone.now() - timedelta(days=30)
@@ -434,7 +441,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_check_derived_data_reports_different_features(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         derived.view_count = 0
         _age_action_log_entries(group.id)
@@ -457,8 +466,12 @@ class ProcessGroupLogTest(TestCase):
 
     def test_check_derived_data_can_resume_after_timeout(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         _age_action_log_entries(group.id)
 
@@ -478,8 +491,12 @@ class ProcessGroupLogTest(TestCase):
 
     def test_check_derived_data_uses_invocation_scoped_checkpoints(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         _age_action_log_entries(group.id)
 
@@ -507,7 +524,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_check_derived_data_stops_after_partial_batch(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         entries = list(GroupActionLogEntry.objects.filter(group_id=group.id))
         _age_action_log_entries(group.id)
@@ -523,8 +542,12 @@ class ProcessGroupLogTest(TestCase):
 
     def test_check_derived_data_does_not_resume_across_generations(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         _age_action_log_entries(group.id)
 
@@ -549,7 +572,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_check_derived_data_skips_row_invalidated_during_replay(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         _age_action_log_entries(group.id)
         original_run = PIPELINE.run
@@ -569,8 +594,12 @@ class ProcessGroupLogTest(TestCase):
         group_b = self.create_group()
         user = self.user
 
-        _publish(group=group_a, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        _publish(group=group_b, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group_a, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
+        publish_action_for_test(
+            group=group_b, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
 
         cursor_b = GroupDerivedData.objects.get(group_id=group_b.id).cursor_id
 
@@ -592,7 +621,9 @@ class ProcessGroupLogTest(TestCase):
         user = self.user
 
         for _ in range(5):
-            _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+            publish_action_for_test(
+                group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+            )
 
         # Process in batches of 2 — should take 3 batches (2+2+1)
         derived = process_group_log(group.id, batch_size=2)
@@ -729,7 +760,7 @@ class ProcessGroupLogTest(TestCase):
     def test_system_action_no_user(self) -> None:
         group = self.create_group()
 
-        _publish(group=group, action=ResolveAction())
+        publish_action_for_test(group=group, action=ResolveAction())
 
         entry = GroupActionLogEntry.objects.get(group_id=group.id)
         assert entry.actor_type == GroupActorType.SYSTEM
@@ -738,7 +769,9 @@ class ProcessGroupLogTest(TestCase):
     def test_status_starts_open(self) -> None:
         group = self.create_group()
 
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         state = GroupDerivedDataStore.load(PIPELINE, derived)
         assert state[STATUS] == IssueStatus.OPEN
@@ -747,7 +780,9 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         assert derived.data["status"] == "closed"
 
@@ -755,8 +790,12 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
-        _publish(group=group, action=UnresolveAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id)
+        )
+        publish_action_for_test(
+            group=group, action=UnresolveAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         assert derived.data["status"] == "open"
 
@@ -764,8 +803,12 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id)
+        )
+        publish_action_for_test(
+            group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         assert derived.data["status"] == "closed"
 
@@ -773,7 +816,9 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        _publish(group=group, action=UnresolveAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=UnresolveAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         state = GroupDerivedDataStore.load(PIPELINE, derived)
         assert state[STATUS] == IssueStatus.OPEN
@@ -782,9 +827,15 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
-        _publish(group=group, action=UnresolveAction(), actor=GroupActionActor.user(user.id))
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id)
+        )
+        publish_action_for_test(
+            group=group, action=UnresolveAction(), actor=GroupActionActor.user(user.id)
+        )
+        publish_action_for_test(
+            group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         assert derived.data["status"] == "closed"
 
@@ -792,7 +843,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_invalidate_deletes_row(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         process_group_log(group.id)
         assert GroupDerivedData.objects.filter(group_id=group.id).exists()
 
@@ -805,7 +858,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_invalidate_soft_keeps_row_and_schedules_generate(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         process_group_log(group.id)
         assert GroupDerivedData.objects.filter(group_id=group.id).exists()
 
@@ -824,7 +879,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_invalidate_soft_no_trigger_skips_task(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         process_group_log(group.id)
         assert (
             GroupDerivedData.objects.get(group_id=group.id).pipeline_hash == PIPELINE.pipeline_hash
@@ -844,7 +901,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_invalidate_hard_no_trigger_deletes_without_task(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         process_group_log(group.id)
         assert GroupDerivedData.objects.filter(group_id=group.id).exists()
 
@@ -861,7 +920,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_invalidate_pure_append_no_trigger_skips_process_task(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         old_cursor = derived.cursor_id
 
@@ -877,8 +938,12 @@ class ProcessGroupLogTest(TestCase):
     def test_invalidate_soft_rebuilds_via_generate(self) -> None:
         group = self.create_group()
         user = self.user
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         assert derived.view_count == 2
 
@@ -889,7 +954,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_invalidate_with_cursor_deletes_if_past(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
 
         invalidate_group_derived_data(
@@ -899,7 +966,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_invalidate_with_cursor_soft_schedules_generate_if_past(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
 
         with patch(
@@ -911,7 +980,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_invalidate_with_cursor_noop_if_not_reached(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         old_cursor = derived.cursor_id
 
@@ -994,7 +1065,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_invalidate_soft_bumps_generated_at(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         before = derived.generated_at
 
@@ -1035,7 +1108,9 @@ class ProcessGroupLogTest(TestCase):
         # cursor is past the row's cursor must still refresh the CAS rather
         # than fall into the pure-append branch.
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
 
         # Null the hash directly to simulate a prior invalidation (placeholder
@@ -1065,7 +1140,9 @@ class ProcessGroupLogTest(TestCase):
         # A generation task that started before invalidation must not
         # promote its (pre-invalidation) snapshot over the null-hash row.
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
 
         # Snapshot a candidate as if a generation started here.
         candidate = GroupDerivedData(
@@ -1091,8 +1168,12 @@ class ProcessGroupLogTest(TestCase):
     def test_invalidate_then_reprocess(self) -> None:
         group = self.create_group()
         user = self.user
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
         derived = process_group_log(group.id)
         assert derived.view_count == 2
 
@@ -1104,7 +1185,7 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        _publish(
+        publish_action_for_test(
             group=group,
             action=ResolvedInPullRequestAction(pull_request=101),
             actor=GroupActionActor.user(user.id),
@@ -1118,8 +1199,8 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         actor = GroupActionActor.user(self.user.id)
 
-        _publish(group=group, action=RootCauseIdentifiedAction(), actor=actor)
-        _publish(
+        publish_action_for_test(group=group, action=RootCauseIdentifiedAction(), actor=actor)
+        publish_action_for_test(
             group=group,
             action=ResolvedInPullRequestAction(pull_request=101),
             actor=actor,
@@ -1127,7 +1208,7 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.progress == IssueProgressState.FIX_PROPOSED.value
 
-        _publish(
+        publish_action_for_test(
             group=group,
             action=PullRequestClosedAction(pull_request=101, has_other_open_prs=False),
             actor=actor,
@@ -1139,12 +1220,12 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         actor = GroupActionActor.user(self.user.id)
 
-        _publish(
+        publish_action_for_test(
             group=group,
             action=ResolvedInPullRequestAction(pull_request=101),
             actor=actor,
         )
-        _publish(
+        publish_action_for_test(
             group=group,
             action=PullRequestClosedAction(pull_request=101, has_other_open_prs=True),
             actor=actor,
@@ -1156,13 +1237,13 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         actor = GroupActionActor.user(self.user.id)
 
-        _publish(group=group, action=RootCauseIdentifiedAction(), actor=actor)
-        _publish(
+        publish_action_for_test(group=group, action=RootCauseIdentifiedAction(), actor=actor)
+        publish_action_for_test(
             group=group,
             action=ResolvedInPullRequestAction(pull_request=101),
             actor=actor,
         )
-        _publish(
+        publish_action_for_test(
             group=group,
             action=PullRequestClosedAction(pull_request=101, has_other_open_prs=False),
             actor=actor,
@@ -1184,18 +1265,20 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         actor = GroupActionActor.user(self.user.id)
 
-        _publish(group=group, action=SeerCodingCompletedAction(), actor=actor)
+        publish_action_for_test(group=group, action=SeerCodingCompletedAction(), actor=actor)
         derived = process_group_log(group.id)
         assert derived.data["blocker"] == IssueBlocker.APPROVE_CODE_CHANGES.value
         assert derived.data["last_completed_autofix_step"] == IssueAutofixStep.CODE_CHANGES.value
         assert derived.data["has_open_fix_pr"] is False
 
-        _publish(group=group, action=ResolvedInPullRequestAction(pull_request=101), actor=actor)
+        publish_action_for_test(
+            group=group, action=ResolvedInPullRequestAction(pull_request=101), actor=actor
+        )
         derived = process_group_log(group.id)
         assert derived.data["blocker"] == IssueBlocker.MERGE_PR.value
         assert derived.data["has_open_fix_pr"] is True
 
-        _publish(
+        publish_action_for_test(
             group=group,
             action=PullRequestClosedAction(pull_request=101, has_other_open_prs=False),
             actor=actor,
@@ -1215,13 +1298,17 @@ class ProcessGroupLogTest(TestCase):
 
     def test_pipeline_hash_set_on_create(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         derived = process_group_log(group.id)
         assert derived.pipeline_hash == PIPELINE.pipeline_hash
 
     def test_pipeline_hash_concurrent_change_skips_cursor_update(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
 
         derived = process_group_log(group.id)
         first_cursor = derived.cursor_id
@@ -1253,7 +1340,9 @@ class ProcessGroupLogTest(TestCase):
         # be out of date and awaiting replacement. Incremental writes should
         # still advance a stale row rather than be frozen out.
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
 
         derived = process_group_log(group.id)
         first_cursor = derived.cursor_id
@@ -1291,7 +1380,9 @@ class ProcessGroupLogTest(TestCase):
         from django.utils import timezone
 
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
 
         derived = process_group_log(group.id)
         first_cursor = derived.cursor_id
@@ -1317,7 +1408,9 @@ class ProcessGroupLogTest(TestCase):
 
     def test_invalidate_and_reprocess_restores_pipeline_hash(self) -> None:
         group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
         process_group_log(group.id)
 
         invalidate_group_derived_data(group.id, soft=False)
@@ -1330,7 +1423,9 @@ class DrainLogTest(TestCase):
     def test_drain_log_respects_time_limit(self) -> None:
         group = self.create_group()
         for _ in range(5):
-            _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+            publish_action_for_test(
+                group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+            )
 
         candidate = GroupDerivedData(group_id=group.id, cursor_date=EPOCH, cursor_id=0, data={})
 
@@ -1437,8 +1532,12 @@ class GroupDerivedDataStoreTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
+        )
+        publish_action_for_test(
+            group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id)
+        )
         first = process_group_log(group.id)
 
         first_data = first.data.copy()
@@ -1490,21 +1589,21 @@ class GroupDerivedDataStoreTest(TestCase):
         user = self.user
         actor = GroupActionActor.user(user.id)
 
-        _publish(group=group, action=ViewAction(), actor=actor)
+        publish_action_for_test(group=group, action=ViewAction(), actor=actor)
         derived = process_group_log(group.id)
 
         state = GroupDerivedDataStore.load(PIPELINE, derived)
         assert state[PROGRESS] == IssueProgressState.IDENTIFIED
         assert state[LAST_PROGRESSED_AT] is None
 
-        _publish(group=group, action=ResolveAction(), actor=actor)
+        publish_action_for_test(group=group, action=ResolveAction(), actor=actor)
         derived = process_group_log(group.id)
 
         state = GroupDerivedDataStore.load(PIPELINE, derived)
         assert state[PROGRESS] is None
         assert state[LAST_PROGRESSED_AT] is not None
 
-        _publish(group=group, action=UnresolveAction(), actor=actor)
+        publish_action_for_test(group=group, action=UnresolveAction(), actor=actor)
         derived = process_group_log(group.id)
 
         state = GroupDerivedDataStore.load(PIPELINE, derived)
@@ -1548,7 +1647,9 @@ class DerivedDataTransactionTest(TestCase):
     def test_committed_action_produces_derived_data(self) -> None:
         group = self.create_group()
 
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        publish_action_for_test(
+            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+        )
 
         assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 1
         assert GroupDerivedData.objects.filter(group_id=group.id).exists()
@@ -1561,7 +1662,9 @@ class ProcessGroupLogTimeoutTest(TestCase):
     def test_raises_when_timeout_exceeded(self) -> None:
         group = self.create_group()
         for _ in range(5):
-            _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+            publish_action_for_test(
+                group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+            )
         GroupDerivedData.objects.filter(group_id=group.id).delete()
 
         with pytest.raises(GroupLogTimeout):
@@ -1570,7 +1673,9 @@ class ProcessGroupLogTimeoutTest(TestCase):
     def test_completes_with_generous_timeout(self) -> None:
         group = self.create_group()
         for _ in range(3):
-            _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+            publish_action_for_test(
+                group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+            )
         GroupDerivedData.objects.filter(group_id=group.id).delete()
 
         derived = process_group_log(group.id, timeout=timedelta(minutes=5))

@@ -1,28 +1,11 @@
-from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
-    SYSTEM_ACTOR,
-    ActionSource,
-    GroupAction,
-    GroupActionActor,
     ResolveAction,
     ViewAction,
 )
 from sentry.issues.derived.processing import PIPELINE, process_group_log
-from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.action_log import publish_action_for_test
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.outbox import outbox_runner
-
-
-def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYSTEM_ACTOR) -> None:
-    with outbox_runner():
-        publish_action(
-            action,
-            source=ActionSource.API,
-            group_id=group.id,
-            project=group.project,
-            actor=actor,
-        )
 
 
 @with_feature("projects:issue-action-log-write-to-db")
@@ -44,9 +27,9 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
         assert response.data["truncated"] is False
 
     def test_with_stored_and_computed(self) -> None:
-        _publish(group=self.group, action=ViewAction())
-        _publish(group=self.group, action=ViewAction())
-        _publish(group=self.group, action=ResolveAction())
+        publish_action_for_test(group=self.group, action=ViewAction())
+        publish_action_for_test(group=self.group, action=ViewAction())
+        publish_action_for_test(group=self.group, action=ResolveAction())
         process_group_log(self.group.id)
 
         response = self.get_success_response(self.organization.slug, self.group.id, status_code=200)
@@ -61,7 +44,7 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
 
     def test_truncated_when_over_limit(self) -> None:
         for _ in range(3):
-            _publish(group=self.group, action=ViewAction())
+            publish_action_for_test(group=self.group, action=ViewAction())
 
         response = self.get_success_response(
             self.organization.slug, self.group.id, qs_params={"limit": "2"}, status_code=200

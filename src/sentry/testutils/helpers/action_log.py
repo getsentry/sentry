@@ -1,5 +1,5 @@
 """
-Test helper for asserting that actions were published to the action log.
+Test helpers for publishing and capturing actions in the action log.
 
 Usage::
 
@@ -10,6 +10,14 @@ Usage::
             publish_action(ResolveAction(), source="web", group_id=1, project=self.project)
         log.assert_logged(ResolveAction, group_id=1)
         log.assert_not_logged(ViewAction)
+
+To publish an action and synchronously drain pending outbox jobs::
+
+    from sentry.testutils.helpers.action_log import publish_action_for_test
+
+    def test_action_log(self) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"):
+            publish_action_for_test(group=self.group, action=ResolveAction())
 """
 
 from __future__ import annotations
@@ -20,14 +28,45 @@ from contextlib import contextmanager
 from typing import Any
 from unittest import mock
 
-from sentry.issues.action_log.publish import _publish_callbacks
+from sentry.issues.action_log.publish import _publish_callbacks, publish_action
 from sentry.issues.action_log.types import (
+    SYSTEM_ACTOR,
+    ActionSource,
     GroupAction,
     GroupActionActor,
     GroupActionType,
 )
+from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.testutils.helpers.features import Feature
+from sentry.testutils.outbox import outbox_runner
+
+
+def publish_action_for_test(
+    *,
+    group: Group,
+    action: GroupAction,
+    actor: GroupActionActor = SYSTEM_ACTOR,
+    source: str = ActionSource.API,
+) -> None:
+    """Publish an action for a group and synchronously drain pending outbox jobs.
+
+    Defaults to API attribution and the system actor. Enable
+    ``projects:issue-action-log-write-to-db`` in the calling test to persist
+    actions. This uses the real publishing and outbox paths, including derived
+    data processing, and drains all pending outboxes, not just this action.
+
+    Use the production ``publish_action`` directly when testing deferred outbox
+    delivery or its publishing options.
+    """
+    with outbox_runner():
+        publish_action(
+            action,
+            source=source,
+            group_id=group.id,
+            project=group.project,
+            actor=actor,
+        )
 
 
 @contextmanager
