@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from sentry.agent_handoff.codes import (
     HANDOFF_LIFETIME,
     AgentHandoff,
+    HandoffFlow,
     IssuedAgentHandoff,
     _get_redis_client,
     _handoff_key,
@@ -24,6 +25,7 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 class AgentHandoffTest(TestCase):
     def issue(self) -> IssuedAgentHandoff:
         return issue_handoff(
+            flow=HandoffFlow.ONBOARDING,
             user_id=1,
             organization_id=2,
             application_id=3,
@@ -43,6 +45,7 @@ class AgentHandoffTest(TestCase):
         assert issued.code not in repr(issued)
         assert 0 < client.ttl(key) <= int(HANDOFF_LIFETIME.total_seconds())
         assert json.loads(raw) == {
+            "flow": "onboarding",
             "user_id": 1,
             "organization_id": 2,
             "application_id": 3,
@@ -52,6 +55,7 @@ class AgentHandoffTest(TestCase):
     def test_consume_is_single_use(self) -> None:
         issued = self.issue()
         assert consume_handoff(issued.code) == AgentHandoff(
+            flow=HandoffFlow.ONBOARDING,
             user_id=1,
             organization_id=2,
             application_id=3,
@@ -100,3 +104,18 @@ class AgentHandoffTest(TestCase):
             consume_handoff(issued.code)
 
         assert consume_handoff(issued.code) is None
+
+
+def test_handoff_defaults_to_guided_next_steps() -> None:
+    handoff = AgentHandoff.parse_raw(
+        '{"user_id":1,"organization_id":2,"application_id":3,"scope_list":["org:read"]}'
+    )
+    assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
+
+
+def test_unknown_handoff_flow_is_rejected() -> None:
+    with pytest.raises(ValidationError, match="flow"):
+        AgentHandoff.parse_raw(
+            '{"flow":"unsupported","user_id":1,"organization_id":2,'
+            '"application_id":3,"scope_list":["org:read"]}'
+        )

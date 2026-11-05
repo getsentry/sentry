@@ -114,6 +114,7 @@ const config: KnipConfig = {
         ...frontendWorkspace.entry,
         '**/*.snapshots.tsx',
         '**/__mocks__/**/*.{js,ts,tsx}',
+        '**/*.stories.{js,ts,tsx}',
       ],
     },
     'static/gsAdmin': {
