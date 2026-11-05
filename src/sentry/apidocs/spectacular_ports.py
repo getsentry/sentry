@@ -61,6 +61,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import _SchemaType
 
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import ApiFormat
 from sentry.apidocs.omission_guard import descended, omissions_enabled, record_typed_dict
 from sentry.apidocs.omissions import OMISSION_REASONS_OVERRIDE
 from sentry.apidocs.response_coverage import CYCLE, FIELD_SOURCE
@@ -71,6 +72,7 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 # with modifications to support our use case:
 #   grabbing description from a TypedDict __doc__
 #   grabbing field descriptions from Annotated[T, ApiDescription(...)]
+#   adding schema keywords such as format from Annotated[T, ApiFormat(...)]
 #   support for TypedDict required fields
 #   support for excluded fields via @extend_schema_serializer
 
@@ -192,6 +194,14 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
     origin, args = _get_type_hint_origin(hint)
     excluded_fields = get_override(hint, "exclude_fields", [])
 
+    if origin in (Required, NotRequired, ReadOnly):
+        return resolve_type_hint(args[0])
+    if origin is Annotated:
+        schema = resolve_type_hint(hint.__origin__)
+        for metadata in hint.__metadata__:
+            if isinstance(metadata, ApiFormat):
+                schema = {**schema, **metadata.schema()}
+        return schema
     if hint is object:
         return build_basic_type(OpenApiTypes.ANY)
     if origin is None and is_basic_type(hint, allow_none=False):
@@ -249,8 +259,9 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
             return _cycle_placeholder(hint)
 
         excluded_fields = _typed_dict_exclusions(hint, excluded_fields)
-        # Field types resolve from the stripped hints, as before; the hints with
-        # extras are read only for each field's ApiDescription and required-ness.
+        # Field types resolve from the hints with extras, so that ApiFormat metadata
+        # reaches the schema; ApiDescription and required-ness are read from the same
+        # hints.
         hints_with_extras = get_type_hints(hint, include_extras=True)
         _typed_dicts_in_progress.append(hint)
         try:
@@ -260,9 +271,9 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
                         _resolve_at(v, "properties", k),
                         hint,
                         k,
-                        _field_description(hints_with_extras[k]),
+                        _field_description(v),
                     )
-                    for k, v in get_type_hints(hint).items()
+                    for k, v in hints_with_extras.items()
                     if k not in excluded_fields
                 },
                 description=inspect.cleandoc(hint.__doc__ or ""),

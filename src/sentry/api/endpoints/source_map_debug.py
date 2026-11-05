@@ -19,6 +19,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.source_map_debug_examples import SourceMapDebugExamples
+from sentry.apidocs.formats import Url
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.debug_files.release_files import maybe_renew_releasefiles
@@ -78,14 +79,14 @@ URL_MATCH_MAX_BUNDLES = 1000
 
 
 class ScrapingResultSuccess(TypedDict):
-    url: Annotated[str, ApiDescription("URL Sentry fetched")]
+    url: Annotated[Url, ApiDescription("URL Sentry fetched")]
     status: Annotated[
         Literal["success"], ApiDescription("Result of fetching the file, always success")
     ]
 
 
 class ScrapingResultNotAttempted(TypedDict):
-    url: Annotated[str, ApiDescription("URL Sentry didn't fetch")]
+    url: Annotated[Url, ApiDescription("URL Sentry didn't fetch")]
     status: Annotated[
         Literal["not_attempted"],
         ApiDescription("Result of fetching the file, always not_attempted"),
@@ -93,7 +94,7 @@ class ScrapingResultNotAttempted(TypedDict):
 
 
 class ScrapingResultFailure(TypedDict):
-    url: Annotated[str, ApiDescription("URL Sentry failed to fetch")]
+    url: Annotated[Url, ApiDescription("URL Sentry failed to fetch")]
     status: Annotated[
         Literal["failure"], ApiDescription("Result of fetching the file, always failure")
     ]

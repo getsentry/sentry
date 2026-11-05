@@ -28,6 +28,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import Url
 from sentry.auth.principal import has_user
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
@@ -171,7 +172,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     shortId: Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
     title: Annotated[str, ApiDescription("Title of the issue")]
     culprit: Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
-    permalink: Annotated[str, ApiDescription("URL of the issue in Sentry")]
+    permalink: Annotated[Url, ApiDescription("URL of the issue in Sentry")]
     logger: Annotated[str | None, ApiDescription("Logger of the issue's events")]
     level: Annotated[GroupLevelStr, ApiDescription("Severity level of the issue")]
     status: Annotated[GroupStatusStr, ApiDescription("Issue status")]

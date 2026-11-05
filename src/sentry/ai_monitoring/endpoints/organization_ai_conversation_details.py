@@ -53,6 +53,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
+from sentry.apidocs.formats import Url
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -227,7 +228,7 @@ class AIConversationDetailsResponse(TypedDict):
     projects: Annotated[
         list[ConversationProject], ApiDescription("Projects the conversation's spans belong to")
     ]
-    webUrl: Annotated[str, ApiDescription("URL of the conversation in Sentry")]
+    webUrl: Annotated[Url, ApiDescription("URL of the conversation in Sentry")]
     spans: Annotated[
         list[dict[str, Any]],
         ApiDescription("Spans recorded for the conversation, in start-time order"),
@@ -246,7 +247,7 @@ class AIConversationTranscriptResponse(TypedDict):
     projects: Annotated[
         list[ConversationProject], ApiDescription("Projects the conversation's spans belong to")
     ]
-    webUrl: Annotated[str, ApiDescription("URL of the conversation in Sentry")]
+    webUrl: Annotated[Url, ApiDescription("URL of the conversation in Sentry")]
     stats: Annotated[
         AIConversationStats | None,
         ApiDescription("Aggregate stats for the conversation. Only returned on the first page"),

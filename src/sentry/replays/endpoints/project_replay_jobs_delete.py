@@ -21,6 +21,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.replay_examples import ReplayExamples
+from sentry.apidocs.formats import IsoDateTime
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -42,10 +43,12 @@ class _ReplayDeletionJobCreateData(TypedDict):
 
 class ReplayDeletionJobResponseData(TypedDict):
     id: Annotated[int, ApiDescription("ID of the deletion job")]
-    dateCreated: Annotated[str, ApiDescription("When the job was created")]
-    dateUpdated: Annotated[str, ApiDescription("When the job was last updated")]
-    rangeStart: Annotated[str, ApiDescription("Earliest UTC timestamp in the deletion range")]
-    rangeEnd: Annotated[str, ApiDescription("Latest UTC timestamp in the deletion range")]
+    dateCreated: Annotated[IsoDateTime, ApiDescription("When the job was created")]
+    dateUpdated: Annotated[IsoDateTime, ApiDescription("When the job was last updated")]
+    rangeStart: Annotated[
+        IsoDateTime, ApiDescription("Earliest UTC timestamp in the deletion range")
+    ]
+    rangeEnd: Annotated[IsoDateTime, ApiDescription("Latest UTC timestamp in the deletion range")]
     environments: Annotated[
         list[str],
         ApiDescription("Environments of the replays to delete. Empty means all environments"),

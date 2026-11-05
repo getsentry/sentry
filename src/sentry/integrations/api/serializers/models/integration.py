@@ -8,6 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import IsoDateTime
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.integrations.base import IntegrationProvider
@@ -89,7 +90,7 @@ class OrganizationIntegrationResponse(TypedDict):
         ),
     ]
     gracePeriodEnd: Annotated[
-        str | None,
+        IsoDateTime | None,
         ApiDescription(
             "When the integration's grace period ends (ISO 8601). Null when there's no grace period"
         ),

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated, Literal, TypedDict, cast
 
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import GitRef, IsoDateTime
 from sentry.preprod.models import PreprodArtifact
 
 # Names of PreprodArtifact.ArtifactType
@@ -15,8 +16,10 @@ class AppInfoResponseDict(TypedDict):
     version: Annotated[str | None, ApiDescription("Version of the build")]
     buildNumber: Annotated[int | None, ApiDescription("Build number")]
     artifactType: Annotated[ArtifactTypeName | None, ApiDescription("Type of the build file")]
-    dateAdded: Annotated[str | None, ApiDescription("When the build was uploaded (ISO 8601)")]
-    dateBuilt: Annotated[str | None, ApiDescription("When the build was built (ISO 8601)")]
+    dateAdded: Annotated[
+        IsoDateTime | None, ApiDescription("When the build was uploaded (ISO 8601)")
+    ]
+    dateBuilt: Annotated[IsoDateTime | None, ApiDescription("When the build was built (ISO 8601)")]
 
 
 class GitInfoResponseDict(TypedDict):
@@ -27,8 +30,8 @@ class GitInfoResponseDict(TypedDict):
     provider: Annotated[str | None, ApiDescription("Version control provider, such as github")]
     headRepoName: Annotated[str | None, ApiDescription("Repository name of the head commit")]
     baseRepoName: Annotated[str | None, ApiDescription("Repository name of the base commit")]
-    headRef: Annotated[str | None, ApiDescription("Branch or ref of the head commit")]
-    baseRef: Annotated[str | None, ApiDescription("Branch or ref of the base commit")]
+    headRef: Annotated[GitRef | None, ApiDescription("Branch or ref of the head commit")]
+    baseRef: Annotated[GitRef | None, ApiDescription("Branch or ref of the base commit")]
     prNumber: Annotated[int | None, ApiDescription("Pull request number")]
 
 

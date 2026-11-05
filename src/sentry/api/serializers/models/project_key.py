@@ -7,6 +7,7 @@ from rest_framework.request import Request
 
 from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import Url
 from sentry.auth.superuser import is_active_superuser
 from sentry.loader.browsersdkversion import (
     get_browser_sdk_version_choices,
@@ -24,22 +25,22 @@ class RateLimit(TypedDict):
 
 
 class DSN(TypedDict):
-    secret: Annotated[str, ApiDescription("DSN that includes the secret key")]
-    public: Annotated[str, ApiDescription("Public DSN to configure SDKs with")]
-    csp: Annotated[str, ApiDescription("Endpoint for Content Security Policy reports")]
-    security: Annotated[str, ApiDescription("Endpoint for security reports")]
-    minidump: Annotated[str, ApiDescription("Endpoint for minidump crash reports")]
-    nel: Annotated[str, ApiDescription("Endpoint for Network Error Logging reports")]
-    unreal: Annotated[str, ApiDescription("Endpoint for Unreal Engine crash reports")]
-    crons: Annotated[str, ApiDescription("Endpoint for cron monitor check-ins")]
-    cdn: Annotated[str, ApiDescription("URL of the JavaScript SDK Loader script")]
-    playstation: Annotated[str, ApiDescription("Endpoint for PlayStation crash reports")]
+    secret: Annotated[Url, ApiDescription("DSN that includes the secret key")]
+    public: Annotated[Url, ApiDescription("Public DSN to configure SDKs with")]
+    csp: Annotated[Url, ApiDescription("Endpoint for Content Security Policy reports")]
+    security: Annotated[Url, ApiDescription("Endpoint for security reports")]
+    minidump: Annotated[Url, ApiDescription("Endpoint for minidump crash reports")]
+    nel: Annotated[Url, ApiDescription("Endpoint for Network Error Logging reports")]
+    unreal: Annotated[Url, ApiDescription("Endpoint for Unreal Engine crash reports")]
+    crons: Annotated[Url, ApiDescription("Endpoint for cron monitor check-ins")]
+    cdn: Annotated[Url, ApiDescription("URL of the JavaScript SDK Loader script")]
+    playstation: Annotated[Url, ApiDescription("Endpoint for PlayStation crash reports")]
     integration: Annotated[
-        str,
+        Url,
         ApiDescription("Base URL for integration endpoints, such as the OpenTelemetry endpoints"),
     ]
-    otlp_traces: Annotated[str, ApiDescription("OpenTelemetry (OTLP) endpoint for traces")]
-    otlp_logs: Annotated[str, ApiDescription("OpenTelemetry (OTLP) endpoint for logs")]
+    otlp_traces: Annotated[Url, ApiDescription("OpenTelemetry (OTLP) endpoint for traces")]
+    otlp_logs: Annotated[Url, ApiDescription("OpenTelemetry (OTLP) endpoint for logs")]
 
 
 class BrowserSDK(TypedDict):

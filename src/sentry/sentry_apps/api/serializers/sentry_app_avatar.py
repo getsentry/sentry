@@ -5,6 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import Url
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.services.app.model import RpcSentryAppAvatar
 from sentry.users.models.user import User
@@ -19,7 +20,7 @@ class SentryAppAvatarSerializerResponse(TypedDict):
             "Unique identifier of the uploaded avatar file, or an empty string if none is set"
         ),
     ]
-    avatarUrl: Annotated[str, ApiDescription("Absolute URL of the avatar image")]
+    avatarUrl: Annotated[Url, ApiDescription("Absolute URL of the avatar image")]
     color: Annotated[
         bool, ApiDescription("Whether this is the color logo (`true`) or the simple icon (`false`)")
     ]
