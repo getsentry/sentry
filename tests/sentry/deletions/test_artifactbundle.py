@@ -67,7 +67,7 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
                 raise File.DoesNotExist("File matching query does not exist.")
 
         # Must not raise File.DoesNotExist.
-        delete_file_for_artifact_bundle(_MissingFile())
+        delete_file_for_artifact_bundle(_MissingFile())  # type: ignore[arg-type]
 
     def test_indices_deleted_by_cascade(self) -> None:
         org = self.create_organization()
