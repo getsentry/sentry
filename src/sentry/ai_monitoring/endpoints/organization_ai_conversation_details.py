@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.core import signing
 from django.utils import timezone
@@ -51,6 +51,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import DetailResponse
@@ -175,31 +176,39 @@ AI_CONVERSATION_ATTRIBUTES = [
 
 
 class AIConversationModelUsage(TypedDict):
-    model: str | None
-    llmCalls: int
-    inputTokens: int
-    outputTokens: int
-    totalTokens: int
-    cacheReadTokens: int
-    cacheWriteTokens: int
-    reasoningTokens: int
-    inputCost: float
-    outputCost: float
-    cacheReadCost: float
-    cacheWriteCost: float
-    reasoningCost: float
-    totalCost: float
+    model: Annotated[str | None, ApiDescription("Name of the model")]
+    llmCalls: Annotated[int, ApiDescription("Number of LLM calls to the model")]
+    inputTokens: Annotated[
+        int, ApiDescription("Number of input tokens, including cache-read and cache-write tokens")
+    ]
+    outputTokens: Annotated[int, ApiDescription("Number of output tokens")]
+    totalTokens: Annotated[int, ApiDescription("Total number of tokens")]
+    cacheReadTokens: Annotated[int, ApiDescription("Number of input tokens read from the cache")]
+    cacheWriteTokens: Annotated[int, ApiDescription("Number of input tokens written to the cache")]
+    reasoningTokens: Annotated[int, ApiDescription("Number of reasoning tokens")]
+    inputCost: Annotated[
+        float, ApiDescription("Cost of input tokens, including cache-read and cache-write costs")
+    ]
+    outputCost: Annotated[float, ApiDescription("Cost of output tokens, including reasoning cost")]
+    cacheReadCost: Annotated[float, ApiDescription("Cost of cache-read tokens")]
+    cacheWriteCost: Annotated[float, ApiDescription("Cost of cache-write tokens")]
+    reasoningCost: Annotated[float, ApiDescription("Cost of reasoning tokens")]
+    totalCost: Annotated[float, ApiDescription("Total cost")]
 
 
 class AIConversationStats(AIConversationAggregates):
-    cacheReadTokens: int
-    cacheWriteTokens: int
-    errorToolNames: list[str]
-    reasoningTokens: int
-    cacheReadCost: float
-    cacheWriteCost: float
-    reasoningCost: float
-    usageByModel: list[AIConversationModelUsage]
+    cacheReadTokens: Annotated[int, ApiDescription("Number of input tokens read from the cache")]
+    cacheWriteTokens: Annotated[int, ApiDescription("Number of input tokens written to the cache")]
+    errorToolNames: Annotated[
+        list[str], ApiDescription("Names of the tools used by spans with errors")
+    ]
+    reasoningTokens: Annotated[int, ApiDescription("Number of reasoning tokens")]
+    cacheReadCost: Annotated[float, ApiDescription("Cost of cache-read tokens")]
+    cacheWriteCost: Annotated[float, ApiDescription("Cost of cache-write tokens")]
+    reasoningCost: Annotated[float, ApiDescription("Cost of reasoning tokens")]
+    usageByModel: Annotated[
+        list[AIConversationModelUsage], ApiDescription("Token usage and cost per model")
+    ]
 
 
 class AIConversationQueryResult(TypedDict):
@@ -211,23 +220,45 @@ class AIConversationQueryResult(TypedDict):
 class AIConversationDetailsResponse(TypedDict):
     """Span page plus conversation-level metadata."""
 
-    conversationId: str
-    title: str | None
-    projects: list[ConversationProject]
-    webUrl: str
-    spans: list[dict[str, Any]]
-    stats: AIConversationStats | None
+    conversationId: Annotated[str, ApiDescription("ID of the conversation")]
+    title: Annotated[
+        str | None, ApiDescription("Stored title of the conversation. Null when it has none yet")
+    ]
+    projects: Annotated[
+        list[ConversationProject], ApiDescription("Projects the conversation's spans belong to")
+    ]
+    webUrl: Annotated[str, ApiDescription("URL of the conversation in Sentry")]
+    spans: Annotated[
+        list[dict[str, Any]],
+        ApiDescription("Spans recorded for the conversation, in start-time order"),
+    ]
+    stats: Annotated[
+        AIConversationStats | None,
+        ApiDescription("Aggregate stats for the conversation. Only returned on the first page"),
+    ]
 
 
 class AIConversationTranscriptResponse(TypedDict):
-    conversationId: str
-    title: str | None
-    projects: list[ConversationProject]
-    webUrl: str
-    stats: AIConversationStats | None
-    transcript: list[TranscriptMessageResponse]
-    complete: bool
-    sourceSpanCount: int
+    conversationId: Annotated[str, ApiDescription("ID of the conversation")]
+    title: Annotated[
+        str | None, ApiDescription("Stored title of the conversation. Null when it has none yet")
+    ]
+    projects: Annotated[
+        list[ConversationProject], ApiDescription("Projects the conversation's spans belong to")
+    ]
+    webUrl: Annotated[str, ApiDescription("URL of the conversation in Sentry")]
+    stats: Annotated[
+        AIConversationStats | None,
+        ApiDescription("Aggregate stats for the conversation. Only returned on the first page"),
+    ]
+    transcript: Annotated[
+        list[TranscriptMessageResponse],
+        ApiDescription("Messages in the conversation, built from its spans"),
+    ]
+    complete: Annotated[bool, ApiDescription("Whether this page holds the rest of the transcript")]
+    sourceSpanCount: Annotated[
+        int, ApiDescription("Number of spans this page of the transcript was built from")
+    ]
 
 
 def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationStats:
