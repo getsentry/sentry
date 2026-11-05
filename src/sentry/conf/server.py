@@ -1054,10 +1054,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "selfhosted:sentry.tasks.send_ping",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
-    "cadence-tick": {
-        "task": "issues:sentry.cadence.tasks.cadence_tick",
-        "schedule": timedelta(seconds=10),
-    },
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
         "schedule": timedelta(seconds=10),

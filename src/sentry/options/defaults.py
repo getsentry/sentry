@@ -1655,7 +1655,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Kill switch for sentry.cadence: when False, no scheduled triggers are claimed or run.
+# Kill switch for sentry.cadence: when False, no triggers are claimed or fired.
 register(
     "cadence.tick.enabled",
     type=Bool,
