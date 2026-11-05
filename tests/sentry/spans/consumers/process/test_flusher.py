@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import gc
+import re
+import threading
 import time
 import weakref
-from collections.abc import Callable
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from concurrent.futures import Future
+from contextlib import contextmanager
 from multiprocessing.process import BaseProcess
 from multiprocessing.sharedctypes import Synchronized
 from time import sleep
@@ -15,6 +18,8 @@ from unittest import mock
 import orjson
 import pytest
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.processing.strategies.abstract import MessageRejected
+from arroyo.processing.strategies.batching import ValuesBatch
 from arroyo.processing.strategies.noop import Noop
 from arroyo.types import FILTERED_PAYLOAD, Message, Value
 
@@ -66,6 +71,8 @@ def _blocking_main_for_join_test(
     backpressure_since: Synchronized[int],
     healthy_since: Synchronized[int],
     produce_to_pipe: ProduceToPipe | None,
+    wait_for_drift_seconds: int = 0,
+    first_cycle_done: Synchronized[int] | None = None,
 ) -> None:
     """Module-level function for multiprocessing (must be picklable)."""
     healthy_since.value = int(time.time())
@@ -268,6 +275,8 @@ def test_flusher_waits_for_exited_processes_during_startup() -> None:
         backpressure_since: Synchronized[int],
         healthy_since: Synchronized[int],
         produce_to_pipe: ProduceToPipe | None,
+        wait_for_drift_seconds: int = 0,
+        first_cycle_done: Synchronized[int] | None = None,
     ) -> None:
         return
 
@@ -277,6 +286,7 @@ def test_flusher_waits_for_exited_processes_during_startup() -> None:
             {
                 "spans.buffer.flusher.max-unhealthy-seconds": 0.5,
                 "spans.buffer.flusher.use-stuck-detector": False,
+                "spans.buffer.flusher.wait-for-drift-seconds": 0,
             }
         ),
         pytest.raises(RuntimeError, match="process 0 \\(shards \\[0\\]\\) exited during startup"),
@@ -302,6 +312,8 @@ def test_flusher_timeout_waiting_for_processes_startup() -> None:
         backpressure_since: Synchronized[int],
         healthy_since: Synchronized[int],
         produce_to_pipe: ProduceToPipe | None,
+        wait_for_drift_seconds: int = 0,
+        first_cycle_done: Synchronized[int] | None = None,
     ) -> None:
         while not stopped.value:
             sleep(0.05)
@@ -312,6 +324,7 @@ def test_flusher_timeout_waiting_for_processes_startup() -> None:
             {
                 "spans.buffer.flusher.max-unhealthy-seconds": 0.5,
                 "spans.buffer.flusher.use-stuck-detector": False,
+                "spans.buffer.flusher.wait-for-drift-seconds": 0,
             }
         ),
         pytest.raises(RuntimeError, match="process 0 \\(shards \\[0\\]\\) didn't start up"),
@@ -321,6 +334,303 @@ def test_flusher_timeout_waiting_for_processes_startup() -> None:
             next_step=Noop(),
             produce_to_pipe=lambda project_id, payload, dropped: None,
         )
+
+
+def _held_batch() -> Message[ValuesBatch[tuple[int, KafkaPayload]]]:
+    """A batch from partitions 100 to 300 seconds behind, the oldest in the middle."""
+    now = int(time.time())
+    batch: ValuesBatch[tuple[int, KafkaPayload]] = [
+        Value((now - lag, KafkaPayload(None, b"", [])), {}) for lag in (200, 300, 100)
+    ]
+    return Message(Value(batch, {}))
+
+
+def _hold_until_released(
+    flusher: SpanFlusher,
+    message: Message[ValuesBatch[tuple[int, KafkaPayload]]],
+    timeout: float = 10,
+) -> ValuesBatch[tuple[int, KafkaPayload]]:
+    """Call hold_first_batch like arroyo does: retry while it rejects the batch."""
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            return flusher.hold_first_batch(message)
+        except MessageRejected:
+            if time.monotonic() > deadline:
+                raise
+            sleep(0.05)
+
+
+def _reject_until(
+    flusher: SpanFlusher,
+    message: Message[ValuesBatch[tuple[int, KafkaPayload]]],
+    condition: Callable[[], bool],
+    timeout: float = 10,
+) -> None:
+    """Call hold_first_batch, which must reject the batch every time, until condition() holds."""
+    deadline = time.monotonic() + timeout
+    while not condition():
+        assert time.monotonic() < deadline, "timed out"
+        with pytest.raises(MessageRejected):
+            flusher.hold_first_batch(message)
+        sleep(0.05)
+
+
+# What a fake flusher process does once the drift is set, given its stopped,
+# healthy_since and first_cycle_done values.
+type _AfterDrift = Callable[[Synchronized[int], Synchronized[int], Synchronized[int]], None]
+
+
+def _exit_in_first_cycle(
+    stopped: Synchronized[int],
+    healthy_since: Synchronized[int],
+    first_cycle_done: Synchronized[int],
+) -> None:
+    """Exit, as on a crash, before the first flush cycle has finished."""
+
+
+def _hang_in_first_cycle(
+    stopped: Synchronized[int],
+    healthy_since: Synchronized[int],
+    first_cycle_done: Synchronized[int],
+) -> None:
+    """Hang in the first flush cycle, without reporting healthy."""
+    while not stopped.value:
+        sleep(0.05)
+
+
+def _exit_after_first_cycle(
+    stopped: Synchronized[int],
+    healthy_since: Synchronized[int],
+    first_cycle_done: Synchronized[int],
+) -> None:
+    """Finish the first flush cycle, then exit."""
+    first_cycle_done.value = 1
+
+
+def _finish_first_cycle_when(event: threading.Event) -> _AfterDrift:
+    """Finish the first flush cycle once `event` is set, then keep running."""
+
+    def after_drift(
+        stopped: Synchronized[int],
+        healthy_since: Synchronized[int],
+        first_cycle_done: Synchronized[int],
+    ) -> None:
+        while not stopped.value and not event.is_set():
+            healthy_since.value = int(time.time())
+            sleep(0.05)
+        first_cycle_done.value = 1
+        while not stopped.value:
+            healthy_since.value = int(time.time())
+            sleep(0.05)
+
+    return after_drift
+
+
+def _finish_first_cycle_at_once() -> _AfterDrift:
+    event = threading.Event()
+    event.set()
+    return _finish_first_cycle_when(event)
+
+
+@contextmanager
+def _flusher_with_fake_main(
+    shards: list[int],
+    after_drift: Mapping[tuple[int, ...], Sequence[_AfterDrift]],
+    starts: list[tuple[int, ...]],
+) -> Iterator[SpanFlusher]:
+    """
+    A SpanFlusher with one thread per shard. The n-th thread started for some
+    shards waits for the drift, like SpanFlusher._wait_for_drift, and then runs
+    after_drift[shards][n]. Each thread appends its shards to `starts`.
+    """
+
+    def fake_main(
+        buffer: SpansBuffer,
+        shards: list[int],
+        stopped: Synchronized[int],
+        current_drift: Synchronized[int],
+        drift_initialized: Synchronized[int],
+        backpressure_since: Synchronized[int],
+        healthy_since: Synchronized[int],
+        produce_to_pipe: ProduceToPipe | None,
+        wait_for_drift_seconds: int = 0,
+        first_cycle_done: Synchronized[int] | None = None,
+    ) -> None:
+        # Every process, also a restarted one, gets the value that __init__
+        # read.
+        assert wait_for_drift_seconds == 60
+        assert first_cycle_done is not None
+        start = starts.count(tuple(shards))
+        starts.append(tuple(shards))
+        while not stopped.value and not drift_initialized.value:
+            healthy_since.value = int(time.time())
+            sleep(0.05)
+        after_drift[tuple(shards)][start](stopped, healthy_since, first_cycle_done)
+
+    with (
+        mock.patch.object(SpanFlusher, "main", fake_main),
+        override_options(
+            {
+                "spans.buffer.flusher.max-unhealthy-seconds": 1,
+                "spans.buffer.flusher.use-stuck-detector": False,
+                "spans.buffer.flusher.wait-for-drift-seconds": 60,
+            }
+        ),
+    ):
+        flusher = SpanFlusher(
+            SpansBuffer(assigned_shards=shards),
+            next_step=Noop(),
+            produce_to_pipe=lambda project_id, payload, dropped: None,
+        )
+        try:
+            yield flusher
+        finally:
+            flusher.join()
+
+
+def test_hold_first_batch_waits_for_every_process() -> None:
+    release = threading.Event()
+    starts: list[tuple[int, ...]] = []
+    after_drift: dict[tuple[int, ...], list[_AfterDrift]] = {
+        (0,): [_finish_first_cycle_at_once()],
+        (1,): [_finish_first_cycle_when(release)],
+    }
+    message = _held_batch()
+
+    with _flusher_with_fake_main([0, 1], after_drift, starts) as flusher:
+        # The first call sets the drift from the held batch's oldest message,
+        # as process_batch() and submit() do, which ends the processes' wait.
+        with pytest.raises(MessageRejected):
+            flusher.hold_first_batch(message)
+        assert flusher.drift_initialized.value == 1
+        assert flusher.current_drift.value == pytest.approx(-300, abs=5)
+
+        # Process 0 has finished its first flush cycle, process 1 has not.
+        _reject_until(flusher, message, lambda: flusher.process_first_cycle_done[0].value == 1)
+        with pytest.raises(MessageRejected):
+            flusher.hold_first_batch(message)
+
+        release.set()
+        assert _hold_until_released(flusher, message) is message.payload
+        assert flusher.process_restarts == {0: 0, 1: 0}
+        assert sorted(starts) == [(0,), (1,)]
+
+
+@pytest.mark.parametrize("exiting_process", [0, 1])
+def test_hold_first_batch_raises_if_process_exits_before_first_cycle(
+    exiting_process: int,
+) -> None:
+    starts: list[tuple[int, ...]] = []
+    after_drift: dict[tuple[int, ...], list[_AfterDrift]] = {
+        (0,): [_finish_first_cycle_at_once()],
+        (1,): [_finish_first_cycle_at_once()],
+    }
+    after_drift[(exiting_process,)] = [_exit_in_first_cycle]
+    message = _held_batch()
+
+    with _flusher_with_fake_main([0, 1], after_drift, starts) as flusher:
+        with pytest.raises(MessageRejected):
+            flusher.hold_first_batch(message)
+        flusher.processes[exiting_process].join(5)
+
+        # The consumer stops, as when the startup check fails, and the process
+        # is not restarted.
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                f"process {exiting_process} (shards [{exiting_process}]) exited before its first flush cycle"
+            ),
+        ):
+            flusher.hold_first_batch(message)
+        assert flusher.process_restarts == {0: 0, 1: 0}
+        assert sorted(starts) == [(0,), (1,)]
+
+
+def _first_rejection(
+    flusher: SpanFlusher, message: Message[ValuesBatch[tuple[int, KafkaPayload]]]
+) -> tuple[float, float]:
+    """
+    Make the first hold_first_batch call, which must reject the batch. Returns
+    the monotonic times from just before and just after it.
+    """
+    before = time.monotonic()
+    with pytest.raises(MessageRejected):
+        flusher.hold_first_batch(message)
+    return before, time.monotonic()
+
+
+def _assert_held_until_restarted_process_finishes(
+    flusher: SpanFlusher,
+    message: Message[ValuesBatch[tuple[int, KafkaPayload]]],
+    release: threading.Event,
+    mock_metrics: mock.MagicMock,
+    first_rejection: tuple[float, float],
+) -> None:
+    _reject_until(flusher, message, lambda: flusher.process_restarts[0] == 1)
+    # The new process has not finished its own first flush cycle yet.
+    with pytest.raises(MessageRejected):
+        flusher.hold_first_batch(message)
+
+    released_from = time.monotonic()
+    release.set()
+    assert _hold_until_released(flusher, message) is message.payload
+    released_by = time.monotonic()
+    # Later batches pass through, and the hold is timed once, from the first
+    # call to the release.
+    assert flusher.hold_first_batch(message) is message.payload
+    assert flusher.hold_first_batch(message) is message.payload
+    hold_timings = [
+        call.args[1]
+        for call in mock_metrics.timing.call_args_list
+        if call.args[0] == "spans.buffer.flusher.hold_first_batch"
+    ]
+    assert len(hold_timings) == 1
+    first_call_from, first_call_by = first_rejection
+    assert released_from - first_call_by <= hold_timings[0] <= released_by - first_call_from
+    assert flusher.process_restarts[0] == 1
+
+
+def test_hold_first_batch_restarts_process_that_exits_after_first_cycle() -> None:
+    release = threading.Event()
+    starts: list[tuple[int, ...]] = []
+    after_drift: dict[tuple[int, ...], list[_AfterDrift]] = {
+        (0,): [_exit_after_first_cycle, _finish_first_cycle_when(release)]
+    }
+    message = _held_batch()
+
+    with (
+        _flusher_with_fake_main([0], after_drift, starts) as flusher,
+        mock.patch("sentry.spans.consumers.process.flusher.metrics") as mock_metrics,
+    ):
+        first_rejection = _first_rejection(flusher, message)
+        flusher.processes[0].join(5)
+
+        _assert_held_until_restarted_process_finishes(
+            flusher, message, release, mock_metrics, first_rejection
+        )
+        assert starts == [(0,), (0,)]
+
+
+def test_hold_first_batch_restarts_process_that_hangs_in_first_cycle() -> None:
+    release = threading.Event()
+    starts: list[tuple[int, ...]] = []
+    after_drift: dict[tuple[int, ...], list[_AfterDrift]] = {
+        (0,): [_hang_in_first_cycle, _finish_first_cycle_when(release)]
+    }
+    message = _held_batch()
+
+    with (
+        _flusher_with_fake_main([0], after_drift, starts) as flusher,
+        mock.patch("sentry.spans.consumers.process.flusher.metrics") as mock_metrics,
+    ):
+        first_rejection = _first_rejection(flusher, message)
+        # The process is restarted once it has not reported healthy for
+        # max-unhealthy-seconds.
+        _assert_held_until_restarted_process_finishes(
+            flusher, message, release, mock_metrics, first_rejection
+        )
+        assert starts == [(0,), (0,)]
 
 
 def test_flusher_join_timeout_kills_all_processes() -> None:
@@ -357,6 +667,7 @@ def test_flusher_join_timeout_kills_all_processes() -> None:
             {
                 "spans.buffer.flusher.max-unhealthy-seconds": 10,
                 "spans.buffer.flusher.use-stuck-detector": False,
+                "spans.buffer.flusher.wait-for-drift-seconds": 0,
             }
         ),
     ):
@@ -588,6 +899,8 @@ def _run_main_with_fake_clock(
     current_drift: Synchronized[int],
     drift_initialized: Synchronized[int],
     healthy_since: Synchronized[int],
+    wait_for_drift_seconds: int,
+    first_cycle_done: Synchronized[int] | None = None,
 ) -> tuple[mock.MagicMock, mock.MagicMock]:
     with (
         mock.patch("sentry.spans.consumers.process.flusher.time", buffer.clock),
@@ -603,6 +916,8 @@ def _run_main_with_fake_clock(
             backpressure_since=_shared(),
             healthy_since=healthy_since,
             produce_to_pipe=None,
+            wait_for_drift_seconds=wait_for_drift_seconds,
+            first_cycle_done=first_cycle_done,
         )
     return mock_metrics, mock_logger
 
@@ -612,6 +927,7 @@ def _run_main_with_fake_clock(
     [(0, 0), (60, 1)],
     ids=["disabled", "drift_already_initialized"],
 )
+@override_options(DEFAULT_OPTIONS)
 def test_flusher_flushes_without_waiting_for_drift(
     wait_for_drift_seconds: int, drift_already_initialized: int
 ) -> None:
@@ -620,16 +936,14 @@ def test_flusher_flushes_without_waiting_for_drift(
     stopped = _shared()
     buffer = _DriftRecordingBuffer(stopped, _FakeClock())
 
-    with override_options(
-        {**DEFAULT_OPTIONS, "spans.buffer.flusher.wait-for-drift-seconds": wait_for_drift_seconds}
-    ):
-        mock_metrics, _ = _run_main_with_fake_clock(
-            buffer,
-            stopped=stopped,
-            current_drift=_shared(-255 * drift_already_initialized),
-            drift_initialized=_shared(drift_already_initialized),
-            healthy_since=_shared(),
-        )
+    mock_metrics, _ = _run_main_with_fake_clock(
+        buffer,
+        stopped=stopped,
+        current_drift=_shared(-255 * drift_already_initialized),
+        drift_initialized=_shared(drift_already_initialized),
+        healthy_since=_shared(),
+        wait_for_drift_seconds=wait_for_drift_seconds,
+    )
 
     assert buffer.probes == 0
     assert buffer.flush_drifts == [-255 * drift_already_initialized]
@@ -638,12 +952,14 @@ def test_flusher_flushes_without_waiting_for_drift(
     mock_metrics.timing.assert_not_called()
 
 
-@override_options({**DEFAULT_OPTIONS, "spans.buffer.flusher.wait-for-drift-seconds": 60})
+# The option stays at 0: main() uses the value that SpanFlusher.__init__ read.
+@override_options(DEFAULT_OPTIONS)
 def test_flusher_waits_for_drift_before_first_flush() -> None:
     stopped = _shared()
     current_drift = _shared()
     drift_initialized = _shared()
     healthy_since = _shared()
+    first_cycle_done = _shared()
     # (healthy_since, number of probe flushes, number of flushes) seen by the
     # "consumer" while the flusher is waiting.
     seen_while_waiting: list[tuple[int, int, int]] = []
@@ -651,6 +967,7 @@ def test_flusher_waits_for_drift_before_first_flush() -> None:
     def consumer() -> None:
         if drift_initialized.value:
             return
+        assert first_cycle_done.value == 0
         seen_while_waiting.append((healthy_since.value, buffer.probes, len(buffer.flush_drifts)))
         healthy_since.value = 0
         if len(seen_while_waiting) == 10:
@@ -665,8 +982,12 @@ def test_flusher_waits_for_drift_before_first_flush() -> None:
         current_drift=current_drift,
         drift_initialized=drift_initialized,
         healthy_since=healthy_since,
+        wait_for_drift_seconds=60,
+        first_cycle_done=first_cycle_done,
     )
 
+    # The consumer holds its first batch until then.
+    assert first_cycle_done.value == 1
     # Before waiting, the flusher checked that flushing works, without
     # selecting any segment. While waiting, it kept reporting healthy and did
     # not flush.
@@ -688,7 +1009,7 @@ def test_flusher_waits_for_drift_before_first_flush() -> None:
     )
 
 
-@override_options({**DEFAULT_OPTIONS, "spans.buffer.flusher.wait-for-drift-seconds": 2})
+@override_options(DEFAULT_OPTIONS)
 def test_flusher_wait_for_drift_times_out() -> None:
     stopped = _shared()
     healthy_since = _shared()
@@ -706,6 +1027,7 @@ def test_flusher_wait_for_drift_times_out() -> None:
         current_drift=_shared(),
         drift_initialized=_shared(),
         healthy_since=healthy_since,
+        wait_for_drift_seconds=2,
     )
 
     # The wait loop's sleeps, then the sleep after the empty flush cycle.
@@ -728,7 +1050,7 @@ def test_flusher_wait_for_drift_times_out() -> None:
     )
 
 
-@override_options({**DEFAULT_OPTIONS, "spans.buffer.flusher.wait-for-drift-seconds": 60})
+@override_options(DEFAULT_OPTIONS)
 def test_flusher_stopped_while_waiting_for_drift() -> None:
     stopped = _shared()
 
@@ -743,6 +1065,7 @@ def test_flusher_stopped_while_waiting_for_drift() -> None:
         current_drift=_shared(),
         drift_initialized=_shared(),
         healthy_since=_shared(),
+        wait_for_drift_seconds=60,
     )
 
     assert buffer.clock.sleeps == [0.1]

@@ -16,6 +16,7 @@ import orjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
+from arroyo.processing.strategies.batching import ValuesBatch
 from arroyo.types import FilteredPayload, Message
 
 from sentry import options
@@ -69,6 +70,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # message. Until then, current_drift is 0 and does not reflect the
         # consumer's position in the topic.
         self.drift_initialized = mp_context.Value("i", 0)
+        # Read once and passed to the processes, so that they and the
+        # factory's first-batch hold (see hold_first_batch) agree on it. Each
+        # process has its own options cache.
+        self.wait_for_drift_seconds: int = options.get(
+            "spans.buffer.flusher.wait-for-drift-seconds"
+        )
         self.produce_to_pipe = produce_to_pipe
 
         # Determine which shards get their own processes vs shared processes
@@ -87,6 +94,13 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.process_backpressure_since = {
             process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
         }
+        # Set to 1 by a process once its first flush cycle has finished, and
+        # reset when it is restarted. See hold_first_batch.
+        self.process_first_cycle_done = {
+            process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
+        }
+        self.first_batch_released = False
+        self.first_batch_held_since: float | None = None
         self.process_restarts = {process_index: 0 for process_index in range(self.num_processes)}
         self.buffers: dict[int, SpansBuffer] = {}
 
@@ -97,7 +111,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # the flusher deterministically crashes on start, because in
         # combination with the consumer crashlooping this will cause Redis to
         # be filled up. A process becomes healthy after its first
-        # flush_segments() call (see SpanFlusher.main).
+        # flush_segments() call (see SpanFlusher.main). A process that waits
+        # for the drift reports healthy while it waits, so then
+        # hold_first_batch holds the consumer's first batch, before it is
+        # written into Redis, until each process has finished a flush cycle.
         for process_index in self.process_to_shards_map.keys():
             self._wait_for_process_to_become_healthy(process_index)
 
@@ -133,6 +150,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     def _create_process_for_shards(self, process_index: int, shards: list[int]) -> None:
         use_stuck_detector = options.get("spans.buffer.flusher.use-stuck-detector")
         self.process_healthy_since[process_index].value = 0
+        self.process_first_cycle_done[process_index].value = 0
 
         logger.info("Creating flusher process %s for shards %s", process_index, shards)
 
@@ -165,6 +183,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 self.process_backpressure_since[process_index],
                 self.process_healthy_since[process_index],
                 self.produce_to_pipe,
+                self.wait_for_drift_seconds,
+                self.process_first_cycle_done[process_index],
             ),
             daemon=True,
         )
@@ -192,6 +212,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         backpressure_since: Synchronized[int],
         healthy_since: Synchronized[int],
         produce_to_pipe: ProduceToPipe | None,
+        wait_for_drift_seconds: int = 0,
+        first_cycle_done: Synchronized[int] | None = None,
     ) -> None:
         logger.info("Flusher process main started for shards %s", shards)
 
@@ -204,14 +226,16 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         logger.info("Flusher process started for shards %s", shard_tag)
 
         try:
-            wait_for_drift_seconds = options.get("spans.buffer.flusher.wait-for-drift-seconds")
             if wait_for_drift_seconds > 0 and not drift_initialized.value:
-                # The wait below reports healthy without flushing, which would
-                # let the consumer's startup handshake pass even if flushing is
-                # broken. So call flush_segments() once first. Flush deadlines
-                # are Unix timestamps, so a cutoff of 0 selects no segment, but
-                # a flusher that cannot flush still crashes here before it
-                # reports healthy.
+                # The wait below reports healthy without flushing, so the
+                # consumer's startup check passes while it waits. Call
+                # flush_segments() once first, so that the check still fails
+                # if Redis is unreachable or flushing fails whatever the data.
+                # Flush deadlines are Unix timestamps, so a cutoff of 0 selects
+                # no segment. The segments that are due are first loaded by the
+                # first flush cycle after the wait, and hold_first_batch keeps
+                # the consumer from writing into Redis until that cycle has
+                # finished.
                 buffer.flush_segments(now=0)
                 SpanFlusher._wait_for_drift(
                     shard_tag,
@@ -233,6 +257,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     produce_to_pipe,
                     first_iteration,
                 )
+                if first_iteration and first_cycle_done is not None:
+                    first_cycle_done.value = 1
                 first_iteration = False
 
                 if not flushed_any:
@@ -267,11 +293,14 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         the drift is set, those segments are flushed progressively as the
         consumer catches up.
 
-        healthy_since keeps being updated so that the consumer's startup
-        handshake and hang detection keep working while we wait. The caller
-        must have called flush_segments() once before, so that reporting
-        healthy still means that flushing works. After the timeout, flushing
-        starts with no drift so that idle topics still flush.
+        healthy_since keeps being updated so that the consumer's startup check
+        and hang detection keep working while we wait. The caller must have
+        called flush_segments() once before, so that the startup check still
+        fails if flushing cannot work at all. The consumer sets the drift from
+        its first batch before it writes it into Redis, and holds the batch
+        until the first flush cycle after this wait has finished (see
+        hold_first_batch). After the timeout, flushing starts with no drift so
+        that idle topics still flush.
         """
         started = time.monotonic()
         while not stopped.value and not drift_initialized.value:
@@ -444,10 +473,59 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                             quantity=dropped,
                         )
 
+    def hold_first_batch(
+        self, message: Message[ValuesBatch[tuple[int, KafkaPayload]]]
+    ) -> ValuesBatch[tuple[int, KafkaPayload]]:
+        """
+        Hold the consumer's first batch, before its spans are written into
+        Redis, until every flusher process has finished a flush cycle.
+
+        The factory runs this before process_batch when wait_for_drift_seconds
+        is above 0. The processes then report healthy while they wait for the
+        drift, so __init__'s startup check does not show that they can flush
+        the segments that are due. This sets the drift from the batch's oldest
+        message, as submit() does once the batch is written, which ends that
+        wait, and rejects the batch until each process's first flush cycle,
+        including produce and cleanup, has finished. If a process exits before
+        that, this raises like the startup check, and the consumer stops with
+        nothing written into Redis or committed. A process that hangs in that
+        cycle, or exits after it, is restarted, and the batch stays held until
+        the new process has finished its own first flush cycle.
+
+        That cycle loads only the segments due by the batch's oldest message.
+        A crash on a segment that is due later, even one already due by
+        wall-clock time, still comes after the consumer has written.
+        """
+        if self.first_batch_released:
+            return message.payload
+
+        self._ensure_processes_alive(first_batch_held=True)
+
+        self.current_drift.value = min(value.payload[0] for value in message.payload) - int(
+            time.time()
+        )
+        # Set after current_drift, as in submit().
+        self.drift_initialized.value = 1
+
+        now = time.monotonic()
+        if self.first_batch_held_since is None:
+            self.first_batch_held_since = now
+        if not all(done.value for done in self.process_first_cycle_done.values()):
+            raise MessageRejected()
+
+        self.first_batch_released = True
+        metrics.timing("spans.buffer.flusher.hold_first_batch", now - self.first_batch_held_since)
+        return message.payload
+
     def poll(self) -> None:
         self.next_step.poll()
 
-    def _ensure_processes_alive(self) -> None:
+    def _ensure_processes_alive(self, first_batch_held: bool = False) -> None:
+        """
+        Restart processes that exited or hang. With first_batch_held (see
+        hold_first_batch), raise instead for a process that exited before its
+        first flush cycle had finished.
+        """
         max_unhealthy_seconds = options.get("spans.buffer.flusher.max-unhealthy-seconds")
 
         for process_index, process in self.processes.items():
@@ -458,6 +536,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
             cause = None
             if not process.is_alive():
+                # Read after is_alive(), so that the flag cannot change anymore.
+                if first_batch_held and not self.process_first_cycle_done[process_index].value:
+                    exitcode = getattr(process, "exitcode", None)
+                    raise RuntimeError(
+                        f"process {process_index} (shards {shards}) exited before its first flush cycle (exitcode={exitcode})"
+                    )
                 exitcode = getattr(process, "exitcode", "unknown")
                 cause = f"no_process_{exitcode}"
             elif (

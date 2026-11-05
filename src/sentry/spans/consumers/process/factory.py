@@ -85,13 +85,13 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
 
         # patch onto self just for testing
-        flusher: ProcessingStrategy[FilteredPayload | int]
-        flusher = self._flusher = SpanFlusher(
+        span_flusher = self._flusher = SpanFlusher(
             buffer,
             next_step=committer,
             max_processes=self.flusher_processes,
             produce_to_pipe=self.produce_to_pipe,
         )
+        flusher: ProcessingStrategy[FilteredPayload | int] = span_flusher
 
         # The flusher must be given some time to shut down, because otherwise
         # we may double-produce segments.
@@ -120,10 +120,19 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 better_backpressure=True,
             )
 
+        batch_step: ProcessingStrategy[FilteredPayload | ValuesBatch[tuple[int, KafkaPayload]]]
+        batch_step = run_task
+        if span_flusher.wait_for_drift_seconds > 0:
+            # The flusher processes report healthy while they wait for the
+            # drift, so hold the first batch, before it is written into Redis,
+            # until they have finished a flush cycle. See
+            # SpanFlusher.hold_first_batch.
+            batch_step = RunTask(function=span_flusher.hold_first_batch, next_step=run_task)
+
         batch = BatchStep(
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
-            next_step=run_task,
+            next_step=batch_step,
         )
 
         def prepare_message(message: Message[KafkaPayload]) -> tuple[int, KafkaPayload]:
