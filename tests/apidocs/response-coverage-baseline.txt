@@ -1,13 +1,5 @@
 # Response fields that are not described or typed yet; see src/sentry/apidocs/README.md#response-fields.
 # Only remove lines: python -m sentry.apidocs.response_coverage --prune
-missing-description GET /api/0/organizations/{organization_id_or_slug}/sentry-app-installations/ 200[].app
-missing-description GET /api/0/organizations/{organization_id_or_slug}/sentry-app-installations/ 200[].app.sentryAppId
-missing-description GET /api/0/organizations/{organization_id_or_slug}/sentry-app-installations/ 200[].app.slug
-missing-description GET /api/0/organizations/{organization_id_or_slug}/sentry-app-installations/ 200[].app.uuid
-missing-description GET /api/0/organizations/{organization_id_or_slug}/sentry-app-installations/ 200[].organization
-missing-description GET /api/0/organizations/{organization_id_or_slug}/sentry-app-installations/ 200[].organization.slug
-missing-description GET /api/0/organizations/{organization_id_or_slug}/sentry-app-installations/ 200[].status
-missing-description GET /api/0/organizations/{organization_id_or_slug}/sentry-app-installations/ 200[].uuid
 missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 200[].dateCreated
 missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 200[].events
 missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 200[].id
@@ -249,11 +241,6 @@ missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_o
 missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.issue
 missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.name
 missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.user
-missing-description POST /api/0/sentry-app-installations/{uuid}/external-issues/ 200.displayName
-missing-description POST /api/0/sentry-app-installations/{uuid}/external-issues/ 200.id
-missing-description POST /api/0/sentry-app-installations/{uuid}/external-issues/ 200.issueId
-missing-description POST /api/0/sentry-app-installations/{uuid}/external-issues/ 200.serviceType
-missing-description POST /api/0/sentry-app-installations/{uuid}/external-issues/ 200.webUrl
 missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.dateCreated
 missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.events
 missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.id
@@ -1040,57 +1027,6 @@ missing-description sentry.seer.endpoints.project_seer_repos.ProjectRepoResponse
 missing-description sentry.seer.endpoints.project_seer_repos.ProjectRepoResponse.owner
 missing-description sentry.seer.endpoints.project_seer_repos.ProjectRepoResponse.provider
 missing-description sentry.seer.endpoints.project_seer_repos.ProjectRepoResponse.repositoryId
-missing-description sentry.sentry_apps.api.endpoints.installation_external_requests.SentryAppExternalRequestOptionsResponse.choices
-missing-description sentry.sentry_apps.api.endpoints.installation_external_requests.SentryAppExternalRequestOptionsResponse.defaultValue
-missing-description sentry.sentry_apps.api.serializers.platform_external_issue.PlatformExternalIssueSerializerResponse.displayName
-missing-description sentry.sentry_apps.api.serializers.platform_external_issue.PlatformExternalIssueSerializerResponse.id
-missing-description sentry.sentry_apps.api.serializers.platform_external_issue.PlatformExternalIssueSerializerResponse.issueId
-missing-description sentry.sentry_apps.api.serializers.platform_external_issue.PlatformExternalIssueSerializerResponse.serviceType
-missing-description sentry.sentry_apps.api.serializers.platform_external_issue.PlatformExternalIssueSerializerResponse.webUrl
-missing-description sentry.sentry_apps.api.serializers.sentry_app.OwnerResponseField.id
-missing-description sentry.sentry_apps.api.serializers.sentry_app.OwnerResponseField.slug
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.allowedOrigins
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.author
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.avatars
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.clientId
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.clientSecret
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.datePublished
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.events
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.featureData
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.isAlertable
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.isDisabled
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.metadata
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.name
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.overview
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.owner
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.popularity
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.redirectUrl
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.schema
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.scopes
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.slug
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.status
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.uuid
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.verifyInstall
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.webhookEvents
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.webhookHeaders
-missing-description sentry.sentry_apps.api.serializers.sentry_app.SentryAppSerializerResponse.webhookUrl
-missing-description sentry.sentry_apps.api.serializers.sentry_app_avatar.SentryAppAvatarSerializerResponse.avatarType
-missing-description sentry.sentry_apps.api.serializers.sentry_app_avatar.SentryAppAvatarSerializerResponse.avatarUrl
-missing-description sentry.sentry_apps.api.serializers.sentry_app_avatar.SentryAppAvatarSerializerResponse.avatarUuid
-missing-description sentry.sentry_apps.api.serializers.sentry_app_avatar.SentryAppAvatarSerializerResponse.color
-missing-description sentry.sentry_apps.api.serializers.sentry_app_avatar.SentryAppAvatarSerializerResponse.photoType
-missing-description sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentAppResponse.avatars
-missing-description sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentAppResponse.name
-missing-description sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentAppResponse.slug
-missing-description sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentAppResponse.uuid
-missing-description sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentSerializerResponse.error
-missing-description sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentSerializerResponse.installationUuid
-missing-description sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentSerializerResponse.schema
-missing-description sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentSerializerResponse.sentryApp
-missing-description sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentSerializerResponse.type
-missing-description sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentSerializerResponse.uuid
-missing-description sentry.sentry_apps.utils.errors.SentryAppPublicErrorBody.context
-missing-description sentry.sentry_apps.utils.errors.SentryAppPublicErrorBody.detail
 missing-description sentry.services.eventstore.reprocessing.base.ReprocessingInfo.dateCreated
 missing-description sentry.services.eventstore.reprocessing.base.ReprocessingInfo.syncCount
 missing-description sentry.services.eventstore.reprocessing.base.ReprocessingInfo.totalEvents
