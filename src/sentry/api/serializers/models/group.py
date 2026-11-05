@@ -113,21 +113,24 @@ class GroupAnnotation(TypedDict):
 
 class GroupStatusDetailsResponseOptional(TypedDict, total=False):
     ignoreCount: Annotated[
-        int, ApiDescription("Number of additional events after which the issue stops being ignored")
+        int | None,
+        ApiDescription("Number of additional events after which the issue stops being ignored"),
     ]
     ignoreUntil: Annotated[
-        datetime, ApiDescription("When the issue stops being ignored (ISO 8601)")
+        datetime | None, ApiDescription("When the issue stops being ignored (ISO 8601)")
     ]
     ignoreUserCount: Annotated[
-        int,
+        int | None,
         ApiDescription(
             "Number of additional affected users after which the issue stops being ignored"
         ),
     ]
-    ignoreUserWindow: Annotated[int, ApiDescription("Time window in minutes for ignoreUserCount")]
-    ignoreWindow: Annotated[int, ApiDescription("Time window in minutes for ignoreCount")]
+    ignoreUserWindow: Annotated[
+        int | None, ApiDescription("Time window in minutes for ignoreUserCount")
+    ]
+    ignoreWindow: Annotated[int | None, ApiDescription("Time window in minutes for ignoreCount")]
     actor: Annotated[
-        UserSerializerResponse, ApiDescription("User who ignored or resolved the issue")
+        UserSerializerResponse | None, ApiDescription("User who ignored or resolved the issue")
     ]
     inNextRelease: Annotated[
         bool, ApiDescription("Whether the issue is resolved in the next release")
