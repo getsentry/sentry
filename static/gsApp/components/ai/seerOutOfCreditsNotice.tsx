@@ -66,7 +66,7 @@ const MEMBER_ASK: Record<Exclude<SeerOutOfCreditsEscalation, 'configure'>, strin
   contact: t('Ask someone with billing access in your organization to add more.'),
 };
 
-export function getSeerOutOfCreditsMessage({
+function getSeerOutOfCreditsMessage({
   reason,
   escalation,
   autoReloadEnabled,
