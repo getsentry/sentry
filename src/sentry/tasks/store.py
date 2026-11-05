@@ -244,8 +244,10 @@ def _do_preprocess_event(
                 "symbolication_function": symbolication_function_name,
             },
         ):
+            # Base the backup on the cache key fixed at ingest, not on current options, so
+            # `save_event` can rely on events without a cache key having no Redis backup.
             transport = get_event_payload_transport(event_id)
-            if transport.cache:
+            if cache_key and transport.cache:
                 reprocessing2.backup_unprocessed_event(data=original_data)
 
             submit_symbolicate(
@@ -259,7 +261,7 @@ def _do_preprocess_event(
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
                 data=data,
-                unprocessed_pending=transport.inline,
+                unprocessed_pending=transport.inline or not cache_key,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
