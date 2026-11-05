@@ -1,8 +1,7 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import {IconClock} from '@sentry/icons/clock';
 import {IconTimer} from '@sentry/icons/timer';
-import {useAsyncQueuer} from '@tanstack/react-pacer';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
@@ -46,6 +45,7 @@ import {
 import {useDashboardChartInterval} from './hooks/useDashboardChartInterval';
 import {useDashboardMaxPickableDays} from './hooks/useDashboardMaxPickableDays';
 import {
+  enqueueDashboardWrite,
   isSavedDashboardId,
   useDashboardQueryPriority,
   useSaveDashboardQueryPriority,
@@ -87,12 +87,6 @@ export type FiltersBarProps = {
   shouldBusySaveButton?: boolean;
   storageNamespace?: string;
   widgetLimitReached?: boolean;
-};
-
-type QueryPrioritySave = {
-  dashboardId: string;
-  previous: DashboardQueryPriority;
-  value: DashboardQueryPriority;
 };
 
 export function FiltersBar({
@@ -242,42 +236,42 @@ export function FiltersBar({
     setPriority,
   } = useDashboardQueryPriority(dashboard?.queryPriority);
   const {mutateAsync: saveQueryPriority} = useSaveDashboardQueryPriority();
-  // One save at a time, and only the latest selection waits behind it. An older
-  // response cannot replace a newer choice.
-  const queryPriorityQueuer = useAsyncQueuer(
-    (save: QueryPrioritySave) =>
-      saveQueryPriority({dashboardId: save.dashboardId, queryPriority: save.value}),
-    {
-      concurrency: 1,
-      maxSize: 1,
-      onSuccess: updated => {
-        if (updated) {
-          onDashboardQueryPrioritySaved?.(updated);
-        }
-      },
-      onError: (_error, save, queuer) => {
-        if (queuer.peekPendingItems().length === 0) {
-          setPriority(save.previous);
-        }
-      },
-    }
-  );
+  // Bumps on every click so a selection that was replaced before its request
+  // starts does not go out, and a stale response does not update the page.
+  const queryPrioritySaveId = useRef(0);
   const handleQueryPriorityChange = (value: DashboardQueryPriority) => {
-    const pending = queryPriorityQueuer.peekPendingItems();
-    const active = queryPriorityQueuer.peekActiveItems();
-    const previous = pending[0]?.value ?? active[0]?.value ?? priority;
+    const previous = priority;
     setPriority(value);
     // Viewers can still change the selection for this visit. Only an editor
     // of a saved dashboard writes it back.
     if (!hasEditAccess || isPreview || !dashboard || !isSavedDashboardId(dashboard.id)) {
       return;
     }
-    const persisted = dashboard.queryPriority ?? 'normal';
-    if (persisted === value && pending.length === 0 && active.length === 0) {
+    // Compare the selection the user already sees. Props can still hold the
+    // previous saved value after a save finishes, and using them would skip
+    // the write that puts the old value back.
+    if (previous === value) {
       return;
     }
-    queryPriorityQueuer.clear();
-    queryPriorityQueuer.addItem({dashboardId: dashboard.id, previous, value});
+    const saveId = ++queryPrioritySaveId.current;
+    const dashboardId = dashboard.id;
+    enqueueDashboardWrite(async () => {
+      if (saveId !== queryPrioritySaveId.current) {
+        return;
+      }
+      try {
+        const updated = await saveQueryPriority({dashboardId, queryPriority: value});
+        if (updated && saveId === queryPrioritySaveId.current) {
+          onDashboardQueryPrioritySaved?.(updated);
+        }
+      } catch {
+        // The mutation already reports the error. Put the dropdown back only
+        // when the failed selection is still the one on screen.
+        if (saveId === queryPrioritySaveId.current) {
+          setPriority(previous);
+        }
+      }
+    });
   };
   const queryPriorityLabel =
     queryPriorityOptions.find(option => option.value === priority)?.label ?? t('Normal');

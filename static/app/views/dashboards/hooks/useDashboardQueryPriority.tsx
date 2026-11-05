@@ -138,6 +138,21 @@ export function useSaveDashboardQueryPriority() {
   return useMutation(useSaveDashboardQueryPriorityMutationOptions());
 }
 
+// One chain for every dashboard PUT. A full save loads `query_priority` when
+// the request starts and writes that value back when the field is omitted, so
+// it must not run beside a priority save. Later clicks wait behind the write
+// that is already going out.
+let dashboardWriteQueue: Promise<unknown> = Promise.resolve();
+
+export function enqueueDashboardWrite<T>(task: () => Promise<T>): Promise<T> {
+  const run = dashboardWriteQueue.then(task, task);
+  dashboardWriteQueue = run.then(
+    () => {},
+    () => {}
+  );
+  return run;
+}
+
 /**
  * Dashboard query priority. Normal keeps the caller's existing sampling mode.
  * Faster sends `sampling=LOW_PRIORITY`, and only when the

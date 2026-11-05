@@ -50,6 +50,7 @@ import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {useDashboardChartInterval} from './hooks/useDashboardChartInterval';
 import {
+  enqueueDashboardWrite,
   isDashboardQueryPriority,
   SavedDashboardQueryPriorityProvider,
 } from './hooks/useDashboardQueryPriority';
@@ -1423,7 +1424,9 @@ export function DashboardDetailWithInjectedProps(
         params={params}
         widgetInterval={widgetInterval}
         queryClient={queryClient}
-        updateDashboard={updateDashboard.mutateAsync}
+        updateDashboard={variables =>
+          enqueueDashboardWrite(() => updateDashboard.mutateAsync(variables))
+        }
       />
     </SavedDashboardQueryPriorityProvider>
   );
