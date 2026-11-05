@@ -2150,11 +2150,6 @@
       "count": 6
     }
   },
-  "utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "utils/replays/hooks/usePollReplayRecord.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 2
@@ -2175,11 +2170,6 @@
   },
   "utils/useBreakpoints.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "utils/useChartInterval.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -2274,11 +2264,6 @@
       "count": 1
     }
   },
-  "views/autofixIssuesDemo/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/automations/components/actionFilters/subfiltersList.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
@@ -2319,11 +2304,6 @@
   },
   "views/automations/components/editConnectedMonitors.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/automations/list.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -2701,11 +2681,6 @@
   },
   "views/detectors/components/uptime/uptimeHeadersField.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/detectors/list/common/detectorListHeader.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -4414,20 +4389,12 @@
       "count": 1
     }
   },
-  "views/seerRunsDemo/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/seerWorkflows/overview/index.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 2
     }
   },
   "views/seerWorkflows/overview/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 2
-    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
     },

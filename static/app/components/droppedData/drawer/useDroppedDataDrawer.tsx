@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useRef} from 'react';
 import isEqual from 'lodash/isEqual';
+import {createLoader, parseAsString, useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
@@ -8,17 +9,17 @@ import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
 import type {UseDroppedDataParams} from 'sentry/components/droppedData/useDroppedData';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasetToUrlParam} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {buildAskSeerPrompt} from './askSeer';
 import {DroppedDataDrawer} from './droppedDataDrawer';
 
-const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
+const DROPPED_DATA_DRAWER_PARSERS = {droppedData: parseAsString};
+
+const loadDroppedDataQuery = createLoader(DROPPED_DATA_DRAWER_PARSERS);
 
 interface UseDroppedDataDrawerOptions {
   enabled?: boolean;
@@ -30,37 +31,12 @@ export function useDroppedDataDrawer(
 ) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const locationRef = useRef(location);
-  useEffect(() => {
-    locationRef.current = location;
-  });
-  const {pathname} = location;
-  // Use the router location rather than nuqs: GlobalDrawer closes from the
-  // location, and nuqs applies browser back/forward a render later, so its stale
-  // value would reopen the drawer.
+  const {pathname} = useLocation();
   // The param carries the dataset so a page with several charts opens the drawer
   // for the chart whose dataset matches, not whichever mounts first.
   const paramValue = DiscoverDatasetToUrlParam[dataset];
-  const isDrawerInUrl =
-    decodeScalar(location.query[DROPPED_DATA_DRAWER_QUERY_KEY]) === paramValue;
-  const setIsDrawerInUrl = useCallback(
-    (isOpen: boolean) => {
-      navigate(
-        {
-          pathname: locationRef.current.pathname,
-          query: {
-            ...locationRef.current.query,
-            [DROPPED_DATA_DRAWER_QUERY_KEY]: isOpen ? paramValue : undefined,
-          },
-        },
-        // Closing replaces; a pushed entry would reopen the drawer on back.
-        {replace: !isOpen, preventScrollReset: true}
-      );
-    },
-    [navigate, paramValue]
-  );
+  const [{droppedData}, setDrawerQuery] = useQueryStates(DROPPED_DATA_DRAWER_PARSERS);
+  const isDrawerInUrl = droppedData === paramValue;
   const renderedQueryRef = useRef({interval, projects});
 
   const {openSeerExplorer} = useSeerExplorerContext();
@@ -112,9 +88,9 @@ export function useDroppedDataDrawer(
         drawerKey: 'dropped-data-drawer',
         shouldCloseOnLocationChange: nextLocation =>
           nextLocation.pathname !== pathname ||
-          decodeScalar(nextLocation.query[DROPPED_DATA_DRAWER_QUERY_KEY]) !== paramValue,
+          loadDroppedDataQuery(nextLocation.search ?? '').droppedData !== paramValue,
         onClose: () => {
-          setIsDrawerInUrl(false);
+          void setDrawerQuery({droppedData: null}, {history: 'replace'});
         },
       }
     );
@@ -130,11 +106,11 @@ export function useDroppedDataDrawer(
     projects,
     onAskSeer,
     pathname,
-    setIsDrawerInUrl,
+    setDrawerQuery,
   ]);
 
   return useCallback(() => {
     trackAnalytics('explore.dropped_data.drawer_opened', {organization, dataset});
-    setIsDrawerInUrl(true);
-  }, [organization, dataset, setIsDrawerInUrl]);
+    void setDrawerQuery({droppedData: paramValue}, {history: 'push'});
+  }, [organization, dataset, paramValue, setDrawerQuery]);
 }
