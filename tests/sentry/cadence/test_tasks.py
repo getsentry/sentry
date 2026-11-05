@@ -5,11 +5,11 @@ from unittest.mock import MagicMock, patch
 
 from sentry.cadence.models import ScheduledTrigger, ScheduledTriggerType, ScheduleType
 from sentry.cadence.registry import (
-    TriggerContext,
+    TriggerFiring,
     TriggerTypeRegistration,
     trigger_type_registry,
 )
-from sentry.cadence.spread import offset_of, run_offset
+from sentry.cadence.spread import fire_offset, offset_of
 from sentry.cadence.tasks import _claim_batch, cadence_tick
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -35,7 +35,7 @@ class CadenceTickTestCase(TestCase):
         super().setUp()
         self.enterContext(override_options({"cadence.tick.enabled": True}))
         self.action = MagicMock()
-        # Run at scheduled times unless a test registers a spread window.
+        # Fire at scheduled times unless a test registers a spread window.
         self.register(timedelta(0))
         self.target_ids = itertools.count(1)
 
@@ -47,7 +47,7 @@ class CadenceTickTestCase(TestCase):
 
     def create_trigger(
         self,
-        next_run_at: datetime | None = NOW,
+        next_fire_at: datetime | None = NOW,
         next_scheduled_for: datetime | None = None,
         target_id: int | None = None,
         **kwargs: Any,
@@ -62,20 +62,20 @@ class CadenceTickTestCase(TestCase):
             organization=self.organization,
             trigger_type=SEER_WORKFLOW,
             target_id=target_id or next(self.target_ids),
-            next_scheduled_for=next_scheduled_for or next_run_at,
-            next_run_at=next_run_at,
+            next_scheduled_for=next_scheduled_for or next_fire_at,
+            next_fire_at=next_fire_at,
             **fields,
         )
 
-    def context(self, trigger: ScheduledTrigger, scheduled_for: datetime) -> TriggerContext:
-        return TriggerContext(
+    def firing(self, trigger: ScheduledTrigger, scheduled_for: datetime) -> TriggerFiring:
+        return TriggerFiring(
             organization_id=self.organization.id,
             trigger_type=SEER_WORKFLOW,
             target_id=trigger.target_id,
             scheduled_for=scheduled_for,
         )
 
-    def dispatched(self) -> list[TriggerContext]:
+    def dispatched(self) -> list[TriggerFiring]:
         return [ctx for call in self.action.call_args_list for ctx in call.args[0]]
 
 
@@ -90,16 +90,16 @@ class CadenceTickTest(CadenceTickTestCase):
         cadence_tick()
 
         self.action.assert_called_once_with(
-            [self.context(due_1, NOW - timedelta(minutes=1)), self.context(due_2, NOW)]
+            [self.firing(due_1, NOW - timedelta(minutes=1)), self.firing(due_2, NOW)]
         )
         due_1.refresh_from_db()
-        assert due_1.next_run_at == NOW + timedelta(minutes=59)
+        assert due_1.next_fire_at == NOW + timedelta(minutes=59)
         due_2.refresh_from_db()
-        assert due_2.next_run_at == NOW + timedelta(hours=1)
+        assert due_2.next_fire_at == NOW + timedelta(hours=1)
         future.refresh_from_db()
-        assert future.next_run_at == NOW + timedelta(minutes=1)
+        assert future.next_fire_at == NOW + timedelta(minutes=1)
         unscheduled.refresh_from_db()
-        assert unscheduled.next_run_at is None
+        assert unscheduled.next_fire_at is None
 
     @freeze_time(NOW)
     def test_dispatches_missed_runs_once(self) -> None:
@@ -108,9 +108,9 @@ class CadenceTickTest(CadenceTickTestCase):
         cadence_tick()
         cadence_tick()
 
-        assert self.dispatched() == [self.context(trigger, NOW - timedelta(hours=3, minutes=10))]
+        assert self.dispatched() == [self.firing(trigger, NOW - timedelta(hours=3, minutes=10))]
         trigger.refresh_from_db()
-        assert trigger.next_run_at == NOW + timedelta(minutes=50)
+        assert trigger.next_fire_at == NOW + timedelta(minutes=50)
 
     @freeze_time(NOW)
     def test_dispatches_cron_trigger(self) -> None:
@@ -120,9 +120,9 @@ class CadenceTickTest(CadenceTickTestCase):
 
         cadence_tick()
 
-        assert self.dispatched() == [self.context(trigger, NOW)]
+        assert self.dispatched() == [self.firing(trigger, NOW)]
         trigger.refresh_from_db()
-        assert trigger.next_run_at == NOW + timedelta(hours=1)
+        assert trigger.next_fire_at == NOW + timedelta(hours=1)
 
     @freeze_time(NOW)
     def test_claims_in_batches(self) -> None:
@@ -165,10 +165,10 @@ class CadenceTickTest(CadenceTickTestCase):
         with patch("sentry.cadence.tasks.logger") as mock_logger:
             cadence_tick()
 
-        assert self.dispatched() == [self.context(healthy, NOW - timedelta(minutes=1))]
+        assert self.dispatched() == [self.firing(healthy, NOW - timedelta(minutes=1))]
         mock_logger.exception.assert_called_once()
         broken.refresh_from_db()
-        assert broken.next_run_at is None
+        assert broken.next_fire_at is None
         assert broken.next_scheduled_for is None
 
     @freeze_time(NOW)
@@ -179,9 +179,9 @@ class CadenceTickTest(CadenceTickTestCase):
 
         cadence_tick()
 
-        assert self.dispatched() == [self.context(healthy, NOW)]
+        assert self.dispatched() == [self.firing(healthy, NOW)]
         stale.refresh_from_db()
-        assert stale.next_run_at is None
+        assert stale.next_fire_at is None
 
     @freeze_time(NOW)
     def test_skips_rows_locked_by_a_concurrent_tick(self) -> None:
@@ -196,7 +196,7 @@ class CadenceTickTest(CadenceTickTestCase):
 
         select_for_update.assert_called_once_with(skip_locked=True)
         trigger.refresh_from_db()
-        assert trigger.next_run_at == NOW + timedelta(hours=1)
+        assert trigger.next_fire_at == NOW + timedelta(hours=1)
 
     @freeze_time(NOW)
     def test_action_failure_is_contained(self) -> None:
@@ -211,14 +211,14 @@ class CadenceTickTest(CadenceTickTestCase):
 
         mock_logger.exception.assert_called_once_with(
             "cadence.trigger.dispatch_failed",
-            extra={"trigger_type": "seer_workflow", "run_count": 1},
+            extra={"trigger_type": "seer_workflow", "firing_count": 1},
         )
         mock_incr.assert_called_once_with(
             "cadence.trigger.dispatch_failed", amount=1, tags={"trigger_type": "seer_workflow"}
         )
-        # The run is lost, not retried: the trigger has moved on to its next run.
+        # The firing is lost, not retried: the trigger has moved on to its next firing.
         trigger.refresh_from_db()
-        assert trigger.next_run_at == NOW + timedelta(hours=1)
+        assert trigger.next_fire_at == NOW + timedelta(hours=1)
 
     @freeze_time(NOW)
     def test_unregistered_trigger_type_is_contained(self) -> None:
@@ -230,11 +230,11 @@ class CadenceTickTest(CadenceTickTestCase):
         ):
             cadence_tick()
 
-        # The run is lost, but the schedule is kept for when the action is deployed.
+        # The firing is lost, but the trigger is kept for when the action is deployed.
         mock_logger.exception.assert_called_once()
         assert mock_logger.exception.call_args.args[0] == "cadence.trigger.dispatch_failed"
         trigger.refresh_from_db()
-        assert trigger.next_run_at == NOW + timedelta(hours=1)
+        assert trigger.next_fire_at == NOW + timedelta(hours=1)
 
     @freeze_time(NOW)
     @patch("sentry.utils.metrics.timing")
@@ -270,7 +270,7 @@ class CadenceTickTest(CadenceTickTestCase):
 
         self.action.assert_not_called()
         trigger.refresh_from_db()
-        assert trigger.next_run_at == NOW - timedelta(minutes=1)
+        assert trigger.next_fire_at == NOW - timedelta(minutes=1)
 
 
 class CadenceTickSpreadTest(CadenceTickTestCase):
@@ -279,8 +279,8 @@ class CadenceTickSpreadTest(CadenceTickTestCase):
         self.register(timedelta(minutes=10))
 
     def offset(self, target_id: int) -> timedelta:
-        # Test triggers run hourly, so they can use the whole 10 minute window.
-        return run_offset(
+        # Test triggers fire hourly, so they can use the whole 10 minute window.
+        return fire_offset(
             organization_id=self.organization.id,
             trigger_type=SEER_WORKFLOW,
             target_id=target_id,
@@ -301,7 +301,7 @@ class CadenceTickSpreadTest(CadenceTickTestCase):
         return trigger, offset
 
     @freeze_time(NOW)
-    def test_not_dispatched_before_its_offset_run(self) -> None:
+    def test_not_dispatched_before_its_offset_firing(self) -> None:
         self.create_offset_trigger()
 
         cadence_tick()
@@ -314,26 +314,26 @@ class CadenceTickSpreadTest(CadenceTickTestCase):
         with freeze_time(NOW + offset):
             cadence_tick()
 
-        assert self.dispatched() == [self.context(trigger, NOW)]
+        assert self.dispatched() == [self.firing(trigger, NOW)]
         trigger.refresh_from_db()
         assert trigger.next_scheduled_for == NOW + timedelta(hours=1)
-        assert trigger.next_run_at == NOW + timedelta(hours=1) + offset
+        assert trigger.next_fire_at == NOW + timedelta(hours=1) + offset
 
-    def test_behind_trigger_keeps_a_scheduled_time_whose_run_is_still_ahead(self) -> None:
+    def test_behind_trigger_keeps_a_scheduled_time_whose_firing_is_still_ahead(self) -> None:
         trigger, offset = self.create_offset_trigger(
             schedule_type=ScheduleType.CRON, interval_seconds=None, cron_expression="0 * * * *"
         )
 
-        # Past the next scheduled time (13:00), but not its offset run.
+        # Past the next scheduled time (13:00), but not its offset firing.
         with freeze_time(NOW + timedelta(hours=1, minutes=1)):
             cadence_tick()
 
-        assert self.dispatched() == [self.context(trigger, NOW)]
+        assert self.dispatched() == [self.firing(trigger, NOW)]
         trigger.refresh_from_db()
         assert trigger.next_scheduled_for == NOW + timedelta(hours=1)
-        assert trigger.next_run_at == NOW + timedelta(hours=1) + offset
+        assert trigger.next_fire_at == NOW + timedelta(hours=1) + offset
 
-    def test_changed_spread_window_applies_from_the_next_run(self) -> None:
+    def test_changed_spread_window_applies_from_the_next_firing(self) -> None:
         # Stored without an offset, as if the window was added after it was scheduled.
         trigger = self.create_trigger(NOW)
         offset = offset_of(trigger)
@@ -341,9 +341,9 @@ class CadenceTickSpreadTest(CadenceTickTestCase):
         with freeze_time(NOW):
             cadence_tick()
 
-        assert self.dispatched() == [self.context(trigger, NOW)]
+        assert self.dispatched() == [self.firing(trigger, NOW)]
         trigger.refresh_from_db()
-        assert trigger.next_run_at == NOW + timedelta(hours=1) + offset
+        assert trigger.next_fire_at == NOW + timedelta(hours=1) + offset
 
     @patch("sentry.cadence.tasks.metrics.distribution")
     def test_dispatch_lag_excludes_offset(self, mock_distribution: MagicMock) -> None:
@@ -366,5 +366,5 @@ class CadenceTickSpreadTest(CadenceTickTestCase):
 
         trigger.refresh_from_db()
         assert trigger.next_scheduled_for == NOW + timedelta(minutes=30)
-        assert trigger.next_run_at is not None
-        assert trigger.next_run_at - trigger.next_scheduled_for < timedelta(minutes=15)
+        assert trigger.next_fire_at is not None
+        assert trigger.next_fire_at - trigger.next_scheduled_for < timedelta(minutes=15)

@@ -15,7 +15,7 @@ from sentry.cadence.api import (
 from sentry.cadence.models import ScheduledTrigger, ScheduleType
 from sentry.cadence.registry import TriggerTypeRegistration, trigger_type_registry
 from sentry.cadence.schedule import Schedule
-from sentry.cadence.spread import run_offset
+from sentry.cadence.spread import fire_offset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.registry import NoRegistrationExistsError
@@ -27,7 +27,7 @@ SEER_WORKFLOW = ScheduledTriggerType.SEER_WORKFLOW
 class CadenceApiTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        # Run at scheduled times unless a test registers a spread window.
+        # Fire at scheduled times unless a test registers a spread window.
         self.register(timedelta(0))
 
     def register(self, spread_window: timedelta) -> None:
@@ -60,7 +60,7 @@ class SetScheduleTest(CadenceApiTestCase):
         assert info == ScheduledTriggerInfo(
             target_id=7,
             schedule=every(timedelta(hours=2)),
-            next_run_at=NOW + timedelta(hours=2),
+            next_fire_at=NOW + timedelta(hours=2),
             next_scheduled_for=NOW + timedelta(hours=2),
         )
         trigger = ScheduledTrigger.objects.get(organization_id=self.organization.id, target_id=7)
@@ -77,7 +77,7 @@ class SetScheduleTest(CadenceApiTestCase):
         assert info == ScheduledTriggerInfo(
             target_id=7,
             schedule=cron("0 9 * * *", "America/New_York"),
-            next_run_at=datetime(2024, 3, 9, 14, 0, tzinfo=UTC),
+            next_fire_at=datetime(2024, 3, 9, 14, 0, tzinfo=UTC),
             next_scheduled_for=datetime(2024, 3, 9, 14, 0, tzinfo=UTC),
         )
         trigger = ScheduledTrigger.objects.get(organization_id=self.organization.id, target_id=7)
@@ -88,7 +88,7 @@ class SetScheduleTest(CadenceApiTestCase):
         # 23 hours when the clocks go forward.
         assert trigger.min_gap_seconds == 23 * 60 * 60
 
-    def test_pulls_in_next_run_beyond_new_interval(self) -> None:
+    def test_pulls_in_next_firing_beyond_new_interval(self) -> None:
         with freeze_time(NOW):
             self.set(7, every(timedelta(hours=1)))
         later = NOW + timedelta(minutes=1)
@@ -96,26 +96,26 @@ class SetScheduleTest(CadenceApiTestCase):
             info = self.set(7, every(timedelta(minutes=30)))
 
         assert info.schedule == every(timedelta(minutes=30))
-        assert info.next_run_at == later + timedelta(minutes=30)
+        assert info.next_fire_at == later + timedelta(minutes=30)
         assert self.get(7) == info
 
-    def test_keeps_next_run_within_new_interval(self) -> None:
+    def test_keeps_next_firing_within_new_interval(self) -> None:
         with freeze_time(NOW):
             self.set(7, every(timedelta(hours=1)))
         with freeze_time(NOW + timedelta(minutes=55)):
             info = self.set(7, every(timedelta(minutes=30)))
 
-        assert info.next_run_at == NOW + timedelta(hours=1)
+        assert info.next_fire_at == NOW + timedelta(hours=1)
 
     def test_same_schedule_is_unchanged(self) -> None:
         with freeze_time(NOW):
             first = self.set(7, cron("0 * * * *"))
-        # Even after its run comes due, setting the same schedule doesn't move it.
+        # Even after its firing comes due, setting the same schedule doesn't move it.
         with freeze_time(NOW + timedelta(hours=1, minutes=5)):
             again = self.set(7, cron("0 * * * *"))
 
         assert again == first
-        assert again.next_run_at == NOW + timedelta(hours=1)
+        assert again.next_fire_at == NOW + timedelta(hours=1)
 
     def test_interval_to_cron(self) -> None:
         with freeze_time(NOW):
@@ -123,7 +123,7 @@ class SetScheduleTest(CadenceApiTestCase):
             info = self.set(7, cron("0 10 * * *"))
 
         assert info.schedule == cron("0 10 * * *")
-        assert info.next_run_at == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+        assert info.next_fire_at == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
         trigger = ScheduledTrigger.objects.get(organization_id=self.organization.id, target_id=7)
         assert trigger.interval_seconds is None
 
@@ -133,7 +133,7 @@ class SetScheduleTest(CadenceApiTestCase):
             info = self.set(7, every(timedelta(hours=1)))
 
         assert info.schedule == every(timedelta(hours=1))
-        assert info.next_run_at == NOW + timedelta(hours=1)
+        assert info.next_fire_at == NOW + timedelta(hours=1)
         trigger = ScheduledTrigger.objects.get(organization_id=self.organization.id, target_id=7)
         assert trigger.cron_expression is None
         assert trigger.timezone == "UTC"
@@ -188,7 +188,7 @@ class ScheduleSpreadTest(CadenceApiTestCase):
         )
 
     def offset(self, target_id: int, min_gap: timedelta = timedelta(days=1)) -> timedelta:
-        return run_offset(
+        return fire_offset(
             organization_id=self.organization.id,
             trigger_type=SEER_WORKFLOW,
             target_id=target_id,
@@ -201,7 +201,7 @@ class ScheduleSpreadTest(CadenceApiTestCase):
 
         scheduled_for = datetime(2024, 3, 9, 13, 0, tzinfo=UTC)
         assert info.next_scheduled_for == scheduled_for
-        assert info.next_run_at == scheduled_for + self.offset(self.target_id)
+        assert info.next_fire_at == scheduled_for + self.offset(self.target_id)
         assert self.get(self.target_id) == info
         trigger = ScheduledTrigger.objects.get(target_id=self.target_id)
         assert trigger.min_gap_seconds == 24 * 60 * 60
@@ -212,27 +212,27 @@ class ScheduleSpreadTest(CadenceApiTestCase):
         info = self.set(self.target_id, every(timedelta(hours=2)))
 
         assert info.next_scheduled_for == NOW + timedelta(hours=2)
-        assert info.next_run_at == NOW + timedelta(hours=2) + self.offset(self.target_id)
+        assert info.next_fire_at == NOW + timedelta(hours=2) + self.offset(self.target_id)
 
     @freeze_time(NOW)
     def test_frequent_schedule_spreads_over_half_its_gap(self) -> None:
         info = self.set(self.target_id, every(timedelta(minutes=30)))
 
         assert info.next_scheduled_for is not None
-        assert info.next_run_at is not None
-        offset = info.next_run_at - info.next_scheduled_for
+        assert info.next_fire_at is not None
+        offset = info.next_fire_at - info.next_scheduled_for
         assert offset == self.offset(self.target_id, min_gap=timedelta(minutes=30))
         assert offset < timedelta(minutes=15)
 
-    def test_cron_keeps_a_passed_scheduled_time_whose_run_is_still_ahead(self) -> None:
-        # 12:00 has passed, but its offset run hasn't.
+    def test_cron_keeps_a_passed_scheduled_time_whose_firing_is_still_ahead(self) -> None:
+        # 12:00 has passed, but its offset firing hasn't.
         with freeze_time(NOW + timedelta(minutes=1)):
             info = self.set(self.target_id, cron("0 12 * * *"))
 
         assert info.next_scheduled_for == NOW
-        assert info.next_run_at == NOW + self.offset(self.target_id)
+        assert info.next_fire_at == NOW + self.offset(self.target_id)
 
-    def test_cron_skips_a_scheduled_time_whose_run_has_passed(self) -> None:
+    def test_cron_skips_a_scheduled_time_whose_firing_has_passed(self) -> None:
         with freeze_time(NOW + timedelta(minutes=55)):
             info = self.set(self.target_id, cron("0 12 * * *"))
 
@@ -241,7 +241,7 @@ class ScheduleSpreadTest(CadenceApiTestCase):
     @freeze_time(NOW)
     def test_offsets_differ_between_targets(self) -> None:
         offsets = {
-            self.set(target_id, cron("0 13 * * *")).next_run_at for target_id in range(1, 21)
+            self.set(target_id, cron("0 13 * * *")).next_fire_at for target_id in range(1, 21)
         }
 
         assert len(offsets) > 1
@@ -262,13 +262,13 @@ class GetSchedulesTest(CadenceApiTestCase):
             1: ScheduledTriggerInfo(
                 target_id=1,
                 schedule=every(timedelta(hours=1)),
-                next_run_at=NOW + timedelta(hours=1),
+                next_fire_at=NOW + timedelta(hours=1),
                 next_scheduled_for=NOW + timedelta(hours=1),
             ),
             2: ScheduledTriggerInfo(
                 target_id=2,
                 schedule=cron("0 10 * * *"),
-                next_run_at=datetime(2024, 3, 10, 10, 0, tzinfo=UTC),
+                next_fire_at=datetime(2024, 3, 10, 10, 0, tzinfo=UTC),
                 next_scheduled_for=datetime(2024, 3, 10, 10, 0, tzinfo=UTC),
             ),
         }

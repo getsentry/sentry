@@ -13,7 +13,7 @@ from sentry.cadence.schedule import (
     cron,
     every,
     min_gap,
-    next_run_after,
+    next_time_after,
     reschedule_for_new_interval,
     schedule_of,
 )
@@ -62,7 +62,7 @@ def test_cron_builds_cron_schedule() -> None:
         "0 9 * * 1-5",
         "0 0 1 * *",
         "0 0 1 1 *",
-        # Rare enough that 2000 runs would pass datetime's year 9999 limit.
+        # Rare enough that 2000 times would pass datetime's year 9999 limit.
         "0 0 29 2 *",
     ],
 )
@@ -88,7 +88,7 @@ def test_leap_day_schedule() -> None:
         # Too frequent.
         "* * * * *",
         "*/15 * * * *",
-        # Mostly hourly, but two runs 10 minutes apart once a day.
+        # Mostly hourly, but two times 10 minutes apart once a day.
         "0,10 9 * * *",
     ],
 )
@@ -144,7 +144,7 @@ FALL_BACK_NEXT_DAY_0130 = datetime(2024, 11, 4, 6, 30, tzinfo=UTC)
 @pytest.mark.parametrize(
     ("after", "expected"),
     [
-        # 01:30 runs at its first occurrence, 01:30 EDT...
+        # 01:30 fires at its first occurrence, 01:30 EDT...
         (
             FALL_BACK_FIRST_HOUR + timedelta(minutes=10),
             FALL_BACK_FIRST_HOUR + timedelta(minutes=30),
@@ -161,7 +161,7 @@ def test_cron_runs_a_repeated_time_once(after: datetime, expected: datetime) -> 
     assert schedule.next_after(after) == expected
 
 
-def test_cron_next_run_is_always_later_across_clock_changes() -> None:
+def test_cron_next_time_is_always_later_across_clock_changes() -> None:
     expressions = ["30 1 * * *", "0 1 * * *", "30 2 * * *", "45 1,3 * * *", "0,30 * * * *"]
     schedules = [cron(expression, "America/New_York") for expression in expressions]
     # Every 5 minutes across both 2024 clock change days, with half a day either side.
@@ -246,22 +246,22 @@ def test_stored_schedules_are_not_validated_again() -> None:
     assert stored.interval == timedelta(minutes=5)
 
 
-def test_next_run_after_interval() -> None:
+def test_next_time_after_interval() -> None:
     trigger = interval_trigger(timedelta(hours=2))
-    assert next_run_after(trigger, NOW) == NOW + timedelta(hours=2)
+    assert next_time_after(trigger, NOW) == NOW + timedelta(hours=2)
 
 
-def test_next_run_after_cron() -> None:
+def test_next_time_after_cron() -> None:
     trigger = cron_trigger("30 * * * *")
-    assert next_run_after(trigger, NOW) == datetime(2024, 3, 9, 12, 30, tzinfo=UTC)
+    assert next_time_after(trigger, NOW) == datetime(2024, 3, 9, 12, 30, tzinfo=UTC)
 
 
-def test_next_run_after_cron_uses_timezone() -> None:
+def test_next_time_after_cron_uses_timezone() -> None:
     # 09:00 in New York is 14:00 UTC before the March 10 DST change.
     trigger = cron_trigger("0 9 * * *", tz="America/New_York")
-    assert next_run_after(trigger, NOW) == datetime(2024, 3, 9, 14, 0, tzinfo=UTC)
+    assert next_time_after(trigger, NOW) == datetime(2024, 3, 9, 14, 0, tzinfo=UTC)
     # And 13:00 UTC after it.
-    assert next_run_after(trigger, datetime(2024, 3, 10, 15, 0, tzinfo=UTC)) == datetime(
+    assert next_time_after(trigger, datetime(2024, 3, 10, 15, 0, tzinfo=UTC)) == datetime(
         2024, 3, 11, 13, 0, tzinfo=UTC
     )
 
@@ -294,17 +294,17 @@ def test_advance_cron_skips_missed_runs() -> None:
     assert advance(trigger, NOW, much_later) == NOW + timedelta(hours=4)
 
 
-def test_reschedule_keeps_next_run_within_new_interval() -> None:
+def test_reschedule_keeps_next_time_within_new_interval() -> None:
     current = NOW + timedelta(minutes=5)
     assert reschedule_for_new_interval(current, timedelta(minutes=30), NOW) == current
 
 
-def test_reschedule_pulls_in_next_run_beyond_new_interval() -> None:
+def test_reschedule_pulls_in_next_time_beyond_new_interval() -> None:
     current = NOW + timedelta(minutes=59)
     assert reschedule_for_new_interval(current, timedelta(minutes=30), NOW) == NOW + timedelta(
         minutes=30
     )
 
 
-def test_reschedule_without_next_run() -> None:
+def test_reschedule_without_next_time() -> None:
     assert reschedule_for_new_interval(None, timedelta(hours=1), NOW) == NOW + timedelta(hours=1)

@@ -1,4 +1,4 @@
-"""Spreads each trigger type's runs over its spread window; see `register_trigger_action`."""
+"""Spreads each trigger type's firings over its spread window; see `register_trigger_action`."""
 
 from __future__ import annotations
 
@@ -11,19 +11,19 @@ from sentry.cadence.registry import trigger_type_registry
 
 def spread_window_for(trigger_type: str, min_gap: timedelta) -> timedelta:
     """
-    The spread window of a schedule of `trigger_type` whose runs are at least `min_gap`
-    apart. Raises NoRegistrationExistsError if the trigger type isn't registered.
+    The spread window of a trigger of `trigger_type` whose scheduled times are at least
+    `min_gap` apart. Raises NoRegistrationExistsError if the trigger type isn't registered.
     """
     registration = trigger_type_registry.get(ScheduledTriggerType(trigger_type))
     return min(registration.spread_window, min_gap / 2)
 
 
-def run_offset(
+def fire_offset(
     *, organization_id: int, trigger_type: str, target_id: int, min_gap: timedelta
 ) -> timedelta:
     """
-    How long after its scheduled time a schedule's runs happen, in whole seconds within its
-    spread window. Always the same for the same schedule and window.
+    How long after its scheduled time a trigger fires, in whole seconds within its spread
+    window. Always the same for the same trigger and window.
     """
     window_seconds = int(spread_window_for(trigger_type, min_gap).total_seconds())
     if window_seconds == 0:
@@ -35,7 +35,7 @@ def run_offset(
 
 
 def offset_of(trigger: ScheduledTrigger) -> timedelta:
-    return run_offset(
+    return fire_offset(
         organization_id=trigger.organization_id,
         trigger_type=trigger.trigger_type,
         target_id=trigger.target_id,

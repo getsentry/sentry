@@ -49,7 +49,7 @@ class Migration(CheckedMigration):
                 ("timezone", models.CharField(db_default="UTC", default="UTC", max_length=64)),
                 ("min_gap_seconds", models.PositiveIntegerField()),
                 ("next_scheduled_for", models.DateTimeField(null=True)),
-                ("next_run_at", models.DateTimeField(null=True)),
+                ("next_fire_at", models.DateTimeField(null=True)),
                 (
                     "organization",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -62,7 +62,7 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "cadence_scheduledtrigger",
                 "indexes": [
-                    models.Index(fields=["next_run_at"], name="cadence_sch_next_ru_07e5b4_idx")
+                    models.Index(fields=["next_fire_at"], name="cadence_sch_next_fi_8ea5f5_idx")
                 ],
                 "constraints": [
                     models.UniqueConstraint(
@@ -88,15 +88,15 @@ class Migration(CheckedMigration):
                     models.CheckConstraint(
                         condition=models.Q(
                             models.Q(
-                                ("next_run_at__isnull", True), ("next_scheduled_for__isnull", True)
+                                ("next_fire_at__isnull", True), ("next_scheduled_for__isnull", True)
                             ),
                             models.Q(
-                                ("next_run_at__isnull", False),
+                                ("next_fire_at__isnull", False),
                                 ("next_scheduled_for__isnull", False),
                             ),
                             _connector="OR",
                         ),
-                        name="cadence_scheduledtrigger_next_run_fields",
+                        name="cadence_scheduledtrigger_next_fire_fields",
                     ),
                 ],
             },

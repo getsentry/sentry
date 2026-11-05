@@ -14,7 +14,7 @@ from sentry.cadence.models import ScheduledTrigger, ScheduleType
 MIN_INTERVAL = timedelta(minutes=30)
 MAX_INTERVAL = timedelta(weeks=1)
 
-# Upcoming runs of a cron expression are checked against MIN_INTERVAL until either limit, so
+# Upcoming times of a cron expression are checked against MIN_INTERVAL until either limit, so
 # rare schedules, like leap days, stop well before datetime's year 9999 limit.
 CRON_SPACING_SAMPLE = 2000
 CRON_SPACING_HORIZON = timedelta(days=10 * 366)
@@ -29,7 +29,7 @@ class InvalidSchedule(ValueError):
 
 @dataclass(frozen=True)
 class IntervalSchedule:
-    """Run every `interval`. Always valid once constructed."""
+    """Fire every `interval`. Always valid once constructed."""
 
     schedule_type: ClassVar[ScheduleType] = ScheduleType.INTERVAL
 
@@ -51,12 +51,12 @@ class IntervalSchedule:
 @dataclass(frozen=True)
 class CronSchedule:
     """
-    Run on a five-field cron `expression`, evaluated in `timezone`. Always valid once
-    constructed: the expression parses, the timezone exists, and runs are at least
+    Fire on a five-field cron `expression`, evaluated in `timezone`. Always valid once
+    constructed: the expression parses, the timezone exists, and its times are at least
     MIN_INTERVAL apart in real time, including across daylight saving changes (checked over
-    the next CRON_SPACING_SAMPLE runs, up to CRON_SPACING_HORIZON). A time that happens twice
-    when clocks go back runs once, at its first occurrence. A time skipped when clocks go
-    forward runs when they do, e.g. 02:30 runs at 03:00.
+    the next CRON_SPACING_SAMPLE times, up to CRON_SPACING_HORIZON). A time that happens
+    twice when clocks go back fires once, at its first occurrence. A time skipped when clocks
+    go forward fires when they do, e.g. 02:30 fires at 03:00.
     """
 
     schedule_type: ClassVar[ScheduleType] = ScheduleType.CRON
@@ -76,18 +76,18 @@ class CronSchedule:
 def _next_cron_after(expression: str, timezone: str, after: datetime) -> datetime:
     """The first cron time strictly after `after`, in UTC."""
     after = after.astimezone(UTC)
-    runs = CronSim(expression, after.astimezone(ZoneInfo(timezone)))
+    times = CronSim(expression, after.astimezone(ZoneInfo(timezone)))
     # CronSim matches clock times, and gives the first occurrence of a time that happens twice
     # when clocks go back. From within the second occurrence, that's already in the past, so
     # skip to a time that isn't.
-    for run in islice(runs, _MAX_CRON_CANDIDATES):
-        if run.astimezone(UTC) > after:
-            return run.astimezone(UTC)
-    raise ValueError(f"No run of {expression!r} in {timezone} found after {after}")
+    for time in islice(times, _MAX_CRON_CANDIDATES):
+        if time.astimezone(UTC) > after:
+            return time.astimezone(UTC)
+    raise ValueError(f"No time of {expression!r} in {timezone} found after {after}")
 
 
 def _cron_error(expression: str, timezone: str) -> str | None:
-    """Why a cron schedule is invalid, or None. Takes tens of ms: checks spacing of many runs."""
+    """Why a cron schedule is invalid, or None. Takes tens of ms: checks spacing of many times."""
     try:
         ZoneInfo(timezone)
     except (ZoneInfoNotFoundError, ValueError):
@@ -97,21 +97,21 @@ def _cron_error(expression: str, timezone: str) -> str | None:
     except CronSimError as exc:
         return f"Invalid cron expression {expression!r}: {exc}"
     if _cron_min_gap(expression, timezone) < MIN_INTERVAL:
-        return f"Cron runs must be at least {MIN_INTERVAL} apart"
+        return f"Cron times must be at least {MIN_INTERVAL} apart"
     return None
 
 
 @functools.lru_cache(maxsize=1024)
 def _cron_min_gap(expression: str, timezone: str) -> timedelta:
     """
-    The shortest time between consecutive runs, over the next CRON_SPACING_SAMPLE runs or
+    The shortest time between consecutive times, over the next CRON_SPACING_SAMPLE times or
     CRON_SPACING_HORIZON, whichever ends first, capped at MAX_INTERVAL. Takes tens of ms, so
     it's cached.
     """
     # Subtract in UTC: datetimes sharing a tzinfo subtract as wall-clock times, which would
     # hide daylight saving changes.
-    runs = [run.astimezone(UTC) for run in _cron_spacing_sample(expression, timezone)]
-    gaps = (later - earlier for earlier, later in pairwise(runs))
+    times = [time.astimezone(UTC) for time in _cron_spacing_sample(expression, timezone)]
+    gaps = (later - earlier for earlier, later in pairwise(times))
     return min(min(gaps, default=MAX_INTERVAL), MAX_INTERVAL)
 
 
@@ -119,20 +119,20 @@ def _cron_spacing_sample(expression: str, timezone: str) -> list[datetime]:
     start = _CRON_SPACING_START.replace(tzinfo=ZoneInfo(timezone))
     end = start + CRON_SPACING_HORIZON
     sample: list[datetime] = []
-    runs = CronSim(expression, start)
+    times = CronSim(expression, start)
     try:
-        for run in islice(runs, CRON_SPACING_SAMPLE):
-            if run >= end:
+        for time in islice(times, CRON_SPACING_SAMPLE):
+            if time >= end:
                 break
-            sample.append(run)
+            sample.append(time)
     except OverflowError:
-        # CronSim searched past datetime's limit for a run that never comes.
+        # CronSim searched past datetime's limit for a time that never comes.
         pass
     return sample
 
 
 def min_gap(schedule: Schedule) -> timedelta:
-    """The shortest time between consecutive runs of `schedule`, capped at MAX_INTERVAL."""
+    """The shortest time between consecutive times of `schedule`, capped at MAX_INTERVAL."""
     match schedule:
         case IntervalSchedule(interval=interval):
             return interval
@@ -166,7 +166,7 @@ def _without_validation[S: (IntervalSchedule, CronSchedule)](cls: type[S], **fie
 
 
 def schedule_of(trigger: ScheduledTrigger) -> Schedule:
-    """The Schedule a stored trigger runs on."""
+    """The Schedule a stored trigger fires on."""
     if trigger.schedule_type == ScheduleType.INTERVAL:
         assert trigger.interval is not None
         return _without_validation(IntervalSchedule, interval=trigger.interval)
@@ -178,8 +178,8 @@ def schedule_of(trigger: ScheduledTrigger) -> Schedule:
     raise ValueError(f"Unknown schedule type: {trigger.schedule_type}")
 
 
-def next_run_after(trigger: ScheduledTrigger, after: datetime) -> datetime:
-    """The first run strictly after `after`, as if the schedule started at `after`."""
+def next_time_after(trigger: ScheduledTrigger, after: datetime) -> datetime:
+    """The first scheduled time strictly after `after`, as if the schedule started at `after`."""
     if trigger.schedule_type == ScheduleType.INTERVAL:
         assert trigger.interval is not None
         return after + trigger.interval
@@ -191,9 +191,9 @@ def next_run_after(trigger: ScheduledTrigger, after: datetime) -> datetime:
 
 def advance(trigger: ScheduledTrigger, scheduled_for: datetime, now: datetime) -> datetime:
     """
-    The next run after a run that was scheduled for `scheduled_for`.
+    The next scheduled time after a firing that was scheduled for `scheduled_for`.
 
-    Interval schedules keep their cadence relative to `scheduled_for`. Runs that were
+    Interval schedules keep their cadence relative to `scheduled_for`. Firings that were
     missed (because `now` is already past them) are skipped rather than caught up.
     """
     if trigger.schedule_type == ScheduleType.INTERVAL:
@@ -203,17 +203,17 @@ def advance(trigger: ScheduledTrigger, scheduled_for: datetime, now: datetime) -
             return scheduled_for + interval
         missed = (now - scheduled_for) // interval
         return scheduled_for + (missed + 1) * interval
-    return next_run_after(trigger, max(scheduled_for, now))
+    return next_time_after(trigger, max(scheduled_for, now))
 
 
 def reschedule_for_new_interval(
-    current_next_run: datetime | None, new_interval: timedelta, now: datetime
+    current_next: datetime | None, new_interval: timedelta, now: datetime
 ) -> datetime:
     """
-    Keep the existing next run if it would still happen within the new interval,
+    Keep the existing next scheduled time if it is still within the new interval,
     otherwise start the new interval from `now`.
     """
     latest = now + new_interval
-    if current_next_run is not None and current_next_run <= latest:
-        return current_next_run
+    if current_next is not None and current_next <= latest:
+        return current_next
     return latest

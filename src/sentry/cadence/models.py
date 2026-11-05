@@ -12,7 +12,7 @@ from sentry.db.models.base import DefaultFieldsModel
 class ScheduledTriggerType(models.TextChoices):
     # target_id is a SeerWorkflowConfig id.
     SEER_WORKFLOW = "seer_workflow"
-    # Only logs each run, to validate scheduling without touching user data. target_id is
+    # Only logs each firing, to validate scheduling without touching user data. target_id is
     # any id the caller chooses to tell schedules apart.
     LOG = "log"
 
@@ -25,15 +25,15 @@ class ScheduleType(models.TextChoices):
 @cell_silo_model
 class ScheduledTrigger(DefaultFieldsModel):
     """
-    A recurring schedule for running the action registered for `trigger_type` against
-    `target_id`, an identifier whose meaning depends on the trigger type.
+    A trigger: fires on its schedule for `target_id`, an identifier whose meaning depends on
+    `trigger_type`, by calling the action registered for the trigger type.
 
-    Interval schedules run every `interval_seconds`, anchored to when they were created.
-    Cron schedules run on `cron_expression`, evaluated in `timezone`.
+    Interval schedules fire every `interval_seconds`, anchored to when they were created.
+    Cron schedules fire on `cron_expression`, evaluated in `timezone`.
 
-    `next_scheduled_for` is the next run's scheduled time, which the schedule defines.
-    `next_run_at` is when it actually runs: the scheduled time plus the trigger's offset
-    (see `spread.run_offset`).
+    `next_scheduled_for` is the next firing's scheduled time, which the schedule defines.
+    `next_fire_at` is when it actually fires: the scheduled time plus the trigger's offset
+    (see `spread.fire_offset`).
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -48,17 +48,17 @@ class ScheduledTrigger(DefaultFieldsModel):
     interval_seconds = models.PositiveIntegerField(null=True)
     cron_expression = models.CharField(max_length=255, null=True)
     timezone = models.CharField(max_length=64, default="UTC", db_default="UTC")
-    # The shortest time between consecutive runs, capped at a week. It bounds the trigger's
-    # spread window, and is stored because it's slow to compute for cron schedules.
+    # The shortest time between consecutive scheduled times, capped at a week. It bounds the
+    # trigger's spread window, and is stored because it's slow to compute for cron schedules.
     min_gap_seconds = models.PositiveIntegerField()
-    # NULL means the trigger is not scheduled to run. Both are set, or neither.
+    # NULL means the trigger is not scheduled to fire. Both are set, or neither.
     next_scheduled_for = models.DateTimeField(null=True)
-    next_run_at = models.DateTimeField(null=True)
+    next_fire_at = models.DateTimeField(null=True)
 
     class Meta:
         app_label = "cadence"
         db_table = "cadence_scheduledtrigger"
-        indexes = [models.Index(fields=["next_run_at"])]
+        indexes = [models.Index(fields=["next_fire_at"])]
         constraints = [
             models.UniqueConstraint(
                 fields=["organization", "trigger_type", "target_id"],
@@ -81,15 +81,15 @@ class ScheduledTrigger(DefaultFieldsModel):
             ),
             models.CheckConstraint(
                 condition=(
-                    models.Q(next_scheduled_for__isnull=True, next_run_at__isnull=True)
-                    | models.Q(next_scheduled_for__isnull=False, next_run_at__isnull=False)
+                    models.Q(next_scheduled_for__isnull=True, next_fire_at__isnull=True)
+                    | models.Q(next_scheduled_for__isnull=False, next_fire_at__isnull=False)
                 ),
-                name="cadence_scheduledtrigger_next_run_fields",
+                name="cadence_scheduledtrigger_next_fire_fields",
             ),
         ]
 
     __repr__ = sane_repr(
-        "organization_id", "trigger_type", "target_id", "schedule_type", "next_run_at"
+        "organization_id", "trigger_type", "target_id", "schedule_type", "next_fire_at"
     )
 
     @property
