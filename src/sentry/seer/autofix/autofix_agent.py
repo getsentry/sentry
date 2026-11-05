@@ -41,6 +41,7 @@ from sentry.seer.autofix.feature.dispatch import (
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     LEGACY_FEATURE_ID,
+    SINGLE_RUN_FEATURE_ID,
     CodeChangesStepArgs,
     PrIterationStepArgs,
     RCAStepArgs,
@@ -561,9 +562,7 @@ def trigger_autofix_agent(
         )
 
 
-def get_autofix_agent_state(
-    organization: Organization, group_id: int, *, sources: tuple[str, ...] = (FEATURE_ID,)
-) -> SeerRunState | None:
+def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRunState | None:
     """
     Get the current state of an agent-based autofix run for a group.
 
@@ -576,7 +575,9 @@ def get_autofix_agent_state(
         category_key=FEATURE_ID,
         category_value=str(group_id),
     )
-    return client.fetch_latest_run_state(group_id=group_id, sources=sources)
+    return client.fetch_latest_run_state(
+        group_id=group_id, sources=(FEATURE_ID, SINGLE_RUN_FEATURE_ID)
+    )
 
 
 def generate_autofix_handoff_prompt(

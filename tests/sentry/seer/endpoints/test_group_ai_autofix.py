@@ -24,7 +24,7 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
-from sentry.seer.autofix.feature.models import FEATURE_ID, SINGLE_RUN_FEATURE_ID
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
@@ -105,9 +105,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(self._get_url(group.id), format="json")
 
         assert response.status_code == 200, response.data
-        mock_get_explorer_state.assert_called_once_with(
-            group.organization, group.id, sources=(FEATURE_ID, SINGLE_RUN_FEATURE_ID)
-        )
+        mock_get_explorer_state.assert_called_once_with(group.organization, group.id)
 
     def _mirror_run(self, group: Group, *, state_id: int, source: str, minutes_ago: int) -> None:
         run = self.create_seer_run(
