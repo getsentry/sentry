@@ -431,9 +431,9 @@ export function updateDashboardQueryPriority(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+      toast.error(errors[Object.keys(errors)[0]!]! as string);
     } else {
-      addErrorMessage(t('Unable to update query priority'));
+      toast.error(t('Unable to update query priority'));
     }
   });
 
