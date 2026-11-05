@@ -22,10 +22,7 @@ describe('BreadcrumbsDrawer', () => {
 
     // Inner drawer breadcrumbs
     const {event} = MOCK_DATA_SECTION_PROPS;
-    const navigation = within(drawerScreen).getByRole('navigation', {
-      name: 'Breadcrumbs',
-    });
-    const currentCrumb = within(navigation).getByText('Breadcrumbs');
+    const currentCrumb = within(drawerScreen).getByText('Breadcrumbs');
     expect(currentCrumb).toHaveAttribute('aria-current', 'location');
     await userEvent.hover(currentCrumb);
     expect(

@@ -6,7 +6,6 @@ import {
   render,
   screen,
   waitFor,
-  within,
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -80,11 +79,10 @@ describe('SimilarIssuesDrawer', () => {
       initialRouterConfig,
     });
 
-    expect(
-      within(screen.getByRole('navigation', {name: 'Breadcrumbs'})).getByText(
-        'Similar Issues'
-      )
-    ).toHaveAttribute('aria-current', 'location');
+    expect(screen.getByText('Similar Issues')).toHaveAttribute(
+      'aria-current',
+      'location'
+    );
 
     expect(
       await screen.findByText('Issues with a similar stack trace')
