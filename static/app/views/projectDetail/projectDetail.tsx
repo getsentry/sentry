@@ -25,6 +25,7 @@ import {MissingProjectMembership} from 'sentry/components/projects/missingProjec
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -38,6 +39,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
 import {ProjectScoreCards} from './projectScoreCards/projectScoreCards';
@@ -54,6 +56,7 @@ export function ProjectDetail() {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const settingsV3 = useSettingsV3();
   const {projects, fetching: loadingProjects} = useProjects();
   const {selection} = usePageFilters();
   const project = projects.find(p => p.slug === params.projectId);
@@ -185,6 +188,12 @@ export function ProjectDetail() {
       label: t('Project Settings'),
       leadingItems: <IconSettings size="md" />,
       to: `/settings/${params.orgId}/projects/${params.projectId}/`,
+      onAction: () =>
+        trackAnalytics('settings.entry_point_clicked', {
+          organization,
+          entry_point: 'project_details_menu',
+          settings_v3: settingsV3,
+        }),
     },
   ];
 

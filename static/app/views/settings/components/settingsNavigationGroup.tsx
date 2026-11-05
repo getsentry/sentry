@@ -9,6 +9,20 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {SettingsNavItem} from './settingsNavItem';
 
+/**
+ * Builds a stable analytics id from a settings route template for items
+ * without an `id`, e.g. `/settings/:orgId/projects/:projectId/alerts/` becomes
+ * `alerts` and `/settings/account/details/` becomes `details`.
+ */
+export function getSettingsNavItemAnalyticsId(path: string): string {
+  const id = path
+    .replace(/^\/settings\/(account\/|:orgId\/(projects\/:projectId\/)?)?/, '')
+    .split('/')
+    .filter(Boolean)
+    .join('-');
+  return id || 'index';
+}
+
 function isItemVisible(item: NavigationItem, props: NavigationGroupProps): boolean {
   if (typeof item.show === 'function') {
     return item.show(props);
@@ -59,6 +73,7 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
       return (
         <SettingsNavItem
           key={title}
+          analyticsId={id ?? getSettingsNavItemAnalyticsId(path)}
           to={to}
           label={title}
           index={index}

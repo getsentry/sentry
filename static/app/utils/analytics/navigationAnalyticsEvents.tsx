@@ -1,5 +1,11 @@
-type NavigationItemClicked = {
+import type {SettingsScope} from 'sentry/views/settings/settingsScope';
+
+export type NavigationItemClicked = {
   item: string;
+  /**
+   * Set on settings navigation items, so clicks can be grouped by scope.
+   */
+  settings_scope?: SettingsScope;
 };
 
 type NavigationEventParameters = {

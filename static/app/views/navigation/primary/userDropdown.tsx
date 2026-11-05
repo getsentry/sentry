@@ -13,9 +13,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
@@ -35,6 +37,14 @@ export function UserDropdown() {
   const theme = useTheme();
   const {mutate: updateOptions} = useMutateUserOptions();
   const settingsV3 = useSettingsV3();
+  const organization = useOrganization({allowNull: true});
+
+  const trackSettingsClicked = () =>
+    trackAnalytics('settings.entry_point_clicked', {
+      organization,
+      entry_point: 'user_menu_settings',
+      settings_v3: settingsV3,
+    });
 
   useEffect(() => {
     portalContainerRef.current = document.body;
@@ -96,6 +106,7 @@ export function UserDropdown() {
                 label: t('Settings'),
                 leadingItems: <IconSettings size="md" />,
                 to: '/settings/account/',
+                onAction: trackSettingsClicked,
               },
               {
                 key: 'preferences',
@@ -210,6 +221,7 @@ export function UserDropdown() {
               key: 'user-settings',
               label: t('User Settings'),
               to: '/settings/account/',
+              onAction: trackSettingsClicked,
             },
             {
               key: 'admin',

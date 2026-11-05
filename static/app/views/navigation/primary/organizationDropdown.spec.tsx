@@ -8,9 +8,12 @@ import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
 
 import {OrganizationDropdown} from './organizationDropdown';
+
+jest.mock('sentry/utils/analytics');
 
 describe('OrganizationDropdown', () => {
   const organization = OrganizationFixture({
@@ -23,6 +26,7 @@ describe('OrganizationDropdown', () => {
 
   afterEach(() => {
     ProjectsStore.reset();
+    jest.clearAllMocks();
   });
 
   it('displays org info and links', async () => {
@@ -152,6 +156,39 @@ describe('OrganizationDropdown', () => {
     await userEvent.click(submenu.getByRole('menuitemradio', {name: 'python'}));
     expect(router.location.pathname).toBe(
       `/settings/${organization.slug}/projects/python/`
+    );
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'settings.org_menu.project_clicked',
+      expect.objectContaining({source: 'all_projects'})
+    );
+  });
+
+  it('tracks quick access project clicks in the settings v3 menu', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'javascript', isMember: true}),
+    ]);
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'javascript'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'settings.org_menu.project_clicked',
+      expect.objectContaining({source: 'quick_access'})
+    );
+  });
+
+  it('tracks the settings link in the settings v3 menu', async () => {
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Settings'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'settings.entry_point_clicked',
+      expect.objectContaining({entry_point: 'org_menu_settings', settings_v3: true})
     );
   });
 
@@ -285,6 +322,14 @@ describe('OrganizationDropdown', () => {
     await userEvent.keyboard('{Enter}');
 
     expect(projectMock).toHaveBeenCalled();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'settings.org_menu.project_bookmark_toggled',
+      expect.objectContaining({bookmarked: false, source: 'quick_access'})
+    );
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
+      'settings.org_menu.project_clicked',
+      expect.anything()
+    );
     expect(router.location.pathname).not.toBe(
       `/settings/${organization.slug}/projects/${project.slug}/`
     );
