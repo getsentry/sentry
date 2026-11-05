@@ -28,7 +28,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.apidocs.formats import Url
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.auth.principal import has_user
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
@@ -582,7 +582,7 @@ class GroupSerializerBase(Serializer, ABC):
             "shortId": qualified_short_id,
             "title": obj.title,
             "culprit": obj.culprit,
-            "permalink": permalink,
+            "permalink": absolute_url(permalink),
             "logger": obj.logger or None,
             "level": _get_level_label(obj),
             "status": status_label,

@@ -40,6 +40,7 @@ from typing import (
     Annotated,
     Any,
     Literal,
+    NewType,
     NotRequired,
     ReadOnly,
     Required,
@@ -196,6 +197,8 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
 
     if origin in (Required, NotRequired, ReadOnly):
         return resolve_type_hint(args[0])
+    if isinstance(hint, NewType):
+        return resolve_type_hint(hint.__supertype__)
     if origin is Annotated:
         schema = resolve_type_hint(hint.__origin__)
         for metadata in hint.__metadata__:

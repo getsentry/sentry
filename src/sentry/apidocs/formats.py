@@ -1,5 +1,12 @@
+import logging
 from dataclasses import dataclass
-from typing import Annotated
+from datetime import datetime
+from typing import Annotated, NewType
+from urllib.parse import urlsplit
+
+from sentry.utils.env import in_test_environment
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -42,11 +49,52 @@ GIT_REF_PATTERN_OPTIONAL_EMPTY = (
 )
 GIT_REF_MAX_LENGTH = 255
 
-# A date and time as an ISO 8601 string with a UTC offset, such as the output of an
-# aware datetime's `isoformat()` or a datetime that the API renders.
-IsoDateTime = Annotated[str, ApiFormat(format="date-time")]
-# An absolute URL, such as `https://sentry.io/organizations/org-slug/issues/1/`.
-Url = Annotated[str, ApiFormat(format="uri")]
+# The string types behind IsoDateTime and Url. They're NewTypes, so mypy rejects a plain
+# `str` where a response field expects one: build values with iso_datetime() and
+# absolute_url(), which check them.
+IsoDateTimeStr = NewType("IsoDateTimeStr", str)
+UrlStr = NewType("UrlStr", str)
+
+# A date and time as an ISO 8601 string with a UTC offset, such as
+# `2024-01-01T00:00:00+00:00`. Build it with iso_datetime().
+IsoDateTime = Annotated[IsoDateTimeStr, ApiFormat(format="date-time")]
+# An absolute URL, such as `https://sentry.io/organizations/org-slug/issues/1/`. Build it
+# with absolute_url().
+Url = Annotated[UrlStr, ApiFormat(format="uri")]
+
+
+def _invalid(format: str, problem: str) -> None:
+    # Tests fail on a value that doesn't match its format. Elsewhere, the value is
+    # returned unchanged and logged, so a bad value doesn't break the endpoint. The log
+    # leaves out the value, which can hold a DSN secret.
+    if in_test_environment():
+        raise ValueError(f"Response value isn't a valid {format}: {problem}")
+    logger.warning("apidocs.invalid_format", extra={"format": format, "problem": problem})
+
+
+def iso_datetime(value: datetime) -> IsoDateTime:
+    """
+    Returns ``value.isoformat()`` as the value of a ``date-time`` field.
+
+    A naive datetime is invalid, because its ISO string has no UTC offset.
+    """
+    if value.utcoffset() is None:
+        _invalid("date-time", "the datetime has no UTC offset")
+    return IsoDateTimeStr(value.isoformat())
+
+
+def absolute_url(value: str) -> Url:
+    """
+    Returns ``value`` unchanged as the value of a ``uri`` field.
+
+    A value without a scheme and a host, such as a path or an empty string, is invalid.
+    """
+    parts = urlsplit(value)
+    if not parts.scheme or not parts.netloc:
+        _invalid("uri", "the URL has no scheme or host")
+    return UrlStr(value)
+
+
 # A git branch or ref name, or an empty string. Uploads are validated against the same
 # pattern; refs stored before that validation existed weren't checked.
 GitRef = Annotated[

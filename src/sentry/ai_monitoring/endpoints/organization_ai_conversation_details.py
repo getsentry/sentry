@@ -53,7 +53,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
-from sentry.apidocs.formats import Url
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -508,7 +508,9 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),
                     "projects": [serialize_conversation_project(project)] if project else [],
-                    "webUrl": get_conversation_url(organization, conversation_id, project_id),
+                    "webUrl": absolute_url(
+                        get_conversation_url(organization, conversation_id, project_id)
+                    ),
                     "spans": spans,
                     "stats": query_result["stats"],
                 }

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import datetime
 from typing import Annotated, Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.apidocs.formats import IsoDateTime
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.integrations.base import IntegrationProvider
@@ -90,7 +90,7 @@ class OrganizationIntegrationResponse(TypedDict):
         ),
     ]
     gracePeriodEnd: Annotated[
-        IsoDateTime | None,
+        datetime | None,
         ApiDescription(
             "When the integration's grace period ends (ISO 8601). Null when there's no grace period"
         ),

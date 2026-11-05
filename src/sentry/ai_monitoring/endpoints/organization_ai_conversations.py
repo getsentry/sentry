@@ -41,7 +41,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
-from sentry.apidocs.formats import Url
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -288,8 +288,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 {
                     **conversation,
                     "projects": [serialize_conversation_project(project)] if project else [],
-                    "webUrl": get_conversation_url(
-                        organization, conversation["conversationId"], project_id
+                    "webUrl": absolute_url(
+                        get_conversation_url(
+                            organization, conversation["conversationId"], project_id
+                        )
                     ),
                 }
             )

@@ -5,7 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.apidocs.formats import Url
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.services.app.model import RpcSentryAppAvatar
 from sentry.users.models.user import User
@@ -42,7 +42,7 @@ class SentryAppAvatarSerializer(Serializer):
         return {
             "avatarType": obj.get_avatar_type_display(),
             "avatarUuid": obj.ident or "",
-            "avatarUrl": obj.absolute_url(),
+            "avatarUrl": absolute_url(obj.absolute_url()),
             "color": obj.color,
             "photoType": obj.get_avatar_photo_type(),
         }

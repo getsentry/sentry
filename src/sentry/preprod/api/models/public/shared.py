@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated, Literal, TypedDict, cast
 
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.apidocs.formats import GitRef, IsoDateTime
+from sentry.apidocs.formats import GitRef, IsoDateTime, iso_datetime
 from sentry.preprod.models import PreprodArtifact
 
 # Names of PreprodArtifact.ArtifactType
@@ -48,8 +48,8 @@ def create_app_info_dict(artifact: PreprodArtifact) -> AppInfoResponseDict:
         )
         if artifact.artifact_type is not None
         else None,
-        "dateAdded": artifact.date_added.isoformat() if artifact.date_added else None,
-        "dateBuilt": artifact.date_built.isoformat() if artifact.date_built else None,
+        "dateAdded": iso_datetime(artifact.date_added) if artifact.date_added else None,
+        "dateBuilt": iso_datetime(artifact.date_built) if artifact.date_built else None,
     }
 
 

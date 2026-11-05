@@ -7,7 +7,7 @@ from rest_framework.request import Request
 
 from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.apidocs.formats import Url
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.loader.browsersdkversion import (
     get_browser_sdk_version_choices,
@@ -126,19 +126,19 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
                 else None
             ),
             "dsn": {
-                "secret": obj.dsn_private,
-                "public": obj.dsn_public,
-                "csp": obj.csp_endpoint,
-                "security": obj.security_endpoint,
-                "minidump": obj.minidump_endpoint,
-                "nel": obj.nel_endpoint,
-                "unreal": obj.unreal_endpoint,
-                "crons": obj.crons_endpoint,
-                "cdn": obj.js_sdk_loader_cdn_url,
-                "playstation": obj.playstation_endpoint,
-                "integration": obj.integration_endpoint,
-                "otlp_traces": obj.otlp_traces_endpoint,
-                "otlp_logs": obj.otlp_logs_endpoint,
+                "secret": absolute_url(obj.dsn_private),
+                "public": absolute_url(obj.dsn_public),
+                "csp": absolute_url(obj.csp_endpoint),
+                "security": absolute_url(obj.security_endpoint),
+                "minidump": absolute_url(obj.minidump_endpoint),
+                "nel": absolute_url(obj.nel_endpoint),
+                "unreal": absolute_url(obj.unreal_endpoint),
+                "crons": absolute_url(obj.crons_endpoint),
+                "cdn": absolute_url(obj.js_sdk_loader_cdn_url),
+                "playstation": absolute_url(obj.playstation_endpoint),
+                "integration": absolute_url(obj.integration_endpoint),
+                "otlp_traces": absolute_url(obj.otlp_traces_endpoint),
+                "otlp_logs": absolute_url(obj.otlp_logs_endpoint),
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
             "browserSdk": {"choices": cast(Any, get_browser_sdk_version_choices(obj.project))},

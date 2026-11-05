@@ -19,7 +19,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.source_map_debug_examples import SourceMapDebugExamples
-from sentry.apidocs.formats import Url
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.debug_files.release_files import maybe_renew_releasefiles
@@ -1109,7 +1109,10 @@ def get_scraping_attempt_map(event_data: Mapping[str, Any]) -> dict[str, dict[st
     scraping_attempt_map: dict[str, dict[str, Any]] = {}  # maps from url to attempt
     scraping_attempts = event_data.get("scraping_attempts") or []
     for scraping_attempt in scraping_attempts:
-        attempt_data = {"status": scraping_attempt["status"], "url": scraping_attempt["url"]}
+        attempt_data = {
+            "status": scraping_attempt["status"],
+            "url": absolute_url(scraping_attempt["url"]),
+        }
 
         reason = scraping_attempt.get("reason")
         if reason is not None:

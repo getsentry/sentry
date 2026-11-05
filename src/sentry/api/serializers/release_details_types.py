@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Annotated, Any, TypeAlias, TypedDict
 
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.apidocs.formats import IsoDateTime
 from sentry.release_health.base import ReleaseHealthStats
 from sentry.users.api.serializers.user import UserSerializerResponse
 
@@ -26,14 +25,14 @@ class VersionInfo(VersionInfoOptional):
 
 
 class LastDeployOptional(TypedDict, total=False):
-    dateStarted: Annotated[IsoDateTime | None, ApiDescription("When the deploy started (ISO 8601)")]
+    dateStarted: Annotated[datetime | None, ApiDescription("When the deploy started (ISO 8601)")]
     url: Annotated[str | None, ApiDescription("URL of the deploy")]
 
 
 class LastDeploy(LastDeployOptional):
     id: Annotated[str, ApiDescription("ID of the deploy")]
     environment: Annotated[str, ApiDescription("Environment the release was deployed to")]
-    dateFinished: Annotated[IsoDateTime, ApiDescription("When the deploy finished (ISO 8601)")]
+    dateFinished: Annotated[datetime, ApiDescription("When the deploy finished (ISO 8601)")]
     name: Annotated[str | None, ApiDescription("Name of the deploy")]
 
 
