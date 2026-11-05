@@ -440,7 +440,7 @@ describe('FiltersBar', () => {
       renderFilterBar();
 
       expect(
-        screen.queryByRole('button', {name: 'Query priority: Normal'})
+        screen.queryByRole('button', {name: 'Query Speed: Balanced Querying'})
       ).not.toBeInTheDocument();
     });
 
@@ -450,14 +450,16 @@ describe('FiltersBar', () => {
       });
       renderFilterBar();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
-      expect(screen.getByText('Balance speed and accuracy')).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      expect(screen.getByText('Balances speed and accuracy')).toBeInTheDocument();
       expect(screen.getByText('Faster with reduced accuracy')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
 
       expect(
-        screen.getByRole('button', {name: 'Query priority: Faster'})
+        screen.getByRole('button', {name: 'Query Speed: Fast Querying'})
       ).toBeInTheDocument();
     });
 
@@ -470,7 +472,7 @@ describe('FiltersBar', () => {
       });
 
       expect(
-        screen.getByRole('button', {name: 'Query priority: Faster'})
+        screen.getByRole('button', {name: 'Query Speed: Fast Querying'})
       ).toBeInTheDocument();
     });
 
@@ -487,8 +489,10 @@ describe('FiltersBar', () => {
         dashboard: DashboardFixture([], {id: '1'}),
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
 
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledWith(
@@ -513,11 +517,13 @@ describe('FiltersBar', () => {
         dashboard: DashboardFixture([], {id: 'prebuilt-dashboard-1'}),
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
 
       expect(
-        screen.getByRole('button', {name: 'Query priority: Faster'})
+        screen.getByRole('button', {name: 'Query Speed: Fast Querying'})
       ).toBeInTheDocument();
       expect(updateMock).not.toHaveBeenCalled();
     });
@@ -540,12 +546,16 @@ describe('FiltersBar', () => {
         dashboard: DashboardFixture([], {id: '1', queryPriority: 'normal'}),
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
       expect(updateMock).toHaveBeenCalledTimes(1);
 
-      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Faster'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Normal'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Fast Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Balanced Querying'}));
       expect(updateMock).toHaveBeenCalledTimes(1);
 
       releaseFirstSave();
@@ -570,7 +580,7 @@ describe('FiltersBar', () => {
         })
       );
       expect(
-        screen.getByRole('button', {name: 'Query priority: Normal'})
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
       ).toBeInTheDocument();
     });
 
@@ -594,8 +604,10 @@ describe('FiltersBar', () => {
         onDashboardQueryPrioritySaved,
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
       expect(updateMock).toHaveBeenCalledTimes(1);
 
       releaseSave();
@@ -603,8 +615,10 @@ describe('FiltersBar', () => {
         expect(onDashboardQueryPrioritySaved).toHaveBeenCalled();
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Faster'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Normal'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Fast Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Balanced Querying'}));
 
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledTimes(2);
@@ -639,8 +653,10 @@ describe('FiltersBar', () => {
         onDashboardQueryPrioritySaved,
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
       expect(updateMock).toHaveBeenCalledTimes(1);
 
       unmount();
@@ -672,8 +688,10 @@ describe('FiltersBar', () => {
         onDashboardQueryPrioritySaved,
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
       expect(updateMock).not.toHaveBeenCalled();
 
       unmount();

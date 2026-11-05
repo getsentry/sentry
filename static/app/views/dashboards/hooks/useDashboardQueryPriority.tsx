@@ -31,8 +31,16 @@ const DASHBOARD_QUERY_PRIORITY_OPTIONS: Array<{
   label: string;
   value: DashboardQueryPriority;
 }> = [
-  {value: 'normal', label: t('Normal'), details: t('Balance speed and accuracy')},
-  {value: 'faster', label: t('Faster'), details: t('Faster with reduced accuracy')},
+  {
+    value: 'normal',
+    label: t('Balanced Querying'),
+    details: t('Balances speed and accuracy'),
+  },
+  {
+    value: 'faster',
+    label: t('Fast Querying'),
+    details: t('Faster with reduced accuracy'),
+  },
 ];
 
 // No default: an absent param must stay null so a saved dashboard priority can
