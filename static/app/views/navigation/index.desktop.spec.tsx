@@ -1072,15 +1072,14 @@ describe('desktop navigation', () => {
       );
     });
 
-    it('shows Seer linking to classifiers with classifiers-ui but without seer-primary-nav', () => {
+    it('hides Seer with classifiers-ui but without seer-primary-nav', () => {
       const primaryNav = renderSeerNavigation({
-        features: [...ALL_AVAILABLE_FEATURES, 'classifiers-ui', 'seer-automations'],
+        features: [...ALL_AVAILABLE_FEATURES, 'classifiers-ui'],
       });
 
-      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/seer/classifiers/'
-      );
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
     });
 
     it('links Seer to classifiers when only classifiers is enabled', () => {

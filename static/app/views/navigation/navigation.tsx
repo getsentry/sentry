@@ -307,19 +307,11 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
     return settingsItem;
   }
 
-  // Without seer-primary-nav, automations and investigations still live under Explore.
-  const seerPrimaryNav = organization.features.includes('seer-primary-nav');
-  const seerAutomationsEnabled = seerPrimaryNav && automationsEnabled;
-  const seerInvestigationsEnabled = seerPrimaryNav && investigationsEnabled;
-
-  const seerPath = seerAutomationsEnabled
+  const seerPath = automationsEnabled
     ? getAutomationsPath(organization.slug)
-    : seerInvestigationsEnabled
+    : investigationsEnabled
       ? getInvestigationsPath(organization.slug)
       : getClassifiersPath(organization.slug);
-
-  const showSeer =
-    classifiersEnabled || seerAutomationsEnabled || seerInvestigationsEnabled;
 
   const prefix = `organizations/${organization.slug}`;
 
@@ -355,18 +347,19 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         )}
       </NavigationTourElement>
 
-      {showSeer && (
-        <PrimaryNavigation.ListItem>
-          <PrimaryNavigation.Link
-            to={seerPath}
-            analyticsKey="seer"
-            label={t('Seer')}
-            {...makeNavigationItemProps('seer', seerPath, `/${prefix}/seer`)}
-          >
-            <IconSeer />
-          </PrimaryNavigation.Link>
-        </PrimaryNavigation.ListItem>
-      )}
+      {organization.features.includes('seer-primary-nav') &&
+        (investigationsEnabled || automationsEnabled || classifiersEnabled) && (
+          <PrimaryNavigation.ListItem>
+            <PrimaryNavigation.Link
+              to={seerPath}
+              analyticsKey="seer"
+              label={t('Seer')}
+              {...makeNavigationItemProps('seer', seerPath, `/${prefix}/seer`)}
+            >
+              <IconSeer />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
 
       <NavigationTourElement id={NavigationTour.EXPLORE} title={null} description={null}>
         {tourProps => (

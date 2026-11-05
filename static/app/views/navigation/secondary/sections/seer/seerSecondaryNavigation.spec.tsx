@@ -106,7 +106,7 @@ describe('SeerSecondaryNavigation', () => {
     renderNavigation(
       '/organizations/org-slug/seer/classifiers/',
       OrganizationFixture({
-        features: ['investigations', 'classifiers-ui', 'seer-primary-nav'],
+        features: ['investigations', 'classifiers-ui'],
         openMembership: true,
       })
     );
@@ -129,20 +129,6 @@ describe('SeerSecondaryNavigation', () => {
     renderNavigation(
       '/organizations/org-slug/seer/classifiers/',
       OrganizationFixture({features: ['classifiers-ui'], openMembership: false})
-    );
-
-    expect(screen.getByRole('link', {name: /Classifiers/})).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: /Investigations/})).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: /Automations/})).not.toBeInTheDocument();
-  });
-
-  it('renders only Classifiers without seer-primary-nav', () => {
-    renderNavigation(
-      '/organizations/org-slug/seer/classifiers/',
-      OrganizationFixture({
-        features: ['investigations', 'seer-automations', 'classifiers-ui'],
-        openMembership: true,
-      })
     );
 
     expect(screen.getByRole('link', {name: /Classifiers/})).toBeInTheDocument();

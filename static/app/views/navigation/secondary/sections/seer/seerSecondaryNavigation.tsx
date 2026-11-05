@@ -21,10 +21,8 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 function SeerSecondaryNavigationImpl() {
   const settingsV3 = useSettingsV3();
   const organization = useOrganization();
-  // Without seer-primary-nav, automations and investigations are linked from Explore.
-  const seerPrimaryNav = organization.features.includes('seer-primary-nav');
-  const investigationsEnabled = useInvestigationsEnabled() && seerPrimaryNav;
-  const automationsEnabled = useAutomationsEnabled() && seerPrimaryNav;
+  const investigationsEnabled = useInvestigationsEnabled();
+  const automationsEnabled = useAutomationsEnabled();
   const classifiersEnabled = useClassifiersEnabled();
   const investigationsPath = getInvestigationsPath(organization.slug);
   const automationsPath = getAutomationsPath(organization.slug);
