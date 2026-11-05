@@ -931,7 +931,7 @@ describe('NextStepCard', () => {
     );
   });
 
-  it('tracks a request as shown once when it is applied', async () => {
+  it('tracks a request as shown once when it is applied', () => {
     jest.mocked(trackAnalytics).mockClear();
     const actionRequest = InvestigationActionRequestFixture();
     const queryClient = makeTestQueryClient();
