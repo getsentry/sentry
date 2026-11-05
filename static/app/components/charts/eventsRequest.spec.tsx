@@ -614,6 +614,31 @@ describe('EventsRequest', () => {
         })
       );
     });
+
+    it('falls back to a generic message when the error detail is not a string', async () => {
+      jest.spyOn(toast, 'error');
+      const onError = jest.fn();
+      jest.mocked(doEventsRequest).mockRejectedValueOnce({
+        responseJSON: {detail: {code: 'invalid', message: 'Invalid query'}},
+      });
+
+      render(
+        <EventsRequest {...DEFAULTS} onError={onError}>
+          {mock}
+        </EventsRequest>
+      );
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            errored: true,
+            errorMessage: 'Error loading chart data',
+          })
+        )
+      );
+      expect(toast.error).toHaveBeenCalledWith('Error loading chart data');
+      expect(onError).toHaveBeenCalledWith('Error loading chart data');
+    });
   });
 
   describe('request errors', () => {

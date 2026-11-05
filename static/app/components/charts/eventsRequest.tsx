@@ -317,7 +317,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
       errorMessage: undefined,
     }));
 
-    let errorMessage: string;
+    let errorMessage: any;
     if (expired) {
       errorMessage = t(
         '%s has an invalid date range. Please try a more recent date range.',
@@ -334,9 +334,11 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
         api.clear();
         timeseriesData = await doEventsRequest<false>(api, props);
       } catch (resp: any) {
-        const detail: unknown = resp?.responseJSON?.detail;
-        errorMessage =
-          typeof detail === 'string' && detail ? detail : t('Error loading chart data');
+        if (typeof resp?.responseJSON?.detail === 'string') {
+          errorMessage = resp.responseJSON.detail;
+        } else {
+          errorMessage = t('Error loading chart data');
+        }
         if (!hideError) {
           toast.error(errorMessage);
         }
