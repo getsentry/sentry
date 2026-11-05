@@ -1,5 +1,3 @@
-import type {SettingsScope} from 'sentry/views/settings/settingsScope';
-
 /**
  * Links outside of the settings navigation that take people into settings.
  * - `settings_navigation.org_menu`: "Settings" item in the organization avatar menu
@@ -46,20 +44,6 @@ export type SettingsEventParameters = {
     source: SettingsOrgMenuProjectSource;
   };
   /**
-   * A settings page was opened. Fires once per settings URL.
-   */
-  'settings.page_viewed': {
-    /**
-     * False when the previous page was outside of settings.
-     */
-    from_settings: boolean;
-    /**
-     * The parameterized route, e.g. `/settings/:orgId/projects/:projectId/alerts/`.
-     */
-    path: string;
-    scope: SettingsScope;
-  };
-  /**
    * A different project was picked in the project selector at the top of the
    * project settings sidebar.
    */
@@ -88,7 +72,6 @@ export const settingsEventMap: Record<SettingsEventKey, string | null> = {
   'settings.org_menu.project_bookmark_toggled':
     'Settings: Organization Menu Project Star Toggled',
   'settings.org_menu.project_clicked': 'Settings: Organization Menu Project Clicked',
-  'settings.page_viewed': 'Settings: Page Viewed',
   'settings.project_selector.changed': 'Settings: Sidebar Project Selector Changed',
   'settings.settings_link_clicked': 'Settings: Settings Link Clicked',
   'sidebar.item_clicked': 'Sidebar: Item Clicked',

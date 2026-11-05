@@ -36,7 +36,6 @@ import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import {useTrackSettingsPageView} from 'sentry/views/settings/useTrackSettingsPageView';
 
 import {OrganizationDetailsBody} from './body';
 
@@ -159,7 +158,6 @@ const ContentStack = styled(Stack)`
 function GlobalAnalytics() {
   useRouteAnalyticsHookSetup();
   useRegisterDomainViewUsage();
-  useTrackSettingsPageView();
 
   return null;
 }
