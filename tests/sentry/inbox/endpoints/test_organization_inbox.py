@@ -425,7 +425,7 @@ class OrganizationInboxUpdateTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"id": [removed.id, other_user.id, other_org.id, deleting.id, 0]},
-            isRemoved=False,
+            undoRemoval=True,
         )
 
         assert response.data == {"updatedCount": 1}
@@ -443,12 +443,41 @@ class OrganizationInboxUpdateTest(APITestCase):
     def test_restore_and_mark_read(self) -> None:
         item = self.create_inbox_item(status=ObjectStatus.PENDING_DELETION)
 
-        response = self.get_success_response(self.organization.slug, isRemoved=False, isRead=True)
+        response = self.get_success_response(self.organization.slug, undoRemoval=True, isRead=True)
 
         assert response.data == {"updatedCount": 1}
         item.refresh_from_db()
         assert item.status == ObjectStatus.ACTIVE
         assert item.last_read_at == timezone.now()
+
+    def test_undo_removal_false_has_no_effect(self) -> None:
+        active = self.create_inbox_item(subject_id="active")
+        removed = self.create_inbox_item(status=ObjectStatus.PENDING_DELETION)
+
+        response = self.get_success_response(self.organization.slug, undoRemoval=False)
+
+        assert response.data == {"updatedCount": 0}
+        active.refresh_from_db()
+        removed.refresh_from_db()
+        assert active.status == ObjectStatus.ACTIVE
+        assert active.last_read_at is None
+        assert removed.status == ObjectStatus.PENDING_DELETION
+        assert removed.last_read_at is None
+
+    @freeze_time()
+    def test_undo_removal_false_only_updates_active_items_read_state(self) -> None:
+        active = self.create_inbox_item(subject_id="active")
+        removed = self.create_inbox_item(status=ObjectStatus.PENDING_DELETION)
+
+        response = self.get_success_response(self.organization.slug, undoRemoval=False, isRead=True)
+
+        assert response.data == {"updatedCount": 1}
+        active.refresh_from_db()
+        removed.refresh_from_db()
+        assert active.status == ObjectStatus.ACTIVE
+        assert active.last_read_at == timezone.now()
+        assert removed.status == ObjectStatus.PENDING_DELETION
+        assert removed.last_read_at is None
 
     def test_shared_filters_intersect(self) -> None:
         target = self.create_inbox_item(subject_id="1")
@@ -507,8 +536,11 @@ class OrganizationInboxUpdateTest(APITestCase):
             {},
             {"isRead": None},
             {"isRead": "invalid"},
+            {"undoRemoval": None},
+            {"undoRemoval": "invalid"},
+            {"isRead": True, "undoRemoval": "invalid"},
+            {"isRemoved": False},
             {"isRemoved": True},
-            {"isRead": True, "isRemoved": True},
         ):
             with self.subTest(data=data):
                 response = self.get_error_response(self.organization.slug, status_code=400, **data)
@@ -721,7 +753,7 @@ class OrganizationInboxDeleteTest(APITestCase):
         item = self.create_inbox_item()
         event = self.create_inbox_item_event(item)
         self.get_success_response(self.organization.slug)
-        self.get_success_response(self.organization.slug, method="put", isRemoved=False)
+        self.get_success_response(self.organization.slug, method="put", undoRemoval=True)
 
         with freeze_time(timezone.now() + timedelta(hours=1)), self.tasks():
             run_scheduled_deletions()
@@ -740,7 +772,7 @@ class OrganizationInboxDeleteTest(APITestCase):
 
         with freeze_time(original.date_scheduled):
             CellScheduledDeletion.objects.filter(id=original.id).update(in_progress=True)
-            self.get_success_response(self.organization.slug, method="put", isRemoved=False)
+            self.get_success_response(self.organization.slug, method="put", undoRemoval=True)
             self.get_success_response(self.organization.slug)
             scheduled = CellScheduledDeletion.objects.get(model_name="InboxItem", object_id=item.id)
             assert scheduled.date_scheduled == timezone.now() + timedelta(hours=1)
