@@ -13,6 +13,7 @@ from sentry.inbox.endpoints.organization_inbox_count import (
 from sentry.inbox.endpoints.organization_inbox_item_events import (
     OrganizationInboxItemEventsEndpoint,
 )
+from sentry.inbox.event_retention import cleanup_inbox_item_events
 from sentry.inbox.issue import ISSUE_PR_READY_FOR_REVIEW, IssuePRReadyForReviewData
 from sentry.inbox.types import SYSTEM_ACTOR
 from sentry.notifications.models.inboxitem import InboxItem
@@ -87,6 +88,40 @@ class OrganizationInboxIndexTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 1
+
+    def test_event_retention_preserves_api_order_and_counts(self) -> None:
+        timestamp = before_now(minutes=1)
+        item = self.create_inbox_item(subject_id=str(self.group.id), last_activity_at=timestamp)
+        events = [
+            self.create_inbox_item_event(
+                inbox_item=item,
+                type="issue.user_mentioned",
+                data={"summary": f"Event {index}", "comment_id": index},
+            )
+            for index in range(103)
+        ]
+        item.events.update(date_added=timestamp)
+        with self.options({"cleanup.inbox-events.enabled": True}):
+            cleanup_inbox_item_events(item_id=item.id)
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["eventCount"] == 100
+        assert response.data[0]["unreadEventCount"] == 100
+        assert response.data[0]["latestEvent"]["id"] == str(events[-1].id)
+        assert response.data[0]["latestEvent"]["data"]["commentId"] == "102"
+        assert response.data[0]["subtitle"] == "Event 102"
+
+        response = self.client.get(
+            reverse(
+                "sentry-api-0-organization-inbox-item-events",
+                args=[self.organization.slug, item.id],
+            ),
+            {"per_page": 100},
+        )
+        assert response.status_code == 200, response.data
+        assert [event["id"] for event in response.data] == [
+            str(event.id) for event in reversed(events[-100:])
+        ]
 
     def test_subject_lookup_does_not_return_another_users_item(self) -> None:
         self.create_inbox_item(user=self.create_user(), subject_id=str(self.group.id))

@@ -200,14 +200,55 @@ class ServiceAccountServiceTest(TestCase):
             organization_id=self.create_organization().id, service_account_id=account_id
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert ServiceAccount.objects.filter(id=account_id).exists()
+            assert ServiceAccount.objects.get(id=account_id).is_active
+
+    def test_delete_service_account_soft_deletes(self) -> None:
+        account_id = self.create()
 
         with outbox_runner():
             service_account_service.delete_service_account(
                 organization_id=self.organization.id, service_account_id=account_id
             )
+
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not ServiceAccount.objects.filter(id=account_id).exists()
+            assert not ServiceAccount.objects.get(id=account_id).is_active
+        assert self.project_ids(account_id) == []
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ServiceAccountReplica.objects.get(service_account_id=account_id).is_active
+        assert self.replica_project_ids(account_id) == []
+
+        # A second delete does nothing.
+        service_account_service.delete_service_account(
+            organization_id=self.organization.id, service_account_id=account_id
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not ServiceAccount.objects.get(id=account_id).is_active
+
+    def test_deleted_service_account_is_hidden(self) -> None:
+        account_id = self.create()
+        service_account_service.delete_service_account(
+            organization_id=self.organization.id, service_account_id=account_id
+        )
+
+        assert (
+            service_account_service.get_service_account(
+                organization_id=self.organization.id, service_account_id=account_id
+            )
+            is None
+        )
+        assert (
+            service_account_service.update_service_account(
+                organization_id=self.organization.id,
+                service_account_id=account_id,
+                scope_list=["project:read"],
+                project_ids=[self.project.id],
+                all_projects=False,
+            )
+            is None
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ServiceAccount.objects.get(id=account_id).scope_list == ["event:read"]
+        assert self.project_ids(account_id) == []
 
     def test_get_service_account(self) -> None:
         account_id = self.create()
