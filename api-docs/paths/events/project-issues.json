@@ -291,14 +291,17 @@
               "required": ["isPublic", "status", "statusDetails"],
               "properties": {
                 "isPublic": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "description": "Whether the issues are shared publicly."
                 },
                 "status": {
                   "type": "string",
+                  "description": "The new status of the issues.",
                   "enum": ["resolved", "unresolved", "ignored"]
                 },
                 "statusDetails": {
-                  "type": "object"
+                  "type": "object",
+                  "description": "Details of the new status, such as the release that resolves the issues or when an ignore expires."
                 }
               }
             },
