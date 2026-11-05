@@ -189,6 +189,29 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
+        self.valid_percent_detector_data = {
+            **self.valid_data,
+            "conditionGroup": {
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 150,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 150,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
+            "config": {
+                "detectionType": AlertRuleDetectionType.PERCENT.value,
+                "comparisonDelta": 3600,
+            },
+        }
         self.valid_anomaly_detection_data = {
             **self.valid_data,
             "conditionGroup": {
@@ -254,6 +277,39 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
         return static_detector
+
+    def create_percent_detector(self) -> Detector:
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_percent_detector_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            percent_detector = validator.save()
+
+        # Verify detector in DB
+        self.assert_validated(percent_detector)
+        percent_detector.refresh_from_db()
+        assert percent_detector.config["detection_type"] == AlertRuleDetectionType.PERCENT.value
+        assert percent_detector.config["comparison_delta"] == 3600
+
+        # Verify condition group in DB
+        condition_group = DataConditionGroup.objects.get(
+            id=percent_detector.workflow_condition_group_id
+        )
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.project.organization_id
+
+        # Verify conditions in DB
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 2
+        condition = conditions[0]
+        assert condition.type == Condition.GREATER
+        assert condition.comparison == 150
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+        return percent_detector
 
     def create_dynamic_detector(self) -> Detector:
         validator = MetricIssueDetectorValidator(
