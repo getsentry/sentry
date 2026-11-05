@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -21,8 +21,6 @@ import {toast} from '@sentry/scraps/toast';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -39,6 +37,8 @@ import {
   getAutomationDetailPath,
   getAutomationsPath,
 } from 'sentry/views/seerWorkflows/utils';
+
+import {useCreateConfig, useUpdateConfig} from './hooks/configs';
 
 const agentProjectsSchema = z.discriminatedUnion('mode', [
   z.object({mode: z.literal('monitors')}),
@@ -67,7 +67,6 @@ type Props = {mode: 'create'} | {config: SeerWorkflowConfigResponse; mode: 'edit
 export function MetricAutomationForm(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const {projects} = useProjects();
   const agent = props.mode === 'edit' ? props.config.agent : null;
   const grantableScopes = new Set<string>(organization.access);
@@ -90,54 +89,40 @@ export function MetricAutomationForm(props: Props) {
     monitorsQuery.data?.filter(monitor => monitor.type === 'metric_issue') ?? [];
   const getProjectSlug = (projectId: string) =>
     projects.find(project => project.id === projectId)?.slug ?? projectId;
-  const configsUrl = getApiUrl(
-    '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-    {path: {organizationIdOrSlug: organization.slug}}
-  );
-  const mutation = useMutation({
-    mutationFn: (value: z.infer<typeof schema>) =>
-      fetchMutation<SeerWorkflowConfigResponse>({
-        url:
-          props.mode === 'create'
-            ? configsUrl
-            : getApiUrl(
-                '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
-                {
-                  path: {
-                    organizationIdOrSlug: organization.slug,
-                    configId: props.config.id,
-                  },
-                }
-              ),
-        method: props.mode === 'create' ? 'POST' : 'PUT',
-        data: {
-          ...(props.mode === 'create' && {
-            strategy: 'breached_metric_investigation',
-            name: value.name,
-          }),
-          enabled: value.enabled,
-          monitorIds: value.monitorIds.map(Number),
-          agent: {
-            scopes: value.scopes,
-            projectIds: resolveAgentProjects(
-              value.agentProjects,
-              value.monitorIds,
-              monitors
-            ).map(Number),
-            allProjects: value.agentProjects.mode === 'all',
-          },
-        },
-      }),
-    onSuccess: async config => {
-      await queryClient.invalidateQueries({queryKey: [configsUrl]});
-      toast.success(
-        props.mode === 'create' ? t('Automation created.') : t('Automation saved.')
-      );
-      if (props.mode === 'create') {
-        navigate(getAutomationDetailPath(organization.slug, config.id));
-      }
-    },
+  const createConfig = useCreateConfig();
+  // Only called in edit mode, where the config ID is known
+  const updateConfig = useUpdateConfig({
+    configId: props.mode === 'edit' ? props.config.id : '',
   });
+  const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
+  const saveConfig = async (value: z.infer<typeof schema>) => {
+    const fields = {
+      enabled: value.enabled,
+      monitorIds: value.monitorIds.map(Number),
+      agent: {
+        scopes: value.scopes,
+        projectIds: resolveAgentProjects(
+          value.agentProjects,
+          value.monitorIds,
+          monitors
+        ).map(Number),
+        allProjects: value.agentProjects.mode === 'all',
+      },
+    };
+    if (props.mode === 'create') {
+      const config = await createConfig.mutateAsync({
+        ...fields,
+        strategy: 'breached_metric_investigation',
+        name: value.name,
+      });
+      toast.success(t('Automation created.'));
+      navigate(getAutomationDetailPath(organization.slug, config.id));
+      return config;
+    }
+    const config = await updateConfig.mutateAsync(fields);
+    toast.success(t('Automation saved.'));
+    return config;
+  };
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
@@ -154,7 +139,7 @@ export function MetricAutomationForm(props: Props) {
     validators: {onDynamic: schema},
     onSubmit: async ({value, formApi}) => {
       try {
-        const config = await mutation.mutateAsync(schema.parse(value));
+        const config = await saveConfig(schema.parse(value));
         if (props.mode === 'edit') {
           formApi.reset({
             name: value.name,
@@ -176,16 +161,13 @@ export function MetricAutomationForm(props: Props) {
     <Container maxWidth="960px" width="100%" containerType="inline-size">
       <form.AppForm form={form}>
         <Stack gap="lg">
-          {mutation.isError && (
+          {mutationError && (
             <Alert variant="danger">
-              {getRequestErrorUserMessage(
-                mutation.error,
-                t('Unable to save automation.')
-              )}
+              {getRequestErrorUserMessage(mutationError, t('Unable to save automation.'))}
             </Alert>
           )}
-          <form.FieldGroup title={t('Details')}>
-            {props.mode === 'create' ? (
+          <form.FieldGroup title={t('Description')}>
+            {props.mode === 'create' && (
               <form.AppField name="name">
                 {field => (
                   <field.Layout.Stack label={t('Name')} required>
@@ -198,18 +180,14 @@ export function MetricAutomationForm(props: Props) {
                   </field.Layout.Stack>
                 )}
               </form.AppField>
-            ) : (
-              <DisplayField.Row label={t('Name')}>
-                <Text>{props.config.name ?? t('Breached metrics')}</Text>
-              </DisplayField.Row>
             )}
-            <DisplayField.Stack label={t('Description')}>
+            <Container padding="lg xl">
               <Text variant="muted">
                 {t(
                   'Investigate metric breaches using related errors, traces, and recent changes to find likely causes.'
                 )}
               </Text>
-            </DisplayField.Stack>
+            </Container>
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Trigger')}>
