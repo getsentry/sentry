@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ProgressBar} from 'sentry/components/progressBar';
 import type {SeerCreditUsageMeterProps} from 'sentry/components/seer/outOfCredits/seerCreditUsageMeter';
 import {t, tct} from 'sentry/locale';
-import {hasSeerCreditChecks} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
@@ -26,9 +25,12 @@ const WARNING_PERCENT = 90;
 export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterProps) {
   const organization = useOrganization();
   // The spec only has copy for billing members, and only they can change auto
-  // reload. Without `seer-credit-checks` the chat looks as it did before.
+  // reload. Without `seer-credit-checks` the chat looks as it did before, and
+  // only token-billed orgs have a wallet to show.
   const isEnabled =
-    hasSeerCreditChecks(organization) && organization.access.includes('org:billing');
+    organization.features.includes('seer-credit-checks') &&
+    organization.features.includes('token-billed-seer-enabled') &&
+    organization.access.includes('org:billing');
 
   const {data: wallet} = useQuery({
     ...seerWalletBalanceOptions(organization),
