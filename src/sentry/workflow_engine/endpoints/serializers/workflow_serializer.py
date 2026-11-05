@@ -3,6 +3,8 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Annotated, Any, TypedDict
 
+from django.db.models import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.apidocs.descriptions import ApiDescription
@@ -62,6 +64,7 @@ class WorkflowSerializer(Serializer[WorkflowSerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[Workflow], user: Any, **kwargs: Any
     ) -> MutableMapping[Workflow, dict[str, Any]]:
+        prefetch_related_objects(item_list, "environment")
         attrs: MutableMapping[Workflow, dict[str, Any]] = defaultdict(dict)
         trigger_conditions = list(
             DataConditionGroup.objects.filter(
@@ -76,7 +79,11 @@ class WorkflowSerializer(Serializer[WorkflowSerializerResponse]):
         }
         last_triggered_map = get_last_fired_dates([w.id for w in item_list])
 
-        wdcg_list = list(WorkflowDataConditionGroup.objects.filter(workflow__in=item_list))
+        wdcg_list = list(
+            WorkflowDataConditionGroup.objects.filter(workflow__in=item_list).select_related(
+                "condition_group"
+            )
+        )
         condition_groups = {wdcg.condition_group for wdcg in wdcg_list}
 
         serialized_condition_groups = {
@@ -103,6 +110,7 @@ class WorkflowSerializer(Serializer[WorkflowSerializerResponse]):
             )  # The data condition groups for filtering actions
             attrs[item]["detectorIds"] = detectors_map[item.id]
             attrs[item]["lastTriggered"] = last_triggered_map.get(item.id)
+            attrs[item]["environment"] = item.environment.name if item.environment else None
 
             owner_actor = Actor.from_id(user_id=item.owner_user_id, team_id=item.owner_team_id)
             attrs[item]["owner"] = owner_actor.identifier if owner_actor else None
@@ -121,7 +129,7 @@ class WorkflowSerializer(Serializer[WorkflowSerializerResponse]):
             "dateUpdated": obj.date_updated,
             "triggers": attrs.get("triggers"),
             "actionFilters": attrs.get("actionFilters"),
-            "environment": obj.environment.name if obj.environment else None,
+            "environment": attrs.get("environment"),
             "config": convert_dict_key_case(obj.config, snake_to_camel_case),
             "detectorIds": attrs.get("detectorIds"),
             "enabled": obj.enabled,

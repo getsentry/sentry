@@ -10,6 +10,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
     SeerWorkflowFilters,
     SeerWorkflowSchedule,
@@ -99,9 +100,8 @@ class SeerWorkflowCreateTest(TestCase):
             schedule=SeerWorkflowSchedule.DAILY,
             project_ids=[second.id, first.id],
             environments=["production"],
-            name="Daily triage",
+            extras=SeerWorkflowConfigExtras(name="Daily triage", created_by=self.user.id),
             agent=SeerAgentAccess(scopes=["event:read"], project_ids=[first.id]),
-            created_by_id=self.user.id,
         )
 
         config = workflow.get_config()
@@ -207,6 +207,77 @@ class SeerWorkflowCreateTest(TestCase):
         assert not SeerWorkflowConfigProject.objects.exists()
 
 
+class SeerWorkflowUpdateConfigTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.selected = self.create_project()
+        self.config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        )
+        Factories.create_seer_workflow_config_project(self.config, self.selected)
+        self.workflow = SeerWorkflow(
+            config_id=self.config.id, organization_id=self.config.organization_id
+        )
+
+    def test_changes_in_one_update_bump_version_once(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_enabled(True)
+            update.set_project_selection(AllProjects())
+
+        config = self.workflow.get_config()
+        assert config.version == 2
+        assert config.enabled is True
+        assert self.workflow.filters.all_projects is True
+
+    def test_unchanged_update_does_not_save(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_enabled(False)
+            update.set_project_selection(SelectedProjects(project_ids=(self.selected.id,)))
+
+        config = self.workflow.get_config()
+        assert config.version == 1
+        assert config.date_updated == self.config.date_updated
+
+    def test_set_extras_saves_and_bumps_version(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_extras(SeerWorkflowConfigExtras(name="Triage", updated_by="bot"))
+
+        config = self.workflow.get_config()
+        assert config.extras == {"name": "Triage", "updated_by": "bot"}
+        assert config.version == 2
+
+    def test_unchanged_extras_does_not_save(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_extras(SeerWorkflowConfigExtras.parse_obj(self.config.extras))
+
+        config = self.workflow.get_config()
+        assert config.version == 1
+        assert config.date_updated == self.config.date_updated
+
+    def test_project_link_change_bumps_version(self) -> None:
+        other = self.create_project()
+
+        with self.workflow.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=(other.id,)))
+
+        assert self.workflow.get_config().version == 2
+        assert self.workflow.filters.all_projects is False
+        assert self.workflow.get_project_ids() == [other.id]
+
+    def test_error_rolls_back_every_change(self) -> None:
+        other = self.create_project()
+
+        with pytest.raises(RuntimeError, match="failed"), self.workflow.update_config() as update:
+            update.set_enabled(True)
+            update.set_project_selection(SelectedProjects(project_ids=(other.id,)))
+            raise RuntimeError("failed")
+
+        config = self.workflow.get_config()
+        assert config.version == 1
+        assert config.enabled is False
+        assert self.workflow.get_project_ids() == [self.selected.id]
+
+
 class SeerWorkflowScopeTest(TestCase):
     def test_scope_requires_active_project_in_organization(self) -> None:
         config = Factories.create_seer_workflow_config(
@@ -223,7 +294,8 @@ class SeerWorkflowScopeTest(TestCase):
         later = self.create_project(organization=self.organization)
         assert workflow.matches_scope(later.id, None) is False
         other = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
-        other.set_project_selection(AllProjects())
+        with other.update_config() as update:
+            update.set_project_selection(AllProjects())
         assert workflow.filters.all_projects is True
         assert workflow.matches_scope(later.id, None) is True
         foreign = self.create_project(organization=self.create_organization())
@@ -279,7 +351,8 @@ class SeerWorkflowScopeTest(TestCase):
         with pytest.raises(SeerWorkflowConfig.DoesNotExist):
             workflow.get_project_ids()
         with pytest.raises(SeerWorkflowConfig.DoesNotExist):
-            workflow.set_project_selection(AllProjects())
+            with workflow.update_config() as update:
+                update.set_project_selection(AllProjects())
 
         config.refresh_from_db()
         assert config.version == 1
@@ -311,8 +384,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
             version=3,
         )
 
-        workflow.set_project_selection(SelectedProjects(project_ids=(selected.id, selected.id)))
-
+        with workflow.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=(selected.id, selected.id)))
         config.refresh_from_db()
         assert config.filters == {
             "all_projects": False,
@@ -334,7 +407,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         initial_filters = workflow.filters
         assert initial_filters.all_projects is False
 
-        workflow.set_project_selection(AllProjects())
+        with workflow.update_config() as update:
+            update.set_project_selection(AllProjects())
         later = self.create_project()
 
         config.refresh_from_db()
@@ -354,8 +428,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         config = self.create_config(all_projects=True)
         workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
 
-        workflow.set_project_selection(SelectedProjects(project_ids=()))
-
+        with workflow.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=()))
         config.refresh_from_db()
         assert (
             SeerWorkflow(
@@ -374,8 +448,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
 
         with pytest.raises(ValueError, match="Selected projects must exist"):
-            workflow.set_project_selection(SelectedProjects(project_ids=(valid.id, foreign.id)))
-
+            with workflow.update_config() as update:
+                update.set_project_selection(SelectedProjects(project_ids=(valid.id, foreign.id)))
         config.refresh_from_db()
         assert workflow.get_project_ids() == [previous.id]
         assert config.filters == {"all_projects": False}
@@ -392,8 +466,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
             ),
             pytest.raises(RuntimeError, match="failed"),
         ):
-            workflow.set_project_selection(SelectedProjects(project_ids=(selected.id,)))
-
+            with workflow.update_config() as update:
+                update.set_project_selection(SelectedProjects(project_ids=(selected.id,)))
         config.refresh_from_db()
         assert workflow.get_project_ids() == [previous.id]
         assert config.filters == {"all_projects": False}
@@ -408,7 +482,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
             pytest.raises(RuntimeError, match="failed"),
             transaction.atomic(router.db_for_write(SeerWorkflowConfig)),
         ):
-            workflow.set_project_selection(AllProjects())
+            with workflow.update_config() as update:
+                update.set_project_selection(AllProjects())
             assert workflow.filters.all_projects is True
             raise RuntimeError("failed")
 
@@ -437,7 +512,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         assert workflow.has_all_projects() is False
 
         # An explicit selection of every active project counts, even without the flag.
-        workflow.set_project_selection(SelectedProjects(project_ids=(first.id, second.id)))
+        with workflow.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=(first.id, second.id)))
         assert workflow.filters.all_projects is False
         assert workflow.has_all_projects() is True
 
@@ -458,7 +534,8 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         assert workflow.get_project_ids() == []
         assert workflow.has_all_projects() is False
 
-        workflow.set_project_selection(SelectedProjects(project_ids=(project.id,)))
+        with workflow.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=(project.id,)))
         assert workflow.has_all_projects() is False
 
     def create_config(self, *selected: Project, all_projects: bool = False) -> SeerWorkflowConfig:

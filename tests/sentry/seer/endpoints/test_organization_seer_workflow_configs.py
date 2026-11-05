@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 from django.db import connections, router
 from django.test import override_settings
@@ -30,7 +31,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow, ConnectedMonitor
-from sentry.seer.workflows.workflow import SeerAgentAccess
+from sentry.seer.workflows.workflow import ConfigUpdate, SeerAgentAccess, WorkflowUpdateError
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
@@ -357,6 +358,13 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data == listed.data["configs"][0]
         assert response.data["projects"] == [self.project.id]
 
+    def test_get_includes_created_by(self) -> None:
+        config = self.create_config(extras={"created_by": self.user.id})
+
+        response = self.get_success_response(self.organization.slug, config.id)
+
+        assert response.data["createdBy"] == str(self.user.id)
+
     def test_unavailable_config_returns_404(self) -> None:
         legacy = Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
@@ -415,6 +423,54 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["projects"] == []
         assert self.selected_project_ids(config) == []
 
+    def test_put_sets_updated_by(self) -> None:
+        config = self.create_config(extras={"created_by": self.user.id})
+        updater = self.create_user()
+        self.create_member(organization=self.organization, user=updater, role="owner")
+        self.login_as(updater)
+        version = config.version
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", enabled=True
+        )
+
+        assert response.data["createdBy"] == str(self.user.id)
+        assert response.data["updatedBy"] == str(updater.id)
+        # Recording the updater is part of the same save, so the version bumps once.
+        assert response.data["version"] == version + 1
+        config.refresh_from_db()
+        assert config.extras == {"created_by": self.user.id, "updated_by": updater.id}
+
+    def test_put_by_another_user_replaces_updated_by(self) -> None:
+        config = self.create_config()
+        self.get_success_response(self.organization.slug, config.id, method="put", enabled=True)
+        other = self.create_user()
+        self.create_member(organization=self.organization, user=other, role="owner")
+        self.login_as(other)
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", enabled=False
+        )
+
+        assert response.data["updatedBy"] == str(other.id)
+        config.refresh_from_db()
+        assert config.extras == {"updated_by": other.id}
+
+    @patch(
+        "sentry.seer.endpoints.organization_seer_workflow_configs.acting_user_id",
+        return_value=None,
+    )
+    def test_put_by_non_user_sets_updated_by_bot(self, _: MagicMock) -> None:
+        config = self.create_config()
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", enabled=True
+        )
+
+        assert response.data["updatedBy"] == "bot"
+        config.refresh_from_db()
+        assert config.extras == {"updated_by": "bot"}
+
     def test_put_without_changes_keeps_version(self) -> None:
         config = self.create_config(version=3)
         Factories.create_seer_workflow_config_project(config, self.project)
@@ -424,6 +480,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
         assert response.data["version"] == 3
         assert self.selected_project_ids(config) == [self.project.id]
+        assert "updatedBy" not in response.data
 
     def test_put_nonexistent_projects_return_403(self) -> None:
         config = self.create_config()
@@ -740,6 +797,41 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         assert self.connected_monitor_ids(workflow) == {connected.id}
 
+    def test_put_projects_and_enabled_bumps_version_once(self) -> None:
+        config = self.create_config()
+        response = self.get_success_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            projectIds=[self.project.id],
+            enabled=True,
+        )
+
+        assert response.data["version"] == config.version + 1
+        assert response.data["enabled"] is True
+        assert response.data["projects"] == [self.project.id]
+
+    def test_put_failure_rolls_back_every_change(self) -> None:
+        config = self.create_config()
+        Factories.create_seer_workflow_config_project(config, self.project)
+        other = self.create_project()
+
+        # Fail on the last change, after the project change has been applied.
+        with patch.object(ConfigUpdate, "set_enabled", side_effect=WorkflowUpdateError("failed")):
+            self.get_error_response(
+                self.organization.slug,
+                config.id,
+                method="put",
+                projectIds=[other.id],
+                enabled=True,
+                status_code=400,
+            )
+
+        config.refresh_from_db()
+        assert config.version == 1
+        assert config.enabled is False
+        assert self.selected_project_ids(config) == [self.project.id]
+
     def test_put_project_ids_on_breached_metric_config_returns_400(self) -> None:
         workflow = self.create_metric_workflow()
 
@@ -800,6 +892,29 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             assert AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE"), target_object=account.id
             ).exists()
+
+    def test_open_membership_member_can_delete(self) -> None:
+        member, _ = self.create_member_with_project(open_membership=True)
+        config = self.create_config()
+        self.login_as(user=member)
+
+        self.get_success_response(
+            self.organization.slug, config.id, method="delete", status_code=204
+        )
+
+        assert not SeerWorkflowConfig.objects.filter(id=config.id).exists()
+
+    def test_closed_membership_member_cannot_delete(self) -> None:
+        member, _ = self.create_member_with_project(open_membership=False)
+        config = self.create_config()
+        self.login_as(user=member)
+
+        response = self.get_error_response(
+            self.organization.slug, config.id, method="delete", status_code=403
+        )
+
+        assert response.data == {"detail": "Deleting an automation requires global access"}
+        assert SeerWorkflowConfig.objects.filter(id=config.id).exists()
 
     def test_delete_breached_metric(self) -> None:
         monitor = self.create_metric_monitor(self.project)
@@ -919,8 +1034,21 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "seededDefault": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
+            "createdBy": str(self.user.id),
         }
-        assert config.extras == {}
+        assert config.extras == {"created_by": self.user.id}
+
+    @patch(
+        "sentry.seer.endpoints.organization_seer_workflow_configs.acting_user_id",
+        return_value=None,
+    )
+    def test_create_by_non_user_omits_created_by(self, _: MagicMock) -> None:
+        response = self.get_success_response(
+            self.organization.slug, strategy="agentic_triage_v2", status_code=201
+        )
+
+        assert "createdBy" not in response.data
+        assert SeerWorkflowConfig.objects.get(id=response.data["id"]).extras == {}
 
     @with_feature("organizations:service-accounts")
     def test_creates_metric_automation_with_broader_agent_access(self) -> None:
@@ -1060,7 +1188,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.enabled is True
-        assert config.extras == {"name": "Checkout triage"}
+        assert config.extras == {"name": "Checkout triage", "created_by": self.user.id}
         assert response.data["name"] == "Checkout triage"
         assert response.data["environments"] == ["production"]
         assert sorted(response.data["projects"]) == sorted([self.project.id, other.id])
@@ -1206,7 +1334,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         assert config.enabled is True
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert config.extras == {"name": "Latency breaches"}
+        assert config.extras == {"name": "Latency breaches", "created_by": self.user.id}
         assert config.version == 1
         assert config.backing_workflow is not None
         assert set(

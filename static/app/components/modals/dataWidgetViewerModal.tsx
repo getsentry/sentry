@@ -300,6 +300,15 @@ function DataWidgetViewerModal(props: Props) {
       // performance.measure throws if the start mark doesn't exist (e.g. direct URL navigation)
     }
   }, []);
+
+  // Opening the dropped-data drawer closes the fullscreen widget, since the
+  // flyout can't layer over it. The route-based fullscreen is closed in
+  // dashboards/detail; this covers the modal path (new/unsaved dashboards).
+  useEffect(() => {
+    if (defined(location.query.droppedData)) {
+      closeModal();
+    }
+  }, [location.query.droppedData, closeModal]);
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
