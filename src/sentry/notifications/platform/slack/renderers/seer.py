@@ -28,6 +28,7 @@ from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
+    OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
     SeerAgentResponse,
     SeerAutofixError,
@@ -37,6 +38,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerInvestigationError,
     SeerInvestigationStarted,
     SeerInvestigationStatus,
+    SeerOutOfCredits,
 )
 from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
@@ -104,6 +106,7 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
         NotificationSource.SEER_AUTOFIX_ERROR,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
+        NotificationSource.SEER_OUT_OF_CREDITS,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
         NotificationSource.SEER_INVESTIGATION_STARTED,
@@ -131,6 +134,11 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_autofix_error(data)
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data, link_decorator)
+        elif isinstance(data, SeerOutOfCredits):
+            return SlackRenderable(
+                blocks=[SectionBlock(text=OUT_OF_CREDITS_MESSAGE)],
+                text=OUT_OF_CREDITS_MESSAGE,
+            )
         elif isinstance(data, SeerAgentError):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
@@ -221,7 +229,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                     project_id=data.project_id,
                 )
             )
-        elif data.has_next_trigger:
+        elif data.has_credits_for_next_step and data.next_seer_stopping_point is not None:
             action_elements.append(
                 cls._render_autofix_button(data=SeerAutofixTrigger.from_update(data))
             )

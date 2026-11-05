@@ -5,6 +5,7 @@ import pytest
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.templates.seer import (
+    OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
@@ -14,10 +15,12 @@ from sentry.notifications.platform.templates.seer import (
     SeerInvestigationStarted,
     SeerInvestigationStartedTemplate,
     SeerInvestigationStatusTemplate,
+    SeerOutOfCredits,
+    SeerOutOfCreditsTemplate,
     _get_next_stopping_point,
 )
 from sentry.notifications.platform.types import ParagraphSection
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.testutils.cases import TestCase
 
 
@@ -87,6 +90,57 @@ class SeerAutofixUpdateTest(TestCase):
         update = self._create_update(AutofixStoppingPoint.OPEN_PR)
         assert update.has_next_trigger is False
 
+    @patch(
+        "sentry.notifications.platform.templates.seer.organization_service.get_option",
+        return_value=True,
+    )
+    def test_next_seer_stopping_point(self, _mock_get_option: Mock) -> None:
+        assert (
+            self._create_update(AutofixStoppingPoint.ROOT_CAUSE).next_seer_stopping_point
+            == AutofixStoppingPoint.SOLUTION
+        )
+        assert (
+            self._create_update(AutofixStoppingPoint.SOLUTION).next_seer_stopping_point
+            == AutofixStoppingPoint.CODE_CHANGES
+        )
+        assert (
+            self._create_update(AutofixStoppingPoint.CODE_CHANGES).next_seer_stopping_point
+            == AutofixStoppingPoint.OPEN_PR
+        )
+        assert self._create_update(AutofixStoppingPoint.OPEN_PR).next_seer_stopping_point is None
+
+    @patch(
+        "sentry.notifications.platform.templates.seer.organization_service.get_option",
+        return_value=False,
+    )
+    def test_next_seer_stopping_point_coding_disabled(self, _mock_get_option: Mock) -> None:
+        assert (
+            self._create_update(AutofixStoppingPoint.ROOT_CAUSE).next_seer_stopping_point
+            == AutofixStoppingPoint.SOLUTION
+        )
+        assert self._create_update(AutofixStoppingPoint.SOLUTION).next_seer_stopping_point is None
+        assert (
+            self._create_update(AutofixStoppingPoint.CODE_CHANGES).next_seer_stopping_point is None
+        )
+
+    @patch(
+        "sentry.notifications.platform.templates.seer.organization_service.get_option",
+        return_value=True,
+    )
+    def test_next_seer_stopping_point_with_handoff(self, _mock_get_option: Mock) -> None:
+        handoff = {"handoff_target": CodingAgentProviderType.CURSOR_BACKGROUND_AGENT}
+        root_cause = self._create_update(AutofixStoppingPoint.ROOT_CAUSE).copy(update=handoff)
+        assert root_cause.next_seer_stopping_point is None
+        # The handoff button only replaces the next-step button at root cause.
+        solution = self._create_update(AutofixStoppingPoint.SOLUTION).copy(update=handoff)
+        assert solution.next_seer_stopping_point == AutofixStoppingPoint.CODE_CHANGES
+
+    def test_next_seer_stopping_point_ignores_credits(self) -> None:
+        update = self._create_update(AutofixStoppingPoint.ROOT_CAUSE).copy(
+            update={"has_credits_for_next_step": False}
+        )
+        assert update.next_seer_stopping_point == AutofixStoppingPoint.SOLUTION
+
     @patch("sentry.notifications.platform.templates.seer.organization_service.get_option")
     def test_has_next_trigger_coding_disabled(self, mock_get_option: Mock) -> None:
         mock_get_option.return_value = False
@@ -140,6 +194,19 @@ class SeerAgentErrorTemplateTest(TestCase):
 
         assert rendered.subject == "Agent failed"
         assert rendered.body[0].blocks[0].text == "Timeout."
+
+
+class SeerOutOfCreditsTemplateTest(TestCase):
+    def test_render(self) -> None:
+        for started in (False, True):
+            rendered = SeerOutOfCreditsTemplate().render(
+                SeerOutOfCredits(organization_id=1, started=started)
+            )
+
+            assert rendered.subject == OUT_OF_CREDITS_MESSAGE
+            assert len(rendered.body) == 1
+            assert isinstance(rendered.body[0], ParagraphSection)
+            assert rendered.body[0].blocks[0].text == OUT_OF_CREDITS_MESSAGE
 
 
 class SeerInvestigationStartedTemplateTest(TestCase):

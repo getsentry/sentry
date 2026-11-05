@@ -56,6 +56,33 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
         )
 
 
+OUT_OF_CREDITS_MESSAGE = "Your org does not have enough credits to continue your Autofix run. Set up auto top up to keep your flow uninterrupted."
+
+
+class SeerOutOfCredits(NotificationData):
+    # False: the org tried to start a Seer step without credits.
+    # True: the org ran out of credits partway through a run.
+    started: bool
+    source: NotificationSource = NotificationSource.SEER_OUT_OF_CREDITS
+
+
+@template_registry.register(NotificationSource.SEER_OUT_OF_CREDITS)
+class SeerOutOfCreditsTemplate(NotificationTemplate[SeerOutOfCredits]):
+    category = NotificationCategory.SEER
+    example_data = SeerOutOfCredits(
+        source=NotificationSource.SEER_OUT_OF_CREDITS,
+        organization_id=1,
+        started=False,
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerOutOfCredits) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=OUT_OF_CREDITS_MESSAGE,
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=OUT_OF_CREDITS_MESSAGE)])],
+        )
+
+
 class SeerAutofixCodeChange(TypedDict):
     repo_name: str
     diff: str
@@ -82,6 +109,7 @@ class SeerAutofixUpdate(NotificationData):
     pull_requests: list[SeerAutofixPullRequest] = Field(default_factory=list)
     summary: str | None = None
     handoff_target: CodingAgentProviderType | None = None
+    has_credits_for_next_step: bool = True
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_UPDATE
 
     @property
@@ -99,6 +127,16 @@ class SeerAutofixUpdate(NotificationData):
                 return has_coding_enabled
             case AutofixStoppingPoint.OPEN_PR:
                 return False
+
+    @property
+    def next_seer_stopping_point(self) -> AutofixStoppingPoint | None:
+        """The Seer step the update's next-step button starts, or None if it has no such button."""
+        # At root cause, a configured handoff replaces the next-step button with a handoff button.
+        if self.handoff_target and self.current_point == AutofixStoppingPoint.ROOT_CAUSE:
+            return None
+        if not self.has_next_trigger:
+            return None
+        return _get_next_stopping_point(self.current_point)
 
 
 @template_registry.register(NotificationSource.SEER_AUTOFIX_UPDATE)
