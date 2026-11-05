@@ -951,7 +951,10 @@ export function useExplorerAutofix(
             });
         }
 
-        return getAutofixRunId(response)!;
+        return {
+          runId: getAutofixRunId(response)!,
+          isSingleRun: response?.feature_id === SINGLE_RUN_FEATURE_ID,
+        };
       } catch (e: any) {
         setWaitingForResponse(false);
         const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
@@ -966,7 +969,7 @@ export function useExplorerAutofix(
           queryClient.invalidateQueries({
             queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
           });
-          return getAutofixRunId(e.responseJSON)!;
+          return {runId: getAutofixRunId(e.responseJSON)!, isSingleRun: false};
         }
 
         // The kickoff was refused because Seer setup is incomplete. There is no

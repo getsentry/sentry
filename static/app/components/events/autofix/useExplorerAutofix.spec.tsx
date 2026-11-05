@@ -28,6 +28,15 @@ import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer
 
 jest.mock('sentry/actionCreators/indicator');
 
+const mockPostMessage = jest.fn(() => Promise.resolve());
+jest.mock('sentry/serviceWorker/client/serviceWorkerContext', () => ({
+  ...jest.requireActual('sentry/serviceWorker/client/serviceWorkerContext'),
+  useServiceWorker: () => ({
+    isServiceWorkerSupported: true,
+    controller: {postMessage: mockPostMessage},
+  }),
+}));
+
 function makeValidArtifact<T>(data: T): Artifact<T> {
   return {
     key: 'artifact-1',
@@ -1031,6 +1040,32 @@ describe('useExplorerAutofix - polling state', () => {
   });
 });
 
+describe('useExplorerAutofix - startStep', () => {
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+
+  it('reports a single run start', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {run_id: 776, feature_id: 'autofix_single_run'},
+    });
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP), {
+      organization: OrganizationFixture({features: ['autofix-browser-notifications']}),
+    });
+    const run = await act(() => result.current.startStep('root_cause'));
+
+    expect(run).toEqual({runId: 776, isSingleRun: true});
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({data: expect.objectContaining({stepOptions: {}})})
+    );
+  });
+});
+
 describe('useExplorerAutofix - createPR', () => {
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
 
@@ -1500,7 +1535,10 @@ describe('useExplorerAutofix - startStep errors', () => {
     // Resolves with the live run instead of throwing, so an awaiting caller stays
     // on its success path and does not undo the UI it just put into loading.
     await act(async () => {
-      await expect(result.current.startStep('solution', {runId: 42})).resolves.toBe(42);
+      await expect(result.current.startStep('solution', {runId: 42})).resolves.toEqual({
+        runId: 42,
+        isSingleRun: false,
+      });
     });
 
     expect(addErrorMessage).not.toHaveBeenCalled();
@@ -1532,7 +1570,10 @@ describe('useExplorerAutofix - startStep errors', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     await act(async () => {
-      await expect(result.current.startStep('solution', {runId: 42})).resolves.toBe(42);
+      await expect(result.current.startStep('solution', {runId: 42})).resolves.toEqual({
+        runId: 42,
+        isSingleRun: false,
+      });
     });
 
     expect(addErrorMessage).not.toHaveBeenCalled();

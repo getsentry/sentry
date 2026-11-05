@@ -2,11 +2,13 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getOrderedAutofixSections,
   isCodeChangesSection,
@@ -27,6 +29,7 @@ import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequests
 import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
 import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
 import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
+import {useToggleSingleRunChat} from 'sentry/components/events/autofix/v3/useToggleSingleRunChat';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -54,6 +57,8 @@ export function SeerDrawerContent({
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
   );
+  const singleRun = isSingleRunAutofix(autofix.runState) ? autofix.runState : null;
+  const toggleSingleRunChat = useToggleSingleRunChat(getAutofixRunId(singleRun));
 
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
@@ -80,6 +85,13 @@ export function SeerDrawerContent({
             <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
           </NextStepWrap>
         )}
+      {singleRun && (
+        <NextStepWrap isSticky={stickyNextStep}>
+          <Button variant="primary" icon={<IconSeer />} onClick={toggleSingleRunChat}>
+            {t('Open Autofix')}
+          </Button>
+        </NextStepWrap>
+      )}
       {autofix.codingAgentErrors.map(({id, message}) => (
         <Alert
           key={id}

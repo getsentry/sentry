@@ -21,6 +21,7 @@ import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixRes
 import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
+import {useOpenSingleRunChat} from 'sentry/components/events/autofix/v3/useToggleSingleRunChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
@@ -40,6 +41,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   }, [section]);
 
   const {copy} = useCopyToClipboard();
+  const openSingleRunChat = useOpenSingleRunChat();
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
@@ -146,7 +148,16 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
             <Button
               variant="primary"
               icon={<IconRefresh />}
-              onClick={() => handleReset()}
+              onClick={async () => {
+                if (!isSingleRunAutofix(autofix.runState)) {
+                  handleReset();
+                  return;
+                }
+                const run = await autofix.startStep('root_cause');
+                if (run.isSingleRun) {
+                  openSingleRunChat(run.runId);
+                }
+              }}
             >
               {t('Re-run')}
             </Button>

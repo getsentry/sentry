@@ -11,6 +11,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {useOpenSingleRunChat} from 'sentry/components/events/autofix/v3/useToggleSingleRunChat';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
@@ -37,17 +38,19 @@ export function AutofixStartCard({
 
   const [startingRun, setStartingRun] = useState(false);
   const isStarting = startingRun || autofix.isWaitingForRun;
+  const openSingleRunChat = useOpenSingleRunChat();
   const handleStartRootCause = async () => {
     setStartingRun(true);
-    try {
-      await startStep('root_cause');
-    } catch {
+    const run = await startStep('root_cause').catch(() => null);
+    setStartingRun(false);
+    if (!run) {
       return;
-      // oxlint-disable-next-line react/todo
-    } finally {
-      setStartingRun(false);
     }
-    onStarted?.();
+    if (run.isSingleRun) {
+      openSingleRunChat(run.runId);
+    } else {
+      onStarted?.();
+    }
   };
 
   return (
