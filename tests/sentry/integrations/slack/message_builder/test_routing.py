@@ -69,8 +69,8 @@ class SlackRequestRoutingTest(TestCase):
                     action=SlackAction.SEER_AUTOFIX_VIEW_PR,
                     organization_id=self.organization.id,
                     project_id=project_id,
-                    tracking=tracking,
                     suffix="123",
+                    tracking=tracking,
                 )
                 decoded = decode_action_id(encoded)
                 assert decoded.action == SlackAction.SEER_AUTOFIX_VIEW_PR

@@ -191,8 +191,8 @@ class SlackNotificationProviderTrackActionsTest(TestCase):
             action=SlackAction.SEER_AUTOFIX_VIEW_PR,
             organization_id=self.organization.id,
             project_id=self.project.id,
-            tracking=tracking,
             suffix=str(pr_number),
+            tracking=tracking,
         )
 
     def _button_action_ids(self, renderable: SlackRenderable) -> list[str | None]:

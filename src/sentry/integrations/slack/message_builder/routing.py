@@ -43,10 +43,10 @@ class SlackRoutingData:
     action: str  # Should be a member of SlackAction, but we don't care about the value for routing
     organization_id: int | None = None
     project_id: int | None = None
-    tracking: SlackActionTracking | None = None
     # Tells apart buttons with the same action in one block, such as one View PR button per pull
     # request, since Slack rejects a block whose action IDs aren't unique.
     suffix: str | None = None
+    tracking: SlackActionTracking | None = None
 
 
 def encode_action_id(
@@ -54,8 +54,8 @@ def encode_action_id(
     action: str,
     organization_id: int,
     project_id: int | None,
-    tracking: SlackActionTracking | None = None,
     suffix: str | None = None,
+    tracking: SlackActionTracking | None = None,
 ) -> str:
     """
     Used to encode routing data into the outbound action_id for a Slack block. `tracking` is left
@@ -83,8 +83,8 @@ def decode_action_id(encoded_action_id: str) -> SlackRoutingData:
             action=action,
             organization_id=int(organization_id) if organization_id else None,
             project_id=int(project_id) if project_id else None,
-            tracking=tracking,
             suffix=suffix or None,
+            tracking=tracking,
         )
     except ValueError as e:
         # If we can't parse the IDs as integers, fail silently since this is just routing

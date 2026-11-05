@@ -191,8 +191,8 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
                 action=routing_data.action,
                 organization_id=routing_data.organization_id,
                 project_id=routing_data.project_id,
-                tracking=tracking,
                 suffix=routing_data.suffix,
+                tracking=tracking,
             )
             if tracked_action_id == action_id:
                 return None
