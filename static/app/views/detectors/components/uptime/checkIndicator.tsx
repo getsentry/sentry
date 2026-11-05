@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
 import {getTickStyle} from 'sentry/components/checkInTimeline/utils/getTickStyle';
-import type {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {tickStyle} from 'sentry/views/insights/uptime/timelineConfig';
+
+import type {CheckStatus} from './types';
 
 export const CheckIndicator = styled('div')<{status: CheckStatus; width?: number}>`
   display: inline-block;

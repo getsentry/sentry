@@ -1,4 +1,8 @@
 import pytest
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
+from django.utils import timezone
 
 import sentry.apidocs.extensions  # noqa: F401
 from sentry.constants import ObjectStatus
@@ -11,9 +15,10 @@ from sentry.inbox.endpoints.organization_inbox_item_events import (
 )
 from sentry.inbox.issue import ISSUE_PR_READY_FOR_REVIEW, IssuePRReadyForReviewData
 from sentry.inbox.types import SYSTEM_ACTOR
+from sentry.notifications.models.inboxitem import InboxItem
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.testutils.silo import assume_test_silo_mode
@@ -124,16 +129,38 @@ class OrganizationInboxIndexTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             id=[str(read.id), str(unread.id)],
-            event_type=["issue.assigned", "issue.pr_ready_for_review"],
+            event_type=["issue.user_assigned", "issue.pr_ready_for_review"],
             subject_type=["issue", "issue"],
         )
         assert {entry["id"] for entry in response.data} == {str(read.id), str(unread.id)}
+
+    def test_assignment_event_filters(self) -> None:
+        individual = self.create_inbox_item(subject_id="1")
+        self.create_inbox_item_event(
+            inbox_item=individual, type="issue.user_assigned", data={"summary": "Assigned to you"}
+        )
+        team = self.create_inbox_item(subject_id="2")
+        self.create_inbox_item_event(
+            inbox_item=team,
+            type="issue.team_assigned",
+            data={"summary": "Assigned to your team"},
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, event_type="issue.user_assigned"
+        )
+        assert [entry["id"] for entry in response.data] == [str(individual.id)]
+
+        response = self.get_success_response(
+            self.organization.slug, event_type="issue.team_assigned"
+        )
+        assert [entry["id"] for entry in response.data] == [str(team.id)]
 
     def test_invalid_filters(self) -> None:
         for params in (
             {"subject_type": "unknown"},
             {"event_type": "unknown"},
-            {"event_type": ["issue.assigned", "unknown"]},
+            {"event_type": ["issue.user_assigned", "unknown"]},
             {"subject_id": "1"},
             {"subject_type": ["issue", "issue"], "subject_id": "1"},
             {"is_read": "unknown"},
@@ -271,3 +298,223 @@ class OrganizationInboxIndexTest(APITestCase):
         second = self.client.get(next_url)
         assert second.status_code == 200, second.data
         assert [entry["id"] for entry in second.data] == [str(items[1].id)]
+
+
+@with_feature("organizations:universal-inbox")
+class OrganizationInboxUpdateTest(APITestCase):
+    endpoint = "sentry-api-0-organization-inbox"
+    method = "put"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    @freeze_time()
+    def test_mark_all_read_in_one_update(self) -> None:
+        items = [self.create_inbox_item(subject_id=str(index)) for index in range(3)]
+        for _ in range(2):
+            self.create_inbox_item_event(inbox_item=items[0], data={"summary": "Assigned to you"})
+        other_user = self.create_inbox_item(user=self.create_user())
+        other_org = self.create_inbox_item(organization=self.create_organization())
+        removed = self.create_inbox_item(subject_id="removed", status=ObjectStatus.PENDING_DELETION)
+
+        with CaptureQueriesContext(connections[router.db_for_write(InboxItem)]) as queries:
+            response = self.get_success_response(self.organization.slug, isRead=True)
+
+        assert response.data == {"updatedCount": 3}
+        updates = [
+            query
+            for query in queries
+            if query["sql"].startswith('UPDATE "notifications_inboxitem"')
+        ]
+        assert len(updates) == 1
+        for item in items:
+            item.refresh_from_db()
+            assert item.last_read_at == timezone.now()
+        for untouched in (other_user, other_org, removed):
+            untouched.refresh_from_db()
+            assert untouched.last_read_at is None
+        response = self.client.get(
+            reverse(
+                "sentry-api-0-organization-inbox-item-events",
+                args=[self.organization.slug, items[0].id],
+            )
+        )
+        assert response.status_code == 200
+        assert [event["isUnread"] for event in response.data] == [False, False]
+
+    def test_mark_selected_items_unread(self) -> None:
+        selected = self.create_inbox_item(last_read_at=timezone.now())
+        other = self.create_inbox_item(subject_id="other", last_read_at=timezone.now())
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"id": [selected.id]}, isRead=False
+        )
+
+        assert response.data == {"updatedCount": 1}
+        selected.refresh_from_db()
+        other.refresh_from_db()
+        assert selected.last_read_at is None
+        assert other.last_read_at is not None
+
+    def test_restoring_is_personal_and_organization_scoped(self) -> None:
+        removed = self.create_inbox_item(status=ObjectStatus.PENDING_DELETION)
+        other_user = self.create_inbox_item(
+            user=self.create_user(), status=ObjectStatus.PENDING_DELETION
+        )
+        other_org = self.create_inbox_item(
+            organization=self.create_organization(), status=ObjectStatus.PENDING_DELETION
+        )
+        deleting = self.create_inbox_item(
+            subject_id="deleting", status=ObjectStatus.DELETION_IN_PROGRESS
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": [removed.id, other_user.id, other_org.id, deleting.id, 0]},
+            isRemoved=False,
+        )
+
+        assert response.data == {"updatedCount": 1}
+        removed.refresh_from_db()
+        assert removed.status == ObjectStatus.ACTIVE
+        assert removed.last_read_at is None
+        other_user.refresh_from_db()
+        other_org.refresh_from_db()
+        deleting.refresh_from_db()
+        assert other_user.status == ObjectStatus.PENDING_DELETION
+        assert other_org.status == ObjectStatus.PENDING_DELETION
+        assert deleting.status == ObjectStatus.DELETION_IN_PROGRESS
+
+    @freeze_time()
+    def test_restore_and_mark_read(self) -> None:
+        item = self.create_inbox_item(status=ObjectStatus.PENDING_DELETION)
+
+        response = self.get_success_response(self.organization.slug, isRemoved=False, isRead=True)
+
+        assert response.data == {"updatedCount": 1}
+        item.refresh_from_db()
+        assert item.status == ObjectStatus.ACTIVE
+        assert item.last_read_at == timezone.now()
+
+    def test_shared_filters_intersect(self) -> None:
+        target = self.create_inbox_item(subject_id="1")
+        self.create_inbox_item_event(inbox_item=target, type="issue.user_assigned")
+        self.create_inbox_item_event(inbox_item=target, type="issue.user_assigned")
+        other_event = self.create_inbox_item(subject_id="2")
+        self.create_inbox_item_event(inbox_item=other_event, type="issue.user_mentioned")
+        already_read = self.create_inbox_item(
+            subject_id="3", last_activity_at=before_now(minutes=1), last_read_at=timezone.now()
+        )
+        self.create_inbox_item_event(inbox_item=already_read, type="issue.user_assigned")
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "id": [target.id, other_event.id, already_read.id],
+                "subject_type": ["issue"],
+                "event_type": ["issue.user_assigned"],
+                "is_read": "false",
+            },
+            isRead=True,
+        )
+
+        assert response.data == {"updatedCount": 1}
+        target.refresh_from_db()
+        other_event.refresh_from_db()
+        assert target.last_read_at is not None
+        assert other_event.last_read_at is None
+
+    def test_subject_filter(self) -> None:
+        target = self.create_inbox_item(subject_id="1")
+        other = self.create_inbox_item(subject_id="2")
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"subject_type": "issue", "subject_id": "1"},
+            isRead=True,
+        )
+        assert response.data == {"updatedCount": 1}
+        target.refresh_from_db()
+        other.refresh_from_db()
+        assert target.last_read_at is not None
+        assert other.last_read_at is None
+
+    def test_no_matches(self) -> None:
+        item = self.create_inbox_item()
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"id": [0]}, isRead=False
+        )
+        assert response.data == {"updatedCount": 0}
+        item.refresh_from_db()
+        assert item.last_read_at is None
+
+    def test_invalid_body(self) -> None:
+        item = self.create_inbox_item()
+        for data in (
+            {},
+            {"isRead": None},
+            {"isRead": "invalid"},
+            {"isRemoved": True},
+            {"isRead": True, "isRemoved": True},
+        ):
+            with self.subTest(data=data):
+                response = self.get_error_response(self.organization.slug, status_code=400, **data)
+                assert "detail" in response.data
+        item.refresh_from_db()
+        assert item.last_read_at is None
+
+    def test_invalid_filters(self) -> None:
+        item = self.create_inbox_item()
+        for filters in (
+            {"id": "invalid"},
+            {"subject_type": "unknown"},
+            {"event_type": "unknown"},
+            {"subject_id": "1"},
+            {"is_read": "invalid"},
+        ):
+            with self.subTest(filters=filters):
+                response = self.get_error_response(
+                    self.organization.slug, qs_params=filters, isRead=True, status_code=400
+                )
+                assert "detail" in response.data
+        item.refresh_from_db()
+        assert item.last_read_at is None
+
+    def test_member_with_read_scope_and_no_project_membership(self) -> None:
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        item = self.create_inbox_item(user=member)
+        token = self.create_user_auth_token(user=member, scope_list=["org:read"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            isRead=True,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+
+        assert response.data == {"updatedCount": 1}
+        item.refresh_from_db()
+        assert item.last_read_at is not None
+
+    def test_org_token_is_rejected(self) -> None:
+        token = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            organization_id=self.organization.id,
+            name="Inbox test token",
+            token_hashed=hash_token(token),
+            token_last_characters=token[-4:],
+            scope_list=["org:read"],
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        self.get_error_response(
+            self.organization.slug,
+            isRead=True,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
+            status_code=403,
+        )
+
+    def test_feature_disabled(self) -> None:
+        with self.feature({"organizations:universal-inbox": False}):
+            self.get_error_response(self.organization.slug, isRead=True, status_code=404)

@@ -3,8 +3,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {BookmarkStar} from './bookmarkStar';
 
 describe('BookmarkStar', () => {
   afterEach(() => {

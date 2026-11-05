@@ -1,6 +1,6 @@
 import {canvasMutation, EventType, IncrementalSource, Replayer} from '@sentry/rrweb';
 
-import {canvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';
+import {canvasReplayerPlugin} from './canvasReplayerPlugin';
 
 // Mock rrweb pieces used by the plugin
 jest.mock('@sentry/rrweb', () => {

@@ -14,12 +14,13 @@ import {
 
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
-import {Add} from 'sentry/views/settings/components/dataScrubbing/modals/add';
 import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   getMethodLabel,
   getRuleLabel,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
+
+import {Add} from './add';
 
 const relayPiiConfig = DataScrubbingRelayPiiConfigFixture();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);

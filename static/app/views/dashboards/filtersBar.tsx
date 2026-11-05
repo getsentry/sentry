@@ -27,29 +27,6 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
-import {GenericFilterSelector} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
-import {
-  getTagKeysInMultipleDatasets,
-  globalFilterKeysAreEqual,
-  globalFiltersAreEqual,
-  mergeGlobalFilters,
-} from 'sentry/views/dashboards/globalFilter/utils';
-import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
-import {useDashboardMaxPickableDays} from 'sentry/views/dashboards/hooks/useDashboardMaxPickableDays';
-import {
-  isSavedDashboardId,
-  useDashboardQueryPriority,
-  useSaveDashboardQueryPriority,
-} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
-import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
-import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
-import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
-import {
-  getPrebuiltDashboardConfig,
-  type PrebuiltDashboardId,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {NavigationTypeSwitcher} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeSwitcher';
 import {
   hidesNavigationTypeChip,
@@ -57,7 +34,29 @@ import {
   useNavigationTypeExperiment,
 } from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 
+import {AddFilter} from './globalFilter/addFilter';
+import {GenericFilterSelector} from './globalFilter/genericFilterSelector';
+import {
+  getTagKeysInMultipleDatasets,
+  globalFilterKeysAreEqual,
+  globalFiltersAreEqual,
+  mergeGlobalFilters,
+} from './globalFilter/utils';
+import {useDashboardChartInterval} from './hooks/useDashboardChartInterval';
+import {useDashboardMaxPickableDays} from './hooks/useDashboardMaxPickableDays';
+import {
+  isSavedDashboardId,
+  useDashboardQueryPriority,
+  useSaveDashboardQueryPriority,
+} from './hooks/useDashboardQueryPriority';
+import {useDatasetSearchBarData} from './hooks/useDatasetSearchBarData';
+import {useInvalidateStarredDashboards} from './hooks/useInvalidateStarredDashboards';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {
+  getPrebuiltDashboardConfig,
+  type PrebuiltDashboardId,
+} from './utils/prebuiltConfigs';
+import {DataSet} from './widgetBuilder/utils';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
 import type {
   DashboardDetails,
@@ -67,6 +66,7 @@ import type {
   GlobalFilter,
 } from './types';
 import {DashboardFilterKeys} from './types';
+import {getDashboardFiltersFromURL} from './utils';
 
 export type FiltersBarProps = {
   filters: DashboardFilters;

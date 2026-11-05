@@ -1,9 +1,10 @@
-import {getInvestigationOutline} from 'sentry/views/investigations/detail/outline';
 import {
   InvestigationBlockExecutionFixture,
   InvestigationBlockFixture,
 } from 'sentry/views/investigations/fixtures';
 import type {InvestigationBlock} from 'sentry/views/investigations/types';
+
+import {getInvestigationOutline} from './outline';
 
 function textBlock(id: string, markdown: string, title = '') {
   return InvestigationBlockFixture({

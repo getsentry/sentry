@@ -1,4 +1,4 @@
-import {formatNumber} from 'sentry/utils/number/formatNumber';
+import {formatNumber} from './formatNumber';
 
 describe('formatNumber()', () => {
   it('returns the value with commas when the value has 12 digits', () => {

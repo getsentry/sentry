@@ -8,6 +8,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import MigrateLegacySeerAction from 'admin/components/migrateLegacySeerAction';
 
@@ -159,10 +161,7 @@ describe('MigrateLegacySeerAction', () => {
   });
 
   it('shows success message after migration completes', async () => {
-    const successMessage = jest.spyOn(
-      require('sentry/actionCreators/indicator'),
-      'addSuccessMessage'
-    );
+    const successMessage = jest.spyOn(toast, 'success');
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/migrate-legacy-seer/`,
       method: 'POST',
@@ -178,10 +177,7 @@ describe('MigrateLegacySeerAction', () => {
   });
 
   it('shows error detail from API response on failure', async () => {
-    const errorMessage = jest.spyOn(
-      require('sentry/actionCreators/indicator'),
-      'addErrorMessage'
-    );
+    const errorMessage = jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/migrate-legacy-seer/`,
       method: 'POST',
@@ -200,10 +196,7 @@ describe('MigrateLegacySeerAction', () => {
   });
 
   it('shows loading message before the API call resolves', async () => {
-    const loadingMessage = jest.spyOn(
-      require('sentry/actionCreators/indicator'),
-      'addLoadingMessage'
-    );
+    const loadingMessage = jest.spyOn(toast, 'loading');
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/migrate-legacy-seer/`,
       method: 'POST',

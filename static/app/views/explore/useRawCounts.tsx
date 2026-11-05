@@ -8,7 +8,8 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+
+import {SAMPLING_MODE} from './hooks/useProgressiveQuery';
 
 type QueryResultItem<K extends string> = Record<K, number | null>;
 

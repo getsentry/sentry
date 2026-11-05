@@ -2,8 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DomainViewHeader} from 'sentry/views/insights/pages/domainViewHeader';
 import {ModuleName} from 'sentry/views/insights/types';
+
+import {DomainViewHeader} from './domainViewHeader';
 
 describe('DomainViewHeader', () => {
   const organization = OrganizationFixture({

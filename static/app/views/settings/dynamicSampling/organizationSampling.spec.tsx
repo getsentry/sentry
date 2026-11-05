@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
+import {OrganizationSampling} from './organizationSampling';
 
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: jest.fn(({count}: {count: number}) => ({

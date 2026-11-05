@@ -10,7 +10,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
+
+import {useIssueDetailsEventView} from './useIssueDetailsDiscoverQuery';
 
 export function useReleaseMarkLineSeries({
   group,

@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
@@ -12,13 +12,11 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
-import {hasDroppedData} from 'sentry/components/droppedData/buckets';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {Feature} from 'sentry/components/acl/feature';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -56,7 +54,6 @@ import {
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
-import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
@@ -89,6 +86,8 @@ import {visualizesToWidgetTransformations} from 'sentry/views/explore/utils/visu
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+
+import {ConfidenceFooter} from './confidenceFooter';
 
 interface LogsGraphProps {
   rawLogCounts: RawCounts;
@@ -184,16 +183,10 @@ function Graph({
   const groupBys = useQueryParamsGroupBys();
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const {droppedEvents, acceptedEvents} = useDroppedData({
-    dataset: DiscoverDatasets.OURLOGS,
-    interval,
-  });
-  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer({dataset: DiscoverDatasets.OURLOGS});
-  const isDroppedDataLoaded = defined(droppedEvents);
-  const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
-  const showDroppedDataBand =
-    canShowDroppedData && isDroppedDataLayerOn && !tableIsEmpty && !tableIsPending;
+  const droppedData = useDroppedDataLayer(
+    {dataset: DiscoverDatasets.OURLOGS, interval},
+    {hidden: tableIsEmpty || tableIsPending}
+  );
 
   // Invalid `_if` filters skip the backend request; surface that as a chart error
   // instead of an empty/no-data state.
@@ -291,13 +284,8 @@ function Graph({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {isDroppedDataLoaded ? (
-        <DroppedDataLayerControl
-          dataset={DiscoverDatasets.OURLOGS}
-          hasDroppedData={canShowDroppedData}
-          showDroppedData={isDroppedDataLayerOn}
-          onChange={setIsDroppedDataLayerOn}
-        />
+      {droppedData.layerControl ? (
+        <DroppedDataLayerControl {...droppedData.layerControl} />
       ) : null}
       <CompactSelect
         trigger={triggerProps => (
@@ -366,16 +354,7 @@ function Graph({
             <ChartVisualization
               key={chartRemountKey}
               chartInfo={chartInfo}
-              droppedData={
-                showDroppedDataBand
-                  ? {
-                      dataset: DiscoverDatasets.OURLOGS,
-                      droppedEvents,
-                      acceptedEvents,
-                      onClick: openDroppedDataDrawer,
-                    }
-                  : undefined
-              }
+              droppedData={droppedData.band}
             />
           )
         }
@@ -401,9 +380,9 @@ function Graph({
                       (tableIsPending ? false : tableIsEmpty)
                     }
                   />
-                  {showDroppedDataBand ? (
+                  {droppedData.filterNote ? (
                     <DroppedDataFilterNote
-                      dataset={DiscoverDatasets.OURLOGS}
+                      {...droppedData.filterNote}
                       hasUserQuery={!!userQuery}
                       showIcon={{zero: false, xl: true}}
                     />

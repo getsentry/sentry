@@ -6,7 +6,7 @@ import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
@@ -15,14 +15,11 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {
-  DASHBOARD_SAVING_MESSAGE,
-  UNSAVED_FILTERS_MESSAGE,
-} from 'sentry/views/dashboards/constants';
-import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {DataSet} from './widgetBuilder/utils';
+import {DASHBOARD_SAVING_MESSAGE, UNSAVED_FILTERS_MESSAGE} from './constants';
+import {DashboardCreateLimitWrapper} from './createLimitWrapper';
 import type {DashboardDetails} from './types';
 import {DashboardState, MAX_WIDGETS} from './types';
 

@@ -82,6 +82,7 @@ DASHBOARD_OBJECT = {
     },
     "isFavorited": False,
     "prebuiltId": None,
+    "queryPriority": "normal",
 }
 
 DASHBOARDS_OBJECT = [

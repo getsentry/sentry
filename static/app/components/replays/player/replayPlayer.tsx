@@ -2,10 +2,6 @@ import {useEffect, useLayoutEffect, useRef, type HTMLAttributes} from 'react';
 import {useTheme, type Interpolation, type Theme} from '@emotion/react';
 import {Replayer} from '@sentry/rrweb';
 
-import {
-  baseReplayerCss,
-  sentryReplayerCss,
-} from 'sentry/components/replays/player/styles';
 import {useReplayPlayerPlugins} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {
   useReplayPlayerStateDispatch,
@@ -13,6 +9,8 @@ import {
 } from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+
+import {baseReplayerCss, sentryReplayerCss} from './styles';
 
 function useReplayerInstance() {
   // The div that is emitted from react, where we will attach the replayer to

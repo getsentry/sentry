@@ -12,8 +12,9 @@ import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {InboxItem} from 'sentry/views/inbox/types';
-import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from 'sentry/views/inbox/utils';
+
+import type {InboxItem} from './types';
+import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from './utils';
 
 interface InboxItemListProps {
   items: InboxItem[];
@@ -44,7 +45,7 @@ function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
   const checkboxState = useListItemCheckboxContext();
   const checkboxId = useId();
   const SubjectIcon = INBOX_SUBJECT_CONFIG[item.subjectType].icon;
-  const title = item.subject?.title ?? t('Unavailable');
+  const title = item.title ?? t('Unavailable');
 
   return (
     <Container position="relative" padding="xl" borderBottom="primary">
@@ -98,7 +99,7 @@ function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
             </Flex>
             <Container column="3" row="2" minWidth={0}>
               <Text size="sm" variant="muted" ellipsis>
-                {item.latestEvent.title}
+                {item.latestEvent.summary}
               </Text>
             </Container>
           </Grid>

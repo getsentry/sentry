@@ -23,6 +23,7 @@ import yaml
 from django.conf import LazySettings
 from django.core.cache import cache
 from django.core.cache.backends.base import BaseCache
+from sentry_viewercontext import viewer_context_var
 
 import sentry
 from sentry.types.activity import ActivityType
@@ -45,6 +46,17 @@ UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 
 
 DIRECTORY_GROUPING_CHARS = ("::", "-", "[", "]", "\\")
+
+
+@pytest.fixture(autouse=True)
+def isolated_viewer_context() -> Generator[None]:
+    # Tests may call request handlers directly, bypassing the middleware scope
+    # that normally restores the viewer context at the end of a request.
+    token = viewer_context_var.set(None)
+    try:
+        yield
+    finally:
+        viewer_context_var.reset(token)
 
 
 @overload

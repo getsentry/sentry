@@ -1,11 +1,4 @@
 import {defined} from 'sentry/utils/defined';
-import {
-  CLS_SPANS_FILTER,
-  INTERACTION_SPANS_FILTER,
-  LCP_SPANS_FILTER,
-  SPANS_FILTER,
-  useSpanSamplesWebVitalsQuery,
-} from 'sentry/views/insights/browser/webVitals/queries/useSpanSamplesWebVitalsQuery';
 import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
@@ -14,6 +7,14 @@ import {
   PERFORMANCE_SCORE_P90S,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import type {SubregionCode} from 'sentry/views/insights/types';
+
+import {
+  CLS_SPANS_FILTER,
+  INTERACTION_SPANS_FILTER,
+  LCP_SPANS_FILTER,
+  SPANS_FILTER,
+  useSpanSamplesWebVitalsQuery,
+} from './useSpanSamplesWebVitalsQuery';
 
 type Props = {
   browserTypes: BrowserType[];

@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getDartContextData,
-  type DartContext,
-} from 'sentry/components/events/contexts/knownContext/dartContext';
+
+import {getDartContextData, type DartContext} from './dartContext';
 
 const MOCK_DART_CONTEXT: DartContext = {
   compile_mode: 'debug',

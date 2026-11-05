@@ -3,8 +3,8 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -77,9 +77,9 @@ export function InvoiceDetails() {
         }
       );
       updateCache(updatedInvoice);
-      addSuccessMessage('Invoice has been closed');
+      toast.success('Invoice has been closed');
     } catch {
-      addErrorMessage(ERR_MESSAGE);
+      toast.error(ERR_MESSAGE);
     }
   };
 
@@ -102,9 +102,9 @@ export function InvoiceDetails() {
         }
       );
       updateCache(updatedInvoice);
-      addSuccessMessage('Payment will be retried');
+      toast.success('Payment will be retried');
     } catch {
-      addErrorMessage(ERR_MESSAGE);
+      toast.error(ERR_MESSAGE);
     }
   };
 

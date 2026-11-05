@@ -37,6 +37,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.explore.models import ExploreSavedFormula, ExploreSavedQueryDataset
 from sentry.ingestion_delay.meta import IngestionMeta
@@ -159,7 +160,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         batch_features = features.batch_has(
             feature_names,
             organization=organization,
-            actor=request.user,
+            actor=acting_user(request.user),
         )
 
         all_features: dict[str, bool] = {}

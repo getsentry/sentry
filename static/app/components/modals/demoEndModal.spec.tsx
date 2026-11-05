@@ -1,7 +1,8 @@
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import DemoEndModal from 'sentry/components/modals/demoEndModal';
+import {openModal} from '@sentry/scraps/modal';
+
+import DemoEndModal from './demoEndModal';
 
 describe('DemoEndModal', () => {
   it('closes on close button click', async () => {
