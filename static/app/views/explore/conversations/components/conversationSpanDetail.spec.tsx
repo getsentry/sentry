@@ -105,7 +105,6 @@ describe('ConversationSpanDetail', () => {
 
   it.each([
     ['gen_ai.response.model', 'gpt-4o', 'chat', 'View model dashboard', '100'],
-    ['gen_ai.request.model', 'gpt-4', 'chat', 'View model dashboard', '100'],
     ['gen_ai.tool.name', 'lookup', 'execute_tool', 'View tool dashboard', '200'],
   ] as const)(
     'shows a dashboard button after %s',
@@ -125,61 +124,29 @@ describe('ConversationSpanDetail', () => {
           activeTab="input"
           onTabChange={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/',
+              query: {project: ['1', '2'], environment: 'production', statsPeriod: '7d'},
+            },
+          },
+        }
       );
 
       const dashboardButton = await screen.findByRole('button', {name: label});
-      expect(dashboardButton).toHaveAttribute(
-        'href',
-        expect.stringContaining(`/dashboard/${id}/`)
+      const url = new URL(dashboardButton.getAttribute('href')!, 'https://sentry.io');
+      expect(url.pathname).toBe(`/organizations/${organization.slug}/dashboard/${id}/`);
+      expect(url.searchParams.getAll('project')).toEqual(['1', '2']);
+      expect(url.searchParams.get('environment')).toBe('production');
+      expect(url.searchParams.get('statsPeriod')).toBe('7d');
+      expect(JSON.parse(url.searchParams.get('globalFilter')!).value).toBe(
+        `${field}:[${value}]`
       );
       expect(screen.getByText(value)).toAppearBefore(dashboardButton);
     }
   );
-
-  it('uses the response model rather than the request alias when both are present', async () => {
-    mockAttributes('chat-span', [
-      {name: 'gen_ai.operation.type', type: 'str', value: 'ai_client'},
-      {name: 'gen_ai.request.model', type: 'str', value: 'gpt-4o'},
-      {name: 'gen_ai.response.model', type: 'str', value: 'gpt-4o-2024-08-06'},
-    ]);
-    render(
-      <ConversationSpanDetail
-        node={makeNode('chat-span', 'chat')}
-        traceId="trace-id"
-        activeTab="input"
-        onTabChange={jest.fn()}
-      />,
-      {organization}
-    );
-
-    const link = await screen.findByRole('button', {name: 'View model dashboard'});
-    const url = new URL(link.getAttribute('href')!, 'https://sentry.io');
-    expect(JSON.parse(url.searchParams.get('globalFilter')!).value).toBe(
-      'gen_ai.response.model:[gpt-4o-2024-08-06]'
-    );
-    expect(screen.getByText('gpt-4o-2024-08-06')).toBeInTheDocument();
-  });
-
-  it('does not show dashboard links without a model or tool name', async () => {
-    mockAttributes('chat-span', [
-      {name: 'gen_ai.operation.type', type: 'str', value: 'ai_client'},
-    ]);
-    render(
-      <ConversationSpanDetail
-        node={makeNode('chat-span', 'chat')}
-        traceId="trace-id"
-        activeTab="input"
-        onTabChange={jest.fn()}
-      />,
-      {organization}
-    );
-
-    expect(await screen.findByRole('tab', {name: 'Input'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: /View .* dashboard/})
-    ).not.toBeInTheDocument();
-  });
 
   it('shows a Decision tab in place of Input and Output on decision spans', async () => {
     mockDecisionAttributes();

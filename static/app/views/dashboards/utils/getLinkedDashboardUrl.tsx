@@ -1,3 +1,4 @@
+import type {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 import qs from 'query-string';
 
@@ -18,7 +19,7 @@ interface GetLinkedDashboardUrlOptions {
   organizationSlug: string;
   value: string;
   dashboardFilters?: DashboardFilters;
-  locationQuery?: Record<string, unknown>;
+  locationQuery?: Record<string, any>;
   projectIdOverride?: string | number;
   widgetType?: WidgetType;
 }
@@ -37,7 +38,7 @@ export function getLinkedDashboardUrl({
   dashboardFilters,
   locationQuery,
   projectIdOverride,
-}: GetLinkedDashboardUrlOptions): string | undefined {
+}: GetLinkedDashboardUrlOptions): LocationDescriptor | undefined {
   // Skip if no valid dashboard ID (dashboardId '-1' is used for prebuilt dashboard placeholders)
   if (!linkedDashboard.dashboardId || linkedDashboard.dashboardId === '-1') {
     return undefined;
@@ -81,7 +82,6 @@ export function getLinkedDashboardUrl({
         'statsPeriod',
         'start',
         'end',
-        'utc',
       ])
     : ({} as Record<string, unknown>);
 

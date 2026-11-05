@@ -1,4 +1,5 @@
 import {IconDashboard} from '@sentry/icons/dashboard';
+import qs from 'query-string';
 
 import {LinkButton} from '@sentry/scraps/button';
 
@@ -56,7 +57,11 @@ export function AiSpanDashboardLink({field, value}: Props) {
 
   return (
     <LinkButton
-      to={url}
+      to={
+        typeof url === 'string'
+          ? qs.stringifyUrl({url, query: {utc: locationQuery.utc}})
+          : url
+      }
       size="zero"
       variant="secondary"
       icon={<IconDashboard size="xs" />}

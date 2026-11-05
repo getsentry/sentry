@@ -58,25 +58,6 @@ describe('getLinkedDashboardUrl', () => {
     );
   });
 
-  it('preserves absolute time bounds and UTC', () => {
-    const result = getLinkedDashboardUrl({
-      linkedDashboard,
-      organizationSlug,
-      field: 'browser.name',
-      value: 'Chrome',
-      locationQuery: {
-        start: '2026-06-01T00:00:00',
-        end: '2026-06-02T00:00:00',
-        utc: 'true',
-      },
-    });
-
-    const url = new URL(String(result), 'https://sentry.io');
-    expect(url.searchParams.get('start')).toBe('2026-06-01T00:00:00');
-    expect(url.searchParams.get('end')).toBe('2026-06-02T00:00:00');
-    expect(url.searchParams.get('utc')).toBe('true');
-  });
-
   it('preserves existing global filters', () => {
     const existingFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,

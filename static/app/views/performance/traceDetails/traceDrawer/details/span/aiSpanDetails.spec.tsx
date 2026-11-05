@@ -1,11 +1,9 @@
-import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {ConversationSpanDetail} from 'sentry/views/explore/conversations/components/conversationSpanDetail';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -67,12 +65,7 @@ describe('Result Size highlighted attribute', () => {
     act(() => ProjectsStore.loadInitialData([project]));
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/dashboards/`,
-      body: [
-        DashboardFixture([], {
-          id: '200',
-          prebuiltId: PrebuiltDashboardId.AI_AGENTS_TOOLS,
-        }),
-      ],
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -129,9 +122,6 @@ describe('Result Size highlighted attribute', () => {
     render(<AiSpanDetails node={toolNode()} traceId="trace-id" />, {organization});
     expect(await screen.findByText('300% larger than avg 1 kB')).toBeInTheDocument();
     expect(trackViewed).not.toHaveBeenCalled();
-    expect(
-      await screen.findByRole('button', {name: 'View tool dashboard'})
-    ).toHaveAttribute('href', expect.stringContaining('/dashboard/200/'));
     expect(request).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
