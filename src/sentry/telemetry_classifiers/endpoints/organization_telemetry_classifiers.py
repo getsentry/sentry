@@ -29,11 +29,13 @@ from sentry.telemetry_classifiers.serializers import (
 
 
 class TelemetryClassifierPermission(OrganizationPermission):
-    # Team admins have project:write on their projects but only org:read on the org, so the
-    # request serializer checks project:write against the target project instead.
+    # Team admins have project:write on their projects but only org:read on the org, so writes
+    # check project:write on the classifier's project instead (in the create serializer and in
+    # the update handler).
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
     }
 
 

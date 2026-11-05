@@ -133,3 +133,21 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
             **validated_data,
             created_by_id=acting_user_id(self.context["request"].user),
         )
+
+
+class TelemetryClassifierUpdateRequestSerializer(CamelSnakeSerializer[TelemetryClassifier]):
+    status = serializers.ChoiceField(choices=TelemetryClassifierStatus.choices)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        # TODO: Allow editing the classifier definition, not just enabling or disabling it.
+        if self.initial_data.keys() - {"status"}:
+            raise serializers.ValidationError("Only status can be updated.")
+
+        return attrs
+
+    def update(
+        self, instance: TelemetryClassifier, validated_data: dict[str, Any]
+    ) -> TelemetryClassifier:
+        instance.status = validated_data["status"]
+        instance.save()
+        return instance

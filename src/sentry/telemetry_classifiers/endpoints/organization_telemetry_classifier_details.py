@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,7 +15,12 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.utils import to_valid_int_id
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
@@ -25,6 +31,7 @@ from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.telemetry_classifiers.serializers import (
     TelemetryClassifierResponse,
     TelemetryClassifierSerializer,
+    TelemetryClassifierUpdateRequestSerializer,
 )
 
 CLASSIFIER_ID_PARAM = OpenApiParameter(
@@ -42,6 +49,7 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.AGENT_TRACING
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (TelemetryClassifierPermission,)
 
@@ -92,6 +100,39 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
         """
         Retrieve a telemetry classifier on a project the caller can access.
         """
+        return self.respond(
+            serialize(classifier, request.user, serializer=TelemetryClassifierSerializer())
+        )
+
+    @extend_schema(
+        operation_id="Update a Telemetry Classifier",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, CLASSIFIER_ID_PARAM],
+        request=TelemetryClassifierUpdateRequestSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "UpdateTelemetryClassifierResponse", TelemetryClassifierResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(
+        self, request: Request, organization: Organization, classifier: TelemetryClassifier
+    ) -> Response[TelemetryClassifierResponse]:
+        """
+        Enable or disable a telemetry classifier on a project the caller can write to.
+        """
+        if not request.access.has_project_scope(classifier.project, "project:write"):
+            raise PermissionDenied
+
+        serializer = TelemetryClassifierUpdateRequestSerializer(
+            instance=classifier, data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+
+        classifier = serializer.save()
         return self.respond(
             serialize(classifier, request.user, serializer=TelemetryClassifierSerializer())
         )
