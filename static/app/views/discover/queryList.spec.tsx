@@ -383,8 +383,8 @@ describe('Discover > QueryList', () => {
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
 
     expect(
-      screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
-    ).not.toBeInTheDocument();
+      screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitemradio', {name: 'Set as Default'})
     ).toBeInTheDocument();
