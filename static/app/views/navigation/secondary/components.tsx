@@ -700,8 +700,11 @@ function Collapsible(props: CollapsibleProps) {
             },
             expanded: {
               height: 'auto',
-              // Let focus rings and other content extend beyond the expanded section.
-              ...(settingsV3 ? {transitionEnd: {overflow: 'visible'}} : {}),
+              // Include overflow in the target so Motion applies transitionEnd to it.
+              // Clip during expansion, then make room for focus rings.
+              ...(settingsV3
+                ? {overflow: 'hidden', transitionEnd: {overflow: 'visible'}}
+                : {}),
             },
           }}
           initial="collapsed"
