@@ -7,9 +7,9 @@ import {
   updateEnvironments,
   updatePersistence,
   updateProjects,
-} from 'sentry/components/pageFilters/actions';
-import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+} from './actions';
+import {PageFilterAdjustmentReason} from './adjustments';
+import {PageFiltersStore} from './store';
 
 jest.mock('sentry/utils/localStorage', () => ({
   getItem: () => JSON.stringify({projects: [5], environments: ['staging']}),

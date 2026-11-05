@@ -1,13 +1,9 @@
-import {SpanTree, SpanTreeNode} from 'sentry/utils/profiling/spanTree';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {
-  makeFormatter,
-  makeFormatTo,
-  makeTimelineFormatter,
-} from 'sentry/utils/profiling/units/units';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import type {Profile} from './profile/profile';
+import {makeFormatter, makeFormatTo, makeTimelineFormatter} from './units/units';
+import {SpanTree, SpanTreeNode} from './spanTree';
+import {Rect} from './speedscope';
 
 export interface SpanChartNode {
   children: SpanChartNode[];

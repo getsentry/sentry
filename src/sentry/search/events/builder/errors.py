@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+from typing import Any
 
 from snuba_sdk import (
     AliasedExpression,
@@ -25,16 +26,20 @@ from sentry.search.events.builder.discover import (
     TopEventsQueryBuilder,
 )
 from sentry.search.events.filter import ParsedTerms
-from sentry.search.events.types import SelectType
+from sentry.search.events.types import SelectType, WhereType
 from sentry.snuba.entity_subscription import ENTITY_TIME_COLUMNS, get_entity_key_from_query_builder
 
 value_converters = {"status": convert_status_value}
 
 
 class ErrorsQueryBuilderMixin(BaseQueryBuilder):
-    def __init__(self, *args, **kwargs):
-        self.match = None
-        self.entities = set()
+    def __init__(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        self.match: Join | Entity | None = None
+        self.entities: set[Entity] = set()
         super().__init__(*args, **kwargs)
 
     def parse_query(self, query: str | None) -> ParsedTerms:
@@ -49,7 +54,7 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
         )
         return parsed_terms
 
-    def resolve_match(self):
+    def resolve_match(self) -> None:
         error_entity = Entity(self.dataset.value, alias=self.dataset.value, sample=self.sample_rate)
         if len(self.entities) == 1:
             self.match = error_entity
@@ -59,7 +64,7 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
         else:
             raise Exception("Unexpected number of entities")
 
-    def resolve_params(self):
+    def resolve_params(self) -> list[WhereType]:
         conditions = super().resolve_params()
         if len(self.entities) == 2:
             conditions.append(
@@ -154,7 +159,11 @@ class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, DiscoverQueryBuilder):
 
 
 class ErrorsTimeseriesQueryBuilder(ErrorsQueryBuilderMixin, TimeseriesQueryBuilder):
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
 
     @property
@@ -180,7 +189,11 @@ class ErrorsTimeseriesQueryBuilder(ErrorsQueryBuilderMixin, TimeseriesQueryBuild
 
 
 class ErrorsTopEventsQueryBuilder(ErrorsQueryBuilderMixin, TopEventsQueryBuilder):
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
 
     @property

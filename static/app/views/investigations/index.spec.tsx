@@ -11,24 +11,26 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import InvestigationsView from 'sentry/views/investigations';
+import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
+
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
-} from 'sentry/views/investigations/api';
-import {InvestigationListItemFixture as InvestigationFixture} from 'sentry/views/investigations/fixtures';
-import type {InvestigationDetail} from 'sentry/views/investigations/types';
-import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
+} from './api';
+import {InvestigationListItemFixture as InvestigationFixture} from './fixtures';
+import type {InvestigationDetail} from './types';
 
 const organization = OrganizationFixture({
   features: ['investigations'],
   openMembership: true,
 });
-const listUrl = '/organizations/org-slug/investigations/';
+const listUrl = '/organizations/org-slug/notebooks/';
 
 function renderView({
   renderOrganization = organization,
@@ -53,8 +55,8 @@ function renderView({
 
 describe('Explore Investigations', () => {
   beforeEach(() => {
-    jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
-    jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+    jest.spyOn(toast, 'success').mockImplementation();
+    jest.spyOn(toast, 'error').mockImplementation();
     ConfigStore.set('customerDomain', null);
   });
 
@@ -172,7 +174,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     const detailRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/',
+      url: '/organizations/org-slug/notebooks/1/',
       body: {
         ...InvestigationFixture(),
         blocks: [],
@@ -180,7 +182,6 @@ describe('Explore Investigations', () => {
         parameters: [],
         projectIds: [],
         source: {type: 'manual', ref: {}, revision: null},
-        template: null,
         titleGeneration: {status: null},
       },
     });
@@ -253,7 +254,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     const favoriteRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/favorite/',
+      url: '/organizations/org-slug/notebooks/1/favorite/',
       method: 'PUT',
     });
 
@@ -269,7 +270,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(favoriteRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/investigations/1/favorite/',
+        '/organizations/org-slug/notebooks/1/favorite/',
         expect.objectContaining({data: {shouldFavorite: true}})
       )
     );
@@ -286,7 +287,7 @@ describe('Explore Investigations', () => {
     );
     await waitFor(() =>
       expect(favoriteRequest).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/investigations/1/favorite/',
+        '/organizations/org-slug/notebooks/1/favorite/',
         expect.objectContaining({data: {shouldFavorite: false}})
       )
     );
@@ -299,7 +300,7 @@ describe('Explore Investigations', () => {
     const investigation = InvestigationFixture();
     MockApiClient.addMockResponse({url: listUrl, body: [investigation]});
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/favorite/',
+      url: '/organizations/org-slug/notebooks/1/favorite/',
       method: 'PUT',
     });
 
@@ -327,7 +328,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     const duplicateRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/duplicate/',
+      url: '/organizations/org-slug/notebooks/1/duplicate/',
       method: 'POST',
       body: InvestigationFixture({id: '2'}),
     });
@@ -383,9 +384,7 @@ describe('Explore Investigations', () => {
         `${window.location.origin}/organizations/org-slug/seer/investigations/1/`
       )
     );
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
-      'Investigation link copied.'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Investigation link copied.');
   });
 
   it('deletes only after confirmation and sends the current version', async () => {
@@ -394,7 +393,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     const deleteRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/',
+      url: '/organizations/org-slug/notebooks/1/',
       method: 'DELETE',
     });
 
@@ -411,7 +410,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(deleteRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/investigations/1/',
+        '/organizations/org-slug/notebooks/1/',
         expect.objectContaining({data: {investigationVersion: 3}})
       )
     );
@@ -424,7 +423,7 @@ describe('Explore Investigations', () => {
     const investigation = InvestigationFixture();
     MockApiClient.addMockResponse({url: listUrl, body: [investigation]});
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/',
+      url: '/organizations/org-slug/notebooks/1/',
       method: 'DELETE',
     });
 
@@ -450,7 +449,7 @@ describe('Explore Investigations', () => {
     const investigation = InvestigationFixture();
     MockApiClient.addMockResponse({url: listUrl, body: [investigation]});
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/',
+      url: '/organizations/org-slug/notebooks/1/',
       method: 'DELETE',
     });
 
@@ -488,7 +487,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/favorite/',
+      url: '/organizations/org-slug/notebooks/1/favorite/',
       method: 'PUT',
       statusCode: 500,
     });
@@ -499,9 +498,7 @@ describe('Explore Investigations', () => {
     );
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to update investigation favorite.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to update investigation favorite.')
     );
   });
 
@@ -511,7 +508,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/duplicate/',
+      url: '/organizations/org-slug/notebooks/1/duplicate/',
       method: 'POST',
       statusCode: 500,
     });
@@ -523,9 +520,7 @@ describe('Explore Investigations', () => {
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to duplicate investigation.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to duplicate investigation.')
     );
   });
 
@@ -535,7 +530,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/',
+      url: '/organizations/org-slug/notebooks/1/',
       method: 'DELETE',
       statusCode: 500,
     });
@@ -549,9 +544,7 @@ describe('Explore Investigations', () => {
     await userEvent.click(await screen.findByTestId('confirm-button'));
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to delete investigation.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to delete investigation.')
     );
   });
 });

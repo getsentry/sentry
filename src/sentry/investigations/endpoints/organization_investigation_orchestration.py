@@ -11,25 +11,23 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
-    OrganizationInvestigationEndpoint,
-    require_authenticated_user,
-    service_error,
-)
 from sentry.investigations.endpoints.serializers.responses import (
     InvestigationCommandResponse,
     InvestigationOrchestrationResponse,
 )
-from sentry.investigations.endpoints.validators import (
-    InvestigationOrchestrationCommandValidator,
-)
-from sentry.investigations.models import Investigation
-from sentry.investigations.services.investigations import InvestigationServiceError
+from sentry.investigations.endpoints.validators import InvestigationOrchestrationCommandValidator
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
     get_orchestration_projection,
 )
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationInvestigationEndpoint,
+    require_authenticated_user,
+    service_error,
+)
+from sentry.notebooks.models import Notebook
+from sentry.notebooks.services.notebooks import InvestigationServiceError
 
 
 @extend_schema(tags=["Investigations"])
@@ -53,7 +51,7 @@ class OrganizationInvestigationOrchestrationEndpoint(OrganizationInvestigationEn
         },
     )
     def get(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Poll the agent workflow independently of notebook details. The Seer-owned projection
@@ -109,7 +107,7 @@ class OrganizationInvestigationOrchestrationCommandsEndpoint(OrganizationInvesti
         ],
     )
     def post(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Submit provide_input, add_hypothesis, set_hypothesis_disposition, steer, retry, or

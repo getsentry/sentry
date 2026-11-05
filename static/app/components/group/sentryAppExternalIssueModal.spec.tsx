@@ -8,7 +8,7 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 
 import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueModal';
+import {openSentryAppIssueModal} from './sentryAppExternalIssueModal';
 
 describe('openSentryAppIssueModal', () => {
   const group = GroupFixture();
@@ -50,7 +50,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
 
     renderGlobalModal();
@@ -79,7 +79,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event: undefined,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
 
     renderGlobalModal();
@@ -98,7 +98,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
     const {waitForModalToHide} = renderGlobalModal();
 
@@ -133,7 +133,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
     const {waitForModalToHide} = renderGlobalModal();
 

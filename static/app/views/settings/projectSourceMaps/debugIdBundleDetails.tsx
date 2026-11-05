@@ -7,7 +7,8 @@ import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {DebugIdBundle, DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
-import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
+
+import {AssociatedReleases} from './associatedReleases';
 
 export function DebugIdBundleDetails({
   debugIdBundle,

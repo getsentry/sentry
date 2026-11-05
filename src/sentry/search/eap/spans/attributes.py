@@ -351,6 +351,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="integer",
         ),
         ResolvedAttribute(
+            public_alias="faas.max_memory",
+            internal_name="faas.max_memory",
+            search_type="byte",
+        ),
+        ResolvedAttribute(
             public_alias="http.decoded_response_content_length",
             internal_name="http.decoded_response_content_length",
             search_type="byte",
@@ -571,6 +576,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="span_id",
             internal_name="sentry.item_id",
             search_type="string",
+            validator=validate_span_id,
         ),
         simple_sentry_field(
             "trace.status",

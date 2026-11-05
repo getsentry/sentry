@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
+import {useRedirectNavigationV2Routes} from './useRedirectNavigationV2Routes';
 
 const mockUsingCustomerDomain = jest.fn();
 

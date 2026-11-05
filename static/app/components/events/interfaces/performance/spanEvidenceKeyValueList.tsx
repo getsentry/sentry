@@ -8,7 +8,7 @@ import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -16,21 +16,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
-import {
-  slowDBQuerySpanFromEvent,
-  resolveSlowDBQuerySpan,
-  type SlowDBQuerySpan,
-} from 'sentry/components/events/interfaces/performance/slowDBQuerySpan';
-import {
-  extractSpanURLString,
-  formatChangingQueryParameters,
-  getSpanDuration,
-  getSpanFieldBytes,
-} from 'sentry/components/events/interfaces/performance/spanMetrics';
-import {
-  getSpanHash,
-  getSpanInfoFromTransactionEvent,
-} from 'sentry/components/events/interfaces/performance/utils';
 import type {
   ProcessedSpanType,
   RawSpanType,
@@ -73,6 +58,19 @@ import {
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
+
+import {
+  slowDBQuerySpanFromEvent,
+  resolveSlowDBQuerySpan,
+  type SlowDBQuerySpan,
+} from './slowDBQuerySpan';
+import {
+  extractSpanURLString,
+  formatChangingQueryParameters,
+  getSpanDuration,
+  getSpanFieldBytes,
+} from './spanMetrics';
+import {getSpanHash, getSpanInfoFromTransactionEvent} from './utils';
 
 const formatter = new SQLishFormatter();
 

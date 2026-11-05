@@ -8,9 +8,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {AI_AGENTS_GETTING_STARTED_DOCS_LINK} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
+import {Referrer} from './utils/referrers';
 import ConversationsOverviewPage from './overview';
 
 const organization = OrganizationFixture({

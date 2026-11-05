@@ -10,8 +10,8 @@ its region's Sentry.
 
 It reads the account's cell replica. Disabling an account fails the next call
 once its outbox replicates; deleting one does once the tombstone cascade removes
-the replica. Until this endpoint issues a service-account actor, the returned
-ViewerContext is still Seer's org-only one, so swapping it in changes nothing yet.
+the replica. Requests made with the returned ViewerContext read the replica again,
+so those changes also apply to tokens already handed out.
 """
 
 from __future__ import annotations
@@ -58,7 +58,11 @@ class ServiceAccountViewerContextResponse(TypedDict):
 
 
 class SeerSystemViewerContextPermission(BasePermission):
-    """Only Seer, calling with an org-only ViewerContext for this organization."""
+    """
+    Only Seer, calling with an org-only ViewerContext for this organization. A
+    service account can't use its own context to get one for another account,
+    since `SeerRpcViewerContextAuthentication` rejects service-account contexts.
+    """
 
     def has_permission(self, request: Request, view: object) -> bool:
         return isinstance(request.successful_authenticator, SeerRpcViewerContextAuthentication)
@@ -109,7 +113,12 @@ class OrganizationServiceAccountViewerContextEndpoint(OrganizationEndpoint):
 
         ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 900)
         viewer_context = encode_viewer_context(
-            ViewerContext(organization_id=organization.id, actor=Actor(type=ActorType.SYSTEM)),
+            ViewerContext(
+                organization_id=organization.id,
+                actor=Actor(
+                    type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.service_account_id
+                ),
+            ),
             ttl=ttl,
         )
         response: ServiceAccountViewerContextResponse = {

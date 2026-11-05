@@ -4,12 +4,9 @@ import {
   DomainViewHeader,
   type Props as HeaderProps,
 } from 'sentry/views/insights/pages/domainViewHeader';
-import {
-  MOBILE_LANDING_SUB_PATH,
-  MOBILE_LANDING_TITLE,
-  MODULES,
-} from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+
+import {MOBILE_LANDING_SUB_PATH, MOBILE_LANDING_TITLE, MODULES} from './settings';
 
 type Props = {
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];

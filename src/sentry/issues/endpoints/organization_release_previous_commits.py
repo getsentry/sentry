@@ -6,10 +6,11 @@ from sentry import analytics
 from sentry.analytics.events.release_get_previous_commits import ReleaseGetPreviousCommitsEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
@@ -22,6 +23,7 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     rate_limits = RateLimitConfig(group="CLI")
 
     def get(self, request: Request, organization: Organization, version: str) -> Response:
@@ -78,7 +80,7 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
         try:
             analytics.record(
                 ReleaseGetPreviousCommitsEvent(
-                    user_id=request.user.id if request.user and request.user.id else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=organization.id,
                     project_ids=project_ids,
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
@@ -94,5 +96,7 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
             serialize(
                 prev_release_with_commits[0],
                 request.user,
+                # sentry-cli only reads lastCommit, skip the Snuba lookup for first/last seen
+                skip_snuba=True,
             )
         )

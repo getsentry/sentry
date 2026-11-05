@@ -1,9 +1,6 @@
 import moment from 'moment-timezone';
 
-import {
-  getArbitraryRelativePeriod,
-  parseStatsPeriod,
-} from 'sentry/components/timeRangeSelector/utils';
+import {getArbitraryRelativePeriod, parseStatsPeriod} from './utils';
 
 describe('getArbitraryRelativePeriod', () => {
   it('parses a well-formed range of hours', () => {

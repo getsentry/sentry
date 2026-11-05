@@ -1,18 +1,18 @@
 import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {CreateFromSeerLoading} from 'sentry/views/dashboards/createFromSeerLoading';
-import {CreateFromSeerPrompt} from 'sentry/views/dashboards/createFromSeerPrompt';
 
 import {WidgetErrorProvider} from './contexts/widgetErrorContext';
+import {CreateFromSeerLoading} from './createFromSeerLoading';
+import {CreateFromSeerPrompt} from './createFromSeerPrompt';
 import {statusIsTerminal, validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {DashboardChatPanel, type WidgetError} from './dashboardChatPanel';
 import {EMPTY_DASHBOARD} from './data';
@@ -23,9 +23,7 @@ import {useSeerDashboardSession} from './useSeerDashboardSession';
 
 export default function CreateFromSeer() {
   const organization = useOrganization();
-  const location = useLocation();
-
-  const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
+  const [seerRunId] = useQueryState('seerRunId', parseAsInteger);
   const hasFeature = organization.features.includes('dashboards-edit');
 
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
@@ -112,7 +110,7 @@ export default function CreateFromSeer() {
 
   useEffect(() => {
     if (sessionStatus === 'error' || isError) {
-      addErrorMessage(t('Failed to generate dashboard'));
+      toast.error(t('Failed to generate dashboard'));
       Sentry.metrics.count('dashboards.seer.generation.session.error', 1, {
         attributes: {
           organization_slug: organization.slug,

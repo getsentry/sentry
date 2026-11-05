@@ -8,14 +8,17 @@ import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/ge
 import type {Group} from 'sentry/types/group';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
+
+import {useGroupDefaultStatsPeriod} from './useGroupDefaultStatsPeriod';
 
 export function useIssueTimeWindowConfig({
   timelineWidth,
   group,
+  maxBucketInterval,
 }: {
   group: Group;
   timelineWidth: number;
+  maxBucketInterval?: number;
 }) {
   const [now] = useState<Date>(() =>
     moment().startOf('minute').add(1, 'minutes').toDate()
@@ -41,7 +44,8 @@ export function useIssueTimeWindowConfig({
   }
 
   return useMemo(
-    () => getConfigFromTimeRange(since, until, timelineWidth, timezone),
-    [since, until, timelineWidth, timezone]
+    () =>
+      getConfigFromTimeRange(since, until, timelineWidth, timezone, maxBucketInterval),
+    [since, until, timelineWidth, timezone, maxBucketInterval]
   );
 }

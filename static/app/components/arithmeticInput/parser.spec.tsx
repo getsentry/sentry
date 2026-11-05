@@ -1,4 +1,4 @@
-import {Operation, parseArithmetic} from 'sentry/components/arithmeticInput/parser';
+import {Operation, parseArithmetic} from './parser';
 
 describe('arithmeticInput/parser', () => {
   it('errors on too many operators', () => {

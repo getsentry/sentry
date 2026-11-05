@@ -9,7 +9,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ResolveActions} from 'sentry/components/actions/resolve';
+import {ResolveActions} from './resolve';
 
 describe('ResolveActions', () => {
   const project = ProjectFixture({id: '1', slug: 'proj-1'});

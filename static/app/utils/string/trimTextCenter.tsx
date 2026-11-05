@@ -1,4 +1,4 @@
-import {ELLIPSIS} from 'sentry/utils/string/unicode';
+import {ELLIPSIS} from './unicode';
 
 export interface TrimTextCenter {
   end: number;

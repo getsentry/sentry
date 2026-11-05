@@ -8,8 +8,9 @@ import type {
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
-import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
+
+import type {BaseEventAnalyticsParams} from './workflowAnalyticsEvents';
 
 type IssueStream = {
   group_id: string;
@@ -92,7 +93,6 @@ export type IssueEventParameters = {
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
-  'issue-details.android-tombstones-cta-dismiss': {type: string};
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.engaged_view': {
     group_id: number;
@@ -151,10 +151,6 @@ export type IssueEventParameters = {
   'issue_details.similar_issues.drawer_opened': {
     group_id: string;
     project_id: string;
-  };
-  'issue_details.streamline_ui_toggle': {
-    enforced_streamline_ui: boolean;
-    isEnabled: boolean;
   };
   'issue_details.tour.reminder': {method: 'dismissed' | 'timeout'};
   'issue_details.tour.skipped': Record<string, unknown>;
@@ -344,7 +340,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Merged Issues Drawer Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
-  'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
   'issue_details.tour.started': 'Issue Details: Tour Started',
   'issue_details.tour.reminder': 'Issue Details: Tour Reminder Acknowledged',
@@ -405,8 +400,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
-  'issue-details.android-tombstones-cta-dismiss':
-    'Issue Details Android Tombstones CTA Dismissed',
   'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.copy_issue_details_as_markdown':

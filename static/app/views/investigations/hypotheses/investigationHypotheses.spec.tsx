@@ -5,11 +5,12 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
+import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
-} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
-import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+} from './investigationHypotheses';
 
 const organization = OrganizationFixture({features: ['investigations']});
 const orchestrationUrl =
@@ -229,6 +230,50 @@ describe('InvestigationHypotheses', () => {
     );
 
     expect(request).not.toHaveBeenCalled();
+  });
+
+  it('asks Seer about a hypothesis from its menu', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+    const onAskSeer = jest.fn();
+
+    renderHypotheses({onAskSeer});
+    await screen.findAllByTestId('investigation-hypothesis');
+    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Actions for An external SSO provider slowed the response',
+      })
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Ask Seer'}));
+
+    expect(onAskSeer).toHaveBeenCalledTimes(1);
+    expect(onAskSeer).toHaveBeenCalledWith(expect.objectContaining({id: 'hypothesis-2'}));
+  });
+
+  it('leaves Ask Seer out of the menu without a handler', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderHypotheses();
+    await screen.findAllByTestId('investigation-hypothesis');
+    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Actions for Database or cache degradation delayed the response',
+      })
+    );
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Accept'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Ask Seer'})
+    ).not.toBeInTheDocument();
   });
 
   it('sends a disposition command fenced on the workflow version', async () => {

@@ -47,13 +47,11 @@ import {
   useQueryParamsQuery,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
-import {
-  getSimilarEventsUrl,
-  isPartialSpanOrTraceData,
-} from 'sentry/views/explore/tables/tracesTable/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+
+import {getSimilarEventsUrl, isPartialSpanOrTraceData} from './tracesTable/utils';
 
 interface FieldProps {
   data: EventData;
@@ -150,6 +148,62 @@ function BaseExploreFieldRenderer({
   usePortalOnDropdown,
   caseInsensitive: queryCaseInsensitive,
 }: BaseFieldProps) {
+  if (!defined(column)) {
+    return nullableValue(null);
+  }
+
+  let rendered: React.ReactNode = (
+    <ExploreFieldValue
+      data={data}
+      meta={meta}
+      unit={unit}
+      column={column}
+      disableTraceLinks={disableTraceLinks}
+      queryCaseInsensitive={queryCaseInsensitive}
+    />
+  );
+
+  if (String(column.key) === 'id') {
+    return rendered;
+  }
+
+  if (defined(tooltipTitle)) {
+    rendered = (
+      <Tooltip title={tooltipTitle} showOnlyOnOverflow containerDisplayMode="block">
+        {rendered}
+      </Tooltip>
+    );
+  }
+
+  return (
+    <CellAction
+      column={column}
+      dataRow={data as TableDataRow}
+      handleCellAction={(actions, value) => {
+        const query = new MutableSearch(userQuery);
+        updateQuery(query, actions, column, value);
+        setUserQuery(query.formatString());
+      }}
+      allowActions={allowActions ?? ALLOWED_CELL_ACTIONS}
+      extraMenuItems={extraMenuItems}
+      usePortalOnDropdown={usePortalOnDropdown}
+    >
+      {rendered}
+    </CellAction>
+  );
+}
+
+function ExploreFieldValue({
+  data,
+  meta,
+  unit,
+  column,
+  disableTraceLinks,
+  queryCaseInsensitive,
+}: Pick<FieldProps, 'data' | 'meta' | 'unit' | 'disableTraceLinks'> & {
+  column: TableColumn<keyof TableDataRow>;
+  queryCaseInsensitive?: CaseInsensitive;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -158,7 +212,6 @@ function BaseExploreFieldRenderer({
   const [pageCaseInsensitive] = useCaseInsensitivity();
   const caseInsensitive = queryCaseInsensitive ?? pageCaseInsensitive;
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
-  const query = new MutableSearch(userQuery);
   const {projects} = useProjects();
   const projectsMap = useMemo(() => {
     return projects.reduce<Record<string, Project>>((acc, project) => {
@@ -168,10 +221,6 @@ function BaseExploreFieldRenderer({
   }, [projects]);
 
   const project = projectsMap[data.project];
-
-  if (!defined(column)) {
-    return nullableValue(null);
-  }
 
   const field = String(column.key);
 
@@ -314,33 +363,7 @@ function BaseExploreFieldRenderer({
     }
   }
 
-  if (field === 'id') {
-    return rendered;
-  }
-
-  if (defined(tooltipTitle)) {
-    rendered = (
-      <Tooltip title={tooltipTitle} showOnlyOnOverflow containerDisplayMode="block">
-        {rendered}
-      </Tooltip>
-    );
-  }
-
-  return (
-    <CellAction
-      column={column}
-      dataRow={data as TableDataRow}
-      handleCellAction={(actions, value) => {
-        updateQuery(query, actions, column, value);
-        setUserQuery(query.formatString());
-      }}
-      allowActions={allowActions ?? ALLOWED_CELL_ACTIONS}
-      extraMenuItems={extraMenuItems}
-      usePortalOnDropdown={usePortalOnDropdown}
-    >
-      {rendered}
-    </CellAction>
-  );
+  return rendered;
 }
 
 function getExploreFieldRenderer(

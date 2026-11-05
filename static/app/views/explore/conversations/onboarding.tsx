@@ -53,7 +53,6 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {
   CopyLLMPromptButton,
   getAgentSetupPrompt,
@@ -73,6 +72,8 @@ import {
   useOnboardingProject,
   useSpanWaiter,
 } from 'sentry/views/insights/pages/onboardingUtils';
+
+import {Referrer} from './utils/referrers';
 
 function ConversationWaitingIndicator({
   project,
@@ -551,12 +552,12 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const {
     deploymentTarget,
     integrationDeploymentTarget,
-    isCloudflareTarget,
     isPhpPlatform,
     isPythonPlatform,
     platformOptions,
     projectAgentIntegration,
     selectedPlatformOptions,
+    showPlatformOptions,
   } = useAgentOnboardingOptions({
     platform: project?.platform,
     platformInfo: currentPlatform,
@@ -615,7 +616,8 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
 
   const selectedIntegration =
     selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
-  const jsPackageName = isCloudflareTarget ? '@sentry/cloudflare' : '@sentry/node';
+  const jsPackageName =
+    agentMonitoringDocs.sdkImportSpecifier?.(docParams) ?? '@sentry/node';
 
   const setsConversationIdAutomatically =
     INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS.has(selectedIntegration);
@@ -643,13 +645,17 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   return (
     <ConversationOnboardingPanel project={project} dsn={dsn.public} onDismiss={onDismiss}>
       <Stack gap="xl">
-        {!projectAgentIntegration && (
+        {showPlatformOptions && (
           <Flex gap="lg" align="center" justify="between" wrap="wrap">
             <Flex gap="sm" align="center" wrap="wrap">
               <Text>{t('Set up')}</Text>
               <PlatformOptionDropdown
                 platformOptions={platformOptions}
-                connectors={{deploymentTarget: t('on')}}
+                // Framework projects only render the runtime selector, which then
+                // directly follows "with".
+                connectors={
+                  projectAgentIntegration ? undefined : {deploymentTarget: t('on')}
+                }
                 onChange={(option, value) => {
                   trackAnalytics('conversations.onboarding.interaction', {
                     organization,
@@ -667,10 +673,12 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
             </Flex>
           </Flex>
         )}
-        {!projectAgentIntegration && <Separator orientation="horizontal" />}
+        {showPlatformOptions && <Separator orientation="horizontal" />}
         {introduction && <Prose>{introduction}</Prose>}
         <GuidedSteps
-          key={selectedIntegration}
+          // Remount when the integration or runtime changes so the stepper doesn't
+          // carry over stale per-step state from the previous selection.
+          key={`${selectedIntegration}-${deploymentTarget}`}
           initialStep={decodeInteger(location.query.guidedStep)}
           onStepChange={step => {
             navigate({

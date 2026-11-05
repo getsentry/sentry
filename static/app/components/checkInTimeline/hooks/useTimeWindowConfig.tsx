@@ -12,6 +12,10 @@ interface Options {
    */
   timelineWidth: number;
   /**
+   * Largest bucket interval in seconds the timeline may pick
+   */
+  maxBucketInterval?: number;
+  /**
    * Interval in milliseconds to recompute the dates (for relative time periods)
    */
   recomputeInterval?: number;
@@ -28,6 +32,7 @@ interface Options {
 
 export function useTimeWindowConfig({
   timelineWidth,
+  maxBucketInterval,
   recomputeInterval,
   recomputeOnWindowFocus,
   recomputeQueryKey,
@@ -40,7 +45,8 @@ export function useTimeWindowConfig({
   });
 
   return useMemo(
-    () => getConfigFromTimeRange(since, until, timelineWidth, timezone),
-    [since, until, timelineWidth, timezone]
+    () =>
+      getConfigFromTimeRange(since, until, timelineWidth, timezone, maxBucketInterval),
+    [since, until, timelineWidth, timezone, maxBucketInterval]
   );
 }

@@ -20,26 +20,38 @@ def unwrap_key(prefix: str, version: Any, value: str) -> str:
 class BaseCache(local):
     prefix = "c"
 
-    def __init__(self, version=None, prefix=None, is_default_cache=False):
+    def __init__(
+        self,
+        version: int | None = None,
+        prefix: str | None = None,
+        is_default_cache: bool = False,
+    ) -> None:
         self.version = version or settings.CACHE_VERSION
         if prefix is not None:
             self.prefix = prefix
 
         self.is_default_cache = is_default_cache
 
-    def make_key(self, key, version=None) -> str:
+    def make_key(self, key: str, version: int | None = None) -> str:
         return wrap_key(self.prefix, version or self.version, key)
 
-    def set(self, key, value, timeout, version=None, raw=False):
+    def set(
+        self,
+        key: str,
+        value: object,
+        timeout: int | float | None,
+        version: int | None = None,
+        raw: bool = False,
+    ) -> None:
         raise NotImplementedError
 
-    def delete(self, key, version=None):
+    def delete(self, key: str, version: int | None = None) -> None:
         raise NotImplementedError
 
-    def get(self, key, version=None, raw=False):
+    def get(self, key: str, version: int | None = None, raw: bool = False) -> object:
         raise NotImplementedError
 
-    def _mark_transaction(self, op):
+    def _mark_transaction(self, op: str) -> None:
         """
         Mark transaction with a tag so we can identify system components that rely
         on the default cache as potential SPOF.

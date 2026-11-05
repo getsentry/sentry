@@ -28,8 +28,9 @@ import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
-import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {LogRowContent} from './logsTableRow';
 
 function ProviderWrapper({children}: {children?: React.ReactNode}) {
   return (

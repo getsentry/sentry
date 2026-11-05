@@ -6,8 +6,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack, Grid} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -23,14 +23,14 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
-import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
-import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
-import {MessageType} from 'sentry/views/settings/project/tempest/types';
-import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
+import {useFetchTempestCredentials} from './hooks/useFetchTempestCredentials';
+import {useHasTempestWriteAccess} from './utils/access';
+import {AddCredentialsButton} from './addCredentialsButton';
+import {ConfigForm} from './configForm';
 import {CredentialRow} from './CredentialRow';
 import {EmptyState} from './EmptyState';
+import {MessageType} from './types';
 
 interface Props {
   organization: Organization;
@@ -76,7 +76,7 @@ export function PlayStationSettings({organization, project}: Props) {
         ),
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Removed the credentials.'));
+      toast.success(t('Removed the credentials.'));
       trackAnalytics('tempest.credentials.removed', {
         organization,
         project_slug: project.slug,
@@ -86,7 +86,7 @@ export function PlayStationSettings({organization, project}: Props) {
     onError: error => {
       const message = t('Failed to remove the credentials.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 

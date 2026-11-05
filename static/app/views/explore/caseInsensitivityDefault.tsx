@@ -6,14 +6,15 @@ import {
 } from 'sentry/components/searchQueryBuilder/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   useQueryParamsCrossEvents,
   useQueryParamsGroupBys,
   useQueryParamsQuery,
   useQueryParamsVisualizes,
-} from 'sentry/views/explore/queryParams/context';
-import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
-import {IF_SUFFIX} from 'sentry/views/explore/utils/parseConditionalAggregate';
+} from './queryParams/context';
+import type {CrossEvent} from './queryParams/crossEvent';
+import {IF_SUFFIX} from './utils/parseConditionalAggregate';
 
 export function hasIgnoreCaseDefault(organization: Organization) {
   return organization.features.includes('explore-ignore-case-default');

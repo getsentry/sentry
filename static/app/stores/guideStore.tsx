@@ -1,13 +1,14 @@
 import {createStore} from 'reflux';
 
+import {subscribeToModalOpen} from '@sentry/scraps/modal';
+
 import {getGuidesContent} from 'sentry/components/assistant/getGuidesContent';
 import type {Guide, GuidesServerData} from 'sentry/components/assistant/types';
 import {getOverride} from 'sentry/overrideRegistry';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
+import {ConfigStore} from './configStore';
 import type {StrictStoreDefinition} from './types';
 
 function guidePrioritySort(a: Guide, b: Guide) {
@@ -84,7 +85,7 @@ interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
   closeGuide(dismissed?: boolean): void;
 
   fetchSucceeded(data: GuidesServerData): void;
-  modalStoreListener: null | ReturnType<typeof ModalStore.listen>;
+  modalStoreListener: null | (() => void);
   nextStep(): void;
   onURLChange(): void;
   recordCue(guide: string): void;
@@ -111,15 +112,9 @@ const storeConfig: GuideStoreDefinition = {
 
     // Guides will show above modals, but are not interactable because
     // of the focus trap, so we force them to be hidden while a modal is open.
-    this.modalStoreListener = ModalStore.listen(() => {
-      const isOpen = typeof ModalStore.getState().renderer === 'function';
-
-      if (isOpen) {
-        this.setForceHide(true);
-      } else {
-        this.setForceHide(false);
-      }
-    }, undefined);
+    this.modalStoreListener = subscribeToModalOpen(isOpen => {
+      this.setForceHide(isOpen);
+    });
   },
 
   teardown() {

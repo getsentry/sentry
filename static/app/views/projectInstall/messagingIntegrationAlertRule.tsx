@@ -1,19 +1,20 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Select, SelectOption, type SelectValue} from '@sentry/scraps/select';
+import {Select, type SelectValue} from '@sentry/scraps/select';
 
 import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   providerDetails,
   type IntegrationChannel,
   type IssueAlertNotificationProps,
-} from 'sentry/views/projectInstall/messagingIntegrationTypes';
-import {useMessagingChannel} from 'sentry/views/projectInstall/useMessagingChannel';
+} from './messagingIntegrationTypes';
+import {useMessagingChannel} from './useMessagingChannel';
 
 /**
  * Shared data + handlers for the messaging-integration alert rule. Owns the
@@ -166,12 +167,12 @@ export function ChannelSelect({
   return (
     <Select
       className={className}
-      inputId={inputId}
+      id={inputId}
       autoFocus={autoFocus}
       aria-label={t('channel')}
       placeholder={providerDetails[provider as keyof typeof providerDetails]?.placeholder}
-      isSearchable
-      options={optionsWithSelectedValue}
+      searchable
+      options={optionsWithSelectedValue ?? []}
       isLoading={isLoading}
       disabled={disabled}
       value={value?.value ?? null}
@@ -180,19 +181,7 @@ export function ChannelSelect({
       clearable
       creatable
       formatCreateLabel={(inputValue: string) => inputValue}
-      components={{
-        Option: optionProps => (
-          <SelectOption
-            {...(optionProps as any)}
-            data={{
-              ...optionProps.data,
-              // Hide IconAdd for new channel options by setting __isNew__ to false.
-              // We do that to not give the impression that the user can create a new channel.
-              __isNew__: false,
-            }}
-          />
-        ),
-      }}
+      showCreateOptionIcon={false}
     />
   );
 }
@@ -235,7 +224,7 @@ export function MessagingIntegrationAlertRule(props: IssueAlertNotificationProps
           <InlineSelectControl
             aria-label={t('integration')}
             disabled={integrationDisabled}
-            value={integration}
+            value={integration ?? null}
             options={integrationOptions}
             onChange={onIntegrationChange}
           />
@@ -272,7 +261,7 @@ const Rule = styled('div')`
 
 const InlineSelectControl = styled(Select)`
   width: 180px;
-`;
+` as typeof Select;
 
 // Preserves the classic inline channel-select width.
 const InlineChannelSelect = styled(ChannelSelect)`

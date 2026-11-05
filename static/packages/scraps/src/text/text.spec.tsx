@@ -121,6 +121,22 @@ describe('Text', () => {
     );
   });
 
+  describe('density', () => {
+    it.each(
+      (
+        Object.keys(theme.font.lineHeight) as Array<keyof typeof theme.font.lineHeight>
+      ).filter(
+        // jsdom does not resolve rem-based line-heights, so only numeric tokens are asserted here
+        density => typeof theme.font.lineHeight[density] === 'number'
+      )
+    )('sets line-height from the %s token', density => {
+      render(<Text density={density}>Hello World</Text>, {wrapper: ThemeWrapper});
+      expect(screen.getByText('Hello World')).toHaveStyle({
+        lineHeight: String(theme.font.lineHeight[density]),
+      });
+    });
+  });
+
   describe('display', () => {
     it('is mutually exclusive with ellipsis', () => {
       render(

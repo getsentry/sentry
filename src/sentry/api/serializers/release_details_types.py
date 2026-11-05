@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypeAlias, TypedDict
 
+from sentry.release_health.base import ReleaseHealthStats
 from sentry.users.api.serializers.user import UserSerializerResponse
 
 
@@ -23,7 +24,7 @@ class LastDeploy(LastDeployOptional):
     id: str
     environment: str
     dateFinished: str
-    name: str
+    name: str | None
 
 
 class NonMappableUser(TypedDict):
@@ -31,7 +32,7 @@ class NonMappableUser(TypedDict):
     email: str
 
 
-Author = UserSerializerResponse | NonMappableUser
+Author: TypeAlias = UserSerializerResponse | NonMappableUser
 
 
 class HealthDataOptional(TypedDict, total=False):
@@ -53,7 +54,7 @@ class HealthData(HealthDataOptional):
     sessionsCrashed: int
     sessionsErrored: int
     hasHealthData: bool
-    stats: dict[str, Any]
+    stats: dict[str, ReleaseHealthStats]
 
 
 class ProjectOptional(TypedDict, total=False):

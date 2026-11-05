@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup} from './radioGroup';
 
 describe('RadioGroup', () => {
   it('renders', () => {

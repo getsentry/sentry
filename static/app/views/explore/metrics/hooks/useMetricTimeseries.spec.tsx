@@ -8,8 +8,6 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
-import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -18,6 +16,9 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {MockMetricQueryParamsContext} from './testUtils';
+import {useMetricTimeseries} from './useMetricTimeseries';
 
 function MockMetricQueryParamsContextWithMultiVisualize({
   children,
@@ -76,7 +77,7 @@ describe('useMetricTimeseries', () => {
       });
       const visualizes = [
         new VisualizeFunction('p50(value,test_metric,distribution,none)'),
-        new VisualizeEquation('equation|1 + 2'),
+        new VisualizeEquation('equation|1 + 2', {transformations: ['fill(zero)']}),
         new VisualizeFunction('p50(value,test_metric,distribution,none)', {
           transformations: ['smooth(sma,5)'],
         }),
@@ -103,6 +104,9 @@ describe('useMetricTimeseries', () => {
         'equation|1 + 2',
         'p50(value,test_metric,distribution,none)',
       ]);
+      expect(query['transformations[1]']).toEqual(
+        featureEnabled ? ['fill(zero)'] : undefined
+      );
       expect(query['transformations[2]']).toEqual(
         featureEnabled ? ['smooth(sma,5)'] : undefined
       );

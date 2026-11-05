@@ -2,8 +2,9 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import * as Storybook from 'sentry/stories';
+
+import {useServiceWorker} from './serviceWorkerContext';
 
 export default Storybook.story('ServiceWorker', story => {
   story('Basic Events', () => {

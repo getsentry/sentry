@@ -10,8 +10,9 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
+    from sentry.api.paginator import SequencePaginator
     from sentry.models.group import Group
-    from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey
+    from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
 
 # Valid pattern for tag key names
 TAG_KEY_RE = re.compile(r"^[a-zA-Z0-9_\.:-]+$")
@@ -87,7 +88,7 @@ class TagStorage(Service):
     def get_tag_key_label(self, key: str) -> str:
         return TAG_LABELS.get(key) or key.replace("_", " ").title()
 
-    def get_tag_value_label(self, key: str, value) -> str:
+    def get_tag_value_label(self, key: str, value: str | None) -> str | None:
         label = value
 
         if key == "sentry:user" and value:
@@ -103,7 +104,12 @@ class TagStorage(Service):
         return label
 
     def get_tag_key(
-        self, project_id, environment_id, key: str, status=TagKeyStatus.ACTIVE, tenant_ids=None
+        self,
+        project_id: int,
+        environment_id: int | None,
+        key: str,
+        status: int = TagKeyStatus.ACTIVE,
+        tenant_ids: dict[str, int | str] | None = None,
     ) -> GroupTagKey | TagKey:
         """
         >>> get_tag_key(1, 2, "key1")
@@ -112,12 +118,15 @@ class TagStorage(Service):
 
     def get_tag_keys(
         self,
-        project_id,
-        environment_id,
-        status=TagKeyStatus.ACTIVE,
-        include_values_seen=False,
-        tenant_ids=None,
-    ):
+        project_id: int,
+        environment_id: int | None,
+        status: int = TagKeyStatus.ACTIVE,
+        include_values_seen: bool = False,
+        tenant_ids: dict[str, int | str] | None = None,
+        *,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> set[TagKey | GroupTagKey]:
         """
         >>> get_tag_keys(1, 2)
         """
@@ -125,21 +134,27 @@ class TagStorage(Service):
 
     def get_tag_keys_for_projects(
         self,
-        projects,
-        environments,
-        start,
-        end,
+        projects: Sequence[int],
+        environments: Sequence[str] | None,
+        start: datetime,
+        end: datetime,
         dataset: Dataset = Dataset.Events,
-        status=TagKeyStatus.ACTIVE,
+        status: int = TagKeyStatus.ACTIVE,
         use_cache: bool = False,
-        tenant_ids=None,
-    ):
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> set[TagKey | GroupTagKey]:
         """
         >>> get_tag_key([1], [2])
         """
         raise NotImplementedError
 
-    def get_tag_values(self, project_id, environment_id, key: str, tenant_ids=None):
+    def get_tag_values(
+        self,
+        project_id: int,
+        environment_id: int | None,
+        key: str,
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> set[TagValue]:
         """
         >>> get_tag_values(1, 2, "key1")
         """
@@ -147,10 +162,10 @@ class TagStorage(Service):
 
     def get_group_tag_key(
         self,
-        group,
-        environment_id,
+        group: Group,
+        environment_id: int | None,
         key: str,
-        tenant_ids=None,
+        tenant_ids: dict[str, int | str] | None = None,
     ) -> GroupTagKey | TagKey:
         """
         >>> get_group_tag_key(group, 3, "key1")
@@ -158,37 +173,54 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_group_tag_keys(
-        self, group, environment_ids, limit=None, keys: list[str] | None = None, tenant_ids=None
-    ):
+        self,
+        group: Group,
+        environment_ids: Sequence[int] | None,
+        limit: int | None = None,
+        keys: list[str] | None = None,
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> set[TagKey | GroupTagKey]:
         """
         >>> get_group_tag_key(group, 2, [3])
         """
         raise NotImplementedError
 
     def get_group_list_tag_value(
-        self, project_ids, group_id_list, environment_ids, key: str, value, tenant_ids=None
-    ):
+        self,
+        project_ids: Sequence[int],
+        group_id_list: Sequence[int],
+        environment_ids: Sequence[int],
+        key: str,
+        value: str,
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> dict[int, GroupTagValue]:
         """
         >>> get_group_list_tag_value([1, 2], [1, 2, 3, 4, 5], [3], "key1", "value1")
         """
         raise NotImplementedError
 
     def get_generic_group_list_tag_value(
-        self, project_ids, group_id_list, environment_ids, key: str, value, tenant_ids=None
-    ):
+        self,
+        project_ids: Sequence[int],
+        group_id_list: Sequence[int],
+        environment_ids: Sequence[int],
+        key: str,
+        value: str,
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> dict[int, GroupTagValue]:
         raise NotImplementedError
 
     def get_tag_value_paginator(
         self,
-        project_id,
-        environment_id,
+        project_id: int,
+        environment_id: int | None,
         key: str,
-        start=None,
-        end=None,
-        query=None,
-        order_by="-last_seen",
-        tenant_ids=None,
-    ):
+        start: datetime | None = None,
+        end: datetime | None = None,
+        query: str | None = None,
+        order_by: str = "-last_seen",
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> SequencePaginator[TagValue]:
         """
         >>> get_tag_value_paginator(1, 2, 'environment', query='prod')
         """
@@ -196,19 +228,19 @@ class TagStorage(Service):
 
     def get_tag_value_paginator_for_projects(
         self,
-        projects,
-        environments,
+        projects: Sequence[int],
+        environments: Sequence[int] | None,
         key: str,
-        start=None,
-        end=None,
+        start: datetime | None = None,
+        end: datetime | None = None,
         dataset: Dataset | None = None,
-        query=None,
-        order_by="-last_seen",
+        query: str | None = None,
+        order_by: str = "-last_seen",
         include_transactions: bool = False,
         include_sessions: bool = False,
         include_replays: bool = False,
-        tenant_ids=None,
-    ):
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> SequencePaginator[TagValue]:
         """
         Includes tags and also snuba columns, with the arrayjoin when they are nested.
         Also supports a query parameter to do a substring match on the tag/column values.
@@ -233,12 +265,12 @@ class TagStorage(Service):
 
     def get_group_tag_value_paginator(
         self,
-        group,
-        environment_ids,
+        group: Group,
+        environment_ids: Sequence[int] | None,
         key: str,
-        order_by="-id",
-        tenant_ids=None,
-    ):
+        order_by: str = "-id",
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> SequencePaginator[GroupTagValue]:
         """
         >>> get_group_tag_value_paginator(group, 3, 'environment')
         """
@@ -274,11 +306,11 @@ class TagStorage(Service):
 
     def get_group_tag_value_count(
         self,
-        group,
-        environment_id,
+        group: Group,
+        environment_id: int | None,
         key: str,
-        tenant_ids=None,
-    ):
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> int:
         """
         >>> get_group_tag_value_count(group, 3, 'key1')
         """
@@ -286,30 +318,36 @@ class TagStorage(Service):
 
     def get_top_group_tag_values(
         self,
-        group,
-        environment_id,
+        group: Group,
+        environment_id: int | None,
         key: str,
-        limit=TOP_VALUES_DEFAULT_LIMIT,
-        tenant_ids=None,
-    ):
+        limit: int = TOP_VALUES_DEFAULT_LIMIT,
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> tuple[TagValue, ...] | tuple[GroupTagValue, ...] | None:
         """
         >>> get_top_group_tag_values(group, 3, 'key1')
         """
         raise NotImplementedError
 
-    def get_first_release(self, project_id, group_id):
+    def get_first_release(self, project_id: int, group_id: int) -> str | None:
         """
         >>> get_first_release(1, 2)
         """
         raise NotImplementedError
 
-    def get_last_release(self, project_id, group_id):
+    def get_last_release(self, project_id: int, group_id: int) -> str | None:
         """
         >>> get_last_release(1, 2)
         """
         raise NotImplementedError
 
-    def get_release_tags(self, organization_id, project_ids, environment_id, versions):
+    def get_release_tags(
+        self,
+        organization_id: int,
+        project_ids: Sequence[int],
+        environment_id: int | None,
+        versions: Sequence[str],
+    ) -> set[TagValue]:
         """
         >>> get_release_tags([1, 2], 3, ["1", "2"])
         """
@@ -317,13 +355,13 @@ class TagStorage(Service):
 
     def get_group_tag_keys_and_top_values(
         self,
-        group,
-        environment_ids,
+        group: Group,
+        environment_ids: Sequence[int] | None,
         keys: list[str] | None = None,
-        value_limit=TOP_VALUES_DEFAULT_LIMIT,
-        tenant_ids=None,
-        **kwargs,
-    ):
+        value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
+        tenant_ids: dict[str, int | str] | None = None,
+        **kwargs: object,
+    ) -> set[TagKey | GroupTagKey]:
         # only the snuba backend supports multi env, and that overrides this method
         if environment_ids and len(environment_ids) > 1:
             environment_ids = environment_ids[:1]

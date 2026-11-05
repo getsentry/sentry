@@ -9,13 +9,12 @@ import {IconInfo} from '@sentry/icons/info';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
-import type {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';
@@ -27,6 +26,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
+
+import type {MissingMemberInvite} from './types';
 
 const INVITE_COLUMNS: TableColumnConfig[] = [
   {key: 'select', width: 'max-content'},
@@ -298,6 +299,7 @@ export function InviteMissingMembersModal({
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
                   <TeamSelector
+                    value={Array.from(member.teamSlugs)}
                     aria-label={t('Add to Team')}
                     data-test-id="select-teams"
                     disabled={!isTeamRolesAllowed}
