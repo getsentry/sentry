@@ -1,15 +1,15 @@
 /**
  * Places outside of the settings navigation that open a settings page, as a link or a button.
- * - `org_menu`: "Settings" item in the organization avatar menu
- * - `user_menu`: "Settings" item in the user avatar menu
+ * - `settings_navigation.org_menu`: "Settings" item in the organization avatar menu
+ * - `settings_navigation.user_menu`: "Settings" item in the user avatar menu
  * - `project_page_filter`: settings icon on a project in the project page filter
  * - `project_details_menu`: "Project Settings" item on the project details page
  * - `project_card`: settings icon on a project card in the projects list
  * - `usage_stats`: "Project Settings" button on a project row in the usage stats table
  */
 export type SettingsEntryPoint =
-  | 'org_menu'
-  | 'user_menu'
+  | 'settings_navigation.org_menu'
+  | 'settings_navigation.user_menu'
   | 'project_page_filter'
   | 'project_details_menu'
   | 'project_card'
