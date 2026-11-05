@@ -91,9 +91,6 @@ export type SeerWorkflowConfigResponse = {
   projects: number[];
   schedule: string;
   seededDefault: string | null;
-  /**
-   * Null when the automation has no service account
-   */
   serviceAccount: SeerServiceAccountResponse | null;
   strategy: string;
   version: number;
