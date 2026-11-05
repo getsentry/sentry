@@ -267,6 +267,11 @@
       "count": 1
     }
   },
+  "components/events/autofix/v3/codeChangesCard.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "components/events/breadcrumbs/breadcrumbsDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -504,7 +509,15 @@
       "count": 1
     }
   },
+  "components/events/metrics/metricsSection.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    }
+  },
   "components/events/ourlogs/ourlogsSection.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    },
     "@sentry/scraps/no-manual-table": {
       "count": 1
     }
@@ -609,6 +622,11 @@
   },
   "components/feedback/list/feedbackListItem.tsx": {
     "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    }
+  },
+  "components/feedback/summaryCategories/feedbackCategories.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -759,6 +777,11 @@
       "count": 1
     }
   },
+  "components/guidedSteps/guidedSteps.stories.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "components/guidedSteps/guidedSteps.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -856,6 +879,9 @@
     }
   },
   "components/modals/dataWidgetViewerModal.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 4
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
@@ -1012,6 +1038,16 @@
   "components/onboarding/gettingStartedDoc/step.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    }
+  },
+  "components/onboarding/platformOptionDropdown.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
+  "components/onboarding/platformOptionsControl.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
     }
   },
   "components/onboarding/scm/scmPlatformFeaturesCore.spec.tsx": {
@@ -1401,6 +1437,11 @@
       "count": 2
     }
   },
+  "components/replays/table/filters/utils.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "components/replays/table/replayTableColumns.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1450,6 +1491,9 @@
     }
   },
   "components/resultGrid.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 5
     },
@@ -1750,6 +1794,11 @@
       "count": 3
     }
   },
+  "components/tables/dataGrid/useQueryBasedColumnResize.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "components/tables/keyValueTable/keyValueTable.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -1822,6 +1871,11 @@
       "count": 2
     }
   },
+  "components/updatedEmptyState.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "components/version.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -1892,6 +1946,9 @@
     }
   },
   "debug/notifications/components/debugNotificationsSearch.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     },
@@ -2063,6 +2120,9 @@
     }
   },
   "utils/discover/fieldRenderers.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     }
@@ -2080,9 +2140,19 @@
       "count": 1
     }
   },
+  "utils/performance/contexts/metricsEnhancedSetting.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "utils/profiling/canvasScheduler.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 6
+    }
+  },
+  "utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
     }
   },
   "utils/replays/hooks/usePollReplayRecord.spec.tsx": {
@@ -2105,6 +2175,11 @@
   },
   "utils/useBreakpoints.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "utils/useChartInterval.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -2199,6 +2274,11 @@
       "count": 1
     }
   },
+  "views/autofixIssuesDemo/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/automations/components/actionFilters/subfiltersList.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
@@ -2242,8 +2322,18 @@
       "count": 1
     }
   },
+  "views/automations/list.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/dashboards/addWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/dashboards/detail.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -2275,6 +2365,11 @@
   "views/dashboards/sortableReleasesSelect.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
+    }
+  },
+  "views/dashboards/utils.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
     }
   },
   "views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector.tsx": {
@@ -2379,6 +2474,11 @@
   "views/dashboards/widgetCard/warningsList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "views/dashboards/widgetLegendSelectionState.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 4
     }
   },
   "views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization.tsx": {
@@ -2604,12 +2704,25 @@
       "count": 1
     }
   },
+  "views/detectors/list/common/detectorListHeader.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/discover/eventDetails.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
+  "views/discover/homepage.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/discover/landing.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -2619,8 +2732,21 @@
       "count": 2
     }
   },
+  "views/discover/queryList.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    }
+  },
   "views/discover/results.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 8
+    },
     "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    }
+  },
+  "views/discover/results/issueListSeerComboBox.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -2650,6 +2776,11 @@
       "count": 1
     }
   },
+  "views/discover/table/quickContext/actionDropdown.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    }
+  },
   "views/discover/table/quickContext/quickContextHovercard.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -2672,6 +2803,11 @@
   },
   "views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/explore/components/attributeBreakdowns/floatingTrigger.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -2718,6 +2854,11 @@
       "count": 1
     }
   },
+  "views/explore/conversations/onboarding.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/explore/hooks/useTraceItemDetails.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 2
@@ -2744,10 +2885,18 @@
     }
   },
   "views/explore/logs/logsOnboarding.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
     },
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/explore/logs/logsTabSeerComboBox.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -2795,8 +2944,21 @@
       "count": 1
     }
   },
+  "views/explore/metrics/metricsHeatMap.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/explore/metrics/metricsOnboarding.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    }
+  },
+  "views/explore/metrics/metricsTabSeerComboBox.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -2830,17 +2992,28 @@
       "count": 1
     }
   },
+  "views/explore/profiling/content.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    }
+  },
   "views/explore/profiling/landing/functionTrendsWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "views/explore/profiling/landing/landingWidgetSelector.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     }
   },
   "views/explore/profiling/landing/slowestFunctionsWidget.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     }
@@ -2876,12 +3049,28 @@
       "count": 1
     }
   },
+  "views/explore/releases/detail/commitsAndFiles/repositorySwitcher.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
+  "views/explore/releases/detail/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/explore/releases/detail/overview/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "views/explore/releases/detail/overview/releaseComparisonChart/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     }
@@ -2917,13 +3106,26 @@
     }
   },
   "views/explore/releases/drawer/releasesDrawerDetails.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
+    }
+  },
+  "views/explore/releases/drawer/releasesDrawerList.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
     }
   },
   "views/explore/releases/drawer/releasesDrawerTable.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
+    }
+  },
+  "views/explore/releases/list/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 5
     }
   },
   "views/explore/releases/list/mobileBuildsChart.tsx": {
@@ -2946,6 +3148,11 @@
   },
   "views/explore/releases/list/releaseCard/releaseCardStatsPeriod.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/explore/releases/releaseBubbles/useReleaseBubbles.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -3044,8 +3251,18 @@
       "count": 1
     }
   },
+  "views/explore/savedFormulas/savedFormulasTable.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/explore/savedQueries/exploreParams.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/explore/savedQueries/savedQueriesLandingContent.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -3220,6 +3437,11 @@
   },
   "views/insights/crons/components/timezoneOverride.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/insights/mobile/screens/views/screenDetailsPage.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -3407,6 +3629,11 @@
       "count": 1
     }
   },
+  "views/issueDetails/groupEventAttachments/groupEventAttachments.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/issueDetails/groupEventAttachments/screenshotCard.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3527,6 +3754,11 @@
       "count": 1
     }
   },
+  "views/issueList/issueViews/issueViewSaveButton.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/issueList/issueViews/issueViewsList/issueViewsList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -3550,6 +3782,11 @@
   "views/issueList/overview.polling.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
+    }
+  },
+  "views/issueList/overview.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
     }
   },
   "views/issueList/pages/inbox/issuePreview/issuePreviewAutofixProposalSection.tsx": {
@@ -3648,6 +3885,11 @@
       "count": 1
     }
   },
+  "views/performance/landing/utils.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/performance/landing/widgets/components/accordion.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3691,6 +3933,11 @@
       "count": 2
     },
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/performance/table.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -3843,6 +4090,11 @@
       "count": 2
     }
   },
+  "views/performance/traceDetails/traceWaterfall.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/performance/traceDetails/traceWaterfallState.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -3853,13 +4105,33 @@
       "count": 1
     }
   },
+  "views/performance/transactionSummary/transactionEvents/eapSampledEventsTab.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    }
+  },
+  "views/performance/transactionSummary/transactionEvents/eventsTable.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    }
+  },
   "views/performance/transactionSummary/transactionEvents/operationSort.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
+  "views/performance/transactionSummary/transactionOverview/content.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/performance/transactionSummary/transactionOverview/relatedIssues.tsx": {
     "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    }
+  },
+  "views/performance/transactionSummary/transactionOverview/statusBreakdown.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -3987,6 +4259,16 @@
       "count": 1
     }
   },
+  "views/projectDetail/projectCharts.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
+  "views/projectDetail/projectDetail.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    }
+  },
   "views/projectDetail/projectLatestReleases.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 3
@@ -4014,6 +4296,11 @@
   },
   "views/projectInstall/otherPlatformsInfo.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/projectsDashboard/index.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -4112,6 +4399,11 @@
       "count": 1
     }
   },
+  "views/seerExplorer/utils.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 3
+    }
+  },
   "views/seerExplorer/xray/seerXRayOverlay.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -4122,12 +4414,20 @@
       "count": 1
     }
   },
+  "views/seerRunsDemo/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/seerWorkflows/overview/index.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 2
     }
   },
   "views/seerWorkflows/overview/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
     },
@@ -4184,6 +4484,9 @@
     }
   },
   "views/settings/account/notifications/notificationSettingsByEntity.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
     },
@@ -4195,6 +4498,9 @@
     }
   },
   "views/settings/account/notifications/weeklyReportProjectExclusions.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 3
     },
@@ -4358,6 +4664,11 @@
       "count": 1
     }
   },
+  "views/settings/organizationIntegrations/configureIntegration.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/settings/organizationIntegrations/detailedView/integrationLayout.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -4367,6 +4678,9 @@
     }
   },
   "views/settings/organizationIntegrations/integrationListDirectory.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -4401,6 +4715,11 @@
       "count": 1
     }
   },
+  "views/settings/organizationMembers/organizationMembersList.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/settings/organizationRelay/list/cardHeader.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4431,8 +4750,23 @@
       "count": 2
     }
   },
+  "views/settings/project/preprod/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
+  "views/settings/project/preprod/sizeRulesPanel.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/settings/project/preprod/statusCheckRuleItem.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/settings/project/projectAttributes.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -4466,23 +4800,57 @@
       "count": 1
     }
   },
+  "views/settings/project/projectTeams.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/settings/project/tempest/DevKitSettings.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "views/settings/project/tempest/EmptyState.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/settings/project/tempest/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
+  "views/settings/project/tempest/PlayStationSettings.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
   "views/settings/projectDebugFiles/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
+  "views/settings/projectDebugFiles/sources/customRepositories/index.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    }
+  },
   "views/settings/projectDebugFiles/sources/customRepositories/repository.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/settings/projectProguard/index.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -4492,11 +4860,17 @@
     }
   },
   "views/settings/projectSourceMaps/sourceMapsDetails.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
   },
   "views/settings/projectSourceMaps/sourceMapsList.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
