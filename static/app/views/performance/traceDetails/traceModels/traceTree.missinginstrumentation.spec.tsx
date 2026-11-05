@@ -1,12 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {isMissingInstrumentationNode} from 'sentry/views/performance/traceDetails/traceGuards';
-import {
-  makeEAPSpan,
-  makeEAPTrace,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
 import {TraceTree} from './traceTree';
+import {makeEAPSpan, makeEAPTrace} from './traceTreeTestUtils';
 
 const organization = OrganizationFixture();
 

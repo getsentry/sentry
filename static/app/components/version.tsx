@@ -1,11 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

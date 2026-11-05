@@ -2,8 +2,15 @@ import type {Location} from 'history';
 
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+
+const segmentSpansListSortParsers = {
+  showTransactions: parseAsScalar.withDefault(TransactionFilterOptions.SLOW),
+};
 
 export function getEAPSegmentSpansListSort(
   location: Location,
@@ -13,11 +20,12 @@ export function getEAPSegmentSpansListSort(
   selected: DropdownOption;
 } {
   const sortOptions = getEAPFilterOptions(spanCategory);
-  const urlParam = decodeScalar(
-    location.query.showTransactions,
-    TransactionFilterOptions.SLOW
+  const {showTransactions} = loadQueryParamsFromLocation(
+    segmentSpansListSortParsers,
+    location
   );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
+  const selectedSort =
+    sortOptions.find(opt => opt.value === showTransactions) || sortOptions[0]!;
   return {selected: selectedSort, options: sortOptions};
 }
 

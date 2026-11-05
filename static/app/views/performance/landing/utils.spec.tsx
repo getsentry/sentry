@@ -1,6 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
+import {getLandingDisplayFromParam} from './utils';
 
 describe('getLandingDisplayFromParam', () => {
   it('returns undefined without a landing display', () => {

@@ -1,10 +1,11 @@
 import {useEffect} from 'react';
 
+import {useMedia} from '@sentry/scraps/useMedia';
+
 import {NODE_ENV} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useUser} from 'sentry/utils/useUser';
 
-import {useMedia} from './useMedia';
+import {useUser} from './useUser';
 
 function setFaviconTheme(theme: 'dark' | 'light'): void {
   // only on prod because we have a development favicon

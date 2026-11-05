@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -17,7 +18,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -26,10 +28,11 @@ import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
-import {buildActivityFeedItems} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
+
+import {buildActivityFeedItems} from './activityLineItem/activityFeedItem';
 
 function getCommentEditor(name = 'Add a comment') {
   const editor = screen.getByRole('combobox', {name});
@@ -42,7 +45,6 @@ describe('ActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
   const tenMinutesAgo = () => new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  user.options.prefersIssueDetailsStreamlinedUI = true;
   ConfigStore.set('user', user);
 
   ProjectsStore.loadInitialData([project]);
@@ -186,7 +188,7 @@ describe('ActivitySection', () => {
   });
 
   it('deletes only the referenced comment', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
     const note = ActivityFeedFixture({
       id: '987',
       commentId: '123',
@@ -229,7 +231,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove comment'}));
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment removed');
+    expect(toast.success).toHaveBeenCalledWith('Comment removed');
     expect(onActivityChange).toHaveBeenCalledWith([resolution]);
   });
 
@@ -911,7 +913,7 @@ describe('ActivitySection', () => {
   });
 
   it('renders note and allows for edit', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     const note = ActivityFeedFixture({
       id: '123',
@@ -965,7 +967,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     await waitFor(() => expect(editMock).toHaveBeenCalledTimes(1));
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
+    expect(toast.success).toHaveBeenCalledWith('Comment updated');
     expect(onActivityChange).toHaveBeenCalledWith([
       {...note, data: {text: 'Group Test Updated'}},
       resolution,
@@ -1493,6 +1495,91 @@ describe('ActivitySection', () => {
     expect(screen.getByRole('link', {name: '4 new events'})).toBeInTheDocument();
     expect(screen.getByRole('img', {name: 'Activity update'})).toBeInTheDocument();
   });
+
+  it('renders unlink events with provider details and available links', async () => {
+    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+    const unlinkGroup = GroupFixture({
+      project,
+      activity: [
+        ActivityFeedFixture({
+          id: '1',
+          type: GroupActivityType.UNLINK_EXTERNAL_ISSUE,
+          data: {provider: 'github', external_issue_key: 'org/repo#42'},
+        }),
+        ActivityFeedFixture({
+          id: '2',
+          type: GroupActivityType.UNLINK_EXTERNAL_ISSUE,
+          data: {provider: 'jira_server', external_issue_key: 'APP-7'},
+        }),
+        ActivityFeedFixture({
+          id: '3',
+          type: GroupActivityType.UNLINK_EXTERNAL_ISSUE,
+          data: {provider: 'example', external_issue_key: 'EX-1'},
+        }),
+        ActivityFeedFixture({
+          id: '4',
+          type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+          data: {
+            service_type: 'linear',
+            display_name: 'APP-42',
+            web_url: 'https://linear.app/example/issue/APP-42',
+          },
+        }),
+      ],
+    });
+
+    render(
+      <GroupDataContextProvider group={unlinkGroup} project={project}>
+        <ActivitySection group={unlinkGroup} />
+      </GroupDataContextProvider>
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Unlinked GitHub issue org/repo#42');
+    expect(timeline).toHaveTextContent('Unlinked Jira Server issue APP-7');
+    expect(timeline).toHaveTextContent('Unlinked external issue EX-1');
+    expect(timeline).toHaveTextContent('Unlinked external issue APP-42');
+    expect(screen.getByRole('link', {name: 'APP-42'})).toHaveAttribute(
+      'href',
+      'https://linear.app/example/issue/APP-42'
+    );
+    expect(captureMessage).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {actor: 'user', user: UserFixture({name: 'Jane Doe'}), sentry_app: undefined},
+    {actor: 'app', user: null, sentry_app: SentryAppFixture({name: 'Issue Bot'})},
+    {actor: 'system or deleted app', user: null, sentry_app: undefined},
+  ])(
+    'renders unlink by $actor without a stored URL',
+    async ({user: actor, sentry_app}) => {
+      const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+      const unlinkGroup = GroupFixture({
+        project,
+        activity: [
+          ActivityFeedFixture({
+            type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+            user: actor,
+            sentry_app,
+            source: 'api',
+            data: {service_type: 'example', display_name: 'APP-99', web_url: ''},
+          }),
+        ],
+      });
+
+      render(
+        <GroupDataContextProvider group={unlinkGroup} project={project}>
+          <ActivitySection group={unlinkGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
+        `Unlinked external issue APP-99${sentry_app ? ' via Issue Bot' : ''}`
+      );
+      expect(screen.queryByRole('link', {name: 'APP-99'})).not.toBeInTheDocument();
+      expect(captureMessage).not.toHaveBeenCalled();
+    }
+  );
 
   it.each([
     {

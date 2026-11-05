@@ -49,6 +49,7 @@ class OrganizationReleaseFileDetailsEndpoint(
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
 
     @extend_schema(
         operation_id="getOrganizationReleaseFile",
@@ -75,7 +76,7 @@ class OrganizationReleaseFileDetailsEndpoint(
         },
     )
     def get(
-        self, request: Request, organization, version, file_id
+        self, request: Request, organization: Organization, version: str, file_id: str
     ) -> Response[ReleaseFileSerializerResponse] | FileResponse | Response[None]:
         """
         Return metadata for an individual file within a release. Does not return the file
@@ -112,7 +113,7 @@ class OrganizationReleaseFileDetailsEndpoint(
         },
     )
     def put(
-        self, request: Request, organization: Organization, version, file_id
+        self, request: Request, organization: Organization, version: str, file_id: str
     ) -> Response[ReleaseFileSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update metadata of an existing release file. Currently only the name of the file
@@ -141,7 +142,9 @@ class OrganizationReleaseFileDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, version, file_id) -> Response[None]:
+    def delete(
+        self, request: Request, organization: Organization, version: str, file_id: str
+    ) -> Response[None]:
         """
         Permanently remove a file from a release. Also removes the physical file from
         storage.

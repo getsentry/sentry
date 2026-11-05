@@ -13,23 +13,19 @@ import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/command
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useCaptureReturnPath} from 'sentry/utils/useReturnPath';
-import {
-  SETTINGS_PATH_PREFIX,
-  getSettingsReturnPathKey,
-} from 'sentry/views/navigation/constants';
-import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
-import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
-import {
-  NavigationTourProvider,
-  useNavigationTour,
-} from 'sentry/views/navigation/navigationTour';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {SETTINGS_PATH_PREFIX, getSettingsReturnPathKey} from './constants';
+import {MobileNavigation} from './mobileNavigation';
+import {Navigation as DesktopNavigation} from './navigation';
+import {NavigationTourProvider, useNavigationTour} from './navigationTour';
+import {usePrimaryNavigation} from './primaryNavigationContext';
 import {
   MobileSecondaryNavigationContextProvider,
   useSecondaryNavigation,
-} from 'sentry/views/navigation/secondaryNavigationContext';
-import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
-import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+} from './secondaryNavigationContext';
+import {SettingsNavigationTourProvider} from './settingsNavigationTour';
+import {useResetActiveNavigationGroup} from './useResetActiveNavigationGroup';
+import {useTopOffset} from './useTopOffset';
 
 /**
  * Renders the CMDK slot outlet elements in task → page → global DOM order so
@@ -70,7 +66,7 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
       ? []
       : [
           {
-            match: 'mod+b',
+            hotkey: 'Mod+B',
             callback: () => setView(view === 'expanded' ? 'collapsed' : 'expanded'),
           },
         ]
@@ -136,8 +132,10 @@ export function Navigation({pageBannerHeight = 0}: NavigationProps) {
   return (
     <HoverOverlayGroupProvider>
       <NavigationTourProvider>
-        <SkipLink />
-        <UserAndOrganizationNavigation pageBannerHeight={pageBannerHeight} />
+        <SettingsNavigationTourProvider>
+          <SkipLink />
+          <UserAndOrganizationNavigation pageBannerHeight={pageBannerHeight} />
+        </SettingsNavigationTourProvider>
       </NavigationTourProvider>
     </HoverOverlayGroupProvider>
   );

@@ -1,10 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
 
-import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
-import {dataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
-import {getToolBox} from 'sentry/components/charts/components/toolBox';
-import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -16,6 +12,11 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {dataZoomInside} from './components/dataZoomInside';
+import {getToolBox} from './components/toolBox';
+import {CHART_ZOOM_MERGE_OPTIONS} from './chartZoomConfig';
+import {activateZoomAreaSelect} from './utils';
 
 // TODO: replace usages of ChartZoom with useChartZoom
 

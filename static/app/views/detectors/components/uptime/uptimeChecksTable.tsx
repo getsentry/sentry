@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryStates} from 'nuqs';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -8,9 +9,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {uptimeChecksApiOptions} from 'sentry/views/insights/uptime/utils/uptimeChecksApiOptions';
 
 import {UptimeChecksGrid} from './uptimeChecksGrid';
@@ -26,22 +26,23 @@ export function UptimeChecksTable({
   project,
   traceSampling,
 }: UptimeChecksTableProps) {
-  const location = useLocation();
   const organization = useOrganization();
-
-  const timeRange = {
-    start: decodeScalar(location.query.start),
-    end: decodeScalar(location.query.end),
-    statsPeriod: decodeScalar(location.query.statsPeriod),
-  };
+  const [{cursor, start, end, statsPeriod}] = useQueryStates({
+    cursor: parseAsScalar,
+    start: parseAsScalar,
+    end: parseAsScalar,
+    statsPeriod: parseAsScalar,
+  });
 
   const {data, isError, isPending, refetch} = useQuery({
     ...uptimeChecksApiOptions({
       orgSlug: organization.slug,
       projectSlug: project.slug,
       detectorId,
-      cursor: decodeScalar(location.query.cursor),
-      ...timeRange,
+      cursor: cursor ?? undefined,
+      start: start ?? undefined,
+      end: end ?? undefined,
+      statsPeriod: statsPeriod ?? undefined,
       limit: 10,
     }),
     refetchOnWindowFocus: true,

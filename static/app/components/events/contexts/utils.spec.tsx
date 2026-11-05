@@ -1,4 +1,4 @@
-import {getKnownData} from 'sentry/components/events/contexts/utils';
+import {getKnownData} from './utils';
 
 describe('contexts utils', () => {
   describe('getKnownData', () => {

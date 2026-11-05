@@ -6,8 +6,9 @@ import {t, tct} from 'sentry/locale';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
-import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
-import {ServiceField} from 'sentry/views/automations/components/actions/serviceField';
+
+import {IntegrationField} from './integrationField';
+import {ServiceField} from './serviceField';
 
 const OPSGENIE_PRIORITIES = ['P1', 'P2', 'P3', 'P4', 'P5'];
 

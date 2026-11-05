@@ -8,7 +8,8 @@ import {
   type useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
-import {OpenInLogsButton} from 'sentry/views/explore/replays/detail/ourlogs/openInLogsButton';
+
+import {OpenInLogsButton} from './openInLogsButton';
 
 type Props = {
   searchQueryBuilderProps: TraceItemSearchQueryBuilderProps;

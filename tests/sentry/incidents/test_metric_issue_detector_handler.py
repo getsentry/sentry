@@ -1,15 +1,21 @@
 from datetime import timedelta
+from types import UnionType
+from typing import Any, Literal, Union, get_args, get_origin, get_type_hints, is_typeddict
 
+from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import (
+    MetricIssue,
     MetricIssueDetectorHandler,
     SessionsAggregate,
     get_alert_type_from_aggregate_dataset,
 )
+from sentry.incidents.typings.metric_issue_evidence import MetricIssueOccurrenceResponse
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
     ProcessedSubscriptionUpdate,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -17,6 +23,29 @@ from sentry.workflow_engine.models import DataCondition, DataPacket, DetectorSta
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_packet import process_data_packet
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
+
+
+def assert_matches_typed_dict(value: Any, hint: Any, path: str = "$") -> None:
+    """Assert `value` has exactly the keys its TypedDict `hint` declares, recursively."""
+    origin, args = get_origin(hint), get_args(hint)
+    if is_typeddict(hint):
+        assert isinstance(value, dict), path
+        hints = get_type_hints(hint)
+        missing = hint.__required_keys__ - value.keys()
+        extra = value.keys() - hints.keys()
+        assert not missing and not extra, f"{path}: missing {missing}, extra {extra}"
+        for key, item in value.items():
+            assert_matches_typed_dict(item, hints[key], f"{path}.{key}")
+    elif origin is list:
+        assert isinstance(value, list), path
+        for index, item in enumerate(value):
+            assert_matches_typed_dict(item, args[0], f"{path}[{index}]")
+    elif origin is Literal:
+        assert value in args, path
+    elif origin is Union or origin is UnionType:
+        typed_dicts = [arg for arg in args if is_typeddict(arg)]
+        if isinstance(value, dict) and typed_dicts:
+            assert_matches_typed_dict(value, typed_dicts[0], path)
 
 
 @freeze_time()
@@ -30,7 +59,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         value: int,
         detector_trigger: DataCondition,
         extra_trigger: DataCondition | None = None,
-    ):
+    ) -> dict[str, object]:
         self.query_subscription.refresh_from_db()
 
         conditions = [
@@ -87,7 +116,10 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         return evidence_data
 
     def verify_issue_occurrence(
-        self, occurrence: IssueOccurrence, evidence_data: dict, detector_trigger: DataCondition
+        self,
+        occurrence: IssueOccurrence,
+        evidence_data: dict[str, object],
+        detector_trigger: DataCondition,
     ) -> None:
         assert occurrence is not None
         assert occurrence.issue_title == self.detector.name
@@ -390,6 +422,32 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
             )
             == "eap_metrics"
         )
+
+
+@freeze_time()
+class TestMetricIssueOccurrenceResponse(BaseMetricIssueTest):
+    def test_serialized_occurrence_matches_response_type(self) -> None:
+        assert get_args(get_type_hints(MetricIssueOccurrenceResponse)["type"]) == (
+            MetricIssue.type_id,
+        )
+
+        # The factory's default config still has `threshold_period`, which the schema dropped.
+        self.detector.update(config={"detection_type": "static"})
+        data_packet = self.create_subscription_packet(self.critical_detector_trigger.comparison + 1)
+        occurrence = self.process_packet_and_return_result(data_packet)
+        assert isinstance(occurrence, IssueOccurrence)
+
+        event = Event(
+            project_id=self.project.id,
+            event_id=occurrence.event_id,
+            data={"timestamp": occurrence.detection_time.timestamp()},
+        ).for_group(self.create_group(project=self.project, type=MetricIssue.type_id))
+        event.occurrence = occurrence
+        serialized = serialize(event)["occurrence"]
+
+        assert_matches_typed_dict(serialized, MetricIssueOccurrenceResponse)
+        snuba_query = serialized["evidenceData"]["dataSources"][0]["queryObj"]["snubaQuery"]
+        assert snuba_query["timeWindow"] == self.snuba_query.time_window
 
 
 class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):

@@ -13,10 +13,6 @@ import {
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {
-  getPrimaryActionRequest,
-  NextStepCard,
-} from 'sentry/views/investigations/actionRequests/nextStepCard';
-import {
   getInvestigationDetailQueryOptions,
   type ActionRequestFollowUp,
 } from 'sentry/views/investigations/api';
@@ -36,6 +32,8 @@ import {
   SeerExplorerContext,
   useSeerExplorerContext,
 } from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {getPrimaryActionRequest, NextStepCard} from './nextStepCard';
 
 const latencyMonitor = {
   id: '789',
@@ -137,11 +135,11 @@ function connectedRequest(followUp: InvestigationActionRequest['followUp']) {
 }
 
 const applyUrl =
-  '/organizations/org-slug/investigations/investigation-1/action-requests/312/apply/';
+  '/organizations/org-slug/notebooks/investigation-1/action-requests/312/apply/';
 const recheckUrl =
-  '/organizations/org-slug/investigations/investigation-1/action-requests/312/recheck/';
+  '/organizations/org-slug/notebooks/investigation-1/action-requests/312/recheck/';
 const retryFollowUpUrl =
-  '/organizations/org-slug/investigations/investigation-1/action-requests/312/retry-follow-up/';
+  '/organizations/org-slug/notebooks/investigation-1/action-requests/312/retry-follow-up/';
 
 type MockResponse = Parameters<typeof MockApiClient.addMockResponse>[0];
 

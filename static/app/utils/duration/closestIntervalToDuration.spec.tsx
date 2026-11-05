@@ -1,4 +1,4 @@
-import {closestIntervalToDuration} from 'sentry/utils/duration/closestIntervalToDuration';
+import {closestIntervalToDuration} from './closestIntervalToDuration';
 
 describe('closestIntervalToDuration()', () => {
   it.each([

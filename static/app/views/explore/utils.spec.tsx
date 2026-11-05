@@ -9,13 +9,11 @@ import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {
-  DiscoverSavedQuery,
-  ReadableSavedQuery,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {SavedQuery, SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+
+import {Mode} from './contexts/pageParamsContext/mode';
+import type {DiscoverSavedQuery, ReadableSavedQuery} from './hooks/useGetSavedQueries';
+import {SavedQuery, SavedQueryType} from './hooks/useGetSavedQueries';
+import {VisualizeFunction} from './queryParams/visualize';
 import {
   findSuggestedColumns,
   getFirstSamplingWarning,
@@ -27,7 +25,7 @@ import {
   removeHiddenKeys,
   shouldWarnSamplingSensitive,
   viewSamplesTarget,
-} from 'sentry/views/explore/utils';
+} from './utils';
 
 describe('viewSamplesTarget', () => {
   const project = ProjectFixture();

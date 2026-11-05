@@ -66,18 +66,8 @@ def create_subscription_in_snuba(query_subscription_id: int, **kwargs: Any) -> N
         # into this state. Just attempt to delete the existing subscription and then
         # create a new one.
         query_dataset = Dataset(subscription.snuba_query.dataset)
-        try:
-            entity_key = get_entity_key_from_snuba_query(
-                subscription.snuba_query,
-                subscription.project.organization_id,
-                subscription.project_id,
-                skip_field_validation_for_entity_subscription_deletion=True,
-            )
-        except (InvalidSearchQuery, IncompatibleMetricsQuery):
-            # The subscription consumer deletes Snuba subscriptions that no longer
-            # match a QuerySubscription, so the old one is cleaned up from there.
-            metrics.incr("snuba.subscriptions.create.old_entity_key_unresolved")
-        else:
+        entity_key = _get_entity_key_for_delete(subscription, "create")
+        if entity_key is not None:
             try:
                 _delete_from_snuba(
                     query_dataset,
@@ -150,7 +140,7 @@ def update_subscription_in_snuba(
                     ),
                 },
             )
-            old_entity_key = (
+            old_entity_key: EntityKey | None = (
                 EntityKey.EAPItems
                 if dataset == Dataset.EventsAnalyticsPlatform
                 else get_entity_key_from_query_builder(
@@ -164,10 +154,9 @@ def update_subscription_in_snuba(
                 )
             )
         except (InvalidSearchQuery, IncompatibleMetricsQuery):
-            # The subscription consumer deletes Snuba subscriptions that no longer
-            # match a QuerySubscription, so the old one is cleaned up from there.
-            metrics.incr("snuba.subscriptions.update.old_entity_key_unresolved")
-        else:
+            _record_unresolved_entity_key("update")
+            old_entity_key = None
+        if old_entity_key is not None:
             _delete_from_snuba(
                 Dataset(dataset),
                 subscription.subscription_id,
@@ -213,20 +202,18 @@ def delete_subscription_from_snuba(query_subscription_id: int, **kwargs: Any) ->
 
     if subscription.subscription_id is not None and subscription.snuba_query is not None:
         query_dataset = Dataset(subscription.snuba_query.dataset)
-        try:
-            entity_key = get_entity_key_from_snuba_query(
-                subscription.snuba_query,
-                subscription.project.organization_id,
-                subscription.project_id,
-                skip_field_validation_for_entity_subscription_deletion=True,
-            )
-        except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
-            raise SubscriptionError(e)
-        _delete_from_snuba(
-            query_dataset,
-            subscription.subscription_id,
-            entity_key,
-        )
+        if query_dataset == Dataset.PerformanceMetrics:
+            # Snuba dropped the generic_metrics dataset and its subscriptions, and the indexer
+            # can no longer resolve the tags these queries use, so only the local rows remain.
+            metrics.incr("snuba.subscriptions.delete.removed_dataset")
+        else:
+            entity_key = _get_entity_key_for_delete(subscription, "delete")
+            if entity_key is not None:
+                _delete_from_snuba(
+                    query_dataset,
+                    subscription.subscription_id,
+                    entity_key,
+                )
 
     if subscription.status == QuerySubscription.Status.DELETING.value:
         snuba_query = subscription.snuba_query
@@ -241,6 +228,26 @@ def delete_subscription_from_snuba(query_subscription_id: int, **kwargs: Any) ->
             snuba_query.delete()
     else:
         subscription.update(subscription_id=None)
+
+
+def _record_unresolved_entity_key(action: str) -> None:
+    # We can't tell Snuba which entity to delete from, so we leave the Snuba
+    # subscription in place. Once no QuerySubscription has its subscription_id, the
+    # subscription consumer deletes it when its next result arrives.
+    metrics.incr("snuba.subscriptions.entity_key_unresolved", tags={"action": action})
+
+
+def _get_entity_key_for_delete(subscription: QuerySubscription, action: str) -> EntityKey | None:
+    try:
+        return get_entity_key_from_snuba_query(
+            subscription.snuba_query,
+            subscription.project.organization_id,
+            subscription.project_id,
+            skip_field_validation_for_entity_subscription_deletion=True,
+        )
+    except (InvalidSearchQuery, IncompatibleMetricsQuery):
+        _record_unresolved_entity_key(action)
+        return None
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
@@ -355,7 +362,8 @@ def _create_snql_in_snuba(
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
 
-    return orjson.loads(response.data)["subscription_id"]
+    subscription_id = orjson.loads(response.data)["subscription_id"]
+    return subscription_id
 
 
 def _create_rpc_in_snuba(

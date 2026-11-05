@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.utils.text import get_text_list
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -43,7 +43,7 @@ MONITORS_INCIDENT_OCCURRENCES: Codec[IncidentOccurrence] = get_topic_codec(
 )
 
 
-def _get_producer():
+def _get_producer() -> KafkaProducer:
     return get_arroyo_producer(
         name="sentry.monitors.logic.incident_occurrence",
         topic=Topic.MONITORS_INCIDENT_OCCURRENCES,
@@ -198,8 +198,9 @@ def send_incident_occurrence(
     else:
         trace_id = None
 
-    event_data = {
-        "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
+    contexts: dict[str, object] = {"monitor": get_monitor_environment_context(monitor_env)}
+    event_data: dict[str, object] = {
+        "contexts": contexts,
         "environment": monitor_env.get_environment().name,
         "event_id": occurrence.event_id,
         "fingerprint": [incident.grouphash],
@@ -219,7 +220,7 @@ def send_incident_occurrence(
     }
 
     if trace_id:
-        event_data["contexts"]["trace"] = {"trace_id": trace_id, "span_id": None}
+        contexts["trace"] = {"trace_id": trace_id, "span_id": None}
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE,
@@ -242,7 +243,9 @@ SINGULAR_HUMAN_FAILURE_MAP: Mapping[int, _StrPromise] = {
 }
 
 
-def get_failure_reason(failed_checkins: Sequence[MonitorCheckIn]):
+def get_failure_reason(
+    failed_checkins: Sequence[MonitorCheckIn],
+) -> str | _StrPromise:
     """
     Builds a human readable string from a list of failed check-ins.
 
@@ -271,7 +274,9 @@ def get_failure_reason(failed_checkins: Sequence[MonitorCheckIn]):
     return _("%(problem_checkins)s check-ins detected") % {"problem_checkins": human_status}
 
 
-def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
+def get_monitor_environment_context(
+    monitor_environment: MonitorEnvironment,
+) -> dict[str, object]:
     config = monitor_environment.monitor.config.copy()
     if "schedule_type" in config:
         config["schedule_type"] = monitor_environment.monitor.get_schedule_type_display()

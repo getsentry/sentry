@@ -1,3 +1,6 @@
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Annotated, cast
+
 from django.db.models import Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -11,29 +14,38 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organizationmember import InviteStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 from sentry.users.api.serializers.user import UserSerializerResponse
 
 
 class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
     # NOTE: We override users to be required b/c team members will always have
     # an existing user to be part of a team.
-    user: UserSerializerResponse  # type: ignore[misc]
-    teamRole: str | None
-    teamSlug: str
+    user: Annotated[UserSerializerResponse, ApiDescription("The member's user")]  # type: ignore[misc]
+    teamRole: Annotated[
+        str | None,
+        ApiDescription(
+            "ID of the member's team role, or null if the member has the minimum team role from their organization role"
+        ),
+    ]
+    teamSlug: Annotated[str, ApiDescription("Slug of the team")]
 
 
 @register(OrganizationMemberTeam)
 class DetailedOrganizationMemberTeamSerializer(Serializer[OrganizationMemberOnTeamResponse]):
-    def __init__(self, *args, **kwargs):
-        self.team = kwargs.pop("team", None)
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        self.team = cast("Team | None", kwargs.pop("team", None))
         super().__init__(*args, **kwargs)
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self, item_list: Sequence[OrganizationMemberTeam], user: object, **kwargs: object
+    ) -> MutableMapping[OrganizationMemberTeam, dict[str, object]]:
         prefetch_related_objects(item_list, "organizationmember")
 
         org_member_set = serialize(
@@ -45,17 +57,23 @@ class DetailedOrganizationMemberTeamSerializer(Serializer[OrganizationMemberOnTe
         )
         org_member_dict = {om["id"]: om for om in org_member_set}
 
-        attrs = {}
+        attrs: dict[OrganizationMemberTeam, dict[str, object]] = {}
         for org_member_team in item_list:
             attrs[org_member_team] = {
                 "org_member": org_member_dict[f"{org_member_team.organizationmember_id}"]
             }
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs) -> OrganizationMemberOnTeamResponse:
-        org_member = attrs["org_member"]
+    def serialize(
+        self,
+        obj: OrganizationMemberTeam,
+        attrs: Mapping[object, object],
+        user: object,
+        **kwargs: object,
+    ) -> OrganizationMemberOnTeamResponse:
+        org_member = cast("OrganizationMemberOnTeamResponse", attrs["org_member"])
         org_member["teamRole"] = obj.role
-        org_member["teamSlug"] = self.team.slug
+        org_member["teamSlug"] = cast(Team, self.team).slug
         return org_member
 
 
@@ -84,7 +102,7 @@ class TeamMembersEndpoint(TeamEndpoint):
         },
         examples=TeamExamples.LIST_TEAM_MEMBERS,
     )
-    def get(self, request: Request, team) -> Response[list[OrganizationMemberOnTeamResponse]]:
+    def get(self, request: Request, team: Team) -> Response[list[OrganizationMemberOnTeamResponse]]:
         """
         List all members on a team.
 

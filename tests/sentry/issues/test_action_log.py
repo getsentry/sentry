@@ -190,12 +190,14 @@ class TestResolveActionActor(TestCase):
 
     def test_sentry_app_token_resolves_to_app(self) -> None:
         sentry_app = self.create_sentry_app(organization=self.organization)
+        proxy_user = sentry_app.proxy_user
+        assert proxy_user is not None
         auth = AuthenticatedToken(
             kind="api_token",
             application_id=sentry_app.application_id,
-            user_id=sentry_app.proxy_user.id,
+            user_id=proxy_user.id,
         )
-        request = self._request(auth=auth, user=sentry_app.proxy_user)
+        request = self._request(auth=auth, user=proxy_user)
         assert resolve_action_actor(request) == GroupActionActor.sentry_app(sentry_app.id)
 
     def test_user_oauth_token_with_application_id_is_user(self) -> None:

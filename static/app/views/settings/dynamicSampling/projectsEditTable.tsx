@@ -8,16 +8,17 @@ import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
 import {useProjects} from 'sentry/utils/useProjects';
-import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
-import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
-import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
-import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
-import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
-import {scaleSampleRates} from 'sentry/views/settings/dynamicSampling/utils/scaleSampleRates';
+
+import {formatPercent} from './utils/formatPercent';
+import {parsePercent} from './utils/parsePercent';
+import {scaleSampleRates} from './utils/scaleSampleRates';
 import type {
   ProjectionSamplePeriod,
   ProjectSampleCount,
-} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+} from './utils/useProjectSampleCounts';
+import {OrganizationSampleRateInput} from './organizationSampleRateInput';
+import {ProjectsTable} from './projectsTable';
+import {SamplingBreakdown} from './samplingBreakdown';
 
 interface Props {
   actions: React.ReactNode;

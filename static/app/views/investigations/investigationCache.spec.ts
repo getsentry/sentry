@@ -1,8 +1,8 @@
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
-import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
-import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
-import type {InvestigationDetail} from 'sentry/views/investigations/types';
+import {getInvestigationDetailQueryOptions} from './api';
+import {updateInvestigationCache} from './investigationCache';
+import type {InvestigationDetail} from './types';
 
 const investigation: InvestigationDetail = {
   blockCount: 1,

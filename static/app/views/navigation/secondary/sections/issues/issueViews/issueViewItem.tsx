@@ -15,8 +15,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
-import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
-import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewUtils';
+
+import {IssueViewQueryCount} from './issueViewQueryCount';
+import type {IssueView} from './issueViewUtils';
 
 interface IssueViewItemProps {
   isActive: boolean;

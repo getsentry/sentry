@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, call, patch
 from uuid import uuid4
@@ -10,6 +10,7 @@ from urllib3.exceptions import ReadTimeoutError
 from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
     PARENT_SPAN_ATTRIBUTES,
     OrganizationAIConversationDetailsEndpoint,
+    SpanRow,
 )
 from sentry.ai_monitoring.transcript.builder import (
     TranscriptContextError,
@@ -19,7 +20,10 @@ from sentry.ai_monitoring.transcript.pagination import TranscriptWorkLimitError
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
+from sentry.services.eventstore.models import Event
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
@@ -448,7 +452,12 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             == f"/api/0/organizations/{self.organization.slug}/agents/conversations/{conversation_id}/"
         )
 
-    def do_request(self, conversation_id, query=None, **kwargs):
+    def do_request(
+        self,
+        conversation_id: str,
+        query: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Any:
         query = query or {}
 
         return self.client.get(
@@ -464,7 +473,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             **kwargs,
         )
 
-    def _store_conversation_span(self, conversation_id, timestamp, project=None) -> None:
+    def _store_conversation_span(
+        self, conversation_id: str, timestamp: datetime, project: Project | None = None
+    ) -> None:
         """One minimal span, enough for the conversation to resolve to a project."""
         self.store_ai_span(
             conversation_id=conversation_id,
@@ -1292,7 +1303,13 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         assert response.status_code == 504
 
-    def _store_error_on_span(self, trace_id, span_id, timestamp, project=None):
+    def _store_error_on_span(
+        self,
+        trace_id: str,
+        span_id: str,
+        timestamp: datetime,
+        project: Project | None = None,
+    ) -> Event:
         project = project or self.project
         error_data = load_data("javascript", timestamp=timestamp)
         assert error_data is not None
@@ -1986,7 +2003,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             tool_name="another-lookup",
         )
 
-        def annotate(spans, params, organization):
+        def annotate(spans: list[SpanRow], params: SnubaParams, organization: Organization) -> None:
             spans[0]["errors"] = [{"issue_id": 1}]
 
         with (

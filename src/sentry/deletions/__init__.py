@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -32,9 +33,9 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.discover import models as discover
     from sentry.incidents import models as incidents
     from sentry.integrations import models as integrations
-    from sentry.investigations import models as investigations
     from sentry.monitors import models as monitors
     from sentry.notebooks import models as notebooks
+    from sentry.notifications import models as notifications
     from sentry.preprod import models as preprod
     from sentry.seer.models.run import SeerRun
     from sentry.sentry_apps import models as sentry_apps
@@ -105,18 +106,10 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(discover.DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
     manager.register(discover.DiscoverSavedQueryProject, BulkModelDeletionTask)
     manager.register(incidents.AlertRule, defaults.AlertRuleDeletionTask)
+    manager.register(notifications.InboxItem, defaults.InboxItemDeletionTask)
+    manager.register(notifications.InboxItemEvent, BulkModelDeletionTask)
     manager.register(integrations.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
     manager.register(integrations.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask)
-    manager.register(investigations.Investigation, defaults.InvestigationDeletionTask)
-    manager.register(investigations.InvestigationBlock, defaults.InvestigationBlockDeletionTask)
-    manager.register(investigations.InvestigationBlockDependency, BulkModelDeletionTask)
-    manager.register(investigations.InvestigationBlockExecution, defaults.InvestigationBlockExecutionDeletionTask)
-    manager.register(investigations.InvestigationBlockExecutionProject, BulkModelDeletionTask)
-    manager.register(investigations.InvestigationBlockParameter, BulkModelDeletionTask)
-    manager.register(investigations.InvestigationComment, BulkModelDeletionTask)
-    manager.register(investigations.InvestigationFavoriteUser, BulkModelDeletionTask)
-    manager.register(investigations.InvestigationProject, BulkModelDeletionTask)
-    manager.register(investigations.InvestigationSeen, BulkModelDeletionTask)
     manager.register(notebooks.Notebook, defaults.NotebookDeletionTask)
     manager.register(notebooks.NotebookBlock, defaults.NotebookBlockDeletionTask)
     manager.register(notebooks.NotebookBlockExecution, defaults.NotebookBlockExecutionDeletionTask)
@@ -191,7 +184,7 @@ def exec_sync(instance: Model) -> None:
     return get_manager().exec_sync(instance)
 
 
-def exec_sync_many(instances: list[Model]) -> None:
+def exec_sync_many(instances: Sequence[Model]) -> None:
     """
     Execute a deletion task for multiple records synchronously
 

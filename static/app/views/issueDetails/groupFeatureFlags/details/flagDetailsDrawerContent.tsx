@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -23,7 +24,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
@@ -42,11 +42,14 @@ interface Props {
 }
 
 export function FlagDetailsDrawerContent({group}: Props) {
-  const navigate = useNavigate();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
+  const [flagDrawerCursor, setFlagDrawerCursor] = useQueryState(
+    'flagDrawerCursor',
+    parseAsString
+  );
 
   const {
     data: flagLog,
@@ -60,7 +63,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
         per_page: 50,
         queryReferrer: 'featureFlagDetailsDrawer',
         sort: '-created_at',
-        cursor: location.query.flagDrawerCursor,
+        cursor: flagDrawerCursor ?? undefined,
       },
     }),
     select: selectJsonWithHeaders,
@@ -133,19 +136,13 @@ export function FlagDetailsDrawerContent({group}: Props) {
       {isPending || isError || !flagLog.json.data.length ? null : (
         <Pagination
           pageLinks={pageLinks}
-          onCursor={(cursor, path, query) => {
+          onCursor={cursor => {
             trackAnalytics('flags.logs-paginated', {
               direction: cursor?.endsWith(':1') ? 'prev' : 'next',
               organization,
               surface: analyticsArea,
             });
-            navigate({
-              pathname: path,
-              query: {
-                ...query,
-                flagDrawerCursor: cursor,
-              },
-            });
+            setFlagDrawerCursor(cursor ?? null, {history: 'push'});
           }}
           size="xs"
         />

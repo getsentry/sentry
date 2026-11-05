@@ -94,8 +94,8 @@ def test_audit_log_event_bad_target_user_id() -> None:
 
     with assume_test_silo_mode(SiloMode.CONTROL):
         log = AuditLogEntry.objects.get()
-        assert log.actor_id is None
-        assert log.target_user_id is None
+        assert not log.actor_id
+        assert not log.target_user_id
 
 
 @django_db_all
