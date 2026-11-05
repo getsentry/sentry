@@ -52,6 +52,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
       organization,
       autoTopUp,
       creditPriceCents,
+      purchasedExpiresAt: wallet.purchased.expiresAt,
     });
 
   return (
@@ -98,7 +99,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
             variant={isPaused ? 'primary' : 'secondary'}
             onClick={openModal}
           >
-            {t('Turn on auto top-up')}
+            {t('Turn on auto-reload')}
           </Button>
         ),
       ]}
@@ -141,9 +142,9 @@ function AutoTopUpStatus({
     return <Tag variant="warning">{t('Paused')}</Tag>;
   }
   if (autoTopUpEnabled) {
-    return <Tag variant="success">{t('Auto top-up on')}</Tag>;
+    return <Tag variant="success">{t('Auto-reload on')}</Tag>;
   }
-  return <Tag variant="muted">{t('Auto top-up off')}</Tag>;
+  return <Tag variant="muted">{t('Auto-reload off')}</Tag>;
 }
 
 function CreditBreakdown({
@@ -213,7 +214,7 @@ function CreditBreakdown({
             <Grid columns="1fr auto" gap="xs md" paddingLeft="md" borderLeft="primary">
               <Text align="left">{t('If credits fall below')}</Text>
               <Text align="right">{autoTopUp.thresholdCredits.toLocaleString()}</Text>
-              <Text align="left">{t('Top up by')}</Text>
+              <Text align="left">{t('Reload by')}</Text>
               <Text align="right">{autoTopUp.topUpCredits.toLocaleString()}</Text>
               <Text align="left">{t('Up to a maximum of')}</Text>
               <Text align="right">
