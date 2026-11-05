@@ -9,11 +9,6 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {CommitLink} from 'sentry/components/commitLink';
-import {TextOverflow} from 'sentry/components/textOverflow';
-import {TimeSince} from 'sentry/components/timeSince';
-import {Version} from 'sentry/components/version';
-import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t, tct} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';
@@ -21,6 +16,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {Divider} from 'sentry/views/issueDetails/divider';
+
+import {CommitLink} from './commitLink';
+import {TextOverflow} from './textOverflow';
+import {TimeSince} from './timeSince';
+import {Version} from './version';
+import {VersionHoverCard} from './versionHoverCard';
 
 export function formatCommitMessage(message: string | null) {
   if (!message) {

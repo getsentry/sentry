@@ -23,7 +23,7 @@ class ActionInput(TypedDict):
     type: str
     data: dict[str, Any]
     config: dict[str, Any]
-    integrationId: NotRequired[int | None]
+    integrationId: NotRequired[str | None]
     status: NotRequired[str]
 
 

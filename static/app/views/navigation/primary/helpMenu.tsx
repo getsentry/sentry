@@ -15,8 +15,8 @@ import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -26,11 +26,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {
-  useWhatsNewBroadcasts,
-  WhatsNewContent,
-} from 'sentry/views/navigation/primary/whatsNew';
+
+import {PrimaryNavigation} from './components';
+import {useWhatsNewBroadcasts, WhatsNewContent} from './whatsNew';
 
 interface PrimaryNavigationHelpMenuProps {
   additionalItems?: MenuItemProps[];

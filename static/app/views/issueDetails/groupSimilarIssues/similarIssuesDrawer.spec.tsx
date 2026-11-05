@@ -11,7 +11,8 @@ import {
 
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {SimilarIssuesDrawer} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssuesDrawer';
+
+import {SimilarIssuesDrawer} from './similarIssuesDrawer';
 
 describe('SimilarIssuesDrawer', () => {
   const organization = OrganizationFixture();

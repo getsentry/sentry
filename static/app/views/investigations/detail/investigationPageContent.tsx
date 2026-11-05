@@ -38,22 +38,6 @@ import {
 import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {
-  InvestigationNotebookBlock,
-  isBlockWorking,
-  shouldDisplayInvestigationBlock,
-} from 'sentry/views/investigations/detail/block';
-import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
-import {
-  ACTIVITY_ELEMENT_ID,
-  getInvestigationOutline,
-  HYPOTHESES_ELEMENT_ID,
-  InvestigationOutline,
-  SUMMARY_ELEMENT_ID,
-} from 'sentry/views/investigations/detail/outline';
-import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
-import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
-import type {InvestigationTitle} from 'sentry/views/investigations/detail/useInvestigationTitle';
-import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
@@ -74,6 +58,23 @@ import type {
   InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import {
+  InvestigationNotebookBlock,
+  isBlockWorking,
+  shouldDisplayInvestigationBlock,
+} from './block';
+import {InvestigationBlockPlaceholder} from './blockPlaceholder';
+import {
+  ACTIVITY_ELEMENT_ID,
+  getInvestigationOutline,
+  HYPOTHESES_ELEMENT_ID,
+  InvestigationOutline,
+  SUMMARY_ELEMENT_ID,
+} from './outline';
+import {InvestigationViewers} from './presence';
+import {InvestigationRunTimer} from './runTimer';
+import type {InvestigationTitle} from './useInvestigationTitle';
 
 const STATUS_TAG_VARIANT = {
   running: 'info',

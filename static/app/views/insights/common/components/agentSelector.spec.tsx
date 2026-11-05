@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
+import {AgentSelector} from './agentSelector';
 
 const AGENTS = ['Alpha', 'Bravo', 'Charlie', 'Delta'];
 

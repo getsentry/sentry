@@ -1,5 +1,5 @@
-import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
-import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
+import type {ViewerProps} from './utils';
+import {getAttachmentUrl} from './utils';
 
 type Props = Omit<ViewerProps, 'attachment'> & {
   attachment: ViewerProps['attachment'];

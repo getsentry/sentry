@@ -1,6 +1,7 @@
 import {applyBreadcrumbSearch} from 'sentry/components/events/interfaces/breadcrumbs';
-import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+
+import type {BreadcrumbWithMeta} from './types';
 
 function createCrumb(id: number, message: string): BreadcrumbWithMeta {
   return {

@@ -5,13 +5,8 @@ import {Tag} from '@sentry/scraps/badge';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -47,16 +42,16 @@ export function SentryAppDetails() {
       });
     },
     onMutate: () => {
-      addLoadingMessage('Saving Changes...');
+      toast.loading('Saving Changes...');
     },
     onSuccess: updatedData => {
-      addSuccessMessage(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
-      clearIndicators();
+      toast.success(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
+      toast.dismiss();
       setApiQueryData(queryClient, [ENDPOINT], updatedData);
     },
     onError: () => {
-      addErrorMessage('There was an internal error with updating the resource.');
-      clearIndicators();
+      toast.error('There was an internal error with updating the resource.');
+      toast.dismiss();
     },
   });
 

@@ -13,10 +13,6 @@ import {
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {
-  getPrimaryActionRequest,
-  NextStepCard,
-} from 'sentry/views/investigations/actionRequests/nextStepCard';
-import {
   getInvestigationDetailQueryOptions,
   type ActionRequestFollowUp,
 } from 'sentry/views/investigations/api';
@@ -36,6 +32,8 @@ import {
   SeerExplorerContext,
   useSeerExplorerContext,
 } from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {getPrimaryActionRequest, NextStepCard} from './nextStepCard';
 
 const latencyMonitor = {
   id: '789',

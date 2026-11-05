@@ -10,7 +10,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {StreamGroup} from 'sentry/components/stream/group';
 import {TagStore} from 'sentry/stores/tagStore';
 import type {Group} from 'sentry/types/group';
-import IssueList from 'sentry/views/issueList/overview';
+
+import IssueList from './overview';
 
 jest.mock('sentry/views/issueList/filters', () => ({
   IssueListFilters: jest.fn(() => null),

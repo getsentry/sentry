@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {makeSeerLocation, makeSeerQuery} from 'sentry/views/issueDetails/autofix/utils';
+import {makeSeerLocation, makeSeerQuery} from './utils';
 
 describe('makeSeerLocation', () => {
   const withPage = OrganizationFixture({features: ['autofix-page']});

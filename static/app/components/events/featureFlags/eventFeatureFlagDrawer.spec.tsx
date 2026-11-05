@@ -2,14 +2,15 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+
+import {EventFeatureFlagSection} from './eventFeatureFlagSection';
 import {
   MOCK_DATA_SECTION_PROPS,
   MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG,
   MOCK_FLAGS,
-} from 'sentry/components/events/featureFlags/testUtils';
-import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+} from './testUtils';
 
 async function openFlagDrawer() {
   mockElementSize({width: 0, height: 30});

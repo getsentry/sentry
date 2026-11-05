@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
-import {ProjectsNavigationItems} from 'sentry/views/navigation/secondary/sections/projects/starredProjectsList';
+
+import {ProjectsNavigationItems} from './starredProjectsList';
 
 export function ProjectsSecondaryNavigation() {
   return (

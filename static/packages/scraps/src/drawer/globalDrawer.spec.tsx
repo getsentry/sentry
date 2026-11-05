@@ -124,9 +124,7 @@ describe('GlobalDrawer', () => {
 
   it('keeps passive drawers open during outside interaction and navigation', async () => {
     const {rerender} = render(
-      <OverlayContextProvider
-        value={{drawer: {location: {pathname: '/first', query: {}}}}}
-      >
+      <OverlayContextProvider value={{location: {pathname: '/first', query: {}}}}>
         <GlobalDrawer>
           <DrawerControl options={{mode: 'passive'}} />
           <button>Outside</button>
@@ -139,9 +137,7 @@ describe('GlobalDrawer', () => {
     expect(document.body).not.toHaveStyle({position: 'fixed'});
     await userEvent.click(screen.getByRole('button', {name: 'Outside'}));
     rerender(
-      <OverlayContextProvider
-        value={{drawer: {location: {pathname: '/second', query: {}}}}}
-      >
+      <OverlayContextProvider value={{location: {pathname: '/second', query: {}}}}>
         <GlobalDrawer>
           <DrawerControl options={{mode: 'passive'}} />
           <button>Outside</button>
@@ -154,9 +150,7 @@ describe('GlobalDrawer', () => {
   it('uses supplied navigation data without calling onClose', async () => {
     const onClose = jest.fn();
     const {rerender} = render(
-      <OverlayContextProvider
-        value={{drawer: {location: {pathname: '/first', query: {}}}}}
-      >
+      <OverlayContextProvider value={{location: {pathname: '/first', query: {}}}}>
         <GlobalDrawer>
           <DrawerControl options={{onClose}} />
         </GlobalDrawer>
@@ -166,9 +160,7 @@ describe('GlobalDrawer', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Open Details'}));
     expect(await screen.findByText('Details content')).toBeInTheDocument();
     rerender(
-      <OverlayContextProvider
-        value={{drawer: {location: {pathname: '/second', query: {}}}}}
-      >
+      <OverlayContextProvider value={{location: {pathname: '/second', query: {}}}}>
         <GlobalDrawer>
           <DrawerControl options={{onClose}} />
         </GlobalDrawer>

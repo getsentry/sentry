@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {IconBroadcast} from '@sentry/icons/broadcast';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Image} from '@sentry/scraps/image';
@@ -12,14 +12,13 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  PrimaryNavigation,
-  usePrimaryNavigationButtonOverlay,
-} from 'sentry/views/navigation/primary/components';
+
+import {PrimaryNavigation, usePrimaryNavigationButtonOverlay} from './components';
 
 const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
   announcement: t('Announcement'),
@@ -193,20 +192,15 @@ function WhatsNewBroadcastList({
  */
 export function useWhatsNewBroadcasts() {
   const organization = useOrganization();
-  const {isPending, data: broadcasts} = useApiQuery<Broadcast[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/broadcasts/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {show: 'latest', limit: '3'}},
-    ],
-    {
+  const {isPending, data: broadcasts} = useQuery({
+    ...apiOptions.as<Broadcast[]>()('/organizations/$organizationIdOrSlug/broadcasts/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {show: 'latest', limit: '3'},
       staleTime: 1000 * 60 * 5,
-      // 10 minutes poll
-      refetchInterval: 1000 * 60 * 10,
-      refetchOnWindowFocus: true,
-    }
-  );
+    }),
+    refetchInterval: 1000 * 60 * 10,
+    refetchOnWindowFocus: true,
+  });
   const allBroadcasts = useMemo(
     () => (Array.isArray(broadcasts) ? broadcasts : []),
     [broadcasts]

@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getAppContextData,
-  type AppContext,
-} from 'sentry/components/events/contexts/knownContext/app';
+
+import {getAppContextData, type AppContext} from './app';
 
 const MOCK_APP_CONTEXT: AppContext = {
   device_app_hash: '2421fae1ac9237a8131e74883e52b0f7034a143f',

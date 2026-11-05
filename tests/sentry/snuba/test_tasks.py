@@ -153,6 +153,20 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_already_created_unresolvable_entity_key(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING, subscription_id=uuid4().hex, query="status:400"
+        )
+        with (
+            patch("sentry.snuba.tasks._delete_from_snuba") as delete_from_snuba,
+            pytest.raises(SubscriptionError),
+        ):
+            create_subscription_in_snuba(sub.id)
+        delete_from_snuba.assert_not_called()
+        self.metrics.incr.assert_any_call(
+            "snuba.subscriptions.entity_key_unresolved", tags={"action": "create"}
+        )
+
     def test_status_join(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query="status:unresolved")
         create_subscription_in_snuba(sub.id)
@@ -309,6 +323,21 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_unresolvable_old_query(self) -> None:
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING, subscription_id=subscription_id
+        )
+        with patch("sentry.snuba.tasks._delete_from_snuba") as delete_from_snuba:
+            update_subscription_in_snuba(sub.id, old_query="status:400")
+        delete_from_snuba.assert_not_called()
+        self.metrics.incr.assert_any_call(
+            "snuba.subscriptions.entity_key_unresolved", tags={"action": "update"}
+        )
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id not in (None, subscription_id)
+
     def test_eap_rpc_query_count(self) -> None:
         with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
             sub = self.create_subscription(
@@ -436,15 +465,35 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
 
     def test_query_that_raises_invalid_search_query(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
-        with pytest.raises(SubscriptionError):
-            sub = self.create_subscription(
-                QuerySubscription.Status.DELETING,
-                dataset=Dataset.Metrics,
-                subscription_id=subscription_id,
-                query="project:foo",
-                aggregate="percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
-            )
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            dataset=Dataset.Metrics,
+            subscription_id=subscription_id,
+            query="project:foo",
+            aggregate="percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+        )
+        with patch("sentry.snuba.tasks._delete_from_snuba") as delete_from_snuba:
             delete_subscription_from_snuba(sub.id)
+        delete_from_snuba.assert_not_called()
+        self.metrics.incr.assert_any_call(
+            "snuba.subscriptions.entity_key_unresolved", tags={"action": "delete"}
+        )
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_disabled_unresolvable_entity_key_clears_subscription_id(self) -> None:
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DISABLED,
+            dataset=Dataset.Metrics,
+            subscription_id=subscription_id,
+            query="project:foo",
+            aggregate="percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+        )
+        with patch("sentry.snuba.tasks._delete_from_snuba") as delete_from_snuba:
+            delete_subscription_from_snuba(sub.id)
+        delete_from_snuba.assert_not_called()
+        sub.refresh_from_db()
+        assert sub.subscription_id is None
 
 
 class BuildSnqlQueryTest(TestCase):

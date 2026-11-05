@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
-import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {TagDistribution} from './tagDistribution';
+import type {GroupTag} from './useGroupTags';
 
 describe('TagDistribution', () => {
   it('renders distribution topValues [500, 490, 10], totalValues 1000', () => {

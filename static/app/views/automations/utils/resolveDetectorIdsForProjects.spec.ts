@@ -7,7 +7,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
-import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
+
+import {resolveDetectorIdsForProjects} from './resolveDetectorIdsForProjects';
 
 describe('resolveDetectorIdsForProjects', () => {
   beforeEach(() => {

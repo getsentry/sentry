@@ -59,39 +59,40 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
-import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
-import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
-import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
-import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
-import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
-import {useIssueActivityDrawer} from 'sentry/views/issueDetails/hooks/useIssueActivityDrawer';
-import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/hooks/useMergedIssuesDrawer';
-import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/hooks/useSimilarIssuesDrawer';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {hasAutofixPage, makeSeerLocation} from './autofix/utils';
+import {useGroupDistributionsDrawer} from './groupDistributions/useGroupDistributionsDrawer';
+import GroupEventDetails from './groupEventDetails/groupEventDetails';
+import {useAiConfig} from './hooks/useAiConfig';
+import {useIssueActivityDrawer} from './hooks/useIssueActivityDrawer';
+import {useMergedIssuesDrawer} from './hooks/useMergedIssuesDrawer';
+import {useSimilarIssuesDrawer} from './hooks/useSimilarIssuesDrawer';
+import {useOpenSeerDrawer} from './sidebar/seerDrawer';
+import {ERROR_TYPES} from './constants';
+import {GroupDataContextProvider} from './groupDataContext';
+import {GroupDetailsLayout} from './groupDetailsLayout';
+import {GroupIdProvider, useGroupId} from './groupIdContext';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   IssueDetailsTourModal,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
   type IssueDetailsTour,
-} from 'sentry/views/issueDetails/issueDetailsTour';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
-import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {RESERVED_EVENT_IDS, useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+} from './issueDetailsTour';
+import {Tab} from './types';
+import {useEngagedViewTracking} from './useEngagedViewTracking';
+import {groupApiOptions, useGroup} from './useGroup';
+import {useGroupDetailsRoute} from './useGroupDetailsRoute';
+import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-} from 'sentry/views/issueDetails/utils';
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+} from './utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -156,12 +157,12 @@ function getReprocessingNewRoute({
   currentTab,
   baseUrl,
   location,
-  currentParamGroupId,
+  currentGroupId,
 }: {
   /**
-   * The groupId from the URL params to compare against the group id that was loaded.
+   * The requested group ID to compare against the group ID that was loaded.
    */
-  currentParamGroupId: string;
+  currentGroupId: string;
   group: Group;
   location: ReturnType<typeof useLocation>;
   orgSlug: string;
@@ -170,7 +171,7 @@ function getReprocessingNewRoute({
 
   const reprocessingStatus = getGroupReprocessingStatus(group);
 
-  if (currentParamGroupId !== nextGroupId) {
+  if (currentGroupId !== nextGroupId) {
     // Redirects to the Activities tab
     if (
       reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
@@ -263,7 +264,8 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
-  const params = useParams<{groupId: string; eventId?: string}>();
+  const {eventId} = useParams<{eventId?: string}>();
+  const groupId = useGroupId();
   const navigate = useNavigate();
   const {projects} = useProjects();
 
@@ -273,15 +275,13 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   const {currentTab, baseUrl} = useGroupDetailsRoute();
   const environments = useEnvironmentsFromUrl();
 
-  const groupId = params.groupId;
-
   const {
     data: event,
     isPending: loadingEvent,
     refetch: refetchEvent,
   } = useGroupEvent({
     groupId,
-    eventId: params.eventId,
+    eventId,
   });
 
   const {
@@ -360,7 +360,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
         currentTab,
         location,
         baseUrl,
-        currentParamGroupId: params.groupId,
+        currentGroupId: groupId,
         orgSlug: organization.slug,
       });
 
@@ -368,16 +368,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
         navigate(reprocessingNewRoute, {replace: true});
       }
     }
-  }, [
-    group,
-    event,
-    location,
-    currentTab,
-    baseUrl,
-    navigate,
-    organization.slug,
-    params.groupId,
-  ]);
+  }, [group, event, location, currentTab, baseUrl, navigate, organization.slug, groupId]);
 
   useEffect(() => {
     const matchingProjectSlug = group?.project?.slug;
@@ -388,9 +379,9 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
 
     const project = projects.find(p => p.id === group?.project.id);
     if (!group.hasSeen && project?.isMember) {
-      markEventSeen(api, organization.slug, matchingProjectSlug, params.groupId);
+      markEventSeen(api, organization.slug, matchingProjectSlug, groupId);
     }
-  }, [api, group?.hasSeen, group?.project, organization.slug, params.groupId, projects]);
+  }, [api, group?.hasSeen, group?.project, organization.slug, groupId, projects]);
 
   useEffect(() => {
     const {_allp: allProjectsFlag, project: urlProject} = loadAllProjectsQuery(
