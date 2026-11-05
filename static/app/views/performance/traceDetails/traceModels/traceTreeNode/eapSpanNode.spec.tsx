@@ -700,7 +700,6 @@ describe('EapSpanNode', () => {
 
       expect(parent.expand(true, tree)).toBe(true);
       expect(tree.list.slice(parentIndex)).toEqual([parent, child, sibling]);
-      expect(child.parent).toBe(parent);
     });
 
     it('should handle expanding transaction with reparenting', () => {

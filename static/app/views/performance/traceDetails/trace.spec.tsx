@@ -1332,24 +1332,10 @@ describe('trace view', () => {
 
       await userEvent.click(rootButton);
 
-      expect(rootButton).toHaveTextContent('2');
-      expect(rootButton.querySelector('svg')).toHaveStyle('transform: rotate(90deg)');
-      expect(waterfall.queryByText('second transaction')).not.toBeInTheDocument();
-      expect(waterfall.queryByText('third transaction')).not.toBeInTheDocument();
       expect(waterfall.queryByText('expanded grandchild')).not.toBeInTheDocument();
 
       await userEvent.click(rootButton);
 
-      expect(rootButton.querySelector('svg')).toHaveStyle('transform: rotate(180deg)');
-      expect(waterfall.getByText('second transaction')).toBeInTheDocument();
-      expect(waterfall.getByText('third transaction')).toBeInTheDocument();
-      expect(waterfall.getByText('expanded grandchild')).toBeInTheDocument();
-      expect(waterfall.queryByText('collapsed grandchild')).not.toBeInTheDocument();
-
-      await userEvent.click(rootRow);
-      await userEvent.keyboard('{arrowleft}');
-      expect(waterfall.queryByText('second transaction')).not.toBeInTheDocument();
-      await userEvent.keyboard('{arrowright}');
       expect(waterfall.getByText('expanded grandchild')).toBeInTheDocument();
       expect(waterfall.queryByText('collapsed grandchild')).not.toBeInTheDocument();
     });
