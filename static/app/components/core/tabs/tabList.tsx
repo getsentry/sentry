@@ -30,7 +30,7 @@ import {TabListItem} from './item';
 import {Tab} from './tab';
 import type {TabProps} from './tab';
 import {TabsContext} from './tabs';
-import {isModifiedClick, tabsShouldForwardProp} from './utils';
+import {tabsShouldForwardProp} from './utils';
 
 const StyledTabListWrap = styled('ul', {
   shouldForwardProp: tabsShouldForwardProp,
@@ -261,13 +261,6 @@ function OverflowMenu({state, overflowMenuItems, disabled}: OverflowMenuProps) {
             to,
             isSelected: state.selectedKey === value,
             onAction: to ? undefined : () => state.setSelectedKey(value),
-            onClick: to
-              ? event => {
-                  if (!isModifiedClick(event)) {
-                    state.setSelectedKey(value);
-                  }
-                }
-              : undefined,
           }))}
           isDisabled={disabled}
           position="bottom-end"

@@ -540,17 +540,13 @@ export function DropdownMenuContent({
       }
     >
       {(item: MenuItemProps) => {
-        const {onAction: _onAction, onClick: _onClick, ...itemProps} = item;
+        const {onAction: _onAction, ...itemProps} = item;
 
         if (item.children && item.children.length > 0 && !item.submenu) {
           return (
             <Section key={item.key} title={item.label} items={item.children}>
               {sectionItem => {
-                const {
-                  onAction: _sectionOnAction,
-                  onClick: _sectionOnClick,
-                  ...sectionItemProps
-                } = sectionItem;
+                const {onAction: _sectionOnAction, ...sectionItemProps} = sectionItem;
 
                 return (
                   <Item size={size} {...sectionItemProps} key={sectionItem.key}>

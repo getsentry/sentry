@@ -1,3 +1,5 @@
+import {useLocation} from 'react-router';
+
 import {
   act,
   render,
@@ -58,6 +60,11 @@ function LinkedTabs({
       </TabList>
     </Tabs>
   );
+}
+
+function RoutedTabs({onChange}: {onChange: (key: string) => void}) {
+  const {pathname} = useLocation();
+  return <LinkedTabs value={pathname.split('/')[2]} onChange={onChange} />;
 }
 
 describe('Tabs', () => {
@@ -627,7 +634,7 @@ describe('Tabs overflow', () => {
     async interaction => {
       containerWidth = 260;
       const onChange = jest.fn();
-      const {router} = render(<LinkedTabs onChange={onChange} />, {
+      const {router} = render(<RoutedTabs onChange={onChange} />, {
         initialRouterConfig: {location: {pathname: '/tabs/details/'}},
       });
 
@@ -642,11 +649,17 @@ describe('Tabs overflow', () => {
       }
 
       await waitFor(() => expect(router.location.pathname).toBe('/tabs/user-feedback/'));
-      expect(onChange).toHaveBeenCalledTimes(1);
-      expect(onChange).toHaveBeenCalledWith('user-feedback');
+      expect(
+        screen.getByRole('tab', {name: 'User Feedback', hidden: true})
+      ).toHaveAttribute('aria-selected', 'true');
+      expect(onChange).not.toHaveBeenCalled();
 
       router.navigate(-1);
       await waitFor(() => expect(router.location.pathname).toBe('/tabs/details/'));
+      expect(screen.getByRole('tab', {name: 'Details'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
     }
   );
 

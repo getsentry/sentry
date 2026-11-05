@@ -66,8 +66,6 @@ export interface MenuItemProps extends ListItemProps {
    * item's key is passed as an argument.
    */
   onAction?: () => void;
-  /** Handle clicks on the focusable menu item, including link modifier keys. */
-  onClick?: React.MouseEventHandler<HTMLElement>;
   /**
    * Ref to the item's root element. For a section, this is the element that
    * wraps its label and items.
@@ -158,7 +156,6 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const {
     key,
     onAction,
-    onClick,
     to,
     label,
     isSelected,
@@ -284,7 +281,6 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     hoverProps,
     keyboardProps,
     makeInnerWrapProps(),
-    {onClick: isDisabled ? undefined : onClick},
     // oxlint-disable-next-line react/refs
     {ref: mergeRefs(menuItemRef, innerWrapRef), 'data-test-id': key}
   );
