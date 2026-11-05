@@ -69,6 +69,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
           ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
           : undefined
       }
+      // Single runs reject step restarts; people redo the root cause by replying in the chat.
       allowReset={!isSingleRunAutofix(autofix.runState)}
       onReset={canReset ? (rethinkInChat ?? (() => setShouldShowReset(true))) : undefined}
       resetInChat={defined(rethinkInChat)}
