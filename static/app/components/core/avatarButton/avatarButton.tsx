@@ -110,6 +110,9 @@ export function AvatarButton({
         <StyledImageAvatar
           configuration={avatarDefinition.configuration}
           suggested={isSuggested}
+          objectFit={
+            colors.type === 'image' && colors.style === 'padded' ? 'contain' : 'cover'
+          }
         />
       </AvatarContainer>
     </StyledAvatarButton>
@@ -157,7 +160,6 @@ const StyledImageAvatar = styled(ImageAvatar)`
   height: 100%;
   border-radius: 0;
   position: relative;
-  object-fit: contain;
 `;
 
 const StyledLetterAvatar = styled(LetterAvatar)`
