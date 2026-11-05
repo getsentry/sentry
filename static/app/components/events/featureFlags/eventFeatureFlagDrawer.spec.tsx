@@ -2,6 +2,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {getShortEventId} from 'sentry/utils/events';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
@@ -56,7 +57,7 @@ describe('FeatureFlagDrawer', () => {
     expect(currentCrumb).toHaveAttribute('aria-current', 'location');
     await userEvent.hover(currentCrumb);
     expect(
-      await screen.findByText(`Event ID: ${event.id.slice(0, 8)}`)
+      await screen.findByText(`Event ID: ${getShortEventId(event.id)}`)
     ).toBeInTheDocument();
 
     // Header & Controls
