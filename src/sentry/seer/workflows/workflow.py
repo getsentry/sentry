@@ -107,7 +107,7 @@ class SeerWorkflow:
         strategy: SeerWorkflowStrategy,
         enabled: bool,
         filters: SeerWorkflowFilters,
-        name: str | None = None,
+        extras: SeerWorkflowConfigExtras | None = None,
     ) -> SeerWorkflowConfig:
         """
         Create a config within the org's automation limit. Call inside a transaction on
@@ -131,7 +131,7 @@ class SeerWorkflow:
             strategy=strategy,
             enabled=enabled,
             filters=filters.dict(),
-            extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
+            extras=(extras or SeerWorkflowConfigExtras()).dict(exclude_none=True),
         )
 
     @classmethod
@@ -144,7 +144,7 @@ class SeerWorkflow:
         schedule: SeerWorkflowSchedule,
         project_ids: Collection[int],
         environments: Sequence[str] = (),
-        name: str | None = None,
+        extras: SeerWorkflowConfigExtras | None = None,
     ) -> SeerWorkflow:
         """
         Create a user-defined automation. Use ``project_ids=[-1]`` to select all
@@ -173,7 +173,7 @@ class SeerWorkflow:
                     all_projects=all_projects,
                     environments=list(environments),
                 ),
-                name=name,
+                extras=extras,
             )
             config.schedule = schedule
             config.save(using=database, update_fields=["schedule"])
@@ -409,6 +409,14 @@ class ConfigUpdate:
             return
         self.config.enabled = enabled
         self.mark("enabled")
+
+    def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
+        new_extras = extras.dict(exclude_none=True)
+        current_extras = {k: v for k, v in self.config.extras.items() if v is not None}
+        if current_extras == new_extras:
+            return
+        self.config.extras = new_extras
+        self.mark("extras")
 
     def set_service_account(self, service_account_id: int | None) -> None:
         """Store the control account ID after validating its current cell replica."""

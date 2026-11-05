@@ -10,6 +10,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
     SeerWorkflowFilters,
     SeerWorkflowSchedule,
@@ -92,7 +93,7 @@ class SeerWorkflowCreateTest(TestCase):
             schedule=SeerWorkflowSchedule.DAILY,
             project_ids=[second.id, first.id],
             environments=["production"],
-            name="Daily triage",
+            extras=SeerWorkflowConfigExtras(name="Daily triage"),
         )
 
         config = workflow.get_config()
@@ -198,6 +199,22 @@ class SeerWorkflowUpdateConfigTest(TestCase):
         with self.workflow.update_config() as update:
             update.set_enabled(False)
             update.set_project_selection(SelectedProjects(project_ids=(self.selected.id,)))
+
+        config = self.workflow.get_config()
+        assert config.version == 1
+        assert config.date_updated == self.config.date_updated
+
+    def test_set_extras_saves_and_bumps_version(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_extras(SeerWorkflowConfigExtras(name="Triage", updated_by="bot"))
+
+        config = self.workflow.get_config()
+        assert config.extras == {"name": "Triage", "updated_by": "bot"}
+        assert config.version == 2
+
+    def test_unchanged_extras_does_not_save(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_extras(SeerWorkflowConfigExtras.parse_obj(self.config.extras))
 
         config = self.workflow.get_config()
         assert config.version == 1

@@ -27,6 +27,7 @@ from sentry.models.project import Project
 from sentry.notebooks.models import Notebook
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowConfigExtras,
     SeerWorkflowExecutionExtras,
     SeerWorkflowFilters,
     SeerWorkflowRun,
@@ -187,7 +188,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
         enabled: bool = False,
         environments: Sequence[str] = (),
         monitor_ids: Sequence[int] = (),
-        name: str | None = None,
+        extras: SeerWorkflowConfigExtras | None = None,
     ) -> BreachedMetricWorkflow:
         """Create an automation whose project coverage comes from connected monitors."""
         # TODO(telkins): Connect existing default Error Spike monitors when seeding the
@@ -200,7 +201,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
                 enabled=enabled,
                 filters=SeerWorkflowFilters(environments=list(environments)),
-                name=name,
+                extras=extras,
             )
             workflow = cls(config_id=config.id, organization_id=organization_id)
             change = (

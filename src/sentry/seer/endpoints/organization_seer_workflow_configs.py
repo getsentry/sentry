@@ -24,6 +24,7 @@ from sentry.api.serializers.rest_framework.base import convert_dict_key_case, sn
 from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -73,6 +74,8 @@ class SeerWorkflowConfigResponse(TypedDict):
     dateLastRun: NotRequired[datetime]
     lastRunStatus: NotRequired[str | None]
     name: NotRequired[str]
+    createdBy: NotRequired[str]
+    updatedBy: NotRequired[str]
 
 
 class SeerWorkflowConfigsResponse(TypedDict):
@@ -305,6 +308,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         the seeded strategy even after edits.
         ``outputPolicy`` is the saved, opaque policy document.
         ``name`` is the user-supplied name, omitted if unset.
+        ``createdBy`` is the ID of the user who created the config, omitted if unset.
+        ``updatedBy`` is the ID of the user who last changed it, omitted if unset.
         ``dateLastRun`` is the latest visible run's creation time and ``lastRunStatus``
         is its status (null for older runs that predate status tracking). Both are
         omitted if no runs are visible under the runs endpoint's project-scope rules.
@@ -385,6 +390,10 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         if denied is not None:
             raise PermissionDenied(detail=denied)
 
+        extras = SeerWorkflowConfigExtras(
+            name=data.get("name"),
+            created_by=acting_user_id(request.user),
+        )
         try:
             workflow: SeerWorkflow
             if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
@@ -393,7 +402,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     enabled=data["enabled"],
                     environments=data["environments"],
                     monitor_ids=monitor_ids,
-                    name=data.get("name"),
+                    extras=extras,
                 )
             else:
                 workflow = SeerWorkflow.create(
@@ -403,7 +412,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     schedule=SeerWorkflowSchedule(data.get("schedule", SeerWorkflowSchedule.DAILY)),
                     environments=data["environments"],
                     project_ids=project_ids,
-                    name=data.get("name"),
+                    extras=extras,
                 )
         except ValueError as e:
             logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
@@ -607,13 +616,20 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         )
                     )
 
+                if update.changed:
+                    user_id = acting_user_id(request.user)
+                    extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
+                    extras.updated_by = "bot" if user_id is None else user_id
+                    update.set_extras(extras)
+
         except ValueError as e:
             logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
             if isinstance(e, WorkflowUpdateError):
                 return Response({"detail": str(e)}, status=400)
             return Response(status=400)
 
-        return Response(self.serialize(request, organization, workflow.get_config()))
+        config = workflow.get_config()
+        return Response(self.serialize(request, organization, config))
 
     @extend_schema(
         operation_id="Delete a Seer automation workflow",
@@ -754,7 +770,11 @@ def serialize_workflow_config(
     if last_run is not None and last_run.last_run_at is not None:
         result["dateLastRun"] = last_run.last_run_at
         result["lastRunStatus"] = last_run.last_run_status
-    name = SeerWorkflowConfigExtras.parse_obj(config.extras).name
-    if name is not None:
-        result["name"] = name
+    extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
+    if extras.name is not None:
+        result["name"] = extras.name
+    if extras.created_by is not None:
+        result["createdBy"] = str(extras.created_by)
+    if extras.updated_by is not None:
+        result["updatedBy"] = str(extras.updated_by)
     return result
