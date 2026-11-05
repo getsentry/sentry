@@ -69,6 +69,7 @@ function makeTurn(turn: number): Block[] {
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
+  featureId: null,
   isPolling: false,
   isError: false,
   hasSessionLoadError: false,
