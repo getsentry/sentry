@@ -23,11 +23,13 @@ from sentry.notifications.platform.slack.renderers.seer_agent_write_approval imp
     SeerAgentWriteApprovalSlackRenderer,
 )
 from sentry.notifications.platform.templates.seer import (
-    OUT_OF_CREDITS_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixCodeChange,
+    SeerAutofixOutOfCredits,
+    SeerAutofixOutOfCreditsTemplate,
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
     SeerInvestigationConclusionTemplate,
@@ -38,8 +40,6 @@ from sentry.notifications.platform.templates.seer import (
     SeerInvestigationStartedTemplate,
     SeerInvestigationStatus,
     SeerInvestigationStatusTemplate,
-    SeerOutOfCredits,
-    SeerOutOfCreditsTemplate,
 )
 from sentry.notifications.platform.tracking import NotificationLink, NotificationLinkDecorator
 from sentry.notifications.platform.types import (
@@ -369,20 +369,20 @@ class SeerSlackRendererTest(TestCase):
         assert isinstance(actions_block.elements[0], LinkButtonElement)
 
 
-class SeerSlackRendererOutOfCreditsTest(TestCase):
+class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
     def test_render_out_of_credits(self) -> None:
         for started in (False, True):
-            data = SeerOutOfCredits(organization_id=1, started=started)
+            data = SeerAutofixOutOfCredits(organization_id=1, started=started)
             renderable = render_seer(
-                data=data, rendered_template=SeerOutOfCreditsTemplate().render(data)
+                data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
             )
 
-            assert renderable["text"] == OUT_OF_CREDITS_MESSAGE
+            assert renderable["text"] == AUTOFIX_OUT_OF_CREDITS_MESSAGE
             blocks = renderable["blocks"]
             assert len(blocks) == 1
             assert isinstance(blocks[0], SectionBlock)
             assert blocks[0].text is not None
-            assert blocks[0].text.text == OUT_OF_CREDITS_MESSAGE
+            assert blocks[0].text.text == AUTOFIX_OUT_OF_CREDITS_MESSAGE
 
 
 class SeerSlackRendererAgentErrorTest(TestCase):

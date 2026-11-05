@@ -56,30 +56,30 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
         )
 
 
-OUT_OF_CREDITS_MESSAGE = "Your org does not have enough credits to continue your Autofix run. Set up auto top up to keep your flow uninterrupted."
+AUTOFIX_OUT_OF_CREDITS_MESSAGE = "Your org does not have enough credits to continue your Autofix run. Set up auto top up to keep your flow uninterrupted."
 
 
-class SeerOutOfCredits(NotificationData):
+class SeerAutofixOutOfCredits(NotificationData):
     # False: the org tried to start a Seer step without credits.
     # True: the org ran out of credits partway through a run.
     started: bool
-    source: NotificationSource = NotificationSource.SEER_OUT_OF_CREDITS
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS
 
 
-@template_registry.register(NotificationSource.SEER_OUT_OF_CREDITS)
-class SeerOutOfCreditsTemplate(NotificationTemplate[SeerOutOfCredits]):
+@template_registry.register(NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS)
+class SeerAutofixOutOfCreditsTemplate(NotificationTemplate[SeerAutofixOutOfCredits]):
     category = NotificationCategory.SEER
-    example_data = SeerOutOfCredits(
-        source=NotificationSource.SEER_OUT_OF_CREDITS,
+    example_data = SeerAutofixOutOfCredits(
+        source=NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS,
         organization_id=1,
         started=False,
     )
     hide_from_debugger = True
 
-    def render(self, data: SeerOutOfCredits) -> NotificationRenderedTemplate:
+    def render(self, data: SeerAutofixOutOfCredits) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject=OUT_OF_CREDITS_MESSAGE,
-            body=[ParagraphSection(blocks=[PlainTextBlock(text=OUT_OF_CREDITS_MESSAGE)])],
+            subject=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=AUTOFIX_OUT_OF_CREDITS_MESSAGE)])],
         )
 
 

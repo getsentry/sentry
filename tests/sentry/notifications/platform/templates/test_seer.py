@@ -5,8 +5,10 @@ import pytest
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.templates.seer import (
-    OUT_OF_CREDITS_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
+    SeerAutofixOutOfCredits,
+    SeerAutofixOutOfCreditsTemplate,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
     SeerInvestigationConclusionTemplate,
@@ -15,8 +17,6 @@ from sentry.notifications.platform.templates.seer import (
     SeerInvestigationStarted,
     SeerInvestigationStartedTemplate,
     SeerInvestigationStatusTemplate,
-    SeerOutOfCredits,
-    SeerOutOfCreditsTemplate,
     _get_next_stopping_point,
 )
 from sentry.notifications.platform.types import ParagraphSection
@@ -196,17 +196,17 @@ class SeerAgentErrorTemplateTest(TestCase):
         assert rendered.body[0].blocks[0].text == "Timeout."
 
 
-class SeerOutOfCreditsTemplateTest(TestCase):
+class SeerAutofixOutOfCreditsTemplateTest(TestCase):
     def test_render(self) -> None:
         for started in (False, True):
-            rendered = SeerOutOfCreditsTemplate().render(
-                SeerOutOfCredits(organization_id=1, started=started)
+            rendered = SeerAutofixOutOfCreditsTemplate().render(
+                SeerAutofixOutOfCredits(organization_id=1, started=started)
             )
 
-            assert rendered.subject == OUT_OF_CREDITS_MESSAGE
+            assert rendered.subject == AUTOFIX_OUT_OF_CREDITS_MESSAGE
             assert len(rendered.body) == 1
             assert isinstance(rendered.body[0], ParagraphSection)
-            assert rendered.body[0].blocks[0].text == OUT_OF_CREDITS_MESSAGE
+            assert rendered.body[0].blocks[0].text == AUTOFIX_OUT_OF_CREDITS_MESSAGE
 
 
 class SeerInvestigationStartedTemplateTest(TestCase):
