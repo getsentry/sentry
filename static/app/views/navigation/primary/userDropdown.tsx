@@ -42,7 +42,7 @@ export function UserDropdown() {
   const trackSettingsClicked = () =>
     trackAnalytics('settings.entry_point_clicked', {
       organization,
-      entry_point: 'user_menu_settings',
+      entry_point: 'user_menu_settings_navigation',
     });
 
   useEffect(() => {
