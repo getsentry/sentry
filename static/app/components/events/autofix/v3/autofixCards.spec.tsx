@@ -1,6 +1,7 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider, DiffLineType} from 'sentry/components/events/autofix/types';
 import type {
@@ -2301,7 +2302,7 @@ describe('ArtifactCard', () => {
         expect(renderedPaths()).toEqual(['src/app.py']);
       });
 
-      it("shows that it's pushing, not a diff, while edits wait to be pushed", () => {
+      it("shows that it's pushing everywhere while edits wait to be pushed", () => {
         const filesRequest = mockPullRequestFiles();
         const unpushedEdit: Block = {
           id: 'edit',
@@ -2310,12 +2311,16 @@ describe('ArtifactCard', () => {
           file_patches: [makePatch('org/repo', 'src/iterated.py')],
         };
 
+        const autofix = makeAutofix(makePR(), [unpushedEdit]);
+
         render(
-          <CodeChangesCard
-            groupId="1"
-            autofix={makeAutofix(makePR(), [unpushedEdit])}
-            section={iteratedSection}
-          />,
+          <Fragment>
+            <CodeChangesCard groupId="1" autofix={autofix} section={iteratedSection} />
+            <PullRequestsCard
+              autofix={autofix}
+              section={makeSection('pull_request', 'completed', [[makePR()]])}
+            />
+          </Fragment>,
           {organization: pinnedOrganization}
         );
 
@@ -2324,6 +2329,51 @@ describe('ArtifactCard', () => {
         ).toBeInTheDocument();
         expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
         expect(filesRequest).not.toHaveBeenCalled();
+        // Seer hasn't started the push yet, but the button and the feedback already agree.
+        expect(
+          screen.getByRole('button', {name: 'Updating PR in org/repo'})
+        ).toBeDisabled();
+        expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
+        expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+        expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThan(0);
+      });
+
+      describe('after a push', () => {
+        afterEach(() => {
+          try {
+            jest.runOnlyPendingTimers();
+          } finally {
+            jest.useRealTimers();
+          }
+        });
+
+        it('checks the diff again for a while after a push', async () => {
+          jest.useFakeTimers();
+          const filesRequest = mockPullRequestFiles();
+          const autofix = makeAutofix(makePR());
+          autofix.runState.updated_at = new Date().toISOString();
+
+          render(
+            <CodeChangesCard groupId="1" autofix={autofix} section={iteratedSection} />,
+            {organization: pinnedOrganization}
+          );
+
+          await screen.findByText('1 file changed in 1 repo');
+          expect(filesRequest).toHaveBeenCalledTimes(1);
+          // The request must not carry the SHA, which only keys the cache.
+          expect(filesRequest).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({query: {repo: 'org/repo', number: 42}})
+          );
+
+          for (const calls of [2, 3, 4]) {
+            await act(() => jest.advanceTimersByTimeAsync(10_000));
+            expect(filesRequest).toHaveBeenCalledTimes(calls);
+          }
+
+          await act(() => jest.advanceTimersByTimeAsync(60_000));
+          expect(filesRequest).toHaveBeenCalledTimes(4);
+        });
       });
 
       it("says the push failed and shows the PR's diff", async () => {

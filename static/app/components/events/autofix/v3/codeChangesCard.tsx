@@ -29,7 +29,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
-import type {Block} from 'sentry/views/seerExplorer/types';
 
 import {ArtifactCard} from './artifactCard';
 import {ArtifactDetails} from './artifactDetails';
@@ -52,8 +51,6 @@ interface CodeChangesCardProps {
 }
 
 const MAX_AUTO_EXPANDED_DIFF_LINES = 30;
-
-const NO_BLOCKS: Block[] = [];
 
 interface RepoFilePatch {
   patch: FilePatch;
@@ -181,13 +178,12 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   // A pinned iteration measures its edits from the PR's head, so the run's patches
   // only hold what the iterations changed. Show each PR's diff on the provider instead.
   const pullRequestPatches = usePullRequestPatches({
-    blocks: autofix.runState?.blocks ?? NO_BLOCKS,
     enabled:
       hasPinToPrHeadFeature &&
       section.status === 'completed' &&
       section.blocks.some(isPrIterationBlock),
     organizationSlug: organization.slug,
-    repoPRStates: autofix.runState?.repo_pr_states,
+    runState: autofix.runState,
   });
 
   const changesByRepo = useMemo(() => {
@@ -340,12 +336,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
               <Text>{repo}</Text>
             </Flex>
             {changes.status === 'pushing' && (
-              <Stack gap="sm">
-                <Text variant="muted">
-                  {t('Pushing the latest changes to the pull request…')}
-                </Text>
-                <Placeholder height="4rem" />
-              </Stack>
+              <Text variant="muted">
+                {t('Pushing the latest changes to the pull request…')}
+              </Text>
             )}
             {changes.status === 'pending' && <Placeholder height="4rem" />}
             {changes.status === 'ready' && changes.pushFailed && (
