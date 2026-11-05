@@ -38,8 +38,6 @@ const organization = OrganizationFixture({
     'discover',
     'discover-basic',
     'discover-query',
-    'dashboards-basic',
-    'dashboards-edit',
   ],
 });
 

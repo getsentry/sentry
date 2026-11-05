@@ -12,7 +12,7 @@ import {DisplayType} from './types';
 
 describe('Dashboards > CreateDashboard', () => {
   const organization = OrganizationFixture({
-    features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+    features: ['discover-query'],
   });
 
   let mockPOST: jest.Mock;

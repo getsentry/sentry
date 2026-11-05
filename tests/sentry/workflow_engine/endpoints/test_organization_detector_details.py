@@ -564,7 +564,10 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
     def test_update_comparison_delta_invalid(self) -> None:
         data = {**self.valid_data}
-        data["config"]["comparisonDelta"] = 0
+        data["config"] = {
+            "detectionType": AlertRuleDetectionType.PERCENT.value,
+            "comparisonDelta": 0,
+        }
 
         response = self.get_error_response(
             self.organization.slug,
@@ -1094,7 +1097,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     def test_update_config_valid(self) -> None:
         """Test updating detector config with valid schema data"""
         # Initial config
-        initial_config = {"detection_type": "static", "comparison_delta": None}
+        initial_config = {"detection_type": "static"}
         self.detector.config = initial_config
         self.detector.save()
 

@@ -224,7 +224,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
 
     def test_title_comparison_delta(self) -> None:
-        self.detector.config.update({"comparison_delta": 60 * 60})
+        self.detector.config.update({"detection_type": "percent", "comparison_delta": 60 * 60})
 
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
