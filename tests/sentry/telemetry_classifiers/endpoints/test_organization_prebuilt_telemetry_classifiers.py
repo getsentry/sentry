@@ -25,7 +25,7 @@ class OrganizationPrebuiltTelemetryClassifiersTest(APITestCase):
             "dataset": "conversation",
             "name": "User frustration",
             "description": "When your users become frustrated with the agent they are speaking with.",
-            "attributeName": "sentry.classifier.user_frustration",
+            "resultAttribute": "sentry.classifier.user_frustration",
         }
 
     def test_filters_by_dataset(self) -> None:

@@ -93,7 +93,7 @@ class PrebuiltClassifierResponse(TypedDict):
     dataset: str
     name: str
     description: str
-    attributeName: str
+    resultAttribute: str
 
 
 class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
@@ -109,7 +109,7 @@ class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
             "dataset": obj.dataset,
             "name": obj.name,
             "description": obj.description,
-            "attributeName": obj.attribute_name,
+            "resultAttribute": obj.result_attribute,
         }
 
 
