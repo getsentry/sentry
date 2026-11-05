@@ -47,7 +47,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
 import {getIsOnlyPrebuilt} from './utils/getIsOnlyPrebuilt';
-import DashboardTable from './dashboardTable';
+import {DashboardTable} from './dashboardTable';
 import {DASHBOARD_TABLE_NUM_ROWS, DEFAULT_PREBUILT_SORT} from './settings';
 
 function getSortOptions({
@@ -359,7 +359,6 @@ function ManageDashboards() {
 
   const dashboardsView = (
     <DashboardTable
-      api={api}
       dashboards={dashboards}
       organization={organization}
       location={location}

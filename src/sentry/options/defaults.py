@@ -799,6 +799,20 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
+    default=3600,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
+    default=601,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Reject Bitbucket Server webhooks without a valid signature. While off, signatures are still
 # checked and reported in the `bitbucket_server.webhook.signature` metric, but never rejected.
 register(
