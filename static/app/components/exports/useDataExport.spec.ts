@@ -2,7 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {
   type DataExportPayload,
   ExportQueryType,
@@ -10,7 +11,6 @@ import {
 } from 'sentry/components/exports/useDataExport';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 
-jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/downloadFromHref');
 
 const mockAuthorizedOrg = OrganizationFixture({
@@ -29,6 +29,8 @@ const requestBase = {
 
 describe('useDataExport', () => {
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
+    jest.spyOn(toast, 'success').mockClear();
     jest.clearAllMocks();
   });
 
@@ -45,7 +47,7 @@ describe('useDataExport', () => {
     result.current.mutate({...mockPayload});
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         "We tried our hardest, but we couldn't export your data. Try waiting a minute then giving it another go."
       );
     });
@@ -67,7 +69,7 @@ describe('useDataExport', () => {
     result.current.mutate({...mockPayload});
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith(detail);
+      expect(toast.error).toHaveBeenCalledWith(detail);
     });
   });
 
@@ -85,7 +87,7 @@ describe('useDataExport', () => {
     result.current.mutate({...mockPayload});
 
     await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         "Sit tight. We'll shoot you an email when your data is ready for download."
       );
     });
@@ -105,7 +107,7 @@ describe('useDataExport', () => {
     result.current.mutate({...mockPayload});
 
     await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         "It looks like we're already working on it. Sit tight, we'll email you."
       );
     });
@@ -131,7 +133,7 @@ describe('useDataExport', () => {
       );
     });
 
-    expect(addSuccessMessage).toHaveBeenCalledWith(
+    expect(toast.success).toHaveBeenCalledWith(
       "Downloading 'export.csv' to your browser."
     );
   });

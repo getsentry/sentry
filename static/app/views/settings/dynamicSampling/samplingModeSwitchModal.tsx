@@ -4,12 +4,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -57,14 +53,14 @@ function SamplingModeSwitchModal({
       if (samplingMode === 'organization') {
         changes.targetSampleRate = parsePercent(value.targetSampleRate);
       }
-      addLoadingMessage(t('Switching sampling mode...'));
+      toast.loading(t('Switching sampling mode...'));
       return updateOrganization(changes, {
         onSuccess: () => {
-          addSuccessMessage(t('Changes applied.'));
+          toast.success(t('Changes applied.'));
           closeModal();
         },
         onError: () => {
-          addErrorMessage(t('Unable to save changes. Please try again.'));
+          toast.error(t('Unable to save changes. Please try again.'));
         },
       }).catch(() => {});
     },

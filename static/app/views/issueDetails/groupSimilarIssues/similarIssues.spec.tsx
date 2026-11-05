@@ -12,9 +12,18 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {GroupSimilarIssues} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
 
 jest.mock('sentry/utils/analytics');
+
+function GroupSimilarIssuesWithProvider({groupId}: {groupId: string}) {
+  return (
+    <GroupIdProvider groupId={groupId}>
+      <GroupSimilarIssues />
+    </GroupIdProvider>
+  );
+}
 
 function mockRedirectedGroup(project: Project, useEmbeddings = false) {
   MockApiClient.addMockResponse({
@@ -131,7 +140,7 @@ describe('Issues Similar View', () => {
   };
 
   it('renders with mocked data', async () => {
-    render(<GroupSimilarIssues />, {
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
       initialRouterConfig,
     });
 
@@ -152,7 +161,7 @@ describe('Issues Similar View', () => {
       },
     });
 
-    const {router} = render(<GroupSimilarIssues />, {
+    const {router} = render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
       initialRouterConfig,
     });
     renderGlobalModal();
@@ -166,6 +175,7 @@ describe('Issues Similar View', () => {
         '/projects/org-slug/project-slug/issues/',
         expect.objectContaining({
           data: {merge: 1},
+          query: {id: expect.arrayContaining([group.id])},
         })
       );
     });
@@ -178,7 +188,7 @@ describe('Issues Similar View', () => {
   });
 
   it('toggles selection when item is clicked', async () => {
-    render(<GroupSimilarIssues />, {
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
       initialRouterConfig,
     });
     renderGlobalModal();
@@ -198,7 +208,7 @@ describe('Issues Similar View', () => {
       match: [MockApiClient.matchQuery({limit: 50})],
     });
 
-    render(<GroupSimilarIssues />, {
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
       initialRouterConfig,
     });
     renderGlobalModal();
@@ -303,7 +313,7 @@ describe('Issues Similar Embeddings View', () => {
   };
 
   it('renders with mocked data', async () => {
-    render(<GroupSimilarIssues />, {
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
       initialRouterConfig,
     });
 
@@ -322,7 +332,7 @@ describe('Issues Similar Embeddings View', () => {
       },
     });
 
-    const {router} = render(<GroupSimilarIssues />, {
+    const {router} = render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
       initialRouterConfig,
     });
     renderGlobalModal();
@@ -336,6 +346,7 @@ describe('Issues Similar Embeddings View', () => {
         '/projects/org-slug/project-slug/issues/',
         expect.objectContaining({
           data: {merge: 1},
+          query: {id: expect.arrayContaining([group.id])},
         })
       );
     });
@@ -348,7 +359,7 @@ describe('Issues Similar Embeddings View', () => {
   });
 
   it('toggles selection when item is clicked', async () => {
-    render(<GroupSimilarIssues />, {
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
       initialRouterConfig,
     });
     renderGlobalModal();
@@ -368,7 +379,7 @@ describe('Issues Similar Embeddings View', () => {
       match: [MockApiClient.matchQuery({k: 10, threshold: 0.01})],
     });
 
-    render(<GroupSimilarIssues />, {
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
       initialRouterConfig,
     });
     renderGlobalModal();

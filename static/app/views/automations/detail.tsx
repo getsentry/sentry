@@ -5,8 +5,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -301,7 +301,7 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
       },
       {
         onSuccess: () => {
-          addSuccessMessage(newEnabled ? t('Alert enabled') : t('Alert disabled'));
+          toast.success(newEnabled ? t('Alert enabled') : t('Alert disabled'));
         },
       }
     );

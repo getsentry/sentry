@@ -13,7 +13,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {ResponseMeta} from 'sentry/types/api';
@@ -306,7 +307,7 @@ describe('SpansTable', () => {
   });
 
   it('retains expanded details and their hint while a new column loads and rolls it back on failure', async () => {
-    const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    const addErrorMessage = jest.spyOn(toast, 'error');
     const request = mockSpanDetails(firstRow, [
       {name: 'span.custom', type: 'str', value: 'custom value'},
     ]);

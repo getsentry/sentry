@@ -18,7 +18,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -187,7 +188,7 @@ describe('ActivitySection', () => {
   });
 
   it('deletes only the referenced comment', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
     const note = ActivityFeedFixture({
       id: '987',
       commentId: '123',
@@ -230,7 +231,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove comment'}));
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment removed');
+    expect(toast.success).toHaveBeenCalledWith('Comment removed');
     expect(onActivityChange).toHaveBeenCalledWith([resolution]);
   });
 
@@ -912,7 +913,7 @@ describe('ActivitySection', () => {
   });
 
   it('renders note and allows for edit', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     const note = ActivityFeedFixture({
       id: '123',
@@ -966,7 +967,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     await waitFor(() => expect(editMock).toHaveBeenCalledTimes(1));
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
+    expect(toast.success).toHaveBeenCalledWith('Comment updated');
     expect(onActivityChange).toHaveBeenCalledWith([
       {...note, data: {text: 'Group Test Updated'}},
       resolution,

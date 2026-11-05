@@ -10,17 +10,13 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   createDashboard,
   deleteDashboard,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -316,6 +312,12 @@ class DashboardDetail extends Component<Props, State> {
         this.closeFullScreenView();
         return;
       }
+      // Same for the dropped-data drawer: opening it closes the full-screen widget.
+      // The param value is the dataset, so any value means a drawer was opened.
+      if (defined(location.query.droppedData)) {
+        this.closeFullScreenView();
+        return;
+      }
       const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
         openWidgetViewerModal({
@@ -363,7 +365,7 @@ class DashboardDetail extends Component<Props, State> {
           }),
           {replace: true}
         );
-        addErrorMessage(t('Widget not found'));
+        toast.error(t('Widget not found'));
       }
     }
   }
@@ -478,7 +480,7 @@ class DashboardDetail extends Component<Props, State> {
     this.setState({dashboardState: DashboardState.PENDING_DELETE}, () => {
       deleteDashboard(api, dashboard.id, queryClient, organization)
         .then(() => {
-          addSuccessMessage(t('Dashboard deleted'));
+          toast.success(t('Dashboard deleted'));
           trackAnalytics('dashboards2.delete', {organization});
           navigate(
             {
@@ -625,7 +627,7 @@ class DashboardDetail extends Component<Props, State> {
             {replace: true}
           );
         }
-        addSuccessMessage(t('Dashboard updated'));
+        toast.success(t('Dashboard updated'));
 
         return newDashboard;
       },
@@ -779,7 +781,7 @@ class DashboardDetail extends Component<Props, State> {
         this.handleUpdateEditStateWidgets(newWidgets);
       } else {
         // If we're not in edit mode, send a request to update the dashboard
-        addLoadingMessage(t('Saving widget'));
+        toast.loading(t('Saving widget'));
         this.handleUpdateWidgetList(newWidgets);
       }
       this.setState({
@@ -788,7 +790,7 @@ class DashboardDetail extends Component<Props, State> {
 
       this.handleCloseWidgetBuilder(newWidgets);
     } catch (error) {
-      addErrorMessage(t('Failed to save widget'));
+      toast.error(t('Failed to save widget'));
     }
   };
 
@@ -824,7 +826,7 @@ class DashboardDetail extends Component<Props, State> {
 
     updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
       (newDashboard: DashboardDetails) => {
-        addSuccessMessage(t('Dashboard Edit Access updated.'));
+        toast.success(t('Dashboard Edit Access updated.'));
         this.props.onDashboardUpdate?.(newDashboard);
         this.setState({
           modifiedDashboard: null,
@@ -904,7 +906,7 @@ class DashboardDetail extends Component<Props, State> {
           };
           createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
-              addSuccessMessage(t('Dashboard created'));
+              toast.success(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
               const seerRunId = location.query?.seerRunId
                 ? Number(location.query.seerRunId)
@@ -978,7 +980,7 @@ class DashboardDetail extends Component<Props, State> {
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
               }
-              addSuccessMessage(t('Dashboard updated'));
+              toast.success(t('Dashboard updated'));
               trackAnalytics('dashboards2.edit.complete', {organization});
               if (this.state.seerEditApplied && this.state.seerRunId) {
                 Sentry.metrics.count('dashboards.seer.edit.save', 1, {
@@ -1248,12 +1250,12 @@ class DashboardDetail extends Component<Props, State> {
                         this.setState({
                           isSavingDashboardFilters: true,
                         });
-                        addLoadingMessage(t('Saving dashboard filters'));
+                        toast.loading(t('Saving dashboard filters'));
                         await updateDashboard({
                           dashboard: newModifiedDashboard,
                         }).then(
                           (newDashboard: DashboardDetails) => {
-                            addSuccessMessage(t('Dashboard filters updated'));
+                            toast.success(t('Dashboard filters updated'));
                             trackAnalytics('dashboards2.filter.save', {
                               organization,
                             });

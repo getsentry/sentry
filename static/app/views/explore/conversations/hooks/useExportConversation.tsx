@@ -7,7 +7,8 @@ import {
   type InfiniteData,
 } from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -133,7 +134,7 @@ export function useExportConversation(
           return;
         }
         Sentry.captureException(error);
-        addErrorMessage(t('Failed to export transcript'));
+        toast.error(t('Failed to export transcript'));
       }
     },
     [queryClient, organization, conversation, selection]
@@ -160,7 +161,7 @@ export function useExportConversation(
           markdown,
           'text/markdown'
         );
-        addSuccessMessage(t('Transcript exported'));
+        toast.success(t('Transcript exported'));
       }),
     [runExport, organization, conversation.conversationId]
   );

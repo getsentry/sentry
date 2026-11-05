@@ -5,7 +5,8 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {OrgAuthToken} from 'sentry/types/user';
 import OrganizationAuthTokensNewAuthToken from 'sentry/views/settings/organizationAuthTokens/newAuthToken';
 
@@ -47,7 +48,7 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
   });
 
   it('handles API errors when creating token', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     render(<OrganizationAuthTokensNewAuthToken />);
 
@@ -67,7 +68,7 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
 
     expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'Failed to create a new organization token.'
     );
 
@@ -80,7 +81,7 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
   });
 
   it('handles missing_system_url_prefix API error when creating token', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     render(<OrganizationAuthTokensNewAuthToken />);
 
@@ -100,7 +101,7 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
 
     expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'You have to configure `system.url-prefix` in your Sentry instance in order to generate tokens.'
     );
 

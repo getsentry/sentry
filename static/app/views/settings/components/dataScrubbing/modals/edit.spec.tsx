@@ -11,8 +11,8 @@ import {
   ModalBody,
   ModalFooter,
 } from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import {Edit} from 'sentry/views/settings/components/dataScrubbing/modals/edit';
@@ -22,8 +22,6 @@ import {
   getRuleLabel,
   valueSuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
-
-jest.mock('sentry/actionCreators/indicator');
 
 const relayPiiConfig = DataScrubbingRelayPiiConfigFixture();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
@@ -37,6 +35,7 @@ const api = new MockApiClient();
 
 describe('Edit Modal', () => {
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     localStorage.clear();
   });
 
@@ -299,7 +298,7 @@ describe('Edit Modal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'An unknown error occurred while saving data scrubbing rule'
       );
     });

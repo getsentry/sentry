@@ -2,7 +2,8 @@ import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -54,7 +55,7 @@ export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
         {replace: true}
       );
     } catch (err) {
-      addErrorMessage(t('Failed to delete replay'));
+      toast.error(t('Failed to delete replay'));
       Sentry.captureException(err);
     }
   }, [api, navigate, organization, projectSlug, replayId, issueReferrer, groupId]);

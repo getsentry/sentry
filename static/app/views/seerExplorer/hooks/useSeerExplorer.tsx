@@ -3,8 +3,8 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {useTimezone} from '@sentry/scraps/datetime';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -406,7 +406,7 @@ export const useSeerExplorer = () => {
       });
     },
     onError: () => {
-      addErrorMessage('Failed to interrupt');
+      toast.error('Failed to interrupt');
     },
   });
 
@@ -625,7 +625,7 @@ export const useSeerExplorer = () => {
         currentState.pr_creation_status === 'error' &&
         currentState.pr_creation_error
       ) {
-        addErrorMessage(currentState.pr_creation_error ?? 'Failed to create PR');
+        toast.error(currentState.pr_creation_error ?? 'Failed to create PR');
       }
     }
 

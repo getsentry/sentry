@@ -14,7 +14,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
@@ -530,7 +531,7 @@ describe('Uptime Alert Form', () => {
   });
 
   it('displays assertion compilation errors', async () => {
-    const addErrorMessageSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const addErrorMessageSpy = jest.spyOn(toast, 'error');
 
     render(<UptimeAlertForm />, {organization});
     await screen.findByText('Verification');
@@ -579,7 +580,7 @@ describe('Uptime Alert Form', () => {
   });
 
   it('displays assertion serialization error toast', async () => {
-    const addErrorMessageSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const addErrorMessageSpy = jest.spyOn(toast, 'error');
 
     render(<UptimeAlertForm />, {organization});
     await screen.findByText('Verification');

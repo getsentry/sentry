@@ -17,7 +17,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
@@ -358,7 +359,7 @@ describe('DetectorEdit', () => {
     });
 
     it('displays error response detail in a toast when save fails', async () => {
-      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      const mockAddErrorMessage = jest.spyOn(toast, 'error');
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
         body: mockDetector,

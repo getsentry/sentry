@@ -3,13 +3,13 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -82,7 +82,7 @@ export default function ProjectToolbarSettings() {
                   data: {options: data},
                 }),
               onSuccess: () => {
-                addSuccessMessage(t('Saved'));
+                toast.success(t('Saved'));
               },
             }}
           >

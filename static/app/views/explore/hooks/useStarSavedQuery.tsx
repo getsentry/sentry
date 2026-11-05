@@ -2,7 +2,8 @@ import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -71,7 +72,7 @@ export function useStarSavedQuery({
           })
           .catch(error => {
             Sentry.captureException(error);
-            addErrorMessage(t('Failed to star query'));
+            toast.error(t('Failed to star query'));
             setIsStarred(!starred);
           });
       },

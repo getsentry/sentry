@@ -5,8 +5,8 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {Confirm} from 'sentry/components/confirm';
@@ -37,7 +37,7 @@ export default function AccountSecurity() {
     countEnrolled,
     deleteDisabled,
     onDisable,
-    hasVerifiedEmail,
+    hasVerifiedPrimaryEmail,
     orgsRequire2fa,
     handleRefresh,
   } = useAccountSecurityContext();
@@ -52,7 +52,7 @@ export default function AccountSecurity() {
       });
       testableWindowLocation.assign('/auth/login/');
     } catch (err) {
-      addErrorMessage(t('There was a problem closing all sessions'));
+      toast.error(t('There was a problem closing all sessions'));
       throw err;
     }
   }
@@ -167,7 +167,7 @@ export default function AccountSecurity() {
                     <AuthenticatorDescription>{description}</AuthenticatorDescription>
                   </Grid>
                   <Grid flow="column" align="center" gap="md">
-                    {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
+                    {!isBackupInterface && !isEnrolled && hasVerifiedPrimaryEmail && (
                       <LinkButton
                         to={`/settings/account/security/mfa/${id}/enroll/`}
                         size="sm"
@@ -176,7 +176,7 @@ export default function AccountSecurity() {
                         {t('Add')}
                       </LinkButton>
                     )}
-                    {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
+                    {!isBackupInterface && !isEnrolled && !hasVerifiedPrimaryEmail && (
                       <Button onClick={handleAdd2FAClicked} size="sm" variant="primary">
                         {t('Add')}
                       </Button>

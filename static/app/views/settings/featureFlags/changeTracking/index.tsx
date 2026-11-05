@@ -6,9 +6,9 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -134,9 +134,7 @@ function OrganizationFeatureFlagsChangeTracking() {
       ),
 
     onSuccess: (_data, {id}) => {
-      addSuccessMessage(
-        t('Removed the provider and signing secret for the organization.')
-      );
+      toast.success(t('Removed the provider and signing secret for the organization.'));
 
       setApiQueryData<FetchSecretResponse>(
         queryClient,
@@ -149,7 +147,7 @@ function OrganizationFeatureFlagsChangeTracking() {
     onError: error => {
       const message = t('Failed to remove the provider or signing secret.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 

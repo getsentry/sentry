@@ -1,7 +1,8 @@
 import {useCallback, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {linkProjectToRepository} from 'sentry/components/onboarding/scm/linkProjectToRepository';
 import type {CreatedProject} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {getScmDefaultProjectName} from 'sentry/components/onboarding/scm/scmProjectName';
@@ -169,7 +170,7 @@ export function useScmProjectCreation({
             getIntegrationAction: getIntegrationAction ?? noopIntegrationAction,
           })
           .catch(error => {
-            addErrorMessage(t('Failed to create project'));
+            toast.error(t('Failed to create project'));
             Sentry.captureException(error);
             return null;
           });

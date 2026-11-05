@@ -10,8 +10,8 @@ import {Stack} from '@sentry/scraps/layout';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -111,7 +111,7 @@ export default function IntegrationOrganizationLink() {
   const organization = organizationQuery.data ?? null;
   useEffect(() => {
     if (hasSelectedOrg && organizationQuery.error) {
-      addErrorMessage(t('Failed to retrieve organization details'));
+      toast.error(t('Failed to retrieve organization details'));
     }
   }, [hasSelectedOrg, organizationQuery.error]);
 
@@ -131,7 +131,7 @@ export default function IntegrationOrganizationLink() {
   useEffect(() => {
     const hasEmptyProvider = !provider && !providerQuery.isPending;
     if (hasSelectedOrg && (providerQuery.error || hasEmptyProvider)) {
-      addErrorMessage(t('Failed to retrieve integration details'));
+      toast.error(t('Failed to retrieve integration details'));
     }
   }, [hasSelectedOrg, providerQuery.error, providerQuery.isPending, provider]);
 

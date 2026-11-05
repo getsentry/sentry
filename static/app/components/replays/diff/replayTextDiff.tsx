@@ -1,7 +1,7 @@
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import {DiffFeedbackBanner} from 'sentry/components/replays/diff/diffFeedbackBanner';
 import {After, Before} from 'sentry/components/replays/diff/utils';

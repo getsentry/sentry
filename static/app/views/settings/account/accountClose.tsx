@@ -6,8 +6,8 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -120,7 +120,7 @@ function AccountClose() {
         data: {organizations: orgs},
       }),
     onMutate: () => {
-      addLoadingMessage('Closing account\u2026');
+      toast.loading('Closing account\u2026');
     },
     onSuccess: () => {
       requestAnimationFrame(() => {
@@ -133,7 +133,7 @@ function AccountClose() {
       leaveRedirectTimeout.current = window.setTimeout(leaveRedirect, 10000);
     },
     onError: () => {
-      addErrorMessage('Error closing account');
+      toast.error('Error closing account');
     },
   });
 
