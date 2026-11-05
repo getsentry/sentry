@@ -309,6 +309,21 @@ export function InvestigationPageContent({
           },
         })
     : undefined;
+  const askSeerAboutHypotheses = askSeer
+    ? (hypotheses: InvestigationHypothesis[]) =>
+        askSeer({
+          prompt: t('What would you like to know about these hypotheses?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            hypotheses: hypotheses.map(hypothesis =>
+              getHypothesisLLMContext(
+                hypothesis,
+                hypothesis.id === orchestration?.report.primaryHypothesisId
+              )
+            ),
+          },
+        })
+    : undefined;
   const outline = getInvestigationOutline({
     blocks: visibleBlocks,
     hasActivity: showActivity,
@@ -484,6 +499,7 @@ export function InvestigationPageContent({
                         phase={investigation.orchestration.phase}
                         status={investigation.orchestration.status}
                         onAskSeer={askSeerAboutHypothesis}
+                        onAskSeerAboutHypotheses={askSeerAboutHypotheses}
                       />
                     ) : null}
                     <AnchoredActionRequests
