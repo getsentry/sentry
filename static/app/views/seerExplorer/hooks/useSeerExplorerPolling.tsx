@@ -1,7 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
@@ -11,7 +12,7 @@ import type {
   SeerExplorerRunId,
   Block,
 } from 'sentry/views/seerExplorer/types';
-import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
+import {seerExplorerApiOptions} from 'sentry/views/seerExplorer/utils';
 
 const POLL_INTERVAL = 500; // Poll every 500ms
 const ERROR_POLL_INTERVAL = 2500; // Poll every 2500ms on 5xx errors
@@ -70,7 +71,7 @@ const getPollingState = (
 };
 
 /**
- * Drives Seer session polling via `useApiQuery` with a dynamic refetch interval.
+ * Drives Seer session polling via `useQuery` with a dynamic refetch interval.
  * Called exclusively by `SeerExplorerChatStateProvider`, which dispatches the
  * derived polling state into context for all consumers.
  */
@@ -94,7 +95,8 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
     data: apiData,
     isError,
     error,
-  } = useApiQuery<SeerExplorerResponse>(makeSeerExplorerQueryKey(orgSlug || '', runId), {
+  } = useQuery({
+    ...seerExplorerApiOptions(orgSlug || '', runId),
     staleTime: 0,
     retry: false,
     refetchOnWindowFocus: true,
@@ -105,7 +107,7 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
         runId,
         query.state.data?.json?.session,
         query.state.status === 'error',
-        query.state.error?.status,
+        query.state.error instanceof RequestError ? query.state.error.status : undefined,
         errorPollCountRef.current
       );
       if (state === 'polling-with-backoff') {
@@ -151,7 +153,7 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
     runId,
     apiData?.session,
     isError,
-    error?.status,
+    error instanceof RequestError ? error.status : undefined,
     // oxlint-disable-next-line react/refs
     errorPollCountRef.current
   );
@@ -160,7 +162,7 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
     pollingState,
     apiData,
     isError,
-    errorStatusCode: error?.status,
+    errorStatusCode: error instanceof RequestError ? error.status : undefined,
     isPolling: pollingState === 'polling' || pollingState === 'polling-with-backoff',
     isTimedOut: pollingState === 'timed-out',
   };

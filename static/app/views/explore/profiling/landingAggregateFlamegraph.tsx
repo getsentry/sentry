@@ -28,6 +28,7 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -325,7 +326,9 @@ export function LandingAggregateFlamegraph({
                   <AggregateFlamegraph
                     filter={frameFilter}
                     status={status}
-                    queryError={status === 'error' ? error : null}
+                    queryError={
+                      status === 'error' && error instanceof RequestError ? error : null
+                    }
                     onResetFilter={onResetFrameFilter}
                     canvasPoolManager={canvasPoolManager}
                     scheduler={scheduler}

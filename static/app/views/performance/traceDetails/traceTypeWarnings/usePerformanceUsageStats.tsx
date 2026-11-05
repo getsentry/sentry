@@ -1,6 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 // 1 hour in milliseconds
@@ -37,10 +38,6 @@ export function usePerformanceUsageStats({
     : '';
   const end = traceNode ? new Date(traceEndDate.getTime() + ONE_HOUR).toISOString() : '';
 
-  const pathname = getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-    path: {organizationIdOrSlug: organization.slug},
-  });
-
   const endpointOptions = {
     query: {
       start,
@@ -55,12 +52,21 @@ export function usePerformanceUsageStats({
     },
   };
 
-  const results = useApiQuery<PartialUsageStats>([pathname, endpointOptions], {
+  const results = useQuery({
+    ...apiOptions.as<PartialUsageStats>()(
+      '/organizations/$organizationIdOrSlug/stats_v2/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        ...endpointOptions,
+        staleTime: Infinity,
+      }
+    ),
     staleTime: Infinity,
     enabled: !!traceNode,
   });
 
   return {
+    // eslint-disable-next-line @tanstack/query/no-rest-destructuring -- Preserve the shared hook result interface.
     ...results,
     data: results.data?.groups.find(group =>
       ['transaction_usage_exceeded', 'span_usage_exceeded'].includes(group.by.reason)

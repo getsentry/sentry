@@ -4,7 +4,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
 import {
   SeerExplorerChatStateProvider,
@@ -537,10 +536,9 @@ describe('useSeerExplorer', () => {
 
       // The old chat's optimistic "processing" status is rolled back in the background.
       expect(
-        getApiQueryData<SeerExplorerResponse>(
-          queryClient,
+        queryClient.getQueryData(
           seerExplorerUtils.makeSeerExplorerQueryKey(organization.slug, runId)
-        )?.session?.status
+        )?.json.session?.status
       ).toBe('completed');
     });
 
@@ -593,7 +591,11 @@ describe('useSeerExplorer', () => {
         statusCode: 500,
         // Polling stores fresher server data after the optimistic update, before the failure.
         body: () => {
-          setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, freshData);
+          queryClient.setQueryData(queryKey, {
+            json: freshData,
+            headers: {'X-Hits': 7},
+            status: 200,
+          });
           return {detail: 'Server error'};
         },
       });
@@ -611,9 +613,11 @@ describe('useSeerExplorer', () => {
         expect(result.current.requestError).toEqual({query: 'Question'});
       });
 
-      expect(getApiQueryData<SeerExplorerResponse>(queryClient, queryKey)).toEqual(
-        freshData
-      );
+      expect(queryClient.getQueryData(queryKey)?.json).toEqual(freshData);
+      expect(queryClient.getQueryData(queryKey)).toMatchObject({
+        headers: {'X-Hits': 7},
+        status: 200,
+      });
     });
 
     it('keeps the alert when an older send succeeds after a newer send failed', async () => {

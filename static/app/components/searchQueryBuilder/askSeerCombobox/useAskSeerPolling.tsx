@@ -1,10 +1,9 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -21,19 +20,14 @@ const POLL_INTERVAL = 500; // Poll every 500ms, matching Seer Explorer
 /**
  * Generate the query key for polling the search agent state.
  */
-const makeAskSeerQueryKey = (
+const askSeerApiOptions = <T extends QueryTokensProps>(
   orgSlug: string,
   runId?: number | string
-): ApiQueryKey | null => {
-  if (!runId) {
-    return null;
-  }
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/search-agent/state/$runId/', {
-      path: {organizationIdOrSlug: orgSlug, runId},
-    }),
-  ];
-};
+) =>
+  apiOptions.as<AskSeerPollingResponse<T>>()(
+    '/organizations/$organizationIdOrSlug/search-agent/state/$runId/',
+    {path: {organizationIdOrSlug: orgSlug, runId: runId ?? ''}, staleTime: 0}
+  );
 
 /**
  * Determine if we should be polling for updates.
@@ -94,24 +88,23 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   const [startFailed, setStartFailed] = useState(false);
   const inFlightQueryRef = useRef<string | null>(null);
 
-  const queryKey = makeAskSeerQueryKey(orgSlug, runId ?? undefined);
+  const queryOptions = askSeerApiOptions<T>(orgSlug, runId ?? undefined);
+  const queryKey = runId ? queryOptions.queryKey : null;
 
   // Poll for state
-  const {data: apiData, isPending} = useApiQuery<AskSeerPollingResponse<T>>(
-    queryKey ?? (['__disabled__', {}] as unknown as ApiQueryKey),
-    {
-      staleTime: 0,
-      retry: false,
-      enabled: !!runId && !!orgSlug,
-      refetchInterval: query => {
-        const sessionData = query.state.data?.json?.session ?? null;
-        if (isPolling(sessionData, waitingForResponse)) {
-          return POLL_INTERVAL;
-        }
-        return false;
-      },
-    }
-  );
+  const {data: apiData, isPending} = useQuery({
+    ...queryOptions,
+    staleTime: 0,
+    retry: false,
+    enabled: !!runId && !!orgSlug,
+    refetchInterval: query => {
+      const sessionData = query.state.data?.json?.session ?? null;
+      if (isPolling(sessionData, waitingForResponse)) {
+        return POLL_INTERVAL;
+      }
+      return false;
+    },
+  });
 
   const sessionData = apiData?.session ?? null;
 
@@ -153,7 +146,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
         setRunId(newRunId);
 
         // Invalidate to start polling
-        const newQueryKey = makeAskSeerQueryKey(orgSlug, newRunId);
+        const newQueryKey = askSeerApiOptions<T>(orgSlug, newRunId).queryKey;
         if (newQueryKey) {
           queryClient.invalidateQueries({
             queryKey: newQueryKey,
@@ -194,11 +187,11 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
     setWaitingForResponse(false);
     setStartFailed(false);
     if (queryKey) {
-      setApiQueryData<AskSeerPollingResponse<T>>(
-        queryClient,
-        queryKey,
-        makeInitialAskSeerData()
-      );
+      queryClient.setQueryData(queryKey, previous => ({
+        ...previous,
+        headers: previous?.headers ?? {},
+        json: makeInitialAskSeerData<T>(),
+      }));
     }
   }, [queryClient, queryKey]);
 

@@ -1,6 +1,8 @@
+import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
+
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface AutofixSetupResponse {
@@ -12,13 +14,6 @@ export interface AutofixSetupResponse {
     reason: string | null;
   };
   seerReposLinked: boolean;
-}
-
-function makeAutofixSetupQueryKey(orgSlug: string, groupId: string): ApiQueryKey {
-  return autofixSetupApiOptions({
-    groupId,
-    organizationSlug: orgSlug,
-  }).queryKey;
 }
 
 export function autofixSetupApiOptions({
@@ -39,21 +34,28 @@ export function autofixSetupApiOptions({
 
 export function useAutofixSetup(
   {groupId}: {groupId: string},
-  options: Omit<UseApiQueryOptions<AutofixSetupResponse>, 'staleTime'> = {}
+  options: Omit<
+    UseQueryOptions<
+      ApiResponse<AutofixSetupResponse>,
+      Error,
+      AutofixSetupResponse,
+      ApiQueryKey
+    >,
+    'staleTime' | 'queryKey' | 'queryFn' | 'select'
+  > = {}
 ) {
   const orgSlug = useOrganization().slug;
 
-  const queryData = useApiQuery<AutofixSetupResponse>(
-    makeAutofixSetupQueryKey(orgSlug, groupId),
-    {
-      enabled: Boolean(groupId),
-      staleTime: 30_000,
-      retry: false,
-      ...options,
-    }
-  );
+  const queryData = useQuery({
+    ...autofixSetupApiOptions({organizationSlug: orgSlug, groupId}),
+    enabled: Boolean(groupId),
+    staleTime: 30_000,
+    retry: false,
+    ...options,
+  });
 
   return {
+    // eslint-disable-next-line @tanstack/query/no-rest-destructuring -- Preserve the shared hook result interface.
     ...queryData,
     canStartAutofix: Boolean(queryData.data?.integration.ok),
     hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),

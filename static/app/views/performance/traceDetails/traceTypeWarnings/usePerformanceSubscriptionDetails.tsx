@@ -1,5 +1,6 @@
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 // Note: This does not fully represent the actual Subscription type.
@@ -45,16 +46,13 @@ export function usePerformanceSubscriptionDetails({
 }) {
   const organization = useOrganization();
 
-  const {data: subscription, ...rest} = useApiQuery<Subscription>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
+  // eslint-disable-next-line @tanstack/query/no-rest-destructuring -- Preserve the shared hook result interface.
+  const {data: subscription, ...rest} = useQuery({
+    ...apiOptions.as<Subscription>()('/customers/$organizationIdOrSlug/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: Infinity,
-    }
-  );
+    }),
+  });
 
   const hasExceededPerformanceUsageLimit = subscriptionHasExceededPerformanceUsageLimit(
     subscription,
