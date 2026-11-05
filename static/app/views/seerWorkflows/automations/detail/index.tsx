@@ -109,8 +109,10 @@ export default function AutomationDetail() {
     },
     onError: () => addErrorMessage(t('Unable to delete automation.')),
   });
-  const {data: createdByUser} = useUserFromId({
-    id: config?.createdBy ? Number(config.createdBy) : undefined,
+  // Show who last updated the automation, falling back to who created it
+  const displayUserId = config?.updatedBy || config?.createdBy;
+  const {data: displayUser} = useUserFromId({
+    id: displayUserId ? Number(displayUserId) : undefined,
   });
   const nextUpdate =
     config?.enabled && config.strategy !== 'breached_metric_investigation'
@@ -211,28 +213,28 @@ export default function AutomationDetail() {
                       ? t('All projects')
                       : tn('%s project', '%s projects', config.projects.length)}
                 </Text>
-                {config.createdBy !== undefined && (
+                {displayUserId && (
                   <Fragment>
                     <Stack.Separator />
                     <Flex gap="xs" align="center">
                       <Text size="sm" variant="muted">
-                        {t('Created by')}
+                        {config.updatedBy ? t('Last updated by') : t('Created by')}
                       </Text>
-                      {createdByUser ? (
+                      {displayUser ? (
                         <UserBadge
-                          user={createdByUser}
+                          user={displayUser}
                           hideEmail
                           avatarSize={16}
                           avatarProps={{hasTooltip: true}}
                           displayName={
                             <Text size="sm" variant="muted">
-                              {createdByUser.name || createdByUser.email}
+                              {displayUser.name || displayUser.email}
                             </Text>
                           }
                         />
                       ) : (
                         <Text size="sm" variant="muted">
-                          {config.createdBy}
+                          {displayUserId}
                         </Text>
                       )}
                     </Flex>

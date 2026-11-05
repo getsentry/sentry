@@ -110,6 +110,10 @@ export type SeerWorkflowConfigResponse = {
    */
   lastRunStatus?: SeerAutomationRunStatus;
   name?: string;
+  /**
+   * ID of the user who last updated the config. Omitted if unset
+   */
+  updatedBy?: string;
 };
 
 export type SeerWorkflowConfigsResponse = {
