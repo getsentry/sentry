@@ -175,7 +175,7 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
                 owner_user_id=self.metric_alert.user_id,
                 config={
                     "comparison_delta": "matcha",
-                    "detection_type": self.metric_alert.detection_type,
+                    "detection_type": "percent",
                 },
             )
 
