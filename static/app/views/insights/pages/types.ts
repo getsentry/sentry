@@ -1,9 +1,9 @@
-import {AGENTS_LANDING_TITLE} from 'sentry/views/insights/pages/agents/settings';
-import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
-import {FRONTEND_LANDING_TITLE} from 'sentry/views/insights/pages/frontend/settings';
-import {MCP_LANDING_TITLE} from 'sentry/views/insights/pages/mcp/settings';
-import {MOBILE_LANDING_TITLE} from 'sentry/views/insights/pages/mobile/settings';
-import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {AGENTS_LANDING_TITLE} from './agents/settings';
+import {BACKEND_LANDING_TITLE} from './backend/settings';
+import {FRONTEND_LANDING_TITLE} from './frontend/settings';
+import {MCP_LANDING_TITLE} from './mcp/settings';
+import {MOBILE_LANDING_TITLE} from './mobile/settings';
+import type {DomainView} from './useFilters';
 
 export const DOMAIN_VIEW_TITLES: Record<DomainView, string> = {
   backend: BACKEND_LANDING_TITLE,

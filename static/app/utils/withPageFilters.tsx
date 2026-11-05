@@ -1,6 +1,7 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import {getDisplayName} from 'sentry/utils/getDisplayName';
+
+import {getDisplayName} from './getDisplayName';
 
 type InjectedPageFiltersProps = {
   isGlobalSelectionReady?: boolean;

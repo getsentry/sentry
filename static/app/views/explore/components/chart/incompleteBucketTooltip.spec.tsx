@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
+
+import {useIncompleteBucketTooltipDetails} from './incompleteBucketTooltip';
 
 const ONE_HOUR_IN_MS = 3600000;
 const COMPLETE_TIMESTAMP = 1758153600000;

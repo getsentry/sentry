@@ -3,9 +3,11 @@ from datetime import datetime, timezone
 import pytest
 
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.projects.services.project.service import project_service
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 from .test_organization import assert_project_equals
@@ -37,6 +39,47 @@ def test_get_or_create_project() -> None:
         add_org_default_team=True,
     )
     assert Project.objects.all().count() == 1
+
+
+@django_db_all(transaction=True)
+@override_options({"similarity.new_project_seer_grouping.enabled": True})
+def test_create_project_enables_seer_similarity_grouping() -> None:
+    org = Factories.create_organization()
+    user = Factories.create_user(email="test@sentry.io")
+
+    rpc_project = project_service.create_project_for_organization(
+        organization_id=org.id,
+        project_name="test-project",
+        platform="python",
+        user_id=user.id,
+    )
+
+    assert (
+        ProjectOption.objects.get_value(
+            project=rpc_project.id, key="sentry:similarity_backfill_completed"
+        )
+        is not None
+    )
+
+
+@django_db_all(transaction=True)
+def test_create_project_skips_seer_similarity_grouping_when_region_disabled() -> None:
+    org = Factories.create_organization()
+    user = Factories.create_user(email="test@sentry.io")
+
+    rpc_project = project_service.create_project_for_organization(
+        organization_id=org.id,
+        project_name="test-project",
+        platform="python",
+        user_id=user.id,
+    )
+
+    assert (
+        ProjectOption.objects.get_value(
+            project=rpc_project.id, key="sentry:similarity_backfill_completed"
+        )
+        is None
+    )
 
 
 @django_db_all(transaction=True)

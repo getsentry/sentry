@@ -2,17 +2,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
+
 import {
   buildNavigationTypeGlobalFilter,
   getNavigationTypeDataset,
   NAVIGATION_TYPE_BUCKET_ORDER,
   NavigationTypeBucket,
   WEB_VITALS_NAVIGATION_TYPE_FEATURE,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
-import {
-  hidesNavigationTypeChip,
-  showsNavigationTypeSwitcher,
-} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
+} from './settings';
+import {hidesNavigationTypeChip, showsNavigationTypeSwitcher} from './utils';
 
 describe('hidesNavigationTypeChip', () => {
   const withFlag = OrganizationFixture({features: [WEB_VITALS_NAVIGATION_TYPE_FEATURE]});

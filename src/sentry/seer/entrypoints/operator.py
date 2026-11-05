@@ -566,7 +566,6 @@ class SeerAgentOperator[CachePayloadT]:
                     on_completion_hook=SeerOperatorCompletionHook,
                     is_interactive=True,
                     enable_coding=enable_coding,
-                    # The client still requires seer-explorer-allow-bash-mode.
                     enable_bash_mode=enable_coding,
                     enable_write_pull_request=enable_coding,
                     enable_code_mode_tools=enable_code_mode_tools,
@@ -877,7 +876,10 @@ def process_autofix_updates(
             lifecycle.record_failure(failure_reason="missing_identifiers")
             return
 
-        if event_type not in SEER_EVENT_TO_ACTIVITY_TYPE:
+        if (
+            event_type not in SEER_EVENT_TO_ACTIVITY_TYPE
+            and event_type != SentryAppEventType.SEER_ERRORED
+        ):
             lifecycle.record_halt(halt_reason="skipped")
             return
 

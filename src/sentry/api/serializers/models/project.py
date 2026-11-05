@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, Final, NotRequired, Protocol, TypedDict, cast
+from typing import TYPE_CHECKING, Annotated, Any, Final, NotRequired, Protocol, TypedDict, cast
 
 import orjson
 from django.conf import settings
@@ -18,6 +18,7 @@ from sentry_sdk.traces import StreamedSpan
 from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.team import get_org_roles
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.principal import has_user
@@ -294,15 +295,26 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     id: str
     slug: str
     name: str  # TODO: add deprecation about this field (not used in app)
-    platform: str | None
-    dateCreated: datetime
-    isBookmarked: bool
-    isMember: bool
-    features: list[str]
-    firstEvent: datetime | None
+    platform: Annotated[str | None, ApiDescription("Platform of the project")]
+    dateCreated: Annotated[datetime, ApiDescription("When the project was created (ISO 8601)")]
+    isBookmarked: Annotated[
+        bool, ApiDescription("Whether the requesting user bookmarked the project")
+    ]
+    isMember: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the requesting user is a member of a team with access to the project"
+        ),
+    ]
+    features: Annotated[list[str], ApiDescription("Features enabled for the project")]
+    firstEvent: Annotated[
+        datetime | None, ApiDescription("When the project received its first event (ISO 8601)")
+    ]
     firstTransactionEvent: bool
     access: list[str]
-    hasAccess: bool
+    hasAccess: Annotated[
+        bool, ApiDescription("Whether the requesting user has access to the project")
+    ]
     hasFeedbacks: bool
     hasFlags: bool
     hasMinifiedStackTrace: bool
@@ -768,12 +780,17 @@ class _OrganizationProjectOptionalResponse(TypedDict, total=False):
 class OrganizationProjectResponse(
     _OrganizationProjectOptionalResponse, ProjectSerializerBaseResponse
 ):
-    team: TeamResponseDict | None
-    teams: list[TeamResponseDict]
-    platforms: list[str]
+    team: Annotated[
+        TeamResponseDict | None,
+        ApiDescription("First team with access to the project; use teams instead"),
+    ]
+    teams: Annotated[list[TeamResponseDict], ApiDescription("Teams with access to the project")]
+    platforms: Annotated[list[str], ApiDescription("Platforms seen in the project's events")]
     hasUserReports: bool
-    environments: list[str]
-    latestRelease: LatestReleaseDict | None
+    environments: Annotated[list[str], ApiDescription("Environments seen in the project's events")]
+    latestRelease: Annotated[
+        LatestReleaseDict | None, ApiDescription("Latest release of the project")
+    ]
 
 
 class _DeployDict(TypedDict):

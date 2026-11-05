@@ -255,6 +255,10 @@
       "types": "./dist/toast/index.d.ts",
       "import": "./dist/toast/index.js"
     },
+    "./dropdownMenu": {
+      "types": "./dist/dropdownMenu/index.d.ts",
+      "import": "./dist/dropdownMenu/index.js"
+    },
     "./codeBlock": {
       "types": "./dist/codeBlock/index.d.ts",
       "import": "./dist/codeBlock/index.js"
@@ -283,6 +287,10 @@
       "types": "./dist/useVirtualRows.d.ts",
       "import": "./dist/useVirtualRows.js"
     },
+    "./modal": {
+      "types": "./dist/modal/index.d.ts",
+      "import": "./dist/modal/index.js"
+    },
     "./clipboard": {
       "types": "./dist/clipboard/index.d.ts",
       "import": "./dist/clipboard/index.js"
@@ -290,6 +298,10 @@
     "./compactSelect": {
       "types": "./dist/compactSelect/index.d.ts",
       "import": "./dist/compactSelect/index.js"
+    },
+    "./pictureInPicture": {
+      "types": "./dist/pictureInPicture/index.d.ts",
+      "import": "./dist/pictureInPicture/index.js"
     }
   },
   "publishConfig": {
@@ -305,6 +317,7 @@
     "lint:css": "stylelint '**/*.[jt]sx' --allow-empty-input"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/styled": "^11.14.0",
     "@floating-ui/react-dom": "^2.1.9",
@@ -315,6 +328,7 @@
     "@react-aria/i18n": "3.13.1",
     "@react-aria/interactions": "3.28.1",
     "@react-aria/listbox": "3.16.1",
+    "@react-aria/menu": "3.22.1",
     "@react-aria/numberfield": "3.13.1",
     "@react-aria/overlays": "3.32.1",
     "@react-aria/radio": "3.13.1",
@@ -329,6 +343,7 @@
     "@react-stately/overlays": "3.7.1",
     "@react-stately/radio": "3.12.1",
     "@react-stately/slider": "3.8.1",
+    "@react-stately/tree": "3.10.1",
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
@@ -337,14 +352,17 @@
     "@types/react": "19.3.0",
     "@types/react-select": "4.0.18",
     "classnames": "2.3.1",
+    "focus-trap": "8.2.2",
     "framer-motion": "12.38.0",
     "input-otp": "^1.5.0",
     "prismjs": "^1.30.0",
     "query-string": "7.0.1",
+    "react-error-boundary": "^6.1.6",
     "react-select": "4.3.1",
     "react-textarea-autosize": "8.5.7",
     "sonner": "2.0.8",
-    "type-fest": "^5.10.0"
+    "type-fest": "^5.10.0",
+    "zustand": "5.0.16"
   },
   "devDependencies": {
     "@jest/environment": "30.5.1",

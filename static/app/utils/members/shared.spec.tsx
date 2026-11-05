@@ -1,7 +1,7 @@
 import {MemberFixture} from 'sentry-fixture/member';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {indexMembersByProject} from 'sentry/utils/members/shared';
+import {indexMembersByProject} from './shared';
 
 describe('indexMembersByProject', () => {
   it('maps project slugs to their users', () => {

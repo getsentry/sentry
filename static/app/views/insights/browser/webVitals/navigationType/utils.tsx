@@ -9,6 +9,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+
 import {
   bucketsKeepThresholds,
   getBucketsFromGlobalFilters,
@@ -17,7 +18,7 @@ import {
   isWebVitalsPrebuiltDashboard,
   WEB_VITALS_NAVIGATION_TYPE_FEATURE,
   type NavigationTypeBucket,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
+} from './settings';
 
 type NavigationTypeExperiment = {
   buckets: NavigationTypeBucket[];

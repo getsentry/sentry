@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {CategorizedStoryTree} from 'sentry/stories/view/storyTree';
+import {CategorizedStoryTree} from './storyTree';
 
 jest.mock('sentry/stories/storyManifest.generated', () => ({
   storyFiles: ['app/components/core/drawer/drawer.mdx'],

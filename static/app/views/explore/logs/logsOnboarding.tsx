@@ -54,14 +54,15 @@ import {
   ExploreBodySearch,
   ExploreFilterSection,
 } from 'sentry/views/explore/components/styles';
-import {SetupLogsButton} from 'sentry/views/explore/logs/setupLogsButton';
-import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+
+import {SetupLogsButton} from './setupLogsButton';
+import {StyledPageFilterBar} from './styles';
 
 type OnboardingProps = {
   organization: Organization;

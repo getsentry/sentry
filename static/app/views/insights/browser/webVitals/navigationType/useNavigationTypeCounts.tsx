@@ -2,13 +2,6 @@ import {useMemo} from 'react';
 
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {webVitalCountField} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
-import {
-  bucketAttributeValues,
-  getNavigationTypeDataset,
-  isNavigationTypeGlobalFilter,
-  NAVIGATION_TYPE_BUCKET_ORDER,
-  NavigationTypeBucket,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
@@ -17,6 +10,14 @@ import {
   useTraceMetrics,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {
+  bucketAttributeValues,
+  getNavigationTypeDataset,
+  isNavigationTypeGlobalFilter,
+  NAVIGATION_TYPE_BUCKET_ORDER,
+  NavigationTypeBucket,
+} from './settings';
 
 const SPAN_COUNT_FIELD = 'count()';
 

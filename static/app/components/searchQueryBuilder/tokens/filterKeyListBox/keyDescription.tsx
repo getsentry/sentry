@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {AttributeDetails} from 'sentry/components/attributes/attributeDetails';
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
-import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/getKeyLabel';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {
@@ -13,6 +12,8 @@ import {
   type FieldDefinition,
 } from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+
+import {getKeyLabel} from './getKeyLabel';
 
 type KeyDescriptionProps = {
   tag: Tag;

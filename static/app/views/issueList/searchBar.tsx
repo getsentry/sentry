@@ -26,8 +26,9 @@ import type {
   SearchBarDataProviderProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {fetchIssueTagValues} from 'sentry/views/issueDetails/utils';
-import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
-import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
+
+import {makeGetIssueTagValues} from './utils/getIssueTagValues';
+import {useIssueListFilterKeys} from './utils/useIssueListFilterKeys';
 
 interface Props extends Partial<SearchQueryBuilderProps> {
   organization: Organization;
