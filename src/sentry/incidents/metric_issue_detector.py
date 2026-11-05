@@ -43,7 +43,12 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition import (
 )
 from sentry.workflow_engine.models import DataCondition, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import (
+    DetectorPriorityLevel,
+    DetectorType,
+    SnubaQueryDataSourceType,
+)
 
 
 def fetch_snuba_query(detector: Detector) -> SnubaQuery | None:
@@ -298,6 +303,31 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                     ]
                 }
             )
+
+    def _clean_config(self, config: dict[str, Any]) -> None:
+        """
+        Remove any `config` entries whose keys aren't in the metric detector config schema, and drop
+        null `comparison_delta` entries. Though both are harmless, there's no reason to store data
+        we'll never use.
+
+        Modifies the given `config` dict in place. Designed to be called before schema validation
+        runs, to prevent us from breaking customer tooling originally written when the schema
+        allowed extra keys.
+        """
+        # To prevent a circular import, look the schema up in the registry rather than importing it
+        # directly
+        schema = detector_settings_registry.get(DetectorType.METRIC_ISSUE).config_schema
+
+        # The schema will always be defined in prod, but technically `config_schema` is typed as
+        # optional, so we need this check to keep mypy happy.
+        if schema:
+            known_keys = set(schema["properties"].keys())
+            for key in list(config.keys()):
+                if key not in known_keys:
+                    config.pop(key)
+
+        if "comparison_delta" in config and config["comparison_delta"] is None:
+            config.pop("comparison_delta")
 
     def _get_resolution_for_window(
         self,
