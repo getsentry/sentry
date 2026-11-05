@@ -15,7 +15,8 @@ import {
   type RenderOptions,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import * as analytics from 'sentry/utils/analytics';
@@ -848,7 +849,7 @@ describe('LogsInfiniteTable', () => {
     });
 
     it('shows an error when the pinned log is not in the current results', async () => {
-      const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      const addErrorMessage = jest.spyOn(toast, 'error');
       const trackAnalytics = jest.spyOn(analytics, 'trackAnalytics');
       mockEvents(query => query === 'id:[99]', [unloadedPinnedLog]);
       mockEvents(

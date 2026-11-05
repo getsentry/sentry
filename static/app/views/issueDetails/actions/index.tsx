@@ -16,13 +16,9 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
-import {
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -276,7 +272,7 @@ export function GroupActions({
   };
 
   const onDelete = async () => {
-    addLoadingMessage(t('Delete event\u2026'));
+    toast.loading(t('Delete event\u2026'));
     trackIssueAction('deleted');
     IssueListCacheStore.reset();
 
@@ -286,9 +282,9 @@ export function GroupActions({
         projectId: project.slug,
         itemIds: [group.id],
       });
-      clearIndicators();
+      toast.dismiss();
 
-      addSuccessMessage(t('Issue deleted'));
+      toast.success(t('Issue deleted'));
       navigate({
         pathname: `/organizations/${organization.slug}/issues/`,
         query: {project: project.id},
@@ -320,9 +316,9 @@ export function GroupActions({
         itemIds: [group.id],
         data,
       });
-      clearIndicators();
+      toast.dismiss();
       if (successMessage) {
-        addSuccessMessage(successMessage);
+        toast.success(successMessage);
       }
       onComplete?.();
       onUpdateSuccess?.();
@@ -356,7 +352,7 @@ export function GroupActions({
   const onToggleBookmark = () => {
     onUpdate({isBookmarked: !group.isBookmarked}, () => {
       trackIssueAction('bookmarked');
-      addSuccessMessage(
+      toast.success(
         group.isBookmarked ? t('Issue bookmark removed') : t('Issue bookmarked')
       );
     });
@@ -365,7 +361,7 @@ export function GroupActions({
   const onToggleSubscribe = () => {
     onUpdate({isSubscribed: !group.isSubscribed}, () => {
       trackIssueAction('subscribed');
-      addSuccessMessage(
+      toast.success(
         group.isSubscribed ? t('Unsubscribed from issue') : t('Subscribed to issue')
       );
     });

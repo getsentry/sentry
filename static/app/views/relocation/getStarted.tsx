@@ -6,8 +6,8 @@ import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getSignupLocalities} from 'sentry/utils/cells';
@@ -62,7 +62,7 @@ export function GetStarted({
             )
             .then(completeStep)
             .catch(error => {
-              addErrorMessage(
+              toast.error(
                 error instanceof RequestError && error.status === 403
                   ? PROMO_CODE_ERROR_MSG
                   : PROMO_CODE_FALLBACK_ERROR_MSG

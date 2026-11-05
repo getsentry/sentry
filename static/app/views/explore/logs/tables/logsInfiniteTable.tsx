@@ -15,8 +15,8 @@ import type {Virtualizer} from '@tanstack/react-virtual';
 import {Button} from '@sentry/scraps/button';
 import {useClockDisplay} from '@sentry/scraps/datetime';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
@@ -542,7 +542,7 @@ export function LogsInfiniteTable({
         log_id: anchorId,
         organization,
       });
-      addErrorMessage(t('This log is not in the current results'));
+      toast.error(t('This log is not in the current results'));
       clearAnchor();
       return;
     }

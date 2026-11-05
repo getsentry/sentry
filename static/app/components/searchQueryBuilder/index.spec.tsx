@@ -15,8 +15,8 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {GlobalModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {
   SearchQueryBuilder,
@@ -7977,7 +7977,7 @@ describe('SearchQueryBuilder', () => {
           );
         }
 
-        const successMessageSpy = jest.spyOn(indicators, 'addSuccessMessage');
+        const successMessageSpy = jest.spyOn(toast, 'success');
         const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
         render(
           <AskSeerWrapper>

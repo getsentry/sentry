@@ -7,8 +7,8 @@ import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -82,7 +82,7 @@ export default function ProjectToolbarSettings() {
                   data: {options: data},
                 }),
               onSuccess: () => {
-                addSuccessMessage(t('Saved'));
+                toast.success(t('Saved'));
               },
             }}
           >

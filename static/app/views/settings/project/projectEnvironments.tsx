@@ -10,8 +10,8 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -193,7 +193,7 @@ export default function ProjectEnvironments() {
       return {previousData};
     },
     onSuccess: (_data, {environment, shouldHide}) => {
-      addSuccessMessage(
+      toast.success(
         shouldHide
           ? t('Hidden %s', getDisplayName(environment))
           : t('Unhidden %s', getDisplayName(environment))
@@ -204,7 +204,7 @@ export default function ProjectEnvironments() {
         queryClient.setQueryData(environmentsQueryOptions.queryKey, context.previousData);
       }
 
-      addErrorMessage(
+      toast.error(
         shouldHide
           ? t('Unable to hide %s', getDisplayName(environment))
           : t('Unable to unhide %s', getDisplayName(environment))

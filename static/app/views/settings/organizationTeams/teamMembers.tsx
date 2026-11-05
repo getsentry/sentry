@@ -18,8 +18,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
@@ -241,12 +241,10 @@ export default function TeamMembers() {
           };
         }
       );
-      addSuccessMessage(t('Successfully removed member from team.'));
+      toast.success(t('Successfully removed member from team.'));
     },
     onError: () => {
-      addErrorMessage(
-        t('There was an error while trying to remove a member from the team.')
-      );
+      toast.error(t('There was an error while trying to remove a member from the team.'));
     },
   });
 
@@ -270,7 +268,7 @@ export default function TeamMembers() {
       );
     },
     onSuccess: (_data, variables) => {
-      addSuccessMessage(t('Successfully changed role for team member.'));
+      toast.success(t('Successfully changed role for team member.'));
       queryClient.setQueryData(
         getTeamMembersApiOptions({organization, teamId: team.slug, location}).queryKey,
         existingData => {
@@ -295,7 +293,7 @@ export default function TeamMembers() {
       );
     },
     onError: () => {
-      addErrorMessage(
+      toast.error(
         t('There was an error while trying to change the roles for a team member.')
       );
     },
@@ -322,10 +320,10 @@ export default function TeamMembers() {
           };
         }
       );
-      addSuccessMessage(t('Successfully added member to team.'));
+      toast.success(t('Successfully added member to team.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to add team member.'));
+      toast.error(t('Unable to add team member.'));
     },
   });
 

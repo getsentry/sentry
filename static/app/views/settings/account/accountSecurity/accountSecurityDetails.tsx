@@ -10,8 +10,8 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Container} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -83,11 +83,11 @@ export default function AccountSecurityDetails() {
     },
     onSuccess: (_, {device}) => {
       const deviceName = device ? device.name : t('Authenticator');
-      addSuccessMessage(t('%s has been removed', deviceName));
+      toast.success(t('%s has been removed', deviceName));
     },
     onError: (_, {device}) => {
       const deviceName = device ? device.name : t('Authenticator');
-      addErrorMessage(t('Error removing %s', deviceName));
+      toast.error(t('Error removing %s', deviceName));
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
@@ -113,10 +113,10 @@ export default function AccountSecurityDetails() {
     },
     onSuccess: () => {
       navigate(`/settings/account/security/mfa/${authId}`);
-      addSuccessMessage(t('Device was renamed'));
+      toast.success(t('Device was renamed'));
     },
     onError: () => {
-      addErrorMessage(t('Error renaming the device'));
+      toast.error(t('Error renaming the device'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});

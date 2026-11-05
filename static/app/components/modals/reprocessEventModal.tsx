@@ -7,8 +7,8 @@ import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
@@ -76,7 +76,7 @@ export function ReprocessingEventModal({
                 )
               : false;
           if (!handled) {
-            addErrorMessage(t('Failed to reprocess. Please check your input.'));
+            toast.error(t('Failed to reprocess. Please check your input.'));
           }
         }),
   });

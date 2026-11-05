@@ -2,8 +2,9 @@ import {PureComponent} from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
 import {
@@ -321,7 +322,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
         '%s has an invalid date range. Please try a more recent date range.',
         name
       );
-      addErrorMessage(errorMessage, {append: true});
+      toast.error(errorMessage);
 
       this.setState({
         errored: true,
@@ -338,7 +339,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
           errorMessage = t('Error loading chart data');
         }
         if (!hideError) {
-          addErrorMessage(errorMessage);
+          toast.error(errorMessage);
         }
         if (onError) {
           onError(errorMessage);

@@ -15,8 +15,8 @@ import {Overlay} from '@sentry/scraps/overlay';
 import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   ProfilingContextMenu,
   ProfilingContextMenuGroup,
@@ -606,7 +606,7 @@ function MenuItem(props: {
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => {
                     props.copyToClipboard(props.componentName);
-                    addSuccessMessage(t('Component name copied to clipboard'));
+                    toast.success(t('Component name copied to clipboard'));
                     props.onAction();
                   },
                 })}
@@ -618,7 +618,7 @@ function MenuItem(props: {
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => {
                     props.copyToClipboard(props.sourcePath);
-                    addSuccessMessage(t('Component path copied to clipboard'));
+                    toast.success(t('Component path copied to clipboard'));
                     props.onAction();
                   },
                 })}
@@ -631,7 +631,7 @@ function MenuItem(props: {
                   onClick: () => {
                     const llmPrompt = serializeTraceForLLM(props.fullTrace, props.el);
                     props.copyToClipboard(llmPrompt);
-                    addSuccessMessage(t('LLM prompt copied to clipboard'));
+                    toast.success(t('LLM prompt copied to clipboard'));
                     props.onAction();
                   },
                 })}

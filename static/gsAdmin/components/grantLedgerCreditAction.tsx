@@ -6,8 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -107,7 +107,7 @@ function GrantLedgerCreditModal({
         data: grant,
       }),
     onSuccess: () => {
-      addSuccessMessage('Ledger credit granted');
+      toast.success('Ledger credit granted');
       onSuccess();
       closeModal();
     },
@@ -118,7 +118,7 @@ function GrantLedgerCreditModal({
       ) {
         return;
       }
-      addErrorMessage(
+      toast.error(
         error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
           ? error.responseJSON.detail
           : 'Unable to grant ledger credit.'

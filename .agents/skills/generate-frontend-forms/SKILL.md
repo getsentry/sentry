@@ -981,7 +981,7 @@ z.string().min(1, 'Email address is required');
 mutationOptions={{
   mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
   onSuccess: () => {
-    addSuccessMessage('Saved!'); // ❌ noisy and disruptive
+    toast.success('Saved!'); // ❌ noisy and disruptive
   },
 }}
 

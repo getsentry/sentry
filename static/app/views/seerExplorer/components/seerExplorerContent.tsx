@@ -19,8 +19,8 @@ import type {ComposerValue} from '@sentry/scraps/composer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   AutofixChatProvider,
   type SendMessageOptions,
@@ -473,10 +473,10 @@ export function SeerExplorerContent({
     try {
       const url = getExplorerUrl(runId);
       await navigator.clipboard.writeText(url);
-      addSuccessMessage('Copied link to current chat');
+      toast.success('Copied link to current chat');
       trackAnalytics('seer.explorer.session_link_copied', {organization});
     } catch {
-      addErrorMessage('Failed to copy link to current chat');
+      toast.error('Failed to copy link to current chat');
     }
   }, [runId, organization]);
 

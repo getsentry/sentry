@@ -12,7 +12,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {
   CMDKCollection,
   CommandPaletteProvider,
@@ -30,8 +31,6 @@ import {
   useIssueSelectionActions,
 } from 'sentry/views/issueList/issueSelectionContext';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-
-jest.mock('sentry/actionCreators/indicator');
 
 const organization = OrganizationFixture();
 
@@ -74,8 +73,9 @@ function SelectionInitializer() {
 
 describe('IssueListBulkCommandPaletteActions', () => {
   beforeEach(() => {
+    jest.spyOn(toast, 'loading').mockClear();
     GroupStore.reset();
-    jest.mocked(addLoadingMessage).mockClear();
+    jest.mocked(toast.loading).mockClear();
     ConfigStore.loadInitialData({
       user: UserFixture({id: '1', name: 'Test User'}),
     } as any);
@@ -293,7 +293,7 @@ describe('IssueListBulkCommandPaletteActions', () => {
       }
     });
 
-    expect(addLoadingMessage).not.toHaveBeenCalled();
+    expect(toast.loading).not.toHaveBeenCalled();
     expect(
       await screen.findByText(
         'You are about to resolve all 10 issues matching this search. Are you sure?'
@@ -302,7 +302,7 @@ describe('IssueListBulkCommandPaletteActions', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-    expect(addLoadingMessage).toHaveBeenCalledWith('Saving changes…');
+    expect(toast.loading).toHaveBeenCalledWith('Saving changes…');
     expect(bulkUpdateMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/issues/`,
       expect.objectContaining({

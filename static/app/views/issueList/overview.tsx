@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {IconRefresh} from '@sentry/icons/refresh';
 import * as Sentry from '@sentry/react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -12,8 +13,8 @@ import * as qs from 'query-string';
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 
-import {addMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DATE_TIME_KEYS} from 'sentry/components/pageFilters/constants';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -797,15 +798,19 @@ function IssueListOverviewInner({
     undo?: () => void;
   }) => {
     if (itemIds.length > 1) {
-      addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
+      toast.success(`${actionType} ${itemIds.length} ${t('Issues')}`, {
         duration: 4000,
-        undo,
+        ...(undo && {
+          action: {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo},
+        }),
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(`${actionType} ${shortId}`, 'success', {
+      toast.success(`${actionType} ${shortId}`, {
         duration: 4000,
-        undo,
+        ...(undo && {
+          action: {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo},
+        }),
       });
     }
 

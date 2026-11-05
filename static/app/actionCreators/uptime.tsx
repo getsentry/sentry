@@ -1,11 +1,7 @@
 import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -22,7 +18,7 @@ export async function updateUptimeRule(
   detector: UptimeDetector,
   data: Partial<UptimeRule>
 ): Promise<UptimeRule | null> {
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
 
   try {
     const resp = await api.requestPromise(
@@ -41,11 +37,11 @@ export async function updateUptimeRule(
         data,
       }
     );
-    clearIndicators();
+    toast.dismiss();
 
     if (data.status !== undefined) {
       const isEnabled = data.status === 'active';
-      addSuccessMessage(
+      toast.success(
         isEnabled ? t('Uptime monitor enabled') : t('Uptime monitor disabled')
       );
     }
@@ -63,7 +59,7 @@ export async function updateUptimeRule(
         : undefined;
 
     Sentry.captureException(err);
-    addErrorMessage(validationError ?? t('Unable to update uptime monitor.'));
+    toast.error(validationError ?? t('Unable to update uptime monitor.'));
   }
 
   return null;
@@ -74,7 +70,7 @@ export async function deleteUptimeRule(
   org: Organization,
   uptimeRule: UptimeRule
 ) {
-  addLoadingMessage('Deleting uptime alert rule...');
+  toast.loading('Deleting uptime alert rule...');
 
   try {
     await api.requestPromise(
@@ -92,8 +88,8 @@ export async function deleteUptimeRule(
         method: 'DELETE',
       }
     );
-    clearIndicators();
+    toast.dismiss();
   } catch (_err) {
-    addErrorMessage(t('Error deleting rule'));
+    toast.error(t('Error deleting rule'));
   }
 }

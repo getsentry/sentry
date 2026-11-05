@@ -18,8 +18,8 @@ import {
 } from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -119,7 +119,7 @@ function InvestigationNotebookBlockInner({
   const deleteMutation = useDeleteInvestigationBlockMutation(
     organizationSlug,
     investigation.id,
-    {onError: () => addErrorMessage(t('Unable to delete this block.'))}
+    {onError: () => toast.error(t('Unable to delete this block.'))}
   );
 
   useEffect(() => {
@@ -677,13 +677,13 @@ function AgentActivityPanel({
     organizationSlug,
     investigation.id,
     {
-      onError: () => addErrorMessage(t('Unable to stop this Seer run.')),
+      onError: () => toast.error(t('Unable to stop this Seer run.')),
     }
   );
   const resumeMutation = useResumeInvestigationExecutionMutation(
     organizationSlug,
     investigation.id,
-    {onError: () => addErrorMessage(t('Unable to resume this Seer run.'))}
+    {onError: () => toast.error(t('Unable to resume this Seer run.'))}
   );
   const executionQuery = useQuery({
     ...investigationExecutionDetailQueryOptions({

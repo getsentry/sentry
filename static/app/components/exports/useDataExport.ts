@@ -1,7 +1,8 @@
 import {useMutation} from '@tanstack/react-query';
 
+import {toast} from '@sentry/scraps/toast';
+
 import type {EventQuery} from 'sentry/actionCreators/events';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {createExportFilename} from 'sentry/components/exports/createExportFilename';
 import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {t} from 'sentry/locale';
@@ -94,14 +95,14 @@ function handleDataExportResponse(
   organizationSlug: string
 ) {
   if (response?.status !== 201) {
-    addSuccessMessage(
+    toast.success(
       t("It looks like we're already working on it. Sit tight, we'll email you.")
     );
     return;
   }
 
   if (!data.fileName) {
-    addSuccessMessage(
+    toast.success(
       t("Sit tight. We'll shoot you an email when your data is ready for download.")
     );
     return;
@@ -112,7 +113,7 @@ function handleDataExportResponse(
     filename,
     `/api/0/organizations/${organizationSlug}/data-export/${data.id}/?download=true`
   );
-  addSuccessMessage(t("Downloading '%s' to your browser.", data.fileName));
+  toast.success(t("Downloading '%s' to your browser.", data.fileName));
 }
 
 function isStatsPeriodRange(value: unknown): value is StatsPeriodRange {
@@ -169,9 +170,9 @@ export function useDataExport() {
         error instanceof RequestError &&
         typeof error.responseJSON?.detail === 'string'
       ) {
-        addErrorMessage(error.responseJSON.detail);
+        toast.error(error.responseJSON.detail);
       } else {
-        addErrorMessage(
+        toast.error(
           t(
             "We tried our hardest, but we couldn't export your data. Try waiting a minute then giving it another go."
           )

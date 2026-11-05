@@ -6,8 +6,8 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -85,7 +85,7 @@ export default function ProjectTags() {
       );
     },
     onError: () => {
-      addErrorMessage(t('An error occurred while deleting the tag'));
+      toast.error(t('An error occurred while deleting the tag'));
     },
   });
 

@@ -7,12 +7,8 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -124,16 +120,16 @@ function Content({datePageFilterProps}: ContentProps) {
                       label: t('Existing Query'),
                       onAction: async () => {
                         try {
-                          addLoadingMessage(t('Updating query...'));
+                          toast.loading(t('Updating query...'));
                           await updateQuery();
-                          addSuccessMessage(t('Query updated successfully'));
+                          toast.success(t('Query updated successfully'));
                           trackAnalytics('trace_explorer.save_as', {
                             save_type: 'update_query',
                             ui_source: 'toolbar',
                             organization,
                           });
                         } catch (error) {
-                          addErrorMessage(t('Failed to update query'));
+                          toast.error(t('Failed to update query'));
                           Sentry.captureException(error);
                         }
                       },
