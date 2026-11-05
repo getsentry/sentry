@@ -4,6 +4,8 @@ import shlex
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from sentry.agent_handoff.installer import installer_command, pinned_installer
+
 # Markdown labels and shell blocks are escaped for their respective contexts below.
 _ENVIRONMENT = Environment(
     loader=PackageLoader("sentry", "templates"),
@@ -47,9 +49,8 @@ def render_agent_runbook(
         f"SENTRY_SETUP_CODE={shlex.quote(setup_code)}"
     )
     auth_status = _code_block(f"{instance_environment} sentry auth status --fresh --json")
-    installer = _code_block(
-        "curl -fsSL https://cli.sentry.dev/install | " + setup_environment + " bash"
-    )
+    pinned = pinned_installer()
+    installer = _code_block(installer_command(setup_environment, pinned))
     bootstrap = _code_block(
         f"{setup_environment} sentry auth bootstrap --url {shlex.quote(sentry_url)}"
     )
@@ -62,6 +63,7 @@ def render_agent_runbook(
             "organization_slug": _escape_label(organization_slug),
             "auth_status": auth_status,
             "installer": installer,
+            "installer_verified": pinned is not None,
             "bootstrap": bootstrap,
             "flow_instructions": flow_instructions,
         },

@@ -38,7 +38,11 @@ the same account context before proceeding.
 If the CLI is missing, install and authenticate it:
 
 {{ installer }}
-
+{% if installer_verified %}
+This command checks the installer against its published SHA-256 before running it. If the
+download or checksum check fails, do not run the installer any other way. Stop and tell
+the user.
+{% endif %}
 If it is installed but unauthenticated, authenticate it without reinstalling:
 
 {{ bootstrap }}
