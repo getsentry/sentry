@@ -39,7 +39,7 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
 
   let {yAxis: seriesName} = timeSeries;
 
-  // Prettify aggregate function names, e.g. count(span.duration) → count(spans)
+  // Prettify aggregate function names, e.g. count(span.duration) → count()
   const functionMatch = seriesName.match(AGGREGATE_BASE);
   if (functionMatch?.[0] && parseFunction(functionMatch[0])) {
     seriesName = seriesName.replace(

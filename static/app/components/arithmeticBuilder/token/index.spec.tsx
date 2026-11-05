@@ -722,15 +722,6 @@ describe('token', () => {
       expect(screen.getByRole('option')).toHaveTextContent('span.description');
     });
 
-    it('shows "spans" placeholder for count argument input', async () => {
-      render(<Tokens expression="count(span.duration)" />);
-
-      const input = await screen.findByRole('combobox', {
-        name: 'Select an attribute',
-      });
-      expect(input).toHaveAttribute('placeholder', 'spans');
-    });
-
     it('shows "span.duration" placeholder for avg argument input', async () => {
       render(<Tokens expression="avg(span.duration)" />);
 
@@ -740,59 +731,27 @@ describe('token', () => {
       expect(input).toHaveAttribute('placeholder', 'span.duration');
     });
 
-    it('shows "spans" as the dropdown label for count argument', async () => {
+    it('hides the saved argument of count', () => {
       render(<Tokens expression="count(span.duration)" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
-      await userEvent.click(input);
-
-      const options = screen.getAllByRole('option');
-      expect(options).toHaveLength(1);
-      expect(options[0]).toHaveTextContent('spans');
+      expect(screen.getByLabelText('count()')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('combobox', {name: 'Select an attribute'})
+      ).not.toBeInTheDocument();
     });
 
-    it('resolves typed "spans" to "span.duration" for count', async () => {
-      const dispatch = jest.fn();
-      render(<Tokens expression="count(span.duration)" dispatch={dispatch} />);
+    it('inserts count without arguments', async () => {
+      render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
-
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       await userEvent.click(input);
-      await userEvent.clear(input);
-      await userEvent.type(input, 'spans{Enter}');
+      await userEvent.type(input, 'count');
+      await userEvent.click(screen.getByRole('option', {name: 'count'}));
 
-      await waitFor(() => {
-        expect(dispatch).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'REPLACE_TOKEN',
-            text: 'count(span.duration)',
-          })
-        );
-      });
-    });
-
-    it('dispatches span.duration when selecting dropdown option for count', async () => {
-      const dispatch = jest.fn();
-      render(<Tokens expression="count(span.duration)" dispatch={dispatch} />);
-
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
-      await userEvent.click(input);
-      await userEvent.click(screen.getByRole('option', {name: 'spans'}));
-
-      await waitFor(() => {
-        expect(dispatch).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'REPLACE_TOKEN',
-            text: 'count(span.duration)',
-          })
-        );
-      });
+      expect(await screen.findByLabelText('count()')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('combobox', {name: 'Select an attribute'})
+      ).not.toBeInTheDocument();
     });
 
     it('shows "span.duration" as the dropdown label for avg argument', async () => {

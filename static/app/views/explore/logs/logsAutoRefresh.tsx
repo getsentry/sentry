@@ -218,7 +218,7 @@ function getTooltipMessage(
     case 'aggregates':
       return t('Auto-refresh is not available in the aggregates view.');
     case 'unsupported_aggregation':
-      return t('Auto-refresh is only available when visualizing `count(logs)`.');
+      return t('Auto-refresh is only available when visualizing `count()`.');
     case 'initial_error':
       return t(
         'Auto-refresh is not available due to an error fetching logs. If the issue persists, please contact support.'
