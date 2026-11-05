@@ -340,8 +340,7 @@ describe('AddToDashboardButton', () => {
     render(
       <Wrapper>
         <TestPage visualizeIndex={0} includeChartGroup />
-      </Wrapper>,
-      {organization: OrganizationFixture({features: ['explore-multi-aggregate-charts']})}
+      </Wrapper>
     );
 
     act(() => setMode(Mode.AGGREGATE));
