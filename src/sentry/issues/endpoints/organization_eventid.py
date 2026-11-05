@@ -79,7 +79,7 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
     ) -> Response[EventIdLookupResponse] | Response[DetailResponse]:
         """
         Resolve an event ID to its project slug, issue ID, and event details. Only projects the
-        caller can access are searched. Returns 400 if the ID is not a valid event ID.
+        caller can access are searched.
         """
         if event_id and not is_event_id(event_id):
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
