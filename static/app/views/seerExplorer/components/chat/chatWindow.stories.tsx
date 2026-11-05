@@ -99,7 +99,10 @@ const noopDispatch = () => {};
 interface ChatWindowProps {
   /** A new chat when null. */
   session: Session | null;
-  /** Turns on `seer-credit-checks` and answers the chat's credit check with this. */
+  /**
+   * Turns on `seer-credit-checks` and `token-billed-seer-enabled`, and answers
+   * the chat's credit check with this.
+   */
   hasEnoughCredits?: boolean;
   initialQuery?: string;
   /** Viewed by a billing member of an organization with these credits. */
@@ -129,7 +132,9 @@ function ChatWindow({session, hasEnoughCredits, initialQuery, wallet}: ChatWindo
           // fixed ones instead.
           ...organization.features.filter(feature => feature !== 'seer-chat-suggestions'),
           'seer-explorer',
-          ...(hasEnoughCredits === undefined ? [] : ['seer-credit-checks']),
+          ...(hasEnoughCredits === undefined
+            ? []
+            : ['seer-credit-checks', 'token-billed-seer-enabled']),
         ],
       }}
     >
