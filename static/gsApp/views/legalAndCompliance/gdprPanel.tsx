@@ -8,12 +8,8 @@ import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/f
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -51,7 +47,7 @@ function GDPREditModal({
 }: GDPREditModalProps) {
   const mutation = useMutation({
     mutationFn: (value: GDPRFormValues) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       return fetchMutation<Subscription>({
         url: getApiUrl('/customers/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: subscription.slug},
@@ -69,12 +65,12 @@ function GDPREditModal({
     },
     onSuccess: data => {
       SubscriptionStore.set(subscription.slug, data);
-      clearIndicators();
+      toast.dismiss();
       closeModal();
     },
     onError: () => {
-      clearIndicators();
-      addErrorMessage(t('Unable to save change'));
+      toast.dismiss();
+      toast.error(t('Unable to save change'));
     },
   });
 

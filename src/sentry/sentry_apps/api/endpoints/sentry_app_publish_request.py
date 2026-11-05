@@ -13,6 +13,7 @@ from sentry.constants import SentryAppStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization.service import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -37,12 +38,12 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def has_ui_component(self, sentry_app):
+    def has_ui_component(self, sentry_app: SentryApp) -> bool:
         """Determine if the sentry app supports issue linking or stack trace linking."""
         elements = (sentry_app.schema or {}).get("elements", [])
         return any(element.get("type") in COMPONENT_TYPES for element in elements)
 
-    def post(self, request: Request, sentry_app) -> Response:
+    def post(self, request: Request, sentry_app: SentryApp) -> Response:
         # check status of app to make sure it is unpublished
         if sentry_app.is_published:
             return Response({"detail": "Cannot publish already published integration."}, status=400)
@@ -84,7 +85,9 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                 {"detail": "Cannot publish a custom integration without an organization"},
                 status=400,
             )
-        organization = organization_service.get_organization_by_id(id=org_mapping.organization_id)
+        organization = organization_service.get_access_context(
+            organization_id=org_mapping.organization_id
+        )
 
         questionnaire_serializer = SentryAppPublishRequestSerializer(data=request.data)
         if not questionnaire_serializer.is_valid():

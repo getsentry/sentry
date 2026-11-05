@@ -7,8 +7,8 @@ import {Button} from '@sentry/scraps/button';
 import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -89,7 +89,7 @@ export function PolicyFormModal({
     validators: defaultFormValidators(isNewPolicy ? policySchema : revisionSchema),
     onSubmit: ({value, createValidationError}) => {
       if (isReadingFile) {
-        addErrorMessage('Please wait for the selected file to finish loading.');
+        toast.error('Please wait for the selected file to finish loading.');
         return;
       }
       return mutation
@@ -124,7 +124,7 @@ export function PolicyFormModal({
               return createValidationError({fields});
             }
           }
-          addErrorMessage('Unable to save the policy.');
+          toast.error('Unable to save the policy.');
           return;
         });
     },
@@ -240,7 +240,7 @@ export function PolicyFormModal({
                             },
                             () => {
                               setIsReadingFile(false);
-                              addErrorMessage('Unable to read the selected file.');
+                              toast.error('Unable to read the selected file.');
                             }
                           );
                         }}

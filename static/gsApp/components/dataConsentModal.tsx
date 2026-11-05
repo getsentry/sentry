@@ -11,8 +11,8 @@ import missionControl from 'getsentry-images/missionControl.jpg';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t} from 'sentry/locale';
@@ -39,11 +39,11 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
       ),
     onSuccess: () => {
       closeModal();
-      addSuccessMessage(t('Updated data consent settings.'));
+      toast.success(t('Updated data consent settings.'));
       updateOrganization({id: organization.id, aggregatedDataConsent: true});
     },
     onError: () => {
-      addErrorMessage(t('Failed to update data consent settings.'));
+      toast.error(t('Failed to update data consent settings.'));
     },
   });
 

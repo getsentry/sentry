@@ -5,8 +5,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -92,7 +92,7 @@ export function SentryAppUpdateModal(props: Props) {
             return createValidationError({fields});
           }
         }
-        addErrorMessage('Unable to update the Sentry App.');
+        toast.error('Unable to update the Sentry App.');
         return;
       }),
   });

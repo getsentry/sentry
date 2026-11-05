@@ -5,8 +5,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Organization} from 'sentry/types/organization';
@@ -50,12 +50,12 @@ function ChangeDashboardsParallelLimitModal({
         data,
       }),
     onSuccess: () => {
-      addSuccessMessage('Dashboard parallel query limit updated.');
+      toast.success('Dashboard parallel query limit updated.');
       onSuccess();
       closeModal();
     },
     onError: () => {
-      addErrorMessage('Failed to update dashboard parallel query limit.');
+      toast.error('Failed to update dashboard parallel query limit.');
     },
   });
 

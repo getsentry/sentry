@@ -2,9 +2,12 @@ import datetime
 import uuid
 from datetime import timedelta, timezone
 from functools import cached_property
+from typing import Any
 
 from django.urls import reverse
+from rest_framework.response import Response
 
+from sentry.models.project import Project
 from sentry.replays.testutils import mock_replay
 from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
 from sentry.snuba.dataset import Dataset
@@ -27,15 +30,15 @@ class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
         self.create_member(organization=self.org, user=user, teams=[self.team])
         self.login_as(user=user)
 
-    def get_response(self, key, **kwargs):
+    def get_response(self, key: str, **kwargs: Any) -> Response:
         return super().get_response(self.org.slug, key, **kwargs)
 
-    def run_test(self, key, expected, **kwargs):
+    def run_test(self, key: str, expected: list[tuple[object, ...]], **kwargs: Any) -> None:
         response = self.get_success_response(key, **kwargs)
         assert [(val["value"], val["count"]) for val in response.data] == expected
 
     @cached_property
-    def project(self):
+    def project(self) -> Project:
         return self.create_project(organization=self.org, teams=[self.team])
 
 
@@ -526,7 +529,7 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
             project_id=self.project.id,
         )
 
-    def run_test(self, key, expected, **kwargs):
+    def run_test(self, key: str, expected: list[tuple[object, ...]], **kwargs: Any) -> None:
         # all tests here require that we search in transactions so make that the default here
         qs_params = kwargs.get("qs_params", {})
         qs_params["includeTransactions"] = "1"
@@ -686,21 +689,23 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
             )
         )
 
-    def get_replays_response(self, key, kwargs):
+    def get_replays_response(self, key: str, kwargs: dict[str, Any]) -> list[dict[str, Any]]:
         qs_params = kwargs.get("qs_params", {})
         qs_params["includeReplays"] = "1"
         kwargs["qs_params"] = qs_params
         response = self.get_success_response(key, **kwargs)
         return sorted(response.data, key=lambda x: x["value"])
 
-    def run_test(self, key, expected, **kwargs):
+    def run_test(self, key: str, expected: list[tuple[object, ...]], **kwargs: Any) -> None:
         # all tests here require that we search in replays so make that the default here
 
         res = self.get_replays_response(key, kwargs)
 
         assert [(val["value"], val["count"]) for val in res] == expected
 
-    def run_test_and_check_seen(self, key, expected, **kwargs):
+    def run_test_and_check_seen(
+        self, key: str, expected: list[tuple[object, ...]], **kwargs: Any
+    ) -> None:
         res = self.get_replays_response(key, kwargs)
         assert [
             (val["value"], val["count"], val["firstSeen"], val["lastSeen"]) for val in res
@@ -844,7 +849,9 @@ class DatasetParamOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, Occur
     def setUp(self) -> None:
         super().setUp()
 
-    def run_dataset_test(self, key, expected, dataset: Dataset, **kwargs):
+    def run_dataset_test(
+        self, key: str, expected: list[tuple[object, ...]], dataset: Dataset, **kwargs: Any
+    ) -> None:
         # all tests here require that we search in transactions so make that the default here
         qs_params = kwargs.get("qs_params", {})
         qs_params["dataset"] = dataset.value

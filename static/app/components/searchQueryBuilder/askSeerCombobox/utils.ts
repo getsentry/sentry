@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {
@@ -22,6 +21,8 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
+
+import type {QueryTokensProps} from './types';
 
 function extractErrorReason(err: Error): string {
   if (err instanceof RequestError) {

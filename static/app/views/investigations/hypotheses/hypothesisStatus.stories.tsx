@@ -8,8 +8,9 @@ import {
   InvestigationHypothesisFixture,
   InvestigationVerificationStepFixture,
 } from 'sentry/views/investigations/fixtures';
-import {HypothesisStatus} from 'sentry/views/investigations/hypotheses/hypothesisStatus';
 import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
+
+import {HypothesisStatus} from './hypothesisStatus';
 
 export default Storybook.story('Investigations — Hypothesis status', story => {
   story('A verdict the agent reached', () => (

@@ -1,11 +1,11 @@
 import {Fragment, useCallback} from 'react';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
@@ -18,9 +18,9 @@ import type {SentryAppWebhookRequest} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
-import {decodeWebhookBody} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/decodeWebhookBody';
-import {ResponseCode} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/responseCode';
 
+import {decodeWebhookBody} from './decodeWebhookBody';
+import {ResponseCode} from './responseCode';
 import {WebhookSubject} from './webhookSubjects';
 
 const EMPTY_VALUE = '—';

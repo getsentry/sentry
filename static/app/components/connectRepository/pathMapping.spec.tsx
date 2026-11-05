@@ -2,9 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ScrapsForm} from '@sentry/scraps/form';
 
-import {PathMapping} from 'sentry/components/connectRepository/pathMapping';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-
+import {PathMapping} from './pathMapping';
+import type {PathMappingValue} from './type';
 import {useConnectRepoForm} from './useConnectRepoForm';
 
 function TestMapping({

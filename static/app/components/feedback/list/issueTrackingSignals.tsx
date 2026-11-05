@@ -2,7 +2,6 @@ import {IconLink} from '@sentry/icons/link';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useHasLinkedIssues} from 'sentry/components/feedback/list/useHasLinkedIssues';
 import type {
   IntegrationComponent,
   SentryAppIssueComponent,
@@ -14,6 +13,8 @@ import {
   getIntegrationDisplayName,
   getIntegrationIcon,
 } from 'sentry/utils/integrationUtil';
+
+import {useHasLinkedIssues} from './useHasLinkedIssues';
 
 interface Props {
   group: Group;

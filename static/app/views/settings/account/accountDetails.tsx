@@ -18,6 +18,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 // The avatar endpoint ("/users/me/avatar/") returns a User-like type without `options` and other properties that are present in User
@@ -166,7 +167,9 @@ function AccountDetails() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('Account Details')} />
+      <SentryDocumentTitle
+        title={settingsV3 ? getSettingsScopeTitle('account') : t('Account Details')}
+      />
       <SettingsPageHeader title={title} />
       <FormSearch route="/settings/account/details/">
         <FieldGroup title={t('Account Details')}>

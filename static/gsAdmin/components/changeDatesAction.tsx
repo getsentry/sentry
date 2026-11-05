@@ -6,8 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -53,7 +53,7 @@ function ChangeDatesModal({
         ),
       }),
     onSuccess: () => {
-      addSuccessMessage('Contract and on-demand period dates updated');
+      toast.success('Contract and on-demand period dates updated');
       onSuccess();
       closeModal();
     },
@@ -75,7 +75,7 @@ function ChangeDatesModal({
             return createValidationError({fields});
           }
         }
-        addErrorMessage('Unable to update subscription dates.');
+        toast.error('Unable to update subscription dates.');
         return;
       }),
   });

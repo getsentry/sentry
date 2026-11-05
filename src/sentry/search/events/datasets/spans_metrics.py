@@ -1319,7 +1319,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             ],
         )
 
-    def _resolve_count_publish(self, args, alias):
+    def _resolve_count_publish(self, args: Mapping[str, object], alias: str | None) -> SelectType:
         op = "queue.publish"
         operation_name = "publish"
         operation_type = "create"
@@ -1335,7 +1335,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_count_process(self, args, alias):
+    def _resolve_count_process(self, args: Mapping[str, object], alias: str | None) -> SelectType:
         op = "queue.process"
         operation_name = "process"
         operation_type = "process"
@@ -1351,7 +1351,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_avg_if_publish(self, args, alias):
+    def _resolve_avg_if_publish(
+        self, args: Mapping[str, str | Column | SelectType], alias: str | None
+    ) -> SelectType:
         op = "queue.publish"
         operation_name = "publish"
         operation_type = "create"
@@ -1376,7 +1378,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_avg_if_process(self, args, alias):
+    def _resolve_avg_if_process(
+        self, args: Mapping[str, str | Column | SelectType], alias: str | None
+    ) -> SelectType:
         op = "queue.process"
         operation_name = "process"
         operation_type = "process"
@@ -1401,7 +1405,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_sum(self, metric_name: str, alias: str | None = None):
+    def _resolve_sum(self, metric_name: str, alias: str | None = None) -> SelectType:
         return Function(
             "sumIf",
             [
@@ -1417,7 +1421,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_avg(self, args, alias):
+    def _resolve_avg(
+        self, args: Mapping[str, str | Column | SelectType], alias: str | None
+    ) -> SelectType:
         return Function(
             "avgIf",
             [
@@ -1427,7 +1433,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_avg_if(self, args, alias):
+    def _resolve_avg_if(
+        self, args: Mapping[str, str | Column | SelectType], alias: str | None
+    ) -> SelectType:
         return Function(
             "avgIf",
             [
@@ -1505,7 +1513,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_avg_compare(self, args, alias):
+    def _resolve_avg_compare(
+        self, args: Mapping[str, str | Column | SelectType], alias: str | None
+    ) -> SelectType:
         return function_aliases.resolve_avg_compare(self.builder.column, args, alias)
 
     def _resolve_trace_status_count(

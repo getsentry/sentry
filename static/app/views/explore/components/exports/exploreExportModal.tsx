@@ -9,8 +9,8 @@ import {
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {generateExportRowCountOptions} from 'sentry/components/exports/generateExportRowCountOptions';
 import {
@@ -19,7 +19,8 @@ import {
   useDataExport,
 } from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
-import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+
+import type {ExploreExportConfig} from './types';
 
 enum ModalColumnValue {
   ALL = 'all',
@@ -91,7 +92,7 @@ export function ExploreExportModal({
 
       if (localDownloadForSubmit) {
         localDownloadForSubmit({format, limit: value.limit});
-        addSuccessMessage(t('Downloading file to your browser.'));
+        toast.success(t('Downloading file to your browser.'));
         closeModal();
         return;
       }

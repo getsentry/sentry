@@ -3,9 +3,10 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SelectorList} from 'sentry/components/replays/breadcrumbs/selectorList';
 import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
 import type {ClickFrame} from 'sentry/utils/replays/types';
+
+import {SelectorList} from './selectorList';
 
 describe('SelectorList', () => {
   it('links annotated components to replay search', () => {

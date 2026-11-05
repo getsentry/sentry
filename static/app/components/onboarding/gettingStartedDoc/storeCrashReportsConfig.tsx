@@ -3,8 +3,8 @@ import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
@@ -84,7 +84,7 @@ export function StoreCrashReportsConfig({
             prev => ({headers: prev?.headers ?? {}, json: data})
           );
         },
-        onError: () => addErrorMessage(t('Unable to save change')),
+        onError: () => toast.error(t('Unable to save change')),
       }}
     >
       {field => (

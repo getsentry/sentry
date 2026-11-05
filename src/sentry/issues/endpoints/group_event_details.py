@@ -7,7 +7,6 @@ from dataclasses import asdict
 from typing import Any, cast
 
 import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -17,7 +16,7 @@ from snuba_sdk.legacy import is_condition, parse_condition
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.event_search import (
     ParenExpression,
     SearchBoolean,
@@ -45,6 +44,7 @@ from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
@@ -76,7 +76,6 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.snuba import get_snuba_column_name
 
@@ -92,7 +91,7 @@ class IssueEventQueryBuilder(DiscoverQueryBuilder):
 
 
 def issue_search_query_to_conditions(
-    query: str, group: Group, user: User | AnonymousUser, environments: Sequence[Environment]
+    query: str, group: Group, user: RequestPrincipal, environments: Sequence[Environment]
 ) -> tuple[list[Condition], list[Any]]:
     from sentry.utils.snuba import resolve_conditions
 
@@ -168,6 +167,8 @@ class GroupEventDetailsFormattedResponse(GroupEventDetailsResponse, total=False)
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -191,6 +192,11 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             IssueParams.ISSUES_OR_GROUPS,
             IssueParams.ISSUE_ID,
             GlobalParams.ENVIRONMENT,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             EventParams.EVENT_ID_EXTENDED,
             EventParams.EVENT_DETAILS_COLLAPSE,
             OpenApiParameter(

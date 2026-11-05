@@ -12,8 +12,8 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
@@ -59,13 +59,13 @@ export default function TeamSettings() {
       }),
     onSuccess: (resp: Team) => {
       updateTeamSuccess(team.slug, resp);
-      addSuccessMessage(t('Team name changed'));
+      toast.success(t('Team name changed'));
       navigate(`/settings/${organization.slug}/teams/${resp.slug}/settings/`, {
         replace: true,
       });
     },
     onError: () => {
-      addErrorMessage(t('Unable to save change'));
+      toast.error(t('Unable to save change'));
     },
   });
 

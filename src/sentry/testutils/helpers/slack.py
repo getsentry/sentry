@@ -1,3 +1,4 @@
+from typing import Any
 from urllib.parse import parse_qs, quote
 
 import responses
@@ -79,17 +80,18 @@ def link_team(team: Team, integration: Integration, channel_name: str, channel_i
     )
 
 
-def get_channel(index=0):
+def get_channel(index: int = 0) -> dict[str, Any]:
     """Get the channel ID the Slack message went to"""
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[index].request.body)
     assert "channel" in data
     channel = json.loads(data["channel"][0])
+    assert isinstance(channel, dict)
 
     return channel
 
 
-def get_attachment(index=0):
+def get_attachment(index: int = 0) -> tuple[dict[str, Any], str]:
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[index].request.body)
     assert "text" in data
@@ -100,16 +102,20 @@ def get_attachment(index=0):
     return attachments[0], data["text"][0]
 
 
-def get_attachment_no_text():
+def get_attachment_no_text() -> dict[str, Any]:
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[0].request.body)
     assert "attachments" in data
     attachments = json.loads(data["attachments"][0])
     assert len(attachments) == 1
-    return attachments[0]
+    attachment = attachments[0]
+    assert isinstance(attachment, dict)
+    return attachment
 
 
-def get_blocks_and_fallback_text(index=0):
+def get_blocks_and_fallback_text(
+    index: int = 0,
+) -> tuple[list[dict[str, Any]], str]:
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[index].request.body)
     assert "blocks" in data
@@ -119,7 +125,7 @@ def get_blocks_and_fallback_text(index=0):
     return blocks, fallback_text
 
 
-def get_block_kit_preview_url(index=0) -> str:
+def get_block_kit_preview_url(index: int = 0) -> str:
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[index].request.body)
     assert "blocks" in data
@@ -139,9 +145,9 @@ def get_block_kit_preview_url(index=0) -> str:
 def setup_slack_with_identities(
     organization: Organization,
     user: User,
-    identity_provider_external_id="TXXXXXXX1",
-    identity_external_id="UXXXXXXX1",
-):
+    identity_provider_external_id: str = "TXXXXXXX1",
+    identity_external_id: str = "UXXXXXXX1",
+) -> Integration:
     integration = install_slack(
         organization=organization, workspace_id=identity_provider_external_id
     )

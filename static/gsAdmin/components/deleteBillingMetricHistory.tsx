@@ -6,8 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -81,7 +81,7 @@ function DeleteBillingMetricHistoryModal({
         data: {data_category: dataCategory},
       }),
     onSuccess: () => {
-      addSuccessMessage('Successfully deleted billing metric history.');
+      toast.success('Successfully deleted billing metric history.');
       closeModal();
       onSuccess();
     },
@@ -90,7 +90,7 @@ function DeleteBillingMetricHistoryModal({
         error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
           ? error.responseJSON.detail
           : 'Unable to delete billing metric history.';
-      addErrorMessage(errorMsg);
+      toast.error(errorMsg);
     },
   });
 

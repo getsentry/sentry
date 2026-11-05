@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
+
+import {SaveConversationQueryButton} from './saveConversationQueryButton';
 
 jest.mock('sentry/actionCreators/modal');
 

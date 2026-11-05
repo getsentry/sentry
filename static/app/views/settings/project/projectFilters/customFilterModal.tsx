@@ -9,8 +9,8 @@ import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/f
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -854,12 +854,12 @@ function CustomFilterModal({
     },
     onSuccess: () => {
       if (!filter) {
-        addSuccessMessage(t('Filter created'));
+        toast.success(t('Filter created'));
       }
       queryClient.invalidateQueries({queryKey});
     },
     onError: error => {
-      addErrorMessage(
+      toast.error(
         getErrorDetail(
           error,
           filter ? t('Unable to update filter') : t('Unable to create filter')

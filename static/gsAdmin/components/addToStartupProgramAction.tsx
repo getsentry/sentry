@@ -5,8 +5,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -70,7 +70,7 @@ function AddToStartupProgramModal({
         data: {...data, creditAmount: data.creditAmount * 100},
       }),
     onSuccess: () => {
-      addSuccessMessage('Customer added to startup program');
+      toast.success('Customer added to startup program');
       onSuccess();
       closeModal();
     },
@@ -100,7 +100,7 @@ function AddToStartupProgramModal({
               return createValidationError({fields});
             }
           }
-          addErrorMessage('Unable to add customer to startup program.');
+          toast.error('Unable to add customer to startup program.');
           return;
         });
     },

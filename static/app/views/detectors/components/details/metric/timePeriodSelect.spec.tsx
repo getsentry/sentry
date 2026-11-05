@@ -1,7 +1,8 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {MetricTimePeriodSelect} from 'sentry/views/detectors/components/details/metric/timePeriodSelect';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+
+import {MetricTimePeriodSelect} from './timePeriodSelect';
 
 describe('MetricTimePeriodSelect', () => {
   it('syncs default statsPeriod into query when none is provided', async () => {
@@ -37,6 +38,34 @@ describe('MetricTimePeriodSelect', () => {
     // Ensure absolute range is cleared
     expect(router.location.query.start).toBeUndefined();
     expect(router.location.query.end).toBeUndefined();
+  });
+
+  it('replaces history when syncing the default and pushes when selecting an option', async () => {
+    const onNuqsUrlUpdate = jest.fn();
+    render(<MetricTimePeriodSelect dataset={DetectorDataset.ERRORS} interval={300} />, {
+      onNuqsUrlUpdate,
+    });
+
+    await waitFor(() => {
+      expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: '?statsPeriod=14d',
+          options: expect.objectContaining({history: 'replace'}),
+        })
+      );
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: /last 14 days/i}));
+    await userEvent.click(screen.getByText(/last 7 days/i));
+
+    await waitFor(() => {
+      expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          queryString: '?statsPeriod=7d',
+          options: expect.objectContaining({history: 'push'}),
+        })
+      );
+    });
   });
 
   it('displays custom statsPeriod values from the URL', async () => {

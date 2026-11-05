@@ -9,8 +9,6 @@ import {Text} from '@sentry/scraps/text';
 import {AnsiText} from 'sentry/components/ansiText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {LogAttributesView} from 'sentry/components/seer/markdown/embeds/components/log/logAttributesView';
-import {LogAttributeView} from 'sentry/components/seer/markdown/embeds/components/log/logAttributeView';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
@@ -43,6 +41,8 @@ import {
 } from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
+import {LogAttributesView} from './logAttributesView';
+import {LogAttributeView} from './logAttributeView';
 import {LogSeverityDot, LogTimestamp} from './logRowParts';
 import {
   getLogPageFilters,

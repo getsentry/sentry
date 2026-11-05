@@ -3,30 +3,27 @@ import {z} from 'zod';
 
 import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {LegacyOnRouteLeave} from 'sentry/router/legacy/onRouteLeave';
 import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
-import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
-import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
-import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
-import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
-import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
-import {sampleRateField} from 'sentry/views/settings/dynamicSampling/utils/schemas';
+
+import {useHasDynamicSamplingWriteAccess} from './utils/access';
+import {parsePercent} from './utils/parsePercent';
+import {sampleRateField} from './utils/schemas';
 import {
   useProjectSampleCounts,
   type ProjectionSamplePeriod,
-} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+} from './utils/useProjectSampleCounts';
 import {
   useGetSamplingProjectRates,
   useUpdateSamplingProjectRates,
-} from 'sentry/views/settings/dynamicSampling/utils/useSamplingProjectRates';
+} from './utils/useSamplingProjectRates';
+import {ProjectionPeriodControl} from './projectionPeriodControl';
+import {ProjectsEditTable} from './projectsEditTable';
+import {SamplingModeSwitch} from './samplingModeSwitch';
 
 const UNSAVED_CHANGES_MESSAGE = t(
   'You have unsaved changes, are you sure you want to leave?'
@@ -66,15 +63,15 @@ export function ProjectSampling() {
         id: Number(id),
         sampleRate: parsePercent(rate),
       }));
-      addLoadingMessage(t('Saving changes...'));
+      toast.loading(t('Saving changes...'));
       try {
         await updateSamplingProjectRates.mutateAsync(ratesArray);
         setSavedProjectRates(value.projectRates);
         setEditMode('single');
         formApi.reset(value);
-        addSuccessMessage(t('Changes applied'));
+        toast.success(t('Changes applied'));
       } catch {
-        addErrorMessage(t('Unable to save changes. Please try again.'));
+        toast.error(t('Unable to save changes. Please try again.'));
       }
     },
   });

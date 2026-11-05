@@ -12,12 +12,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import {useFormTypingAnimation} from 'sentry/views/issueList/issueViews/useFormTypingAnimation';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {useGenerateIssueViewTitle} from 'sentry/views/issueList/utils/useGenerateIssueViewTitle';
+
+import {getIssueViewQueryParams} from './getIssueViewQueryParams';
+import {useFormTypingAnimation} from './useFormTypingAnimation';
 
 interface CreateIssueViewModalProps
   extends

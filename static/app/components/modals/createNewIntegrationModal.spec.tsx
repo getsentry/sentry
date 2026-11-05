@@ -1,7 +1,8 @@
 import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import CreateNewIntegrationModal from 'sentry/components/modals/createNewIntegrationModal';
+
+import CreateNewIntegrationModal from './createNewIntegrationModal';
 
 describe('CreateNewIntegrationModal', () => {
   it('offers starting from scratch', () => {

@@ -19,13 +19,10 @@ import {
   Parenthesis,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
-import {
-  findNearestRow,
-  resolvePaddingClickRow,
-  TokenGrid,
-} from 'sentry/components/arithmeticBuilder/token/grid';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {FieldKind, getExploreEquationFieldDefinition} from 'sentry/utils/fields';
+
+import {findNearestRow, resolvePaddingClickRow, TokenGrid} from './grid';
 
 const aggregations = ['avg', 'avg_if', 'sum', 'epm', 'count', 'count_unique', 'count_if'];
 

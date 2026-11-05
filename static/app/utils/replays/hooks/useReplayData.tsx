@@ -20,11 +20,12 @@ import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useFeedbackEvents} from 'sentry/utils/replays/hooks/useFeedbackEvents';
-import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+
+import {useFeedbackEvents} from './useFeedbackEvents';
+import {useReplayProjectSlug} from './useReplayProjectSlug';
 
 export function replayRecordApiOptions({
   organizationIdOrSlug,

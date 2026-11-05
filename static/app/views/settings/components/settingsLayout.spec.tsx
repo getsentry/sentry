@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
+import {SettingsLayout} from './settingsLayout';
 
 describe('SettingsLayout', () => {
   beforeEach(() => {

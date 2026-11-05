@@ -4,8 +4,8 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -79,7 +79,7 @@ function CreateReleaseIntegrationModal({
         .mutateAsync(value)
         .then(integration => {
           onCreateSuccess(integration);
-          addSuccessMessage(t('Created Release Integration'));
+          toast.success(t('Created Release Integration'));
           closeModal();
         })
         .catch(error => {
@@ -89,7 +89,7 @@ function CreateReleaseIntegrationModal({
               return createValidationError({fields});
             }
           }
-          addErrorMessage(t('Something went wrong!'));
+          toast.error(t('Something went wrong!'));
           return;
         }),
   });

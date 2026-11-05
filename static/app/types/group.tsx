@@ -2,7 +2,6 @@ import type {LocationDescriptor} from 'history';
 
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
-import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -16,6 +15,7 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
+import type {ParsedOwnershipRule} from './ownership';
 import type {PlatformKey} from './platform';
 import type {AvatarProject, Project} from './project';
 import type {AvatarUser, User} from './user';
@@ -678,6 +678,8 @@ export enum GroupActivityType {
   PULL_REQUEST_MERGED = 'pull_request_merged',
   PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
   TRIGGER_AUTOFIX = 'trigger_autofix',
+  UNLINK_EXTERNAL_ISSUE = 'unlink_external_issue',
+  UNLINK_PLATFORM_EXTERNAL_ISSUE = 'unlink_platform_external_issue',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -1139,7 +1141,19 @@ interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
   type: GroupActivityType.SEER_ITERATION_COMPLETED;
 }
 
+interface GroupActivityUnlinkExternalIssue extends GroupActivityBase {
+  data: {external_issue_key: string; provider: string};
+  type: GroupActivityType.UNLINK_EXTERNAL_ISSUE;
+}
+
+interface GroupActivityUnlinkPlatformExternalIssue extends GroupActivityBase {
+  data: {display_name: string; service_type: string; web_url: string};
+  type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
+}
+
 export type GroupActivity =
+  | GroupActivityUnlinkExternalIssue
+  | GroupActivityUnlinkPlatformExternalIssue
   | GroupActivityNote
   | GroupActivitySetResolved
   | GroupActivitySetResolvedIntegration

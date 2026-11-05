@@ -12,10 +12,6 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
-    OrganizationInvestigationEndpoint,
-    require_authenticated_user,
-)
 from sentry.investigations.endpoints.organization_investigation_action_request_apply import (
     apply_error_response,
 )
@@ -27,6 +23,10 @@ from sentry.investigations.endpoints.validators import ActionRequestRetryFollowU
 from sentry.investigations.services.action_kinds.base import ApplyFailed
 from sentry.investigations.services.action_requests import retry_follow_up
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationInvestigationEndpoint,
+    require_authenticated_user,
+)
 from sentry.notebooks.models import Notebook
 
 

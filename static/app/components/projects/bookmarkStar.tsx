@@ -3,8 +3,8 @@ import {IconStar} from '@sentry/icons/star';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {update} from 'sentry/actionCreators/projects';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -49,7 +49,7 @@ export function BookmarkStar({
       setIsBookmarked(variables.isBookmarked);
     },
     onError: (_data, variables) => {
-      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
+      toast.error(t('Unable to toggle bookmark for %s', project.slug));
       setIsBookmarked(!variables.isBookmarked);
     },
     onSettled: () => onToggleSettled?.(),
