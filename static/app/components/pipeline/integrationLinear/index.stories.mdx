@@ -1,6 +1,6 @@
 ---
 title: Linear Installation
-description: Connect a Linear workspace to Seer with a read-only personal API key.
+description: Authorize Seer to read a Linear workspace.
 category: forms
 source: sentry/components/pipeline/integrationLinear
 ---
@@ -8,16 +8,16 @@ source: sentry/components/pipeline/integrationLinear
 import {linearIntegrationPipeline} from 'sentry/components/pipeline/integrationLinear';
 import * as Storybook from 'sentry/stories';
 
-export const LinearCredentialsStep = linearIntegrationPipeline.steps[0].component;
+export const LinearOAuthLoginStep = linearIntegrationPipeline.steps[0].component;
 
-The registered Linear pipeline collects a personal API key. The backend checks that the key can read its Linear workspace before completing installation, so a rejected key can be corrected in the same form. Seer reaches Linear through its read-only MCP endpoint.
+The Linear pipeline opens an authorization popup for the Sentry app. A Linear workspace admin approves read-only access for the organization. Sentry checks workspace access before completing installation and renews tokens automatically for background investigations. Seer reaches Linear through its read-only MCP endpoint.
 
-## Credentials
+## Authorization
 
-This demo renders the credentials step without making API requests. Use a synthetic key.
+This demo renders the authorization step with its button disabled. It does not open a popup or make API requests.
 
 <Storybook.Demo>
-  <LinearCredentialsStep
+  <LinearOAuthLoginStep
     advance={() => {}}
     advanceError={null}
     isAdvancing={false}
@@ -29,12 +29,12 @@ This demo renders the credentials step without making API requests. Use a synthe
 </Storybook.Demo>
 
 ```jsx
-<LinearCredentialsStep
+<LinearOAuthLoginStep
   advance={advance}
   advanceError={null}
   isAdvancing={false}
   isInitializing={false}
-  stepData={{}}
+  stepData={{oauthUrl: 'https://linear.app/oauth/authorize?...'}}
   stepIndex={0}
   totalSteps={1}
 />
@@ -42,4 +42,4 @@ This demo renders the credentials step without making API requests. Use a synthe
 
 ## Accessibility
 
-The API key field has an associated label and help text. The key is masked, and the Continue button is disabled while initialization or submission is pending. The pipeline modal announces connection failures with an alert.
+The authorization button has an accessible label and is disabled until the authorization URL is ready. Cancellation and connection failures are announced with alerts. If the browser blocks the popup, the step explains how to retry.

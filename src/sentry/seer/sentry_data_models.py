@@ -885,6 +885,7 @@ class HeaderAuthConnectionData(BaseModel):
     url: str
     encrypted_auth_headers: dict[str, str] | None = None
     identity_id: int | None = None
+    integration_id: int | None = None
     auth_method: str
     refreshable: bool = True
 
@@ -950,6 +951,7 @@ class RefreshMonitoringProviderTokenErrorResponse(BaseModel):
         "encryption_failed",
         "identity_not_found",
         "identity_not_valid",
+        "integration_not_found",
         "refresh_failed",
         "refresh_not_supported",
     ]

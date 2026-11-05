@@ -19,6 +19,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDeta
 
 from sentry.api.client_kind import ClientKind, get_client_kind
 from sentry.constants import ObjectStatus
+from sentry.integrations.linear.client import LINEAR_TOKEN_URL
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
@@ -41,6 +42,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_repo_installation_id,
     has_repo_code_mappings,
     refresh_monitoring_provider_token,
+    refresh_org_monitoring_provider_token,
     seer_method_registry,
 )
 from sentry.seer.models.run import SeerRunType
@@ -53,6 +55,7 @@ from sentry.seer.sentry_data_models import (
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity
@@ -1172,6 +1175,140 @@ class TestRefreshMonitoringProviderToken(APITestCase):
         result = refresh_monitoring_provider_token(identity_id=pat_identity.id)
 
         assert result == {"error": "refresh_not_supported"}
+
+
+@override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+@cell_silo_test
+class TestRefreshOrgMonitoringProviderToken(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(
+            override_options(
+                {"linear.client-id": "sentry-app-id", "linear.client-secret": "sentry-app-secret"}
+            )
+        )
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="linear",
+            external_id="linear-workspace-id",
+            metadata={"refresh_token": "linear-refresh-token"},
+        )
+
+    @responses.activate
+    def test_success_without_user_identity(self) -> None:
+        responses.add(
+            responses.POST,
+            LINEAR_TOKEN_URL,
+            json={
+                "access_token": "new-app-token",
+                "refresh_token": "new-refresh-token",
+                "token_type": "Bearer",
+                "scope": "read",
+                "expires_in": 3600,
+            },
+        )
+
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.organization.id, integration_id=self.integration.id
+        )
+
+        authorization = result["encrypted_auth_headers"]["Authorization"]
+        assert Fernet(TEST_FERNET_KEY.encode()).decrypt(authorization.encode()).decode() == (
+            "Bearer new-app-token"
+        )
+        assert result["expires"] > int(time())
+        assert "sentry-app-secret" not in str(result)
+        assert "new-refresh-token" not in str(result)
+        with assume_test_silo_mode_of(Integration):
+            self.integration.refresh_from_db()
+        assert self.integration.metadata["refresh_token"] == "new-refresh-token"
+
+    @responses.activate
+    @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
+    def test_authenticated_rpc_refresh_without_user_session(self) -> None:
+        responses.add(
+            responses.POST,
+            LINEAR_TOKEN_URL,
+            json={
+                "access_token": "new-app-token",
+                "refresh_token": "new-refresh-token",
+                "token_type": "Bearer",
+                "scope": "read",
+                "expires_in": 86400,
+            },
+        )
+        path = reverse(
+            "sentry-api-0-seer-rpc-service",
+            kwargs={"method_name": "refresh_org_monitoring_provider_token"},
+        )
+        body = orjson.dumps(
+            {
+                "args": {
+                    "organization_id": self.organization.id,
+                    "integration_id": self.integration.id,
+                },
+                "meta": {},
+            }
+        )
+        response = self.client.post(
+            path,
+            data=body,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"rpcsignature {generate_request_signature(path, body)}",
+        )
+
+        assert response.status_code == 200
+        authorization = response.data["encrypted_auth_headers"]["Authorization"]
+        assert Fernet(TEST_FERNET_KEY.encode()).decrypt(authorization.encode()).decode() == (
+            "Bearer new-app-token"
+        )
+        assert "new-refresh-token" not in response.content.decode()
+
+    @responses.activate
+    def test_cannot_refresh_another_organizations_integration(self) -> None:
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.create_organization().id, integration_id=self.integration.id
+        )
+        assert result == {"error": "integration_not_found"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_disabled_integration(self) -> None:
+        with assume_test_silo_mode_of(Integration):
+            self.integration.update(status=ObjectStatus.DISABLED)
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.organization.id, integration_id=self.integration.id
+        )
+        assert result == {"error": "integration_not_found"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_unsupported_provider(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github-install"
+        )
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        assert result == {"error": "integration_not_found"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @override_settings(SEER_GHE_ENCRYPT_KEY=None)
+    def test_missing_encryption_key(self) -> None:
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.organization.id, integration_id=self.integration.id
+        )
+        assert result == {"error": "encryption_failed"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_token_exchange_failure(self) -> None:
+        responses.add(responses.POST, LINEAR_TOKEN_URL, status=503)
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.organization.id, integration_id=self.integration.id
+        )
+        assert result == {"error": "refresh_failed"}
 
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])

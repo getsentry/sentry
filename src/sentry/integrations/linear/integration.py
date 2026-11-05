@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping
-from typing import Any, TypedDict
+from typing import Any
 
-from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
-from rest_framework.fields import CharField
 
-from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.identity.oauth2 import OAuth2ApiStep, OAuth2ApiStepError
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -19,15 +18,19 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.linear.client import (
+    LINEAR_AUTHORIZE_URL,
     LINEAR_MCP_URL,
+    LINEAR_TOKEN_URL,
+    LinearClient,
     LinearWorkspace,
-    validate_linear_api_key,
+    exchange_authorization_code,
+    validate_linear_access_token,
 )
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
-from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.agent.monitoring_providers import (
     OrgMonitoringProvider,
@@ -36,6 +39,7 @@ from sentry.seer.agent.monitoring_providers import (
 from sentry.seer.sentry_data_models import HeaderAuthConnectionData
 from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
@@ -66,75 +70,51 @@ def _integration_name(workspace: LinearWorkspace) -> str:
     return f"Linear ({workspace['name']})"
 
 
-class LinearCredentials(TypedDict):
-    api_key: str
-
-
-class LinearCredentialsSerializer(CamelSnakeSerializer[LinearCredentials]):
-    api_key = CharField(required=True, max_length=255)
-
-
-class LinearCredentialsApiStep:
-    step_name = "linear_credentials"
-
-    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
-        return {}
-
-    def get_serializer_cls(self) -> type:
-        return LinearCredentialsSerializer
-
-    def handle_post(
-        self,
-        validated_data: LinearCredentials,
-        pipeline: IntegrationPipeline,
-        request: HttpRequest,
-    ) -> PipelineStepResult:
-        # Validate before advancing so connection errors leave this step available for retries.
+class LinearOAuthApiStep(OAuth2ApiStep):
+    def _exchange_token(self, code: str) -> dict[str, Any]:
+        # Check the grant before advancing so a failed connection can be retried in the popup.
         try:
-            workspace = validate_linear_api_key(validated_data["api_key"])
+            token = exchange_authorization_code(code, absolute_uri(self.redirect_url))
+            workspace = validate_linear_access_token(token.access_token.get_secret_value())
         except IntegrationConfigurationError as e:
-            return PipelineStepResult.error(str(e))
-
-        pipeline.bind_state(
-            "config", {"api_key": validated_data["api_key"], "workspace": dict(workspace)}
-        )
-        return PipelineStepResult.advance()
+            raise OAuth2ApiStepError(str(e)) from None
+        return {"token": token.as_metadata(), "workspace": workspace}
 
 
 class LinearIntegration(IntegrationInstallation):
-    def get_client(self) -> Any:
-        raise NotImplementedError
+    def get_client(self) -> LinearClient:
+        return LinearClient(self.model)
 
-    def get_organization_config(self) -> list[dict[str, Any]]:
-        return [
-            {
-                "name": "api_key",
-                "type": "secret",
-                "label": _("API Key"),
-                "help": _("Leave blank to keep the current key."),
-                "required": False,
-                "formatMessageValue": False,
-            },
-        ]
+    def get_config_data(self) -> Mapping[str, Any]:
+        return {}
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        """Save a new API key, or re-test the stored one when none is given.
+        if data:
+            raise IntegrationConfigurationError(
+                "Reconnect Linear to change this integration's authorization."
+            )
 
-        Raises if the connection check fails, even when nothing changed.
-        """
-        stored_api_key = (self.model.metadata or {}).get("api_key")
-        api_key = (data.get("api_key") or "").strip() or stored_api_key
-        if not api_key:
-            raise IntegrationConfigurationError("Linear integration is not configured.")
+    def get_dynamic_display_information(self) -> Mapping[str, Any]:
+        return {
+            "configure_integration": {
+                "instructions": [
+                    _(
+                        "Seer has read-only access to this Linear workspace. "
+                        "Reconnect Linear to update its authorization."
+                    )
+                ]
+            }
+        }
 
-        workspace = validate_linear_api_key(api_key)
-
-        name = _integration_name(workspace)
-        integration_service.update_integration(
-            integration_id=self.model.id, name=name, metadata={"api_key": api_key}
-        )
-        self.model.name = name
-        self.model.metadata = {"api_key": api_key}
+    def uninstall(self) -> None:
+        try:
+            self.get_client().revoke_access(self.organization_id)
+        except Exception as e:
+            # A provider outage must not prevent disconnecting. Do not log token response bodies.
+            logger.warning(
+                "linear.uninstall.revoke_failed",
+                extra={"integration_id": self.model.id, "error_type": type(e).__name__},
+            )
 
 
 class LinearIntegrationProvider(IntegrationProvider):
@@ -147,20 +127,46 @@ class LinearIntegrationProvider(IntegrationProvider):
     allow_multiple = False
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
-        return [LinearCredentialsApiStep()]
+        return [
+            LinearOAuthApiStep(
+                authorize_url=LINEAR_AUTHORIZE_URL,
+                access_token_url=LINEAR_TOKEN_URL,
+                client_id=options.get("linear.client-id"),
+                client_secret=options.get("linear.client-secret"),
+                scope="read",
+                redirect_url="/extensions/linear/setup/",
+                bind_key="oauth_data",
+                extra_authorize_params={"actor": "app", "prompt": "consent"},
+            )
+        ]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        config = state.get("config", {})
-        if not config:
-            raise IntegrationConfigurationError("Missing configuration data")
+        data = state.get("oauth_data")
+        if not data:
+            raise IntegrationConfigurationError("Missing Linear authorization data.")
 
         assert self.pipeline.organization is not None
+        if (
+            OrganizationIntegration.objects.filter(
+                organization_id=self.pipeline.organization.id, integration__provider=self.key
+            )
+            .exclude(integration__external_id=data["workspace"]["id"])
+            .exists()
+        ):
+            raise IntegrationConfigurationError(
+                "Remove the current Linear connection before connecting a different workspace."
+            )
+
         return {
-            # One installation per Sentry organization. Keying on the Linear workspace would let
-            # two Sentry organizations connected to one workspace share, and overwrite, a key.
-            "external_id": str(self.pipeline.organization.id),
-            "name": _integration_name(config["workspace"]),
-            "metadata": {"api_key": config["api_key"]},
+            # The app is installed once per Linear workspace. Share its rotating grant and lock
+            # across Sentry organizations that have each authorized access to that workspace.
+            "external_id": data["workspace"]["id"],
+            "name": _integration_name(data["workspace"]),
+            "metadata": {
+                "workspace_id": data["workspace"]["id"],
+                "app_user_id": data["workspace"]["app_user_id"],
+                **data["token"],
+            },
         }
 
 
@@ -184,19 +190,13 @@ class LinearOrgMonitoringProvider(OrgMonitoringProvider):
         ):
             return None
 
-        api_key = (integration.metadata or {}).get("api_key")
-        if not api_key:
-            logger.error(
-                "seer.monitoring_providers.linear_integration_invalid",
-                extra={
-                    "organization_id": organization.id,
-                    "integration_id": integration.id,
-                },
-            )
+        token = integration_service.get_access_token(
+            integration_id=integration.id, organization_id=organization.id
+        )
+        if token is None:
             return None
 
-        # Linear's MCP server takes API keys as bearer tokens, unlike its GraphQL API.
-        encrypted_auth_header = encrypt_access_token_for_seer(f"Bearer {api_key}")
+        encrypted_auth_header = encrypt_access_token_for_seer(f"Bearer {token.token}")
         if not encrypted_auth_header:
             return None
 
@@ -206,7 +206,8 @@ class LinearOrgMonitoringProvider(OrgMonitoringProvider):
                 url=LINEAR_MCP_URL,
                 encrypted_auth_headers={"Authorization": encrypted_auth_header},
                 identity_id=None,
-                auth_method="api_key",
-                refreshable=False,
+                integration_id=integration.id,
+                auth_method="oauth",
+                refreshable=True,
             )
         ]
