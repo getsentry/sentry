@@ -18,7 +18,11 @@ const fetchIssueCountsOptions = ({
 }: FetchIssueCountsParameters) =>
   apiOptions.as<Record<string, number>>()(
     '/organizations/$organizationIdOrSlug/issues-count/',
-    {path: {organizationIdOrSlug: orgSlug}, query: requestParams, staleTime: 180000}
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      query: requestParams,
+      staleTime: 180000, // 3 minutes
+    }
   );
 
 export const useFetchIssueCounts = (params: FetchIssueCountsParameters) => {
