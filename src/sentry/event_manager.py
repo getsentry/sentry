@@ -496,6 +496,7 @@ class EventManager:
             "raw": raw,
             "start_time": start_time,
             "unprocessed": unprocessed,
+            "cache_key": cache_key,
         }
 
         # After calling _pull_out_data we get some keys in the job like the platform
@@ -1144,9 +1145,10 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
             unprocessed = job.get("unprocessed")
             unprocessed_source = "inline"
-            if unprocessed is None:
-                # Clean up after `store.enable-inline-payloads` is 1.0 and
-                # `store.disable-processing-store` is `True`
+            # Only events with a cache key can have a backup in the processing store.
+            # Clean up after `store.enable-inline-payloads` is 1.0 and
+            # `store.disable-processing-store` is `True`
+            if unprocessed is None and job.get("cache_key"):
                 unprocessed_source = "processing_store"
                 unprocessed = event_processing_store.get(
                     cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
