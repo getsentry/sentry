@@ -14,8 +14,26 @@ from sentry.testutils.cases import APITestCase
 _MAKE_SCM = "sentry.integrations.api.endpoints.organization_pull_request_files.make_scm"
 
 
-def _page(files: list[dict[str, str | None]], next_cursor: str = "") -> dict[str, object]:
-    return {"data": files, "meta": {"next_cursor": next_cursor}}
+def _page(
+    files: list[dict[str, str | None]],
+    next_cursor: str = "",
+    raw_files: list[dict[str, str]] | None = None,
+) -> dict[str, object]:
+    return {
+        "data": files,
+        "raw": {"headers": None, "data": raw_files or []},
+        "meta": {"next_cursor": next_cursor},
+    }
+
+
+def _file(path: str) -> dict[str, str | None]:
+    return {"filename": path, "status": "modified", "previous_filename": None, "patch": "@@"}
+
+
+def _github_raw_file(sha: str) -> dict[str, str]:
+    return {
+        "contents_url": f"https://api.github.com/repos/getsentry/sentry/contents/a.py?ref={sha}"
+    }
 
 
 class _FakeScm:
@@ -197,12 +215,53 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
                     "status": "renamed",
                     "previousPath": "src/old_name.py",
                 }
-            ]
+            ],
+            "headSha": None,
         }
         mock_make_scm.assert_called_once_with(
             self.organization.id, self.repo.id, referrer="pull-request-files"
         )
         assert mock_make_scm.return_value.calls == ["42"]
+
+    @mock.patch(_MAKE_SCM)
+    def test_returns_the_commit_the_files_were_read_at(self, mock_make_scm: MagicMock) -> None:
+        mock_make_scm.return_value = _FakeScm(
+            pages=[
+                _page([_file("a.py")], next_cursor="2", raw_files=[_github_raw_file("abc123")]),
+                _page([_file("b.py")], raw_files=[_github_raw_file("abc123")]),
+            ]
+        )
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"repo": "getsentry/sentry", "number": "42"}
+        )
+        assert response.data["headSha"] == "abc123"
+
+    @mock.patch(_MAKE_SCM)
+    def test_head_sha_is_null_when_a_push_lands_between_pages(
+        self, mock_make_scm: MagicMock
+    ) -> None:
+        mock_make_scm.return_value = _FakeScm(
+            pages=[
+                _page([_file("a.py")], next_cursor="2", raw_files=[_github_raw_file("abc123")]),
+                _page([_file("b.py")], raw_files=[_github_raw_file("def456")]),
+            ]
+        )
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"repo": "getsentry/sentry", "number": "42"}
+        )
+        assert response.data["headSha"] is None
+
+    @mock.patch(_MAKE_SCM)
+    def test_head_sha_is_null_for_a_provider_that_does_not_say(
+        self, mock_make_scm: MagicMock
+    ) -> None:
+        mock_make_scm.return_value = _FakeScm(
+            pages=[_page([_file("a.py")], raw_files=[{"new_path": "a.py"}])]
+        )
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"repo": "getsentry/sentry", "number": "42"}
+        )
+        assert response.data["headSha"] is None
 
     def test_requires_repo_and_numeric_number(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)

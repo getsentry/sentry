@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from typing import Any, NamedTuple, TypedDict
+from urllib.parse import parse_qs, urlsplit
 
 from rest_framework.exceptions import APIException, ParseError, Throttled
 from rest_framework.request import Request
@@ -47,35 +48,60 @@ class RepositoryPullRequestFileResponse(PullRequestFileResponse):
 
 class RepositoryPullRequestFilesResponse(TypedDict):
     files: list[RepositoryPullRequestFileResponse]
+    # The commit these files were read at, or None if the provider doesn't say. The provider
+    # can lag behind a push, so this tells a caller whether the files include that push.
+    headSha: str | None
+
+
+class _PullRequestFiles(NamedTuple):
+    files: list[PullRequestFile]
+    head_sha: str | None
 
 
 def _serialize_file(raw_file: PullRequestFile) -> PullRequestFileResponse:
     return {"path": raw_file["filename"], "patch": raw_file["patch"]}
 
 
+def _contents_ref(raw_file: dict[str, Any]) -> str | None:
+    refs = parse_qs(urlsplit(raw_file.get("contents_url") or "").query).get("ref")
+    return refs[0] if refs else None
+
+
+def _head_sha(raw_files: list[dict[str, Any]]) -> str | None:
+    """
+    The commit the files were read at. GitHub's response has no field for it, but each file's
+    `contents_url` names it. None for providers without that URL (e.g. GitLab), and when the
+    files disagree because a push landed between pages.
+    """
+    refs = {_contents_ref(raw_file) for raw_file in raw_files}
+    return refs.pop() if len(refs) == 1 else None
+
+
 def _fetch_files(
     organization_id: int, repository_id: int, pull_request_key: str
-) -> list[PullRequestFile]:
+) -> _PullRequestFiles:
     """Every file the pull request changes, as its provider reports them."""
     try:
         scm = make_scm(organization_id, repository_id, referrer="pull-request-files")
     except ProviderNotFound:
         # No integration installed, or a provider without SCM support (e.g. Bitbucket).
-        return []
+        return _PullRequestFiles([], None)
     except SCMError:
         raise ResourceDoesNotExist
 
     if not isinstance(scm, GetPullRequestFilesProtocol):
-        return []
+        return _PullRequestFiles([], None)
 
     try:
         files: list[PullRequestFile] = []
+        raw_files: list[dict[str, Any]] = []
         for page in iter_all_pages(
             lambda pagination: scm_actions.get_pull_request_files(
                 scm, pull_request_key, pagination=pagination
             )
         ):
             files.extend(page["data"])
+            raw_files.extend(page["raw"]["data"])
     except ResourceNotFound:
         # The PR is gone on the provider.
         raise ResourceDoesNotExist
@@ -92,7 +118,7 @@ def _fetch_files(
             },
         )
         raise PullRequestFilesUnavailable
-    return files
+    return _PullRequestFiles(files, _head_sha(raw_files))
 
 
 @cell_silo_endpoint
@@ -115,8 +141,8 @@ class OrganizationPullRequestFilesEndpoint(OrganizationEndpoint):
         except PullRequest.DoesNotExist:
             raise ResourceDoesNotExist
 
-        files = _fetch_files(organization.id, pull_request.repository_id, pull_request.key)
-        return Response({"files": [_serialize_file(f) for f in files]})
+        fetched = _fetch_files(organization.id, pull_request.repository_id, pull_request.key)
+        return Response({"files": [_serialize_file(f) for f in fetched.files]})
 
 
 @cell_silo_endpoint
@@ -160,7 +186,7 @@ class OrganizationRepositoryPullRequestFilesEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
         repository = matches[0]
 
-        files = _fetch_files(organization.id, repository.id, number)
+        fetched = _fetch_files(organization.id, repository.id, number)
         return Response(
             {
                 "files": [
@@ -169,7 +195,8 @@ class OrganizationRepositoryPullRequestFilesEndpoint(OrganizationEndpoint):
                         "status": f["status"],
                         "previousPath": f["previous_filename"],
                     }
-                    for f in files
-                ]
+                    for f in fetched.files
+                ],
+                "headSha": fetched.head_sha,
             }
         )
