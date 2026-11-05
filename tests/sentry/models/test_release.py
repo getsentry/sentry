@@ -1763,6 +1763,15 @@ class ReleaseFilterByStageTest(TestCase):
                 environments=["production", "staging"],
             )
 
+    def test_rejects_environment_that_is_not_a_name_or_id(self) -> None:
+        with pytest.raises(TypeError, match="Expected an environment name or id"):
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                "=",
+                ReleaseStages.ADOPTED,
+                environments=[self.production],  # type: ignore[list-item]
+            )
+
 
 class FollowsSemverVersioningSchemeTestCase(TestCase):
     def setUp(self) -> None:
