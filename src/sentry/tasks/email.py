@@ -115,8 +115,7 @@ def _claim_send(key: str) -> bool:
     if state == _SENT:
         _record_dedupe("duplicate")
         return False
-    # Either a concurrent delivery is mid-send, or its claim expired between
-    # our add() and get(). Both resolve on retry.
+    # another copy is mid-send, or released its claim after our add()
     _record_dedupe("in_progress")
     raise EmailSendInProgress()
 
