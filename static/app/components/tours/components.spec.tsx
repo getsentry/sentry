@@ -382,7 +382,7 @@ describe('Tour Components', () => {
 
         const title = await screen.findByText('Test Title');
         expect(document.body).toHaveFocus();
-        expect(title.closest('[tabindex="-1"]')).toBeNull();
+        expect(title.closest('[tabindex="-1"]')).toHaveAttribute('tabindex', '-1');
       }
     );
 
