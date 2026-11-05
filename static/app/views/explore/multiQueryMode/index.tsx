@@ -1,6 +1,6 @@
 import {Stack} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';

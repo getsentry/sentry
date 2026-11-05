@@ -37,7 +37,7 @@ import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {TAB_ANALYTICS} from './tabAnalytics';
 import {Tab} from './tabs';
-import TeamKeyTransactionButton from './teamKeyTransactionButton';
+import {TeamKeyTransactionButton} from './teamKeyTransactionButton';
 import {TransactionBreadcrumbs} from './transactionBreadcrumbs';
 import {TransactionThresholdButton} from './transactionThresholdButton';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';

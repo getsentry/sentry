@@ -273,10 +273,6 @@ describe('groupDetails', () => {
         body: {integrations: []},
       });
       MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/autofix-repos/`,
-        body: [],
-      });
-      MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
         body: [],
       });
