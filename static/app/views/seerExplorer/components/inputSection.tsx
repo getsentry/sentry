@@ -52,6 +52,8 @@ interface InputSectionProps {
   notice?: React.ReactNode;
   questionActions?: QuestionActions;
   runId?: SeerExplorerRunId | null;
+  /** Shown next to the send button, for example the organization's credit usage. */
+  usageMeter?: React.ReactNode;
 }
 
 export function InputSection({
@@ -71,6 +73,7 @@ export function InputSection({
   notice,
   questionActions,
   runId,
+  usageMeter,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
   // With ask-seer-create-pr the agent opens PRs, so show links to them.
@@ -284,29 +287,33 @@ export function InputSection({
           size="md"
           data-test-id="seer-explorer-input"
         />
-        {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
-          <Button
-            icon={<IconPause />}
-            onClick={onInterrupt}
-            size="md"
-            variant="primary"
-            disabled={interruptState === 'requested'}
-            aria-label={t('Interrupt button')}
-            tooltipProps={{
-              title:
-                interruptState === 'requested' ? t('Winding down...') : t('Interrupt'),
-            }}
-          />
-        ) : (
-          <Button
-            icon={<IconArrow direction="right" />}
-            onClick={onSend}
-            size="md"
-            variant="secondary"
-            disabled={!canSendMessage}
-            aria-label={t('Send message')}
-          />
-        )}
+        {/* Keeps the meter centered on the button as the composer grows. */}
+        <Flex align="center" gap="sm">
+          {usageMeter}
+          {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
+            <Button
+              icon={<IconPause />}
+              onClick={onInterrupt}
+              size="md"
+              variant="primary"
+              disabled={interruptState === 'requested'}
+              aria-label={t('Interrupt button')}
+              tooltipProps={{
+                title:
+                  interruptState === 'requested' ? t('Winding down...') : t('Interrupt'),
+              }}
+            />
+          ) : (
+            <Button
+              icon={<IconArrow direction="right" />}
+              onClick={onSend}
+              size="md"
+              variant="secondary"
+              disabled={!canSendMessage}
+              aria-label={t('Send message')}
+            />
+          )}
+        </Flex>
       </Flex>
     </Container>
   );

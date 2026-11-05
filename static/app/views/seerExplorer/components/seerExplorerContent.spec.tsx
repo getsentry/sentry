@@ -16,6 +16,7 @@ import {
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -2360,6 +2361,68 @@ describe('SeerExplorerContent', () => {
       expect(
         screen.queryByTestId('seer-explorer-out-of-credits')
       ).not.toBeInTheDocument();
+    });
+
+    describe('usage meter', () => {
+      beforeEach(() => {
+        // getsentry fills the slot in; open source renders nothing.
+        registerOverride(
+          'component:seer-credit-usage-meter',
+          () =>
+            function UsageMeter({hasEnoughCredits}) {
+              return (
+                <div data-test-id="usage-meter">
+                  {hasEnoughCredits ? 'Enough credits' : 'Not enough credits'}
+                </div>
+              );
+            }
+        );
+      });
+
+      it('passes the chat credit check to the meter next to the send button', async () => {
+        const creditCheck = mockCreditCheck(true);
+
+        renderContent();
+
+        await waitFor(() => expect(creditCheck).toHaveBeenCalled());
+        const meter = screen.getByTestId('usage-meter');
+        expect(meter).toHaveTextContent('Enough credits');
+        expect(
+          meter.compareDocumentPosition(
+            screen.getByRole('button', {name: 'Send message'})
+          ) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy();
+      });
+
+      it('tells the meter when the organization is out of credits', async () => {
+        mockCreditCheck(false);
+
+        renderContent();
+
+        await screen.findByTestId('seer-explorer-out-of-credits');
+        expect(screen.getByTestId('usage-meter')).toHaveTextContent('Not enough credits');
+      });
+
+      it('leaves the meter out of a read-only conversation', async () => {
+        mockCreditCheck(true);
+        ConfigStore.set('user', UserFixture({id: '1'}));
+        jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+          ...defaultHookReturn,
+          sessionData: {
+            blocks: [],
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+            owner_user_id: 2,
+          },
+        });
+
+        renderContent();
+
+        await waitFor(() =>
+          expect(screen.getByTestId('seer-explorer-input')).toBeDisabled()
+        );
+        expect(screen.queryByTestId('usage-meter')).not.toBeInTheDocument();
+      });
     });
   });
 });
