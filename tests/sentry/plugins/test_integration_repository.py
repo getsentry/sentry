@@ -337,7 +337,7 @@ class IntegrationRepositoryTestCase(TestCase):
             "get_repositories",
             wraps=repository_service.get_repositories,
         ) as get_repositories:
-            self.provider.create_repositories([self.config, other_config], self.organization)
+            self.provider.create_repositories([self.config, other_config], self.rpc_organization)
 
         assert get_repositories.call_count == 4
         for call in get_repositories.call_args_list:

@@ -10,9 +10,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
-import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import {MultiQueryModeContent} from './content';
 
 export default function MultiQueryMode() {
   const location = useLocation();

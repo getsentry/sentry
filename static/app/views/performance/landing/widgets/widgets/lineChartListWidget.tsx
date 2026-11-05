@@ -69,13 +69,14 @@ import {
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
 } from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
+
+import {EAP_QUERY_PARAMS} from './settings';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;

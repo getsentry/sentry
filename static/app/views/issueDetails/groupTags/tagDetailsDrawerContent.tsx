@@ -4,6 +4,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconOpen} from '@sentry/icons/open';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -33,17 +34,23 @@ import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString'
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
+import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
-import {getUserTagValue} from 'sentry/views/issueDetails/utils';
+import {getUserTagValue, TAG_DRAWER_PARSERS} from 'sentry/views/issueDetails/utils';
 
 import {TagDetailsTable, type TagSort} from './tagDetailsTable';
+import {TagBar} from './tagDistribution';
 
 const DEFAULT_SORT: TagSort = 'count';
+
+const SORT_LINK_PARSERS = {
+  ...TAG_DRAWER_PARSERS,
+  cursor: parseAsString,
+  page: parseAsString,
+};
 
 // Rows treat a null value (e.g. events without a user) the same as '' and render
 // it as "(empty)".
@@ -51,11 +58,12 @@ type TagValueRow = TagValue & {value: string};
 
 export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const [{tagDrawerCursor, tagDrawerSort}, setTagDrawerQuery] =
+    useQueryStates(TAG_DRAWER_PARSERS);
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
 
-  const sort = (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  const sort = (tagDrawerSort as TagSort | null) ?? DEFAULT_SORT;
 
   const {
     data: tagValuesResponse,
@@ -67,7 +75,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
       groupId: group.id,
       tagKey,
       sort,
-      cursor: location.query.tagDrawerCursor as string | undefined,
+      cursor: tagDrawerCursor ?? undefined,
     }),
     select: selectJsonWithHeaders,
   });
@@ -85,18 +93,18 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const isError = tagValuesIsError || tagIsError;
   const isPending = tagValuesIsPending || tagIsPending;
 
-  const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
   const paginationCaption = tct('[count] results', {
     count: (tag?.uniqueValues ?? 0).toLocaleString(),
   });
 
   const getSortLocation = (newSort: TagSort) => ({
     pathname: location.pathname,
-    query: {
-      ...currentQuery,
-      tagDrawerCursor: undefined,
+    query: applyQueryParamsUpdates(SORT_LINK_PARSERS, location, {
+      cursor: null,
+      page: null,
+      tagDrawerCursor: null,
       tagDrawerSort: newSort,
-    },
+    }).query,
   });
 
   return (
@@ -124,14 +132,8 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
       {isPending || isError ? null : (
         <Pagination
           caption={paginationCaption}
-          onCursor={(cursor, path, query) =>
-            navigate({
-              pathname: path,
-              query: {
-                ...query,
-                tagDrawerCursor: cursor,
-              },
-            })
+          onCursor={cursor =>
+            setTagDrawerQuery({tagDrawerCursor: cursor ?? null}, {history: 'push'})
           }
           size="xs"
           pageLinks={tagValuesResponse?.headers.Link}

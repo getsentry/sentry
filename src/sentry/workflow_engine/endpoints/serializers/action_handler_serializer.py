@@ -11,9 +11,25 @@ class SentryAppContext(TypedDict):
     name: str
     installationId: str
     installationUuid: str
-    status: int
+    status: str
     settings: NotRequired[dict[str, Any]]
     title: NotRequired[str]
+
+
+class AvailableActionService(TypedDict):
+    id: str
+    name: str
+
+
+class AvailableActionIntegration(TypedDict):
+    id: str
+    name: str
+    services: NotRequired[list[AvailableActionService]]
+
+
+class AvailableWebhookService(TypedDict):
+    slug: str
+    name: str
 
 
 class ActionHandlerSerializerResponse(TypedDict):
@@ -22,8 +38,8 @@ class ActionHandlerSerializerResponse(TypedDict):
     configSchema: dict[str, Any]
     dataSchema: dict[str, Any]
     sentryApp: NotRequired[SentryAppContext]
-    integrations: NotRequired[list[Any]]
-    services: NotRequired[list[Any]]
+    integrations: NotRequired[list[AvailableActionIntegration]]
+    services: NotRequired[list[AvailableWebhookService]]
     disabledReason: NotRequired[Literal["plan"]]
 
 
@@ -54,9 +70,12 @@ class ActionHandlerSerializer(Serializer[ActionHandlerSerializerResponse]):
 
         integrations = kwargs.get("integrations")
         if integrations:
-            integrations_result = []
+            integrations_result: list[AvailableActionIntegration] = []
             for i in integrations:
-                i_result = {"id": str(i["integration"].id), "name": i["integration"].name}
+                i_result: AvailableActionIntegration = {
+                    "id": str(i["integration"].id),
+                    "name": i["integration"].name,
+                }
                 if i["services"]:
                     i_result["services"] = [
                         {"id": str(id), "name": name} for id, name in i["services"]
@@ -83,7 +102,7 @@ class ActionHandlerSerializer(Serializer[ActionHandlerSerializerResponse]):
 
         services = kwargs.get("services")
         if services:
-            services_list = [
+            services_list: list[AvailableWebhookService] = [
                 {"slug": service.slug, "name": self.transform_title(service.title)}
                 for service in services
             ]

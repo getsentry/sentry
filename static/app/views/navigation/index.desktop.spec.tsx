@@ -17,11 +17,12 @@ import {
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {Navigation} from 'sentry/views/navigation';
+
 import {
   NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
   getSettingsLastProjectKey,
-} from 'sentry/views/navigation/constants';
-import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
+} from './constants';
+import {PrimaryNavigationContextProvider} from './primaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
@@ -864,7 +865,7 @@ describe('desktop navigation', () => {
           [`${ORG}/explore/profiles/`, 'Explore', 'Profiles'],
           [`${ORG}/explore/replays/`, 'Explore', 'Replays'],
           [`${ORG}/explore/releases/`, 'Explore', 'Releases'],
-          [`${ORG}/explore/saved-queries/`, 'Explore', 'All Queries'],
+          [`${ORG}/explore/saved-queries/`, 'Explore', 'Saved Queries'],
           // Dashboards
           [`${ORG}/dashboards/`, 'Dashboards', 'All Dashboards'],
           // Insights

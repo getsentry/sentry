@@ -10,8 +10,8 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Container} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -23,12 +23,13 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
-import {RecoveryCodes} from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
-import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
-import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+
+import {RecoveryCodes} from './components/recoveryCodes';
+import {RemoveConfirm} from './components/removeConfirm';
+import U2fEnrolledDetails from './components/u2fEnrolledDetails';
+import {useAccountSecurityContext} from './accountSecurityWrapper';
 
 const ENDPOINT = '/users/me/authenticators/';
 const getAuthenticatorQueryKey = (authId: string) =>
@@ -83,11 +84,11 @@ export default function AccountSecurityDetails() {
     },
     onSuccess: (_, {device}) => {
       const deviceName = device ? device.name : t('Authenticator');
-      addSuccessMessage(t('%s has been removed', deviceName));
+      toast.success(t('%s has been removed', deviceName));
     },
     onError: (_, {device}) => {
       const deviceName = device ? device.name : t('Authenticator');
-      addErrorMessage(t('Error removing %s', deviceName));
+      toast.error(t('Error removing %s', deviceName));
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
@@ -113,10 +114,10 @@ export default function AccountSecurityDetails() {
     },
     onSuccess: () => {
       navigate(`/settings/account/security/mfa/${authId}`);
-      addSuccessMessage(t('Device was renamed'));
+      toast.success(t('Device was renamed'));
     },
     onError: () => {
-      addErrorMessage(t('Error renaming the device'));
+      toast.error(t('Error renaming the device'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});

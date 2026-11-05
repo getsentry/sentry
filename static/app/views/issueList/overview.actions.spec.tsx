@@ -21,9 +21,10 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import {PriorityLevel} from 'sentry/types/group';
-import IssueListOverview from 'sentry/views/issueList/overview';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
+
+import IssueListOverview from './overview';
+import {IssueSortOptions} from './utils';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +

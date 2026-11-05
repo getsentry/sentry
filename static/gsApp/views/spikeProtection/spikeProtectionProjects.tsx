@@ -9,8 +9,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -177,7 +177,7 @@ function SpikeProtectionProjects({subscription}: Props) {
       await fetchAvailableNotificationActions();
     } catch (err) {
       Sentry.captureException(err);
-      addErrorMessage(t('Unable to fetch available notification actions'));
+      toast.error(t('Unable to fetch available notification actions'));
     }
     setIsLoading(false);
   }, [fetchAvailableNotificationActions]);
@@ -222,14 +222,14 @@ function SpikeProtectionProjects({subscription}: Props) {
       }));
       setProjects(newProjects);
       await fetchData();
-      addSuccessMessage(
+      toast.success(
         tct('[action] spike protection for all projects', {
           action: isEnabling ? t('Enabled') : t('Disabled'),
         })
       );
     } catch (err) {
       Sentry.captureException(err);
-      addErrorMessage(SPIKE_PROTECTION_ERROR_MESSAGE);
+      toast.error(SPIKE_PROTECTION_ERROR_MESSAGE);
     }
   };
 

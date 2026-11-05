@@ -7,7 +7,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectReleaseTracking from 'sentry/views/settings/project/projectReleaseTracking';
+import ProjectReleaseTracking from './projectReleaseTracking';
 
 describe('ProjectReleaseTracking', () => {
   const {organization: org, project} = initializeOrg();

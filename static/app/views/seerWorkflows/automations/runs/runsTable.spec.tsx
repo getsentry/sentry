@@ -2,8 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {RunsTable} from 'sentry/views/seerWorkflows/automations/runs/runsTable';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
+
+import {RunsTable} from './runsTable';
 
 function makeRun(overrides: Partial<SeerAutomationRun>): SeerAutomationRun {
   return {

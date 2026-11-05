@@ -11,8 +11,8 @@ import {Input} from '@sentry/scraps/input';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -260,7 +260,7 @@ export function GiftRecurringCredits() {
       // that stale file would be the one POSTed.
       setCsvFile(null);
       setCsvFileName(null);
-      addErrorMessage('Please upload a .csv file.');
+      toast.error('Please upload a .csv file.');
       return;
     }
     setCsvFile(file);
@@ -306,11 +306,11 @@ export function GiftRecurringCredits() {
       setResultsCategory(response.category);
       const errors = response.results.filter(row => row.status === 'error').length;
       if (errors > 0) {
-        addErrorMessage(
+        toast.error(
           `Gifting finished: ${errors} of ${response.results.length} orgs failed.`
         );
       } else {
-        addSuccessMessage(`Gifted recurring credits to ${response.results.length} orgs.`);
+        toast.success(`Gifted recurring credits to ${response.results.length} orgs.`);
       }
     },
     onError: (error: unknown) => {
@@ -326,7 +326,7 @@ export function GiftRecurringCredits() {
           detail = error.responseJSON.detail;
         }
       }
-      addErrorMessage(detail ?? 'Gift recurring credits request failed.');
+      toast.error(detail ?? 'Gift recurring credits request failed.');
     },
   });
 

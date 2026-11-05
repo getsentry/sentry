@@ -4,8 +4,9 @@ import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {t} from 'sentry/locale';
-import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import type {MaxPickableDaysOptions} from 'sentry/utils/useMaxPickableDays';
+
+import {isEmptyObject} from './object/isEmptyObject';
+import type {MaxPickableDaysOptions} from './useMaxPickableDays';
 
 interface UseDatePageFilterPropsProps extends MaxPickableDaysOptions {}
 

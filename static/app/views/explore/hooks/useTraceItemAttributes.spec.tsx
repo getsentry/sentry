@@ -3,7 +3,7 @@ import {QueryClientProvider} from '@tanstack/react-query';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {useLogItemAttributes} from './useTraceItemAttributes';
 
 describe('useTraceItemAttributes', () => {
   afterEach(() => {

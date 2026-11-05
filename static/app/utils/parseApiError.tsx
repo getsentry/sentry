@@ -1,5 +1,6 @@
 import type {ResponseMeta} from 'sentry/types/api';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+
+import type {RequestError} from './requestError/requestError';
 
 export function parseApiError(resp: ResponseMeta | RequestError): string {
   const {detail} = resp?.responseJSON || {};

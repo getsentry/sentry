@@ -13,7 +13,8 @@ import {
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
+
+import SentryApplicationDetails from './sentryApplicationDetails';
 
 jest.mock('sentry/utils/analytics');
 

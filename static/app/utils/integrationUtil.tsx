@@ -30,10 +30,11 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
+
+import {capitalize} from './string/capitalize';
+import {trackAnalytics} from './analytics';
+import {isActiveSuperuser} from './isActiveSuperuser';
 
 /**
  * TODO: remove alias once all usages are updated

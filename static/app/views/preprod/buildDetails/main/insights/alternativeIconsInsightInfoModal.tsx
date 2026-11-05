@@ -7,10 +7,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import {
-  CodeBlockWrapper,
-  InlineCode,
-} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
+
+import {CodeBlockWrapper, InlineCode} from './insightInfoModal';
 
 const HEIC_SCRIPT = `#!/bin/bash
 #

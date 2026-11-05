@@ -13,9 +13,10 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import {makeDiscoverPathname} from './pathnames';
 
 const loadDatasetParams = createLoader({
   dataset: parseAsString,
