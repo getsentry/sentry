@@ -1536,7 +1536,7 @@ describe('IssuePreview', () => {
 
   describe('out of Seer credits', () => {
     const creditCheckOrganization = OrganizationFixture({
-      features: ['seer-credit-checks'],
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
@@ -1632,7 +1632,7 @@ describe('IssuePreview', () => {
           }),
         }),
       });
-      const creditCheck = mockCreditCheck('autofix_create_pr');
+      const creditCheck = mockCreditCheck('autofix_open_pr');
 
       render(<IssuePreview groupId={group.id} />, {
         organization: creditCheckOrganization,

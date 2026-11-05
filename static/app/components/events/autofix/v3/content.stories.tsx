@@ -256,6 +256,7 @@ function DrawerStory({
           features: [
             ...organization.features,
             'seer-credit-checks',
+            'token-billed-seer-enabled',
             'autofix-pr-iteration-manual',
           ],
         }}
@@ -308,7 +309,7 @@ export default Storybook.story('SeerDrawerContent', story => {
 
   story('Out of credits: Create PR', () => (
     <DrawerStory
-      description="The alert sits above every result so far, code changes included. No and Yes, draft a PR are disabled (autofix_create_pr)."
+      description="The alert sits above every result so far, code changes included. No and Yes, draft a PR are disabled (autofix_open_pr)."
       runState={makeRun([ROOT_CAUSE, SOLUTION, CODE_CHANGES])}
     />
   ));

@@ -97,7 +97,11 @@ function SidebarStory({description, hasEnoughCredits = false}: SidebarStoryProps
         value={{
           ...organization,
           hideAiFeatures: false,
-          features: [...organization.features, 'seer-credit-checks'],
+          features: [
+            ...organization.features,
+            'seer-credit-checks',
+            'token-billed-seer-enabled',
+          ],
         }}
       >
         <QueryClientProvider client={queryClient}>

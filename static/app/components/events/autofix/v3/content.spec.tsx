@@ -72,7 +72,11 @@ describe('SeerDrawerContent', () => {
 
   describe('out of Seer credits', () => {
     const organization = OrganizationFixture({
-      features: ['seer-credit-checks', 'autofix-pr-iteration-manual'],
+      features: [
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+        'autofix-pr-iteration-manual',
+      ],
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
@@ -183,7 +187,7 @@ describe('SeerDrawerContent', () => {
     });
 
     it('shows the continue alert for a failed PR, leaving Retry PR to its card', async () => {
-      mockCreditCheck('autofix_create_pr');
+      mockCreditCheck('autofix_open_pr');
 
       render(
         <SeerDrawerContent

@@ -515,7 +515,7 @@ describe('AutofixRef embed', () => {
   describe('out of Seer credits', () => {
     const creditCheckOrganization = OrganizationFixture({
       slug: 'org-slug',
-      features: ['seer-credit-checks'],
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
@@ -541,7 +541,7 @@ describe('AutofixRef embed', () => {
       {
         step: 'code_changes',
         button: 'Draft a pull request',
-        operation: 'autofix_create_pr',
+        operation: 'autofix_open_pr',
       },
     ] as const)(
       'shows the CTA above a disabled $button',
