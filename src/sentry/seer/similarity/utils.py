@@ -20,7 +20,6 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.options.rollout import in_rollout_group
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -496,14 +495,12 @@ def project_uses_seer_similarity(project: Project) -> bool:
     """
     Whether a project uses Seer embeddings similarity rather than the legacy MinHash index.
 
-    TODO: once every SaaS project is on Seer, drop the per-project option and the rollout
-    rate and reduce this to the global option check.
+    TODO: once the global option is on for all of SaaS, drop the per-project option and reduce
+    this to the global option check.
     """
     if options.get("similarity.seer_grouping.enabled"):
         return True
-    if project.get_option("sentry:similarity_backfill_completed"):
-        return True
-    return in_rollout_group("similarity.seer_grouping.rollout_rate", project.id)
+    return bool(project.get_option("sentry:similarity_backfill_completed"))
 
 
 def projects_using_seer_similarity(projects: Sequence[Project]) -> dict[Project, bool]:
@@ -517,11 +514,7 @@ def projects_using_seer_similarity(projects: Sequence[Project]) -> dict[Project,
     opted_in = ProjectOption.objects.get_value_bulk(
         projects, "sentry:similarity_backfill_completed"
     )
-    return {
-        project: bool(opted_in.get(project))
-        or in_rollout_group("similarity.seer_grouping.rollout_rate", project.id)
-        for project in projects
-    }
+    return {project: bool(opted_in.get(project)) for project in projects}
 
 
 def project_is_seer_eligible(project: Project) -> bool:

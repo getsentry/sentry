@@ -1209,7 +1209,6 @@ class ProjectsUsingSeerSimilarityTest(TestCase):
 
         option_overrides: list[dict[str, Any]] = [
             {},
-            {"similarity.seer_grouping.rollout_rate": 1.0},
             {"similarity.seer_grouping.enabled": True},
         ]
         for overrides in option_overrides:

@@ -63,11 +63,10 @@ class ShouldCallSeerTest(TestCase):
                 is expected_result
             ), f"Case {backfill_completed_option} failed."
 
-    def test_obeys_global_and_rollout_options(self) -> None:
-        # No per-project option: only the global option or the rollout rate can turn Seer on
+    def test_obeys_global_option(self) -> None:
+        # No per-project option: only the global option can turn Seer on
         cases: list[tuple[dict[str, Any], bool]] = [
             ({}, False),
-            ({"similarity.seer_grouping.rollout_rate": 1.0}, True),
             ({"similarity.seer_grouping.enabled": True}, True),
         ]
         for overrides, expected_result in cases:
