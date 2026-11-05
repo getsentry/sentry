@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import replace
 from enum import StrEnum
-from typing import Any, ClassVar, Literal, TypedDict, get_args
+from typing import Any, ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -214,9 +214,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return group_evaluation, remaining_conditions
 
 
-VisibleWorkflowType = Literal[Workflow.Type.ALERT]
-
-VISIBLE_WORKFLOW_TYPES: frozenset[VisibleWorkflowType] = frozenset(get_args(VisibleWorkflowType))
+VISIBLE_WORKFLOW_TYPES = frozenset({Workflow.Type.ALERT})
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:
