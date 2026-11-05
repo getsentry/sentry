@@ -239,6 +239,7 @@ class TestWorkflowSerializer(TestCase):
                 {
                     "id": str(workflow.id),
                     "name": workflow.name,
+                    "type": "alert",
                     "organizationId": str(self.organization.id),
                     "createdBy": None,
                     "dateCreated": workflow.date_added,
