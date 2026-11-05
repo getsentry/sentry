@@ -38,11 +38,9 @@ from sentry.workflow_engine.models.detector import Detector
 
 BASE_DETECTOR_OPTIONS = {
     "performance.issues.n_plus_one_db.problem-creation": 1.0,
-    "performance.issues.n_plus_one_db_ext.problem-creation": 1.0,
 }
 BASE_DETECTOR_OPTIONS_OFF = {
     "performance.issues.n_plus_one_db.problem-creation": 0.0,
-    "performance.issues.n_plus_one_db_ext.problem-creation": 0.0,
 }
 
 
@@ -855,7 +853,7 @@ class WFEDetectorSyncTest(TestCase):
             "slow_db_query_duration_threshold": 3000,
         }
 
-        updated = sync_project_options_to_wfe_detectors(self.project, settings_data)
+        updated = sync_project_options_to_wfe_detectors(self.project.id, settings_data)
 
         assert DetectorType.SLOW_DB_QUERY not in updated
         assert not Detector.objects.filter(
@@ -876,7 +874,7 @@ class WFEDetectorSyncTest(TestCase):
             "slow_db_query_duration_threshold": 5000,
         }
 
-        updated = sync_project_options_to_wfe_detectors(self.project, settings_data)
+        updated = sync_project_options_to_wfe_detectors(self.project.id, settings_data)
 
         assert DetectorType.SLOW_DB_QUERY in updated
 
@@ -898,7 +896,7 @@ class WFEDetectorSyncTest(TestCase):
             "slow_db_query_duration_threshold": 5000,
         }
 
-        updated = sync_project_options_to_wfe_detectors(self.project, settings_data)
+        updated = sync_project_options_to_wfe_detectors(self.project.id, settings_data)
 
         # Should not be marked as updated since merged config is identical
         assert DetectorType.SLOW_DB_QUERY not in updated
@@ -917,7 +915,7 @@ class WFEDetectorSyncTest(TestCase):
             "slow_db_query_duration_threshold": 2000,
         }
 
-        sync_project_options_to_wfe_detectors(self.project, settings_data)
+        sync_project_options_to_wfe_detectors(self.project.id, settings_data)
 
         detector.refresh_from_db()
         assert "allowed_span_ops" not in detector.config
@@ -939,7 +937,7 @@ class WFEDetectorResetTest(TestCase):
             config={"duration_threshold": 5000},
         )
 
-        reset_wfe_detector_configs(self.project)
+        reset_wfe_detector_configs(self.project.id)
 
         detector.refresh_from_db()
         assert detector.config == {}
@@ -954,14 +952,14 @@ class WFEDetectorResetTest(TestCase):
             config={"duration_threshold": 5000},
         )
 
-        reset_wfe_detector_configs(self.project)
+        reset_wfe_detector_configs(self.project.id)
 
         detector.refresh_from_db()
         assert detector.config["duration_threshold"] == 5000
         assert detector.enabled is False
 
     def test_reset_skips_nonexistent_detectors(self) -> None:
-        updated = reset_wfe_detector_configs(self.project)
+        updated = reset_wfe_detector_configs(self.project.id)
 
         assert len(updated) == 0
         assert (

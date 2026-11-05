@@ -3,10 +3,11 @@ import {type ComponentProps, type PropsWithChildren} from 'react';
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+
 import {
   ListItemCheckboxProvider,
   useListItemCheckboxContext,
-} from 'sentry/utils/list/useListItemCheckboxState';
+} from './useListItemCheckboxState';
 
 const endpointOptions: QueryKeyEndpointOptions = {query: {status: 'active'}};
 

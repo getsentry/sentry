@@ -7,9 +7,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import {ResultGrid} from 'sentry/components/resultGrid';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ConfigStore} from 'sentry/stores/configStore';
+
+import {SimpleTable} from './tables/simpleTable';
+import {ResultGrid} from './resultGrid';
 
 describe('ResultGrid', () => {
   const endpoint = '/test-endpoint/';

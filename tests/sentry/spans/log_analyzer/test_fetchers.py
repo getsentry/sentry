@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -71,7 +73,7 @@ def test_parse_top_traces_empty_list() -> None:
     ],
     ids=["basic", "time_range", "consumer", "custom_project"],
 )
-def test_build_gcp_filter(kwargs, expected_substrings):
+def test_build_gcp_filter(kwargs: dict[str, Any], expected_substrings: list[str]) -> None:
     """Test build_gcp_filter with various arguments."""
     result = build_gcp_filter(**kwargs)
     for sub in expected_substrings:
@@ -79,7 +81,7 @@ def test_build_gcp_filter(kwargs, expected_substrings):
 
 
 @pytest.fixture
-def sample_log_data(tmp_path):
+def sample_log_data(tmp_path: Path) -> str:
     """Create a sample log JSON file."""
     data = [
         {
@@ -112,7 +114,7 @@ def sample_log_data(tmp_path):
     return str(file_path)
 
 
-def test_fetch_logs_from_file_all(sample_log_data):
+def test_fetch_logs_from_file_all(sample_log_data: str) -> None:
     """Test fetching all logs without filters."""
     logs = fetch_logs_from_file(sample_log_data)
 
@@ -123,7 +125,7 @@ def test_fetch_logs_from_file_all(sample_log_data):
     assert len(logs[1].traces) == 1
 
 
-def test_fetch_logs_from_file_filter_by_consumer(sample_log_data):
+def test_fetch_logs_from_file_filter_by_consumer(sample_log_data: str) -> None:
     """Test filtering by consumer."""
     logs = fetch_logs_from_file(sample_log_data, consumer="process-spans-6")
 

@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.db.models import F
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -21,6 +23,7 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
+from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -33,6 +36,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -67,7 +71,9 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.LIST_CLIENT_KEYS,
     )
-    def get(self, request: Request, project) -> Response[list[ProjectKeySerializerResponse]]:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[ProjectKeySerializerResponse]]:
         """
         Return a list of client keys bound to a project.
         """
@@ -82,12 +88,22 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         elif status:
             queryset = queryset.none()
 
+        def serialize_keys(keys: list[ProjectKey]) -> list[ProjectKeySerializerResponse]:
+            # The queryset is filtered to `project`, which already has its organization
+            # loaded. Reuse it so building each key's DSNs doesn't load both again.
+            for key in keys:
+                key.set_cached_field_value("project", project)
+            return cast(
+                "list[ProjectKeySerializerResponse]",
+                serialize(keys, request.user, request=request),
+            )
+
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-id",
             default_per_page=10,
-            on_results=lambda x: serialize(x, request.user, request=request),
+            on_results=serialize_keys,
         )
 
     @extend_schema(
@@ -106,7 +122,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
     def post(
-        self, request: Request, project
+        self, request: Request, project: Project
     ) -> Response[ProjectKeySerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new client key bound to a project.  The key's secret and public key

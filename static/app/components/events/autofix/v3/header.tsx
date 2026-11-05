@@ -2,12 +2,10 @@ import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {AutofixReferrerInfoTip} from 'sentry/components/events/autofix/v3/autofixReferrerInfoTip';
-import {
-  SeerPanelActions,
-  type SeerPanelActionsProps,
-} from 'sentry/components/events/autofix/v3/seerPanelActions';
 import {t} from 'sentry/locale';
+
+import {AutofixReferrerInfoTip} from './autofixReferrerInfoTip';
+import {SeerPanelActions, type SeerPanelActionsProps} from './seerPanelActions';
 
 interface SeerPanelHeaderProps extends SeerPanelActionsProps {
   referrer?: string;

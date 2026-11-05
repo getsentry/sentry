@@ -1,8 +1,10 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import responses
 from django.test import override_settings
 from responses import matchers
+from rest_framework.response import Response
 
 from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.models.projectkey import ProjectKey
@@ -37,14 +39,20 @@ class AbstractServerlessTest(APITestCase):
             self.org_integration.save()
         self.login_as(self.user)
 
-    def get_response(self, **kwargs):
+    def get_response(self, **kwargs: str) -> Response:
         return super().get_response(self.organization.slug, self.integration.id, **kwargs)
 
     @property
-    def sentry_dsn(self):
-        return ProjectKey.get_default(project=self.project).get_dsn(public=True)
+    def sentry_dsn(self) -> str:
+        project_key = ProjectKey.get_default(project=self.project)
+        assert project_key is not None
+        return project_key.get_dsn(public=True)
 
-    def set_up_response_mocks(self, get_function_response, update_function_configuration_kwargs):
+    def set_up_response_mocks(
+        self,
+        get_function_response: dict[str, Any],
+        update_function_configuration_kwargs: dict[str, Any],
+    ) -> None:
         responses.add(
             responses.POST,
             "http://controlserver/api/0/internal/integration-proxy/",
@@ -619,8 +627,8 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_enable_python_layer_on_already_enabled(
-        self, mock_gen_aws_client, mock_get_serialized_lambda_function
-    ):
+        self, mock_gen_aws_client: MagicMock, mock_get_serialized_lambda_function: MagicMock
+    ) -> None:
         """
         Test that ensures that if sentry-sdk is already enabled, then
         re-enabling it should not override the env variables since it could be

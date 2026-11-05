@@ -14,15 +14,19 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework.dashboard import DashboardStarredOrderSerializer
+from sentry.auth.principal import require_user
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.organization import Organization
 
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "dashboard:read"],
-        "PUT": ["member:read", "member:write", "dashboard:write"],
+        "GET": ["member:read", "member:write", "dashboard:read", "user_preference:read"],
+        "PUT": ["member:read", "member:write", "dashboard:write", "user_preference:write"],
     }
+
+    # user_preference:read and user_preference:write replace member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 @cell_silo_endpoint
@@ -41,8 +45,9 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
+        user_id = require_user(request).id
         favorites = DashboardFavoriteUser.objects.get_favorite_dashboards(
-            organization=organization, user_id=request.user.id
+            organization=organization, user_id=user_id
         ).select_related("dashboard")
 
         if favorites.filter(position__isnull=True).exists():
@@ -50,7 +55,7 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
             # that don't have a position assigned
             DashboardFavoriteUser.objects.reorder_favorite_dashboards(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=user_id,
                 new_dashboard_positions=[favorite.dashboard.id for favorite in favorites],
             )
 
@@ -99,7 +104,7 @@ class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
             with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
                 DashboardFavoriteUser.objects.reorder_favorite_dashboards(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=require_user(request).id,
                     new_dashboard_positions=dashboard_ids,
                 )
         except (IntegrityError, ValueError) as e:

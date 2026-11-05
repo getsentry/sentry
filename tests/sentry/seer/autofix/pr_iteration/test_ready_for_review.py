@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -10,6 +11,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckRunsSweep,
     CheckSuiteAutofixRun,
     confirm_green_check_suite,
+    green_review_side_effects_enabled,
     resolve_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
@@ -40,7 +42,7 @@ def _pull_request_result(
     draft: bool = True,
     state: str = "open",
     merged: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     return {
         "data": {"state": state, "merged": merged, "head": {"sha": head_sha}},
         "raw": {"headers": None, "data": {"draft": draft}},
@@ -49,7 +51,7 @@ def _pull_request_result(
     }
 
 
-def _green_event(raw: dict | None = None) -> CheckSuiteEvent:
+def _green_event(raw: dict[str, Any] | None = None) -> CheckSuiteEvent:
     if raw is None:
         raw = {
             "check_suite": {
@@ -82,7 +84,7 @@ def _green_event(raw: dict | None = None) -> CheckSuiteEvent:
 
 def _mark_ready(event: CheckSuiteEvent | None = None) -> None:
     resolved = resolve_green_check_suite(event or _green_event())
-    if resolved is None:
+    if resolved is None or not green_review_side_effects_enabled(resolved):
         return
     if (
         get_run_marker(resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name) is not None
@@ -227,9 +229,10 @@ class MarkReadyForReviewTest(TestCase):
             repository=self.repo, run_state=run_state, pr_id=555, group_id=group_id
         )
 
-    def _marker(self) -> dict | None:
+    def _marker(self) -> dict[str, Any] | None:
         self.seer_run.refresh_from_db()
-        return (self.seer_run.extras or {}).get(READY_FOR_REVIEW_EXTRA, {}).get(REPO_NAME)
+        marker = (self.seer_run.extras or {}).get(READY_FOR_REVIEW_EXTRA, {}).get(REPO_NAME)
+        return marker if isinstance(marker, dict) else None
 
     @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
@@ -256,8 +259,9 @@ class MarkReadyForReviewTest(TestCase):
 
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
     def test_noop_when_flag_disabled(self, mock_resolve: MagicMock) -> None:
+        mock_resolve.return_value = self._resolved()
         _mark_ready(_green_event())
-        mock_resolve.assert_not_called()
+        mock_resolve.assert_called_once()
         assert self._marker() is None
 
     @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")

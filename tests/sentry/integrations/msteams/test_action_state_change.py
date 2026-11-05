@@ -133,7 +133,8 @@ class StatusActionTest(APITestCase):
         }
 
         webhook_url = reverse("sentry-integration-msteams-webhooks")
-        return self.client.post(webhook_url, data=payload)
+        response: Response[Any] = self.client.post(webhook_url, data=payload)
+        return response
 
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_vaue=True)
     @patch("sentry.integrations.msteams.link_identity.sign")

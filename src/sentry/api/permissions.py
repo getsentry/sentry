@@ -19,6 +19,7 @@ from sentry.api.exceptions import (
 )
 from sentry.auth import access
 from sentry.auth.deprecated_scope_translation import record_deprecated_scope_translation
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
@@ -29,7 +30,6 @@ from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_t
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
-    organization_service,
 )
 from sentry.seer import agent_token
 from sentry.utils import auth
@@ -226,15 +226,15 @@ class SentryPermission(ScopedPermission):
     ) -> None:
         from sentry.api.base import logger
 
-        user_id = request.user.id if request.user else None
+        user_id = acting_user_id(request.user)
         agent_auth = request.auth if agent_token.is_agent_auth(request.auth) else None
 
         org_context: RpcUserOrganizationContext | None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
         else:
-            org_context = organization_service.get_organization_by_id(
-                id=extract_id_from(organization), user_id=user_id
+            org_context = access.get_organization_access_context(
+                request, organization_id=extract_id_from(organization)
             )
 
         if org_context is None:
@@ -248,15 +248,15 @@ class SentryPermission(ScopedPermission):
                 request.access = access.from_rpc_auth(
                     auth=agent_auth, rpc_user_org_context=org_context
                 )
-            elif request.user and request.user.is_authenticated:
+            elif has_user(request.user):
                 request.access = access.from_request_org_and_scopes(
                     request=request,
                     rpc_user_org_context=org_context,
                     scopes=request.auth.get_scopes(),
                 )
             else:
-                # Userless credential (org token, or agent token acting on behalf of a
-                # member). from_rpc_auth dispatches the agent to member-derived access.
+                # A credential with no person behind it: an org token, an API key or a
+                # service account. Agents take the branch above.
                 request.access = access.from_rpc_auth(
                     auth=request.auth, rpc_user_org_context=org_context
                 )
@@ -397,9 +397,8 @@ class DemoSafePermission(SentryPermission):
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
         else:
-            org_context = organization_service.get_organization_by_id(
-                id=extract_id_from(organization),
-                user_id=request.user.id if request.user else None,
+            org_context = access.get_organization_access_context(
+                request, organization_id=extract_id_from(organization)
             )
 
         assert org_context is not None, "Failed to fetch organization in determine_access"
@@ -443,7 +442,7 @@ class DisallowImpersonatedTokenCreation(BasePermission):
                 "impersonation.token_creation_blocked",
                 extra={
                     "actual_user_id": actual_user.id,
-                    "impersonated_user_id": request.user.id,
+                    "impersonated_user_id": acting_user_id(request.user),
                     "method": request.method,
                     "path": request.path,
                 },

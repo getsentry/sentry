@@ -193,6 +193,7 @@ def _sync_repos_for_org(
         organization_id=rpc_org.id,
         integration_id=integration.id,
         providers=[provider],
+        external_ids=safe_to_disable,
     )
     repo_by_eid = {
         r.external_id: r

@@ -12,7 +12,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {Threads} from 'sentry/components/events/interfaces/threads';
 import {stackTraceDisplayOptionLabels} from 'sentry/components/events/traceEventDataSection';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -20,6 +19,8 @@ import type {Event, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+
+import {Threads} from './threads';
 
 describe('Threads', () => {
   const organization = OrganizationFixture();
@@ -444,6 +445,111 @@ describe('Threads', () => {
     });
   });
 
+  describe('thread selector', () => {
+    const stacktrace: StacktraceType = {
+      frames: [FrameFixture({function: 'run'})],
+      framesOmitted: null,
+      registers: {},
+      hasSystemFrames: false,
+    };
+
+    function renderThreads(threads: Thread[]) {
+      const data = {values: threads};
+      const event = EventFixture({
+        projectID: project.id,
+        platform: 'python',
+        entries: [{type: EntryType.THREADS, data}],
+      });
+      render(
+        <Threads
+          event={event}
+          data={data}
+          projectSlug={project.slug}
+          group={undefined}
+          groupingCurrentLevel={0}
+        />
+      );
+    }
+
+    function getOptionNames() {
+      return screen.getAllByRole('option').map(option => option.textContent);
+    }
+
+    const threads: Thread[] = [
+      {
+        id: 1,
+        name: 'main',
+        crashed: true,
+        current: true,
+        state: 'RUNNABLE',
+        stacktrace,
+        rawStacktrace: null,
+      },
+      ...[
+        {id: 2, name: 'charlie', state: 'WAITING'},
+        {id: 3, name: 'alpha', state: 'BLOCKED'},
+        {id: 4, name: 'bravo', state: 'NEW'},
+      ].map(thread => ({
+        ...thread,
+        crashed: false,
+        current: false,
+        stacktrace,
+        rawStacktrace: null,
+      })),
+    ];
+
+    it('sorts threads by the clicked column header, keeping the active thread first', async () => {
+      renderThreads(threads);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Thread #1: main'}));
+      const table = screen.getByRole('table', {name: 'Sort threads'});
+      const idOrder = getOptionNames();
+      await userEvent.click(within(table).getByRole('button', {name: 'Name'}));
+      const nameAscendingOrder = getOptionNames();
+      const nameAscendingSort = within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.getAttribute('aria-sort'));
+      await userEvent.click(within(table).getByRole('button', {name: 'Name'}));
+
+      expect(idOrder).toEqual([
+        '#1mainrunRunnable',
+        '#2charlierunWaiting',
+        '#3alpharunBlocked',
+        '#4bravorunNew',
+      ]);
+      expect(nameAscendingOrder).toEqual([
+        '#1mainrunRunnable',
+        '#3alpharunBlocked',
+        '#4bravorunNew',
+        '#2charlierunWaiting',
+      ]);
+      expect(nameAscendingSort).toEqual([null, null, 'ascending', null, null]);
+      expect(getOptionNames()).toEqual([
+        '#1mainrunRunnable',
+        '#2charlierunWaiting',
+        '#4bravorunNew',
+        '#3alpharunBlocked',
+      ]);
+      expect(within(table).getByRole('columnheader', {name: 'Name'})).toHaveAttribute(
+        'aria-sort',
+        'descending'
+      );
+    });
+
+    it('omits the state column when no thread has a known state', async () => {
+      renderThreads(threads.map(thread => ({...thread, state: undefined})));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Thread #1: main'}));
+
+      expect(
+        within(screen.getByRole('table', {name: 'Sort threads'}))
+          .getAllByRole('columnheader')
+          .map(header => header.textContent)
+      ).toEqual(['', 'ID', 'Name', 'Label']);
+      expect(getOptionNames()[0]).toBe('#1mainrun');
+    });
+  });
+
   describe('non native platform', () => {
     describe('other platform', () => {
       const event: Event = {
@@ -735,7 +841,6 @@ describe('Threads', () => {
 
       it('renders suspect commits', async () => {
         const user = UserFixture();
-        user.options.prefersIssueDetailsStreamlinedUI = true;
         ConfigStore.set('user', user);
         const group = GroupFixture();
         const committers = [

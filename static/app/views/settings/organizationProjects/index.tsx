@@ -25,8 +25,8 @@ import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectItem} from 'sentry/views/settings/components/settingsProjectItem';
-import {CreateProjectButton} from 'sentry/views/settings/organizationProjects/createProjectButton';
 
+import {CreateProjectButton} from './createProjectButton';
 import {ProjectStatsGraph} from './projectStatsGraph';
 
 const ITEMS_PER_PAGE = 50;

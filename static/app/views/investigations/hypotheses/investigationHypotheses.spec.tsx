@@ -5,11 +5,12 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
+import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
-} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
-import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+} from './investigationHypotheses';
 
 const organization = OrganizationFixture({features: ['investigations']});
 const orchestrationUrl =

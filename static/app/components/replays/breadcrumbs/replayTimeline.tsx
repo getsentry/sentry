@@ -3,12 +3,6 @@ import styled from '@emotion/styled';
 
 import {Stacked} from 'sentry/components/container/stacked';
 import {Placeholder} from 'sentry/components/placeholder';
-import {
-  MajorGridlines,
-  MinorGridlines,
-} from 'sentry/components/replays/breadcrumbs/gridlines';
-import {ReplayTimelineEvents} from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
-import {TimelineGaps} from 'sentry/components/replays/breadcrumbs/timelineGaps';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/utils/number/divide';
@@ -16,6 +10,10 @@ import {toPercent} from 'sentry/utils/number/toPercent';
 import {useTimelineScale} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
+
+import {MajorGridlines, MinorGridlines} from './gridlines';
+import {ReplayTimelineEvents} from './replayTimelineEvents';
+import {TimelineGaps} from './timelineGaps';
 
 export function ReplayTimeline() {
   const replay = useReplayReader();

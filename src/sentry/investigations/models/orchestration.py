@@ -67,8 +67,6 @@ class InvestigationOrchestrationRun(DefaultFieldsModel):
         "notebooks.Notebook",
         on_delete=models.CASCADE,
         related_name="orchestration_run",
-        # Existing rows point at notebook ids that the copy migration fills in after deploy.
-        db_constraint=False,
     )
     # This remains empty while Sentry has durably queued creation with Seer.
     seer_run = models.OneToOneField(

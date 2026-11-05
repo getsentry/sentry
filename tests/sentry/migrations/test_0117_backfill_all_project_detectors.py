@@ -1,5 +1,6 @@
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 
@@ -10,7 +11,7 @@ class BackfillAllProjectDetectorsTest(TestMigrations):
     migrate_from = "0116_detector_nullable_project"
     migrate_to = "0117_backfill_all_project_detectors"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         Organization = apps.get_model("sentry", "Organization")
         Detector = apps.get_model("workflow_engine", "Detector")
 
@@ -31,7 +32,7 @@ class BackfillAllProjectDetectorsTest(TestMigrations):
                 slug="without-detector", name="Without Detector"
             )
 
-    def test(self):
+    def test(self) -> None:
         Detector = self.apps.get_model("workflow_engine", "Detector")
 
         existing = Detector.objects.filter(project__isnull=True, type="issue_stream").count()

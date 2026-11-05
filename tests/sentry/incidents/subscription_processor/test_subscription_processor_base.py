@@ -1,6 +1,8 @@
-from datetime import timedelta
+from collections.abc import Iterator
+from datetime import datetime, timedelta
 from functools import cached_property
 from random import randint
+from typing import TypedDict, cast
 from unittest import mock
 from uuid import uuid4
 
@@ -13,7 +15,10 @@ from sentry.incidents.subscription_processor import (
     store_detector_last_update,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    QuerySubscriptionUpdate,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
@@ -27,10 +32,19 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 EMPTY = object()
 
 
+class _SubscriptionUpdateMessage(TypedDict):
+    subscription_id: str | None
+    values: dict[str, list[dict[str, object]]]
+    timestamp: datetime
+    interval: int
+    partition: int
+    offset: int
+
+
 @freeze_time()
 class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
     @pytest.fixture(autouse=True)
-    def _setup_metrics_patch(self):
+    def _setup_metrics_patch(self) -> Iterator[None]:
         with mock.patch("sentry.incidents.subscription_processor.metrics") as self.metrics:
             yield
 
@@ -45,7 +59,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         self._run_tasks.__exit__(None, None, None)
 
     @cached_property
-    def sub(self):
+    def sub(self) -> QuerySubscription:
         data_source = self.metric_detector.data_sources.first()
         assert data_source is not None
         subscription_id = int(data_source.source_id)
@@ -96,7 +110,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         critical_threshold: int,
         warning_threshold: int | None = None,
         resolve_threshold: int | None = None,
-    ):
+    ) -> None:
         if resolve_threshold is None:
             resolve_threshold = (
                 critical_threshold if warning_threshold is None else warning_threshold
@@ -132,30 +146,30 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         return self.create_detector_data_source_and_data_conditions()
 
     @cached_property
-    def critical_threshold(self):
+    def critical_threshold(self) -> int | float:
         critical_detector_trigger = DataCondition.objects.get(
             condition_group=self.metric_detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.HIGH,
         )
-        return critical_detector_trigger.comparison
+        return float(critical_detector_trigger.comparison)
 
     @cached_property
-    def warning_threshold(self):
+    def warning_threshold(self) -> int | float:
         warning_detector_trigger = DataCondition.objects.get(
             condition_group=self.metric_detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.MEDIUM,
         )
-        return warning_detector_trigger.comparison
+        return float(warning_detector_trigger.comparison)
 
     @cached_property
-    def resolve_threshold(self):
+    def resolve_threshold(self) -> int | float:
         resolve_detector_trigger = DataCondition.objects.get(
             condition_group=self.metric_detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.OK,
         )
-        return resolve_detector_trigger.comparison
+        return float(resolve_detector_trigger.comparison)
 
-    def get_snuba_query(self, detector: Detector):
+    def get_snuba_query(self, detector: Detector) -> SnubaQuery:
         data_source_detector = DataSourceDetector.objects.get(detector=detector)
         data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
         query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
@@ -172,7 +186,12 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         detector_trigger.comparison = new_threshold
         detector_trigger.save()
 
-    def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
+    def build_subscription_update(
+        self,
+        subscription: QuerySubscription | None,
+        time_delta: timedelta | None = None,
+        value: object = EMPTY,
+    ) -> _SubscriptionUpdateMessage:
         if time_delta is not None:
             timestamp = timezone.now() + time_delta
         else:
@@ -193,7 +212,12 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             "offset": 1,
         }
 
-    def send_update(self, value, time_delta=None, subscription=None):
+    def send_update(
+        self,
+        value: object,
+        time_delta: timedelta | None = None,
+        subscription: QuerySubscription | None = None,
+    ) -> bool:
         if time_delta is None:
             time_delta = timedelta()
         if subscription is None:
@@ -208,7 +232,9 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             ),
             self.capture_on_commit_callbacks(execute=True),
         ):
-            return SubscriptionProcessor.process(subscription, message)
+            return SubscriptionProcessor.process(
+                subscription, cast(QuerySubscriptionUpdate, message)
+            )
 
     def get_detector_state(self, detector: Detector) -> int:
         detector_state = DetectorState.objects.get(detector=detector)
@@ -233,7 +259,9 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
             ),
             self.capture_on_commit_callbacks(execute=True),
         ):
-            result = SubscriptionProcessor.process(self.sub, old_update_message)
+            result = SubscriptionProcessor.process(
+                self.sub, cast(QuerySubscriptionUpdate, old_update_message)
+            )
 
         assert result is False
 
@@ -268,6 +296,8 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
             ),
             self.capture_on_commit_callbacks(execute=True),
         ):
-            result = SubscriptionProcessor.process(subscription_without_detector, message)
+            result = SubscriptionProcessor.process(
+                subscription_without_detector, cast(QuerySubscriptionUpdate, message)
+            )
 
         assert result is False

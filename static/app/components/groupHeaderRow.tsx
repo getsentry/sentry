@@ -6,10 +6,6 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Link} from '@sentry/scraps/link';
 
-import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {EventMessage} from 'sentry/components/events/eventMessage';
-import {GroupTitle} from 'sentry/components/groupTitle';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getMessage} from 'sentry/utils/events';
@@ -18,7 +14,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
+import {EventMessage} from './events/eventMessage';
+import {usePageFilters} from './pageFilters/usePageFilters';
+import {ErrorBoundary} from './errorBoundary';
 import {EventTitleError} from './eventTitleError';
+import {GroupTitle} from './groupTitle';
 
 interface GroupHeaderRowProps {
   data: Group;

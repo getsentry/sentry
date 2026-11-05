@@ -10,10 +10,12 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {ProjectAddRepoModal} from 'sentry/components/seer/projectAddRepoModal/projectAddRepoModal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {NON_GITHUB_HANDOFF_WARNING} from 'sentry/utils/seer/preferredAgent';
+
+import {ProjectAddRepoModal} from './projectAddRepoModal';
 
 describe('ProjectAddRepoModal', () => {
   const organization = OrganizationFixture();

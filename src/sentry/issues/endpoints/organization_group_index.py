@@ -2,7 +2,7 @@ import functools
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -16,7 +16,7 @@ from sentry import analytics, features, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.event_search import SearchFilter
@@ -58,6 +58,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -109,7 +110,7 @@ def inbox_search(
     end = max([earliest_date, end])
 
     if start >= end:
-        return Paginator(Group.objects.none()).get_result()
+        return cast(CursorResult[Group], Paginator(Group.objects.none()).get_result())
 
     # Make sure search terms are valid
     invalid_search_terms = (
@@ -149,7 +150,7 @@ def inbox_search(
         )
 
     owner_search = get_search_filter(search_filters, "assigned_or_suggested", "IN")
-    if owner_search:
+    if owner_search is not None:
         qs = qs.filter(
             assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
         )
@@ -160,14 +161,16 @@ def inbox_search(
     # We want to return groups from the endpoint, but have the cursor be related to the
     # GroupInbox rows. So we paginate on the GroupInbox results queryset, then fetch
     # the group_ids out and use them to get the actual groups.
+    group_ids = [r.group_id for r in cast(Sequence[GroupInbox], results.results)]
     group_qs = Group.objects.filter(
-        id__in=[r.group_id for r in results.results],
+        id__in=group_ids,
         project__in=projects,
         status=GroupStatus.UNRESOLVED,
     )
     groups: Mapping[int, Group] = {g.id: g for g in group_qs}
-    results.results = [groups[r.group_id] for r in results.results if r.group_id in groups]
-    return results
+    group_results: CursorResult[Group] = cast(CursorResult[Group], results)
+    group_results.results = [groups[group_id] for group_id in group_ids if group_id in groups]
+    return group_results
 
 
 def search_issues(
@@ -268,7 +271,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = {"GET": DEFAULT_DURATION_BUDGET, "PUT": 10.0, "DELETE": 10.0}
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
@@ -317,12 +322,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.GROUP_STATS_PERIOD,
             IssueParams.SHORT_ID_LOOKUP,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
             IssueParams.LIMIT,
             IssueParams.GROUP_INDEX_EXPAND,
@@ -379,21 +385,20 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         query = request.GET.get("query", "").strip()
 
         # record analytics for search query
-        if request.user:
-            try:
-                analytics.record(
-                    IssueSearchEndpointQueriedEvent(
-                        user_id=request.user.id,
-                        organization_id=organization.id,
-                        project_ids=",".join(map(str, project_ids)),
-                        full_query_params=",".join(
-                            f"{key}={value}" for key, value in request.GET.items()
-                        ),
-                        query=query,
-                    )
+        try:
+            analytics.record(
+                IssueSearchEndpointQueriedEvent(
+                    user_id=acting_user_id(request.user),
+                    organization_id=organization.id,
+                    project_ids=",".join(map(str, project_ids)),
+                    full_query_params=",".join(
+                        f"{key}={value}" for key, value in request.GET.items()
+                    ),
+                    query=query,
                 )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if query:
             # check to see if we've got an event ID
@@ -448,10 +453,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 return response
 
         # If group ids specified, just ignore any query components
-        try:
-            group_ids = set(map(int, request.GET.getlist("group")))
-        except ValueError:
-            return Response({"detail": "Group ids must be integers"}, status=400)
+        group_ids = set(to_valid_int_id_list("group", request.GET.getlist("group")))
 
         if group_ids:
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
@@ -518,9 +520,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
-            IssueParams.LIMIT,
         ],
         request=GroupValidator,
         responses={
@@ -572,9 +572,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
-            IssueParams.LIMIT,
         ],
         responses={
             204: RESPONSE_NO_CONTENT,

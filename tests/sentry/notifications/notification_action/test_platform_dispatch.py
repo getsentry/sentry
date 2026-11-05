@@ -145,6 +145,7 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         assert thread.object_type == NotificationThreadObjectType.GROUP
         assert thread.object_id == self.event_data.group.id
         assert thread.key_data["group_id"] == self.event_data.group.id
+        assert thread.integration_id == self.integration.id
 
     @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
     def test_metric_thread_flag_off_posts_top_level(
@@ -249,7 +250,7 @@ class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
         )
         assert event.group is not None
         self.group = event.group
-        self.event = event.for_group(self.group)
+        self.group_event = event.for_group(self.group)
 
     def create_channel_action(self, action_type: str, provider: str) -> Action:
         integration, _ = self.create_provider_integration_for(
@@ -271,7 +272,7 @@ class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
 
     def invocation(self, action: Action) -> ActionInvocation:
         return ActionInvocation(
-            event_data=WorkflowEventData(event=self.event, group=self.group),
+            event_data=WorkflowEventData(event=self.group_event, group=self.group),
             action=action,
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),

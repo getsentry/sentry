@@ -36,13 +36,14 @@ import {useRefreshAutofixProgressQueries} from 'sentry/components/events/autofix
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
-import {resourceLinkMarkdown} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
+
+import {resourceLinkMarkdown} from './resourceLink';
+import {SeerEmbedBlock} from './seerEmbedBlock';
 
 /**
  * The autofix API reports steps by identifier; only the UI spells them out.

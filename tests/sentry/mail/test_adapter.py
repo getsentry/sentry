@@ -5,6 +5,7 @@ from collections import Counter
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from functools import cached_property
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -13,6 +14,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
+from django.template import loader
 from django.utils import timezone
 
 from sentry.analytics.events.alert_sent import AlertSentEvent
@@ -20,10 +22,15 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
+from sentry.issues.grouptype import (
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+)
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership import grammar
 from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.mail import build_subject_prefix, mail_adapter
+from sentry.mail.adapter import MailAdapter
 from sentry.mail.adapter import RuleFuture as MailRuleFuture
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.activity import Activity
@@ -114,16 +121,16 @@ class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
         )
 
     @cached_property
-    def adapter(self):
+    def adapter(self) -> MailAdapter:
         return mail_adapter
 
     def assert_notify(
         self,
-        event,
-        emails_sent_to,
-        target_type=ActionTargetType.ISSUE_OWNERS,
-        target_identifier=None,
-    ):
+        event: Event | GroupEvent,
+        emails_sent_to: Sequence[str],
+        target_type: ActionTargetType = ActionTargetType.ISSUE_OWNERS,
+        target_identifier: int | None = None,
+    ) -> None:
         mail.outbox = []
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(Notification(event=event), target_type, target_identifier)
@@ -208,6 +215,34 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
 
 
 class MailAdapterNotifyTest(BaseMailAdapterTest):
+    def test_endpoint_regression_uses_performance_template(self) -> None:
+        event = as_group_event(
+            self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
+        )
+        assert event.group is not None
+        event.group.type = PerformanceP95EndpointRegressionGroupType.type_id
+
+        notification = AlertRuleNotification(
+            Notification(event=event), ActionTargetType.ISSUE_OWNERS
+        )
+
+        assert notification.template_path == "sentry/emails/performance"
+        assert loader.render_to_string(f"{notification.template_path}.txt")
+        assert loader.render_to_string(f"{notification.template_path}.html")
+
+    def test_profile_regression_uses_generic_template(self) -> None:
+        event = as_group_event(
+            self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
+        )
+        assert event.group is not None
+        event.group.type = ProfileFunctionRegressionType.type_id
+
+        notification = AlertRuleNotification(
+            Notification(event=event), ActionTargetType.ISSUE_OWNERS
+        )
+
+        assert notification.template_path == "sentry/emails/generic"
+
     @mock.patch("sentry.analytics.record")
     def test_simple_notification(self, mock_record: MagicMock) -> None:
         event = self.store_event(
@@ -495,7 +530,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     @mock_notify
     @mock.patch("sentry.notifications.notifications.rules.logger")
-    def test_notify_users_does_email(self, mock_logger, mock_func) -> None:
+    def test_notify_users_does_email(self, mock_logger: MagicMock, mock_func: MagicMock) -> None:
         self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -553,7 +588,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
     @mock_notify
-    def test_email_notification_is_not_sent_to_deleted_email(self, mock_func) -> None:
+    def test_email_notification_is_not_sent_to_deleted_email(self, mock_func: MagicMock) -> None:
         """
         Test that ensures if we still have some stale emails in UserOption, then upon attempting
         to send an email notification to those emails, these stale `UserOption` instances are
@@ -623,7 +658,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             assert not len(UserOption.objects.filter(key="mail:email", value="foo@bar.dodo"))
 
     @mock_notify
-    def test_multiline_error(self, mock_func) -> None:
+    def test_multiline_error(self, mock_func: MagicMock) -> None:
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
         event_data = event_manager.get_data()
@@ -907,13 +942,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         team = self.create_team(organization=self.organization, members=[user, user2])
         project = self.create_project(teams=[team])
         event = self.store_event(data=make_event_data("foo.py"), project_id=project.id)
-        self.assert_notify(event, [user.email, user2.email], ActionTargetType.TEAM, str(team.id))
+        self.assert_notify(event, [user.email, user2.email], ActionTargetType.TEAM, team.id)
 
     def test_notify_user(self) -> None:
         user = self.create_user(email="foo@example.com", is_active=True)
         self.create_team(organization=self.organization, members=[user])
         event = self.store_event(data=make_event_data("foo.py"), project_id=self.project.id)
-        self.assert_notify(event, [user.email], ActionTargetType.MEMBER, str(user.id))
+        self.assert_notify(event, [user.email], ActionTargetType.MEMBER, user.id)
 
 
 class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
@@ -921,9 +956,9 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         self,
         proj: Project,
         rules: Sequence[grammar.Rule],
-        data: Mapping,
+        data: Mapping[str, Any],
         asserted_emails_fired: Sequence[str],
-    ):
+    ) -> None:
         po = ProjectOwnership.objects.create(
             project_id=proj.id, schema=dump_schema(rules), fallthrough=False
         )
@@ -1746,7 +1781,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 
 
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
-    def create_report(self):
+    def create_report(self) -> UserReport:
         user_foo = self.create_user("foo@example.com")
         team = self.project.teams.first()
         assert team is not None
@@ -1771,10 +1806,11 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
                 value="always",
             )
         report = self.create_report()
+        serialized_report = serialize(report, AnonymousUser(), UserReportWithGroupSerializer())
         with self.tasks():
             self.adapter.handle_user_report(
                 project=self.project,
-                report=serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
+                report=serialized_report,
             )
 
         assert len(mail.outbox) == 1
@@ -1803,13 +1839,14 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
                 value="always",
             )
         self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
-        assert self.organization.flags.enhanced_privacy.is_set is True
+        assert self.organization.flags.enhanced_privacy
         report = self.create_report()
 
+        serialized_report = serialize(report, AnonymousUser(), UserReportWithGroupSerializer())
         with self.tasks():
             self.adapter.handle_user_report(
                 project=self.project,
-                report=serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
+                report=serialized_report,
             )
 
         assert len(mail.outbox) == 1
