@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -17,11 +18,14 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.fields import parse_function
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
+from sentry.snuba.utils import DATASET_LABELS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 MAX_BUCKETS = 1_000
-HEATMAP_DATASETS = {TraceMetrics}
+DEFAULT_Y_AXIS = {TraceMetrics: "value", Spans: "span.duration"}
+HEATMAP_Y_AXES = {TraceMetrics: {"value"}, Spans: {"span.duration", "span.self_time"}}
 
 
 class LimitTuple(NamedTuple):
@@ -106,8 +110,13 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             },
         ):
             dataset = self.get_dataset(request, organization)
-            if dataset not in HEATMAP_DATASETS:
-                raise ParseError(f"{dataset} is not supported on this endpoint")
+            if dataset not in HEATMAP_Y_AXES or (
+                dataset is not TraceMetrics
+                and not features.has(
+                    "organizations:explore-dev-features", organization, actor=request.user
+                )
+            ):
+                raise ParseError(f"{DATASET_LABELS[dataset]} is not supported on this endpoint")
 
             try:
                 snuba_params = self.get_snuba_params(
@@ -122,9 +131,10 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             if xAxis != "time":
                 raise ParseError("xAxis can currently only be `time`")
 
-            yAxis = request.GET.get("yAxis", "value")
-            if yAxis != "value":
-                raise ParseError("yAxis can currently only be `value`")
+            yAxis = request.GET.get("yAxis", DEFAULT_Y_AXIS[dataset])
+            allowed_y_axes = HEATMAP_Y_AXES[dataset]
+            if yAxis not in allowed_y_axes:
+                raise ParseError(f"yAxis must be one of {', '.join(sorted(allowed_y_axes))}")
 
             yLogScale = request.GET.get("yLogScale")
             if yLogScale is not None and yLogScale.isnumeric():
@@ -251,7 +261,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             return Response(
                 HeatmapResponse(
                     meta=HeatMapMeta(
-                        dataset="tracemetrics",
+                        dataset=DATASET_LABELS[dataset],
                         xAxis=AxisMeta(
                             name=xAxis,
                             start=snuba_params.start_date.timestamp() * 1000,
