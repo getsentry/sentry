@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {toast} from '@sentry/scraps/toast';
 
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';

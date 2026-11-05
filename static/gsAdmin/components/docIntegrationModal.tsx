@@ -5,9 +5,9 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {SelectField} from 'sentry/components/forms/fields/selectField';

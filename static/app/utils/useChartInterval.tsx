@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import type {Location} from 'history';
+import {useQueryState} from 'nuqs';
 
 import {
   FIVE_MINUTES,
@@ -19,9 +19,6 @@ import {t, tn} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 
 import {parsePeriodToHours} from './duration/parsePeriodToHours';
-import {decodeScalar} from './queryString';
-import {useLocation} from './useLocation';
-import {useNavigate} from './useNavigate';
 
 export enum ChartIntervalUnspecifiedStrategy {
   /** Use the second biggest possible interval (e.g., pretty big buckets) */
@@ -32,13 +29,6 @@ export enum ChartIntervalUnspecifiedStrategy {
   USE_BIGGEST = 'use_biggest',
 }
 
-interface Options {
-  location: Location;
-  navigate: ReturnType<typeof useNavigate>;
-  pagefilters: ReturnType<typeof usePageFilters>;
-  unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy;
-}
-
 export function useChartInterval({
   unspecifiedStrategy = ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
 }: {unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy} = {}): [
@@ -46,29 +36,8 @@ export function useChartInterval({
   (interval: string) => void,
   intervalOptions: Array<{label: string; value: string}>,
 ] {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const pagefilters = usePageFilters();
-
-  return useChartIntervalImpl({
-    location,
-    navigate,
-    pagefilters,
-    unspecifiedStrategy,
-  });
-}
-
-function useChartIntervalImpl({
-  location,
-  navigate,
-  pagefilters,
-  unspecifiedStrategy,
-}: Options): [
-  string,
-  (interval: string) => void,
-  intervalOptions: Array<{label: string; value: string}>,
-] {
-  const {datetime} = pagefilters.selection;
+  const {datetime} = usePageFilters().selection;
+  const [decodedInterval, setUrlInterval] = useQueryState('interval');
 
   const {baseIntervalOptions, defaultInterval, minimumIntervalInHours, timeRangeInHours} =
     useMemo(() => {
@@ -113,8 +82,6 @@ function useChartIntervalImpl({
     string,
     Array<{label: string; value: string}>,
   ] => {
-    const decodedInterval = decodeScalar(location.query.interval);
-
     if (!decodedInterval) {
       return [defaultInterval, baseIntervalOptions];
     }
@@ -141,7 +108,7 @@ function useChartIntervalImpl({
 
     return [defaultInterval, baseIntervalOptions];
   }, [
-    location.query.interval,
+    decodedInterval,
     baseIntervalOptions,
     defaultInterval,
     minimumIntervalInHours,
@@ -150,15 +117,9 @@ function useChartIntervalImpl({
 
   const setInterval = useCallback(
     (newInterval: string) => {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          interval: newInterval,
-        },
-      });
+      setUrlInterval(newInterval, {history: 'push'});
     },
-    [location, navigate]
+    [setUrlInterval]
   );
 
   return [interval, setInterval, intervalOptions];

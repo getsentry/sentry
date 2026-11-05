@@ -1,11 +1,12 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {UserFixture} from 'sentry-fixture/user';
 
+import {openModal, closeModal} from '@sentry/scraps/modal';
+
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {ConfigStore} from './configStore';
 import {GuideStore} from './guideStore';
-import {ModalStore} from './modalStore';
 
 jest.mock('sentry/utils/analytics');
 
@@ -120,17 +121,17 @@ describe('GuideStore', () => {
   it('hides when a modal is open', () => {
     expect(GuideStore.getState().forceHide).toBe(false);
 
-    ModalStore.openModal(() => <div />, {});
+    openModal(() => <div />, {});
 
     expect(GuideStore.getState().forceHide).toBe(true);
 
-    ModalStore.closeModal();
+    closeModal();
 
     expect(GuideStore.getState().forceHide).toBe(false);
   });
 
   it('should return a stable reference from getState', () => {
-    ModalStore.openModal(() => <div />, {});
+    openModal(() => <div />, {});
     const state = GuideStore.getState();
     expect(Object.is(state, GuideStore.getState())).toBe(true);
   });

@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {closeModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {closeModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {
   OnboardingDrawerKey,

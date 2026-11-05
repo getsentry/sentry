@@ -6,11 +6,11 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Grid, type GridProps, Stack, Container} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
 import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';

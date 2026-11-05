@@ -5,11 +5,11 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
   JsonFormAdapterChoice,

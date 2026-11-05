@@ -8,9 +8,9 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';

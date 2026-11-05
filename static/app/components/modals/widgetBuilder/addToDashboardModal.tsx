@@ -7,6 +7,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import {toast} from '@sentry/scraps/toast';
@@ -16,7 +17,6 @@ import {
   fetchDashboards,
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
