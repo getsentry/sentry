@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
-import {openSamplingModeSwitchModal} from 'sentry/views/settings/dynamicSampling/samplingModeSwitchModal';
+import {SamplingModeSwitch} from './samplingModeSwitch';
+import {openSamplingModeSwitchModal} from './samplingModeSwitchModal';
 
 jest.mock('sentry/views/settings/dynamicSampling/samplingModeSwitchModal');
 

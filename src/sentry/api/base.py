@@ -112,6 +112,12 @@ ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
+# A reasonable `Endpoint.max_acceptable_duration` (in seconds) for endpoints with no known reason
+# to be slow. Endpoints have no budget unless they set one; use this when opting in without a
+# more specific value. This value may change, so use an explicit number when the budget was
+# chosen for that endpoint.
+DEFAULT_DURATION_BUDGET = 3.0
+
 CURSOR_LINK_HEADER = (
     '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 )
@@ -127,7 +133,7 @@ DEFAULT_AUTHENTICATION = (
 )
 
 
-def _with_endpoint_scope_declaration(
+def _with_endpoint_scope(
     func: Callable[..., Response],
 ) -> Callable[..., Response]:
     @functools.wraps(func)
@@ -139,7 +145,12 @@ def _with_endpoint_scope_declaration(
             method=request.method,
             permission_classes=self.permission_classes,
         ):
-            return func(self, request, *args, **kwargs)
+            # A forked scope (rather than the isolation scope) guarantees the tag is dropped when
+            # dispatch returns, so it can't leak into in-process callers such as tasks or other
+            # endpoints.
+            with sentry_sdk.new_scope() as scope:
+                scope.set_tag("endpoint_owner", self.owner.value)
+                return func(self, request, *args, **kwargs)
 
     return wrapper
 
@@ -284,6 +295,9 @@ class Endpoint(APIView):
     cursor_name = "cursor"
 
     owner: ApiOwner = ApiOwner.UNOWNED
+    # Request duration budgets are expressed in seconds. A mapping applies budgets only to the
+    # listed HTTP methods; missing methods are not budgeted. See DEFAULT_DURATION_BUDGET.
+    max_acceptable_duration: dict[HTTP_METHOD_NAME, float] | float | None = None
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
     # Non-safe methods that a client may resend after a timeout or 5xx without
     # changing the outcome. Published as `x-sentry-idempotent`; see apidocs/README.md.
@@ -491,7 +505,7 @@ class Endpoint(APIView):
 
     @csrf_exempt
     @allow_cors_options
-    @_with_endpoint_scope_declaration
+    @_with_endpoint_scope
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability

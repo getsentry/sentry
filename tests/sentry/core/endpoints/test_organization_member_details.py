@@ -23,6 +23,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user_option import UserOption
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -35,8 +36,35 @@ class OrganizationMemberTestBase(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
+    def _service_account_context(self) -> str:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["member:admin", "org:read"]
+        )
+        return encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
 
 class GetOrganizationMemberTest(OrganizationMemberTestBase):
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_read_member(self) -> None:
+        member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug, member.id]),
+            HTTP_X_VIEWER_CONTEXT=self._service_account_context(),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+
     def test_me(self) -> None:
         response = self.get_success_response(self.organization.slug, "me")
 
@@ -935,6 +963,22 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_remove_member(self) -> None:
+        member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+
+        response = self.client.delete(
+            reverse(self.endpoint, args=[self.organization.slug, member.id]),
+            HTTP_X_VIEWER_CONTEXT=self._service_account_context(),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert OrganizationMember.objects.filter(id=member.id).exists()
 
     def setUp(self) -> None:
         super().setUp()

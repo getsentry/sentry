@@ -12,7 +12,8 @@ import {
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import * as RegionUtils from 'sentry/utils/cells';
-import {OrganizationSettingsForm} from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
+
+import {OrganizationSettingsForm} from './organizationSettingsForm';
 
 jest.mock('sentry/utils/cells');
 

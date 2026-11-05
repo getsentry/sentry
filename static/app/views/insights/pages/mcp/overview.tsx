@@ -8,9 +8,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {PrebuiltDashboardRenderer} from 'sentry/views/dashboards/prebuiltDashboardRenderer';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {useShowMCPOnboarding} from 'sentry/views/insights/pages/mcp/hooks/useShowMCPOnboarding';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
+
+import {useShowMCPOnboarding} from './hooks/useShowMCPOnboarding';
 
 function McpOverviewPage() {
   const organization = useOrganization();

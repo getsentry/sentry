@@ -26,14 +26,6 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/cellActions';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
-import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
-import {
-  NumericSimpleTableRowCell,
-  StickyTableRow,
-  StyledSimpleTableRowCell,
-  WrappingText,
-} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
-import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/styles';
 import {
   defaultAggregateSortBys,
   defaultMetricQuery,
@@ -60,6 +52,15 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
+
+import {MetricDetails} from './metricDetails';
+import {
+  NumericSimpleTableRowCell,
+  StickyTableRow,
+  StyledSimpleTableRowCell,
+  WrappingText,
+} from './metricInfoTabStyles';
+import {StyledTimestampWrapper} from './styles';
 
 const VALUE_COLUMN_MIN_WIDTH = '50px';
 const VIEW_CONNECTED_TRACES_REFERRER = 'trace-metrics-samples-table-connected-traces';

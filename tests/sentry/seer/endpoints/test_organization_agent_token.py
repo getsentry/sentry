@@ -633,10 +633,6 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "SentryAppInstallationExternalIssueActions_post": ServiceAccountGap.CONTROL_SILO,
     "SentryAppInstallationExternalRequests": ServiceAccountGap.CONTROL_SILO,
     "EventAttachmentDetails": ServiceAccountGap.NO_MEMBERSHIP,
-    "OrganizationMemberDetails_delete": ServiceAccountGap.NO_MEMBERSHIP,
-    "OrganizationMemberDetails_put": ServiceAccountGap.NO_MEMBERSHIP,
-    "OrganizationMemberIndex_post": ServiceAccountGap.NO_MEMBERSHIP,
-    "OrganizationMemberTeamDetails_delete": ServiceAccountGap.NO_MEMBERSHIP,
     "ExternalTeam_post": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_put": ServiceAccountGap.NO_TEAM_ACCESS,
@@ -649,13 +645,33 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "TeamProjects_post": ServiceAccountGap.NO_TEAM_ACCESS,
 }
 
-# Rows that act on the caller as a person (saved views, stars, a personal team), so a
-# service account is denied with user-required instead of matching the oracle.
+# Rows that act on the caller as a person (saved views, stars, a personal team) or manage
+# members (including SCIM), so a service account is denied with user-required instead of matching the oracle.
 SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     {
         "OrganizationGroupSearchViews_post",
+        "OrganizationMemberDetails",
+        "OrganizationMemberDetails_delete",
+        "OrganizationMemberDetails_put",
+        "OrganizationMemberIndex_post",
+        "OrganizationMemberTeamDetails_delete",
         "OrganizationMemberTeamDetails_post",
+        "OrganizationMemberTeamDetails_put",
         "OrganizationProjects_post",
+        "OrganizationSCIMMemberDetails",
+        "OrganizationSCIMMemberDetails_delete",
+        "OrganizationSCIMMemberDetails_patch",
+        "OrganizationSCIMMemberIndex",
+        "OrganizationSCIMMemberIndex_post",
+        "OrganizationSCIMResourceTypeDetails",
+        "OrganizationSCIMResourceTypeIndex",
+        "OrganizationSCIMSchemaDetails",
+        "OrganizationSCIMServiceProviderConfig",
+        "OrganizationSCIMTeamDetails",
+        "OrganizationSCIMTeamDetails_delete",
+        "OrganizationSCIMTeamDetails_patch",
+        "OrganizationSCIMTeamIndex",
+        "OrganizationSCIMTeamIndex_post",
         "OrganizationStarredServiceSpans_delete",
         "OrganizationStarredServiceSpans_post",
     }
@@ -2113,10 +2129,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                         },
                     ],
                 },
-                "config": {
-                    "thresholdPeriod": 1,
-                    "detectionType": AlertRuleDetectionType.STATIC.value,
-                },
+                "config": {"detectionType": AlertRuleDetectionType.STATIC.value},
                 "workflowIds": [self._resource("workflow").id],
             },
             ("OrganizationMonitorIndexEndpoint", "POST"): {

@@ -501,6 +501,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.notebooks.apps.NotebooksConfig",
     "sentry.seer_workflow_outputs.apps.SeerWorkflowOutputsConfig",
     "sentry.service_accounts.apps.ServiceAccountsConfig",
+    "sentry.agent_handoff.apps.AgentHandoffConfig",
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
@@ -886,7 +887,6 @@ TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
-    "sentry.ai_monitoring.issues.llm_cache_detection.tasks",
     "sentry.ai_monitoring.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
@@ -904,6 +904,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
+    "sentry.inbox.event_retention",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.bitbucket_server.tasks",
@@ -1109,6 +1110,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "auto-remove-inbox": {
         "task": "issues:sentry.tasks.auto_remove_inbox",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
+    "cleanup-universal-inbox-events": {
+        "task": "notifications:sentry.inbox.event_retention.schedule_inbox_event_cleanup",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "schedule-deletions": {

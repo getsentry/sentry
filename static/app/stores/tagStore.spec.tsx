@@ -1,4 +1,4 @@
-import {TagStore} from 'sentry/stores/tagStore';
+import {TagStore} from './tagStore';
 
 describe('TagStore', () => {
   beforeEach(() => {

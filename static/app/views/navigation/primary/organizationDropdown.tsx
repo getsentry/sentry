@@ -26,8 +26,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import type {MenuItemTrailingAction} from '@sentry/scraps/menu';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {update} from 'sentry/actionCreators/projects';
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
@@ -54,6 +54,7 @@ import {
   useSettingsNavigationTour,
 } from 'sentry/views/navigation/settingsNavigationTour';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {NavigationMenuHeader} from './navigationMenuHeader';
@@ -62,7 +63,9 @@ const QUICK_ACCESS_PROJECT_LIMIT = 5;
 
 interface OrganizationDropdownProps {
   /**
-   * When true, hides settings, projects, members, teams, and billing links for the current organization.
+   * When true, hides the links into the current organization. Without
+   * settings-v3, these are settings, projects, members, teams, and billing.
+   * With settings-v3, these are settings and project settings.
    */
   hideCurrentOrganizationLinks?: boolean;
 }
@@ -114,7 +117,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       setPendingBookmarks(prev => ({...prev, [project.id]: isBookmarked}));
     },
     onError: (_error, {project}) => {
-      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
+      toast.error(t('Unable to toggle bookmark for %s', project.slug));
     },
     onSettled: (_data, _error, {project}) => {
       setPendingBookmarks(prev => omit(prev, project.id));
@@ -174,7 +177,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         returnFocusRef={triggerRef}
         title={
           hasNoProjects
-            ? t('Project Settings')
+            ? getSettingsScopeTitle('project')
             : t('Quick settings-access for your important Projects')
         }
         description={
@@ -268,7 +271,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               },
               {
                 key: 'project-settings',
-                label: t('Project Settings'),
+                label: getSettingsScopeTitle('project'),
                 ref: projectsTourProps.ref,
                 hidden: props.hideCurrentOrganizationLinks,
                 children: [

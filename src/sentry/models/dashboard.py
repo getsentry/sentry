@@ -18,6 +18,7 @@ from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPosit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.models.dashboard_widget import TypesClass
 from sentry.models.organization import Organization
 from sentry.utils import json
 
@@ -360,6 +361,21 @@ class DashboardLastVisited(DefaultFieldsModel):
         ]
 
 
+class QueryPriorities(TypesClass):
+    """
+    Which query priority this dashboard should use
+    """
+
+    NORMAL = 0
+    FASTER = 1
+
+    TYPES = [
+        (NORMAL, "normal"),
+        (FASTER, "faster"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
 @cell_silo_model
 class Dashboard(Model):
     """
@@ -387,6 +403,8 @@ class Dashboard(Model):
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    # defaults to normal if its null
+    query_priority = BoundedPositiveIntegerField(choices=QueryPriorities.as_choices(), null=True)
 
     MAX_WIDGETS = 30
 

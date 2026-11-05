@@ -1,4 +1,4 @@
-import {clampPercentRate} from 'sentry/views/settings/dynamicSampling/utils/clampNumer';
+import {clampPercentRate} from './clampNumer';
 
 interface ScalingItem {
   count: number;

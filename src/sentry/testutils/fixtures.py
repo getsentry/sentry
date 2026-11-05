@@ -31,6 +31,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmember import OrganizationMember
@@ -60,6 +61,7 @@ from sentry.replays.models import ReplayDeletionJobModel
 from sentry.service_accounts.models import ServiceAccount
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
+from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
@@ -1009,6 +1011,13 @@ class Fixtures:
     def create_dashboard(self, *args: Any, **kwargs: Any) -> Dashboard:
         return Factories.create_dashboard(*args, **kwargs)
 
+    def create_telemetry_classifier(
+        self, project: Project | None = None, **kwargs: Any
+    ) -> TelemetryClassifier:
+        if project is None:
+            project = self.project
+        return Factories.create_telemetry_classifier(project=project, **kwargs)
+
     def create_explore_saved_formula(
         self, organization: Organization | None = None, *args: Any, **kwargs: Any
     ) -> ExploreSavedFormula:
@@ -1029,6 +1038,14 @@ class Fixtures:
         if organization is None:
             organization = self.organization
         return Factories.create_discover_saved_query(organization, **kwargs)
+
+    def create_group_search_view(
+        self, organization: Organization | None = None, **kwargs: Any
+    ) -> GroupSearchView:
+        if organization is None:
+            organization = self.organization
+        kwargs.setdefault("user_id", self.user.id)
+        return Factories.create_group_search_view(organization, **kwargs)
 
     def create_dashboard_favorite_user(self, *args: Any, **kwargs: Any) -> DashboardFavoriteUser:
         return Factories.create_dashboard_favorite_user(*args, **kwargs)

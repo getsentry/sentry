@@ -8,7 +8,8 @@ import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/ge
 import type {Group} from 'sentry/types/group';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
+
+import {useGroupDefaultStatsPeriod} from './useGroupDefaultStatsPeriod';
 
 export function useIssueTimeWindowConfig({
   timelineWidth,

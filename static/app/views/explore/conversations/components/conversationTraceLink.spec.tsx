@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {ConversationTrace} from 'sentry/views/explore/conversations/components/conversationTraceLink';
-import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
+import type {ConversationTrace} from './conversationTraceLink';
+import {ConversationTraceLink} from './conversationTraceLink';
 
 describe('ConversationTraceLink', () => {
   const organization = OrganizationFixture();

@@ -21,16 +21,14 @@ import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
-  defaultMetricQuery,
-  encodeMetricQueryParams,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
-import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {defaultMetricQuery, encodeMetricQueryParams} from './metricQuery';
+import {MetricsTabContent} from './metricsTab';
+import {MultiMetricsQueryParamsProvider} from './multiMetricsQueryParams';
 
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);

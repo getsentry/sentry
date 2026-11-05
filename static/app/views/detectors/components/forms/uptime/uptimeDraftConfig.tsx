@@ -8,12 +8,6 @@ import {
   type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {
-  UPTIME_HTTP_METHOD_OPTIONS,
-  UPTIME_VALID_INTERVALS_SEC,
-  uptimeSavedDetectorToFormData,
-  type UptimeDetectorFormData,
-} from 'sentry/views/detectors/components/forms/uptime/fields';
-import {
   UptimeComparisonType,
   UptimeOpType,
   type UptimeAndOp,
@@ -21,6 +15,13 @@ import {
   type UptimeJsonPathOperand,
   type UptimeOp,
 } from 'sentry/views/detectors/components/uptime/types';
+
+import {
+  UPTIME_HTTP_METHOD_OPTIONS,
+  UPTIME_VALID_INTERVALS_SEC,
+  uptimeSavedDetectorToFormData,
+  type UptimeDetectorFormData,
+} from './fields';
 
 const comparison = z.object({cmp: z.enum(UptimeComparisonType)});
 

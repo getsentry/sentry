@@ -10,15 +10,12 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
-import {FiltersBar, type FiltersBarProps} from 'sentry/views/dashboards/filtersBar';
-import {
-  DashboardFilterKeys,
-  WidgetType,
-  type GlobalFilter,
-} from 'sentry/views/dashboards/types';
-import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {WEB_VITALS_NAVIGATION_TYPE_FEATURE} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
+
+import {PrebuiltDashboardId} from './utils/prebuiltConfigs';
+import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from './utils/prebuiltConfigs/webVitals/webVitals';
+import {FiltersBar, type FiltersBarProps} from './filtersBar';
+import {DashboardFilterKeys, WidgetType, type GlobalFilter} from './types';
 
 describe('FiltersBar', () => {
   let organization: Organization;
@@ -26,9 +23,7 @@ describe('FiltersBar', () => {
   beforeEach(() => {
     mockNetworkRequests();
 
-    organization = OrganizationFixture({
-      features: ['dashboards-basic', 'dashboards-edit'],
-    });
+    organization = OrganizationFixture();
   });
 
   afterEach(() => {
@@ -450,7 +445,7 @@ describe('FiltersBar', () => {
 
     it('defaults to normal and can switch to faster', async () => {
       organization = OrganizationFixture({
-        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+        features: ['low-priority-queries'],
       });
       renderFilterBar();
 

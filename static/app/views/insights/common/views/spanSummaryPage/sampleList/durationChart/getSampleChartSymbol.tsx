@@ -1,12 +1,9 @@
 import type {Theme} from '@emotion/react';
 
 import {areNumbersAlmostEqual} from 'sentry/utils/number/areNumbersAlmostEqual';
-import {
-  crossIconPath,
-  downwardPlayIconPath,
-  upwardPlayIconPath,
-} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/symbol';
 import {NEAR_AVERAGE_THRESHOLD_PERCENTAGE} from 'sentry/views/insights/settings';
+
+import {crossIconPath, downwardPlayIconPath, upwardPlayIconPath} from './symbol';
 
 export function getSampleChartSymbol(
   value: number,

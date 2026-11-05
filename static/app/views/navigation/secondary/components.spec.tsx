@@ -18,8 +18,6 @@ const ALL_AVAILABLE_FEATURES = [
   'discover',
   'discover-basic',
   'discover-query',
-  'dashboards-basic',
-  'dashboards-edit',
   'session-replay-ui',
   'ourlogs-enabled',
   'performance-view',

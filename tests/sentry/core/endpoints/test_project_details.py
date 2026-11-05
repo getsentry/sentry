@@ -9,6 +9,7 @@ from unittest import mock
 
 import orjson
 from django.db import router
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
@@ -37,9 +38,12 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.activity import ActivityType
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 def first_symbol_source_id(sources_json: bytes | str) -> Any:
@@ -89,6 +93,26 @@ class ProjectDetailsTest(APITestCase):
             self.project.organization.slug, self.project.slug, qs_params={"include": "stats"}
         )
         assert response.data["stats"]["unresolved"] == 1
+
+    @freeze_time()
+    def test_with_stats_includes_recently_reopened_issues(self) -> None:
+        self.project.update_option("sentry:resolve_age", 1)
+        now = datetime.now(timezone.utc)
+        old = now - timedelta(days=1)
+        self.create_group(project=self.project, last_seen=now)
+        self.create_group(project=self.project, last_seen=old)
+        reopened = self.create_group(project=self.project, last_seen=old)
+        self.create_group_activity(reopened, type=ActivityType.SET_UNRESOLVED.value)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"include": "stats"}
+        )
+        assert response.data["stats"]["unresolved"] == 2
+
+        with freeze_time(now + timedelta(hours=1)):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, qs_params={"include": "stats"}
+            )
+        assert response.data["stats"]["unresolved"] == 0
 
     def test_has_alert_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -314,6 +338,34 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         assert response.status_code == 200
         assert response.data["isBookmarked"] is True
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_update_skips_bookmark(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.project.organization,
+            scope_list=["project:write"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.project.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+            data={"platform": "rust", "isBookmarked": True},
+        )
+
+        assert response.status_code == 200, response.content
+        self.project.refresh_from_db()
+        assert self.project.platform == "rust"
+        assert not ProjectBookmark.objects.filter(project_id=self.project.id).exists()
 
     def test_admin_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(

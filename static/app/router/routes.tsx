@@ -4,7 +4,6 @@ import memoize from 'lodash/memoize';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {getOverride} from 'sentry/overrideRegistry';
-import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OverrideName} from 'sentry/types/overrides';
 import {errorHandler} from 'sentry/utils/errorHandler';
@@ -44,6 +43,7 @@ import {redirectDeprecatedProjectRoute} from 'sentry/views/projects/redirectDepr
 import {RouteNotFound} from 'sentry/views/routeNotFound';
 import {SettingsWrapper} from 'sentry/views/settings/components/settingsWrapper';
 
+import {translateSentryRoute} from './translateSentryRoute';
 import {type SentryRouteObject} from './types';
 
 const routeHook = (name: OverrideName): SentryRouteObject => {
@@ -1681,7 +1681,7 @@ function buildRoutes(): RouteObject[] {
   const dashboardChildren: SentryRouteObject[] = [
     {
       path: '/dashboards/',
-      component: withDomainRequired(make(() => import('sentry/views/dashboards'))),
+      component: withDomainRequired(NoOp),
       customerDomainOnlyRoute: true,
       children: [
         {
@@ -1693,7 +1693,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: '/organizations/:orgId/dashboards/',
-      component: withDomainRedirect(make(() => import('sentry/views/dashboards'))),
+      component: withDomainRedirect(NoOp),
       children: [
         {
           index: true,
@@ -2797,6 +2797,10 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'automations/new/',
+      component: make(() => import('sentry/views/seerWorkflows/automations/new')),
+    },
+    {
       path: 'automations/:automationId/',
       component: make(() => import('sentry/views/seerWorkflows/automations/detail')),
       children: [
@@ -3447,7 +3451,7 @@ function buildRoutes(): RouteObject[] {
       },
       {
         path: ':projectId/group/:groupId/',
-        redirectTo: 'issues/:groupId/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/',
       },
       {
         path: ':projectId/issues/:groupId/',

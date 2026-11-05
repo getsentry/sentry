@@ -2,18 +2,16 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
-import type {Client} from 'sentry/api';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {withApi} from 'sentry/utils/withApi';
+import {useApi} from 'sentry/utils/useApi';
 import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 type Props = {
-  api: Client;
   errorCode: number;
   eventView: EventView;
   location: Location;
@@ -23,7 +21,8 @@ type Props = {
   isHomepage?: boolean;
 };
 
-function ResultsHeaderBase({api, eventView, location, organization, isHomepage}: Props) {
+export function ResultsHeader({eventView, location, organization, isHomepage}: Props) {
+  const api = useApi();
   const [savedQuery, setSavedQueryState] = useState<SavedQuery | undefined>(undefined);
 
   const fetchData = useCallback(() => {
@@ -69,5 +68,3 @@ function ResultsHeaderBase({api, eventView, location, organization, isHomepage}:
     </Fragment>
   );
 }
-
-export const ResultsHeader = withApi(ResultsHeaderBase);

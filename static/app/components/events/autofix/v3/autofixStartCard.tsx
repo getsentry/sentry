@@ -11,7 +11,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
@@ -36,14 +35,12 @@ export function AutofixStartCard({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
-  const [enableBashMode] = useForceBashMode();
-
   const [startingRun, setStartingRun] = useState(false);
   const isStarting = startingRun || autofix.isWaitingForRun;
   const handleStartRootCause = async () => {
     setStartingRun(true);
     try {
-      await startStep('root_cause', {enableBashMode: enableBashMode || undefined});
+      await startStep('root_cause');
     } catch {
       return;
       // oxlint-disable-next-line react/todo
