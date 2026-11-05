@@ -12586,7 +12586,7 @@ msgstr "Расписание"
 #: static/app/views/settings/projectMetrics/blockButton.tsx:45
 #: static/app/views/settings/projectMetrics/blockButton.tsx:47
 msgid "Disable"
-msgstr "Выключтиь"
+msgstr "Выключить"
 
 #: static/app/components/modals/bulkEditMonitorsModal.tsx:96
 #: static/app/views/monitors/details.tsx:115
