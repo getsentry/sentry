@@ -44,6 +44,7 @@ class SlackRoutingData:
     organization_id: int | None = None
     project_id: int | None = None
     tracking: SlackActionTracking | None = None
+    discriminator: str | None = None
 
 
 def encode_action_id(
@@ -52,16 +53,20 @@ def encode_action_id(
     organization_id: int,
     project_id: int | None,
     tracking: SlackActionTracking | None = None,
+    discriminator: str | None = None,
 ) -> str:
     """
-    Used to encode routing data into the outbound action_id for a Slack block. `tracking` is left
-    off if it would make the action ID longer than Slack allows.
+    Used to encode routing data into the outbound action_id for a Slack block. `discriminator`
+    tells apart buttons with the same action in one block, since Slack requires each action ID in
+    a block to be unique. `tracking` is left off if it would make the action ID longer than Slack
+    allows.
     """
-    routing = (
-        f"{action}::{organization_id}::{project_id}"
-        if project_id
-        else f"{action}::{organization_id}"
-    )
+    if discriminator is not None:
+        routing = f"{action}::{organization_id}::{project_id or ''}::{discriminator}"
+    elif project_id:
+        routing = f"{action}::{organization_id}::{project_id}"
+    else:
+        routing = f"{action}::{organization_id}"
     if tracking is None:
         return routing
     tracked = f"{routing}{_TRACKING_SEPARATOR}{tracking.encode()}"
@@ -74,7 +79,15 @@ def decode_action_id(encoded_action_id: str) -> SlackRoutingData:
     tracking = SlackActionTracking.decode(encoded_tracking) if separator else None
     action_target_values = routing.split("::")
     try:
-        if len(action_target_values) == 3:
+        if len(action_target_values) == 4:
+            return SlackRoutingData(
+                action=action_target_values[0],
+                organization_id=int(action_target_values[1]),
+                project_id=int(action_target_values[2]) if action_target_values[2] else None,
+                tracking=tracking,
+                discriminator=action_target_values[3],
+            )
+        elif len(action_target_values) == 3:
             return SlackRoutingData(
                 action=action_target_values[0],
                 organization_id=int(action_target_values[1]),
