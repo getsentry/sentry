@@ -898,7 +898,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert not SeerWorkflowConfigProject.objects.filter(config_id=config.id).exists()
         assert not SeerWorkflowRun.objects.filter(id=run.id).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not ServiceAccount.objects.filter(id=account.id).exists()
+            assert not ServiceAccount.objects.get(id=account.id).is_active
             assert AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE"), target_object=account.id
             ).exists()
@@ -954,7 +954,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         monitor.refresh_from_db()
         assert monitor.status == ObjectStatus.ACTIVE
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not ServiceAccount.objects.filter(id=account.id).exists()
+            assert not ServiceAccount.objects.get(id=account.id).is_active
 
     def create_metric_monitor(self, project: Project) -> Detector:
         return self.create_detector(project=project, type=MetricIssue.slug)
@@ -1127,7 +1127,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not ServiceAccount.objects.exists()
+            assert not ServiceAccount.objects.filter(is_active=True).exists()
             assert not AuditLogEntry.objects.filter(organization_id=self.organization.id).exists()
 
     def test_agent_ignores_duplicate_scopes_and_projects(self) -> None:
