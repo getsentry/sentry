@@ -1,8 +1,12 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AddOnCategory} from 'getsentry/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
-import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
+import {getCheckoutAPIData, useSubmitCheckout} from 'getsentry/views/amCheckout/utils';
 
 describe('utils', () => {
   const teamPlan = PlanDetailsLookupFixture('am1_team');
@@ -197,6 +201,93 @@ describe('utils', () => {
         reservedProfileDuration: 80,
         addOnLegacySeer: false,
       });
+    });
+  });
+
+  describe('utils.useSubmitCheckout', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({organization});
+    const data = getCheckoutAPIData({
+      formData: {
+        plan: 'am3_business',
+        reserved: {errors: 10},
+        addOns: DEFAULT_ADDONS,
+      },
+    });
+
+    function renderSubmitCheckout(onSuccess: jest.Mock) {
+      return renderHookWithProviders(useSubmitCheckout, {
+        initialProps: {
+          organization,
+          subscription,
+          onErrorMessage: jest.fn(),
+          onFetchPreviewData: jest.fn(),
+          onHandleCardAction: jest.fn(),
+          onSubmitting: jest.fn(),
+          onSuccess,
+        },
+      });
+    }
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        body: organization,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/`,
+        body: subscription,
+      });
+    });
+
+    it('submits the checkout with the invoice expanded and reports success', async () => {
+      const invoice = {id: 'invoice-id'};
+      const submitRequest = MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/subscription/`,
+        method: 'PUT',
+        match: [MockApiClient.matchQuery({expand: 'invoice'})],
+        body: {invoice},
+      });
+      const onSuccess = jest.fn();
+
+      const {result} = renderSubmitCheckout(onSuccess);
+      act(() => result.current.mutate({data}));
+
+      await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+      expect(submitRequest).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/subscription/`,
+        expect.objectContaining({method: 'PUT', data, query: {expand: 'invoice'}})
+      );
+      expect(onSuccess).toHaveBeenCalledWith(
+        expect.objectContaining({isSubmitted: true, invoice})
+      );
+    });
+
+    it('navigates to the receipt when the payment requires action', async () => {
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/subscription/`,
+        method: 'PUT',
+        body: {paymentRequiresAction: true, invoiceGuid: 'invoice-guid'},
+      });
+      const onSuccess = jest.fn();
+
+      const {result, router} = renderSubmitCheckout(onSuccess);
+      act(() => result.current.mutate({data}));
+
+      await waitFor(() =>
+        expect(router.location.pathname).toBe(
+          `/settings/${organization.slug}/billing/receipts/invoice-guid/`
+        )
+      );
+      expect(onSuccess).not.toHaveBeenCalled();
     });
   });
 });
