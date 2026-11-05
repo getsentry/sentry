@@ -19,44 +19,80 @@ from sentry.workflow_engine.processors.workflow_fire_history import get_last_fir
 
 
 class ActionSerializerResponse(TypedDict, total=False):
-    id: str
-    type: str
-    integrationId: str | None
-    data: dict[str, str]
-    config: dict[str, Any]
-    status: str
+    id: Annotated[str, ApiDescription("ID of the action")]
+    type: Annotated[str, ApiDescription("Type of the action, such as email, slack or webhook")]
+    integrationId: Annotated[
+        str | None,
+        ApiDescription("ID of the integration the action uses. Null for actions without one"),
+    ]
+    data: Annotated[
+        dict[str, str], ApiDescription("Extra data for the action, which depends on its type")
+    ]
+    config: Annotated[
+        dict[str, Any],
+        ApiDescription("Configuration of the action, such as targetType and targetIdentifier"),
+    ]
+    status: Annotated[str, ApiDescription("Status of the action, such as active")]
 
 
 class ConditionSerializerResponse(TypedDict):
-    id: str
-    type: str
-    comparison: bool | int
-    conditionResult: bool
+    id: Annotated[str, ApiDescription("ID of the condition")]
+    type: Annotated[str, ApiDescription("Type of the condition, such as first_seen_event or level")]
+    comparison: Annotated[
+        bool | int,
+        ApiDescription("Value the condition compares against, which depends on its type"),
+    ]
+    conditionResult: Annotated[
+        bool, ApiDescription("Result the condition produces when it matches")
+    ]
 
 
 class TriggerSerializerResponse(TypedDict, total=False):
-    id: str
-    organizationId: str
-    logicType: str
-    conditions: list[ConditionSerializerResponse] | list[Any]
-    actions: list[ActionSerializerResponse] | list[Any]
+    id: Annotated[str, ApiDescription("ID of the condition group")]
+    organizationId: Annotated[str, ApiDescription("ID of the organization")]
+    logicType: Annotated[str, ApiDescription("How the conditions combine: any-short, all or none")]
+    conditions: Annotated[
+        list[ConditionSerializerResponse] | list[Any], ApiDescription("Conditions in the group")
+    ]
+    actions: Annotated[
+        list[ActionSerializerResponse] | list[Any],
+        ApiDescription("Actions to fire when the conditions pass"),
+    ]
 
 
 class WorkflowSerializerResponse(TypedDict):
     id: Annotated[str, ApiDescription("Alert ID")]
     name: Annotated[str, ApiDescription("Alert name")]
-    organizationId: str
-    createdBy: str | None
-    dateCreated: datetime
-    dateUpdated: datetime
-    triggers: TriggerSerializerResponse | None
-    actionFilters: list[TriggerSerializerResponse] | None
-    environment: str | None
-    config: dict[str, Any]
-    detectorIds: list[str] | None
-    enabled: bool
-    lastTriggered: datetime | None
-    owner: str | None
+    organizationId: Annotated[str, ApiDescription("ID of the organization the alert belongs to")]
+    createdBy: Annotated[str | None, ApiDescription("ID of the user who created the alert")]
+    dateCreated: Annotated[datetime, ApiDescription("When the alert was created (ISO 8601)")]
+    dateUpdated: Annotated[datetime, ApiDescription("When the alert was last updated (ISO 8601)")]
+    triggers: Annotated[
+        TriggerSerializerResponse | None, ApiDescription("Conditions on which the alert triggers")
+    ]
+    actionFilters: Annotated[
+        list[TriggerSerializerResponse] | None,
+        ApiDescription("Filters to run before actions fire, each with the actions to fire"),
+    ]
+    environment: Annotated[
+        str | None,
+        ApiDescription(
+            "Name of the environment the alert is limited to. Null for all environments"
+        ),
+    ]
+    config: Annotated[
+        dict[str, Any], ApiDescription("Configuration of the alert, such as frequency in minutes")
+    ]
+    detectorIds: Annotated[
+        list[str] | None, ApiDescription("IDs of the monitors connected to the alert")
+    ]
+    enabled: Annotated[bool, ApiDescription("Whether the alert is enabled")]
+    lastTriggered: Annotated[
+        datetime | None, ApiDescription("When the alert last fired (ISO 8601)")
+    ]
+    owner: Annotated[
+        str | None, ApiDescription("Team or user that owns the alert, such as user:123 or team:456")
+    ]
 
 
 @register(Workflow)
