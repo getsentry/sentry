@@ -144,8 +144,8 @@ class TestNotebookEvents:
         [
             (
                 "notebook.completed",
-                NotebookCompletedData(seer_run_id=123),
-                {"seerRunId": "123"},
+                NotebookCompletedData(seer_run_id=123, generation=1),
+                {"seerRunId": "123", "generation": 1},
             ),
             (
                 "notebook.user_mentioned",
@@ -184,7 +184,7 @@ class TestNotebookEvents:
         default_user: User,
         event_type: str,
         data: InboxEventData,
-        expected_data: dict[str, str | None],
+        expected_data: dict[str, str | int | None],
     ) -> None:
         notebook = Factories.create_notebook(organization=default_organization, title="Notebook")
         event_type_definition = inbox_item_event_type_registry.get(event_type)
@@ -246,6 +246,7 @@ class InboxItemEventSerializerTest(TestCase):
             data={
                 "comment_id": 123,
                 "seer_run_id": 456,
+                "activity_id": 321,
                 "external_id": 789,
                 "optional_id": None,
             },
@@ -256,11 +257,13 @@ class InboxItemEventSerializerTest(TestCase):
         assert result["data"] == {
             "commentId": "123",
             "seerRunId": "456",
+            "activityId": "321",
             "externalId": 789,
             "optionalId": None,
         }
         assert event.data["comment_id"] == 123
         assert event.data["seer_run_id"] == 456
+        assert event.data["activity_id"] == 321
 
     def test_bulk_actor_resolution(self) -> None:
         item = self.create_inbox_item(last_read_at=before_now(minutes=1))

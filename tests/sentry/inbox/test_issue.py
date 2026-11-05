@@ -5,12 +5,13 @@ from django.db import IntegrityError, router, transaction
 
 from sentry.inbox.issue import (
     ISSUE,
+    ISSUE_USER_ASSIGNED,
     IssueAssignedData,
     IssueMentionedData,
     IssuePRReadyForReviewData,
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import InboxEventData
+from sentry.inbox.types import InboxActor, InboxEventData
 from sentry.issues.comments import create_comment, update_comment
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.groupassignee import GroupAssignee
@@ -18,6 +19,7 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupowner import GroupOwnerType
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
+from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.seer.entrypoints.operator import record_seer_activity
 from sentry.sentry_apps.event_types import SentryAppEventType
@@ -103,7 +105,11 @@ class IssueProducerRecordingTest(TestCase):
         assert event.inbox_item.user_id == assignee.id
         assert event.inbox_item.organization_id == self.organization.id
         assert event.inbox_item.subject_id == str(self.group.id)
-        assert event.data == {"assignment_source": None}
+        activity = Activity.objects.get(group=self.group, type=ActivityType.ASSIGNED.value)
+        assert event.data == {
+            "activity_id": activity.id,
+            "assignment_source": None,
+        }
         assert event.actor_type == InboxActorType.USER
         assert event.actor_id == self.user.id
         assert (
@@ -125,7 +131,45 @@ class IssueProducerRecordingTest(TestCase):
         event = InboxItemEvent.objects.get()
         assert event.type == "issue.team_assigned"
         assert event.inbox_item.user_id == teammate.id
-        assert event.data == {"assignment_source": None}
+        activity = Activity.objects.get(group=self.group, type=ActivityType.ASSIGNED.value)
+        assert event.data == {
+            "activity_id": activity.id,
+            "assignment_source": None,
+        }
+
+    def test_separate_assignments_use_distinct_idempotency_keys(self) -> None:
+        assignee = self.create_user()
+        self.create_member(organization=self.organization, user=assignee)
+        GroupAssignee.objects.assign(self.group, assignee, acting_user=self.user)
+        GroupAssignee.objects.deassign(self.group, acting_user=self.user)
+        GroupAssignee.objects.assign(self.group, assignee, acting_user=self.user)
+
+        events = list(InboxItemEvent.objects.order_by("id"))
+        activities = list(
+            Activity.objects.filter(group=self.group, type=ActivityType.ASSIGNED.value).order_by(
+                "id"
+            )
+        )
+        assert len(events) == 2
+        assert [event.data["activity_id"] for event in events] == [
+            activity.id for activity in activities
+        ]
+
+    def test_replaying_assignment_does_not_record_another_event(self) -> None:
+        assignee = self.create_user()
+        self.create_member(organization=self.organization, user=assignee)
+        GroupAssignee.objects.assign(self.group, assignee, acting_user=self.user)
+        activity = Activity.objects.get(group=self.group, type=ActivityType.ASSIGNED.value)
+
+        create_inbox_items(
+            event_type=ISSUE_USER_ASSIGNED,
+            subject=self.group,
+            data=IssueAssignedData(activity_id=activity.id, assignment_source=None),
+            user_ids=[assignee.id],
+            actor=InboxActor.user(self.user.id),
+        )
+
+        assert InboxItemEvent.objects.count() == 1
 
     def test_assignment_integrations(self) -> None:
         for integration in ActivityIntegration:
@@ -310,17 +354,18 @@ class IssueProducerRecordingTest(TestCase):
         )
 
         with self.options({"issues.record-seer-actions-as-activities": True}):
-            record_seer_activity(
-                group=self.group,
-                event_type=SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
-                event_payload={
-                    "run_id": 123,
-                    "pull_requests": [
-                        {"pull_request": {"pr_url": "https://github.com/example/repo/pull/1"}},
-                        {"pull_request": {"pr_url": "https://github.com/example/repo/pull/2"}},
-                    ],
-                },
-            )
+            for _ in range(2):
+                record_seer_activity(
+                    group=self.group,
+                    event_type=SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
+                    event_payload={
+                        "run_id": 123,
+                        "pull_requests": [
+                            {"pull_request": {"pr_url": "https://github.com/example/repo/pull/1"}},
+                            {"pull_request": {"pr_url": "https://github.com/example/repo/pull/2"}},
+                        ],
+                    },
+                )
 
         events = InboxItemEvent.objects.values_list("inbox_item__user_id", "data__pr_url")
         assert len(events) == 4
@@ -330,6 +375,27 @@ class IssueProducerRecordingTest(TestCase):
             (teammate.id, "https://github.com/example/repo/pull/1"),
             (teammate.id, "https://github.com/example/repo/pull/2"),
         }
+
+    def test_pr_ready_deduplicates_retries_and_preserves_separate_runs(self) -> None:
+        self.create_group_owner(
+            group=self.group, type=GroupOwnerType.SEER_SUGGESTED.value, user_id=self.user.id
+        )
+        with self.options({"issues.record-seer-actions-as-activities": True}):
+            for run_id in (123, 123, 456):
+                record_seer_activity(
+                    group=self.group,
+                    event_type=SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
+                    event_payload={
+                        "run_id": run_id,
+                        "pull_requests": [
+                            {"pull_request": {"pr_url": "https://github.com/example/repo/pull/1"}}
+                        ],
+                    },
+                )
+
+        item = InboxItem.objects.get()
+        assert set(item.events.values_list("data__seer_run_id", flat=True)) == {123, 456}
+        assert item.events.count() == 2
 
     def test_pr_ready_skips_missing_pull_request_urls(self) -> None:
         self.create_group_owner(

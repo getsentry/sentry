@@ -315,7 +315,10 @@ def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
     create_inbox_items(
         event_type=NOTEBOOK_COMPLETED,
         subject=notebook,
-        data=NotebookCompletedData(seer_run_id=seer_run.seer_run_state_id),
+        data=NotebookCompletedData(
+            seer_run_id=seer_run.seer_run_state_id,
+            generation=run.generation,
+        ),
         user_ids=[notebook.created_by_id],
         actor=SYSTEM_ACTOR,
     )

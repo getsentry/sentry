@@ -59,7 +59,7 @@ class InboxItemEventSerializer(Serializer[InboxItemEventResponse]):
                 "avatar": actor_user.get("avatar") if actor_user else None,
             }
         data = {key: value for key, value in obj.data.items() if key != "summary"}
-        for key in ("comment_id", "block_id", "seer_run_id"):
+        for key in ("comment_id", "block_id", "seer_run_id", "activity_id"):
             value = data.get(key)
             if value is not None:
                 data[key] = str(value)
