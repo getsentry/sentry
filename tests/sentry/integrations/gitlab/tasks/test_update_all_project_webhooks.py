@@ -642,7 +642,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.gitlab.tasks.randint", side_effect=[99, 601])
     def test_task_spreads_hourly_burst_before_calling_gitlab(self, randint: MagicMock) -> None:
-        self.task_time.return_value = 0
+        self.task_time.return_value = 120
         self.consume_capacity.reset_mock()
 
         with (
@@ -665,7 +665,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
             },
             countdown=601,
         )
-        assert randint.call_args_list == [call(1, 100), call(1, 3000)]
+        assert randint.call_args_list == [call(1, 100), call(180, 3000)]
         self.consume_capacity.assert_not_called()
         logger_info.assert_called_once_with(
             "update-project-webhook.hourly-burst-deferred",

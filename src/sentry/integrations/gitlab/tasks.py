@@ -305,11 +305,15 @@ def update_project_webhook(
     Update a single project webhook for a GitLab integration.
     This task is spawned by update_all_project_webhooks for each repository.
     """
+    seconds_into_hour = int(time()) % 3600
     if (
-        int(time()) % 3600 < WEBHOOK_RECONCILIATION_HOURLY_BURST_WINDOW_SECONDS
+        seconds_into_hour < WEBHOOK_RECONCILIATION_HOURLY_BURST_WINDOW_SECONDS
         and randint(1, 100) <= WEBHOOK_RECONCILIATION_HOURLY_BURST_DEFERRAL_PERCENT
     ):
-        countdown = randint(1, WEBHOOK_RECONCILIATION_HOURLY_BURST_JITTER_SECONDS)
+        countdown = randint(
+            WEBHOOK_RECONCILIATION_HOURLY_BURST_WINDOW_SECONDS - seconds_into_hour,
+            WEBHOOK_RECONCILIATION_HOURLY_BURST_JITTER_SECONDS,
+        )
         update_project_webhook.apply_async(
             kwargs={
                 "integration_id": integration_id,
