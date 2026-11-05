@@ -81,10 +81,17 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime) -> None:
     monitor_environment = checkin.monitor_environment
     monitor = monitor_environment.monitor
 
-    if checkin.status == CheckInStatus.TIMEOUT:
+    # The check-in may have been completed, marked unknown or had its timeout
+    # extended by an in-progress heartbeat since this task was dispatched, or
+    # an earlier task may have already timed it out.
+    updated = MonitorCheckIn.objects.filter(
+        id=checkin.id,
+        status=CheckInStatus.IN_PROGRESS,
+        timeout_at__lte=ts,
+    ).update(status=CheckInStatus.TIMEOUT)
+    if not updated:
         return
     checkin.status = CheckInStatus.TIMEOUT
-    checkin.save(update_fields=["status"])
 
     # If the monitor has had any newer OK/ERROR status check-ins than this
     # timeout, then this timeout cannot affect the status of the monitor.
