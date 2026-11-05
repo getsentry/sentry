@@ -609,7 +609,7 @@ describe('AutofixRef embed', () => {
 
     it('disables drafting the pull request again while out of credits', async () => {
       mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
-      mockCreditCheck('autofix_create_pr', false);
+      mockCreditCheck('autofix_open_pr', false);
       render(
         <AutofixChatProvider sendMessage={jest.fn()}>
           <AutofixRefFor step="code_changes" />
@@ -625,7 +625,7 @@ describe('AutofixRef embed', () => {
 
     it('drafts the pull request again once the organization can afford it', async () => {
       mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
-      mockCreditCheck('autofix_create_pr', true);
+      mockCreditCheck('autofix_open_pr', true);
       const sendMessage = jest.fn();
       render(
         <AutofixChatProvider sendMessage={sendMessage}>

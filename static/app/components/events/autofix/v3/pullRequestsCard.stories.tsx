@@ -161,10 +161,10 @@ export default Storybook.story('PullRequestsCard', story => {
         <Text size="sm" variant="muted">
           Creating the PR failed because the organization ran out of Seer credits (
           <code>pr_creation_error_code: out_of_credits</code>). A line under the PRs says
-          so, and the credit check for <code>autofix_create_pr</code> says the
-          organization still can't afford it, so its “Retry PR” is disabled (hover it for
-          why). The out-of-credits CTA is not here: the alert at the top of the Autofix
-          tab and drawer covers it.
+          so, and the credit check for <code>autofix_open_pr</code> says the organization
+          still can't afford it, so its “Retry PR” is disabled (hover it for why). The
+          out-of-credits CTA is not here: the alert at the top of the Autofix tab and
+          drawer covers it.
         </Text>
 
         <SeerCreditCheckStub hasEnoughCredits={false}>

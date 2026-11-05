@@ -1470,7 +1470,7 @@ describe('InboxPage', () => {
     function mockCreditCheck(hasEnoughCredits: boolean) {
       MockApiClient.addMockResponse({
         url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
-        match: [MockApiClient.matchQuery({operation: 'autofix_create_pr'})],
+        match: [MockApiClient.matchQuery({operation: 'autofix_open_pr'})],
         body: {hasEnoughCredits},
       });
     }

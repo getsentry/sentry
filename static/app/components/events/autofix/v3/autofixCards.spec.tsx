@@ -3007,7 +3007,7 @@ describe('out of credits', () => {
     ]);
 
     it('says why and disables its retry while out of credits', async () => {
-      mockCreditCheck('autofix_create_pr', false);
+      mockCreditCheck('autofix_open_pr', false);
       render(<PullRequestsCard autofix={mockAutofixWithRunState} section={section} />, {
         organization,
       });
@@ -3029,7 +3029,7 @@ describe('out of credits', () => {
     });
 
     it('retries it once the organization can afford it', async () => {
-      mockCreditCheck('autofix_create_pr', true);
+      mockCreditCheck('autofix_open_pr', true);
       const createPR = jest.fn();
       render(
         <PullRequestsCard
