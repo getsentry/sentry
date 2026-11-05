@@ -25,9 +25,9 @@ type ApiReturnType = Record<string, number>;
 
 // This is what the hook consumer gets:
 type HookReturnType = {
-  ignored: number;
-  resolved: number;
-  unresolved: number;
+  ignored: number | undefined;
+  resolved: number | undefined;
+  unresolved: number | undefined;
 };
 
 export function useMailboxCounts({organization}: Props) {
@@ -69,9 +69,9 @@ export function useMailboxCounts({organization}: Props) {
 
   const select = useCallback(
     ({json}: ApiResponse<ApiReturnType>): HookReturnType => ({
-      unresolved: json[MAILBOX.unresolved]!,
-      resolved: json[MAILBOX.resolved]!,
-      ignored: json[MAILBOX.ignored]!,
+      unresolved: json[MAILBOX.unresolved],
+      resolved: json[MAILBOX.resolved],
+      ignored: json[MAILBOX.ignored],
     }),
     [MAILBOX.ignored, MAILBOX.resolved, MAILBOX.unresolved]
   );
