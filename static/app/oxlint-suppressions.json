@@ -2694,11 +2694,6 @@
       "count": 1
     }
   },
-  "views/detectors/list/common/detectorListHeader.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/discover/eventDetails.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4401,11 +4396,6 @@
   },
   "views/seerExplorer/xray/seerXRayOverlay.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/seerRunsDemo/index.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
