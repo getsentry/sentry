@@ -1,4 +1,4 @@
-import {getLogoImage} from 'sentry/components/events/contexts/contextIcon';
+import {getLogoImage} from './contextIcon';
 
 describe('getLogoImage', () => {
   it('maps context icon aliases to platformicons ids', () => {

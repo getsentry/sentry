@@ -25,11 +25,12 @@ import {
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import AutomationsList from 'sentry/views/automations/list';
 import {
   LLM_CONTEXT_MAX_ROWS,
   useLLMContext,
 } from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import AutomationsList from './list';
 
 // Cells the container is too narrow to show are hidden rather than dropped, so
 // the row still holds every column in order: name, last triggered, action,

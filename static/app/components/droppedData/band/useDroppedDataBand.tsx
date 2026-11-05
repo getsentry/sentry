@@ -14,8 +14,6 @@ import {useRenderToString} from '@sentry/scraps/renderToString';
 
 import {horizontalTooltipPosition} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered} from 'sentry/components/charts/utils';
-import {DroppedDataTooltip} from 'sentry/components/droppedData/band/droppedDataTooltip';
-import {severityColor, withAlpha} from 'sentry/components/droppedData/band/severityColor';
 import {groupIntoBuckets, isHighlighted} from 'sentry/components/droppedData/buckets';
 import type {
   DroppedDataBucket,
@@ -23,6 +21,9 @@ import type {
 } from 'sentry/components/droppedData/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
+
+import {DroppedDataTooltip} from './droppedDataTooltip';
+import {severityColor, withAlpha} from './severityColor';
 
 export const DROPPED_DATA_SERIES_ID = '__dropped_data__';
 

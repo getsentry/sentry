@@ -2,7 +2,8 @@ import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import type {PaymentIntentResult, Stripe, StripeElements} from '@stripe/stripe-js';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -139,7 +140,7 @@ export function PaymentIntentForm(props: IntentFormProps) {
           organization,
           referrer: decodeScalar(referrer),
         });
-        addSuccessMessage(t('Payment sent successfully.'));
+        toast.success(t('Payment sent successfully.'));
         onSuccess?.();
         setIsSubmitting(false);
       });

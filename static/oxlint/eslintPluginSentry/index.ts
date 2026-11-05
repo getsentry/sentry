@@ -24,6 +24,7 @@ import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSem
 import {preferFakeTimers} from './preferFakeTimers.ts';
 import {preferNuqs} from './preferNuqs.ts';
 import {preferReactComponent} from './preferReactComponent.ts';
+import {preferRelativeChildImports} from './preferRelativeChildImports.ts';
 import {requireFakeTimerCleanup} from './requireFakeTimerCleanup.ts';
 import {sortInterfaceKeys} from './sortInterfaceKeys.ts';
 
@@ -50,6 +51,7 @@ export const rules = {
   'prefer-fake-timers': preferFakeTimers,
   'prefer-nuqs': preferNuqs,
   'prefer-react-component': preferReactComponent,
+  'prefer-relative-child-imports': preferRelativeChildImports,
   'require-fake-timer-cleanup': requireFakeTimerCleanup,
   'sort-interface-keys': sortInterfaceKeys,
 };

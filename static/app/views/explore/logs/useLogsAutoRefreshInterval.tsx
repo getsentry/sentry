@@ -13,8 +13,9 @@ import {
   useLogsAutoRefresh,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {EventsLogsResult} from 'sentry/views/explore/logs/types';
-import {parseLinkHeaderFromLogsPage} from 'sentry/views/explore/logs/utils';
+
+import type {EventsLogsResult} from './types';
+import {parseLinkHeaderFromLogsPage} from './utils';
 /**
  * Hook that manages the auto-refresh interval using setInterval.
  * Handles rate limiting, error checking, and timeout conditions.

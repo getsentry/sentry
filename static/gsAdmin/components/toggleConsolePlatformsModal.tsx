@@ -9,12 +9,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
@@ -204,7 +200,7 @@ function ToggleConsolePlatformsModal({
   };
 
   const handleSubmit = async (data: Record<string, boolean | number>) => {
-    addLoadingMessage('Saving changes...');
+    toast.loading('Saving changes...');
 
     const promises: Array<Promise<unknown>> = [];
 
@@ -220,12 +216,12 @@ function ToggleConsolePlatformsModal({
 
     await Promise.all(promises)
       .then(() => {
-        addSuccessMessage('Console SDK settings updated successfully');
+        toast.success('Console SDK settings updated successfully');
         closeModal();
         onSuccess();
       })
       .catch(() => {
-        addErrorMessage('Failed to update console SDK settings');
+        toast.error('Failed to update console SDK settings');
         setPendingRevocations([]);
       })
       .finally(() => {

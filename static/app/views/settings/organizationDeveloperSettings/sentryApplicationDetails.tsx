@@ -13,13 +13,9 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {
   sentryAppApiOptions,
   sentryAppsApiOptions,
@@ -62,16 +58,11 @@ import {useParams} from 'sentry/utils/useParams';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {
-  granularWebhookEvents,
-  WEBHOOK_SUBSCRIPTION_CHOICES,
-} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {
-  getSentryAppTemplates,
-  type SentryAppTemplate,
-} from 'sentry/views/settings/organizationDeveloperSettings/creationTemplates';
-import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
+
+import type {WebhookSubscription} from './constants';
+import {granularWebhookEvents, WEBHOOK_SUBSCRIPTION_CHOICES} from './constants';
+import {getSentryAppTemplates, type SentryAppTemplate} from './creationTemplates';
+import {PermissionsObserver} from './permissionsObserver';
 import {
   AllowedOriginsField,
   AlertableField,
@@ -84,7 +75,7 @@ import {
   VerifyInstallField,
   WebhookHeadersField,
   WebhookUrlField,
-} from 'sentry/views/settings/organizationDeveloperSettings/sentryAppFormFields';
+} from './sentryAppFormFields';
 
 const AVATAR_STYLES = {
   color: {
@@ -349,7 +340,7 @@ function useSaveSentryApp({
     formApi: Parameters<typeof setFieldErrors>[0]
   ) => {
     if (!(error instanceof RequestError)) {
-      addErrorMessage(t('Unknown Error'));
+      toast.error(t('Unknown Error'));
       return;
     }
     const responseJSON = error.responseJSON ?? {};
@@ -371,7 +362,7 @@ function useSaveSentryApp({
       Array.isArray(responseJSON.events) &&
       typeof responseJSON.events[0] === 'string'
     ) {
-      addErrorMessage(responseJSON.events[0]);
+      toast.error(responseJSON.events[0]);
       return;
     }
 
@@ -381,7 +372,7 @@ function useSaveSentryApp({
       Array.isArray(responseJSON.scopes) &&
       typeof responseJSON.scopes[0] === 'string'
     ) {
-      addErrorMessage(responseJSON.scopes[0]);
+      toast.error(responseJSON.scopes[0]);
       return;
     }
 
@@ -391,7 +382,7 @@ function useSaveSentryApp({
 
     const detail =
       typeof responseJSON.detail === 'string' ? responseJSON.detail : t('Unknown Error');
-    addErrorMessage(detail);
+    toast.error(detail);
   };
 
   const saveSentryAppMutation = useMutation({
@@ -412,7 +403,7 @@ function useSaveSentryApp({
       const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
 
       if (app) {
-        addSuccessMessage(t('%s successfully saved.', data.name));
+        toast.success(t('%s successfully saved.', data.name));
 
         // Patch the index cache so the list doesn't flash the stale name
         // on the way back to the index page.
@@ -429,7 +420,7 @@ function useSaveSentryApp({
           queryKey: sentryAppApiOptions({appSlug: app.slug}).queryKey,
         });
       } else {
-        addSuccessMessage(t('%s successfully created.', data.name));
+        toast.success(t('%s successfully created.', data.name));
       }
 
       navigate(normalizeUrl(url));
@@ -844,13 +835,13 @@ function SentryAppEditForm({
         method: 'POST',
       }),
     onMutate: () => {
-      addLoadingMessage(t('Adding token...'));
+      toast.loading(t('Adding token...'));
     },
     onSuccess: () => {
-      addSuccessMessage(t('Token successfully added.'));
+      toast.success(t('Token successfully added.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to create token'));
+      toast.error(t('Unable to create token'));
     },
   });
 
@@ -863,13 +854,13 @@ function SentryAppEditForm({
         method: 'DELETE',
       }),
     onMutate: () => {
-      addLoadingMessage(t('Removing token...'));
+      toast.loading(t('Removing token...'));
     },
     onSuccess: () => {
-      addSuccessMessage(t('Token successfully deleted.'));
+      toast.success(t('Token successfully deleted.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to delete token'));
+      toast.error(t('Unable to delete token'));
     },
   });
 
@@ -882,10 +873,10 @@ function SentryAppEditForm({
         method: 'DELETE',
       }),
     onMutate: () => {
-      addLoadingMessage(t('Deleting %s...', app.slug));
+      toast.loading(t('Deleting %s...', app.slug));
     },
     onSuccess: () => {
-      addSuccessMessage(t('%s successfully removed.', app.slug));
+      toast.success(t('%s successfully removed.', app.slug));
       queryClient.setQueryData(
         sentryAppsApiOptions({orgSlug: organization.slug}).queryKey,
         old => old && {...old, json: old.json.filter(item => item.slug !== app.slug)}
@@ -896,7 +887,7 @@ function SentryAppEditForm({
       );
     },
     onError: () => {
-      addErrorMessage(t('Unable to remove %s integration', app.slug));
+      toast.error(t('Unable to remove %s integration', app.slug));
     },
   });
 

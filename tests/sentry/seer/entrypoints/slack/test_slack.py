@@ -3,11 +3,15 @@ from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
-from slack_sdk.models.blocks import LinkButtonElement, SectionBlock
+from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, SectionBlock
 from slack_sdk.web import SlackResponse
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.integration import SlackIntegration
+from sentry.integrations.slack.message_builder.routing import (
+    SlackActionTracking,
+    decode_action_id,
+)
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import EventLifecycleOutcome
@@ -266,6 +270,48 @@ class SlackAutofixEntrypointTest(TestCase):
         renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
         assert "https://github.com/owner/repo/pull/123" in str(renderable["blocks"])
 
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_errored_run_posts_to_every_thread(
+        self,
+        mock_send_threaded_message: MagicMock,
+        mock_send_threaded_ephemeral_message: MagicMock,
+        _mock_has_access: MagicMock,
+    ) -> None:
+        other_thread = SlackThreadDetails(channel_id="C0OTHER", thread_ts="1234567890.999999")
+        cache_payload = self._get_entrypoint().create_autofix_cache_payload()
+        cache_payload["threads"] = [self.thread, other_thread]
+        SeerOperatorAutofixCache.populate_post_autofix_cache(
+            entrypoint_key=SeerEntrypointKey.SLACK,
+            run_id=MOCK_RUN_ID,
+            cache_payload=cache_payload,
+        )
+
+        with self.tasks():
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ERRORED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+                organization_id=self.organization.id,
+            )
+
+        posted_to = [
+            (call.kwargs["channel_id"], call.kwargs["thread_ts"])
+            for call in mock_send_threaded_message.call_args_list
+        ]
+        assert sorted(posted_to) == sorted(
+            [
+                (self.thread["channel_id"], self.thread["thread_ts"]),
+                (other_thread["channel_id"], other_thread["thread_ts"]),
+            ]
+        )
+        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        assert "couldn't finish working on this issue" in str(renderable["blocks"])
+        mock_send_threaded_ephemeral_message.assert_not_called()
+
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
@@ -301,6 +347,68 @@ class SlackAutofixEntrypointTest(TestCase):
             renderable=ANY,
             slack_user_id=self.slack_user_id,
         )
+
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AUTOFIX_UPDATE]})
+    @patch(
+        "sentry.notifications.platform.templates.seer.organization_service.get_option",
+        return_value=True,
+    )
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_send_thread_update_tracks_buttons_and_records_sent(
+        self,
+        mock_send_threaded_message: MagicMock,
+        mock_record_sent: MagicMock,
+        _mock_get_option: MagicMock,
+    ) -> None:
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
+
+        send_thread_update(install=self._get_installation(), thread=self.thread, data=data)
+
+        context = NotificationTrackingContext(
+            source=NotificationSource.SEER_AUTOFIX_UPDATE,
+            provider=NotificationProviderKey.SLACK,
+            category=NotificationCategory.SEER,
+            notification_uuid=data.notification_uuid,
+            organization_id=self.organization.id,
+        )
+        mock_record_sent.assert_called_once_with(
+            context, links={NotificationLink.ISSUE, SlackAction.SEER_AUTOFIX_START}
+        )
+        renderable: SlackRenderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        tracked_actions = [
+            routing_data
+            for block in renderable["blocks"]
+            if isinstance(block, ActionsBlock)
+            for element in block.elements
+            if isinstance(element, ButtonElement)
+            and element.action_id
+            and (routing_data := decode_action_id(element.action_id)).tracking is not None
+        ]
+        assert [routing_data.action for routing_data in tracked_actions] == [
+            SlackAction.SEER_AUTOFIX_START
+        ]
+        assert tracked_actions[0].tracking == SlackActionTracking(
+            notification_uuid=data.notification_uuid,
+            source=NotificationSource.SEER_AUTOFIX_UPDATE,
+        )
+
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value=None,
+    )
+    def test_send_thread_update_without_response_does_not_record_sent(
+        self, _mock_send_threaded_message: MagicMock, mock_record_sent: MagicMock
+    ) -> None:
+        send_thread_update(
+            install=self._get_installation(), thread=self.thread, data=self._create_update()
+        )
+
+        mock_record_sent.assert_not_called()
 
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message",

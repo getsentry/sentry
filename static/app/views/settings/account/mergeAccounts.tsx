@@ -8,8 +8,8 @@ import {Input} from '@sentry/scraps/input';
 import {Container} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -95,7 +95,7 @@ function MergeAccounts() {
       });
     },
     onSuccess: data => {
-      addSuccessMessage(t('Accounts merged!'));
+      toast.success(t('Accounts merged!'));
       setSelectedUserIds([]);
       setApiQueryData<UserWithOrganizations[]>(
         queryClient,
@@ -105,7 +105,7 @@ function MergeAccounts() {
     },
     onError: (err: RequestError) => {
       if (err.responseJSON && !('raw' in err.responseJSON)) {
-        addErrorMessage(
+        toast.error(
           Object.values(err.responseJSON ?? {})
             .flat()
             .join(' ')
@@ -123,7 +123,7 @@ function MergeAccounts() {
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Verification code posted!'));
+      toast.success(t('Verification code posted!'));
       setVerificationCodeSent(true);
     },
   });

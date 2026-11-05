@@ -1,6 +1,6 @@
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
+import {useProfileFunctions} from './useProfileFunctions';
 
 describe('useProfileFunctions', () => {
   afterEach(() => {

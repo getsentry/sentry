@@ -1,10 +1,11 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {ConfigStore} from 'sentry/stores/configStore';
-import {GuideStore} from 'sentry/stores/guideStore';
-import {ModalStore} from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {ConfigStore} from './configStore';
+import {GuideStore} from './guideStore';
+import {ModalStore} from './modalStore';
 
 jest.mock('sentry/utils/analytics');
 

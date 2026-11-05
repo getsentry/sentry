@@ -8,8 +8,6 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
-import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
-import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
@@ -38,6 +36,9 @@ import {getLogBodySearchTerms} from 'sentry/views/explore/logs/utils';
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {OurlogsDrawer} from './ourlogsDrawer';
+import {useEventLogsUrl} from './useEventLogsUrl';
 
 export function OurlogsSection({
   event,

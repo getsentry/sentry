@@ -3,13 +3,14 @@ import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import type {AggregateSummary} from 'sentry/views/detectors/datasetConfig/base';
-import {MetricsDetectorSearchBar} from 'sentry/views/detectors/datasetConfig/components/metricsSearchBar';
-import {createEapDetectorConfig} from 'sentry/views/detectors/datasetConfig/eapBase';
-import {transformEventsStatsToSeries} from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
-import {getApiAggregateString} from 'sentry/views/detectors/datasetConfig/utils/getApiAggregateString';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
+
+import {MetricsDetectorSearchBar} from './components/metricsSearchBar';
+import {transformEventsStatsToSeries} from './utils/discoverSeries';
+import {getApiAggregateString} from './utils/getApiAggregateString';
+import type {AggregateSummary} from './base';
+import {createEapDetectorConfig} from './eapBase';
 
 /**
  * Summarizes an equation as the reference labels the edit form assigns (A, B, …), plus a

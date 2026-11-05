@@ -12,7 +12,8 @@ import {
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
 } from 'sentry/utils/discover/types';
-import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart';
+
+import {ResultsChartContainer} from './resultsChart';
 
 describe('Discover > ResultsChart', () => {
   const features = ['discover-basic'];

@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getLaravelContextData,
-  type LaravelContext,
-} from 'sentry/components/events/contexts/platformContext/laravel';
+
+import {getLaravelContextData, type LaravelContext} from './laravel';
 
 const MOCK_LARAVEL_CONTEXT: LaravelContext = {
   type: 'default',

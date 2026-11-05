@@ -12,14 +12,15 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import * as Storybook from 'sentry/stories';
+
 import {
   TourContextProvider,
   TourElement,
   type TourContextProviderProps,
-} from 'sentry/components/tours/components';
-import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
-import type {TourContextType} from 'sentry/components/tours/tourContext';
-import * as Storybook from 'sentry/stories';
+} from './components';
+import {StartTourModal, startTourModalCss} from './startTour';
+import type {TourContextType} from './tourContext';
 
 const enum MyTour {
   NAME = 'my-tour-name',

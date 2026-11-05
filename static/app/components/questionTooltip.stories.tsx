@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as Storybook from 'sentry/stories';
+
+import {QuestionTooltip} from './questionTooltip';
 
 export default Storybook.story('QuestionTooltip', story => {
   story('Basics', () => {

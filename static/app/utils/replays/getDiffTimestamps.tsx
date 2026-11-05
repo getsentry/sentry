@@ -1,7 +1,8 @@
 import type {Event} from 'sentry/types/event';
-import type {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
-import {isHydrationErrorFrame, isRRWebChangeFrame} from 'sentry/utils/replays/types';
+
+import type {ReplayReader} from './replayReader';
+import type {HydrationErrorFrame} from './types';
+import {isHydrationErrorFrame, isRRWebChangeFrame} from './types';
 
 type ReplayDiffOffsets = {
   frameOrEvent: HydrationErrorFrame | Event;

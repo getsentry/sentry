@@ -5,8 +5,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {t, tct, tn} from 'sentry/locale';
+
+import {useInviteMembersContext} from './inviteMembersContext';
 
 interface InviteCountProps {
   count: number;

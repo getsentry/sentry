@@ -85,14 +85,12 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
                     self.group,
                     3,
                     self.base_triggered_date,
-                    self.history[0].event_id,
                     detector=self.detector,
                 ),
                 WorkflowGroupHistory(
                     self.group_2,
                     1,
                     self.base_triggered_date,
-                    self.history[-1].event_id,
                     detector=self.detector_2,
                 ),
             ],
@@ -114,7 +112,6 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
                     self.group,
                     3,
                     self.base_triggered_date,
-                    self.history[0].event_id,
                     detector=self.detector,
                 )
             ],
@@ -137,7 +134,6 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
                     self.group_2,
                     1,
                     self.base_triggered_date,
-                    self.history[-1].event_id,
                     detector=self.detector_2,
                 )
             ],

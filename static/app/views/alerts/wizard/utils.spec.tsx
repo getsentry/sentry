@@ -1,5 +1,6 @@
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+
+import {getAlertTypeFromAggregateDataset} from './utils';
 
 describe('Wizard utils', () => {
   it('extracts lcp alert', () => {

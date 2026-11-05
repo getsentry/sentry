@@ -787,9 +787,9 @@ class QueryTests(ExportTestCase):
             org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
         )
         Factories.create_seer_workflow_config_project(config, project)
-        SeerWorkflow(
-            config_id=config.id, organization_id=config.organization_id
-        ).set_service_account(account.id)
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+        with workflow.update_config() as update:
+            update.set_service_account(account.id)
 
         for scope in (ExportScope.Organization, ExportScope.Global):
             with TemporaryDirectory() as tmp_dir:
