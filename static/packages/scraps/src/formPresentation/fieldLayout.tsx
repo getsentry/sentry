@@ -3,12 +3,13 @@ import type * as React from 'react';
 import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {BaseLayout, LayoutLabel} from './base';
-import {useFieldContext} from './formContext';
+import {fieldComponent, type FieldWithValue} from './formHelpers';
 import {FieldMeta} from './meta';
 import {useStackedLayout} from './useStackedLayout';
 
 interface LayoutProps {
   children: React.ReactNode;
+  field: FieldWithValue<unknown>;
   label: React.ReactNode;
   hintText?: React.ReactNode;
   required?: boolean;
@@ -31,10 +32,9 @@ function RowLayout(props: RowLayoutProps) {
 
 function RowLayoutContent(props: RowLayoutProps) {
   const isCompact = props.variant === 'compact';
-  const field = useFieldContext();
 
   return (
-    <BaseLayout id={field.name} stacked={false} padding={props.padding}>
+    <BaseLayout id={props.field.name} stacked={false} padding={props.padding}>
       <LayoutLabel stacked={false}>
         <Flex gap="xs" align="center">
           <FieldMeta.Label
@@ -56,10 +56,9 @@ function RowLayoutContent(props: RowLayoutProps) {
 
 function StackLayout(props: StackLayoutProps) {
   const isCompact = props.variant === 'compact';
-  const field = useFieldContext();
 
   return (
-    <BaseLayout id={field.name} stacked align={props.align}>
+    <BaseLayout id={props.field.name} stacked align={props.align}>
       <Flex gap="xs" align="center">
         <FieldMeta.Label
           required={props.required}
@@ -80,5 +79,5 @@ export function FieldLayout() {
   return null;
 }
 
-FieldLayout.Row = RowLayout;
-FieldLayout.Stack = StackLayout;
+FieldLayout.Row = fieldComponent.loose(RowLayout, 'field');
+FieldLayout.Stack = fieldComponent.loose(StackLayout, 'field');

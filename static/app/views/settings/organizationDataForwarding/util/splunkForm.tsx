@@ -2,7 +2,13 @@ import {IconDelete} from '@sentry/icons/delete';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm, withFieldGroup} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  defineAppFieldGroup,
+  FieldGroup,
+  ScrapsForm,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
@@ -54,12 +60,23 @@ function buildSplunkConfig(
 /**
  * Reusable field group for Splunk-specific configuration fields.
  */
-const SplunkConfigFields = withFieldGroup({
-  defaultValues: splunkDefaults,
-  props: {disabled: false},
-  render: ({group, disabled}) => (
-    <group.FieldGroup title={t('Global Configuration')}>
-      <group.AppField name="instance_url">
+const splunkConfigFieldGroup = defineAppFieldGroup(({strict}) => ({
+  instance_url: strict<string>(),
+  token: strict<string>(),
+  index: strict<string>(),
+  source: strict<string>(),
+}));
+
+function SplunkConfigFieldsImpl({
+  fields,
+  disabled,
+}: {
+  disabled: boolean;
+  fields: typeof splunkConfigFieldGroup.fields;
+}) {
+  return (
+    <FieldGroup title={t('Global Configuration')}>
+      <fields.Field name="instance_url">
         {field => (
           <field.Layout.Row
             label={t('Instance URL')}
@@ -69,15 +86,15 @@ const SplunkConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder="e.g. https://input-foo.cloud.splunk.com:8088"
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-      <group.AppField name="token">
+      </fields.Field>
+      <fields.Field name="token">
         {field => (
           <field.Layout.Row
             label={t('Token')}
@@ -85,15 +102,15 @@ const SplunkConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder="e.g. ab13cdef-45aa-1bcd-a123-bcEXAMPLEKEY"
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-      <group.AppField name="index">
+      </fields.Field>
+      <fields.Field name="index">
         {field => (
           <field.Layout.Row
             label={t('Index')}
@@ -101,15 +118,15 @@ const SplunkConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder="e.g. main"
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-      <group.AppField name="source">
+      </fields.Field>
+      <fields.Field name="source">
         {field => (
           <field.Layout.Row
             label={t('Source')}
@@ -117,17 +134,22 @@ const SplunkConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder="e.g. sentry"
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-    </group.FieldGroup>
-  ),
-});
+      </fields.Field>
+    </FieldGroup>
+  );
+}
+
+const SplunkConfigFields = splunkConfigFieldGroup.bindComponent(
+  SplunkConfigFieldsImpl,
+  'fields'
+);
 
 export function SplunkSetupForm({
   projects,
@@ -139,9 +161,8 @@ export function SplunkSetupForm({
   projects: Project[];
 }) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {...baseFormSetupDefaults, ...splunkDefaults},
-    validators: {onDynamic: splunkSchema},
+    validators: defaultFormValidators(splunkSchema),
     onSubmit: ({value}) => {
       const {
         is_enabled: _is_enabled,
@@ -162,7 +183,7 @@ export function SplunkSetupForm({
   const projectOptions = buildProjectOptions(projects);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <EnablementFields
         form={form}
         fields={{is_enabled: 'is_enabled'}}
@@ -191,7 +212,7 @@ export function SplunkSetupForm({
       <Flex justify="end" padding="lg">
         <form.SubmitButton disabled={disabled}>{t('Complete Setup')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -207,13 +228,12 @@ export function SplunkEditForm({
   projects: Project[];
 }) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       ...baseFormEditDefaults(dataForwarder),
       ...splunkDefaults,
       ...dataForwarder.config,
     },
-    validators: {onDynamic: splunkSchema},
+    validators: defaultFormValidators(splunkSchema),
     onSubmit: ({value}) => {
       const {is_enabled, enroll_new_projects, project_ids, ...configFields} = value;
       onSubmit({
@@ -229,7 +249,7 @@ export function SplunkEditForm({
   const projectOptions = buildProjectOptions(projects);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <EnablementFields
         form={form}
         fields={{is_enabled: 'is_enabled'}}
@@ -263,6 +283,6 @@ export function SplunkEditForm({
         </DataForwarderDeleteConfirm>
         <form.SubmitButton disabled={disabled}>{t('Update Forwarder')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

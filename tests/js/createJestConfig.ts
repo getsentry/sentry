@@ -247,6 +247,9 @@ if (testMatch?.length === 0) {
  * transformed.
  */
 const ESM_NODE_MODULES = [
+  '@tanstack\\+form-core',
+  '@tanstack\\+react-form',
+  '@tanstack\\+react-store',
   'react-router@8\\.',
   '@remix-run\\+route-pattern',
   'cookie-es',

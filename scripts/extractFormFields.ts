@@ -2,7 +2,7 @@
 
 /**
  * Static analysis script to extract form field definitions from useScrapsForm usage
- * Parses TypeScript/TSX files to find <form.AppField> components and extract metadata
+ * Parses TypeScript/TSX files to find form field components and extract metadata
  */
 import {execFileSync} from 'node:child_process';
 import * as fs from 'node:fs';
@@ -25,7 +25,7 @@ interface ExtractedField {
   name: string;
   hintText?: string;
   label?: string;
-  /** Route pattern for SettingsSearch (extracted from form.FormWrapper) */
+  /** Route pattern for SettingsSearch (extracted from FormSearch) */
   route?: string;
 }
 
@@ -265,11 +265,11 @@ class FormFieldExtractor {
     route: string,
     sourceFile: ts.SourceFile
   ): ExtractedField | null {
-    // Check if this is <form.AppField> or <AutoSaveForm>
+    // Check if this is a form field component or <AutoSaveForm>.
     const tagName = this.getJsxTagName(node, sourceFile);
-    const isAppField = tagName?.includes('AppField');
+    const isFormField = tagName?.endsWith('.Field') || tagName?.endsWith('.ArrayField');
     const isAutoSaveForm = tagName === 'AutoSaveForm';
-    if (!isAppField && !isAutoSaveForm) {
+    if (!isFormField && !isAutoSaveForm) {
       return null;
     }
 
@@ -406,7 +406,7 @@ class FormFieldExtractor {
     }
 
     if (ts.isPropertyAccessExpression(tagName)) {
-      // e.g., form.AppField or field.Input
+      // e.g., form.Field or field.Input
       return tagName.getText(sourceFile);
     }
 

@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -96,7 +96,6 @@ function OrganizationCreate() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       name: '',
       defaultTeam: true,
@@ -104,8 +103,8 @@ function OrganizationCreate() {
       dataStorageLocation: null as string | null,
       aggregatedDataConsent: false,
     },
-    validators: {onDynamic: schema},
-    onSubmit: ({value, formApi}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) => {
       toast.loading(t('Creating Organization\u2026'));
 
       const data: CreateOrganizationPayload = {
@@ -124,12 +123,12 @@ function OrganizationCreate() {
 
       return mutation.mutateAsync(data).catch((error: unknown) => {
         // Surface field-specific errors inline; otherwise show a toast.
-        if (
-          error instanceof RequestError &&
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values))
-        ) {
-          toast.dismiss();
-          return;
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            toast.dismiss();
+            return createValidationError({fields});
+          }
         }
         const detail =
           error instanceof RequestError ? error.responseJSON?.detail : undefined;
@@ -137,6 +136,7 @@ function OrganizationCreate() {
         toast.error(
           typeof message === 'string' ? message : t('Unable to create organization.')
         );
+        return;
       });
     },
   });
@@ -156,27 +156,30 @@ function OrganizationCreate() {
             </Text>
           </Stack>
 
-          <form.AppForm form={form}>
+          <ScrapsForm form={form}>
             <Stack gap="xl">
-              <form.AppField name="name">
+              <form.Field name="name">
                 {field => (
                   <field.Layout.Stack label={t('Organization Name')} required>
                     <field.Input
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       autoComplete="organization"
                       placeholder={t('e.g. My Company')}
                     />
                   </field.Layout.Stack>
                 )}
-              </form.AppField>
+              </form.Field>
 
               {showLocality && (
-                <form.AppField
+                <form.Field
                   name="dataStorageLocation"
-                  validators={{
-                    onDynamic: z.string(t('Please select a data storage location')),
-                  }}
+                  validators={[
+                    {
+                      run: z.string(t('Please select a data storage location')),
+                      triggers: ['change'],
+                    },
+                  ]}
                 >
                   {field => (
                     <field.Layout.Stack
@@ -188,24 +191,27 @@ function OrganizationCreate() {
                       required
                     >
                       <field.Select
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         options={localityOptions}
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               )}
 
               {termsUrl && privacyUrl && (
-                <form.AppField
+                <form.Field
                   name="agreeTerms"
-                  validators={{
-                    onDynamic: z.literal(
-                      true,
-                      t('Please agree to the Terms of Service and the Privacy Policy')
-                    ),
-                  }}
+                  validators={[
+                    {
+                      run: z.literal(
+                        true,
+                        t('Please agree to the Terms of Service and the Privacy Policy')
+                      ),
+                      triggers: ['change'],
+                    },
+                  ]}
                 >
                   {field => (
                     // Label lives inside field.Base so the validation icon it
@@ -216,7 +222,7 @@ function OrganizationCreate() {
                         <Flex gap="md" align="center">
                           <Checkbox
                             {...baseProps}
-                            checked={field.state.value}
+                            checked={field.value}
                             onChange={e => field.handleChange(e.target.checked)}
                           />
                           <field.Meta.Label required>
@@ -232,18 +238,18 @@ function OrganizationCreate() {
                       )}
                     </field.Base>
                   )}
-                </form.AppField>
+                </form.Field>
               )}
 
               {hasDataConsent && (
-                <form.AppField name="aggregatedDataConsent">
+                <form.Field name="aggregatedDataConsent">
                   {field => (
                     <field.Base<HTMLInputElement>>
                       {baseProps => (
                         <Flex gap="md" align="center">
                           <Checkbox
                             {...baseProps}
-                            checked={field.state.value}
+                            checked={field.value}
                             onChange={e => field.handleChange(e.target.checked)}
                           />
                           <field.Meta.Label>
@@ -260,7 +266,7 @@ function OrganizationCreate() {
                       )}
                     </field.Base>
                   )}
-                </form.AppField>
+                </form.Field>
               )}
 
               {!isSelfHosted && features.has('relocation:enabled') && (
@@ -280,7 +286,7 @@ function OrganizationCreate() {
                 <form.SubmitButton>{t('Create Organization')}</form.SubmitButton>
               </Flex>
             </Stack>
-          </form.AppForm>
+          </ScrapsForm>
         </Stack>
       </NarrowLayout>
     </SentryDocumentTitle>

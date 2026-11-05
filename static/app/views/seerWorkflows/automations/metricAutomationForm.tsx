@@ -8,9 +8,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {
-  defaultFormOptions,
+  defaultFormValidators,
+  ScrapsForm,
   DisplayField,
-  setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -139,7 +139,6 @@ export function MetricAutomationForm(props: Props) {
     },
   });
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       enabled: props.mode === 'edit' ? props.config.enabled : false,
       name:
@@ -151,8 +150,8 @@ export function MetricAutomationForm(props: Props) {
       scopes:
         agent?.scopes ?? DEFAULT_AGENT_SCOPES.filter(scope => grantableScopes.has(scope)),
     },
-    validators: {onDynamic: schema},
-    onSubmit: async ({value, formApi}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: async ({value, formApi, createValidationError}) => {
       try {
         const config = await mutation.mutateAsync(schema.parse(value));
         if (props.mode === 'edit') {
@@ -166,15 +165,19 @@ export function MetricAutomationForm(props: Props) {
         }
       } catch (error) {
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
+          }
         }
       }
+      return;
     },
   });
 
   return (
     <Container maxWidth="960px" width="100%" containerType="inline-size">
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <Stack gap="lg">
           {mutation.isError && (
             <Alert variant="danger">
@@ -186,18 +189,18 @@ export function MetricAutomationForm(props: Props) {
           )}
           <form.FieldGroup title={t('Details')}>
             {props.mode === 'create' ? (
-              <form.AppField name="name">
+              <form.Field name="name">
                 {field => (
                   <field.Layout.Stack label={t('Name')} required>
                     <field.Input
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       placeholder={t('e.g. Investigate checkout errors')}
                       maxLength={64}
                     />
                   </field.Layout.Stack>
                 )}
-              </form.AppField>
+              </form.Field>
             ) : (
               <DisplayField.Row label={t('Name')}>
                 <Text>{props.config.name ?? t('Breached metrics')}</Text>
@@ -233,7 +236,7 @@ export function MetricAutomationForm(props: Props) {
                     {monitorsQuery.isError ? (
                       <LoadingError onRetry={monitorsQuery.refetch} />
                     ) : (
-                      <form.AppField name="monitorIds">
+                      <form.Field name="monitorIds">
                         {field => (
                           <field.Layout.Stack
                             label={t('Connected monitors')}
@@ -245,7 +248,7 @@ export function MetricAutomationForm(props: Props) {
                               multiple
                               clearable
                               searchable
-                              value={field.state.value}
+                              value={field.value}
                               onChange={field.handleChange}
                               isLoading={monitorsQuery.isPending}
                               placeholder={t('Connect metric monitors…')}
@@ -256,7 +259,7 @@ export function MetricAutomationForm(props: Props) {
                             />
                           </field.Layout.Stack>
                         )}
-                      </form.AppField>
+                      </form.Field>
                     )}
                     <ConnectedMonitorList
                       monitorIds={monitorIds}
@@ -285,7 +288,7 @@ export function MetricAutomationForm(props: Props) {
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Actions')}>
-            <form.AppField name="enabled">
+            <form.Field name="enabled">
               {field => (
                 <field.Layout.Row
                   label={t('Start investigations')}
@@ -293,13 +296,10 @@ export function MetricAutomationForm(props: Props) {
                     'Automatically investigate connected monitor breaches. Turn off to pause this automation.'
                   )}
                 >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
+                  <field.Switch checked={field.value} onChange={field.handleChange} />
                 </field.Layout.Row>
               )}
-            </form.AppField>
+            </form.Field>
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Agent Capabilities')}>
@@ -311,7 +311,7 @@ export function MetricAutomationForm(props: Props) {
               </Text>
               <form.Subscribe selector={state => state.values.monitorIds}>
                 {monitorIds => (
-                  <form.AppField name="agentProjects">
+                  <form.Field name="agentProjects">
                     {field => (
                       <field.Layout.Stack
                         label={t('Agent projects')}
@@ -324,9 +324,9 @@ export function MetricAutomationForm(props: Props) {
                             multiple
                             clearable
                             searchable
-                            disabled={field.state.value.mode === 'all'}
+                            disabled={field.value.mode === 'all'}
                             value={resolveAgentProjects(
-                              field.state.value,
+                              field.value,
                               monitorIds,
                               monitors
                             )}
@@ -338,20 +338,20 @@ export function MetricAutomationForm(props: Props) {
                               label: project.slug,
                             }))}
                             placeholder={
-                              field.state.value.mode === 'all'
+                              field.value.mode === 'all'
                                 ? t('All projects')
                                 : t('Select projects…')
                             }
                           />
                           <Flex align="center" justify="between" gap="md" wrap="wrap">
                             <Text variant="muted" size="sm">
-                              {field.state.value.mode === 'monitors'
+                              {field.value.mode === 'monitors'
                                 ? t('Using connected monitor projects.')
                                 : t(
                                     'Project access is independent of connected monitors.'
                                   )}
                             </Text>
-                            {field.state.value.mode !== 'monitors' && (
+                            {field.value.mode !== 'monitors' && (
                               <Button
                                 size="xs"
                                 onClick={() => field.handleChange({mode: 'monitors'})}
@@ -363,10 +363,10 @@ export function MetricAutomationForm(props: Props) {
                         </Stack>
                       </field.Layout.Stack>
                     )}
-                  </form.AppField>
+                  </form.Field>
                 )}
               </form.Subscribe>
-              <form.AppField name="scopes">
+              <form.Field name="scopes">
                 {field => (
                   <field.Layout.Stack
                     label={t('Permission scopes')}
@@ -379,15 +379,15 @@ export function MetricAutomationForm(props: Props) {
                       multiple
                       clearable
                       searchable
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
-                      options={[...new Set([...availableScopes, ...field.state.value])]
+                      options={[...new Set([...availableScopes, ...field.value])]
                         .sort()
                         .map(scope => ({value: scope, label: scope}))}
                     />
                   </field.Layout.Stack>
                 )}
-              </form.AppField>
+              </form.Field>
             </Stack>
           </form.FieldGroup>
 
@@ -412,7 +412,7 @@ export function MetricAutomationForm(props: Props) {
             </Flex>
           </Flex>
         </Stack>
-      </form.AppForm>
+      </ScrapsForm>
     </Container>
   );
 }

@@ -3,7 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
@@ -132,31 +132,8 @@ export function AddPromoCodeModal({
         navigate(`/_admin/promocodes/${result.code}/`);
       }
     },
-    onError: error => {
-      if (error instanceof RequestError) {
-        const hasFieldErrors = setFieldErrors(
-          form,
-          requestErrorToFieldErrors(error, form.state.values)
-        );
-        const response = error.responseJSON;
-        const nonFieldErrors = response?.non_field_errors ?? response?.nonFieldErrors;
-        if (Array.isArray(nonFieldErrors) && nonFieldErrors.length > 0) {
-          toast.error(nonFieldErrors.join(' '));
-          return;
-        }
-        if (hasFieldErrors) {
-          return;
-        }
-        if (typeof response?.detail === 'string') {
-          toast.error(response.detail);
-          return;
-        }
-      }
-      toast.error('Unable to save promo code.');
-    },
   });
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       isBatch: false,
       code: promoCode?.code ?? '',
@@ -175,13 +152,32 @@ export function AddPromoCodeModal({
       setExpiration: Boolean(promoCode?.dateExpires),
       dateExpires: promoCode?.dateExpires?.slice(0, 16) ?? '',
     },
-    validators: {onDynamic: promoCodeSchema},
-    onSubmit: ({value}) =>
-      mutation.mutateAsync(promoCodeSchema.parse(value)).catch(() => {}),
+    validators: defaultFormValidators(promoCodeSchema),
+    onSubmit: ({value, createValidationError}) =>
+      mutation.mutateAsync(promoCodeSchema.parse(value)).catch(error => {
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          const response = error.responseJSON;
+          const nonFieldErrors = response?.non_field_errors ?? response?.nonFieldErrors;
+          if (Array.isArray(nonFieldErrors) && nonFieldErrors.length > 0) {
+            toast.error(nonFieldErrors.join(' '));
+            return fields ? createValidationError({fields}) : undefined;
+          }
+          if (fields) {
+            return createValidationError({fields});
+          }
+          if (typeof response?.detail === 'string') {
+            toast.error(response.detail);
+            return;
+          }
+        }
+        toast.error('Unable to save promo code.');
+        return;
+      }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h4">
           {promoCode ? `Edit ${promoCode.code}` : 'Add New Promo Code'}
@@ -190,33 +186,30 @@ export function AddPromoCodeModal({
       <Body>
         <Stack gap="lg">
           {!promoCode && (
-            <form.AppField name="isBatch">
+            <form.Field name="isBatch">
               {field => (
                 <field.Layout.Row label="Create a batch of codes?">
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
+                  <field.Switch checked={field.value} onChange={field.handleChange} />
                 </field.Layout.Row>
               )}
-            </form.AppField>
+            </form.Field>
           )}
           <form.Subscribe selector={state => state.values.isBatch}>
             {isBatch =>
               isBatch ? (
                 <Fragment>
-                  <form.AppField
+                  <form.Field
                     name="codePrefix"
-                    validators={{
-                      onDynamic: z
+                    validators={defaultFormValidators(
+                      z
                         .string()
                         .min(1, 'Code prefix is required')
                         .max(32, 'Code prefix must be at most 32 characters')
                         .regex(
                           codePattern,
                           'Only letters, numbers, hyphens, and underscores are allowed'
-                        ),
-                    }}
+                        )
+                    )}
                   >
                     {field => (
                       <field.Layout.Stack
@@ -225,24 +218,24 @@ export function AddPromoCodeModal({
                         required
                       >
                         <field.Input
-                          value={field.state.value}
+                          value={field.value}
                           onChange={field.handleChange}
                           placeholder="e.g. PYCON-"
                         />
                       </field.Layout.Stack>
                     )}
-                  </form.AppField>
-                  <form.AppField
+                  </form.Field>
+                  <form.Field
                     name="count"
-                    validators={{
-                      onDynamic: z
+                    validators={defaultFormValidators(
+                      z
                         .number()
                         .int('Count must be a whole number')
                         .min(1, 'Count must be at least 1')
                         .max(MAX_BATCH_COUNT, `Count must be at most ${MAX_BATCH_COUNT}`)
                         .nullable()
-                        .refine(value => value !== null, 'Count is required'),
-                    }}
+                        .refine(value => value !== null, 'Count is required')
+                    )}
                   >
                     {field => (
                       <field.Layout.Stack
@@ -254,19 +247,19 @@ export function AddPromoCodeModal({
                           min={1}
                           max={MAX_BATCH_COUNT}
                           step={1}
-                          value={field.state.value}
+                          value={field.value}
                           onChange={field.handleChange}
                         />
                       </field.Layout.Stack>
                     )}
-                  </form.AppField>
+                  </form.Field>
                 </Fragment>
               ) : (
-                <form.AppField
+                <form.Field
                   name="code"
-                  validators={{
-                    onDynamic: z.string().min(5, 'Code must be at least 5 characters'),
-                  }}
+                  validators={defaultFormValidators(
+                    z.string().min(5, 'Code must be at least 5 characters')
+                  )}
                 >
                   {field => (
                     <field.Layout.Stack
@@ -275,67 +268,67 @@ export function AddPromoCodeModal({
                       required
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         disabled={!!promoCode}
                         placeholder="e.g. mysecretcode79"
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               )
             }
           </form.Subscribe>
-          <form.AppField name="campaign">
+          <form.Field name="campaign">
             {field => (
               <field.Layout.Stack
                 label="Campaign"
                 hintText="An optional campaign identifier for this promo code."
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. pycon"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="isTrialPromo">
+          </form.Field>
+          <form.Field name="isTrialPromo">
             {field => (
               <field.Layout.Row label="Create trial promo code?">
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
           <form.Subscribe selector={state => state.values.isTrialPromo}>
             {isTrialPromo =>
               isTrialPromo ? (
-                <form.AppField
+                <form.Field
                   name="trialDays"
-                  validators={{
-                    onDynamic: z
+                  validators={defaultFormValidators(
+                    z
                       .number()
                       .int('Trial Days must be a positive whole number')
                       .positive('Trial Days must be a positive whole number')
                       .nullable()
-                      .refine(value => value !== null, 'Trial Days is required'),
-                  }}
+                      .refine(value => value !== null, 'Trial Days is required')
+                  )}
                 >
                   {field => (
                     <field.Layout.Stack label="Trial Days" required>
                       <field.Number
                         min={1}
                         step={1}
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="e.g. 30"
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               ) : (
                 <Fragment>
-                  <form.AppField name="duration">
+                  <form.Field name="duration">
                     {field => (
                       <field.Layout.Stack
                         label="Duration"
@@ -343,39 +336,39 @@ export function AddPromoCodeModal({
                         required
                       >
                         <field.Select
-                          value={field.state.value}
+                          value={field.value}
                           onChange={field.handleChange}
                           options={durationOptions}
                         />
                       </field.Layout.Stack>
                     )}
-                  </form.AppField>
-                  <form.AppField
+                  </form.Field>
+                  <form.Field
                     name="amount"
-                    validators={{
-                      onDynamic: z
+                    validators={defaultFormValidators(
+                      z
                         .number()
                         .positive('Amount must be greater than zero')
                         .nullable()
-                        .refine(value => value !== null, 'Amount is required'),
-                    }}
+                        .refine(value => value !== null, 'Amount is required')
+                    )}
                   >
                     {field => (
                       <field.Layout.Stack label="Amount" required>
                         <field.Number
                           step="any"
-                          value={field.state.value}
+                          value={field.value}
                           onChange={field.handleChange}
                           placeholder="e.g. 29 or 99.99"
                         />
                       </field.Layout.Stack>
                     )}
-                  </form.AppField>
+                  </form.Field>
                 </Fragment>
               )
             }
           </form.Subscribe>
-          <form.AppField name="maxClaims">
+          <form.Field name="maxClaims">
             {field => (
               <field.Layout.Stack
                 label="Max claims"
@@ -385,30 +378,30 @@ export function AddPromoCodeModal({
                 <field.Number
                   min={1}
                   step={1}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="newOnly">
+          </form.Field>
+          <form.Field name="newOnly">
             {field => (
               <field.Layout.Row label="Only allow this code to be applied to new accounts.">
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
-          <form.AppField name="setExpiration">
+          </form.Field>
+          <form.Field name="setExpiration">
             {field => (
               <field.Layout.Row label="Set an expiration date for the promo code?">
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
           <form.Subscribe selector={state => state.values.setExpiration}>
             {setExpiration =>
               setExpiration && (
-                <form.AppField name="dateExpires">
+                <form.Field name="dateExpires">
                   {field => (
                     <field.Layout.Stack
                       label="Date Expires"
@@ -416,12 +409,12 @@ export function AddPromoCodeModal({
                     >
                       <field.Input
                         type="datetime-local"
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               )
             }
           </form.Subscribe>
@@ -433,6 +426,6 @@ export function AddPromoCodeModal({
           <form.SubmitButton>{promoCode ? 'Update' : 'Create'}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

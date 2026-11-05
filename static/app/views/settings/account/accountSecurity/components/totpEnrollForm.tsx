@@ -1,8 +1,9 @@
 import {z} from 'zod';
 
 import {
-  defaultFormOptions,
+  defaultFormValidators,
   FieldGroup as FormPanel,
+  ScrapsForm,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
@@ -32,17 +33,16 @@ export function TotpEnrollForm({
   const {mutateAsync: enrollAuthenticator} = useEnrollAuthenticator(authenticator.id);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       otp: getServerFieldDefault(authenticator.form, 'otp'),
       secret: authenticator.secret ?? '',
     },
-    validators: {
-      onDynamic: z.object({
+    validators: defaultFormValidators(
+      z.object({
         otp: z.string().min(1, t('Authenticator token is required')).max(OTP_MAX_LENGTH),
         secret: z.string(),
-      }),
-    },
+      })
+    ),
     onSubmit: async ({value}) => {
       if (!value.secret) {
         return;
@@ -65,7 +65,7 @@ export function TotpEnrollForm({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FormPanel title={t('Configuration')}>
         <Flex justify="center">
           <QuietZoneQRCode
@@ -75,40 +75,40 @@ export function TotpEnrollForm({
           />
         </Flex>
 
-        <form.AppField name="secret">
+        <form.Field name="secret">
           {field => (
             <field.Layout.Stack label={t('Authenticator secret')}>
               <field.Input
                 readOnly
                 dir="ltr"
-                value={field.state.value}
+                value={field.value}
                 onClick={event => selectText(event.currentTarget)}
-                trailingItems={<InputCopyButton text={field.state.value} />}
+                trailingItems={<InputCopyButton text={field.value} />}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="otp">
+        <form.Field name="otp">
           {field => (
             <field.Layout.Row
               label={getServerFieldLabel(authenticator.form, 'otp')}
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 autoComplete="off"
                 maxLength={OTP_MAX_LENGTH}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
 
         <Flex justify="end">
           <form.SubmitButton>{t('Confirm')}</form.SubmitButton>
         </Flex>
       </FormPanel>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

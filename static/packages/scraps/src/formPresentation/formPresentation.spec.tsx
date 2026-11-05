@@ -1,7 +1,7 @@
 import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
 // eslint-disable-next-line no-restricted-imports
-import {useForm} from '@tanstack/react-form';
+import {createFormHook} from '@tanstack/react-form';
 import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -9,13 +9,14 @@ import {
   AutoSaveContextProvider,
   useAutoSaveContext,
   DisplayField,
-  useFieldId,
-  useHintTextId,
-  useLabelId,
+  getFieldId,
+  getHintTextId,
+  getLabelId,
+  fieldComponent,
+  type FieldWithValue,
   GroupProvider,
   type GroupContextValue,
   FieldMeta,
-  fieldContext as FieldContext,
   FieldLayout,
 } from '@sentry/scraps/formPresentation';
 import {lightTheme} from '@sentry/scraps/theme';
@@ -24,10 +25,16 @@ function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
 }
 
-function Control({group = false}: {group?: boolean}) {
-  const id = useFieldId();
-  const hintId = useHintTextId();
-  const labelId = useLabelId();
+function Control({
+  group = false,
+  field,
+}: {
+  field: FieldWithValue<unknown>;
+  group?: boolean;
+}) {
+  const id = getFieldId(field);
+  const hintId = getHintTextId(field);
+  const labelId = getLabelId(field);
   return group ? (
     <div role="group" aria-labelledby={labelId} aria-describedby={hintId}>
       <input type="checkbox" aria-label="First choice" />
@@ -48,6 +55,15 @@ function GroupWrapper({children, group}: {children: React.ReactNode; group?: boo
   return group ? <GroupProvider value={value}>{children}</GroupProvider> : children;
 }
 
+const {useAppForm} = createFormHook({
+  fieldComponents: {
+    Control: fieldComponent.loose(Control, 'field'),
+    Meta: FieldMeta,
+    Layout: FieldLayout,
+  },
+  formComponents: {},
+});
+
 function ExampleField({
   compact,
   group,
@@ -59,23 +75,21 @@ function ExampleField({
   error?: string;
   group?: boolean;
 }) {
-  const form = useForm({defaultValues: {name: ''}});
+  const form = useAppForm({defaultValues: {name: ''}});
   return (
     <form.Field name="name">
       {field => (
-        <FieldContext value={field}>
-          <GroupWrapper group={group}>
-            <FieldLayout.Row
-              label="Name"
-              hintText="Choose a name"
-              required
-              variant={compact ? 'compact' : undefined}
-            >
-              <Control group={group} />
-              <FieldMeta.Status error={error} disabled={disabled} />
-            </FieldLayout.Row>
-          </GroupWrapper>
-        </FieldContext>
+        <GroupWrapper group={group}>
+          <field.Layout.Row
+            label="Name"
+            hintText="Choose a name"
+            required
+            variant={compact ? 'compact' : undefined}
+          >
+            <field.Control group={group} />
+            <field.Meta.Status error={error} disabled={disabled} />
+          </field.Layout.Row>
+        </GroupWrapper>
       )}
     </form.Field>
   );

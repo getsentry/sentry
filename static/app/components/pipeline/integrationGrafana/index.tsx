@@ -1,7 +1,6 @@
-import {useEffect} from 'react';
 import {z} from 'zod';
 
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -13,6 +12,7 @@ import type {
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 const credentialsSchema = z.object({
@@ -22,32 +22,31 @@ const credentialsSchema = z.object({
 
 function GrafanaCredentialsStep({
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<Record<string, never>, {token: string; url: string}>) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {url: '', token: ''},
-    validators: {onDynamic: credentialsSchema},
-    onSubmit: ({value}) => advance(credentialsSchema.parse(value)),
+    validators: defaultFormValidators(credentialsSchema),
+    onSubmit: ({value, createValidationError}) =>
+      advance(credentialsSchema.parse(value)).catch(error => {
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          return fields ? createValidationError({fields}) : undefined;
+        }
+        throw error;
+      }),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, requestErrorToFieldErrors(advanceError, form.state.values));
-    }
-  }, [advanceError, form]);
-
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
           {t(
             'Connect your Grafana Cloud stack so Seer can query metrics and logs for everyone in your organization.'
           )}
         </Text>
-        <form.AppField name="url">
+        <form.Field name="url">
           {field => (
             <field.Layout.Stack
               label={t('Grafana URL')}
@@ -57,15 +56,15 @@ function GrafanaCredentialsStep({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="https://your-stack.grafana.net"
                 disabled={isAdvancing}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="token">
+        </form.Field>
+        <form.Field name="token">
           {field => (
             <field.Layout.Stack
               label={t('Service account token')}
@@ -80,21 +79,21 @@ function GrafanaCredentialsStep({
               required
             >
               <field.Password
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 autoComplete="new-password"
                 disabled={isAdvancing}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex>
           <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
             {t('Continue')}
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

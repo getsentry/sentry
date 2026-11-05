@@ -1,12 +1,14 @@
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
+import type {FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {FieldMeta} from '@sentry/scraps/formPresentation';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
-import {BaseField, type BaseFieldProps} from './baseField';
+import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 import {CheckboxGroup, CheckboxGroupItem} from './checkboxGroupField';
 
-type Props = BaseFieldProps<HTMLInputElement> &
-  Omit<CheckboxProps, 'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'ref'> & {
+type Props = BaseFieldProps<HTMLInputElement> & {
+  field: FieldWithValue<unknown>;
+} & Omit<CheckboxProps, 'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'ref'> & {
     checked: boolean;
     label: React.ReactNode;
     onChange: (checked: boolean) => void;
@@ -15,6 +17,7 @@ type Props = BaseFieldProps<HTMLInputElement> &
 
 export function CheckboxField({
   checked,
+  field,
   disabled,
   hintText,
   label,
@@ -23,7 +26,7 @@ export function CheckboxField({
   ...props
 }: Props) {
   return (
-    <BaseField disabled={disabled} ref={ref}>
+    <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
       {(fieldProps, {indicator}) => (
         <Grid
           columns="max-content minmax(0, 1fr)"
@@ -48,7 +51,7 @@ export function CheckboxField({
           )}
         </Grid>
       )}
-    </BaseField>
+    </BaseFieldImpl>
   );
 }
 

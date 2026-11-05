@@ -89,7 +89,7 @@ export default function ProjectReplaySettings() {
                       )}
                     >
                       <field.Switch
-                        checked={field.state.value}
+                        checked={field.value}
                         onChange={field.handleChange}
                         disabled={!hasAccess}
                       />
@@ -120,7 +120,7 @@ export default function ProjectReplaySettings() {
                       )}
                     >
                       <field.Switch
-                        checked={field.state.value}
+                        checked={field.value}
                         onChange={field.handleChange}
                         disabled={!hasAccess}
                       />
