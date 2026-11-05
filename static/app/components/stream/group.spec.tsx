@@ -4,7 +4,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {StreamGroup} from 'sentry/components/stream/group';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {EventOrGroupType} from 'sentry/types/event';
@@ -12,6 +11,8 @@ import type {Group} from 'sentry/types/group';
 import {GroupStatus, PriorityLevel} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
+
+import {StreamGroup} from './group';
 
 jest.mock('sentry/utils/analytics');
 

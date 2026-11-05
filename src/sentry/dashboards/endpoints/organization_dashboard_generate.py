@@ -151,6 +151,9 @@ class OrganizationDashboardGeneratePermission(OrganizationPermission):
         "POST": ["org:read", "dashboard:read"],
     }
 
+    # dashboard:read replaces org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
 
 @cell_silo_endpoint
 class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):

@@ -12,13 +12,11 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {Timeline} from 'sentry/components/timeline';
 import {t, tn} from 'sentry/locale';
-import {HypothesisEvidencePlaceholder} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
-import {
-  getHypothesisCardBorder,
-  HypothesisStatus,
-} from 'sentry/views/investigations/hypotheses/hypothesisStatus';
 import {HypothesisLLMContext} from 'sentry/views/investigations/investigationLLMContext';
 import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
+
+import {HypothesisEvidencePlaceholder} from './hypothesisPlaceholder';
+import {getHypothesisCardBorder, HypothesisStatus} from './hypothesisStatus';
 
 /** States where missing checks mean "not yet"; anything else finished without them. */
 const PENDING_EVIDENCE_STATUSES = new Set<string>(['pending', 'investigating']);

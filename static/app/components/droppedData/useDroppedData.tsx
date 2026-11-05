@@ -1,7 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -14,6 +13,8 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
+
+import type {OutcomeRow} from './types';
 
 const REFERRER = 'api.explore.dropped-data-annotations';
 

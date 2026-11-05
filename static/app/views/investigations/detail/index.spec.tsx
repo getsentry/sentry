@@ -16,8 +16,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -199,8 +199,7 @@ async function chooseBlockAction(
 describe('Investigation detail', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({url: `${detailUrl}comment-counts/`, body: {}});
-    jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
-    jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+    jest.spyOn(toast, 'success').mockImplementation();
     createFeedbackForm.mockClear();
     ConfigStore.set('customerDomain', null);
     MockApiClient.addMockResponse({

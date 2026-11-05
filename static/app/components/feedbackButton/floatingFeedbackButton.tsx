@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 
-import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {useFeedbackSDKIntegration} from './useFeedbackSDKIntegration';
 
 /**
  * `<FloatingFeedbackButton /> renders a 'Give Feedback' button that floats in

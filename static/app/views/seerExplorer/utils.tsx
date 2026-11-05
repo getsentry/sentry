@@ -20,13 +20,14 @@ import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+
 import type {
   Artifact,
   Block,
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
   ToolLink,
-} from 'sentry/views/seerExplorer/types';
+} from './types';
 
 /**
  * Tool formatter function type.

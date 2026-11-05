@@ -6,7 +6,8 @@ import type {Tooltip} from '@sentry/scraps/tooltip';
 import {HeaderCell} from 'sentry/components/replays/virtualizedGrid/headerCell';
 import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {t, tct} from 'sentry/locale';
-import type {useSortNetwork} from 'sentry/views/explore/replays/detail/network/useSortNetwork';
+
+import type {useSortNetwork} from './useSortNetwork';
 
 type SortConfig = ReturnType<typeof useSortNetwork>['sortConfig'];
 type Props = {

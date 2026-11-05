@@ -8,11 +8,9 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {TimeSince} from 'sentry/components/timeSince';
-import {Version} from 'sentry/components/version';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -22,6 +20,9 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+
+import {TimeSince} from './timeSince';
+import {Version} from './version';
 
 function canLookupExactRelease(version: string): boolean {
   return version.length > 0 && !/^\.\.?$/.test(version);

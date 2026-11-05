@@ -2,12 +2,10 @@ import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {
-  ModalRenderProps,
-  TeamAccessRequestModalOptions,
-} from 'sentry/actionCreators/modal';
+import type {TeamAccessRequestModalOptions} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -38,9 +36,9 @@ function CreateTeamAccessRequestModal(props: CreateTeamAccessRequestModalProps) 
           method: 'POST',
         }
       );
-      addSuccessMessage(t('Team request sent for approval'));
+      toast.success(t('Team request sent for approval'));
     } catch (err) {
-      addErrorMessage(t('Unable to send team request'));
+      toast.error(t('Unable to send team request'));
     }
     setCreateBusy(false);
     closeModal();

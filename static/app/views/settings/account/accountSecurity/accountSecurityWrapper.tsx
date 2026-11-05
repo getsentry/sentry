@@ -2,7 +2,8 @@ import {useCallback} from 'react';
 import {Outlet, useOutletContext} from 'react-router';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -64,7 +65,7 @@ export default function AccountSecurityWrapper() {
       handleRefresh();
     },
     onError: (_, auth) => {
-      addErrorMessage(t('Error disabling %s', auth.name));
+      toast.error(t('Error disabling %s', auth.name));
     },
   });
 
@@ -82,7 +83,7 @@ export default function AccountSecurityWrapper() {
       handleRefresh();
     },
     onError: () => {
-      addErrorMessage(t('Error regenerating backup codes'));
+      toast.error(t('Error regenerating backup codes'));
     },
   });
 

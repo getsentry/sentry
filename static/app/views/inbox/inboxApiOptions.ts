@@ -1,6 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {InboxItem} from 'sentry/views/inbox/types';
+
+import type {InboxItem} from './types';
 
 const INBOX_ITEMS_PER_PAGE = 25;
 

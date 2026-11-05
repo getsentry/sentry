@@ -28,18 +28,16 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getAlignment} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
+import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+
 import {
   SEGMENT_SPANS_COLUMN_ORDER,
   type SegmentSpansColumn,
   type SegmentSpansRow,
-} from 'sentry/views/performance/eap/types';
-import {useSegmentSpansQuery} from 'sentry/views/performance/eap/useSegmentSpansQuery';
-import {
-  getEAPSegmentSpansListSort,
-  SEGMENT_SPANS_CURSOR,
-} from 'sentry/views/performance/eap/utils';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
-import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+} from './types';
+import {useSegmentSpansQuery} from './useSegmentSpansQuery';
+import {getEAPSegmentSpansListSort, SEGMENT_SPANS_CURSOR} from './utils';
 
 const LIMIT = 5;
 const PAGINATION_CURSOR_SIZE = 'xs';

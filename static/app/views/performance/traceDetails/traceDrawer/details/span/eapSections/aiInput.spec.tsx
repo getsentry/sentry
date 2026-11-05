@@ -2,7 +2,7 @@ import type {ComponentProps} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AIInputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
+import {AIInputSection} from './aiInput';
 
 const originalResizeObserver = window.ResizeObserver;
 

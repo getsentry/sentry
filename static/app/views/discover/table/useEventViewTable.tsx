@@ -21,8 +21,9 @@ import {
 import {fieldAlignment, type Sort} from 'sentry/utils/discover/fields';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {CellAction, type Actions} from 'sentry/views/discover/table/cellAction';
-import type {TableColumn} from 'sentry/views/discover/table/types';
+
+import {CellAction, type Actions} from './cellAction';
+import type {TableColumn} from './types';
 
 type EventViewTableColumn = TableColumn<keyof TableDataRow>;
 

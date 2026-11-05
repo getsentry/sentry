@@ -1,7 +1,8 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {useLogsTableColumnWidths} from './useLogsTableColumnWidths';
 
 const MESSAGE = OurLogKnownFieldKey.MESSAGE;
 const FLEX = 'minmax(90px, 1fr)';

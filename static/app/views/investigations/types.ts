@@ -1,11 +1,12 @@
 import type {AvatarUser} from 'sentry/types/user';
+import type {ToolResult} from 'sentry/views/seerExplorer/types';
+
 import type {
   ActionRequestError,
   ActionRequestFollowUp,
   CannotApplyReason,
   InvestigationDetectorValues,
-} from 'sentry/views/investigations/api';
-import type {ToolResult} from 'sentry/views/seerExplorer/types';
+} from './api';
 
 /**
  * The scalar head of an agentic run, served inline with an investigation so a

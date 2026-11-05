@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
-import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
@@ -15,6 +14,8 @@ import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+
+import {dispatchYAxisUpdate} from './utils';
 
 interface BuilderStateMetricsQueryParamsProviderProps {
   children: React.ReactNode;

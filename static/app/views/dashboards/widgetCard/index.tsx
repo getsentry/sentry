@@ -42,7 +42,6 @@ import {
 import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
 import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
-import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {
   LegendSelection,
@@ -54,6 +53,7 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {VisualizationWidget} from './visualizationWidget';
+import {WidgetCardChartContainer} from './widgetCardChartContainer';
 import {
   getMenuOptions,
   useDroppedColumnsWarning,
@@ -417,6 +417,7 @@ function WidgetCard(props: Props) {
               showConfidenceWarning={showConfidenceWarning}
               legendSelection={legendSelectionForWidget}
               onLegendSelectionChange={handleLegendSelectionChange}
+              disableFullscreen={disableFullscreen}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
