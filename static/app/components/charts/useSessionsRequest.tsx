@@ -63,8 +63,11 @@ export function useSessionsRequest({
   });
 
   return {
-    // eslint-disable-next-line @tanstack/query/no-rest-destructuring -- Preserve the shared hook result interface.
-    ...sessionQuery,
+    isPending: sessionQuery.isPending,
+    isLoading: sessionQuery.isLoading,
+    isFetching: sessionQuery.isFetching,
+    isError: sessionQuery.isError,
+    error: sessionQuery.error,
     data:
       sessionQuery.isPending || !sessionQuery.data
         ? null

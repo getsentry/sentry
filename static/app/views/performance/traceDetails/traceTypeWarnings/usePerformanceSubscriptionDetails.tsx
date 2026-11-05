@@ -46,8 +46,7 @@ export function usePerformanceSubscriptionDetails({
 }) {
   const organization = useOrganization();
 
-  // eslint-disable-next-line @tanstack/query/no-rest-destructuring -- Preserve the shared hook result interface.
-  const {data: subscription, ...rest} = useQuery({
+  const subscriptionQuery = useQuery({
     ...apiOptions.as<Subscription>()('/customers/$organizationIdOrSlug/', {
       path: {organizationIdOrSlug: organization.slug},
       staleTime: Infinity,
@@ -55,15 +54,15 @@ export function usePerformanceSubscriptionDetails({
   });
 
   const hasExceededPerformanceUsageLimit = subscriptionHasExceededPerformanceUsageLimit(
-    subscription,
+    subscriptionQuery.data,
     traceItemDataset
   );
 
   return {
-    ...rest,
+    isLoading: subscriptionQuery.isLoading,
     data: {
       hasExceededPerformanceUsageLimit,
-      subscription,
+      subscription: subscriptionQuery.data,
     },
   };
 }

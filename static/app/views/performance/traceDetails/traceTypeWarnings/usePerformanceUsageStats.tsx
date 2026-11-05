@@ -66,8 +66,6 @@ export function usePerformanceUsageStats({
   });
 
   return {
-    // eslint-disable-next-line @tanstack/query/no-rest-destructuring -- Preserve the shared hook result interface.
-    ...results,
     data: results.data?.groups.find(group =>
       ['transaction_usage_exceeded', 'span_usage_exceeded'].includes(group.by.reason)
     ),

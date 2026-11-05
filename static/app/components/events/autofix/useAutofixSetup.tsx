@@ -55,8 +55,9 @@ export function useAutofixSetup(
   });
 
   return {
-    // eslint-disable-next-line @tanstack/query/no-rest-destructuring -- Preserve the shared hook result interface.
-    ...queryData,
+    data: queryData.data,
+    isPending: queryData.isPending,
+    refetch: queryData.refetch,
     canStartAutofix: Boolean(queryData.data?.integration.ok),
     hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),
     seerReposLinked: Boolean(queryData.data?.seerReposLinked),
