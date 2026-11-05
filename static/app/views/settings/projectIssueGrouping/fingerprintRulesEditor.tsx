@@ -15,12 +15,13 @@ import {TextArea, type TextAreaProps} from '@sentry/scraps/textarea';
 import {type FormSize} from '@sentry/scraps/theme';
 
 import {t, tn} from 'sentry/locale';
+
 import {
   tokenizeFingerprintRules,
   type FingerprintDiagnostic,
   type FingerprintDiagnosticCode,
   type FingerprintToken,
-} from 'sentry/views/settings/projectIssueGrouping/fingerprintRulesSyntax';
+} from './fingerprintRulesSyntax';
 
 // Each gets the text it underlines
 const DIAGNOSTIC_MESSAGES: Record<FingerprintDiagnosticCode, (text: string) => string> = {

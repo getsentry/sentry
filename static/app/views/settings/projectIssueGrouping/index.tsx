@@ -26,7 +26,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
-import {FingerprintRulesEditor} from 'sentry/views/settings/projectIssueGrouping/fingerprintRulesEditor';
+
+import {FingerprintRulesEditor} from './fingerprintRulesEditor';
 
 function FingerprintRulesForm({
   project,

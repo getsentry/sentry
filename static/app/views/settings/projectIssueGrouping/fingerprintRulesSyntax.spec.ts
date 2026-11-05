@@ -1,4 +1,4 @@
-import {tokenizeFingerprintRules} from 'sentry/views/settings/projectIssueGrouping/fingerprintRulesSyntax';
+import {tokenizeFingerprintRules} from './fingerprintRulesSyntax';
 
 function getTokens(text: string) {
   return tokenizeFingerprintRules(text).tokens.map(({type, start, end}) => [

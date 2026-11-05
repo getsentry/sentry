@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {FingerprintRulesEditor} from 'sentry/views/settings/projectIssueGrouping/fingerprintRulesEditor';
+import {FingerprintRulesEditor} from './fingerprintRulesEditor';
 
 jest.unmock('@tanstack/react-pacer');
 

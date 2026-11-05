@@ -1,4 +1,4 @@
-import {parse} from 'sentry/views/settings/projectIssueGrouping/fingerprintRules.pegjs';
+import {parse} from './fingerprintRules.pegjs';
 
 /**
  * Tokenizes fingerprint rules to highlight them and point out mistakes before they're saved.
