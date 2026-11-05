@@ -28,7 +28,6 @@ export type SettingsEventParameters = {
   };
   'settings.entry_point_clicked': {
     entry_point: SettingsEntryPoint;
-    settings_v3: boolean;
   };
   'settings.org_menu.project_bookmark_toggled': {
     bookmarked: boolean;
@@ -47,7 +46,6 @@ export type SettingsEventParameters = {
      */
     path: string;
     scope: SettingsScope;
-    settings_v3: boolean;
   };
   'settings.project_selector.changed': Record<string, unknown>;
   'sidebar.item_clicked': {

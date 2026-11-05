@@ -43,7 +43,6 @@ export function UserDropdown() {
     trackAnalytics('settings.entry_point_clicked', {
       organization,
       entry_point: 'user_menu_settings',
-      settings_v3: settingsV3,
     });
 
   useEffect(() => {

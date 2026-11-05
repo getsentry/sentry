@@ -36,7 +36,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {ProjectPageFilterTrigger} from './projectPageFilterTrigger';
 
@@ -78,7 +77,6 @@ export function ProjectPageFilter({
   const navigate = useNavigate();
   const matches = useMatches();
   const organization = useOrganization();
-  const settingsV3 = useSettingsV3();
   // Project data s
   const {projects: storeProjects, initiallyLoaded: projectsLoaded} = useProjects();
   const {
@@ -199,10 +197,7 @@ export function ProjectPageFilter({
                     to={`/settings/${organization.slug}/projects/${project.slug}/`}
                     analyticsEventKey="settings.entry_point_clicked"
                     analyticsEventName="Settings: Entry Point Clicked"
-                    analyticsParams={{
-                      entry_point: 'project_page_filter',
-                      settings_v3: settingsV3,
-                    }}
+                    analyticsParams={{entry_point: 'project_page_filter'}}
                   />
                 </Fragment>
               ) : null}
@@ -402,7 +397,7 @@ export function ProjectPageFilter({
 
     return [...specialItems, ...projectItems];
     // oxlint-disable-next-line react/memo-dependencies
-  }, [projects, stagedValue, urlProjectSelection, organization, settingsV3]);
+  }, [projects, stagedValue, urlProjectSelection, organization]);
 
   const routePath = useMemo(() => getRouteStringFromRoutes({matches}), [matches]);
 

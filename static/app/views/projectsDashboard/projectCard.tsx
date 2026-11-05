@@ -35,7 +35,6 @@ import {
   platformToDomainView,
 } from 'sentry/views/performance/utils';
 import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
-import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {Deploys} from './deploys';
 import {ProjectChart} from './projectChart';
@@ -51,7 +50,6 @@ export function ProjectCard({
   hasProjectAccess,
 }: ProjectCardProps) {
   const organization = useOrganization();
-  const settingsV3 = useSettingsV3();
   const hasPerformance = organization.features.includes('performance-view');
   const {getOne: getProjectStats} = useProjectStats({
     organization,
@@ -125,7 +123,7 @@ export function ProjectCard({
               to={`/settings/${organization.slug}/projects/${slug}/`}
               analyticsEventKey="settings.entry_point_clicked"
               analyticsEventName="Settings: Entry Point Clicked"
-              analyticsParams={{entry_point: 'project_card', settings_v3: settingsV3}}
+              analyticsParams={{entry_point: 'project_card'}}
             />
             <BookmarkStar organization={organization} project={simpleProject} />
           </Grid>

@@ -9,7 +9,7 @@ import {useTrackSettingsPageView} from './useTrackSettingsPageView';
 jest.mock('sentry/utils/analytics');
 
 describe('useTrackSettingsPageView', () => {
-  const organization = OrganizationFixture({features: ['settings-v3']});
+  const organization = OrganizationFixture();
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -42,7 +42,6 @@ describe('useTrackSettingsPageView', () => {
       scope: 'project',
       path: expect.any(String),
       from_settings: false,
-      settings_v3: true,
     });
 
     act(() => router.navigate('/settings/account/details/'));
@@ -56,7 +55,7 @@ describe('useTrackSettingsPageView', () => {
 
   it('tracks the initial settings page once', () => {
     const {rerender} = renderHookWithProviders(useTrackSettingsPageView, {
-      organization: OrganizationFixture(),
+      organization,
       initialRouterConfig: {
         location: {pathname: `/settings/${organization.slug}/members/`},
       },
@@ -67,7 +66,7 @@ describe('useTrackSettingsPageView', () => {
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'settings.page_viewed',
-      expect.objectContaining({scope: 'org', from_settings: false, settings_v3: false})
+      expect.objectContaining({scope: 'org', from_settings: false})
     );
   });
 });

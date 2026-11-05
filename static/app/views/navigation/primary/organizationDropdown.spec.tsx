@@ -188,7 +188,7 @@ describe('OrganizationDropdown', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Settings'}));
     expect(trackAnalytics).toHaveBeenCalledWith(
       'settings.entry_point_clicked',
-      expect.objectContaining({entry_point: 'org_menu_settings', settings_v3: true})
+      expect.objectContaining({entry_point: 'org_menu_settings'})
     );
   });
 

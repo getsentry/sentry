@@ -7,7 +7,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useSettingsScope} from './useSettingsScope';
-import {useSettingsV3} from './useSettingsV3';
 
 /**
  * Tracks `settings.page_viewed` once per settings pathname, with the settings
@@ -18,7 +17,6 @@ export function useTrackSettingsPageView() {
   const organization = useOrganization({allowNull: true});
   const {pathname} = useLocation();
   const {scope} = useSettingsScope();
-  const settingsV3 = useSettingsV3();
   const path = getRouteStringFromRoutes({matches: useMatches()});
 
   const lastPathnameRef = useRef<string | null>(null);
@@ -46,7 +44,6 @@ export function useTrackSettingsPageView() {
       scope,
       path,
       from_settings: fromSettings,
-      settings_v3: settingsV3,
     });
-  }, [pathname, scope, organization, path, settingsV3]);
+  }, [pathname, scope, organization, path]);
 }
