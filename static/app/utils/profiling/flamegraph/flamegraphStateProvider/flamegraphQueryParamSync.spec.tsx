@@ -1,9 +1,10 @@
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {DeepPartial} from 'sentry/types/utils';
-import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
-import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
-import {FlamegraphStateQueryParamSync} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync';
+
+import type {FlamegraphState} from './flamegraphContext';
+import {FlamegraphStateProvider} from './flamegraphContextProvider';
+import {FlamegraphStateQueryParamSync} from './flamegraphQueryParamSync';
 
 function SyncedFlamegraph({initialState}: {initialState?: DeepPartial<FlamegraphState>}) {
   return (

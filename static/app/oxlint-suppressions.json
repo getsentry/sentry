@@ -2150,11 +2150,6 @@
       "count": 6
     }
   },
-  "utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "utils/replays/hooks/usePollReplayRecord.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 2
