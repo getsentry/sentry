@@ -44,6 +44,7 @@ import {
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   groupVisualizes,
@@ -296,6 +297,8 @@ function Chart({
     visualize.chartType !== ChartType.HEATMAP &&
     organization.features.includes('explore-interpolation-and-smoothing');
   const {chartSelection, setChartSelection} = useChartSelection();
+  const [tab] = useTab();
+  const isAttributeBreakdown = tab === Tab.ATTRIBUTE_BREAKDOWNS;
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
   const droppedData = useDroppedDataLayer({dataset, interval});
@@ -445,6 +448,7 @@ function Chart({
         Visualization={
           visualize.visible && (
             <ChartVisualization
+              key={isAttributeBreakdown ? 'attribute-breakdown' : 'zoom'}
               chartInfo={chartInfo}
               chartRef={chartRef}
               plottables={plottables}
@@ -452,41 +456,45 @@ function Chart({
                 hasMultiAggregateCharts(organization) ? MAX_TOOLTIP_SERIES : undefined
               }
               droppedData={droppedData.band}
-              chartXRangeSelection={{
-                initialSelection: initialChartSelection,
-                onSelectionEnd: () => {
-                  if (!isChartSelectionAlertDismissed) {
-                    dismissChartSelectionAlert();
-                  }
-                },
-                onInsideSelectionClick: params => {
-                  if (!params.selectionState) {
-                    return;
-                  }
+              chartXRangeSelection={
+                isAttributeBreakdown
+                  ? {
+                      initialSelection: initialChartSelection,
+                      onSelectionEnd: () => {
+                        if (!isChartSelectionAlertDismissed) {
+                          dismissChartSelectionAlert();
+                        }
+                      },
+                      onInsideSelectionClick: params => {
+                        if (!params.selectionState) {
+                          return;
+                        }
 
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: true,
-                  });
-                },
-                onOutsideSelectionClick: params => {
-                  if (!params.selectionState?.isActionMenuVisible) {
-                    return;
-                  }
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: true,
+                        });
+                      },
+                      onOutsideSelectionClick: params => {
+                        if (!params.selectionState?.isActionMenuVisible) {
+                          return;
+                        }
 
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: false,
-                  });
-                },
-                onClearSelection: () => {
-                  setChartSelection(null);
-                },
-                disabled: false,
-                actionMenuRenderer: params => {
-                  return <FloatingTrigger chartIndex={index} params={params} />;
-                },
-              }}
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: false,
+                        });
+                      },
+                      onClearSelection: () => {
+                        setChartSelection(null);
+                      },
+                      disabled: false,
+                      actionMenuRenderer: params => {
+                        return <FloatingTrigger chartIndex={index} params={params} />;
+                      },
+                    }
+                  : undefined
+              }
             />
           )
         }
