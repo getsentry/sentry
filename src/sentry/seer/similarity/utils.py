@@ -495,10 +495,10 @@ def project_uses_seer_similarity(project: Project) -> bool:
     """
     Whether a project uses Seer embeddings similarity rather than the legacy MinHash index.
 
-    TODO: once the global option is on for all of SaaS, drop the per-project option and reduce
-    this to the global option check.
+    TODO: once the all-projects option is on for all of SaaS, drop the per-project option and
+    reduce this to that option check.
     """
-    if options.get("similarity.seer_grouping.enabled"):
+    if options.get("similarity.seer_grouping.all_projects"):
         return True
     return bool(project.get_option("sentry:similarity_backfill_completed"))
 
@@ -509,7 +509,7 @@ def projects_using_seer_similarity(projects: Sequence[Project]) -> dict[Project,
     """
     if not projects:
         return {}
-    if options.get("similarity.seer_grouping.enabled"):
+    if options.get("similarity.seer_grouping.all_projects"):
         return {project: True for project in projects}
     opted_in = ProjectOption.objects.get_value_bulk(
         projects, "sentry:similarity_backfill_completed"

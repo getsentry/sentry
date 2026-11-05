@@ -1209,7 +1209,7 @@ class ProjectsUsingSeerSimilarityTest(TestCase):
 
         option_overrides: list[dict[str, Any]] = [
             {},
-            {"similarity.seer_grouping.enabled": True},
+            {"similarity.seer_grouping.all_projects": True},
         ]
         for overrides in option_overrides:
             with override_options(overrides):

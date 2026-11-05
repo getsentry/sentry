@@ -2995,8 +2995,8 @@ class ProcessSimilarityTestMixin(BasePostProcessGroupMixin):
         self.assert_not_called_with(mock_safe_execute)
 
     @patch("sentry.tasks.post_process.safe_execute")
-    @override_options({"similarity.seer_grouping.enabled": True})
-    def test_skip_process_similarity_seer_global(self, mock_safe_execute: MagicMock) -> None:
+    @override_options({"similarity.seer_grouping.all_projects": True})
+    def test_skip_process_similarity_seer_all_projects(self, mock_safe_execute: MagicMock) -> None:
         event = self.create_event(data={}, project_id=self.project.id)
 
         self.call_post_process_group(

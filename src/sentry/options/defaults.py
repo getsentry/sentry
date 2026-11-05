@@ -3907,7 +3907,7 @@ register(
 # Use Seer embeddings similarity for every project. Off for self-hosted, which keeps the legacy
 # Redis index.
 register(
-    "similarity.seer_grouping.enabled",
+    "similarity.seer_grouping.all_projects",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

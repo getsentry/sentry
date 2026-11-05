@@ -63,11 +63,11 @@ class ShouldCallSeerTest(TestCase):
                 is expected_result
             ), f"Case {backfill_completed_option} failed."
 
-    def test_obeys_global_option(self) -> None:
-        # No per-project option: only the global option can turn Seer on
+    def test_obeys_all_projects_option(self) -> None:
+        # No per-project option: only the all-projects option can turn Seer on
         cases: list[tuple[dict[str, Any], bool]] = [
             ({}, False),
-            ({"similarity.seer_grouping.enabled": True}, True),
+            ({"similarity.seer_grouping.all_projects": True}, True),
         ]
         for overrides, expected_result in cases:
             with override_options(overrides):
