@@ -1,6 +1,6 @@
 import {parseAsNativeArrayOf, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {INBOX_EVENT_TYPES, INBOX_SUBJECT_TYPES} from './utils';
+import {INBOX_EVENT_TYPES, INBOX_SUBJECT_TYPES} from './types';
 
 const inboxFilterParsers = {
   subjectType: parseAsNativeArrayOf(parseAsStringLiteral(INBOX_SUBJECT_TYPES)),

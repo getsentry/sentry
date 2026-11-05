@@ -7,7 +7,13 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
-import type {InboxEventType, InboxFilters, InboxSubject, InboxSubjectType} from './types';
+import {
+  INBOX_SUBJECT_TYPES,
+  type InboxEventType,
+  type InboxFilters,
+  type InboxSubject,
+  type InboxSubjectType,
+} from './types';
 
 interface InboxSubjectConfig {
   icon: ComponentType<SVGIconProps>;
@@ -56,12 +62,6 @@ export const INBOX_EVENT_TYPE_CONFIG: Record<InboxEventType, InboxEventTypeConfi
     subjectType: 'notebook',
   },
 };
-
-export const INBOX_SUBJECT_TYPES = Object.keys(
-  INBOX_SUBJECT_CONFIG
-) as InboxSubjectType[];
-
-export const INBOX_EVENT_TYPES = Object.keys(INBOX_EVENT_TYPE_CONFIG) as InboxEventType[];
 
 export function hasInboxFilters(filters: InboxFilters) {
   return filters.subjectType.length > 0 || filters.eventType.length > 0;

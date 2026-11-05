@@ -12,15 +12,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 
-import type {InboxFilters} from './types';
+import {INBOX_EVENT_TYPES, INBOX_SUBJECT_TYPES, type InboxFilters} from './types';
 import type {SetInboxFilters} from './useInboxFilters';
-import {
-  hasInboxFilters,
-  INBOX_EVENT_TYPE_CONFIG,
-  INBOX_EVENT_TYPES,
-  INBOX_SUBJECT_CONFIG,
-  INBOX_SUBJECT_TYPES,
-} from './utils';
+import {hasInboxFilters, INBOX_EVENT_TYPE_CONFIG, INBOX_SUBJECT_CONFIG} from './utils';
 
 interface InboxFilterCategory {
   icon: ComponentType<SVGIconProps>;
