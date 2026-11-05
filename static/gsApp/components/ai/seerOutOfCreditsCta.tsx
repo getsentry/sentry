@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {usePrompts} from 'sentry/actionCreators/prompts';
 import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
@@ -14,13 +15,14 @@ import {
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {trialPromptIsDismissed} from 'getsentry/utils/billing';
+import {seerWalletAutoTopUpOptions} from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
 
 function getEscalation(
   organization: Organization,
   subscription: Subscription | null
 ): SeerOutOfCreditsEscalation {
   if (organization.access.includes('org:billing')) {
-    return 'top-up';
+    return 'configure';
   }
   // Members of orgs that buy through an account team have nobody to send a
   // self-serve request to, same as the upgrade and trial CTAs.
@@ -32,7 +34,7 @@ function getEscalation(
 
 const TOP_UP_REQUESTED_PROMPT = 'seer_top_up_requested';
 
-export function SeerOutOfCreditsCta({message}: SeerOutOfCreditsCtaProps) {
+export function SeerOutOfCreditsCta({reason, variant}: SeerOutOfCreditsCtaProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const subscription = useSubscription();
@@ -48,6 +50,15 @@ export function SeerOutOfCreditsCta({message}: SeerOutOfCreditsCtaProps) {
     options: {enabled: escalation === 'request'},
   });
 
+  // The copy changes when auto reload is already on: the org has used up the
+  // top-ups it allows. Only billing members see that copy, and only they can
+  // read the setting.
+  const {data: autoTopUp} = useQuery({
+    ...seerWalletAutoTopUpOptions(organization),
+    enabled: escalation === 'configure',
+    retry: false,
+  });
+
   async function handleRequestCredits() {
     setIsRequestingCredits(true);
     // Shows its own sending and sent toasts, and snoozes only when the request succeeds.
@@ -61,11 +72,13 @@ export function SeerOutOfCreditsCta({message}: SeerOutOfCreditsCtaProps) {
 
   return (
     <SeerOutOfCreditsNotice
+      reason={reason}
+      variant={variant}
       escalation={escalation}
-      message={message}
-      // The Seer wallet card on the billing overview is where credits are
-      // managed until there is an in-place top-up modal.
-      topUpTo={`/settings/${organization.slug}/billing/overview/`}
+      autoReloadEnabled={autoTopUp?.enabled}
+      // The Seer wallet card on the billing overview is where auto reload is
+      // configured until there is an in-place modal.
+      configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
       onRequestCredits={handleRequestCredits}
       isRequestingCredits={isRequestingCredits}
       hasRequestedCredits={isPromptDismissed[TOP_UP_REQUESTED_PROMPT]}

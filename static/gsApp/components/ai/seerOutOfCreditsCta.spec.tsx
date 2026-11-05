@@ -3,6 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 import {SeerOutOfCreditsCta} from './seerOutOfCreditsCta';
@@ -12,24 +14,76 @@ describe('SeerOutOfCreditsCta', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('lets billing members top up from the billing overview', () => {
+  function mockAutoTopUp(organization: Organization, enabled: boolean) {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/seer-wallet/auto-top-up/`,
+      body: {
+        enabled,
+        thresholdCredits: 500,
+        topUpCredits: 1000,
+        dailySpendCapCents: 7500,
+      },
+    });
+  }
+
+  it('sends billing members to configure auto reload', async () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     act(() =>
       SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
     );
+    mockAutoTopUp(organization, false);
 
-    render(<SeerOutOfCreditsCta />, {organization});
+    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
     expect(
-      screen.getByText(/Your organization is out of Seer credits/)
+      await screen.findByText(
+        'Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto reload.'
+      )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Top up'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Configure auto reload'})).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/billing/overview/`
     );
     expect(
       screen.queryByRole('button', {name: 'Request credits'})
     ).not.toBeInTheDocument();
+  });
+
+  it('tells billing members when auto reload has no top-ups left', async () => {
+    const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
+    act(() =>
+      SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
+    );
+    mockAutoTopUp(organization, true);
+
+    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
+
+    expect(
+      await screen.findByText(
+        'Your organization does not have enough credits left for you to message Seer, and you have no auto top-ups remaining. Adjust your spend and turn on auto top-up.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      'autofix-start',
+      'You do not have enough credits to start an Autofix run. Set up auto top up to keep your flow uninterrupted.',
+    ],
+    [
+      'autofix-continue',
+      'Your org does not have enough credits to continue your Autofix run. Set up auto top up to keep your flow uninterrupted.',
+    ],
+  ] as const)('uses the %s copy', async (reason, copy) => {
+    const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
+    act(() =>
+      SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
+    );
+    mockAutoTopUp(organization, false);
+
+    render(<SeerOutOfCreditsCta reason={reason} />, {organization});
+
+    expect(await screen.findByText(copy)).toBeInTheDocument();
   });
 
   it('lets other members of self-serve orgs request credits', async () => {
@@ -58,9 +112,11 @@ describe('SeerOutOfCreditsCta', () => {
       method: 'POST',
     });
 
-    render(<SeerOutOfCreditsCta />, {organization});
+    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
-    expect(screen.queryByRole('button', {name: 'Top up'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Configure auto reload'})
+    ).not.toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'Request credits'}));
 
     await waitFor(() => expect(request).toHaveBeenCalled());
@@ -97,7 +153,7 @@ describe('SeerOutOfCreditsCta', () => {
       },
     });
 
-    render(<SeerOutOfCreditsCta />, {organization});
+    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
     expect(await screen.findByRole('button', {name: 'Request sent'})).toBeDisabled();
     expect(
@@ -126,7 +182,7 @@ describe('SeerOutOfCreditsCta', () => {
       },
     });
 
-    render(<SeerOutOfCreditsCta />, {organization});
+    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
     await waitFor(() => expect(prompts).toHaveBeenCalled());
     expect(screen.getByRole('button', {name: 'Request credits'})).toBeEnabled();
@@ -142,25 +198,11 @@ describe('SeerOutOfCreditsCta', () => {
       )
     );
 
-    render(<SeerOutOfCreditsCta />, {organization});
+    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
     expect(
       screen.getByText(/Ask someone with billing access in your organization/)
     ).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
-  });
-
-  it('replaces the headline with a custom message', () => {
-    const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
-    act(() =>
-      SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
-    );
-
-    render(<SeerOutOfCreditsCta message="Seer stopped part way." />, {organization});
-
-    expect(screen.getByText(/Seer stopped part way\./)).toBeInTheDocument();
-    expect(
-      screen.queryByText(/Your organization is out of Seer credits/)
-    ).not.toBeInTheDocument();
   });
 });
