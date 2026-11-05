@@ -256,11 +256,11 @@ function getAISpanAttributes({
     highlightedAttributes.push({
       name: t('Model'),
       value: (
-        <Flex align="center" gap="sm">
-          <AiSpanDashboardLink field={modelField} value={model.toString()} />
+        <Flex align="center" gap="sm" width="fit-content" maxWidth="100%">
           <Container minWidth="0">
             <ModelName modelId={model.toString()} gap="xs" />
           </Container>
+          <AiSpanDashboardLink field={modelField} value={model.toString()} />
         </Flex>
       ),
     });
@@ -339,12 +339,12 @@ function getAISpanAttributes({
     highlightedAttributes.push({
       name: t('Tool Name'),
       value: (
-        <Flex align="center" gap="sm">
+        <Flex align="center" gap="sm" width="fit-content" maxWidth="100%">
+          <Text ellipsis>{toolName}</Text>
           <AiSpanDashboardLink
             field={SpanFields.GEN_AI_TOOL_NAME}
             value={toolName.toString()}
           />
-          <Text ellipsis>{toolName}</Text>
         </Flex>
       ),
     });
