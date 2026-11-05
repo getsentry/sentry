@@ -5,14 +5,15 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {t} from 'sentry/locale';
+
 import {
   MOBILE_BUILDS_ALLOWED_KEYS,
   MOBILE_BUILDS_DISTRIBUTION_ALLOWED_KEYS,
   SNAPSHOT_ALLOWED_KEYS,
-} from 'sentry/components/preprod/constants';
-import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
-import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
-import {t} from 'sentry/locale';
+} from './constants';
+import {PreprodBuildsDisplay} from './preprodBuildsDisplay';
+import {PreprodSearchBar} from './preprodSearchBar';
 
 const displaySelectOptions: Array<SelectOption<PreprodBuildsDisplay>> = [
   {value: PreprodBuildsDisplay.SIZE, label: t('Size')},

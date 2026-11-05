@@ -10,17 +10,18 @@ import type {
   SolutionArtifact,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
-import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
-import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
-import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
-import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import type {
   ExplorerCodingAgentState,
   ExplorerFilePatch,
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {CodeChangesCard} from './codeChangesCard';
+import {CodingAgentsCard} from './codingAgentsCard';
+import {PullRequestsCard} from './pullRequestsCard';
+import {RootCauseCard} from './rootCauseCard';
+import {SolutionCard} from './solutionCard';
 
 jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => {
   const actual = jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext');
@@ -890,6 +891,35 @@ describe('ArtifactCard', () => {
         screen.queryByText(
           'Seer failed to generate a code change. This one is on us. Try running it again.'
         )
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows only the agent reply when a PR iteration makes no code change', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [
+              makePrIterationBlock(0, {text: 'Fix the failing check'}),
+              makeAssistantBlock('The failed check is unrelated to this PR.'),
+            ]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(
+        screen.getByText('The failed check is unrelated to this PR.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText("Seer proposed a fix but couldn't apply it automatically")
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add context & retry'})
       ).not.toBeInTheDocument();
     });
 

@@ -6,10 +6,6 @@ import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {
-  DisableDetectorAction,
-  EditDetectorAction,
-} from 'sentry/views/detectors/components/details/common/actions';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {
   makeMonitorBasePathname,
@@ -17,6 +13,8 @@ import {
 } from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {DisableDetectorAction, EditDetectorAction} from './actions';
 
 type DetectorDetailsHeaderProps = {
   detector: Detector;

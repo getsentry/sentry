@@ -13,11 +13,12 @@ import {
   registerAnchor,
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
-import type {GuideStep} from 'sentry/components/assistant/types';
 import type {Hovercard} from 'sentry/components/hovercard';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {getActiveGuideStep, GuideStore} from 'sentry/stores/guideStore';
+
+import type {GuideStep} from './types';
 
 interface Props {
   target: string;

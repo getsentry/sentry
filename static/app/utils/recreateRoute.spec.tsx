@@ -1,6 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {recreateRoute} from './recreateRoute';
 
 jest.unmock('sentry/utils/recreateRoute');
 

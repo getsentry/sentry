@@ -12,8 +12,9 @@ import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
 import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
+
+import {useEventQuery} from './useEventQuery';
 
 export function useIssueDetailsEventView({
   group,

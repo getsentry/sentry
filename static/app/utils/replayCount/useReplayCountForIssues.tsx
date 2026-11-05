@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
 
 import {IssueCategory} from 'sentry/types/group';
-import {useReplayCount} from 'sentry/utils/replayCount/useReplayCount';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useReplayCount} from './useReplayCount';
 
 interface Props {
   statsPeriod?: string;

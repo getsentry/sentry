@@ -7,7 +7,7 @@ import {Container, Grid} from '@sentry/scraps/layout';
 
 import {restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {useSessionsRequest} from 'sentry/components/charts/useSessionsRequest';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {DateTime} from 'sentry/components/dateTime';

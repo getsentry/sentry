@@ -33,11 +33,11 @@ import {
   canUseMetricsStatsBytesUI,
   canUseMetricsStatsUI,
 } from 'sentry/views/explore/metrics/metricsFlags';
-import {StatsHeader as HeaderTabs} from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {StatsHeader as HeaderTabs} from './header';
 import type {OrganizationStatsProps} from './types';
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';

@@ -2,6 +2,9 @@ import {Container, Flex, useHasContainerQuery} from '@sentry/scraps/layout';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
+import {BreadcrumbTrailingActions} from './actions/breadcrumbTrailingActions';
+import type {BreadcrumbItemCurrentProps} from './items/breadcrumbItemCurrent';
+import {BreadcrumbItemCurrent} from './items/breadcrumbItemCurrent';
 import type {BreadcrumbItemLinkProps} from './items/breadcrumbItemLink';
 import {BreadcrumbItemLink} from './items/breadcrumbItemLink';
 import {BreadcrumbItemMenuBreadcrumbs} from './items/breadcrumbItemMenuBreadcrumbs';
@@ -26,6 +29,7 @@ type SelectBreadcrumbItem = {
 
 type BreadcrumbItem = LinkBreadcrumbItem | SelectBreadcrumbItem;
 export type BreadcrumbTitleItem = PageTitleBreadcrumbItem | EditableTitleBreadcrumbItem;
+export type BreadcrumbCurrentItem = BreadcrumbItemCurrentProps;
 
 export interface BreadcrumbListProps {
   items: BreadcrumbItem[];
@@ -33,6 +37,10 @@ export interface BreadcrumbListProps {
 
 interface BreadcrumbListTitleProps {
   item: BreadcrumbTitleItem;
+}
+
+interface BreadcrumbListCurrentProps {
+  item: BreadcrumbCurrentItem;
 }
 
 function renderItem(item: BreadcrumbItem) {
@@ -156,4 +164,20 @@ export function BreadcrumbList({items}: BreadcrumbListProps) {
   );
 }
 
+/**
+ * The current location for trails rendered outside the page header, such as in
+ * a drawer. Unlike `BreadcrumbList.Title`, it does not render a heading, so the
+ * page keeps its single `<h1>`.
+ */
+function BreadcrumbCurrent({item}: BreadcrumbListCurrentProps) {
+  return <BreadcrumbItemCurrent {...item} />;
+}
+
 BreadcrumbList.Title = BreadCrumbTitle;
+BreadcrumbList.Current = BreadcrumbCurrent;
+/**
+ * Renders typed trailing actions on their own, for layouts that keep the
+ * actions outside the element holding the current item — e.g. drawers, where
+ * the trail sits in a `<nav>` landmark but its actions should not.
+ */
+BreadcrumbList.TrailingActions = BreadcrumbTrailingActions;

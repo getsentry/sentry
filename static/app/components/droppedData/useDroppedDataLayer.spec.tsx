@@ -4,10 +4,11 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {OutcomeRow} from 'sentry/components/droppedData/types';
-import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import type {OutcomeRow} from './types';
+import {useDroppedDataLayer} from './useDroppedDataLayer';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],

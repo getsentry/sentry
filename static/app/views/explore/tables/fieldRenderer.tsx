@@ -47,13 +47,11 @@ import {
   useQueryParamsQuery,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
-import {
-  getSimilarEventsUrl,
-  isPartialSpanOrTraceData,
-} from 'sentry/views/explore/tables/tracesTable/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+
+import {getSimilarEventsUrl, isPartialSpanOrTraceData} from './tracesTable/utils';
 
 interface FieldProps {
   data: EventData;

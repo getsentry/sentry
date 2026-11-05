@@ -11,6 +11,7 @@ from django.utils.translation import gettext as _
 from mistune import markdown
 
 from sentry import options
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound, IssueSyncIntegration
@@ -28,7 +29,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
-from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -160,7 +160,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: RpcUser | User, **kwargs: object
+        self, group: Group | None, user: RequestPrincipal, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []

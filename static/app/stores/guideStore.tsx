@@ -1,12 +1,14 @@
 import {createStore} from 'zustand';
 
+import {subscribeToModalOpen} from '@sentry/scraps/modal';
+
 import {getGuidesContent} from 'sentry/components/assistant/getGuidesContent';
 import type {Guide, GuideStep, GuidesServerData} from 'sentry/components/assistant/types';
 import {getOverride} from 'sentry/overrideRegistry';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {isModalOpen, ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {ConfigStore} from './configStore';
 
 function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
@@ -258,11 +260,6 @@ export const GuideStore = {
 
 // Guides will show above modals, but are not interactable because
 // of the focus trap, so we force them to be hidden while a modal is open.
-ModalStore.subscribe((modalState, prevModalState) => {
-  const isOpen = isModalOpen(modalState);
-  if (isOpen === isModalOpen(prevModalState)) {
-    return;
-  }
-
+subscribeToModalOpen(isOpen => {
   GuideStore.setForceHide(isOpen);
 });

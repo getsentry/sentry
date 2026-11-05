@@ -465,9 +465,6 @@ importers:
       '@r4ai/remark-callout':
         specifier: ^0.6.2
         version: 0.6.2
-      '@react-aria/button':
-        specifier: 3.15.1
-        version: 3.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/combobox':
         specifier: 3.16.1
         version: 3.16.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -498,9 +495,6 @@ importers:
       '@react-aria/selection':
         specifier: 3.28.1
         version: 3.28.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/separator':
-        specifier: 3.5.1
-        version: 3.5.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/slider':
         specifier: 3.9.1
         version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -666,9 +660,6 @@ importers:
       echarts-for-react:
         specifier: 3.0.6
         version: 3.0.6(echarts@6.1.0)(react@19.3.0)
-      focus-trap:
-        specifier: 8.2.2
-        version: 8.2.2
       framer-motion:
         specifier: 12.38.0
         version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1146,6 +1137,9 @@ importers:
 
   static/packages/scraps:
     dependencies:
+      '@emotion/cache':
+        specifier: ^11.14.0
+        version: 11.14.0
       '@emotion/is-prop-valid':
         specifier: ^1.4.0
         version: 1.4.0
@@ -1167,12 +1161,21 @@ importers:
       '@react-aria/focus':
         specifier: 3.22.1
         version: 3.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/gridlist':
+        specifier: 3.15.1
+        version: 3.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/i18n':
         specifier: 3.13.1
         version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/interactions':
         specifier: 3.28.1
         version: 3.28.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/listbox':
+        specifier: 3.16.1
+        version: 3.16.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/menu':
+        specifier: 3.22.1
+        version: 3.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/numberfield':
         specifier: 3.13.1
         version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1182,6 +1185,9 @@ importers:
       '@react-aria/radio':
         specifier: 3.13.1
         version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/separator':
+        specifier: 3.5.1
+        version: 3.5.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/slider':
         specifier: 3.9.1
         version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1212,6 +1218,9 @@ importers:
       '@react-stately/slider':
         specifier: 3.8.1
         version: 3.8.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/tree':
+        specifier: 3.10.1
+        version: 3.10.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-types/shared':
         specifier: 3.36.0
         version: 3.36.0(react@19.3.0)
@@ -1236,6 +1245,9 @@ importers:
       classnames:
         specifier: 2.3.1
         version: 2.3.1
+      focus-trap:
+        specifier: 8.2.2
+        version: 8.2.2
       framer-motion:
         specifier: 12.38.0
         version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1254,6 +1266,9 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.3.0(react@19.3.0)
+      react-error-boundary:
+        specifier: ^6.1.6
+        version: 6.1.6(@types/react@19.3.0)(react@19.3.0)
       react-select:
         specifier: 4.3.1
         version: 4.3.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
@@ -1266,6 +1281,9 @@ importers:
       type-fest:
         specifier: ^5.10.0
         version: 5.10.0
+      zustand:
+        specifier: 5.0.16
+        version: 5.0.16(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0))
     devDependencies:
       '@jest/environment':
         specifier: 30.5.1
@@ -1502,8 +1520,8 @@ importers:
         specifier: 5.1.1
         version: 5.1.1
       playwright:
-        specifier: ^1.61.1
-        version: 1.61.1
+        specifier: ^1.64.1
+        version: 1.64.1
       query-string:
         specifier: 7.0.1
         version: 7.0.1
@@ -6479,11 +6497,6 @@ packages:
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
-  fsevents@2.3.2:
-    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
-    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
-    os: [darwin]
-
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -8050,14 +8063,14 @@ packages:
     peerDependencies:
       react: '*'
 
-  playwright-core@1.61.1:
-    resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
-    engines: {node: '>=18'}
+  playwright-core@1.64.1:
+    resolution: {integrity: sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==}
+    engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.61.1:
-    resolution: {integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==}
-    engines: {node: '>=18'}
+  playwright@1.64.1:
+    resolution: {integrity: sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==}
+    engines: {node: '>=20'}
     hasBin: true
 
   pluralize@8.0.0:
@@ -8244,6 +8257,15 @@ packages:
     peerDependencies:
       react: '>= 16.3.0'
       react-dom: '>= 16.3.0'
+
+  react-error-boundary@6.1.6:
+    resolution: {integrity: sha512-CDXPnXDGyFIbkwaaJ6u+xgsRmJhSi6YdgUDW1vnyKHfXp1a9pfAlM+ZET2CDu80/A+8iRcmXN0NSY9BCCoWP5A==}
+    peerDependencies:
+      '@types/react': ^18.0.0 || ^19.0.0
+      react: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 
   react-grid-layout@1.5.3:
     resolution: {integrity: sha512-KaG6IbjD6fYhagUtIvOzhftXG+ViKZjCjADe86X1KHl7C/dsBN2z0mi14nbvZKTkp0RKiil9RPcJBgq3LnoA8g==}
@@ -14306,9 +14328,6 @@ snapshots:
 
   fs.realpath@1.0.0: {}
 
-  fsevents@2.3.2:
-    optional: true
-
   fsevents@2.3.3:
     optional: true
 
@@ -16562,13 +16581,11 @@ snapshots:
       '@types/react': 19.3.0
       react: 19.3.0
 
-  playwright-core@1.61.1: {}
+  playwright-core@1.64.1: {}
 
-  playwright@1.61.1:
+  playwright@1.64.1:
     dependencies:
-      playwright-core: 1.61.1
-    optionalDependencies:
-      fsevents: 2.3.2
+      playwright-core: 1.64.1
 
   pluralize@8.0.0: {}
 
@@ -16757,6 +16774,12 @@ snapshots:
       prop-types: 15.8.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
+
+  react-error-boundary@6.1.6(@types/react@19.3.0)(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+    optionalDependencies:
+      '@types/react': 19.3.0
 
   react-grid-layout@1.5.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:

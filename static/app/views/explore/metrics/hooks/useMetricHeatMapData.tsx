@@ -8,14 +8,15 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {metricBoundsApiOptions} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
-import {metricHeatMapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatMapApiOptions';
-import {makePartitionedHeatMapWindowCombiner} from 'sentry/views/explore/metrics/hooks/metricHeatMapCombine';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+
+import {metricBoundsApiOptions} from './metricBoundsApiOptions';
+import {metricHeatMapApiOptions} from './metricHeatMapApiOptions';
+import {makePartitionedHeatMapWindowCombiner} from './metricHeatMapCombine';
 import {
   dateTimeAsHeatMapWindow,
   partitionDateTimeIntoHeatMapWindows,
-} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+} from './partitionHeatMapWindows';
 
 interface UseMetricHeatMapDataOptions {
   enabled: boolean;

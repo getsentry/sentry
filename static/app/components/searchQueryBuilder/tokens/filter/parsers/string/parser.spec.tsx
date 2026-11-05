@@ -1,4 +1,4 @@
-import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
+import {parseMultiSelectFilterValue} from './parser';
 
 describe('parseMultiSelectValue', () => {
   it('single value', () => {
