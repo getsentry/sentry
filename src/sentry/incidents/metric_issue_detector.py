@@ -519,6 +519,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return seer_updated
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        if "config" in validated_data:
+            self._clean_config(validated_data["config"])
+
         # Handle anomaly detection changes first in case we need to exit before saving so that the instance values do not get updated
         seer_updated = self.update_anomaly_detection(instance, validated_data)
 
@@ -554,6 +557,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return instance
 
     def create(self, validated_data: dict[str, Any]) -> Detector:
+        if "config" in validated_data:
+            self._clean_config(validated_data["config"])
+
         if "data_sources" in validated_data:
             config = validated_data.get("config", {})
             detection_type = config.get("detection_type")
