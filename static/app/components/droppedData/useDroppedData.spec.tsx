@@ -14,10 +14,11 @@ import {
 
 import {Button} from '@sentry/scraps/button';
 
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {HOUR, MINUTE} from 'sentry/utils/formatters';
+
+import {useDroppedData} from './useDroppedData';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],

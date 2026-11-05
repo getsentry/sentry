@@ -63,7 +63,7 @@ from drf_spectacular.utils import _SchemaType
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omission_guard import descended, omissions_enabled, record_typed_dict
 from sentry.apidocs.omissions import OMISSION_REASONS_OVERRIDE
-from sentry.apidocs.response_coverage import FIELD_SOURCE
+from sentry.apidocs.response_coverage import CYCLE, FIELD_SOURCE
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 # This function is ported from the drf-spectacular library method here:
@@ -173,11 +173,15 @@ def _field_schema(schema: Any, typed_dict: Any, field: str, description: str | N
 
 def _cycle_placeholder(hint: Any) -> dict[str, Any]:
     """Stand-in for a TypedDict met again while its own fields are being resolved."""
-    return {
+    placeholder: dict[str, Any] = {
         "type": "object",
         "description": f"Same as the {hint.__name__} this is inside. "
         "Its fields are left out here so it doesn't repeat forever.",
     }
+    if os.environ.get("OPENAPIGENERATE"):
+        # Read by the response coverage check; the deref step strips it.
+        placeholder[CYCLE] = True
+    return placeholder
 
 
 def resolve_type_hint(hint: TypeHint) -> TypeHint:
@@ -246,7 +250,7 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
 
         excluded_fields = _typed_dict_exclusions(hint, excluded_fields)
         # Field types resolve from the stripped hints, as before; the hints with
-        # extras are read only for each field's ApiDescription.
+        # extras are read only for each field's ApiDescription and required-ness.
         hints_with_extras = get_type_hints(hint, include_extras=True)
         _typed_dicts_in_progress.append(hint)
         try:
@@ -262,7 +266,11 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
                     if k not in excluded_fields
                 },
                 description=inspect.cleandoc(hint.__doc__ or ""),
-                required=[h for h in hint.__required_keys__ if h not in excluded_fields],
+                required=[
+                    k
+                    for k in _typed_dict_required_keys(hint, hints_with_extras)
+                    if k not in excluded_fields
+                ],
             )
         finally:
             _typed_dicts_in_progress.pop()
@@ -305,6 +313,36 @@ def _resolve_at(hint: Any, *keys: str) -> Any:
     """Resolve a hint nested at `keys` below its parent, for the build's omission check."""
     with descended(*keys):
         return resolve_type_hint(hint)
+
+
+def _typed_dict_required_keys(hint: Any, hints_with_extras: dict[str, Any]) -> list[str]:
+    """The keys a TypedDict requires, given its type hints read with `include_extras=True`.
+
+    `__required_keys__` alone is wrong in modules with `from __future__ import annotations`:
+    the class is built from strings, so it never sees `NotRequired[...]` or `Required[...]`
+    and every key falls back to the class's `total`
+    (https://github.com/python/cpython/issues/97727). The resolved hints still carry
+    them, so they decide; keys without one keep `__required_keys__`, which gets `total`
+    and inheritance right.
+    """
+    required = []
+    for key, annotation in hints_with_extras.items():
+        qualifiers = _typed_dict_qualifiers(annotation)
+        if NotRequired in qualifiers:
+            continue
+        if Required in qualifiers or key in hint.__required_keys__:
+            required.append(key)
+    return required
+
+
+def _typed_dict_qualifiers(annotation: Any) -> set[Any]:
+    """The Required, NotRequired and ReadOnly wrapped around a TypedDict key's type."""
+    qualifiers = set()
+    while (origin := typing.get_origin(annotation)) in (Annotated, Required, NotRequired, ReadOnly):
+        if origin is not Annotated:
+            qualifiers.add(origin)
+        annotation = typing.get_args(annotation)[0]
+    return qualifiers
 
 
 def _typed_dict_exclusions(hint: Any, excluded_fields: Any) -> list[str]:

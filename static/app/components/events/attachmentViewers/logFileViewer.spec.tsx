@@ -6,7 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {LogFileViewer} from 'sentry/components/events/attachmentViewers/logFileViewer';
+import {LogFileViewer} from './logFileViewer';
 
 describe('LogFileViewer', () => {
   const organization = OrganizationFixture();

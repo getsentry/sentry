@@ -25,14 +25,13 @@ import {
 } from 'sentry/views/performance/traceDetails/traceIssueUtils';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-import {TraceRowWidthMeasurer} from 'sentry/views/performance/traceDetails/traceRenderers/traceRowWidthMeasurer';
-import {TraceTextMeasurer} from 'sentry/views/performance/traceDetails/traceRenderers/traceTextMeasurer';
-import {
-  COLLAPSED_GAP_WIDTH_PX,
-  TraceTimeCompression,
-} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import type {TraceTimeCompressionGap} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import type {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
+
+import {TraceRowWidthMeasurer} from './traceRowWidthMeasurer';
+import type {TraceScheduler} from './traceScheduler';
+import {TraceTextMeasurer} from './traceTextMeasurer';
+import {COLLAPSED_GAP_WIDTH_PX, TraceTimeCompression} from './traceTimeCompression';
+import type {TraceTimeCompressionGap} from './traceTimeCompression';
+import type {TraceView} from './traceView';
 import {
   CompressedTraceViewCalculations,
   NormalTraceViewCalculations,
@@ -41,9 +40,7 @@ import {
   type TraceIconEdge,
   type TraceViewCalculationContext,
   type TraceViewCalculations,
-} from 'sentry/views/performance/traceDetails/traceRenderers/traceViewCalculations';
-
-import type {TraceScheduler} from './traceScheduler';
+} from './traceViewCalculations';
 
 const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;

@@ -2,7 +2,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {AssigneeBadge} from 'sentry/components/assigneeBadge';
+import {AssigneeBadge} from './assigneeBadge';
 
 describe('AssigneeBadge', () => {
   const user = UserFixture({

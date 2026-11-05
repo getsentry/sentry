@@ -1,6 +1,6 @@
 import {createContext} from 'react';
 
-import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {CustomMeasurementCollection} from './customMeasurements';
 
 const emptyCustomMeasurements: CustomMeasurementCollection = {};
 

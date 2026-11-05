@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -21,8 +22,8 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {ExternalTeam, Integration} from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -157,18 +158,12 @@ export default function TeamNotificationSettings() {
     isPending: isTeamPending,
     isError: isTeamError,
     refetch: refetchTeam,
-  } = useApiQuery<Team>(
-    [
-      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
-        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: params.teamId},
-      }),
-      {
-        query: {expand: ['externalTeams']},
-      },
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<Team>()('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
+      path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: params.teamId},
+      query: {expand: ['externalTeams']},
       staleTime: 0,
-    }
+    })
   );
 
   const {
@@ -176,18 +171,12 @@ export default function TeamNotificationSettings() {
     isPending: isIntegrationsPending,
     isError: isIntegrationsError,
     refetch: refetchIntegrations,
-  } = useApiQuery<Integration[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {includeConfig: '0'},
-      },
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<Integration[]>()('/organizations/$organizationIdOrSlug/integrations/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {includeConfig: '0'},
       staleTime: 0,
-    }
+    })
   );
 
   if (isTeamPending || isIntegrationsPending) {
@@ -230,9 +219,9 @@ export default function TeamNotificationSettings() {
           method: 'DELETE',
         }
       );
-      addSuccessMessage(t('Deletion successful'));
+      toast.success(t('Deletion successful'));
     } catch {
-      addErrorMessage(t('An error occurred'));
+      toast.error(t('An error occurred'));
     }
 
     refetchTeam();

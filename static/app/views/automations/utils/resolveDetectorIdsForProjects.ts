@@ -1,14 +1,16 @@
 import * as Sentry from '@sentry/react';
 import type {QueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
+
 import {
   fetchIssueStreamDetectorIdsForProjects,
   fetchAllProjectsDetectorId,
-} from 'sentry/views/automations/utils/fetchIssueStreamDetectorIds';
+} from './fetchIssueStreamDetectorIds';
 
 type ResolveDetectorIdsForProjectsParams = {
   formData: AutomationFormData;
@@ -40,7 +42,7 @@ export async function resolveDetectorIdsForProjects({
     } catch (error) {
       Sentry.captureException(error);
       onSubmitError?.(error);
-      addErrorMessage(t('Something went wrong while saving to all projects'));
+      toast.error(t('Something went wrong while saving to all projects'));
       return null;
     }
   }
@@ -59,7 +61,7 @@ export async function resolveDetectorIdsForProjects({
   } catch (error) {
     Sentry.captureException(error);
     onSubmitError?.(error);
-    addErrorMessage(t('Something went wrong while saving selected projects'));
+    toast.error(t('Something went wrong while saving selected projects'));
     return null;
   }
 }

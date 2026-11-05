@@ -5,12 +5,13 @@ import {TeamAvatar} from '@sentry/scraps/avatar';
 import type {MultipleSelectProps} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
-import type {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
+
+import type {TeamSelection} from './teamKeyTransactionsManager';
 
 type TeamKeyTransactionProps = Omit<
   MultipleSelectProps<string>,

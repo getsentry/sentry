@@ -13,14 +13,15 @@ import {
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
-import {TraceBar} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
+
+import {TraceBar} from './traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+} from './traceRow';
 
 /**
  * Returns an enriched description for AI spans when attributes are available.

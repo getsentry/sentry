@@ -1,5 +1,6 @@
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
+
+import {withGlobalFilterFallback} from './withGlobalFilterFallback';
 
 const SCREEN_FALLBACK = {
   attribute: 'app.vitals.start.screen',

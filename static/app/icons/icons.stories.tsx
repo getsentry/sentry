@@ -14,12 +14,13 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Sticky} from 'sentry/components/sticky';
-import {IdentityIcon, type IdentityIconProps} from 'sentry/icons/identityIcon';
-import {PluginIcon, type PluginIconProps} from 'sentry/icons/pluginIcon';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
+
+import {IdentityIcon, type IdentityIconProps} from './identityIcon';
+import {PluginIcon, type PluginIconProps} from './pluginIcon';
 
 const iconModules = import.meta.glob<Record<string, React.ComponentType<SVGIconProps>>>(
   ['../../packages/icons/src/icon*.tsx', '!../../packages/icons/src/*.spec.tsx'],

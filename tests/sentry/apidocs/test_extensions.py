@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from enum import Enum
-from typing import Any, Literal, TypedDict
+from typing import Annotated, Any, Literal, NotRequired, ReadOnly, Required, TypedDict
 
 import pytest
 from django.http import HttpRequest
@@ -170,6 +170,43 @@ def test_enum_literal_schema() -> None:
         "type": "string",
         "nullable": True,
     }
+
+
+class ItemQualifiersResponse(TypedDict):
+    plain: str
+    not_required: NotRequired[str]
+    annotated: NotRequired[Annotated[str, "meta"]]
+    read_only: ReadOnly[NotRequired[str]]
+
+
+class PartialResponse(TypedDict, total=False):
+    plain: str
+    required: Required[str]
+
+
+class InheritedQualifiersResponse(PartialResponse):
+    child_plain: str
+    child_not_required: NotRequired[str]
+
+
+def test_typed_dict_item_qualifiers_with_postponed_annotations() -> None:
+    # This module uses `from __future__ import annotations`, under which
+    # `__required_keys__` ignores Required and NotRequired.
+    assert resolve_type_hint(ItemQualifiersResponse) == {
+        "type": "object",
+        "properties": {
+            "plain": {"type": "string"},
+            "not_required": {"type": "string"},
+            "annotated": {"type": "string"},
+            "read_only": {"type": "string"},
+        },
+        "required": ["plain"],
+    }
+    assert resolve_type_hint(PartialResponse)["required"] == ["required"]
+    assert resolve_type_hint(InheritedQualifiersResponse)["required"] == [
+        "child_plain",
+        "required",
+    ]
 
 
 def test_sentry_fails_when_serializer_not_typed() -> None:

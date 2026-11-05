@@ -1,7 +1,7 @@
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {localStorageWrapper} from './localStorage';
+import {useLocalStorageState} from './useLocalStorageState';
 
 describe('useLocalStorageState', () => {
   beforeEach(() => {

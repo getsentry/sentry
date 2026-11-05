@@ -14,7 +14,6 @@ import {Heading} from '@sentry/scraps/text';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AddAutofixRepoModal} from 'sentry/components/seer/legacy/addAutofixRepoModal';
-import {AutofixRepositoriesItem} from 'sentry/components/seer/projectDetails/autofixRepositoriesItem';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -26,6 +25,8 @@ import {
   getSeerProjectReposInfiniteQueryOptions,
 } from 'sentry/utils/seer/seerProjectRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AutofixRepositoriesItem} from './autofixRepositoriesItem';
 
 const REPOSITORY_COLUMNS: TableColumnConfig[] = [
   {key: 'repositories', width: '1fr'},

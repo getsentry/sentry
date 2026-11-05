@@ -6,7 +6,12 @@ from unittest import mock
 import pytest
 
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.apidocs.response_coverage import FIELD_SOURCE, find_violations, has_field_sources
+from sentry.apidocs.response_coverage import (
+    CYCLE,
+    FIELD_SOURCE,
+    find_violations,
+    has_field_sources,
+)
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 
 
@@ -105,6 +110,21 @@ def test_untyped_schemas() -> None:
     }
 
 
+def test_untyped_root_schema() -> None:
+    assert find_violations(_spec([{}])) == {"untyped GET /items/0/ 200"}
+
+
+class TreeResponse(TypedDict):
+    name: Annotated[str, ApiDescription("Node name")]
+    children: Annotated[list["TreeResponse"], ApiDescription("Child nodes")]
+
+
+def test_recursive_typed_dict_is_typed(field_sources: None) -> None:
+    tree = resolve_type_hint(TreeResponse)
+    assert tree["properties"]["children"]["items"][CYCLE] is True
+    assert find_violations(_spec([tree])) == set()
+
+
 def test_reference_uses_component_description() -> None:
     root = {"type": "object", "properties": {"described": _ref("Described"), "bare": _ref("Bare")}}
     components = {
@@ -155,3 +175,4 @@ def test_no_field_sources_outside_the_docs_build() -> None:
     with mock.patch.dict(os.environ):
         os.environ.pop("OPENAPIGENERATE", None)
         assert FIELD_SOURCE not in resolve_type_hint(ItemResponse)["properties"]["name"]
+        assert CYCLE not in resolve_type_hint(TreeResponse)["properties"]["children"]["items"]

@@ -11,17 +11,18 @@ import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  isExploreSavedQuery,
-  useInvalidateSavedQueries,
-  useInvalidateSavedQuery,
-  type CombinedSavedQuery,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {serializeAggregateFields} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+
+import {
+  isExploreSavedQuery,
+  useInvalidateSavedQueries,
+  useInvalidateSavedQuery,
+  type CombinedSavedQuery,
+} from './useGetSavedQueries';
 
 export type ExploreQueryChangedReason = {
   columns: string[];

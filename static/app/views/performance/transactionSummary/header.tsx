@@ -30,18 +30,18 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
-import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/tabAnalytics';
-import {TransactionBreadcrumbs} from 'sentry/views/performance/transactionSummary/transactionBreadcrumbs';
-import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
-import {replaysRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
+import {eventsRouteWithQuery} from './transactionEvents/utils';
+import {profilesRouteWithQuery} from './transactionProfiles/utils';
+import {replaysRouteWithQuery} from './transactionReplays/utils';
+import {TAB_ANALYTICS} from './tabAnalytics';
 import {Tab} from './tabs';
-import TeamKeyTransactionButton from './teamKeyTransactionButton';
+import {TeamKeyTransactionButton} from './teamKeyTransactionButton';
+import {TransactionBreadcrumbs} from './transactionBreadcrumbs';
 import {TransactionThresholdButton} from './transactionThresholdButton';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
+import {transactionSummaryRouteWithQuery} from './utils';
 
 const REPLAY_COUNT_LIMIT = 50;
 

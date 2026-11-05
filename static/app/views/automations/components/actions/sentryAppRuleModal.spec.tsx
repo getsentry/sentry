@@ -8,11 +8,12 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
-import {SentryAppRuleModal} from 'sentry/views/automations/components/actions/sentryAppRuleModal';
 import type {
   FieldFromSchema,
   SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+
+import {SentryAppRuleModal} from './sentryAppRuleModal';
 
 describe('SentryAppRuleModal', () => {
   const modalElements = {

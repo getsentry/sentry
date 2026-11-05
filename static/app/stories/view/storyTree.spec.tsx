@@ -1,7 +1,8 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {CategorizedStoryTree} from 'sentry/stories/view/storyTree';
+
+import {CategorizedStoryTree} from './storyTree';
 
 jest.mock('sentry/stories/storyManifest.generated', () => ({
   storyFiles: [

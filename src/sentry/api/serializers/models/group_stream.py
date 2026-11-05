@@ -318,7 +318,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     filtered: NotRequired[_Filtered | None]
     sessionCount: NotRequired[int]
     inbox: NotRequired[InboxDetails]
-    owners: NotRequired[OwnersSerialized]
+    owners: NotRequired[list[OwnersSerialized] | None]
     integrationIssues: NotRequired[list[dict[str, Any]]]
     sentryAppIssues: NotRequired[list[dict[str, Any]]]
     latestEventHasAttachments: NotRequired[bool]

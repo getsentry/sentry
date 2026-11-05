@@ -51,8 +51,14 @@ def mock_event_processing_store() -> Iterator[MagicMock]:
 
 @django_db_all
 @pytest.mark.parametrize(
-    "inline,disable_store,redis_backups",
-    [(False, False, 1), (True, False, 1), (True, True, 0)],
+    "inline,disable_store,cache_key,redis_backups,unprocessed_pending",
+    [
+        (False, False, "e:1", 1, False),
+        (True, False, "e:1", 1, True),
+        (True, True, None, 0, True),
+        # Store re-enabled after ingest chose no cache key.
+        (False, False, None, 0, True),
+    ],
 )
 def test_move_to_symbolicate_event(
     default_project: Project,
@@ -62,10 +68,11 @@ def test_move_to_symbolicate_event(
     mock_event_processing_store: MagicMock,
     inline: bool,
     disable_store: bool,
+    cache_key: str | None,
     redis_backups: int,
+    unprocessed_pending: bool,
 ) -> None:
     data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
-    cache_key = None if disable_store else "e:1"
     mock_event_processing_store.store.return_value = "e:1"
     with (
         override_options(
@@ -81,9 +88,9 @@ def test_move_to_symbolicate_event(
     assert backup.call_args_list == [mock.call(data=data)] * redis_backups
     assert mock_symbolicate_event.delay.call_count == 1
     kwargs = mock_symbolicate_event.delay.call_args.kwargs
-    assert kwargs["unprocessed_pending"] is inline
+    assert kwargs["unprocessed_pending"] is unprocessed_pending
     assert kwargs["unprocessed"] is None
-    assert kwargs["data"] == (data if inline else None)
+    assert kwargs["data"] == (data if unprocessed_pending else None)
     assert kwargs["cache_key"] == cache_key
     assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 0
