@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, assert_never
+from uuid import uuid4
 
 from django.db import router, transaction
 from django.db.models import Count, Q, QuerySet
@@ -29,7 +30,11 @@ from sentry.seer.models.workflow import (
     WorkflowRunSnapshot,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.service_accounts.models import ServiceAccountReplica
+from sentry.service_accounts.models import MAX_NAME_LENGTH, ServiceAccountReplica
+from sentry.service_accounts.services.service_account import (
+    RpcServiceAccount,
+    service_account_service,
+)
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -52,6 +57,15 @@ class SelectedProjects:
 
 
 type ProjectSelection = AllProjects | SelectedProjects
+
+
+@dataclass(frozen=True)
+class SeerServiceAccountGrant:
+    """The scopes and projects an automation's investigations run with."""
+
+    scopes: Sequence[str]
+    project_ids: Sequence[int] = ()
+    all_projects: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -99,6 +113,42 @@ class SeerWorkflow:
             )
 
     @classmethod
+    @contextmanager
+    def _create_service_account(
+        cls,
+        organization_id: int,
+        grant: SeerServiceAccountGrant,
+        *,
+        automation_name: str | None,
+        created_by_id: int | None,
+    ) -> Iterator[RpcServiceAccount]:
+        """Create the automation's service account, deleting it again if the block raises."""
+        if not grant.all_projects:
+            _validate_project_ids(organization_id, set(grant.project_ids))
+        # TODO(telkins): Suffix the name with the config ID instead. The account is created
+        # before the config exists, so this needs a rename after linking.
+        suffix = uuid4().hex[:8]
+        prefix = f"Seer: {automation_name}" if automation_name else "Seer automation"
+        account = service_account_service.create_service_account(
+            organization_id=organization_id,
+            name=f"{prefix[: MAX_NAME_LENGTH - len(suffix) - 1]} {suffix}",
+            scope_list=list(grant.scopes),
+            project_ids=[] if grant.all_projects else list(grant.project_ids),
+            all_projects=grant.all_projects,
+            created_by_id=created_by_id,
+        )
+        try:
+            yield account
+        except BaseException:
+            # TODO(telkins): Look for a transactional way to create the account and config
+            # together instead of deleting the account when the config fails.
+            service_account_service.delete_service_account(
+                organization_id=organization_id, service_account_id=account.id
+            )
+            raise
+
+    @classmethod
+    @contextmanager
     def _create_config(
         cls,
         *,
@@ -107,32 +157,45 @@ class SeerWorkflow:
         strategy: SeerWorkflowStrategy,
         enabled: bool,
         filters: SeerWorkflowFilters,
+        service_account_grant: SeerServiceAccountGrant,
         extras: SeerWorkflowConfigExtras | None = None,
-    ) -> SeerWorkflowConfig:
+    ) -> Iterator[SeerWorkflowConfig]:
         """
-        Create a config within the org's automation limit. Call inside a transaction on
-        ``database`` so the limit check and any related writes are atomic.
+        Create a config and its service account within the org's automation limit.
+        Writes in the block share the config's transaction, and the account is deleted if
+        the block raises.
         """
-        existing = (
-            SeerWorkflowConfig.objects.using(database)
-            .filter(
-                organization_id=organization_id,
-                strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+        extras = extras or SeerWorkflowConfigExtras()
+        with (
+            cls._create_service_account(
+                organization_id,
+                service_account_grant,
+                automation_name=extras.name,
+                created_by_id=extras.created_by,
+            ) as account,
+            transaction.atomic(database),
+        ):
+            existing = (
+                SeerWorkflowConfig.objects.using(database)
+                .filter(
+                    organization_id=organization_id,
+                    strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+                )
+                .count()
             )
-            .count()
-        )
-        if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
-            raise WorkflowUpdateError(
-                f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
-            )
+            if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
+                raise WorkflowUpdateError(
+                    f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
+                )
 
-        return SeerWorkflowConfig.objects.using(database).create(
-            organization_id=organization_id,
-            strategy=strategy,
-            enabled=enabled,
-            filters=filters.dict(),
-            extras=(extras or SeerWorkflowConfigExtras()).dict(exclude_none=True),
-        )
+            yield SeerWorkflowConfig.objects.using(database).create(
+                organization_id=organization_id,
+                strategy=strategy,
+                enabled=enabled,
+                filters=filters.dict(),
+                extras=extras.dict(exclude_none=True),
+                service_account_id=account.id,
+            )
 
     @classmethod
     def create(
@@ -145,10 +208,12 @@ class SeerWorkflow:
         project_ids: Collection[int],
         environments: Sequence[str] = (),
         extras: SeerWorkflowConfigExtras | None = None,
+        service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow:
         """
         Create a user-defined automation. Use ``project_ids=[-1]`` to select all
-        projects and ``environments=[]`` for all environments.
+        projects and ``environments=[]`` for all environments. ``service_account_grant`` sets
+        the access of the automation's service account. Callers must authorize the grant and audit it.
         """
         if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
@@ -163,18 +228,18 @@ class SeerWorkflow:
         _validate_project_ids(organization_id, project_set)
 
         database = router.db_for_write(SeerWorkflowConfig)
-        with transaction.atomic(database):
-            config = cls._create_config(
-                database=database,
-                organization_id=organization_id,
-                strategy=strategy,
-                enabled=enabled,
-                filters=SeerWorkflowFilters(
-                    all_projects=all_projects,
-                    environments=list(environments),
-                ),
-                extras=extras,
-            )
+        with cls._create_config(
+            database=database,
+            organization_id=organization_id,
+            strategy=strategy,
+            enabled=enabled,
+            filters=SeerWorkflowFilters(
+                all_projects=all_projects,
+                environments=list(environments),
+            ),
+            service_account_grant=service_account_grant,
+            extras=extras,
+        ) as config:
             config.schedule = schedule
             config.save(using=database, update_fields=["schedule"])
             if project_set:
@@ -294,9 +359,26 @@ class SeerWorkflow:
         return counts["selected"] > 0 and counts["selected"] == counts["total"]
 
     def delete(self) -> None:
-        """Delete the config along with its project links, runs, and trigger bindings."""
+        """Delete the config with its project links, runs, trigger bindings, and service account."""
+        self._delete_service_account()
         with self._lock_config() as config:
             config.delete()
+
+    def _delete_service_account(self) -> None:
+        service_account_id = self.get_config().service_account_id
+        if service_account_id is not None:
+            service_account_service.delete_service_account(
+                organization_id=self.organization_id, service_account_id=service_account_id
+            )
+
+    def get_service_account(self) -> RpcServiceAccount | None:
+        """Read the automation's service account from control, which the replica may lag."""
+        config = self.get_config()
+        if config.service_account_id is None:
+            return None
+        return service_account_service.get_service_account(
+            organization_id=self.organization_id, service_account_id=config.service_account_id
+        )
 
     def resolve_service_account(self) -> ServiceAccountReplica:
         """Resolve authoritative identity against current cell state on every call."""
@@ -417,26 +499,6 @@ class ConfigUpdate:
             return
         self.config.extras = new_extras
         self.mark("extras")
-
-    def set_service_account(self, service_account_id: int | None) -> None:
-        """Store the control account ID after validating its current cell replica."""
-        config = self.config
-        if service_account_id is not None:
-            try:
-                replica = ServiceAccountReplica.objects.get(
-                    service_account_id=service_account_id,
-                    organization_id=config.organization_id,
-                )
-            except ServiceAccountReplica.DoesNotExist as exc:
-                raise ValueError(
-                    "Service account is unavailable in the workflow's organization"
-                ) from exc
-            if not replica.is_active:
-                raise ValueError("Service account is inactive")
-
-        if config.service_account_id != service_account_id:
-            config.service_account_id = service_account_id
-            self.mark("service_account_id")
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
         """Replace the selected projects, bumping the version only when the selection changes.
