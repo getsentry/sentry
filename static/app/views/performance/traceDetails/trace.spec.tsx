@@ -1189,6 +1189,88 @@ describe('trace view', () => {
   });
 
   describe('EAP waterfall navigation', () => {
+    it('hides nested transactions on collapse and restores their expansion states', async () => {
+      setupEAPTraceView();
+      mockTraceResponse({
+        body: makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-transaction',
+            description: 'root transaction',
+            is_transaction: true,
+            start_timestamp: 1,
+            end_timestamp: 4,
+            children: [
+              makeEAPSpan({
+                event_id: 'second-transaction',
+                description: 'second transaction',
+                is_transaction: true,
+                start_timestamp: 1,
+                end_timestamp: 2,
+                children: [
+                  makeEAPSpan({
+                    description: 'expanded grandchild',
+                    start_timestamp: 1,
+                    end_timestamp: 2,
+                  }),
+                ],
+              }),
+              makeEAPSpan({
+                event_id: 'third-transaction',
+                description: 'third transaction',
+                is_transaction: true,
+                start_timestamp: 3,
+                end_timestamp: 4,
+                children: [
+                  makeEAPSpan({
+                    description: 'collapsed grandchild',
+                    start_timestamp: 3,
+                    end_timestamp: 4,
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ]),
+      });
+
+      render(<TraceView />, {initialRouterConfig});
+
+      const waterfall = within(await screen.findByTestId('trace-virtualized-list'));
+      const root = await waterfall.findByText('root transaction');
+      const rootRow = root.closest<HTMLElement>(VISIBLE_TRACE_ROW_SELECTOR)!;
+      const rootButton = within(rootRow).getByRole('button', {name: '2'});
+      const thirdRow = waterfall
+        .getByText('third transaction')
+        .closest<HTMLElement>(VISIBLE_TRACE_ROW_SELECTOR)!;
+      expect(waterfall.getByText('expanded grandchild')).toBeInTheDocument();
+      expect(waterfall.getByText('collapsed grandchild')).toBeInTheDocument();
+      await userEvent.click(within(thirdRow).getByRole('button', {name: '1'}));
+      expect(waterfall.queryByText('collapsed grandchild')).not.toBeInTheDocument();
+
+      await userEvent.click(rootButton);
+
+      expect(rootButton).toHaveTextContent('2');
+      expect(rootButton.querySelector('svg')).toHaveStyle('transform: rotate(90deg)');
+      expect(waterfall.queryByText('second transaction')).not.toBeInTheDocument();
+      expect(waterfall.queryByText('third transaction')).not.toBeInTheDocument();
+      expect(waterfall.queryByText('expanded grandchild')).not.toBeInTheDocument();
+
+      await userEvent.click(rootButton);
+
+      expect(rootButton.querySelector('svg')).toHaveStyle('transform: rotate(180deg)');
+      expect(waterfall.getByText('second transaction')).toBeInTheDocument();
+      expect(waterfall.getByText('third transaction')).toBeInTheDocument();
+      expect(waterfall.getByText('expanded grandchild')).toBeInTheDocument();
+      expect(waterfall.queryByText('collapsed grandchild')).not.toBeInTheDocument();
+
+      await userEvent.click(rootRow);
+      await userEvent.keyboard('{arrowleft}');
+      expect(waterfall.queryByText('second transaction')).not.toBeInTheDocument();
+      await userEvent.keyboard('{arrowright}');
+      expect(waterfall.getByText('expanded grandchild')).toBeInTheDocument();
+      expect(waterfall.queryByText('collapsed grandchild')).not.toBeInTheDocument();
+    });
+
     it('focuses the node from the eventId query parameter', async () => {
       mockQueryString('?eventId=second-transaction');
       setupEAPTraceView();
