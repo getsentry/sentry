@@ -14,6 +14,7 @@ import {
   wildcardOperators,
   WildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -662,6 +663,13 @@ export function formatDateRange(start: string, end: string, separator = ' to '):
   return `${startFormatted}${separator}${endFormatted}`;
 }
 
+export function formatSeerAxis(yAxis: string, transformations: readonly string[] = []) {
+  const axis = isEquation(yAxis) ? stripEquationPrefix(yAxis) : yAxis;
+  return transformations.length
+    ? t('%s with %s', axis, transformations.join(t(', then ')))
+    : axis;
+}
+
 export function generateQueryTokensString(
   args: QueryTokensProps,
   projects: Project[] = []
@@ -686,7 +694,7 @@ export function generateQueryTokensString(
   if (args?.visualizations && args.visualizations.length > 0) {
     const vizParts = args.visualizations.flatMap(visualization =>
       visualization.yAxes.map(yAxis =>
-        isEquation(yAxis) ? stripEquationPrefix(yAxis) : yAxis
+        formatSeerAxis(yAxis, visualization.transformations)
       )
     );
     if (vizParts.length > 0) {

@@ -14,6 +14,7 @@ import {useAiQueryContext} from './aiQueryContext';
 import type {QueryTokensProps} from './types';
 import {
   formatDateRange,
+  formatSeerAxis,
   getCrossEventFilterQuery,
   normalizeSeerDateTimeParams,
   resolveSeerProjectSelection,
@@ -82,9 +83,9 @@ function NewQueryTokens({
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
         <Stack as="span" gap="xs" overflow="hidden">
           {visualizations.map((visualization, vIdx) =>
-            visualization.yAxes.map(yAxis => (
-              <ExploreVisualizes key={`${vIdx}-${yAxis}`}>
-                {isEquation(yAxis) ? stripEquationPrefix(yAxis) : yAxis}
+            visualization.yAxes.map((yAxis, axisIdx) => (
+              <ExploreVisualizes key={`${vIdx}-${axisIdx}`}>
+                {formatSeerAxis(yAxis, visualization.transformations)}
               </ExploreVisualizes>
             ))
           )}
