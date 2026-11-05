@@ -835,6 +835,7 @@ SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment.
 TIMEDELTA_ALLOW_LIST = {
+    "cadence-tick",
     "deliver-from-outbox-control",
     "deliver-webhooks-control",
     "flush-buffers",
@@ -1053,6 +1054,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "send-ping": {
         "task": "selfhosted:sentry.tasks.send_ping",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "cadence-tick": {
+        "task": "issues:sentry.cadence.tasks.cadence_tick",
+        "schedule": timedelta(seconds=10),
     },
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
