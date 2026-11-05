@@ -8,8 +8,9 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {AiSpanDashboardLink} from 'sentry/views/insights/pages/agents/components/aiSpanDashboardLink';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {AiSpanDashboardLink} from './aiSpanDashboardLink';
 
 const organization = OrganizationFixture();
 

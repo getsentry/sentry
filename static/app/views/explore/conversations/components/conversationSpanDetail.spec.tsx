@@ -108,7 +108,7 @@ describe('ConversationSpanDetail', () => {
     ['gen_ai.request.model', 'gpt-4', 'chat', 'View model dashboard', '100'],
     ['gen_ai.tool.name', 'lookup', 'execute_tool', 'View tool dashboard', '200'],
   ] as const)(
-    'shows a dashboard icon beside %s',
+    'shows a dashboard button before %s',
     async (field, value, operation, label, id) => {
       mockAttributes('ai-span', [
         {
@@ -128,11 +128,12 @@ describe('ConversationSpanDetail', () => {
         {organization}
       );
 
-      expect(await screen.findByRole('button', {name: label})).toHaveAttribute(
+      const dashboardButton = await screen.findByRole('button', {name: label});
+      expect(dashboardButton).toHaveAttribute(
         'href',
         expect.stringContaining(`/dashboard/${id}/`)
       );
-      expect(screen.getByText(value)).toBeInTheDocument();
+      expect(dashboardButton).toAppearBefore(screen.getByText(value));
     }
   );
 

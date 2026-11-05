@@ -58,7 +58,7 @@ export function AiSpanDashboardLink({field, value}: Props) {
     <LinkButton
       to={url}
       size="zero"
-      variant="transparent"
+      variant="secondary"
       icon={<IconDashboard size="xs" />}
       aria-label={label}
       tooltipProps={{title: label}}
