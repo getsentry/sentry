@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any, Literal, NamedTuple, TypedDict, cast
+from typing import Annotated, Any, Literal, NamedTuple, TypedDict, cast
 
 import sentry_sdk
 from django.db.models import Exists, OuterRef
@@ -17,6 +17,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.source_map_debug_examples import SourceMapDebugExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -77,72 +78,153 @@ URL_MATCH_MAX_BUNDLES = 1000
 
 
 class ScrapingResultSuccess(TypedDict):
-    url: str
-    status: Literal["success"]
+    url: Annotated[str, ApiDescription("URL Sentry fetched")]
+    status: Annotated[
+        Literal["success"], ApiDescription("Result of fetching the file, always success")
+    ]
 
 
 class ScrapingResultNotAttempted(TypedDict):
-    url: str
-    status: Literal["not_attempted"]
+    url: Annotated[str, ApiDescription("URL Sentry didn't fetch")]
+    status: Annotated[
+        Literal["not_attempted"],
+        ApiDescription("Result of fetching the file, always not_attempted"),
+    ]
 
 
 class ScrapingResultFailure(TypedDict):
-    url: str
-    status: Literal["failure"]
-    reason: Literal[
-        "not_found",
-        "disabled",
-        "invalid_host",
-        "permission_denied",
-        "timeout",
-        "download_error",
-        "other",
+    url: Annotated[str, ApiDescription("URL Sentry failed to fetch")]
+    status: Annotated[
+        Literal["failure"], ApiDescription("Result of fetching the file, always failure")
     ]
-    details: str | None
+    reason: Annotated[
+        Literal[
+            "not_found",
+            "disabled",
+            "invalid_host",
+            "permission_denied",
+            "timeout",
+            "download_error",
+            "other",
+        ],
+        ApiDescription(
+            "Why fetching failed, such as not_found, disabled, invalid_host, permission_denied or timeout"
+        ),
+    ]
+    details: Annotated[str | None, ApiDescription("More details about the failure")]
 
 
 class SourceMapScrapingProcessResult(TypedDict):
-    source_file: None | (ScrapingResultSuccess | ScrapingResultNotAttempted | ScrapingResultFailure)
-    source_map: None | (ScrapingResultSuccess | ScrapingResultNotAttempted | ScrapingResultFailure)
+    source_file: Annotated[
+        None | (ScrapingResultSuccess | ScrapingResultNotAttempted | ScrapingResultFailure),
+        ApiDescription(
+            "Result of fetching the frame's source file from the web. Null when there's no data"
+        ),
+    ]
+    source_map: Annotated[
+        None | (ScrapingResultSuccess | ScrapingResultNotAttempted | ScrapingResultFailure),
+        ApiDescription(
+            "Result of fetching the frame's source map from the web. Null when there's no data"
+        ),
+    ]
 
 
 class SourceMapDebugIdProcessResult(TypedDict):
-    debug_id: str | None
-    uploaded_source_file_with_correct_debug_id: bool
-    uploaded_source_map_with_correct_debug_id: bool
+    debug_id: Annotated[
+        str | None,
+        ApiDescription("Debug ID of the frame's source file. Null when the frame has none"),
+    ]
+    uploaded_source_file_with_correct_debug_id: Annotated[
+        bool, ApiDescription("Whether a source file with the frame's debug ID was uploaded")
+    ]
+    uploaded_source_map_with_correct_debug_id: Annotated[
+        bool, ApiDescription("Whether a source map with the frame's debug ID was uploaded")
+    ]
 
 
 class SourceMapReleaseProcessResult(TypedDict):
-    abs_path: str
-    matching_source_file_names: list[str]
-    matching_source_map_name: str | None
-    source_map_reference: str | None
-    source_file_lookup_result: Literal["found", "wrong-dist", "unsuccessful"]
-    source_map_lookup_result: Literal["found", "wrong-dist", "unsuccessful"]
+    abs_path: Annotated[str, ApiDescription("Absolute path of the frame's file")]
+    matching_source_file_names: Annotated[
+        list[str], ApiDescription("Uploaded file names that could match the frame's file")
+    ]
+    matching_source_map_name: Annotated[
+        str | None, ApiDescription("Name of the uploaded source map that matches the frame's file")
+    ]
+    source_map_reference: Annotated[
+        str | None,
+        ApiDescription(
+            "Source map the source file refers to, from its sourceMappingURL or SourceMap header"
+        ),
+    ]
+    source_file_lookup_result: Annotated[
+        Literal["found", "wrong-dist", "unsuccessful"],
+        ApiDescription(
+            "Result of looking up the source file in the release: found, wrong-dist or unsuccessful"
+        ),
+    ]
+    source_map_lookup_result: Annotated[
+        Literal["found", "wrong-dist", "unsuccessful"],
+        ApiDescription(
+            "Result of looking up the source map in the release: found, wrong-dist or unsuccessful"
+        ),
+    ]
 
 
 class SourceMapDebugFrame(TypedDict):
-    debug_id_process: SourceMapDebugIdProcessResult
-    release_process: SourceMapReleaseProcessResult | None
-    scraping_process: SourceMapScrapingProcessResult
+    debug_id_process: Annotated[
+        SourceMapDebugIdProcessResult,
+        ApiDescription("Results of resolving the frame with debug IDs"),
+    ]
+    release_process: Annotated[
+        SourceMapReleaseProcessResult | None,
+        ApiDescription(
+            "Results of resolving the frame with release artifacts. Null when the event has no release"
+        ),
+    ]
+    scraping_process: Annotated[
+        SourceMapScrapingProcessResult,
+        ApiDescription("Results of fetching the frame's files from the web"),
+    ]
 
 
 class SourceMapDebugException(TypedDict):
-    frames: list[SourceMapDebugFrame]
+    frames: Annotated[
+        list[SourceMapDebugFrame],
+        ApiDescription("Source map debug results for each frame of the exception"),
+    ]
 
 
 class SourceMapDebugResponse(TypedDict):
-    dist: str | None
-    release: str | None
-    exceptions: list[SourceMapDebugException]
-    has_debug_ids: bool
-    min_debug_id_sdk_version: str | None
-    sdk_version: str | None
-    project_has_some_artifact_bundle: bool
-    release_has_some_artifact: bool
-    has_uploaded_some_artifact_with_a_debug_id: bool
-    sdk_debug_id_support: Literal["not-supported", "unofficial-sdk", "needs-upgrade", "full"]
-    has_scraping_data: bool
+    dist: Annotated[str | None, ApiDescription("Distribution of the event")]
+    release: Annotated[str | None, ApiDescription("Release of the event")]
+    exceptions: Annotated[
+        list[SourceMapDebugException],
+        ApiDescription("Source map debug results for each exception in the event"),
+    ]
+    has_debug_ids: Annotated[bool, ApiDescription("Whether the event has debug IDs")]
+    min_debug_id_sdk_version: Annotated[
+        str | None,
+        ApiDescription("Minimum SDK version that supports debug IDs. Null when there's none"),
+    ]
+    sdk_version: Annotated[str | None, ApiDescription("Version of the SDK that sent the event")]
+    project_has_some_artifact_bundle: Annotated[
+        bool, ApiDescription("Whether the project has any artifact bundles")
+    ]
+    release_has_some_artifact: Annotated[
+        bool, ApiDescription("Whether the event's release has any uploaded artifacts")
+    ]
+    has_uploaded_some_artifact_with_a_debug_id: Annotated[
+        bool, ApiDescription("Whether any artifact with a debug ID was uploaded for the project")
+    ]
+    sdk_debug_id_support: Annotated[
+        Literal["not-supported", "unofficial-sdk", "needs-upgrade", "full"],
+        ApiDescription(
+            "Whether the event's SDK supports debug IDs: not-supported, unofficial-sdk, needs-upgrade or full"
+        ),
+    ]
+    has_scraping_data: Annotated[
+        bool, ApiDescription("Whether the event has data about fetching source files from the web")
+    ]
 
 
 @cell_silo_endpoint
