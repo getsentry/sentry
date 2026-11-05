@@ -12,13 +12,8 @@ const assistantQueryOptions = apiOptions.as<AssistantResult[]>()('/assistant/', 
   staleTime: 30000,
 });
 
-export function useAssistant(
-  options: Pick<typeof assistantQueryOptions, 'notifyOnChangeProps'> = {}
-) {
-  return useQuery({
-    ...assistantQueryOptions,
-    ...options,
-  });
+export function useAssistant() {
+  return useQuery(assistantQueryOptions);
 }
 
 interface MutateAssistantData {
