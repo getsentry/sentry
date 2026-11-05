@@ -215,8 +215,8 @@ export function Tab({
   as = 'li',
   tooltipProps,
 }: TabProps) {
-  const objectRef = useObjectRef(ref);
-  const tabRef = useRef<HTMLElement>(null);
+  const wrapperRef = useObjectRef(ref);
+  const controlRef = useRef<HTMLElement>(null);
   const {
     key,
     rendered,
@@ -225,7 +225,7 @@ export function Tab({
   const {tabProps, isSelected, isDisabled} = useTab(
     {key, isDisabled: hidden, shouldSelectOnPressUp: !!to},
     state,
-    tabRef
+    controlRef
   );
   const isLink = !!to && !isDisabled;
   const styleProps = {orientation, variant, selected: isSelected, size};
@@ -245,9 +245,9 @@ export function Tab({
       selected={isSelected}
       overflowing={overflowing}
       ref={element => {
-        objectRef.current = element;
+        wrapperRef.current = element;
         if (!isLink) {
-          tabRef.current = element;
+          controlRef.current = element;
         }
       }}
       as={as}
@@ -258,7 +258,7 @@ export function Tab({
           {...styleProps}
           to={to}
           ref={element => {
-            tabRef.current = element;
+            controlRef.current = element;
           }}
           onMouseDown={event => {
             if (!isModifiedClick(event)) {
