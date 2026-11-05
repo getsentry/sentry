@@ -218,7 +218,6 @@ def _is_dashboard_generate_run(organization: Organization, resolved: ResolvedSee
     ).exists()
 
 
-@cell_silo_endpoint
 def _maybe_reply_to_single_run(
     request: Request, organization: Organization, resolved: ResolvedSeerRun, reply: str
 ) -> Response | None:
@@ -255,6 +254,7 @@ def _maybe_reply_to_single_run(
     return Response({"run_id": resolved.seer_run_state_id, "sentry_run_id": resolved.uuid})
 
 
+@cell_silo_endpoint
 class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
