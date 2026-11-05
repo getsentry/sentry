@@ -1,18 +1,17 @@
-Cadence runs things on a recurring schedule. A schedule belongs to a target, such as a
-`SeerWorkflowConfig`, and when it comes due Cadence hands the run off to code registered for
-that kind of target. Cadence only decides _when_ something runs; the work itself happens
-wherever the handoff sends it.
+Cadence runs things on a recurring schedule. A schedule belongs to a target, an object owned
+by some other part of Sentry, and when it comes due Cadence hands the run off to code
+registered for that kind of target. Cadence only decides _when_ something runs; the work
+itself happens wherever the handoff sends it.
 
 Import only from `sentry.cadence.api`. Everything else in this package can change freely.
+
+The examples below use `ScheduledTriggerType.EXAMPLE`, a made-up trigger type whose targets
+are `ExampleConfig` rows. Neither exists; substitute your own.
 
 ## Scheduling
 
 A schedule is identified by (organization, trigger type, target id). The target id's meaning
-depends on the trigger type:
-
-- `SEER_WORKFLOW`: a `SeerWorkflowConfig` id.
-- `LOG`: any id you choose. Its action only logs `cadence.log_trigger.run` for each run, to
-  validate scheduling (for example in production) without touching user data.
+depends on the trigger type; for `EXAMPLE` it would be an `ExampleConfig` id.
 
 ```python
 from datetime import timedelta
@@ -21,14 +20,14 @@ from sentry.cadence.api import ScheduledTriggerType, clear_schedule, cron, every
 
 set_schedule(
     organization_id=org.id,
-    trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-    target_id=config.id,
+    trigger_type=ScheduledTriggerType.EXAMPLE,
+    target_id=example_config.id,
     schedule=cron("0 10 * * *", timezone="America/New_York"),  # or every(timedelta(hours=6))
 )
 clear_schedule(
     organization_id=org.id,
-    trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
-    target_id=config.id,
+    trigger_type=ScheduledTriggerType.EXAMPLE,
+    target_id=example_config.id,
 )
 ```
 
@@ -60,11 +59,13 @@ from collections.abc import Sequence
 from sentry.cadence.api import ScheduledTriggerType, TriggerContext, register_trigger_action
 
 
-@register_trigger_action(ScheduledTriggerType.SEER_WORKFLOW)
-def schedule_workflow_runs(runs: Sequence[TriggerContext]) -> None:
+@register_trigger_action(ScheduledTriggerType.EXAMPLE)
+def schedule_example_runs(runs: Sequence[TriggerContext]) -> None:
     for run in runs:
-        run_scheduled_workflow.delay(
-            run.organization_id, run.target_id, run.scheduled_for.isoformat()
+        run_example.delay(
+            organization_id=run.organization_id,
+            example_config_id=run.target_id,
+            scheduled_for=run.scheduled_for.isoformat(),
         )
 ```
 
@@ -76,12 +77,17 @@ type's spread window.
 
 Runs are delivered best-effort: a run is usually delivered once, but may occasionally be
 skipped (for example, if its action raises) or delivered twice. `TriggerContext.scheduled_for`
-is the run's scheduled time and is the same for a duplicate, so use it to deduplicate, e.g. as
-part of a Seer workflow run's `trigger_key`.
+is the run's scheduled time and is the same for a duplicate, so use it to deduplicate: for
+example, `run_example` could skip an (`example_config_id`, `scheduled_for`) it has already
+handled.
 
 To add a trigger type, add it to `ScheduledTriggerType` and register its action. Deploy the
 action before anything creates schedules of the new type: runs of a type with no action are
 lost.
+
+`LOG` is a built-in trigger type for validating scheduling, for example in production,
+without touching user data. Its target id can be any id you choose, and its action only logs
+`cadence.log_trigger.run` for each run. See `actions.py`.
 
 ### Spreading load
 
@@ -89,7 +95,7 @@ When running at exactly the scheduled time matters less than the load a trigger 
 Cadence can spread the type's runs within an acceptable window, set when registering:
 
 ```python
-@register_trigger_action(ScheduledTriggerType.SEER_WORKFLOW, spread_window=timedelta(hours=1))
+@register_trigger_action(ScheduledTriggerType.EXAMPLE, spread_window=timedelta(hours=1))
 ```
 
 Each of the type's schedules then runs a fixed offset after its scheduled time, in whole
