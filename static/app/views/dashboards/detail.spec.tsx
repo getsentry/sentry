@@ -2259,9 +2259,14 @@ describe('Dashboards > Detail', () => {
     });
 
     it('does not render save or edit features on prebuilt insights dashboards', async () => {
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {start: null, end: null, period: '24h', utc: null},
+      });
       render(
         <DashboardDetail
-          initialState={DashboardState.VIEW}
+          initialState={DashboardState.EMBEDDED}
           dashboard={DashboardFixture([], {
             prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
           })}
@@ -2274,7 +2279,9 @@ describe('Dashboards > Detail', () => {
       await screen.findByText('7D');
 
       expect(screen.queryByTestId('filter-bar-cancel')).not.toBeInTheDocument();
-      expect(screen.queryByText('Save')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Save for Everyone'})
+      ).not.toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
       expect(screen.queryByText('Add Widget')).not.toBeInTheDocument();
     });
