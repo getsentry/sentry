@@ -14,13 +14,11 @@ from sentry.workflow_engine.endpoints.serializers.response_schemas import (
     action_config_schema,
     action_data_schema,
     condition_comparison_schema,
-    workflow_config_schema,
 )
 from sentry.workflow_engine.generated_schema_types import (
     ActionConfigResponse,
     ActionDataResponse,
     ConditionComparisonResponse,
-    WorkflowConfig,
 )
 from sentry.workflow_engine.models import (
     DataConditionGroup,
@@ -126,9 +124,8 @@ class WorkflowSerializerResponse(TypedDict):
         ),
     ]
     config: Annotated[
-        WorkflowConfig,
+        dict[str, Any],
         ApiDescription("Configuration of the workflow, such as frequency in minutes"),
-        ApiSchema(workflow_config_schema),
     ]
     detectorIds: Annotated[
         list[str] | None, ApiDescription("IDs of the monitors connected to the workflow")
