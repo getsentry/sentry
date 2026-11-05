@@ -6,6 +6,6 @@ export function getClassifiersPath(organizationSlug: string) {
 }
 
 export function useClassifiersEnabled() {
-  const organization = useOrganization();
-  return organization.features.includes('classifiers-ui');
+  const organization = useOrganization({allowNull: true});
+  return !!organization?.features.includes('classifiers-ui');
 }
