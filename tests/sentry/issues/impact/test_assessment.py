@@ -4,7 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.issues.impact.assessment import IMPACT_FEATURE_ID, assess_impact_for_group
+from sentry.issues.impact.assessment import assess_impact_for_group
+from sentry.issues.impact.types import IMPACT_FEATURE_ID
 from sentry.testutils.cases import TestCase
 
 
@@ -15,8 +16,12 @@ class AssessImpactForGroupTest(TestCase):
             data={
                 "platform": "javascript",
                 "exception": {"values": [{"type": "TypeError", "value": "Monitor details failed"}]},
+                "_meta": {
+                    "exception": {"values": {"0": {"value": {"": {"err": ["value was trimmed"]}}}}}
+                },
             },
             project_id=self.project.id,
+            assert_no_errors=False,
         )
         assert event.group is not None
         expected_run = self.create_seer_run(organization=self.organization, type="feature_run")
@@ -36,6 +41,7 @@ class AssessImpactForGroupTest(TestCase):
         assert call["payload"]["source_event_id"] == event.event_id
         assert call["payload"]["event"]
         assert isinstance(call["payload"]["event"]["dateCreated"], str)
+        assert call["payload"]["event"]["_meta"]["entries"]["0"]
         assert call["payload"]["available_citations"] == [
             {"source": "event", "reference": f"entire-event:{event.event_id}"}
         ]

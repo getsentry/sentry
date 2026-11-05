@@ -19,7 +19,9 @@ def assess_impact_for_group(group: Group) -> SeerRun:
         raise ValueError(f"Group {group.id} has no event available for Impact assessment")
 
     source_event_id = event.event_id
-    serialized_event = orjson.loads(orjson.dumps(serialize(event, serializer=EventSerializer())))
+    serialized_event = orjson.loads(
+        orjson.dumps(serialize(event, serializer=EventSerializer()), option=orjson.OPT_NON_STR_KEYS)
+    )
     available_citations = [
         # For starters, just cite the whole event, but this should break apart into useful separate components
         # That way we can show rich citations to actual context panes
