@@ -1,9 +1,6 @@
-import type {UseQueryOptions} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -36,13 +33,6 @@ interface FetchIssueTagsParameters {
   limit?: number;
 }
 
-type GroupTagUseQueryOptions = Partial<
-  Omit<
-    UseQueryOptions<ApiResponse<GroupTag[]>, Error, GroupTag[], ApiQueryKey>,
-    'queryKey' | 'queryFn' | 'select'
-  >
->;
-
 const groupTagsOptions = ({
   groupId,
   orgSlug,
@@ -60,7 +50,7 @@ const groupTagsOptions = ({
 
 export function useGroupTags(
   parameters: Omit<FetchIssueTagsParameters, 'orgSlug'>,
-  {enabled = true, ...options}: GroupTagUseQueryOptions = {}
+  options: {enabled?: boolean} = {}
 ) {
   const organization = useOrganization();
   return useQuery({
@@ -69,7 +59,6 @@ export function useGroupTags(
       limit: 3,
       ...parameters,
     }),
-    enabled: defined(parameters.groupId) && enabled,
-    ...options,
+    enabled: defined(parameters.groupId) && (options.enabled ?? true),
   });
 }
