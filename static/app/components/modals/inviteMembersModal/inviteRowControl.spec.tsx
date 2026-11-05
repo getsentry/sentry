@@ -233,6 +233,7 @@ describe('parseEmails', () => {
       ['jane@example.com', 'john@example.com'],
     ],
     ['<mailto:jane@example.com>', ['jane@example.com']],
+    ["Jane O'Brien <jane.o'brien@example.com>", ["jane.o'brien@example.com"]],
     ['not-an-email', ['not-an-email']],
     ['   ', []],
   ])('parses %j', (input, expected) => {

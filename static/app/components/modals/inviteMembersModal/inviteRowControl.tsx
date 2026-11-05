@@ -25,7 +25,7 @@ type Props = {
 };
 
 // Address lists copied from mail clients look like `Jane Doe <jane@example.com>`.
-const EMAIL_PATTERN = /[^\s<>,;"'()]+@[^\s<>,;"'()]+/g;
+const EMAIL_PATTERN = /[^\s<>,;"()]+@[^\s<>,;"()]+/g;
 const SEPARATOR_PATTERN = /[\s,;<>]/;
 
 export function parseEmails(input: string): string[] {
