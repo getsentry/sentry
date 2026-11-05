@@ -7,7 +7,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct} from 'sentry/locale';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
-import {WarningIcon} from 'sentry/views/explore/components/chart/placeholder';
+
+import {WarningIcon} from './placeholder';
 
 interface ExtrapolationConfidenceFooterProps {
   plottables: Plottable[];
@@ -31,7 +32,6 @@ export function ExtrapolationConfidenceFooter({
   return (
     <Flex align="center" gap="md">
       <Tooltip
-        isHoverable
         title={tct(
           'Some of this data is extrapolated from sampled events. [link:Learn more]',
           {link: <ExternalLink href={SAMPLING_DOCS_URL} />}
