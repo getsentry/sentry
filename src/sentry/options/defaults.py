@@ -203,8 +203,6 @@ register(
     type=Int,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Skip re-sending a queued email that was already sent, e.g. when the taskbroker
-# delivers the same send_email activation more than once.
 register(
     "mail.send-dedupe.enabled",
     default=False,
