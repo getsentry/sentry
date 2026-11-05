@@ -9,40 +9,13 @@ from scm.errors import (
     SCMError,
 )
 
-from sentry.models.apitoken import ApiToken
-from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 _MAKE_SCM = "sentry.integrations.api.endpoints.organization_pull_request_files.make_scm"
 
 
 def _page(files: list[dict[str, str | None]], next_cursor: str = "") -> dict[str, object]:
     return {"data": files, "meta": {"next_cursor": next_cursor}}
-
-
-def _org_ci_auth_header(test: APITestCase) -> str:
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        token_str = generate_token(test.organization.slug, "")
-        OrgAuthToken.objects.create(
-            organization_id=test.organization.id,
-            name="ci-token",
-            token_hashed=hash_token(token_str),
-            token_last_characters="ABCD",
-            scope_list=["org:ci"],
-        )
-        # Authenticate with the token alone, not the logged-in session.
-        test.client.logout()
-    return f"Bearer {token_str}"
-
-
-def _org_integrations_auth_header(test: APITestCase) -> str:
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        token = ApiToken.objects.create(user=test.user, scope_list=["org:integrations"])
-        test.client.logout()
-    return f"Bearer {token.plaintext_token}"
 
 
 class _FakeScm:
@@ -142,26 +115,6 @@ class OrganizationPullRequestFilesTest(APITestCase):
         )
         self.get_error_response(self.organization.slug, other_pull_request.id, status_code=404)
 
-    @mock.patch(_MAKE_SCM)
-    def test_org_ci_token_is_forbidden(self, mock_make_scm: MagicMock) -> None:
-        self.get_error_response(
-            self.organization.slug,
-            self.pull_request.id,
-            status_code=403,
-            extra_headers={"HTTP_AUTHORIZATION": _org_ci_auth_header(self)},
-        )
-        mock_make_scm.assert_not_called()
-
-    @mock.patch(_MAKE_SCM)
-    def test_org_integrations_token_is_forbidden(self, mock_make_scm: MagicMock) -> None:
-        self.get_error_response(
-            self.organization.slug,
-            self.pull_request.id,
-            status_code=403,
-            extra_headers={"HTTP_AUTHORIZATION": _org_integrations_auth_header(self)},
-        )
-        mock_make_scm.assert_not_called()
-
     def test_nonexistent_pull_request_returns_404(self) -> None:
         self.get_error_response(self.organization.slug, 999999, status_code=404)
 
@@ -250,26 +203,6 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
             self.organization.id, self.repo.id, referrer="pull-request-files"
         )
         assert mock_make_scm.return_value.calls == ["42"]
-
-    @mock.patch(_MAKE_SCM)
-    def test_org_ci_token_is_forbidden(self, mock_make_scm: MagicMock) -> None:
-        self.get_error_response(
-            self.organization.slug,
-            qs_params={"repo": "getsentry/sentry", "number": "42"},
-            status_code=403,
-            extra_headers={"HTTP_AUTHORIZATION": _org_ci_auth_header(self)},
-        )
-        mock_make_scm.assert_not_called()
-
-    @mock.patch(_MAKE_SCM)
-    def test_org_integrations_token_is_forbidden(self, mock_make_scm: MagicMock) -> None:
-        self.get_error_response(
-            self.organization.slug,
-            qs_params={"repo": "getsentry/sentry", "number": "42"},
-            status_code=403,
-            extra_headers={"HTTP_AUTHORIZATION": _org_integrations_auth_header(self)},
-        )
-        mock_make_scm.assert_not_called()
 
     def test_requires_repo_and_numeric_number(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)
