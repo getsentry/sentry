@@ -75,9 +75,7 @@ class EmailSendInProgress(Exception):
     """
 
 
-# Matches send_email's processing deadline: a worker that dies mid-send cannot
-# hold the claim past the point where the broker would redeliver its task.
-SEND_CLAIM_TIMEOUT = 90
+SEND_CLAIM_TIMEOUT = 90  # matches send_email's processing deadline
 SENT_MARKER_TIMEOUT = 60 * 60 * 24
 _SENDING = "sending"
 _SENT = "sent"
