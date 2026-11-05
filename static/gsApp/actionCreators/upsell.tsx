@@ -62,6 +62,7 @@ export function sendSeerTopUpRequest({
   return sendBasicRequest({
     endpoint,
     data: {},
+    successMessage: t('Admins emailed.'),
     ...rest,
   });
 }
@@ -91,11 +92,13 @@ async function sendBasicRequest({
   endpoint,
   data,
   handleSuccess,
+  successMessage = t('Request Sent'),
 }: {
   api: Client;
   data: Record<string, any>;
   endpoint: string;
   handleSuccess?: () => void;
+  successMessage?: string;
 }) {
   try {
     toast.loading(t('Requesting\u2026'));
@@ -103,7 +106,7 @@ async function sendBasicRequest({
       method: 'POST',
       data,
     });
-    toast.success(t('Request Sent'));
+    toast.success(successMessage);
     handleSuccess?.();
   } catch (err) {
     toast.error(t('Unable to send request'));

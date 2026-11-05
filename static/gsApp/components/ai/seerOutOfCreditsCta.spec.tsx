@@ -26,7 +26,7 @@ describe('SeerOutOfCreditsCta', () => {
     });
   }
 
-  it('sends billing members to configure auto reload', async () => {
+  it('asks billing members to turn on auto reload from the chat', async () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     act(() =>
       SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
@@ -37,16 +37,14 @@ describe('SeerOutOfCreditsCta', () => {
 
     expect(
       await screen.findByText(
-        'Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto reload.'
+        'Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto-reload.'
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Configure auto reload'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Turn on auto-reload'})).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/billing/overview/`
     );
-    expect(
-      screen.queryByRole('button', {name: 'Request credits'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
   });
 
   it('tells billing members when auto reload has no top-ups left', async () => {
@@ -62,6 +60,9 @@ describe('SeerOutOfCreditsCta', () => {
       await screen.findByText(
         'Your organization does not have enough credits left for you to message Seer, and you have no auto top-ups remaining. Adjust your spend and turn on auto top-up.'
       )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Configure auto reload'})
     ).toBeInTheDocument();
   });
 
@@ -84,9 +85,12 @@ describe('SeerOutOfCreditsCta', () => {
     render(<SeerOutOfCreditsCta reason={reason} />, {organization});
 
     expect(await screen.findByText(copy)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Configure auto reload'})
+    ).toBeInTheDocument();
   });
 
-  it('lets other members of self-serve orgs request credits', async () => {
+  it('lets other members of self-serve orgs email their admins', async () => {
     const organization = OrganizationFixture({access: ['org:read']});
     act(() =>
       SubscriptionStore.set(
@@ -115,9 +119,14 @@ describe('SeerOutOfCreditsCta', () => {
     render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
     expect(
-      screen.queryByRole('button', {name: 'Configure auto reload'})
+      screen.getByText(
+        'Your organization does not have enough credits left for you to message Seer.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Turn on auto-reload'})
     ).not.toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('button', {name: 'Request credits'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
 
     await waitFor(() => expect(request).toHaveBeenCalled());
     expect(snooze).toHaveBeenCalledWith(
@@ -129,10 +138,38 @@ describe('SeerOutOfCreditsCta', () => {
         }),
       })
     );
-    expect(await screen.findByRole('button', {name: 'Request sent'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Admins emailed'})).toBeDisabled();
   });
 
-  it('shows the request as sent for the rest of the billing period', async () => {
+  it.each([
+    [
+      'autofix-start',
+      'Your organization does not have enough credits to start an Autofix run. Ask your admin to increase your daily token limit or set up auto top-up.',
+    ],
+    [
+      'autofix-continue',
+      'Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily token limit or set up auto top-up.',
+    ],
+  ] as const)('uses the member %s copy', async (reason, copy) => {
+    const organization = OrganizationFixture({access: ['org:read']});
+    act(() =>
+      SubscriptionStore.set(
+        organization.slug,
+        SubscriptionFixture({organization, canSelfServe: true})
+      )
+    );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {},
+    });
+
+    render(<SeerOutOfCreditsCta reason={reason} variant="muted" />, {organization});
+
+    expect(screen.getByText(copy)).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Contact Admin'})).toBeEnabled();
+  });
+
+  it('shows the admins as emailed for the rest of the billing period', async () => {
     const organization = OrganizationFixture({access: ['org:read']});
     act(() =>
       SubscriptionStore.set(
@@ -155,13 +192,11 @@ describe('SeerOutOfCreditsCta', () => {
 
     render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
-    expect(await screen.findByRole('button', {name: 'Request sent'})).toBeDisabled();
-    expect(
-      screen.queryByRole('button', {name: 'Request credits'})
-    ).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Admins emailed'})).toBeDisabled();
+    expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
   });
 
-  it('lets members request again once a new billing period starts', async () => {
+  it('lets members email their admins again once a new billing period starts', async () => {
     const organization = OrganizationFixture({access: ['org:read']});
     act(() =>
       SubscriptionStore.set(
@@ -185,11 +220,13 @@ describe('SeerOutOfCreditsCta', () => {
     render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
     await waitFor(() => expect(prompts).toHaveBeenCalled());
-    expect(screen.getByRole('button', {name: 'Request credits'})).toBeEnabled();
-    expect(screen.queryByRole('button', {name: 'Request sent'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Contact Admin'})).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Admins emailed'})
+    ).not.toBeInTheDocument();
   });
 
-  it('offers no request to members of orgs that cannot self-serve', () => {
+  it('offers no button to members of orgs that cannot self-serve', () => {
     const organization = OrganizationFixture({access: ['org:read']});
     act(() =>
       SubscriptionStore.set(
@@ -200,9 +237,7 @@ describe('SeerOutOfCreditsCta', () => {
 
     render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
-    expect(
-      screen.getByText(/Ask someone with billing access in your organization/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Ask your admin to set up auto reload/)).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

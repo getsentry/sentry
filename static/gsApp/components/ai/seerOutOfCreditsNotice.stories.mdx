@@ -16,7 +16,7 @@ Product code renders `SeerOutOfCreditsCta` with the surface the org can't
 afford, and getsentry fills it in: the copy depends on the surface, whether the
 viewer has billing access, and whether auto reload is already on. Open source has
 no credits and renders nothing. These demos render the `SeerOutOfCreditsNotice`
-underneath it. The copy comes from the "Seer Billing Gates Copy" spec.
+underneath it. The copy and buttons follow the Billing Gates designs in Figma.
 
 ```jsx
 <SeerOutOfCreditsCta reason="agent-chat" />
@@ -26,7 +26,8 @@ underneath it. The copy comes from the "Seer Billing Gates Copy" spec.
 ## Agent chat
 
 Shown above the chat composer when the org can't afford another message.
-Billing members configure auto reload.
+Billing members turn on auto reload. The chat uses full-size buttons; Autofix
+uses small ones.
 
 <Storybook.Demo>
   <SeerOutOfCreditsNotice
@@ -46,7 +47,8 @@ Billing members configure auto reload.
 
 ## Agent chat, auto reload already on
 
-With auto reload on, running out means the org used every top-up it allows.
+With auto reload on, running out means the org used every top-up it allows, so
+billing members configure it instead.
 
 <Storybook.Demo>
   <SeerOutOfCreditsNotice
@@ -137,9 +139,8 @@ sidebar.
 
 ## Members
 
-The spec has no member copy yet. Members get the first sentence of the billing
-copy plus who to ask, and ask the billing members for credits. Sending the
-request shows a toast, and the button then reads "Request sent" until the billing
+Members email their admins with "Contact Admin". Sending shows an "Admins
+emailed." toast, and the button then reads "Admins emailed" until the billing
 period ends.
 
 <Storybook.Demo>
@@ -170,9 +171,37 @@ period ends.
 <SeerOutOfCreditsNotice reason="agent-chat" escalation="request" onRequestCredits={handleRequestCredits} hasRequestedCredits />
 ```
 
+## Members, issue sidebar
+
+In Autofix, the member copy also says what to ask the admins for.
+
+<Storybook.Demo>
+  <Stack gap="md" width="320px">
+    <SeerOutOfCreditsNotice
+      reason="autofix-start"
+      variant="muted"
+      escalation="request"
+      onRequestCredits={() => {}}
+    />
+    <Button variant="primary" disabled>
+      Start Autofix
+    </Button>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice
+  reason="autofix-start"
+  variant="muted"
+  escalation="request"
+  onRequestCredits={handleRequestCredits}
+/>
+```
+
 ## Orgs that can't self-serve
 
-Members of orgs that buy through an account team get no request button.
+Members of orgs that buy through an account team get no button, so the copy
+says who to ask.
 
 <Storybook.Demo>
   <SeerOutOfCreditsNotice reason="agent-chat" escalation="contact" />
