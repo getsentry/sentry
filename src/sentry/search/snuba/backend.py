@@ -8,7 +8,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from django.db.models import Q
+from django.db.models import Model, Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
@@ -195,7 +195,7 @@ def assigned_or_suggested_filter(
     # Collect every owner/assignee branch into a single `IN (... UNION ...)`. OR-ing separate
     # `IN (subquery)` clauses forces Postgres to test every candidate group against each
     # subquery; a single semi-join lets it start from the (usually small) set of owned group ids.
-    group_id_querysets: list[BaseQuerySet[Any, Any]] = []
+    group_id_querysets: list[BaseQuerySet[Model, int]] = []
 
     if "Team" in types_to_owners:
         teams = types_to_owners["Team"]
