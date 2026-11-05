@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -1871,7 +1871,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                     if isinstance(value, list):
                         value = {project_map.get(val) for val in value}
                     else:
-                        value = project_map.get(value)
+                        value = project_map.get(cast(str, value))
                 # TODO: Handle potential None case
                 elif value is not None:
                     value = self.resolve_tag_value(str(value))

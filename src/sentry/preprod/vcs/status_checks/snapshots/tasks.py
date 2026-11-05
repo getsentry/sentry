@@ -196,6 +196,7 @@ def create_preprod_snapshot_status_check_task(
     if not client or not repository:
         return
 
+    assert repository.integration_id is not None
     provider = get_status_check_provider(
         client,
         commit_comparison.provider,
@@ -436,6 +437,7 @@ def post_snapshot_status_check_task(
     if not client or not repository:
         return
 
+    assert repository.integration_id is not None
     provider = get_status_check_provider(
         client,
         commit_comparison.provider,

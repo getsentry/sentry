@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 import requests
 from django.http import HttpRequest
 from jwt import (
+    DecodeError,
     ExpiredSignatureError,
     InvalidAlgorithmError,
     InvalidSignatureError,
@@ -18,6 +19,8 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri, percent_encode
+
+INSTALL_KEY_FETCH_TIMEOUT = 10
 
 
 class AtlassianConnectValidationError(Exception):
@@ -78,8 +81,11 @@ def get_integration_from_jwt(
         raise AtlassianConnectValidationError("No token parameter")
     # Decode the JWT token, without verification. This gives
     # you a header JSON object, a claims JSON object, and a signature.
-    claims = jwt.peek_claims(token)
-    headers = jwt.peek_header(token)
+    try:
+        claims = jwt.peek_claims(token)
+        headers = jwt.peek_header(token)
+    except DecodeError as e:
+        raise AtlassianConnectValidationError("Malformed token") from e
 
     # Extract the issuer ('iss') claim from the decoded, unverified
     # claims object. This is the clientKey for the tenant - an identifier
@@ -147,7 +153,9 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
     """
     if token is None:
         raise AtlassianConnectValidationError("No token parameter")
-    key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
+    key_response = requests.get(
+        f"https://connect-install-keys.atlassian.com/{key_id}", timeout=INSTALL_KEY_FETCH_TIMEOUT
+    )
     public_key = key_response.content.decode("utf-8").strip()
     decoded_claims = jwt.decode(token, public_key, audience=absolute_uri(), algorithms=["RS256"])
     if not decoded_claims:

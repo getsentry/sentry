@@ -25,6 +25,7 @@ import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/u
 import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {remapTransformations} from 'sentry/views/dashboards/utils/transformations';
 import {
   combineIngestionMeta,
   type WidgetTimeSeries,
@@ -36,13 +37,6 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  combineWidgetJsonQueryResults,
-  combineWidgetQueryResults,
-} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getSeriesConfidenceInformation} from 'sentry/views/dashboards/widgetCard/hooks/utils/getSeriesConfidenceInformation';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {
   getConditionalFilterInvalidSeriesMessageForAggregates,
   getValidAggregatesForRequest,
   hasNoValidAggregatesForRequest,
@@ -50,6 +44,14 @@ import {
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from './utils/combineWidgetQueryResults';
+import {getSeriesConfidenceInformation} from './utils/getSeriesConfidenceInformation';
+import {getWidgetStaleTime} from './utils/getStaleTime';
+import {getTimeseriesWidgetQueryOptions} from './utils/getTimeseriesWidgetQueryOptions';
 
 type SpansTableResponse = TableData | EventsTableData;
 
@@ -151,6 +153,14 @@ function withValidConditionalAggregates(widget: Widget, queryIndex: number): Wid
       return {
         ...widgetQuery,
         aggregates: validAggregates,
+        ...(widgetQuery.transformations && {
+          transformations: remapTransformations(
+            widgetQuery.transformations,
+            aggregates.flatMap((aggregate, aggregateIndex) =>
+              validAggregateSet.has(aggregate) ? [aggregateIndex] : []
+            )
+          ),
+        }),
         orderby: nextOrderby,
         fields: widgetQuery.fields
           ? originalFields.filter((_, fieldIndex) => keep[fieldIndex])
@@ -205,6 +215,7 @@ export function useSpansSeriesQuery(
       pageFilters,
       DiscoverDatasets.SPANS,
       {
+        organization,
         referrer: getReferrer(filteredWidget.displayType),
         widgetInterval,
         sampling: samplingMode,

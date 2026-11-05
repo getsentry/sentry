@@ -6,8 +6,9 @@ import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {LOGS_ANCHOR_TIMESTAMP_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsApiOptions';
+
+import {LOGS_ANCHOR_TIMESTAMP_KEY} from './logsPageParams';
 
 export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';

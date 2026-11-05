@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from botocore.exceptions import ClientError
 from django.http.request import HttpRequest
@@ -13,6 +13,7 @@ from rest_framework.fields import CharField, ChoiceField, IntegerField, ListFiel
 from sentry import analytics, options
 from sentry.analytics.events.integration_serverless_setup import IntegrationServerlessSetup
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.auth.principal import acting_user_id
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -79,16 +80,17 @@ metadata = IntegrationMetadata(
 
 
 class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self._client = None
+        self._client: Any = None
 
     @property
-    def region(self):
-        return self.metadata["region"]
+    def region(self) -> str:
+        region = self.metadata["region"]
+        return region
 
     @property
-    def client(self):
+    def client(self) -> Any:
         if not self._client:
             region = self.metadata["region"]
             account_number = self.metadata["account_number"]
@@ -104,15 +106,16 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     def get_client(self) -> Any:
         return self.client
 
-    def get_one_lambda_function(self, name):
+    def get_one_lambda_function(self, name: str) -> dict[str, Any]:
         # https://boto3.amazonaws.com/v1/documentation/api/1.22.12/reference/services/lambda.html
-        return self.client.get_function(FunctionName=name)["Configuration"]
+        configuration = self.client.get_function(FunctionName=name)["Configuration"]
+        return configuration
 
-    def get_serialized_lambda_function(self, name):
+    def get_serialized_lambda_function(self, name: str) -> dict[str, Any]:
         function = self.get_one_lambda_function(name)
         return self.serialize_lambda_function(function)
 
-    def serialize_lambda_function(self, function):
+    def serialize_lambda_function(self, function: Mapping[str, Any]) -> dict[str, Any]:
         layers = get_function_layer_arns(function)
         layer_arn = get_latest_layer_for_function(function)
         function_runtime = function["Runtime"]
@@ -148,7 +151,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         }
 
     # ServerlessMixin interface
-    def get_serverless_functions(self):
+    def get_serverless_functions(self) -> list[dict[str, Any]]:
         """
         Returns a list of serverless functions
         """
@@ -158,7 +161,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return [self.serialize_lambda_function(function) for function in functions]
 
     @wrap_lambda_updater()
-    def enable_function(self, target):
+    def enable_function(self, target: str) -> dict[str, Any]:
         function = self.get_one_lambda_function(target)
         config_data = self.get_config_data()
         project_id = config_data["default_project_id"]
@@ -170,7 +173,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return self.get_serialized_lambda_function(target)
 
     @wrap_lambda_updater()
-    def disable_function(self, target):
+    def disable_function(self, target: str) -> dict[str, Any]:
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
 
@@ -179,7 +182,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return self.get_serialized_lambda_function(target)
 
     @wrap_lambda_updater()
-    def update_function_to_latest_version(self, target):
+    def update_function_to_latest_version(self, target: str) -> dict[str, Any]:
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
 
@@ -197,7 +200,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return self.get_serialized_lambda_function(target)
 
 
-class ProjectSelectSerializer(CamelSnakeSerializer):
+class ProjectSelectSerializer(CamelSnakeSerializer[dict[str, Any]]):
     project_id = IntegerField(required=True)
 
 
@@ -227,7 +230,7 @@ class ProjectSelectApiStep:
         return PipelineStepResult.advance()
 
 
-class CloudFormationSerializer(CamelSnakeSerializer):
+class CloudFormationSerializer(CamelSnakeSerializer[dict[str, Any]]):
     account_number = CharField(required=True)
     region = ChoiceField(choices=[(r, r) for r in ALL_AWS_REGIONS], required=True)
     aws_external_id = CharField(required=True)
@@ -285,7 +288,7 @@ class CloudFormationApiStep:
         return PipelineStepResult.advance()
 
 
-class FunctionSelectSerializer(CamelSnakeSerializer):
+class FunctionSelectSerializer(CamelSnakeSerializer[dict[str, Any]]):
     enabled_functions = ListField(child=CharField(), required=True)
 
 
@@ -293,9 +296,9 @@ class InstrumentationApiStep:
     step_name = "instrumentation"
 
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
-        account_number = pipeline.fetch_state("account_number")
-        region = pipeline.fetch_state("region")
-        aws_external_id = pipeline.fetch_state("aws_external_id")
+        account_number = cast("str", pipeline.fetch_state("account_number"))
+        region = cast("str", pipeline.fetch_state("region"))
+        aws_external_id = cast("str", pipeline.fetch_state("aws_external_id"))
 
         lambda_client = gen_aws_client(account_number, region, aws_external_id)
         lambda_functions = get_supported_functions(lambda_client)
@@ -324,10 +327,10 @@ class InstrumentationApiStep:
         assert pipeline.organization is not None
         organization = pipeline.organization
 
-        account_number = pipeline.fetch_state("account_number")
-        region = pipeline.fetch_state("region")
-        project_id = pipeline.fetch_state("project_id")
-        aws_external_id = pipeline.fetch_state("aws_external_id")
+        account_number = cast("str", pipeline.fetch_state("account_number"))
+        region = cast("str", pipeline.fetch_state("region"))
+        project_id = cast("int", pipeline.fetch_state("project_id"))
+        aws_external_id = cast("str", pipeline.fetch_state("aws_external_id"))
 
         enabled_functions = validated_data["enabled_functions"]
         enabled_lambdas = {name: True for name in enabled_functions}
@@ -342,7 +345,9 @@ class InstrumentationApiStep:
             fn for fn in lambda_functions if enabled_lambdas.get(fn["FunctionName"])
         ]
 
-        def _enable_lambda(function):
+        def _enable_lambda(
+            function: dict[str, Any],
+        ) -> tuple[bool, dict[str, Any], Exception | None]:
             try:
                 enable_single_lambda(lambda_client, function, sentry_project_dsn)
                 return (True, function, None)
@@ -362,12 +367,13 @@ class InstrumentationApiStep:
                 if success:
                     success_count += 1
                 else:
-                    err_message: str | _StrPromise = str(e)
-                    is_custom_err, err_message = get_sentry_err_message(err_message)
+                    error_text = str(e)
+                    is_custom_err, message = get_sentry_err_message(error_text)
+                    custom_message: str | _StrPromise = message
                     if not is_custom_err:
                         capture_exception(e)
-                        err_message = _("Unknown Error")
-                    failures.append({"name": name, "error": str(err_message)})
+                        custom_message = _("Unknown Error")
+                    failures.append({"name": name, "error": str(custom_message)})
                     logger.info(
                         "update_function_configuration.error",
                         extra={
@@ -381,7 +387,7 @@ class InstrumentationApiStep:
 
         analytics.record(
             IntegrationServerlessSetup(
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 organization_id=organization.id,
                 integration="aws_lambda",
                 success_count=success_count,

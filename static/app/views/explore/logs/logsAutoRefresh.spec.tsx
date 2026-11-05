@@ -17,8 +17,9 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+
+import {AutorefreshToggle} from './logsAutoRefresh';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
 
 function SetAutoRefreshButton({state}: {state: AutoRefreshState}) {
   const setAutoRefresh = useSetLogsAutoRefresh();

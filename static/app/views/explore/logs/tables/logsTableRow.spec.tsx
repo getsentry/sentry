@@ -33,9 +33,10 @@ import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/consta
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
 import {LOGS_PINNED_KEY} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
+
+import {LogRowContent} from './logsTableRow';
 
 function ProviderWrapper({children}: {children?: React.ReactNode}) {
   return (

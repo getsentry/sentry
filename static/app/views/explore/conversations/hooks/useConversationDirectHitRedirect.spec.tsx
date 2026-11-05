@@ -2,9 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
-
 import {useConversationDirectHitRedirect} from './useConversationDirectHitRedirect';
+import type {Conversation} from './useConversations';
 
 const CONVERSATION: Conversation = {
   conversationId: 'conv-1',

@@ -5,7 +5,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -56,6 +56,7 @@ export function ChartContextMenu({
       menuItems.push(
         getSaveAsAlertMenuItem({
           disabled:
+            hasTransformations ||
             isVisualizeEquation(visualizeYAxes[0]!) ||
             hasConditionalAggregateFilter(yAxis),
           to: getAlertsUrl({
@@ -106,6 +107,7 @@ export function ChartContextMenu({
       menuItems.push(
         getSaveAsAlertMenuItem({
           alertsUrls,
+          disabled: hasTransformations,
           submenu: true,
           label: getCreateAlertForLabel(),
         })
@@ -149,6 +151,7 @@ export function ChartContextMenu({
     query,
     visualizeIndex,
     visualizeYAxes,
+    hasTransformations,
   ]);
 
   if (items.length === 0) {
@@ -164,12 +167,6 @@ export function ChartContextMenu({
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('Chart actions')}
-          disabled={hasTransformations}
-          tooltipProps={
-            hasTransformations
-              ? {title: t('Queries with transformations cannot be saved yet.')}
-              : undefined
-          }
         />
       )}
       position="bottom-end"

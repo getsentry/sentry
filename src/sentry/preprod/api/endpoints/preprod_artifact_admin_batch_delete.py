@@ -12,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
+from sentry.auth.principal import acting_user_id
 from sentry.preprod.analytics import PreprodArtifactApiAdminBatchDeleteEvent
 from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
 from sentry.preprod.models import PreprodArtifact
@@ -81,7 +82,7 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
             PreprodArtifactApiAdminBatchDeleteEvent(
                 organization_id=first_artifact.project.organization_id,
                 project_id=first_artifact.project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 artifact_count=len(artifacts_to_delete),
             )
         )
@@ -93,7 +94,7 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                 "preprod_artifact.admin_batch_delete.artifacts_delete_failed",
                 extra={
                     "artifact_ids": preprod_artifact_ids,
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                 },
             )
             return Response(

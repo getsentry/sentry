@@ -32,7 +32,7 @@ def build_incident_attachment(
     incident_serialized_response: IncidentSerializerResponse,
     organization: Organization,
     notification_uuid: str | None = None,
-) -> dict[str, str]:
+) -> dict[str, object]:
     from sentry.api.serializers.rest_framework.base import (
         camel_to_snake_case,
         convert_dict_key_case,

@@ -129,7 +129,6 @@ from sentry.seer.sentry_data_models import (
     HasRepoCodeMappingsResponse,
     InvestigationEventDeliveryResponse,
     MonitoringProviderConnectionsResponse,
-    OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
     OrganizationProjectDetail,
     OrganizationProjectsResponse,
@@ -533,10 +532,6 @@ class SentryOrganizaionIdsAndSlugs(TypedDict):
     org_slugs: list[str]
 
 
-def get_organization_autofix_consent(*, org_id: int) -> OrganizationAutofixConsentResponse:
-    return OrganizationAutofixConsentResponse(consent=True)
-
-
 def get_attributes_for_span(
     *,
     org_id: int,
@@ -634,7 +629,7 @@ def get_github_enterprise_integration_config(
 
 
 def send_seer_webhook(
-    *, event_name: str, organization_id: int, payload: dict
+    *, event_name: str, organization_id: int, payload: dict[str, Any]
 ) -> SendSeerWebhookSuccessResponse | SendSeerWebhookErrorResponse:
     """
     Handles receipt (in Sentry, from Seer) of a seer webhook event for an organization.
@@ -659,6 +654,11 @@ def send_seer_webhook(
             "seer.webhook_invalid_event_type",
             extra={"event_type": event_type},
         )
+        return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
+    # Internal only: Sentry raises it itself from the autofix completion hook, and it must not
+    # reach Sentry Apps until its payload is settled.
+    if sentry_app_event_type == SentryAppEventType.SEER_ERRORED:
+        logger.warning("seer.webhook_internal_event_type", extra={"event_type": event_type})
         return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
 
     # Handle organization lookup safely
@@ -956,7 +956,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Autofix
     "get_organization_slug": seer_rpc(get_organization_slug),
     "find_referenced_fix_statements": seer_rpc(find_referenced_fix_statements),
-    "get_organization_autofix_consent": seer_rpc(get_organization_autofix_consent),
     "get_error_event_details": seer_rpc(get_error_event_details),
     "get_profile_details": seer_rpc(get_profile_details),
     "send_seer_webhook": seer_rpc(send_seer_webhook),

@@ -23,6 +23,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import is_owned_by_acting_user, require_user
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.promptsactivity import PromptsActivity
@@ -55,7 +56,7 @@ class PromptsActivitySerializer(serializers.Serializer):
         help_text="The new prompt status: `snoozed`, `dismissed`, or `visible`.",
     )
 
-    def validate_feature(self, value):
+    def validate_feature(self, value: str | None) -> str:
         if value is None:
             raise serializers.ValidationError("Must specify feature name")
         if not prompt_config.has(value):
@@ -65,9 +66,12 @@ class PromptsActivitySerializer(serializers.Serializer):
 
 class PromptsActivityPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "user_preference:read"],
+        "PUT": ["org:read", "org:write", "org:admin", "user_preference:write"],
     }
+
+    # user_preference:read and user_preference:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 @extend_schema(tags=["Organizations"])
@@ -110,7 +114,7 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
         },
     )
     def get(
-        self, request: Request, organization: Organization, **kwargs
+        self, request: Request, organization: Organization, **kwargs: object
     ) -> (
         Response[PromptsActivityResponse]
         | Response[DetailResponse]
@@ -150,7 +154,7 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
 
         # Always scope by organization from URL - passed directly to filter() to prevent override
         result_qs = PromptsActivity.objects.filter(
-            conditions, user_id=request.user.id, organization_id=organization.id
+            conditions, is_owned_by_acting_user(request.user), organization_id=organization.id
         )
         featuredata = {k.feature: k.data for k in result_qs}
         if len(features) == 1:
@@ -171,7 +175,7 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, organization: Organization, **kwargs) -> Response:
+    def put(self, request: Request, organization: Organization, **kwargs: object) -> Response:
         """
         Snooze, dismiss, or restore a feature prompt for the current user.
         """
@@ -219,10 +223,11 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
             data["snoozed_ts"] = None
             data["dismissed_ts"] = None
 
+        user_id = require_user(request).id
         try:
             with transaction.atomic(router.db_for_write(PromptsActivity)):
                 PromptsActivity.objects.update_or_create(
-                    feature=feature, user_id=request.user.id, defaults={"data": data}, **fields
+                    feature=feature, user_id=user_id, defaults={"data": data}, **fields
                 )
         except IntegrityError:
             pass

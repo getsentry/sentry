@@ -9,12 +9,10 @@ import {
   LOGS_ANCHOR_TIMESTAMP_KEY,
   LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import type {LogsInfiniteQueryKey} from 'sentry/views/explore/logs/useLogsApiOptions';
+
+import {useLogsFrozenIsFrozen} from './logsFrozenContext';
+import {OurLogKnownFieldKey, type OurLogsResponseItem} from './types';
+import type {LogsInfiniteQueryKey} from './useLogsApiOptions';
 
 export interface LogAnchor {
   id: string;

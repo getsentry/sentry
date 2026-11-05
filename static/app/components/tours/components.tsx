@@ -14,6 +14,11 @@ import {Text} from '@sentry/scraps/text';
 import {useInvertedTheme} from '@sentry/scraps/theme';
 import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
 
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   useTourReducer,
   type TourContextType,
@@ -21,12 +26,8 @@ import {
   type TourState,
   type TourStep,
   type TourVariant,
-} from 'sentry/components/tours/tourContext';
-import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
-import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './tourContext';
+import {useMutateAssistant} from './useAssistant';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
   /**
@@ -561,7 +562,7 @@ export function TourGuide({
               <ThemeProvider theme={invertedTheme}>
                 <ClassNames>
                   {({css, theme: currentTheme}) => (
-                    <TourOverlay
+                    <Overlay
                       animated
                       arrowProps={{
                         ...arrowProps,
@@ -623,7 +624,7 @@ export function TourGuide({
                           </Flex>
                         )}
                       </Stack>
-                    </TourOverlay>
+                    </Overlay>
                   )}
                 </ClassNames>
               </ThemeProvider>
@@ -637,11 +638,6 @@ export function TourGuide({
 
 // useOverlay keeps 16px between the guide and each edge of the viewport.
 const TOUR_GUIDE_MAX_WIDTH = 'calc(100vw - 32px)';
-
-// Replaces the Overlay's own shadow, which no layout primitive can override.
-const TourOverlay = styled(Overlay)`
-  box-shadow: ${p => p.theme.shadow.high};
-`;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} variant="primary" size="sm" />;

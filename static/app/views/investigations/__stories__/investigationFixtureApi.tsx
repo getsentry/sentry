@@ -13,7 +13,6 @@ import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {commentStoryAuthors} from 'sentry/views/investigations/__stories__/commentStoryFixtures';
 import type {ActionRequestError} from 'sentry/views/investigations/api';
 import {
   InvestigationBlockExecutionFixture,
@@ -36,6 +35,8 @@ import type {
   InvestigationOrchestrationCommand,
   InvestigationTitleGeneration,
 } from 'sentry/views/investigations/types';
+
+import {commentStoryAuthors} from './commentStoryFixtures';
 
 type FixtureApiMode = 'success' | 'loading' | 'error';
 
@@ -240,11 +241,15 @@ const fixtureRequestPromise = (async (
 }) as RequestPromise;
 
 function createFixtureHandler(config: FixtureApiConfig): FixtureHandler {
-  const basePath = `/organizations/${config.organizationSlug}/investigations/`;
+  const basePaths = [
+    `/organizations/${config.organizationSlug}/notebooks/`,
+    `/organizations/${config.organizationSlug}/investigations/`,
+  ];
   const state = createFixtureState(config);
 
   return (path, options) => {
-    if (!path.startsWith(basePath)) {
+    const basePath = basePaths.find(base => path.startsWith(base));
+    if (!basePath) {
       return NO_MATCH;
     }
     if (config.mode === 'loading') {

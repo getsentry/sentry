@@ -182,7 +182,7 @@ export function Alert({
   ...props
 }: AlertProps) {
   const {t} = useTranslation();
-  const showExpand = expand !== undefined && expand !== null;
+  const showExpand = expand != null;
   const [isExpanded, setIsExpanded] = useState(!!props.defaultExpanded);
 
   const expandRef = useRef<HTMLDivElement>(null);

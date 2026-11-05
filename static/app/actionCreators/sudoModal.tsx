@@ -1,4 +1,4 @@
-import {openModal, type ModalOptions} from 'sentry/actionCreators/modal';
+import {openModal, type ModalOptions} from '@sentry/scraps/modal';
 
 type OpenSudoModalOptions = ModalOptions & {
   accessMode?: 'sudo' | 'superuser' | 'staff';

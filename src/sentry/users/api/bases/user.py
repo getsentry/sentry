@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
@@ -11,6 +10,8 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import to_valid_int_id
+from sentry.auth import access
+from sentry.auth.principal import acting_user_id, has_user, is_acting_user
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
@@ -18,7 +19,6 @@ from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.organizations.services.organization import organization_service
 from sentry.seer import agent_token
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -34,7 +34,7 @@ class UserPermission(DemoSafePermission):
     def has_object_permission(
         self, request: Request, view: APIView, user: User | RpcUser | None
     ) -> bool:
-        if user is None or request.user.id == user.id:
+        if user is None or is_acting_user(request.user, user.id):
             return True
         if is_system_auth(request.auth):
             return True
@@ -109,7 +109,7 @@ class UserDisplayPreferencesPermission(UserPermission):
             return request.auth.user_id == user.id
         # Deliberately not `super()`: `UserPermission` lets an active superuser act on
         # another account, which for personal display preferences has no operator use.
-        return request.user.id == user.id
+        return is_acting_user(request.user, user.id)
 
 
 class OrganizationUserPermission(UserAndStaffPermission):
@@ -124,8 +124,8 @@ class OrganizationUserPermission(UserAndStaffPermission):
         organization_id = self._get_single_organization_id(user)
         if organization_id is None:
             return False
-        organization = organization_service.get_organization_by_id(
-            id=organization_id, user_id=request.user.id
+        organization = access.get_organization_access_context(
+            request, organization_id=organization_id
         )
         if not organization:
             return False
@@ -169,14 +169,15 @@ class UserEndpoint(Endpoint):
     """
 
     permission_classes: tuple[type[BasePermission], ...] = (UserPermission,)
+    requires_user = True
 
     def convert_args(
         self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
     ) -> Any:
         if user_id == "me":
-            if not request.user.is_authenticated:
+            if not has_user(request.user):
                 raise ResourceDoesNotExist
-            user_id = request.user.id
+            user_id = acting_user_id(request.user)
 
         if user_id is None:
             raise ResourceDoesNotExist
@@ -200,6 +201,7 @@ class RegionSiloUserEndpoint(Endpoint):
     """
 
     permission_classes = (UserPermission,)
+    requires_user = True
 
     def convert_args(
         self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
@@ -207,7 +209,7 @@ class RegionSiloUserEndpoint(Endpoint):
         user: RpcUser | User | None = None
 
         if user_id == "me":
-            if isinstance(request.user, AnonymousUser) or not request.user.is_authenticated:
+            if not has_user(request.user):
                 raise ResourceDoesNotExist
             user = request.user
         elif user_id is not None:

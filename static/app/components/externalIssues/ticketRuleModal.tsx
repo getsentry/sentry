@@ -5,24 +5,17 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
   JsonFormAdapterChoice,
   JsonFormAdapterChoiceValue,
   JsonFormAdapterFieldConfig,
 } from 'sentry/components/backendJsonFormAdapter/types';
-import {
-  applySavedDefaultToField,
-  getSavedChoicesMap,
-  STATIC_TICKET_FIELDS,
-} from 'sentry/components/externalIssues/ticketRuleModalUtils';
-import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
-import {getConfigName} from 'sentry/components/externalIssues/utils';
 import type {FieldValue} from 'sentry/components/forms/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -36,6 +29,14 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {
+  applySavedDefaultToField,
+  getSavedChoicesMap,
+  STATIC_TICKET_FIELDS,
+} from './ticketRuleModalUtils';
+import {useDynamicFields} from './useDynamicFields';
+import {getConfigName} from './utils';
 
 const IGNORED_FIELDS = ['Sprint'];
 
@@ -265,7 +266,7 @@ export function TicketRuleModal({
       }
 
       onSubmitAction(cleanData(values), fieldOptionsCache);
-      addSuccessMessage(t('Changes applied.'));
+      toast.success(t('Changes applied.'));
       closeModal();
     },
     [cleanData, onSubmitAction, closeModal, integrationDetails, asyncOptionsCache]

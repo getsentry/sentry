@@ -12,13 +12,13 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
@@ -300,6 +300,15 @@ function DataWidgetViewerModal(props: Props) {
       // performance.measure throws if the start mark doesn't exist (e.g. direct URL navigation)
     }
   }, []);
+
+  // Opening the dropped-data drawer closes the fullscreen widget, since the
+  // flyout can't layer over it. The route-based fullscreen is closed in
+  // dashboards/detail; this covers the modal path (new/unsaved dashboards).
+  useEffect(() => {
+    if (defined(location.query.droppedData)) {
+      closeModal();
+    }
+  }, [location.query.droppedData, closeModal]);
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);

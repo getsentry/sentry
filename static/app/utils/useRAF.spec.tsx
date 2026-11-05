@@ -3,7 +3,7 @@ import {flushSync} from 'react-dom';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useRAF} from 'sentry/utils/useRAF';
+import {useRAF} from './useRAF';
 
 describe('useRAF', () => {
   beforeEach(() => {

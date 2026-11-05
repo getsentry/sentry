@@ -41,11 +41,18 @@ import {emptyValue, EMPTY_VALUE_LABEL} from 'sentry/utils/discover/emptyFieldVal
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/datasetLabels';
+import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {
+  SpanFields,
+  subregionCodeToName,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
+
+import {getDatasetLabel} from './datasetLabels';
 import {
   FilterSelectorTrigger,
   FilterSelectorTriggerButton,
-} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
+} from './filterSelectorTrigger';
 import {
   buildNoValueFilterQuery,
   deriveFilterState,
@@ -55,13 +62,7 @@ import {
   operatorFromNoValueToken,
   parseFilterValue,
   stripUnsupportedNoValue,
-} from 'sentry/views/dashboards/globalFilter/utils';
-import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
-import {
-  SpanFields,
-  subregionCodeToName,
-  type SubregionCode,
-} from 'sentry/views/insights/types';
+} from './utils';
 
 type FilterSelectorProps = {
   globalFilter: GlobalFilter;

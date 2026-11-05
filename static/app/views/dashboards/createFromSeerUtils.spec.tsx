@@ -1,12 +1,13 @@
+import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
+
 import {
   applySeerWidgetDefaults,
   extractDashboardFromSession,
   splitDashboardPrompt,
   statusIsTerminal,
-} from 'sentry/views/dashboards/createFromSeerUtils';
-import type {Widget} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
+} from './createFromSeerUtils';
+import type {Widget} from './types';
+import {DisplayType} from './types';
 
 function makeWidget(overrides: Partial<Widget> = {}): Widget {
   return {
