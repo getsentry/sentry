@@ -3,14 +3,22 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import type {ContainerProps} from '@sentry/scraps/layout/container';
-import {getBorder, getMargin, getSpacing, rc} from '@sentry/scraps/layout/styles';
+import {
+  getBorderLonghands,
+  getMargin,
+  getSpacing,
+  rc,
+} from '@sentry/scraps/layout/styles';
 
-export type SeparatorProps = Pick<ContainerProps, 'border' | 'margin' | 'padding'> & {
+export type SeparatorProps = Pick<
+  ContainerProps,
+  'borderColor' | 'margin' | 'padding'
+> & {
   orientation: 'horizontal' | 'vertical';
   children?: never;
 } & Omit<React.HTMLAttributes<HTMLHRElement>, 'aria-orientation'>;
 
-const omitSeparatorProps = new Set<keyof SeparatorProps>(['border']);
+const omitSeparatorProps = new Set<keyof SeparatorProps>(['borderColor']);
 
 /**
  * We require a wrapper if we want to use the orientation context,
@@ -40,10 +48,11 @@ export const Separator = styled(
 
   border: none;
   ${p =>
-    rc(
+    getBorderLonghands(
       p.orientation === 'horizontal' ? 'border-bottom' : 'border-left',
-      p.border ?? 'primary',
+      p.borderColor ?? 'primary',
+      undefined,
       p.theme,
-      (...args) => `${getBorder(...args)} !important`
+      {important: true}
     )};
 `;

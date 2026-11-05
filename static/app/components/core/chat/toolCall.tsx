@@ -230,7 +230,7 @@ function FailureChip({label}: {label: ReactNode}) {
     // whose descender room (unused by digits) reads as extra bottom padding.
     <Flex
       align="center"
-      border="danger"
+      borderColor="danger"
       radius="sm"
       padding="2xs sm"
       background="primary"
@@ -247,7 +247,7 @@ function InputBox({input}: {input: ReactNode}) {
   return (
     <Container
       background="secondary"
-      border="primary"
+      borderColor="primary"
       radius="md"
       padding="sm"
       width="100%"

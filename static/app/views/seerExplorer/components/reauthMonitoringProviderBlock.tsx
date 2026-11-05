@@ -84,7 +84,7 @@ export function ReauthMonitoringProviderBlock({
 
   return (
     <Container padding="xl">
-      <Container padding="xl" border="primary" radius="md">
+      <Container padding="xl" borderColor="primary" radius="md">
         <Stack gap="lg">
           <Text>
             {t('Your %s connection has expired. Reconnect to continue.', providerLabel)}

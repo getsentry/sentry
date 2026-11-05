@@ -496,7 +496,7 @@ export function WizardProjectSelection({
               </Grid>
             </Fragment>
           ))}
-        <Flex justify="end" borderTop="secondary" paddingTop="xl">
+        <Flex justify="end" borderTopColor="secondary" paddingTop="xl">
           <form.SubmitButton>{t('Continue')}</form.SubmitButton>
         </Flex>
       </Stack>

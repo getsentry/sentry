@@ -120,7 +120,7 @@ export function SuperuserWarning({organization}: Props) {
         right="0"
         bottom="0"
         left="0"
-        border="danger"
+        borderColor="danger"
         display="flex"
       >
         <Tooltip

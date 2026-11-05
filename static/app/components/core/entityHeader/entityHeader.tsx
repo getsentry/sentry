@@ -158,7 +158,7 @@ export function EntityHeader({
       as="header"
       padding="md xl"
       background="primary"
-      borderBottom="primary"
+      borderBottomColor="primary"
       flexShrink={0}
       // Otherwise the band is simply empty until the data lands, and then
       // silently is not.

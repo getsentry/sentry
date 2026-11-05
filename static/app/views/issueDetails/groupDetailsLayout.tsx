@@ -49,7 +49,9 @@ function IssueDetailsColumn({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
 
   return (
-    <Container borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}>
+    <Container
+      borderRightColor={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}
+    >
       {children}
     </Container>
   );

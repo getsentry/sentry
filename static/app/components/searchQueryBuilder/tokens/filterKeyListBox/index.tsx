@@ -97,7 +97,7 @@ function FeedbackFooter({
       align="center"
       justify={enableAISearch ? 'between' : 'end'}
       padding={enableAISearch ? 'sm' : 'md'}
-      borderTop="muted"
+      borderTopColor="muted"
     >
       {enableAISearch ? (
         <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onAskSeerTabForward} />

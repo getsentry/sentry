@@ -108,7 +108,7 @@ export function ScmFeatureSelectionCards({
                   </Stack>
                   {isOnboarding && (
                     <Stack gap="md" width="100%" paddingTop="md">
-                      <Separator orientation="horizontal" border="primary" />
+                      <Separator orientation="horizontal" borderColor="primary" />
                       <Flex align="center" justify="between" gap="md">
                         <Text variant="muted" size="sm">
                           {t('After 14 days')}

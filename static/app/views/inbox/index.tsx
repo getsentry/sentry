@@ -98,7 +98,7 @@ function InboxContent() {
           style={{width: `${storedSize}px`}}
           minWidth={0}
           minHeight={0}
-          borderRight="primary"
+          borderRightColor="primary"
         >
           <Container flex={1} overflowY="auto" minHeight={0}>
             <InboxItemList items={items} selectedItemId={selectedItem?.id ?? null} />

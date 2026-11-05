@@ -11,7 +11,9 @@ import {
 import {useTheme} from '@emotion/react';
 
 import type {
+  BackgroundVariant,
   BorderVariant,
+  BorderWidth,
   BreakpointSize,
   ContainerBreakpointSize,
   RadiusSize,
@@ -228,26 +230,105 @@ function borderValue(key: Exclude<BorderVariant, 'none'>, theme: Theme): string 
   if (key === 'muted' || key === 'secondary') {
     return theme.tokens.border.secondary;
   }
+  if (key === 'translucent') {
+    return theme.tokens.border.transparent.neutral.muted;
+  }
   return theme.tokens.border[key].vibrant;
 }
 
-export function getBorder(
+function getBorderStyle(
   border: BorderVariant | undefined,
   _breakpoint: ResponsiveBreakpoint | undefined,
-  theme: Theme
+  _theme: Theme
 ): string | undefined {
   if (border === undefined) {
     return undefined;
   }
 
-  if (border === 'none') {
-    return 'none';
+  return border === 'none' ? 'none' : 'solid';
+}
+
+function getBorderColor(
+  border: BorderVariant | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+): string | undefined {
+  if (border === undefined || border === 'none') {
+    return undefined;
   }
 
-  return border
-    .split(' ')
-    .map(b => `1px solid ${borderValue(b as Exclude<BorderVariant, 'none'>, theme)}`)
-    .join(' ');
+  return borderValue(border, theme);
+}
+
+/**
+ * Border style, color and width for one side, or for all sides with `border`.
+ * They're separate declarations, not the `border` shorthand, so a responsive
+ * color never resets the width. The style is always `solid` (or `none`), and
+ * the width defaults to `md`.
+ */
+type Resolver<T> = (
+  value: T | undefined,
+  breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+) => string | undefined;
+
+export function getBorderLonghands(
+  property: 'border' | 'border-top' | 'border-bottom' | 'border-left' | 'border-right',
+  color: Responsive<BorderVariant> | undefined,
+  width: Responsive<BorderWidth> | undefined,
+  theme: Theme,
+  {important = false}: {important?: boolean} = {}
+): string | undefined {
+  if (color === undefined) {
+    return undefined;
+  }
+
+  const withPriority =
+    <T,>(resolver: Resolver<T>): Resolver<T> =>
+    (...args) => {
+      const value = resolver(...args);
+      return important && value !== undefined ? `${value} !important` : value;
+    };
+
+  return [
+    rc(`${property}-style`, color, theme, withPriority(getBorderStyle)),
+    rc(`${property}-color`, color, theme, withPriority(getBorderColor)),
+    rc(`${property}-width`, width ?? 'md', theme, withPriority(getBorderWidth)),
+  ].join('');
+}
+
+/**
+ * Resolves a border width token.
+ */
+function getBorderWidth(
+  width: BorderWidth | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+): string | undefined {
+  if (width === undefined) {
+    return undefined;
+  }
+
+  return theme.border[width];
+}
+
+export function getBackground(
+  background: BackgroundVariant | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+): string | undefined {
+  switch (background) {
+    case undefined:
+      return undefined;
+    case 'primary':
+    case 'secondary':
+    case 'tertiary':
+      return theme.tokens.background[background];
+    case 'translucent':
+      return theme.tokens.background.transparent.neutral.muted;
+    default:
+      return theme.tokens.background[background].vibrant;
+  }
 }
 
 export function getRadius(

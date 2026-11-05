@@ -112,7 +112,7 @@ function UsageHistory({subscription}: Props) {
         <LoadingError onRetry={refetch} />
       ) : hasBillingPerms ? (
         <Fragment>
-          <Container background="primary" border="primary" radius="md">
+          <Container background="primary" borderColor="primary" radius="md">
             {data.json.map(row => (
               <UsageHistoryRow key={row.id} history={row} subscription={subscription} />
             ))}

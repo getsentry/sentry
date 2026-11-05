@@ -279,7 +279,7 @@ export default function FeedbackListPage() {
 
 function FeedbackPanel({children}: {children: ReactNode}) {
   return (
-    <Stack border="primary" radius="md" flex={1} minHeight={0} overflow="hidden">
+    <Stack borderColor="primary" radius="md" flex={1} minHeight={0} overflow="hidden">
       {children}
     </Stack>
   );

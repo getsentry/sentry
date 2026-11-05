@@ -167,7 +167,7 @@ function CreditBreakdown({
       </Stack>
       {showPurchased && (
         <Stack gap="sm">
-          <Separator orientation="horizontal" border="primary" />
+          <Separator orientation="horizontal" borderColor="primary" />
           <Flex justify="between" gap="md">
             <Text bold>{t('Purchased')}</Text>
             {purchased.expiresAt && (
@@ -192,7 +192,12 @@ function CreditBreakdown({
             <Text>{purchased.total.toLocaleString()}</Text>
           </Flex>
           {autoTopUp.enabled && (
-            <Grid columns="1fr auto" gap="xs md" paddingLeft="md" borderLeft="primary">
+            <Grid
+              columns="1fr auto"
+              gap="xs md"
+              paddingLeft="md"
+              borderLeftColor="primary"
+            >
               <Text align="left">{t('If credits fall below')}</Text>
               <Text align="right">{autoTopUp.thresholdCredits.toLocaleString()}</Text>
               <Text align="left">{t('Top up by')}</Text>

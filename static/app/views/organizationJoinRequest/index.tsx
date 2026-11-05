@@ -110,7 +110,7 @@ export default function OrganizationJoinRequest() {
                 </field.Layout.Stack>
               )}
             </form.AppField>
-            <Container borderTop="secondary" paddingTop="xl" paddingBottom="xl">
+            <Container borderTopColor="secondary" paddingTop="xl" paddingBottom="xl">
               <Flex gap="md" justify="end">
                 <Button onClick={handleCancel}>{t('Cancel')}</Button>
                 <form.SubmitButton>{t('Request to Join')}</form.SubmitButton>

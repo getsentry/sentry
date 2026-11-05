@@ -36,7 +36,7 @@ function ExampleInbox({
           }
         >
           {['Fix Proposed', 'Diagnosed', 'Assigned', 'Fix Applied'].map(section => (
-            <Container key={section} padding="lg" borderBottom="muted">
+            <Container key={section} padding="lg" borderBottomColor="muted">
               <Heading as="h3" size="md">
                 {section}
               </Heading>

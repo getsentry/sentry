@@ -53,7 +53,7 @@ function ConfigSection({title, children}: {children: React.ReactNode; title: str
           {title}
         </Text>
       </Container>
-      <Container border="primary" radius="md">
+      <Container borderColor="primary" radius="md">
         {children}
       </Container>
     </Stack>
@@ -77,7 +77,7 @@ function ConfigRow({
       gap="lg"
       align="center"
       padding="lg"
-      borderTop={hasBorder ? 'primary' : undefined}
+      borderTopColor={hasBorder ? 'primary' : undefined}
     >
       <Stack gap="xs">
         <Text bold>{label}</Text>
@@ -262,7 +262,7 @@ function ScheduledAutomationConfiguration() {
         </Stack>
       </ConfigSection>
 
-      <Container border="primary" radius="md">
+      <Container borderColor="primary" radius="md">
         <ConfigRow
           label={t('Estimated spend today')}
           description={t('Resets each day at 00:00 UTC.')}

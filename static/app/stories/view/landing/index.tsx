@@ -57,7 +57,7 @@ export function StoryLanding() {
           gap="3xl"
           align="center"
           background="secondary"
-          borderBottom="primary"
+          borderBottomColor="primary"
           padding="3xl 0"
         >
           <Flex
@@ -240,7 +240,7 @@ function Card(props: CardProps) {
       width="calc(100% * 3 / 5)"
       maxWidth={{zero: 'none', '3xl': 'calc(50% - 32px)'}}
       padding="xl"
-      border="secondary"
+      borderColor="secondary"
       radius="md"
       css={cardLinkCss}
     >

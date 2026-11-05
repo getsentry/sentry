@@ -67,7 +67,7 @@ export function QueryEmbedCard({
         // A white row edge to edge under the header, like the table below it.
         // The tokens sit together in one inset box that fills the row and
         // wraps a long query onto more lines inside it.
-        <Flex align="center" gap="md" padding="lg" borderTop="primary">
+        <Flex align="center" gap="md" padding="lg" borderTopColor="primary">
           <Text variant="muted" wrap="nowrap">
             {t('Query:')}
           </Text>
@@ -75,7 +75,7 @@ export function QueryEmbedCard({
             flex="1"
             minWidth="0"
             background="secondary"
-            border="primary"
+            borderColor="primary"
             radius="md"
             padding="xs"
           >

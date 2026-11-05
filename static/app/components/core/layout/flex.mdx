@@ -35,7 +35,7 @@ The `Flex` implements composition via <a href="/scraps/layout/composition">rende
 
 <Storybook.Demo>
   <Flex
-    border="primary"
+    borderColor="primary"
     radius="md"
     padding="md"
     justify="between"
@@ -85,13 +85,13 @@ Simialarly to `Container`, `Flex` inherits all spacing props like `m`, `p`, `mt`
 
 <Storybook.Demo>
   <Flex direction="row" gap="md" justify="between" align="center" padding="md">
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Item 1
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Item 2
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Item 3
     </Container>
   </Flex>
@@ -112,13 +112,13 @@ Simialarly to `Container`, `Flex` inherits all spacing props like `m`, `p`, `mt`
 
 <Storybook.Demo>
   <Flex direction="column" gap="md" justify="between" align="center">
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Item 1
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Item 2
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Item 3
     </Container>
   </Flex>
@@ -141,13 +141,13 @@ Similarly to `Container`, the `Flex` properties like `gap` follow the same spaci
       <Flex direction="column" gap="sm" key={size}>
         <strong>{size} gap</strong>
         <Flex margin="md" gap={size}>
-          <Container padding="md" border="primary" radius="md" background="primary">
+          <Container padding="md" borderColor="primary" radius="md" background="primary">
             Item 1
           </Container>
-          <Container padding="md" border="primary" radius="md" background="primary">
+          <Container padding="md" borderColor="primary" radius="md" background="primary">
             Item 2
           </Container>
-          <Container padding="md" border="primary" radius="md" background="primary">
+          <Container padding="md" borderColor="primary" radius="md" background="primary">
             Item 3
           </Container>
         </Flex>
@@ -175,16 +175,16 @@ Example of a responsive flex container that uses a static gap, but changes direc
     gap="md"
     padding="md"
   >
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Responsive
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Layout
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Items
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       🔥
     </Container>
   </Flex>

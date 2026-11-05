@@ -179,7 +179,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
       <Stack
         gap="xl"
         padding="xl"
-        borderBottom="primary"
+        borderBottomColor="primary"
         onClick={e => e.stopPropagation()}
       >
         <InputGroup style={{flex: 1}}>
@@ -376,7 +376,7 @@ const TagFilterSection = memo(function TagFilterSectionImpl({
   const hasActiveFilter = Object.keys(activeTagFilters).length > 0;
 
   return (
-    <Stack borderBottom="primary" onClick={e => e.stopPropagation()}>
+    <Stack borderBottomColor="primary" onClick={e => e.stopPropagation()}>
       <TagDisclosure size="xs">
         <Disclosure.Title>
           <Text size="sm" bold>

@@ -46,7 +46,7 @@ export function InboxLayout({
         minHeight={0}
         display={hasSelectedIssue && !isDesktop ? 'none' : 'flex'}
         background="primary"
-        borderRight={isSplitView ? 'muted' : undefined}
+        borderRightColor={isSplitView ? 'muted' : undefined}
       >
         <Flex
           as="header"
@@ -54,7 +54,7 @@ export function InboxLayout({
           justify="between"
           padding="md lg"
           background="secondary"
-          borderBottom="muted"
+          borderBottomColor="muted"
           flexShrink={0}
         >
           <Heading as="h2" size="md">

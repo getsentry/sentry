@@ -162,7 +162,7 @@ export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
     <KeyValueTableCard title="Build Metadata" contentItems={vcsInfoContentItems} />
   ) : (
     <Container
-      border="primary"
+      borderColor="primary"
       radius="md"
       padding="xl"
       width="100%"

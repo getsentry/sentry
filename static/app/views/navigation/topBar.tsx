@@ -94,7 +94,7 @@ function TopBarContent() {
       gap="sm"
       padding={{'screen:sm': '0 lg', 'screen:md': '0 xl'}}
       position="sticky"
-      borderBottom="primary"
+      borderBottomColor="primary"
       top={topBarTop}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,

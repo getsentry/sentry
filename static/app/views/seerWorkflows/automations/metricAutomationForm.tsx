@@ -452,7 +452,7 @@ function ConnectedMonitorList({
         {' · '}
         {tn('%s project', '%s projects', projectCount)}
       </Text>
-      <Stack border="primary" radius="md">
+      <Stack borderColor="primary" radius="md">
         {selected.map((monitor, index) => (
           <Flex
             key={monitor.id}
@@ -460,7 +460,7 @@ function ConnectedMonitorList({
             justify="between"
             gap="md"
             padding="lg"
-            borderTop={index ? 'primary' : undefined}
+            borderTopColor={index ? 'primary' : undefined}
           >
             <Stack gap="xs" minWidth={0}>
               <ExternalLink

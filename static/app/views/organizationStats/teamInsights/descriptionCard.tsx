@@ -10,14 +10,14 @@ type Props = {
 export function DescriptionCard({title, description, children}: Props) {
   return (
     <Flex
-      border="primary"
+      borderColor="primary"
       direction={{zero: 'column', '3xl': 'row'}}
       marginBottom="2xl"
       radius="md"
     >
       <Container
-        borderBottom={{zero: 'primary', '3xl': 'none'}}
-        borderRight={{zero: 'none', '3xl': 'primary'}}
+        borderBottomColor={{zero: 'primary', '3xl': 'none'}}
+        borderRightColor={{zero: 'none', '3xl': 'primary'}}
         maxWidth={{zero: 'none', '3xl': '250px'}}
         padding="xl"
       >

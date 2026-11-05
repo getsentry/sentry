@@ -10,7 +10,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 export function Resources() {
   return (
-    <Container borderTop="primary" padding="xl 3xl">
+    <Container borderTopColor="primary" padding="xl 3xl">
       <TopBar.Slot
         name="breadcrumbs"
         title={{type: 'page-title', label: t('Resources')}}

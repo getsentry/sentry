@@ -186,7 +186,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
   const shortInterval = utils.getShortInterval(activePlan.billingInterval);
 
   return (
-    <Stack gap="2xl" padding="xl" borderTop="primary">
+    <Stack gap="2xl" padding="xl" borderTopColor="primary">
       <Stack gap="md" data-test-id="summary-item-plan">
         <ItemWithPrice
           item={tct('[name] Plan', {name: activePlan.name})}
@@ -361,7 +361,13 @@ function SubtotalSummary({
   );
 
   return (
-    <Stack borderTop="primary" background="primary" width="100%" padding="xl" gap="md">
+    <Stack
+      borderTopColor="primary"
+      background="primary"
+      width="100%"
+      padding="xl"
+      gap="md"
+    >
       <Flex data-test-id="summary-item-plan-total" justify="between" align="center">
         <Text size="lg" bold>
           {t('Plan Total')}
@@ -593,7 +599,7 @@ function TotalSummary({
       : t('Confirm');
 
   return (
-    <Stack border="primary" radius="lg" background="secondary" overflow="hidden">
+    <Stack borderColor="primary" radius="lg" background="secondary" overflow="hidden">
       <Stack padding="xl xl 0" gap="md">
         <Fragment>
           {!previewDataLoading && (
@@ -914,7 +920,7 @@ export function Cart({
         onToggle={setChangesIsOpen}
         organization={organization}
       />
-      <Stack border="primary" radius="lg" background="primary" overflow="hidden">
+      <Stack borderColor="primary" radius="lg" background="primary" overflow="hidden">
         <Stack align="start" width="100%" height="100%">
           <Stack
             direction="row"

@@ -600,7 +600,7 @@ function SlowDBQueryEvidence({
           <MissingFrame source="span" />
         )}
       </Stack>
-      <Flex gap="md" padding="md lg" borderTop="muted">
+      <Flex gap="md" padding="md lg" borderTopColor="muted">
         <SpanSummaryLink
           op={span.op}
           category={span.category}

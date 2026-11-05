@@ -46,7 +46,13 @@ export function IssuePreviewAutofixSummary({
       {sections.map(section => {
         const labels = getAutofixSectionLabels(section.step);
         return labels ? (
-          <Stack key={section.step} border="primary" radius="md" padding="lg" gap="lg">
+          <Stack
+            key={section.step}
+            borderColor="primary"
+            radius="md"
+            padding="lg"
+            gap="lg"
+          >
             <Heading as="h3" size="md">
               {labels.title}
             </Heading>

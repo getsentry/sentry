@@ -9,7 +9,7 @@ export function Card({
   const theme = useTheme();
   return (
     <Container
-      border="primary"
+      borderColor="primary"
       radius="md"
       background="primary"
       style={{boxShadow: theme.shadow.medium}}
@@ -50,7 +50,7 @@ export function HalvedWithDivider({
 }
 
 export function Divider() {
-  return <Container borderRight="primary" margin="0 md" height="20px" />;
+  return <Container borderRightColor="primary" margin="0 md" height="20px" />;
 }
 
 export function Centered(props: FlexProps) {

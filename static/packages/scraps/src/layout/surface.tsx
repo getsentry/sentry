@@ -8,11 +8,11 @@ import {
 } from '@sentry/scraps/layout/container';
 import type {SurfaceVariant} from '@sentry/scraps/theme';
 
-import {getBorder, getRadius, rc} from './styles';
+import {getBorderLonghands, getRadius, rc} from './styles';
 
 interface FlatSurfaceProps<T extends ContainerElement = 'div'> extends Omit<
   ContainerProps<T>,
-  'background' | 'border'
+  'background' | 'borderColor'
 > {
   elevation?: never;
   variant?: SurfaceVariant;
@@ -20,7 +20,7 @@ interface FlatSurfaceProps<T extends ContainerElement = 'div'> extends Omit<
 
 interface OverlaySurfaceProps<T extends ContainerElement = 'div'> extends Omit<
   ContainerProps<T>,
-  'background' | 'border'
+  'background' | 'borderColor'
 > {
   variant: 'overlay';
   elevation?: 'low' | 'medium' | 'high';
@@ -98,7 +98,7 @@ export const Surface = styled(
 
     const {variant, elevation: _, ...rest} = props;
     if (variant === 'overlay') {
-      return <Container border="primary" radius={rest.radius ?? 'md'} {...rest} />;
+      return <Container borderColor="primary" radius={rest.radius ?? 'md'} {...rest} />;
     }
     return <Container radius={rest.radius} {...rest} />;
   }
@@ -108,7 +108,12 @@ export const Surface = styled(
       v ? p.theme.tokens.background[v] : undefined
     )};
   ${p =>
-    rc('border', p.variant === 'overlay' ? 'primary' : undefined, p.theme, getBorder)};
+    getBorderLonghands(
+      'border',
+      p.variant === 'overlay' ? 'primary' : undefined,
+      p.borderWidth,
+      p.theme
+    )};
   ${p =>
     rc(
       'border-radius',

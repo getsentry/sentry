@@ -398,7 +398,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
               containerType="inline-size"
               justify="between"
               align="start"
-              borderTop="primary"
+              borderTopColor="primary"
               paddingTop="sm"
               paddingBottom="sm"
               paddingLeft="md"

@@ -10,7 +10,7 @@ export function NoActiveSeerSubscriptionBanner() {
   const organization = useOrganization();
 
   return (
-    <Container border="warning" radius="md" overflow="hidden">
+    <Container borderColor="warning" radius="md" overflow="hidden">
       <Stack>
         <Alert system showIcon={false} variant="warning">
           {t('You are using an older Seer experience.')}

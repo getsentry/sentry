@@ -133,7 +133,7 @@ export function ScmConnect({
           gap="2xl"
           width="100%"
           background="secondary"
-          border="primary"
+          borderColor="primary"
           radius="xl"
           padding="xl"
         >

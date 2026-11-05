@@ -45,7 +45,7 @@ export function Header({noActionWrap, unified, ...props}: HeaderProps) {
         '3xl': 'minmax(0, 1fr) auto',
       }}
       padding={{xl: 'md lg 0 lg', '3xl': 'lg xl 0 xl'}}
-      borderBottom={unified ? 'none' : 'primary'}
+      borderBottomColor={unified ? 'none' : 'primary'}
       {...props}
     />
   );

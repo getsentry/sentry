@@ -168,7 +168,7 @@ function InnerSpendLimitSettings({
                 align={{zero: 'start', lg: 'center'}}
                 gap={{zero: 'xs', lg: 'lg'}}
                 padding={index === 0 ? '0 0 lg' : 'lg 0'}
-                borderBottom={isLastInList ? undefined : 'primary'}
+                borderBottomColor={isLastInList ? undefined : 'primary'}
               >
                 <Stack gap="xs" align="start" flexGrow={1}>
                   <Flex align="center" gap="xs">
@@ -244,7 +244,9 @@ function InnerSpendLimitSettings({
                 align={{zero: 'start', lg: 'center'}}
                 gap={{zero: 'xs', lg: 'lg'}}
                 padding={index === 0 && baseCategories.length === 0 ? '0 0 xl' : 'xl 0'}
-                borderBottom={index === includedAddOns.length - 1 ? undefined : 'primary'}
+                borderBottomColor={
+                  index === includedAddOns.length - 1 ? undefined : 'primary'
+                }
               >
                 <Stack gap="xs" align="start" flexGrow={1}>
                   <Flex align="center" gap="xs">
@@ -359,7 +361,7 @@ export function SpendLimitSettings({
           onDemandBudgets={onDemandBudgets}
           onUpdate={onUpdate}
         />
-        <Stack gap="xl" border="primary" radius="md" overflow="hidden">
+        <Stack gap="xl" borderColor="primary" radius="md" overflow="hidden">
           <InnerSpendLimitSettings
             activePlan={activePlan}
             onDemandBudgets={onDemandBudgets}

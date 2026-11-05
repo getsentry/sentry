@@ -61,7 +61,7 @@ export function CreateFromSeerPrompt() {
           <Heading as="h3">{t('Describe your Dashboard')}</Heading>
           <Container paddingTop="lg">
             <Stack
-              border="primary"
+              borderColor="primary"
               radius="md"
               background="primary"
               padding="lg"

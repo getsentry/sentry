@@ -118,7 +118,7 @@ export function BilledSeats({
         )}
       </Table>
       {billedSeats && billedSeats.length > 0 && (
-        <Container padding="0 lg lg" borderTop="primary">
+        <Container padding="0 lg lg" borderTopColor="primary">
           <Pagination pageLinks={data?.headers.Link ?? null} />
         </Container>
       )}

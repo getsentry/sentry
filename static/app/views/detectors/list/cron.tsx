@@ -70,7 +70,12 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
   });
 
   return (
-    <SimpleTable.RowCell column="-3 / -1" padding="lg 0" borderLeft="muted" height="100%">
+    <SimpleTable.RowCell
+      column="-3 / -1"
+      padding="lg 0"
+      borderLeftColor="muted"
+      height="100%"
+    >
       <Stack gap="sm" width="100%" ref={elementRef}>
         {cronEnvironments.map(environment => {
           if (isPending) {
@@ -242,7 +247,7 @@ export default function CronDetectorsList() {
             <SimpleTable.RowCell
               column="-3 / -1"
               padding="lg 0"
-              borderLeft="muted"
+              borderLeftColor="muted"
               height="100%"
             >
               <CheckInPlaceholder />

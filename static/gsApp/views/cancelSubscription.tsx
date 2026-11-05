@@ -293,7 +293,7 @@ function CancelSubscriptionForm() {
               )}
             </Stack>
 
-            <Flex gap="md" justify="end" padding="2xl xl" borderTop="primary">
+            <Flex gap="md" justify="end" padding="2xl xl" borderTopColor="primary">
               <Button
                 onClick={() => {
                   navigate(normalizeUrl(`/settings/${organization.slug}/billing/`));

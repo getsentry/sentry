@@ -152,7 +152,7 @@ function SkipLink() {
   return (
     <SkipLinkContainer
       padding="sm md"
-      border="primary"
+      borderColor="primary"
       background="primary"
       radius="md"
       position="absolute"

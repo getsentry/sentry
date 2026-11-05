@@ -114,7 +114,7 @@ function SidebarHeaderShell({
       height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding="0 lg"
       background="primary"
-      borderBottom="primary"
+      borderBottomColor="primary"
       flexShrink={0}
     >
       <Button

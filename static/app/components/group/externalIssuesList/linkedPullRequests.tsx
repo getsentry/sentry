@@ -337,7 +337,7 @@ function SeerAttributionAvatar() {
         as="span"
         align="center"
         aria-label={label}
-        border="primary"
+        borderColor="primary"
         display="inline-flex"
         height="18px"
         justify="center"
@@ -471,7 +471,7 @@ export function PullRequestList({
     <Stack
       as="ul"
       aria-label={ariaLabel}
-      border="primary"
+      borderColor="primary"
       radius="md"
       overflow="hidden"
       margin="0"
@@ -481,7 +481,7 @@ export function PullRequestList({
         <Container
           as="li"
           key={`${pullRequest.repository.id}:${pullRequest.id}`}
-          borderTop={index === 0 ? undefined : 'primary'}
+          borderTopColor={index === 0 ? undefined : 'primary'}
           style={{listStyle: 'none'}}
         >
           <LinkedPullRequestRow

@@ -12,7 +12,9 @@ import {
 import {Placeholder} from 'sentry/components/placeholder';
 
 function HeaderLayout(props: ContainerProps) {
-  return <Container padding="lg xl" borderBottom="primary" flexShrink={0} {...props} />;
+  return (
+    <Container padding="lg xl" borderBottomColor="primary" flexShrink={0} {...props} />
+  );
 }
 
 // Shared responsive shell for the header body: two columns when wide, a single

@@ -233,7 +233,7 @@ interface ArtifactCardProps {
 
 function ArtifactCard({children, icon, title}: ArtifactCardProps) {
   return (
-    <Stack border="primary" radius="md" gap="md" padding="md">
+    <Stack borderColor="primary" radius="md" gap="md" padding="md">
       <Flex gap="md">
         {icon}
         <Text bold>{title}</Text>

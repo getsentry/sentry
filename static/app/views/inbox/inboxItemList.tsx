@@ -48,7 +48,7 @@ function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
   const title = item.title ?? t('Unavailable');
 
   return (
-    <Container position="relative" padding="xl" borderBottom="primary">
+    <Container position="relative" padding="xl" borderBottomColor="primary">
       {props => (
         <ItemRow {...props} data-selected={isSelected}>
           <InteractionStateLayer />

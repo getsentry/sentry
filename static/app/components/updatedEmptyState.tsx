@@ -199,8 +199,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             as="hr"
             height="0px"
             width="95%"
-            border="none"
-            borderTop="primary"
+            borderColor="none"
+            borderTopColor="primary"
             marginTop="0"
             marginBottom="0"
           />
@@ -257,12 +257,12 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 right="50%"
                 top="19%"
                 height="78%"
-                borderRight="primary"
+                borderRightColor="primary"
                 display={{zero: 'none', xl: 'block'}}
               />
             </Container>
             <Container padding="0 3xl" display={{zero: 'block', xl: 'none'}}>
-              <Container as="hr" border="none" borderTop="primary" margin="0" />
+              <Container as="hr" borderColor="none" borderTopColor="primary" margin="0" />
             </Container>
             <Container padding="3xl">
               <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>

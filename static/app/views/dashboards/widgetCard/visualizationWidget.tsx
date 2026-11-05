@@ -519,7 +519,7 @@ function VisualizationWidgetContent({
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
-        <Stack flex={1} borderTop="primary" overflowY="auto">
+        <Stack flex={1} borderTopColor="primary" overflowY="auto">
           <Container flex={1} width="100%">
             {footerTable}
           </Container>

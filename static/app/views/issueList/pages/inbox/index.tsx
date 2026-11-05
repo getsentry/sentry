@@ -411,7 +411,7 @@ function InboxContent() {
               <Container
                 display={isDesktop ? 'none' : 'block'}
                 padding="md"
-                borderBottom="muted"
+                borderBottomColor="muted"
               >
                 <Button
                   size="xs"

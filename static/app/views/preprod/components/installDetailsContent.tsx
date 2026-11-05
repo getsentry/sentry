@@ -240,7 +240,7 @@ export function InstallDetailsContent({
             <Flex align="center" gap="md" width="100%">
               <Separator
                 orientation="horizontal"
-                border="muted"
+                borderColor="muted"
                 style={{flex: 1, margin: 'auto'}}
               />
               <Text size="sm" variant="muted">
@@ -248,7 +248,7 @@ export function InstallDetailsContent({
               </Text>
               <Separator
                 orientation="horizontal"
-                border="muted"
+                borderColor="muted"
                 style={{flex: 1, margin: 'auto'}}
               />
             </Flex>
@@ -362,7 +362,7 @@ export function InstallDetailsContent({
               <Container
                 padding="xl"
                 background="secondary"
-                border="primary"
+                borderColor="primary"
                 radius="md"
                 width="100%"
               >
@@ -382,7 +382,7 @@ export function InstallDetailsContent({
               <Container
                 padding="xl"
                 background="secondary"
-                border="primary"
+                borderColor="primary"
                 radius="md"
                 width="100%"
               >
@@ -433,7 +433,7 @@ function CodeSignatureInfo({children}: {children: ReactNode}) {
     <Container
       padding="md"
       background="secondary"
-      border="primary"
+      borderColor="primary"
       radius="md"
       width="100%"
       style={{textAlign: 'center', wordBreak: 'break-word', overflowWrap: 'break-word'}}
