@@ -344,11 +344,12 @@ describe('Tour Components', () => {
       expect(mockHandleDismiss).toHaveBeenCalled();
     });
 
-    it('focuses subtle guides so Tab reaches their controls', async () => {
+    it('focuses keyboard-enabled subtle guides so Tab reaches their controls', async () => {
       render(
         <TourGuide
           isOpen
           variant="subtle"
+          onKeyDown={jest.fn()}
           title="Test Title"
           description="Test Description"
           actions={<TourAction>Test Action</TourAction>}

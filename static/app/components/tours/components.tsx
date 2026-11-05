@@ -494,14 +494,13 @@ export function TourGuide({
   }, [isOpen, triggerRef]);
 
   const isFocusable = defined(onKeyDown);
-  const shouldAutoFocus = variant !== 'spotlight';
   useEffect(() => {
     const overlay = overlayRef.current;
     // The guide's element attaches after it opens, and this runs again then.
-    if (!isOpen || (!isFocusable && !shouldAutoFocus) || !overlay) {
+    if (!isOpen || !isFocusable || !overlay) {
       return;
     }
-    if (shouldAutoFocus || focusHandoffRef?.current) {
+    if (variant !== 'spotlight' || focusHandoffRef?.current) {
       if (focusHandoffRef) {
         focusHandoffRef.current = false;
       }
@@ -538,15 +537,16 @@ export function TourGuide({
   }, [
     isOpen,
     isFocusable,
-    shouldAutoFocus,
+    variant,
     overlayRef,
     triggerRef,
     focusHandoffRef,
     returnFocusRef,
   ]);
 
-  const focusProps: HTMLAttributes<HTMLElement> =
-    isFocusable || shouldAutoFocus ? {tabIndex: -1, onKeyDown} : {};
+  const focusProps: HTMLAttributes<HTMLElement> = isFocusable
+    ? {tabIndex: -1, onKeyDown}
+    : {};
 
   return (
     <Fragment>
