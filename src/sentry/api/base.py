@@ -133,7 +133,7 @@ DEFAULT_AUTHENTICATION = (
 )
 
 
-def _with_endpoint_scope_declaration(
+def _with_endpoint_scope(
     func: Callable[..., Response],
 ) -> Callable[..., Response]:
     @functools.wraps(func)
@@ -505,7 +505,7 @@ class Endpoint(APIView):
 
     @csrf_exempt
     @allow_cors_options
-    @_with_endpoint_scope_declaration
+    @_with_endpoint_scope
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability
