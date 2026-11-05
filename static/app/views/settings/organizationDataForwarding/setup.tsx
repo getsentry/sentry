@@ -7,7 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
