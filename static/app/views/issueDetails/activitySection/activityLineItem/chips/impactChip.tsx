@@ -36,7 +36,7 @@ function getImpactLevelLabel(level: AssessmentLevel) {
   }
 }
 
-export function ActivityImpactChip({
+export function ImpactChip({
   level,
   score,
 }: {

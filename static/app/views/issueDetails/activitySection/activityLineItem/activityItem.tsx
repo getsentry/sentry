@@ -24,7 +24,7 @@ import {getProviderName} from './activityItem/provider';
 import {getResolvedInReleaseDetails} from './activityItem/releaseDetails';
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
-import {ActivityImpactChip} from './chips/impactChip';
+import {ImpactChip} from './chips/impactChip';
 import {getIntegrationChip} from './chips/integrationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
@@ -645,7 +645,7 @@ function getActivityItemContent({
       return {
         title: t('Impact assessed'),
         details: tct('as [impact]', {
-          impact: <ActivityImpactChip level={level} score={score} />,
+          impact: <ImpactChip level={level} score={score} />,
         }),
       };
     }

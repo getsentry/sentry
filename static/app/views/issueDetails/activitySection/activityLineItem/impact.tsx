@@ -17,7 +17,7 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {ActivityImpactChip} from './chips/impactChip';
+import {ImpactChip} from './chips/impactChip';
 import {ActivityLineContent, ActivityLineHeadline, ActivityLineRow} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
@@ -49,7 +49,7 @@ export function ActivityLineImpact({
         details={
           assessed
             ? tct('as [impact]', {
-                impact: <ActivityImpactChip level={level} score={score} />,
+                impact: <ImpactChip level={level} score={score} />,
               })
             : undefined
         }
