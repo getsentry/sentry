@@ -379,37 +379,31 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         )}
       </NavigationTourElement>
 
-      <Feature
-        features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
-        overrideName="feature-disabled:dashboards-sidebar-item"
-        requireAll={false}
+      <NavigationTourElement
+        id={NavigationTour.DASHBOARDS}
+        title={null}
+        description={null}
       >
-        <NavigationTourElement
-          id={NavigationTour.DASHBOARDS}
-          title={null}
-          description={null}
-        >
-          {tourProps => (
-            <PrimaryNavigation.ListItem>
-              <PrimaryNavigation.Link
-                to={`/${prefix}/dashboards/`}
-                analyticsKey="dashboards"
-                label={t('Dashboards')}
-                {...mergeProps(
-                  makeNavigationItemProps(
-                    'dashboards',
-                    `/${prefix}/dashboards/`,
-                    `/${prefix}/dashboard`
-                  ),
-                  tourProps
-                )}
-              >
-                <IconDashboard />
-              </PrimaryNavigation.Link>
-            </PrimaryNavigation.ListItem>
-          )}
-        </NavigationTourElement>
-      </Feature>
+        {tourProps => (
+          <PrimaryNavigation.ListItem>
+            <PrimaryNavigation.Link
+              to={`/${prefix}/dashboards/`}
+              analyticsKey="dashboards"
+              label={t('Dashboards')}
+              {...mergeProps(
+                makeNavigationItemProps(
+                  'dashboards',
+                  `/${prefix}/dashboards/`,
+                  `/${prefix}/dashboard`
+                ),
+                tourProps
+              )}
+            >
+              <IconDashboard />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
+      </NavigationTourElement>
 
       {!organization.features.includes('insights-to-dashboards-ui-rollout') && (
         <Feature features={['performance-view']}>

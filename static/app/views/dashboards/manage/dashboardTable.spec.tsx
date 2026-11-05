@@ -27,7 +27,7 @@ describe('Dashboards - DashboardTable', () => {
   let dashboardUpdateMock: jest.Mock;
   let createMock: jest.Mock;
   const organization = OrganizationFixture({
-    features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+    features: ['discover-query'],
   });
 
   const location = LocationFixture();
@@ -284,7 +284,7 @@ describe('Dashboards - DashboardTable', () => {
 
   it('opens the permissions modal from the row actions menu', async () => {
     const organizationWithEditAccess = OrganizationFixture({
-      features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+      features: ['discover-query'],
     });
 
     render(
@@ -363,7 +363,7 @@ describe('Dashboards - DashboardTable', () => {
   it('hides the actions that write to a dashboard without edit access', async () => {
     const organizationWithoutAdmin = OrganizationFixture({
       access: ['org:read'],
-      features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+      features: ['discover-query'],
     });
 
     render(
@@ -437,7 +437,7 @@ describe('Dashboards - DashboardTable', () => {
     });
 
     const organizationWithFavorite = OrganizationFixture({
-      features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+      features: ['discover-query'],
     });
 
     render(
@@ -468,12 +468,7 @@ describe('Dashboards - DashboardTable', () => {
 
   describe('with dashboards-user-last-visited feature flag', () => {
     const organizationWithLastVisited = OrganizationFixture({
-      features: [
-        'dashboards-basic',
-        'dashboards-edit',
-        'discover-query',
-        'dashboards-user-last-visited',
-      ],
+      features: ['discover-query', 'dashboards-user-last-visited'],
     });
 
     let lastVisitedDashboards: DashboardListItem[];
