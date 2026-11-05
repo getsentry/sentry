@@ -135,11 +135,6 @@ function AcceptProjectTransferForm({
 
 function AcceptProjectTransfer() {
   const location = useLocation();
-  const requestOptions = {query: location.query, host: getRegionHost()};
-  const transferOptions = apiOptions.as<TransferDetails>()('/accept-transfer/', {
-    ...requestOptions,
-    staleTime: 0,
-  });
 
   const {
     data: transferDetails,
@@ -147,11 +142,13 @@ function AcceptProjectTransfer() {
     isError,
     error,
     refetch,
-  } = useQuery({
-    ...transferOptions,
-    // Keep the existing cache key when the transfer query is empty.
-    queryKey: [transferOptions.queryKey[0], requestOptions, {infinite: false}],
-  });
+  } = useQuery(
+    apiOptions.as<TransferDetails>()('/accept-transfer/', {
+      query: location.query,
+      host: getRegionHost(),
+      staleTime: 0,
+    })
+  );
 
   if (isPending) {
     return <LoadingIndicator />;
