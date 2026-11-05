@@ -197,7 +197,7 @@ export function ProjectPageFilter({
                     aria-label={t('Open Project Settings')}
                     to={`/settings/${organization.slug}/projects/${project.slug}/`}
                     analyticsEventKey="settings.entry_point_clicked"
-                    analyticsEventName="Settings: Entry Point Clicked"
+                    analyticsEventName="Settings: Link to Settings Clicked"
                     analyticsParams={{
                       entry_point: 'project_page_filter' satisfies SettingsEntryPoint,
                     }}

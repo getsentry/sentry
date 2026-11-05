@@ -123,7 +123,7 @@ export function ProjectCard({
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}
               analyticsEventKey="settings.entry_point_clicked"
-              analyticsEventName="Settings: Entry Point Clicked"
+              analyticsEventName="Settings: Link to Settings Clicked"
               analyticsParams={{entry_point: 'project_card' satisfies SettingsEntryPoint}}
             />
             <BookmarkStar organization={organization} project={simpleProject} />

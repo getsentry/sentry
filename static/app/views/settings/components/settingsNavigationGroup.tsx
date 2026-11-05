@@ -14,7 +14,7 @@ import {SettingsNavItem} from './settingsNavItem';
  * without an `id`, e.g. `/settings/:orgId/projects/:projectId/alerts/` becomes
  * `alerts` and `/settings/account/details/` becomes `details`.
  */
-export function getSettingsNavItemAnalyticsId(path: string): string {
+function getSettingsNavItemAnalyticsId(path: string): string {
   const id = path
     .replace(/^\/settings\/(account\/|:orgId\/(projects\/:projectId\/)?)?/, '')
     .split('/')
