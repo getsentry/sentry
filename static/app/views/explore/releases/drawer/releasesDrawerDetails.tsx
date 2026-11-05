@@ -11,6 +11,7 @@ import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Stack, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Select} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -68,6 +69,9 @@ function ReleasesDrawerContent({
   onProjectSelect,
 }: ReleasesDrawerContentProps) {
   const releaseProjects = releaseMeta?.projects ?? [];
+  const selectedProject = releaseProjects.find(
+    releaseProject => String(releaseProject.id) === projectId
+  );
 
   return (
     <Fragment>
@@ -84,7 +88,22 @@ function ReleasesDrawerContent({
               }))}
               onChange={option => onProjectSelect(option.value)}
               trigger={triggerProps => (
-                <OverlayTrigger.Button {...triggerProps} prefix={t('Project')} />
+                // Matches the project page filter: platform icon and a bold
+                // project slug, without a prefix.
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={
+                    selectedProject ? (
+                      <ProjectAvatar project={selectedProject} size={16} />
+                    ) : undefined
+                  }
+                >
+                  {selectedProject ? (
+                    <Text ellipsis>{selectedProject.slug}</Text>
+                  ) : (
+                    triggerProps.children
+                  )}
+                </OverlayTrigger.Button>
               )}
             />
           }

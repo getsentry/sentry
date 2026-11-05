@@ -114,7 +114,7 @@ describe('ReleasesDrawerDetails', () => {
       screen.getByRole('button', {name: 'View Full Details'})
     );
     // single-project releases don't need a project switcher
-    expect(screen.queryByRole('button', {name: /Project/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'project-slug'})).not.toBeInTheDocument();
     expect(screen.getByText('General')).toBeInTheDocument();
     expect(screen.getByText('Commits')).toBeInTheDocument();
     expect(screen.getByText('File Changes')).toBeInTheDocument();
@@ -181,7 +181,8 @@ describe('ReleasesDrawerDetails', () => {
     expect(screen.getByText('Commits')).toBeInTheDocument();
     expect(screen.getByText('File Changes')).toBeInTheDocument();
 
-    await userEvent.click(await screen.findByRole('button', {name: /test-project-2/}));
+    // The trigger shows the selected project's slug, like the project page filter
+    await userEvent.click(await screen.findByRole('button', {name: 'test-project-2'}));
     await userEvent.click(screen.getByRole('option', {name: 'test-project'}));
     expect(router.location.query[ReleasesDrawerFields.RELEASE_PROJECT_ID]).toBe('1');
   });
