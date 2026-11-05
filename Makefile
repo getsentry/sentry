@@ -50,8 +50,14 @@ build-internal-api-docs: build-deprecated-docs
 	@echo "--> Building internal drf-spectacular openapi spec (every endpoint method)"
 	@OPENAPIGENERATE=1 sentry django spectacular --generator-class sentry.apidocs.internal.InternalGenerator --file tests/apidocs/openapi-internal.json --format openapi-json --validate
 
+# Every API route the frontend can name, from the backend's urlpatterns.
+build-api-urls:
+	@echo "--> Generating TypeScript API URLs from the backend urlpatterns"
+	python3 -m tools.api_urls_to_typescript
+
 # Response types for every API route the frontend can name, from the internal spec.
-build-api-contracts: build-internal-api-docs
+# Keyed on the routes build-api-urls writes, so it syncs those first.
+build-api-contracts: build-api-urls build-internal-api-docs
 	@echo "--> Generating TypeScript API contracts from the internal openapi spec"
 	python3 -m tools.api_contracts_to_typescript
 	pnpm exec oxfmt static/app/utils/api/apiContracts.generated.ts

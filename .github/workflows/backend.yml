@@ -33,7 +33,6 @@ jobs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
       backend: ${{ steps.changes.outputs.backend_all_without_acceptance }}
       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
-      backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
       migration_tests: ${{ steps.changes.outputs.migration_tests }}
@@ -576,36 +575,79 @@ jobs:
           github-token: ${{ steps.token.outputs.token }}
           message: ':snowflake: re-freeze requirements'
 
-  api-url-typescript:
-    if: needs.files-changed.outputs.backend_api_urls == 'true'
+  # Regenerates the frontend's API URLs and the response types keyed on them, and
+  # commits both back to the PR in one commit, so the contracts are never built
+  # against stale URLs. Response types come from serializers and annotations
+  # anywhere in the backend, not only urls.py, so this runs on every API docs
+  # change. Not part of backend-required-check yet: while the contracts are new,
+  # a failure here shows on the PR without blocking it.
+  api-typescript:
+    if: needs.files-changed.outputs.api_docs == 'true'
     needs: files-changed
-    name: api url typescript generation
+    name: api typescript generation
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
-    timeout-minutes: 10
+    timeout-minutes: 30
+    # The commit goes through the GitHub API with the app token below, so the
+    # job's own token and checkout only need to read.
+    permissions:
+      contents: read
+    # The same heap frontend.yml gives tsc and eslint, which otherwise run out of
+    # it, the more so next to backend-ci's services.
+    env:
+      NODE_OPTIONS: '--max-old-space-size=5120'
     steps:
-      - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
-        id: token
-        with:
-          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         with:
           mode: backend-ci
 
-      - name: Sync API Urls to TypeScript
-        run: |
-          python3 -m tools.api_urls_to_typescript
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Sync API URLs to TypeScript
+        id: urls
+        run: make build-api-urls
+
+      # -o: the URLs were synced in the step above, so make doesn't sync them again.
+      - name: Sync API contracts to TypeScript
+        run: make -o build-api-urls build-api-contracts
+
+      # Fail here, before committing, when a backend change breaks a frontend
+      # consumer of its response type, so the failure shows on the change that
+      # caused it and the contracts are never committed broken.
+      - name: Typecheck API contracts and consumers
+        run: pnpm run typecheck
+
+      - name: Lint generated API contracts
+        run: pnpm run lint:js static/app/utils/api/apiContracts.generated.ts
+
+      # While the contracts are new, a failure in them shouldn't also hold back the
+      # URL sync: drop the regenerated contracts and commit the URLs alone. The job
+      # still fails, so the failure shows on the PR.
+      - name: Keep the committed API contracts
+        if: failure() && steps.urls.outcome == 'success'
+        run: git checkout -- static/app/utils/api/apiContracts.generated.ts
+
+      # Minted after the PR's own code (make, tsc) has run, so that code never
+      # sees it. Fork PRs get no secrets, so this fails there; continue and skip
+      # the commit rather than fail the job.
+      - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
+        id: token
+        if: ${{ !cancelled() && steps.urls.outcome == 'success' && github.ref != 'refs/heads/master' }}
+        continue-on-error: true
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - name: Apply any file changes
-        if: github.ref != 'refs/heads/master' && always()
+        if: ${{ !cancelled() && steps.token.outcome == 'success' }}
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
-          message: ':hammer_and_wrench: Sync API Urls to TypeScript'
+          message: ':hammer_and_wrench: Sync API URLs and contracts to TypeScript'
 
   migration:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
