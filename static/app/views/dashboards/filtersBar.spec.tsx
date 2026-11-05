@@ -12,6 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
 import {WEB_VITALS_NAVIGATION_TYPE_FEATURE} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 
+import {enqueueDashboardWrite} from './hooks/useDashboardQueryPriority';
 import {PrebuiltDashboardId} from './utils/prebuiltConfigs';
 import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from './utils/prebuiltConfigs/webVitals/webVitals';
 import {FiltersBar, type FiltersBarProps} from './filtersBar';
@@ -648,6 +649,46 @@ describe('FiltersBar', () => {
         await saveSettled;
       });
 
+      expect(onDashboardQueryPrioritySaved).not.toHaveBeenCalled();
+    });
+
+    it('persists a queued priority save after the bar unmounts', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      let releaseBlocker = () => {};
+      const blocker = new Promise<void>(resolve => {
+        releaseBlocker = resolve;
+      });
+      const blockedWrite = enqueueDashboardWrite(() => blocker);
+      const onDashboardQueryPrioritySaved = jest.fn();
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {queryPriority: 'faster'}),
+      });
+      const {unmount} = renderFilterBar({
+        dashboard: DashboardFixture([], {id: '1', queryPriority: 'normal'}),
+        onDashboardQueryPrioritySaved,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+      expect(updateMock).not.toHaveBeenCalled();
+
+      unmount();
+      releaseBlocker();
+      await blockedWrite;
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: {queryPriority: 'faster'},
+          })
+        );
+      });
       expect(onDashboardQueryPrioritySaved).not.toHaveBeenCalled();
     });
   });

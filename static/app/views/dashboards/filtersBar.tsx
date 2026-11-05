@@ -236,12 +236,14 @@ export function FiltersBar({
     setPriority,
   } = useDashboardQueryPriority(dashboard?.queryPriority);
   const {mutateAsync: saveQueryPriority} = useSaveDashboardQueryPriority();
-  // Bumps when the selection is replaced or this bar unmounts, so a response
-  // for a selection that is no longer on screen does not update the page.
+  // Bumps when the selection is replaced, so an older request does not start
+  // or update the page. Unmount is separate: the write still goes out, but
+  // its result must not land on whatever page is open now.
   const queryPrioritySaveId = useRef(0);
+  const queryPriorityUnmounted = useRef(false);
   useEffect(
     () => () => {
-      queryPrioritySaveId.current += 1;
+      queryPriorityUnmounted.current = true;
     },
     []
   );
@@ -267,13 +269,17 @@ export function FiltersBar({
       }
       try {
         const updated = await saveQueryPriority({dashboardId, queryPriority: value});
-        if (updated && saveId === queryPrioritySaveId.current) {
+        if (
+          updated &&
+          saveId === queryPrioritySaveId.current &&
+          !queryPriorityUnmounted.current
+        ) {
           onDashboardQueryPrioritySaved?.(updated);
         }
       } catch {
         // The mutation already reports the error. Put the dropdown back only
         // when the failed selection is still the one on screen.
-        if (saveId === queryPrioritySaveId.current) {
+        if (saveId === queryPrioritySaveId.current && !queryPriorityUnmounted.current) {
           setPriority(previous);
         }
       }
