@@ -5,7 +5,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {
   smartRound,
   useMetricDetectorAnomalyThresholds,
-} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
+} from './useMetricDetectorAnomalyThresholds';
 
 describe('smartRound', () => {
   it('rounds by magnitude while preserving small fractional values', () => {

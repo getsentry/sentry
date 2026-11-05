@@ -24,11 +24,11 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {GetFieldDefinitionType} from 'sentry/utils/fields';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {ATTRIBUTE_VALUE_TYPES, hasScrubbedValue} from 'sentry/views/explore/utils';
 
 import {AttributesTreeValue} from './attributesTreeValue';
+import {prettifyAttributeName} from './utils';
 
 interface Attribute {
   attribute_key: string;

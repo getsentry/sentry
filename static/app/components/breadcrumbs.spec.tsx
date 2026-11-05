@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from './breadcrumbs';
 
 describe('Breadcrumbs', () => {
   function createWrapper() {

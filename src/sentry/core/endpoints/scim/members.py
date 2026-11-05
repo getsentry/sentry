@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -39,6 +40,7 @@ from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.services.auth import auth_service
 from sentry.conf.types.sentry_config import SentryMode
@@ -71,13 +73,13 @@ ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization
 
 
 @extend_schema_field(OpenApiTypes.ANY)  # union field types are kind of hard, leaving Any for now.
-class OperationValue(Field):
+class OperationValue(Field[object, object, dict[str, object] | bool, object]):
     """
     A SCIM PATCH operation value can either be a boolean,
     or an object depending on the client.
     """
 
-    def to_representation(self, value) -> dict | bool:
+    def to_representation(self, value: object) -> dict[str, object] | bool:
         if isinstance(value, bool):
             return value
         elif isinstance(value, dict):
@@ -88,7 +90,7 @@ class OperationValue(Field):
                 return value
         raise ValidationError("value must be a boolean or object")
 
-    def to_internal_value(self, data) -> dict | bool:
+    def to_internal_value(self, data: object) -> dict[str, object] | bool:
         if isinstance(data, bool):
             return data
         elif isinstance(data, dict):
@@ -139,7 +141,9 @@ a member's `active` attribute to false, after which the member will be permanent
     )
 
 
-def _scim_member_serializer_with_expansion(organization):
+def _scim_member_serializer_with_expansion(
+    organization: Organization,
+) -> OrganizationMemberSCIMSerializer:
     """
     For our Azure SCIM integration, we don't want to return the `active`
     flag since we don't support soft deletes. Other integrations don't
@@ -154,7 +158,7 @@ def _scim_member_serializer_with_expansion(organization):
     return OrganizationMemberSCIMSerializer(expand=expand)
 
 
-def resolve_maybe_bool_value(value):
+def resolve_maybe_bool_value(value: object) -> bool | None:
     if isinstance(value, str):
         value = value.lower()
         # Some IdP vendors such as Azure send boolean values as actual strings.
@@ -175,6 +179,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
         "PATCH": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationSCIMMemberPermission,)
 
     def convert_args(
@@ -239,11 +244,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 for permission in settings.SENTRY_SCIM_PERMISSION_TEAM_SLUGS:
                     user_service.remove_permission(user_id=user.id, permission=permission)
 
-    def _should_delete_member(self, operation):
-        if operation.get("op").lower() == MemberPatchOps.REPLACE:
+    def _should_delete_member(self, operation: dict[str, object]) -> bool:
+        if cast(str, operation.get("op")).lower() == MemberPatchOps.REPLACE:
             if (
                 isinstance(operation.get("value"), dict)
-                and resolve_maybe_bool_value(operation.get("value").get("active")) is False
+                and resolve_maybe_bool_value(
+                    cast(dict[str, object], operation["value"]).get("active")
+                )
+                is False
             ):
                 # how okta sets active to false
                 return True
@@ -272,7 +280,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         examples=SCIMExamples.QUERY_ORG_MEMBER,
     )
     def get(
-        self, request: Request, organization, member
+        self, request: Request, organization: Organization, member: OrganizationMember
     ) -> Response[OrganizationMemberSCIMSerializerResponse]:
         """
         Query an individual organization member with a SCIM User GET Request.
@@ -302,7 +310,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         examples=SCIMExamples.UPDATE_ORG_MEMBER_ATTRIBUTES,
     )
     def patch(
-        self, request: Request, organization, member
+        self, request: Request, organization: Organization, member: OrganizationMember
     ) -> (
         Response[OrganizationMemberSCIMSerializerResponse]
         | Response[None]
@@ -332,7 +340,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 self._delete_member(request, organization, member)
                 metrics.incr(
                     "sentry.scim.member.delete",
-                    tags={"organization": organization},
+                    tags={"organization": cast(str, organization)},
                 )
                 return Response(status=204)
             else:
@@ -359,7 +367,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         },
     )
     def delete(
-        self, request: Request, organization, member
+        self, request: Request, organization: Organization, member: OrganizationMember
     ) -> Response[None] | Response[DetailResponse]:
         """
         Delete an organization member with a SCIM User DELETE Request.
@@ -373,7 +381,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             )
 
         self._delete_member(request, organization, member)
-        metrics.incr("sentry.scim.member.delete", tags={"organization": organization})
+        metrics.incr("sentry.scim.member.delete", tags={"organization": cast(str, organization)})
         return Response(status=204)
 
     @extend_schema(
@@ -384,7 +392,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
-            "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}
+            "SCIMMemberReplace", fields={"sentryOrgRole": serializers.CharField()}
         ),
         responses={
             201: OrganizationMemberSCIMSerializer,
@@ -394,7 +402,9 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         },
         examples=SCIMExamples.UPDATE_USER_ROLE,
     )
-    def put(self, request: Request, organization: Organization, member):
+    def put(
+        self, request: Request, organization: Organization, member: OrganizationMember
+    ) -> Response[OrganizationMemberSCIMSerializerResponse] | Response[DetailResponse]:
         """
         Update an organization member
 
@@ -495,6 +505,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationSCIMMemberPermission,)
 
     @extend_schema(
@@ -537,16 +548,16 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 | Q(user_id__in=[u.id for u in filtered_users])
             )  # not including secondary email vals (dups, etc.)
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[OrganizationMember]:
             return list(queryset[offset : offset + limit])
 
-        def on_results(results):
-            results = serialize(
+        def on_results(results: Sequence[OrganizationMember]) -> dict[str, object]:
+            serialized = serialize(
                 results,
                 None,
                 _scim_member_serializer_with_expansion(organization),
             )
-            return self.list_api_format(results, queryset.count(), query_params["start_index"])
+            return self.list_api_format(serialized, queryset.count(), query_params["start_index"])
 
         return self.paginate(
             request=request,
@@ -585,7 +596,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         examples=SCIMExamples.PROVISION_NEW_MEMBER,
     )
     def post(
-        self, request: Request, organization
+        self, request: Request, organization: Organization
     ) -> Response[OrganizationMemberSCIMSerializerResponse]:
         """
         Create a new Organization Member via a SCIM Users POST Request.
@@ -662,7 +673,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     organization=organization,
                     email=result["email"],
                     role=result["role"],
-                    inviter_id=request.user.id,
+                    inviter_id=acting_user_id(request.user),
                 )
 
                 # TODO: are invite tokens needed for SAML orgs?
@@ -695,10 +706,12 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
         metrics.incr(
             "sentry.scim.member.provision",
-            tags={"organization": organization},
+            tags={"organization": cast(str, organization)},
         )
         if update_role:
-            metrics.incr("sentry.scim.member.update_role", tags={"organization": organization})
+            metrics.incr(
+                "sentry.scim.member.update_role", tags={"organization": cast(str, organization)}
+            )
 
         body: OrganizationMemberSCIMSerializerResponse = serialize(
             member,

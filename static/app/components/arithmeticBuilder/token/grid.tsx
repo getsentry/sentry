@@ -17,18 +17,19 @@ import {
   isTokenParenthesis,
   isTokenReference,
 } from 'sentry/components/arithmeticBuilder/token';
-import {ArithmeticTokenFreeText} from 'sentry/components/arithmeticBuilder/token/freeText';
-import {ArithmeticTokenFunction} from 'sentry/components/arithmeticBuilder/token/function';
-import {ArithmeticTokenLiteral} from 'sentry/components/arithmeticBuilder/token/literal';
-import {ArithmeticTokenOperator} from 'sentry/components/arithmeticBuilder/token/operator';
-import {ArithmeticTokenParenthesis} from 'sentry/components/arithmeticBuilder/token/parenthesis';
-import {ArithmeticBuilderTokenReference} from 'sentry/components/arithmeticBuilder/token/reference';
 import {computeNextAllowedTokenKinds} from 'sentry/components/arithmeticBuilder/validator';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {shiftFocusToChild} from 'sentry/components/tokenizedInput/token/utils';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+
+import {ArithmeticTokenFreeText} from './freeText';
+import {ArithmeticTokenFunction} from './function';
+import {ArithmeticTokenLiteral} from './literal';
+import {ArithmeticTokenOperator} from './operator';
+import {ArithmeticTokenParenthesis} from './parenthesis';
+import {ArithmeticBuilderTokenReference} from './reference';
 
 interface TokenGridProps {
   tokens: Token[];

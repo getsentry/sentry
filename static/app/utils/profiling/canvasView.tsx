@@ -1,11 +1,8 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {
-  computeClampedConfigView,
-  transformMatrixBetweenRect,
-} from 'sentry/utils/profiling/gl/utils';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import {computeClampedConfigView, transformMatrixBetweenRect} from './gl/utils';
+import type {FlamegraphCanvas} from './flamegraphCanvas';
+import {Rect} from './speedscope';
 
 export class CanvasView<T extends {configSpace: Rect}> {
   configView: Rect = Rect.empty();

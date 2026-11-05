@@ -16,13 +16,14 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
-import {GroupDistributionsSearchInput} from 'sentry/views/issueDetails/groupDistributions/groupDistributionsSearchInput';
-import {TagExportDropdown} from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
-import {TagFlagPicker} from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
-import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import {TagDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+
+import {GroupDistributionsSearchInput} from './groupDistributionsSearchInput';
+import {TagExportDropdown} from './tagExportDropdown';
+import {TagFlagPicker} from './tagFlagPicker';
+import {DrawerTab} from './types';
 
 interface Props {
   group: Group;

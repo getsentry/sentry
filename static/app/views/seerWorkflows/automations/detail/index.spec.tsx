@@ -67,6 +67,12 @@ describe('AutomationDetail', () => {
     expect(screen.getByText('No description')).toBeInTheDocument();
   });
 
+  it('shows all projects for configs that cover every project', async () => {
+    mockConfig(SeerWorkflowConfigFixture({id: '42', projects: [-1]}));
+    renderDetail();
+    expect(await screen.findByText('All projects')).toBeInTheDocument();
+  });
+
   it('shows the next run for daily schedules', async () => {
     mockConfig(
       SeerWorkflowConfigFixture({

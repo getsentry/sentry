@@ -477,7 +477,7 @@ def update_existing_attachments(job: PostProcessJob) -> None:
     event = job["event"]
 
     # Update attachments from reprocessed events or feedback events,
-    # which get their group ID after `save_generic_event`.
+    # which get their group ID after `save_generic_events`.
     EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).exclude(
         group_id=event.group_id
     ).update(group_id=event.group_id)
@@ -1559,7 +1559,7 @@ def detect_new_escalation(job: PostProcessJob) -> None:
     group = job["event"].group
     if not group:
         return
-    extra = {
+    extra: dict[str, object] = {
         "org_id": group.organization.id,
         "project_id": job["event"].project.id,
         "group_id": group.id,

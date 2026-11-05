@@ -7,8 +7,9 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {FieldKind} from 'sentry/utils/fields';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {OurLogFilters} from 'sentry/views/explore/replays/detail/ourlogs/ourlogFilters';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {OurLogFilters} from './ourlogFilters';
 
 const baseSearchQueryBuilderProps = {
   itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,

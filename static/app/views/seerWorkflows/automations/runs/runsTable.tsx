@@ -13,12 +13,10 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {useAutomationRuns} from 'sentry/views/seerWorkflows/automations/hooks/useAutomationRuns';
-import {
-  getRunDisplayStatus,
-  StatusIcon,
-} from 'sentry/views/seerWorkflows/automations/runs/statusIcon';
 import {getStrategyLabel} from 'sentry/views/seerWorkflows/strategies';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
+
+import {getRunDisplayStatus, StatusIcon} from './statusIcon';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'status', width: 'min-content'},

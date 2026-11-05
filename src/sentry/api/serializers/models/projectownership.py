@@ -1,9 +1,14 @@
+from collections.abc import Mapping
 from datetime import datetime
 from typing import NotRequired, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.issues.ownership.grammar import OwnershipRuleMatcher
 from sentry.models.projectownership import ProjectOwnership
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class OwnershipRuleOwnerResponse(TypedDict):
@@ -31,18 +36,24 @@ class ProjectOwnershipResponseOptional(TypedDict, total=False):
 
 # JSON object representing this serializer in API response
 class ProjectOwnershipResponse(ProjectOwnershipResponseOptional):
-    raw: str
+    raw: str | None
     fallthrough: bool
-    dateCreated: datetime
-    lastUpdated: datetime
+    dateCreated: datetime | None
+    lastUpdated: datetime | None
     isActive: bool
     autoAssignment: str
-    codeownersAutoSync: bool
+    codeownersAutoSync: bool | None
 
 
 @register(ProjectOwnership)
 class ProjectOwnershipSerializer(Serializer[ProjectOwnershipResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> ProjectOwnershipResponse:
+    def serialize(
+        self,
+        obj: ProjectOwnership,
+        attrs: Mapping[object, object],
+        user: User | RpcUser | AnonymousUser | None,
+        **kwargs: object,
+    ) -> ProjectOwnershipResponse:
         assignment = (
             "Auto Assign to Suspect Commits"
             if obj.auto_assignment and obj.suspect_committer_auto_assignment

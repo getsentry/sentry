@@ -1,6 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
-import type {useFeedbackListApiOptions} from 'sentry/components/feedback/useFeedbackListApiOptions';
+import type {useFeedbackListApiOptions} from './useFeedbackListApiOptions';
 
 type FeedbackListApiOptions = ReturnType<typeof useFeedbackListApiOptions>;
 

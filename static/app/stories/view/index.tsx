@@ -9,20 +9,16 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {handleExpressiveCodeCopyClick} from 'sentry/stories/view/expressiveCodeCopy';
-import {StorySidebar} from 'sentry/stories/view/storySidebar';
-import {
-  StoryTreeNode,
-  useFlatStoryList,
-  type StoryCategory,
-} from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
 
+import {handleExpressiveCodeCopyClick} from './expressiveCodeCopy';
 import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
+import {StorySidebar} from './storySidebar';
+import {StoryTreeNode, useFlatStoryList, type StoryCategory} from './storyTree';
 import {useStoryDarkModeTheme} from './useStoriesDarkMode';
 import {useStoriesLoader} from './useStoriesLoader';
 import {useStoryParams} from './useStoryParams';

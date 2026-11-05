@@ -8,11 +8,6 @@ import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import {
-  ResourceLink,
-  type ResourceLinkFormatProps,
-} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
-import {
   defineSeerEmbed,
   type EmbedOutput,
 } from 'sentry/components/seer/markdown/embeds/utils';
@@ -20,6 +15,9 @@ import {t} from 'sentry/locale';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+
+import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
+import {SeerEmbedBlock} from './seerEmbedBlock';
 
 const CLIP_OFFSETS = {
   durationAfterMs: 5_000,

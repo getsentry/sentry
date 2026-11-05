@@ -311,7 +311,6 @@ static/app/actionCreators/events.tsx
 static/app/actionCreators/group.spec.tsx
 static/app/actionCreators/group.tsx
 static/app/actionCreators/guides.tsx
-static/app/actionCreators/indicator.tsx
 static/app/actionCreators/integrations.tsx
 static/app/actionCreators/members.tsx
 static/app/actionCreators/modal.tsx
@@ -2164,7 +2163,6 @@ tests/sentry/quotas/__init__.py
 tests/sentry/quotas/test_base.py
 tests/sentry/quotas/test_redis.py
 tests/sentry/ratelimits/__init__.py
-tests/sentry/ratelimits/test_cardinality.py
 tests/sentry/ratelimits/test_config.py
 tests/sentry/ratelimits/test_leaky_bucket.py
 tests/sentry/ratelimits/test_redis.py

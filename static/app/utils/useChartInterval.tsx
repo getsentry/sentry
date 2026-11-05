@@ -17,7 +17,8 @@ import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tn} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
-import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+
+import {parsePeriodToHours} from './duration/parsePeriodToHours';
 
 export enum ChartIntervalUnspecifiedStrategy {
   /** Use the second biggest possible interval (e.g., pretty big buckets) */

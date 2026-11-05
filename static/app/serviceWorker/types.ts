@@ -1,4 +1,4 @@
-import type {AutofixStartStepData} from 'sentry/serviceWorker/worker/handleAutofixStartStep';
+import type {AutofixStartStepData} from './worker/handleAutofixStartStep';
 
 /**
  * The base type for all Event* types.

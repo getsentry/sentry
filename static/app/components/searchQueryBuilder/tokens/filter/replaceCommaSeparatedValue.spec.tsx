@@ -1,4 +1,4 @@
-import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
+import {replaceCommaSeparatedValue} from './replaceCommaSeparatedValue';
 
 describe('replaceCommaSeparatedValue', () => {
   it('replaces a value without commas', () => {

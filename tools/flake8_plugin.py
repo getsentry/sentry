@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Literal, NamedTuple
 
+from tools.api_guidelines.rules import ApiRule
+
 S001_fmt = (
     "S001 Avoid using the {} mock call as it is "
     "confusing and prone to causing invalid test "
@@ -113,35 +115,35 @@ S020_eap_base_classes = frozenset(
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
 S021_msg = (
-    "S021 Every T declared by inline_sentry_response_serializer(...) in "
+    f"{ApiRule.S021} Every T declared by inline_sentry_response_serializer(...) in "
     "@extend_schema must appear in the Response[T] return annotation. "
     "Missing from the annotation: {}."
 )
 S022_missing_msg = (
-    "S022 Published endpoint methods must declare their response shape. This "
+    f"{ApiRule.S022} Published endpoint methods must declare their response shape. This "
     "method has no return annotation; use Response[YourTypedDict], a union of "
     "Response[T] arms, Response[None], or a non-DRF response type."
 )
 S022_bare_msg = (
-    "S022 Published endpoint methods must declare their response shape. Bare "
+    f"{ApiRule.S022} Published endpoint methods must declare their response shape. Bare "
     "`Response` opts the body out of type checking; use Response[YourTypedDict], "
     "a union of Response[T] arms, or Response[None]."
 )
 S023_no_reason_msg = (
-    "S023 exclude_fields={!r} has no recorded reason. Add a help_text to the "
+    f"{ApiRule.S023} exclude_fields={{!r}} has no recorded reason. Add a help_text to the "
     "field, or withhold it deliberately with @sentry_schema_serializer("
     'omit_from_public_schema={{{!r}: "<why>"}}).'
 )
-S023_not_mapping_msg = "S023 omit_from_public_schema must be a {field: reason} mapping."
+S023_not_mapping_msg = (
+    f"{ApiRule.S023} omit_from_public_schema must be a {{field: reason}} mapping."
+)
 S023_blank_reason_msg = (
-    "S023 omit_from_public_schema[{!r}] needs a reason explaining why the field "
+    f"{ApiRule.S023} omit_from_public_schema[{{!r}}] needs a reason explaining why the field "
     "is not public surface."
 )
-S023_ghost_msg = (
-    "S023 {}={!r} names no field on this class; it omits nothing and should be deleted."
-)
+S023_ghost_msg = f"{ApiRule.S023} {{}}={{!r}} names no field on this class; it omits nothing and should be deleted."
 S023_bad_path_msg = (
-    "S023 {}={!r} is not a usable path. Write 'field' or 'field.choice', "
+    f"{ApiRule.S023} {{}}={{!r}} is not a usable path. Write 'field' or 'field.choice', "
     "with no leading, trailing or doubled dots."
 )
 
@@ -211,27 +213,27 @@ ENFORCED: frozenset[str] = frozenset()
 INPUT_LINT_ALL_ENV = "SENTRY_INPUT_LINT_ALL"
 
 S025_query_msg = (
-    "S025 {} validates the query string but is not declared in "
+    f"{ApiRule.S025} {{}} validates the query string but is not declared in "
     "@extend_schema(parameters=...), so the schema does not document what this "
     "endpoint accepts. Add it to parameters=."
 )
 S026_msg = (
-    "S026 {} is read straight off the {} instead of through a serializer declared in "
+    f"{ApiRule.S026} {{}} is read straight off the {{}} instead of through a serializer declared in "
     "@extend_schema, so nothing ties the schema to what this endpoint accepts. Read it "
     "through a declared serializer, or declare this endpoint's input as an exception."
 )
 S027_msg = (
-    "S027 the {} is read with the computed key {}, so no schema can document it. "
+    f"{ApiRule.S027} the {{}} is read with the computed key {{}}, so no schema can document it. "
     "Read it through a serializer declared in @extend_schema, or declare this "
     "endpoint's input as an exception."
 )
 S028_msg = (
-    "S028 the whole {} is handed to {}, so what this endpoint accepts cannot be "
+    f"{ApiRule.S028} the whole {{}} is handed to {{}}, so what this endpoint accepts cannot be "
     "determined. Validate it with a serializer declared in @extend_schema, or declare "
     "this endpoint's input as an exception."
 )
 S025_body_msg = (
-    "S025 {} validates the request body but is not declared in "
+    f"{ApiRule.S025} {{}} validates the request body but is not declared in "
     "@extend_schema(request=...), so the schema does not document what this "
     "endpoint accepts. Add it as request=."
 )
@@ -868,7 +870,7 @@ class ApiInputViolation:
     position (`line` is 1-based, while `column` is 0-based to match Python's AST and LSP).
     """
 
-    rule: str
+    rule: ApiRule
     message: str
     line: int
     column: int
@@ -1518,14 +1520,20 @@ class SentryVisitor(ast.NodeVisitor):
                 ctx.body_validators.append((_start_and_end(node), name))
 
     def _report_input(
-        self, ctx: _InputCtx, start_end: _StartEnd, msg: str, group: str, key: str, source: str
+        self,
+        ctx: _InputCtx,
+        start_end: _StartEnd,
+        msg: str,
+        group: str,
+        key: str,
+        source: str,
+        rule: ApiRule,
     ) -> None:
         """Always recorded as a structured violation; fatal only for an enforced group."""
         enforced = group in ENFORCED
         self.api_violations.append(
             ApiInputViolation(
-                # flake8 requires every message to start with its code
-                rule=msg.split(" ", 1)[0],
+                rule=rule,
                 message=msg,
                 line=start_end.line,
                 column=start_end.column,
@@ -1544,20 +1552,24 @@ class SentryVisitor(ast.NodeVisitor):
         for start_end, name in ctx.query_validators:
             if name not in ctx.declared_params:
                 msg = S025_query_msg.format(name)
-                self._report_input(ctx, start_end, msg, "declared", name, "query string")
+                self._report_input(
+                    ctx, start_end, msg, "declared", name, "query string", ApiRule.S025
+                )
         for start_end, name in ctx.body_validators:
             if name not in ctx.declared_body:
                 msg = S025_body_msg.format(name)
-                self._report_input(ctx, start_end, msg, "declared", name, "request body")
+                self._report_input(
+                    ctx, start_end, msg, "declared", name, "request body", ApiRule.S025
+                )
         for start_end, key, source in ctx.literal_reads:
             msg = S026_msg.format(repr(key), source)
-            self._report_input(ctx, start_end, msg, "shaped", key, source)
+            self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S026)
         for start_end, key, source in ctx.computed_reads:
             msg = S027_msg.format(source, key)
-            self._report_input(ctx, start_end, msg, "shaped", key, source)
+            self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S027)
         for start_end, callee, source in ctx.hand_offs:
             msg = S028_msg.format(source, callee)
-            self._report_input(ctx, start_end, msg, "shaped", callee, source)
+            self._report_input(ctx, start_end, msg, "shaped", callee, source, ApiRule.S028)
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)

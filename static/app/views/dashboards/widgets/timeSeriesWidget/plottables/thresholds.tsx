@@ -18,10 +18,8 @@ import type {
   Thresholds as ThresholdsConfig,
   TimeSeriesValueUnit,
 } from 'sentry/views/dashboards/widgets/common/types';
-import type {
-  Plottable,
-  PlottableTimeSeriesValueType,
-} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+
+import type {Plottable, PlottableTimeSeriesValueType} from './plottable';
 
 type ThresholdPlottableOptions = {
   thresholds: ThresholdsConfig;

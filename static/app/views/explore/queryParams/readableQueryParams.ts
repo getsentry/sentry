@@ -1,11 +1,12 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
-import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {Mode} from 'sentry/views/explore/queryParams/mode';
-import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
-import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+
+import type {AggregateField} from './aggregateField';
+import type {CrossEvent} from './crossEvent';
+import {isGroupBy} from './groupBy';
+import type {Mode} from './mode';
+import type {Visualize} from './visualize';
+import {isVisualize} from './visualize';
 
 export interface ReadableQueryParamsOptions {
   readonly aggregateCursor: string;

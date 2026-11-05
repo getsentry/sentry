@@ -13,7 +13,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import UptimeDetectorsList from 'sentry/views/detectors/list/uptime';
+
+import UptimeDetectorsList from './uptime';
 
 describe('UptimeDetectorsList', () => {
   const organization = OrganizationFixture();

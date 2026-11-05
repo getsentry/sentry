@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
+import {AIContentRenderer} from './aiContentRenderer';
 
 describe('AIContentRenderer', () => {
   it('renders plain text inline', () => {

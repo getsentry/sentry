@@ -91,7 +91,7 @@ def expand_events(rolled_up_events: list[str]) -> list[str]:
 
 
 # TODO(schew2381): Delete this method after staff is GA'd and the options are removed
-def _is_elevated_user(user) -> bool:
+def _is_elevated_user(user: User | RpcUser) -> bool:
     """
     This is a temporary helper method that checks if the user can become staff
     if staff mode is enabled. Otherwise, it defaults to checking that the user
@@ -191,6 +191,11 @@ class SentryAppUpdater:
             self.scopes = add_scope_hierarchy(self.scopes)
 
             self.sentry_app.scope_list = self.scopes
+
+            # Without an application the app has no tokens, and application=None would match
+            # every personal token.
+            if self.sentry_app.application_id is None:
+                return
 
             # update the scopes of active tokens tokens
             tokens = list(
@@ -306,6 +311,8 @@ class SentryAppUpdater:
         # they should re-enter the value when renaming.
         existing_by_name = {}
         for header in self.sentry_app.webhook_headers:
+            if header is None:
+                continue
             name, separator, _value = header.partition(":")
             if separator:
                 existing_by_name[name.strip().lower()] = header
@@ -382,7 +389,7 @@ class SentryAppCreator:
     allowed_origins: list[str] = dataclasses.field(default_factory=list)
     webhook_headers: list[str] = dataclasses.field(default_factory=list)
     popularity: int | None = None
-    metadata: dict | None = field(default_factory=dict)
+    metadata: dict[str, object] | None = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.is_internal:

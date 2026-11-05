@@ -16,8 +16,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+
+import {makeFeedbackPathname} from './feedback/pathnames';
+import {getTraceDetailsUrl} from './performance/traceDetails/traceUrl';
 
 /**
  * This component redirects to the Event Details page given only an event ID
