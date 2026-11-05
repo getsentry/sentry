@@ -238,6 +238,39 @@ class ScheduleSpreadTest(CadenceApiTestCase):
 
         assert info.next_scheduled_for == NOW + timedelta(days=1)
 
+    def test_interval_keeps_a_passed_scheduled_time_whose_firing_is_still_ahead(self) -> None:
+        with freeze_time(NOW):
+            self.set(self.target_id, every(timedelta(hours=2)))
+        scheduled_for = NOW + timedelta(hours=2)
+
+        # The scheduled time has passed, but its firing hasn't.
+        with freeze_time(scheduled_for + timedelta(minutes=5)):
+            info = self.set(self.target_id, every(timedelta(hours=3)))
+
+        assert info.next_scheduled_for == scheduled_for
+        assert info.next_fire_at == scheduled_for + self.offset(self.target_id)
+
+    def test_interval_skips_a_scheduled_time_whose_firing_has_passed(self) -> None:
+        # A shorter interval shrinks the window, and with it the offset, so the pending
+        # scheduled time's firing would already be due.
+        frequent = timedelta(minutes=30)
+        target_id = next(
+            target_id
+            for target_id in range(1, 1000)
+            if self.offset(target_id, min_gap=timedelta(hours=2))
+            > self.offset(target_id, min_gap=frequent) + timedelta(minutes=1)
+        )
+        with freeze_time(NOW):
+            self.set(target_id, every(timedelta(hours=2)))
+        scheduled_for = NOW + timedelta(hours=2)
+        now = scheduled_for + self.offset(target_id, min_gap=frequent) + timedelta(seconds=30)
+
+        with freeze_time(now):
+            info = self.set(target_id, every(frequent))
+
+        assert info.next_scheduled_for == now + frequent
+        assert info.next_fire_at == now + frequent + self.offset(target_id, min_gap=frequent)
+
     @freeze_time(NOW)
     def test_offsets_differ_between_targets(self) -> None:
         offsets = {

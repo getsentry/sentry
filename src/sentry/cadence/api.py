@@ -81,6 +81,10 @@ def _next_scheduled_for(
 ) -> datetime:
     match schedule:
         case IntervalSchedule(interval=interval):
+            # As for cron, a scheduled time that has passed is only kept if its offset firing
+            # hasn't. A changed offset could otherwise move that firing into the past.
+            if current is not None and current + offset <= now:
+                current = None
             return reschedule_for_new_interval(current, interval, now)
         case CronSchedule():
             # A scheduled time that has passed still fires if its offset firing hasn't.
@@ -123,9 +127,13 @@ def set_schedule(
     repeatedly.
 
     - A new interval schedule is first scheduled for one interval from now.
-    - A changed interval schedule keeps its pending firing if that is scheduled within the
-      new interval, otherwise it is next scheduled for one interval from now.
+    - A changed interval schedule keeps its pending firing if that is still ahead and
+      scheduled within the new interval, otherwise it is next scheduled for one interval
+      from now.
     - A new or changed cron schedule is next scheduled for its next cron time.
+
+    A pending firing is one that hasn't fired, using the offset for the new schedule, so a
+    change that moves it into the past skips it rather than firing it at once.
 
     Each firing may happen up to its trigger type's spread window after it is scheduled for;
     see `register_trigger_action`. Raises NoRegistrationExistsError if `trigger_type` has no

@@ -48,8 +48,10 @@ clear_schedule(
 - `set_schedule` creates a target's trigger or replaces its schedule. Setting the schedule a
   trigger already has changes nothing, so it is safe to call on every change to the target.
   - A new interval schedule first fires one interval from now. A changed one keeps its
-    pending firing if that is still within the new interval.
+    pending firing if that is still ahead and within the new interval.
   - A new or changed cron schedule next fires at its next cron time.
+  - With a spread window, a scheduled time that has passed is still pending if its firing
+    hasn't happened yet. A change that moves that firing into the past skips it instead.
 - `clear_schedule` removes the trigger.
 - `get_schedules(organization_id=..., trigger_type=..., target_ids=[...])` returns each
   target's schedule, next scheduled time and next fire time, in one query.
