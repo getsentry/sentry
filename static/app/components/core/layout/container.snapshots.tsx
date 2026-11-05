@@ -92,6 +92,7 @@ describe('Container', () => {
         <Swatch borderBottomColor="primary" borderWidth="xl">
           xl bottom
         </Swatch>
+        <Swatch borderWidth="xl">xl, no color</Swatch>
       </Gallery>
     ),
     {tags: {area: 'core'}}
