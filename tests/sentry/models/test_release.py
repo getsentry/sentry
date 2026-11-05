@@ -2513,35 +2513,46 @@ class WorkerKilled(BaseException):
 
 
 class SetCommitsTransactionTest(TransactionTestCase):
+    def _swap_transaction(self, statements: list[str]) -> list[str]:
+        delete_index = None
+        for index, statement in enumerate(statements):
+            if statement.startswith('DELETE FROM "sentry_releasecommit"'):
+                delete_index = index
+                break
+        assert delete_index is not None
+        begin_index = delete_index
+        while statements[begin_index] != "BEGIN":
+            begin_index -= 1
+        commit_index = delete_index
+        while statements[commit_index] != "COMMIT":
+            commit_index += 1
+        return statements[begin_index:commit_index]
+
     def test_swap_transaction_opens_no_subtransactions(self) -> None:
         repo = self.create_repo(project=self.project, name="example/repo")
         groups = [self.create_group(project=self.project) for _ in range(3)]
+        messages = [f"fixes {group.qualified_short_id}" for group in groups]
+        messages += [f"commit {i}" for i in range(len(groups), 70)]
         commit_list: list[dict[str, Any]] = [
-            {"id": f"{i:040x}", "repository": repo.name, "message": f"commit {i}"}
-            for i in range(70)
+            {"id": f"{i:040x}", "repository": repo.name, "message": message}
+            for i, message in enumerate(messages)
         ]
-        for data, group in zip(commit_list, groups):
-            data["message"] = f"fixes {group.qualified_short_id}"
+        commit_list.append(dict(commit_list[-1]))
         release = self.create_release(project=self.project, version="1.0")
 
         with CaptureQueriesContext(connection) as ctx:
             release.set_commits(commit_list)
 
         statements = [query["sql"] for query in ctx.captured_queries]
-        delete_index = next(
-            index
-            for index, statement in enumerate(statements)
-            if statement.startswith('DELETE FROM "sentry_releasecommit"')
-        )
-        commit_index = next(
-            index
-            for index, statement in enumerate(statements)
-            if index > delete_index and statement == "COMMIT"
-        )
-        swap_statements = statements[delete_index:commit_index]
+        swap_statements = self._swap_transaction(statements)
         savepoints = [s for s in swap_statements if s.startswith("SAVEPOINT")]
+        commit_upserts = [
+            s for s in swap_statements if s.startswith('INSERT INTO "sentry_commit" ')
+        ]
         assert savepoints == []
-        assert ReleaseCommit.objects.filter(release=release).count() == 70
+        assert commit_upserts == []
+        orders = ReleaseCommit.objects.filter(release=release).values_list("order", flat=True)
+        assert sorted(orders) == list(range(70))
 
     def test_commit_update_and_issue_links_commit_together(self) -> None:
         repo = self.create_repo(project=self.project, name="example/repo")
