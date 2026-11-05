@@ -32,7 +32,7 @@ from sentry.utils.cursors import StringCursor
 
 class InboxUpdateRequest(TypedDict, total=False):
     isRead: bool
-    isRemoved: bool
+    undoRemoval: bool
 
 
 class InboxUpdate(TypedDict, total=False):
@@ -42,22 +42,17 @@ class InboxUpdate(TypedDict, total=False):
 
 class InboxUpdateSerializer(serializers.Serializer[None, InboxUpdate]):
     isRead = serializers.BooleanField(required=False)
-    isRemoved = serializers.BooleanField(
-        required=False, help_text="Set to false to cancel a pending removal."
+    undoRemoval = serializers.BooleanField(
+        required=False, help_text="Set to true to cancel a pending removal."
     )
-
-    def validate_isRemoved(self, value: bool) -> bool:
-        if value:
-            raise serializers.ValidationError("Only undoing removal is supported.")
-        return value
 
     def validate(self, attrs: InboxUpdateRequest) -> InboxUpdate:
         if not attrs:
-            raise serializers.ValidationError("Provide isRead or isRemoved.")
+            raise serializers.ValidationError("Provide isRead or undoRemoval.")
         updates: InboxUpdate = {}
         if "isRead" in attrs:
             updates["last_read_at"] = timezone.now() if attrs["isRead"] else None
-        if "isRemoved" in attrs:
+        if attrs.get("undoRemoval"):
             updates["status"] = ObjectStatus.ACTIVE
         return updates
 
@@ -174,7 +169,7 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
     ) -> Response[None]:
         """Remove matching items immediately and schedule deletion one hour later.
 
-        Omitting filters removes all active items. Restore items with PUT isRemoved=false
+        Omitting filters removes all active items. Restore items with PUT undoRemoval=true
         before deletion runs. Repeated removal does not extend the pending deletion time.
         """
         filters = InboxFilterSerializer(data=request.GET)
