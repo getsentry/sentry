@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {TourAction, TourContextProvider, TourElement, TourGuide} from './components';
 import {
@@ -342,6 +342,46 @@ describe('Tour Components', () => {
       expect(screen.getByText('Child Element')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Close'}));
       expect(mockHandleDismiss).toHaveBeenCalled();
+    });
+
+    it('focuses keyboard-enabled subtle guides so Tab reaches their controls', async () => {
+      render(
+        <TourGuide
+          isOpen
+          variant="subtle"
+          onKeyDown={jest.fn()}
+          title="Test Title"
+          description="Test Description"
+          actions={<TourAction>Test Action</TourAction>}
+        >
+          {props => <button {...props}>Child Element</button>}
+        </TourGuide>
+      );
+
+      await screen.findByText('Test Title');
+      await waitFor(() =>
+        expect(screen.getByText('Test Title').closest('[tabindex="-1"]')).toHaveFocus()
+      );
+      await userEvent.tab();
+      expect(screen.getByRole('button', {name: 'Test Action'})).toHaveFocus();
+    });
+
+    it('does not automatically move focus for spotlight guides', async () => {
+      render(
+        <TourGuide
+          isOpen
+          variant="spotlight"
+          title="Test Title"
+          description="Test Description"
+          onKeyDown={jest.fn()}
+        >
+          {props => <button {...props}>Child Element</button>}
+        </TourGuide>
+      );
+
+      const title = await screen.findByText('Test Title');
+      expect(document.body).toHaveFocus();
+      expect(title.closest('[tabindex="-1"]')).toHaveAttribute('tabindex', '-1');
     });
 
     it('scrolls the highlighted element into view and pins the guide to the viewport', async () => {
