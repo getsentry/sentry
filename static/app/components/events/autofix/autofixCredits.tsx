@@ -1,15 +1,20 @@
-import type {ReactNode} from 'react';
-
-import {Container} from '@sentry/scraps/layout';
-
-import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {
+  SeerOutOfCreditsCta,
+  type SeerOutOfCreditsReason,
+} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {defined} from 'sentry/utils/defined';
 import {
   useSeerCreditCheck,
   type SeerCreditOperation,
 } from 'sentry/utils/seer/useSeerCreditCheck';
 
-import type {AutofixNextStep} from './getAutofixNextStep';
+import {getAutofixNextStep, type AutofixNextStep} from './getAutofixNextStep';
+import {
+  getAutofixArtifactFromSection,
+  isPullRequestsSection,
+  type AutofixSection,
+  type ExplorerAutofixState,
+} from './useExplorerAutofix';
 
 type AutofixAction = AutofixNextStep['action'];
 
@@ -35,37 +40,87 @@ export function useAutofixCreditCheck(
 }
 
 /**
- * Stands in for an autofix trigger the organization can't afford. getsentry
- * supplies the CTA; open source renders nothing.
+ * Whether an autofix trigger has to stay disabled for credits: while its check
+ * is in flight, so it is never clickable before the answer arrives, and once
+ * the organization can't afford it.
  */
-export function AutofixOutOfCreditsCta() {
-  return (
-    <Container data-test-id="autofix-out-of-credits-cta">
-      <SeerOutOfCreditsCta />
-    </Container>
-  );
+export function useAutofixCreditsDisabled(
+  action: AutofixAction | null | undefined,
+  options?: {enabled?: boolean}
+): boolean {
+  const {hasEnoughCredits, isPending} = useAutofixCreditCheck(action, options);
+  return isPending || !hasEnoughCredits;
 }
 
-interface AutofixCreditGateProps {
-  action: AutofixAction;
-  children: ReactNode;
+interface GetAutofixContinueActionOptions {
+  isPolling: boolean;
+  runState: ExplorerAutofixState | null;
+  sections: AutofixSection[];
 }
 
 /**
- * Renders an autofix trigger only when the organization can afford it, and the
- * out-of-credits CTA in its place otherwise. Renders nothing while checking so
- * the trigger never flashes up before being swapped out.
+ * The billable action a run with results would take next: what its next-step
+ * prompt offers, or the retry of a step or PR create that failed. Null while a
+ * step is running or waiting on the reader, since nothing is offered then.
  */
-export function AutofixCreditGate({action, children}: AutofixCreditGateProps) {
-  const {hasEnoughCredits, isPending} = useAutofixCreditCheck(action);
+export function getAutofixContinueAction({
+  isPolling,
+  runState,
+  sections,
+}: GetAutofixContinueActionOptions): AutofixAction | null {
+  const section = sections.at(-1);
+  const nextStep = getAutofixNextStep({sections});
 
-  if (isPending) {
+  if (!defined(section)) {
     return null;
   }
 
-  if (!hasEnoughCredits) {
-    return <AutofixOutOfCreditsCta />;
+  // An open PR takes feedback even while a run is going, and a failed create is
+  // retried with another create.
+  if (isPullRequestsSection(section)) {
+    if (!defined(nextStep)) {
+      return 'create_pr';
+    }
+    return 'pr_iteration';
   }
 
-  return children;
+  if (!defined(nextStep) || isPolling || runState?.status === 'awaiting_user_input') {
+    return null;
+  }
+
+  // A finished step with nothing to show has no next step to offer either.
+  if (
+    section.status === 'completed' &&
+    !defined(getAutofixArtifactFromSection(section))
+  ) {
+    return null;
+  }
+
+  return nextStep.action;
+}
+
+interface AutofixOutOfCreditsAlertProps {
+  /**
+   * The action the surface offers next. Nothing is checked without one.
+   */
+  action: AutofixAction | null;
+  reason: SeerOutOfCreditsReason;
+}
+
+/**
+ * The single out-of-credits alert for a surface that shows a whole run. It
+ * waits for the check to say the organization is short, so it never flashes up
+ * for an org that can pay.
+ */
+export function AutofixOutOfCreditsAlert({
+  action,
+  reason,
+}: AutofixOutOfCreditsAlertProps) {
+  const {hasEnoughCredits} = useAutofixCreditCheck(action);
+
+  if (hasEnoughCredits) {
+    return null;
+  }
+
+  return <SeerOutOfCreditsCta reason={reason} />;
 }

@@ -25,6 +25,8 @@ import {
 import {toast} from '@sentry/scraps/toast';
 
 import {DiffFileType} from 'sentry/components/events/autofix/types';
+import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {
@@ -1546,6 +1548,18 @@ describe('IssuePreview', () => {
       });
     }
 
+    // getsentry fills in the CTA; this stand-in shows what it was asked for.
+    function StubOutOfCreditsCta({
+      reason,
+      variant = 'warning',
+    }: SeerOutOfCreditsCtaProps) {
+      return <div data-test-id="seer-out-of-credits-cta">{`${variant} ${reason}`}</div>;
+    }
+
+    beforeEach(() => {
+      registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+    });
+
     it('shows the CTA instead of starting Seer', async () => {
       const creditCheck = mockCreditCheck('autofix_root_cause');
 
@@ -1553,7 +1567,9 @@ describe('IssuePreview', () => {
         organization: creditCheckOrganization,
       });
 
-      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-start'
+      );
       expect(screen.getByRole('button', {name: 'Copy as Markdown'})).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Find Root Cause'})
@@ -1572,7 +1588,9 @@ describe('IssuePreview', () => {
         organization: creditCheckOrganization,
       });
 
-      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-continue'
+      );
       expect(
         screen.getByText('The issue was caused by an unexpected value.')
       ).toBeInTheDocument();
@@ -1620,7 +1638,9 @@ describe('IssuePreview', () => {
         organization: creditCheckOrganization,
       });
 
-      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-continue'
+      );
       expect(screen.queryByRole('button', {name: 'Create PR'})).not.toBeInTheDocument();
       expect(creditCheck).toHaveBeenCalledTimes(1);
     });
@@ -1642,7 +1662,7 @@ describe('IssuePreview', () => {
       });
 
       expect(await screen.findByRole('button', {name: 'Make a Plan'})).toBeDisabled();
-      expect(screen.queryByTestId('autofix-out-of-credits-cta')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
       expect(creditCheck).not.toHaveBeenCalled();
     });
   });

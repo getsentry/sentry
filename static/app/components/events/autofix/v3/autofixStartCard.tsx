@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import {IconBug} from '@sentry/icons/bug';
 
@@ -10,12 +10,9 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  AutofixOutOfCreditsCta,
-  useAutofixCreditCheck,
-} from 'sentry/components/events/autofix/autofixCredits';
+import {useAutofixCreditCheck} from 'sentry/components/events/autofix/autofixCredits';
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {Placeholder} from 'sentry/components/placeholder';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
@@ -31,6 +28,12 @@ interface AutofixStartCardProps {
    */
   onStarted?: () => void;
   referrer?: string;
+  /**
+   * Shows the muted out-of-credits notice above the disabled start button. The
+   * issue sidebar sets this; the Seer drawer and Autofix tab show their own
+   * alert at the top of their content instead.
+   */
+  showOutOfCreditsNotice?: boolean;
 }
 
 export function AutofixStartCard({
@@ -38,6 +41,7 @@ export function AutofixStartCard({
   group,
   onStarted,
   referrer,
+  showOutOfCreditsNotice,
 }: AutofixStartCardProps) {
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
@@ -61,12 +65,12 @@ export function AutofixStartCard({
     }
   };
 
-  let startButton: ReactNode;
-  if (creditCheck.isPending) {
-    // Holds the button's place so it doesn't flash up and then get swapped out.
-    startButton = <Placeholder height="36px" />;
-  } else if (creditCheck.hasEnoughCredits) {
-    startButton = (
+  return (
+    <Stack gap="md">
+      <AutofixStartCardContent />
+      {showOutOfCreditsNotice && !creditCheck.hasEnoughCredits && (
+        <SeerOutOfCreditsCta reason="autofix-start" variant="muted" />
+      )}
       <Button
         size="md"
         icon={<IconBug />}
@@ -77,19 +81,12 @@ export function AutofixStartCard({
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
         busy={isStarting}
-        disabled={isStarting}
+        // Held disabled while the credit check is in flight, so it is never
+        // clickable before the answer arrives.
+        disabled={isStarting || creditCheck.isPending || !creditCheck.hasEnoughCredits}
       >
         {t('Start Analysis')}
       </Button>
-    );
-  } else {
-    startButton = <AutofixOutOfCreditsCta />;
-  }
-
-  return (
-    <Stack gap="md">
-      <AutofixStartCardContent />
-      {startButton}
     </Stack>
   );
 }

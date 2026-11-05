@@ -11,7 +11,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {AutofixOutOfCreditsCta} from 'sentry/components/events/autofix/autofixCredits';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {
   EventStackTrace,
@@ -21,6 +20,7 @@ import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
@@ -310,7 +310,13 @@ function IssuePreviewContent() {
       ) : (
         <Stack gap="2xl" paddingTop="xl" paddingBottom="md">
           {/* Stands in for the header's Seer button, which has no room for it. */}
-          {!previewSeer.creditCheck.hasEnoughCredits && <AutofixOutOfCreditsCta />}
+          {!previewSeer.creditCheck.hasEnoughCredits && (
+            <SeerOutOfCreditsCta
+              reason={
+                previewSeer.state === 'start' ? 'autofix-start' : 'autofix-continue'
+              }
+            />
+          )}
           {summary && <IssuePreviewSummary summary={summary} />}
           {event && hasEventStackTrace(event, group) && (
             <Container key={event.id}>

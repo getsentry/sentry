@@ -1,13 +1,18 @@
-import {ExplorerAutofixStateFixture} from 'sentry-fixture/autofix';
+import {
+  AutofixRepoPRStateFixture,
+  ExplorerAutofixStateFixture,
+} from 'sentry-fixture/autofix';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {
   ExplorerAutofixState,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {registerOverride} from 'sentry/overrideRegistry';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 import {SeerDrawerContent} from './content';
@@ -192,15 +197,51 @@ describe('SeerDrawerContent', () => {
   });
 
   describe('out of Seer credits', () => {
-    const organization = OrganizationFixture({features: ['seer-credit-checks']});
+    const organization = OrganizationFixture({
+      features: ['seer-credit-checks', 'autofix-pr-iteration-manual'],
+    });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
-    it('swaps Start Analysis for the CTA', async () => {
-      const creditCheck = MockApiClient.addMockResponse({
+    // getsentry fills in the CTA; this stand-in shows what it was asked for.
+    function StubOutOfCreditsCta({
+      reason,
+      variant = 'warning',
+    }: SeerOutOfCreditsCtaProps) {
+      return <div data-test-id="seer-out-of-credits-cta">{`${variant} ${reason}`}</div>;
+    }
+
+    function mockCreditCheck(operation: string, hasEnoughCredits = false) {
+      return MockApiClient.addMockResponse({
         url: creditCheckUrl,
-        match: [MockApiClient.matchQuery({operation: 'autofix_root_cause'})],
-        body: {hasEnoughCredits: false},
+        match: [MockApiClient.matchQuery({operation})],
+        body: {hasEnoughCredits},
       });
+    }
+
+    function expectAbove(first: HTMLElement, second: HTMLElement) {
+      expect(
+        first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    }
+
+    beforeEach(() => {
+      registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+        body: {integrations: []},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/project-slug/seer/repos/`,
+        body: [{provider: 'github'}],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/1/autofix/repos/`,
+        body: {repos: [{has_write_access: true}]},
+      });
+    });
+
+    it('shows the start alert above a disabled Start Analysis', async () => {
+      const creditCheck = mockCreditCheck('autofix_root_cause');
 
       render(
         <SeerDrawerContent
@@ -211,34 +252,24 @@ describe('SeerDrawerContent', () => {
         {organization}
       );
 
-      // The button never shows while the check is in flight.
-      expect(
-        screen.queryByRole('button', {name: 'Start Analysis'})
-      ).not.toBeInTheDocument();
-      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      // Held disabled while the check is in flight.
+      expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeDisabled();
+
+      const cta = await screen.findByTestId('seer-out-of-credits-cta');
+      expect(cta).toHaveTextContent('warning autofix-start');
+      expect(screen.getAllByTestId('seer-out-of-credits-cta')).toHaveLength(1);
       expect(
         screen.getByText('Determine the root cause of your issue')
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Start Analysis'})
-      ).not.toBeInTheDocument();
+      const startButton = screen.getByRole('button', {name: 'Start Analysis'});
+      expect(startButton).toBeDisabled();
+      expectAbove(cta, startButton);
+      // The alert and the start card share one check.
       expect(creditCheck).toHaveBeenCalledTimes(1);
     });
 
-    it('keeps the root cause visible and swaps only the next step', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-        body: {integrations: []},
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/project-slug/seer/repos/`,
-        body: [{provider: 'github'}],
-      });
-      MockApiClient.addMockResponse({
-        url: creditCheckUrl,
-        match: [MockApiClient.matchQuery({operation: 'autofix_solution'})],
-        body: {hasEnoughCredits: false},
-      });
+    it('shows the continue alert above the root cause and disables the next step', async () => {
+      mockCreditCheck('autofix_solution');
 
       render(
         <SeerDrawerContent
@@ -249,13 +280,106 @@ describe('SeerDrawerContent', () => {
         {organization}
       );
 
-      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      const cta = await screen.findByTestId('seer-out-of-credits-cta');
+      expect(cta).toHaveTextContent('warning autofix-continue');
+      expect(screen.getAllByTestId('seer-out-of-credits-cta')).toHaveLength(1);
+      expectAbove(cta, screen.getByText('The issue was caused by an unexpected value.'));
+      expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'No'})).toBeDisabled();
+    });
+
+    it('shows the continue alert for a step that stopped, without touching its retry', async () => {
+      const creditCheck = mockCreditCheck('autofix_root_cause');
+
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: ExplorerAutofixStateFixture({status: 'error'}),
+          })}
+          group={GroupFixture()}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-continue'
+      );
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the continue alert for a failed PR, leaving Retry PR to its card', async () => {
+      mockCreditCheck('autofix_create_pr');
+
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: ExplorerAutofixStateFixture({
+              repo_pr_states: {
+                'org/repository': AutofixRepoPRStateFixture({
+                  pr_creation_status: 'error',
+                  pr_creation_error: 'Something went wrong',
+                  pr_number: null,
+                  pr_url: null,
+                }),
+              },
+            }),
+          })}
+          group={GroupFixture()}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-continue'
+      );
+      expect(
+        screen.getByRole('button', {name: 'Retry PR in org/repository'})
+      ).toBeEnabled();
+    });
+
+    it('does not check credits while a step is running', () => {
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: ExplorerAutofixStateFixture({status: 'processing'}),
+            isPolling: true,
+          })}
+          group={GroupFixture()}
+        />,
+        {organization}
+      );
+
       expect(
         screen.getByText('The issue was caused by an unexpected value.')
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Yes, make a plan'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
+
+    it('shows no alert when the org can afford the next step', async () => {
+      mockCreditCheck('autofix_solution', true);
+
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({runState: ExplorerAutofixStateFixture()})}
+          group={GroupFixture()}
+        />,
+        {organization}
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeEnabled()
+      );
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
     });
 
     it('starts as before without seer-credit-checks', () => {
@@ -272,7 +396,7 @@ describe('SeerDrawerContent', () => {
         />
       );
 
-      expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeEnabled();
       expect(creditCheck).not.toHaveBeenCalled();
     });
   });

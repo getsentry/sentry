@@ -1286,10 +1286,22 @@ describe('SeerDrawerNextStep', () => {
       features: ['seer-credit-checks', 'autofix-pr-iteration-manual'],
     });
 
+    function mockCreditCheck(operation: string, hasEnoughCredits = false) {
+      return MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        match: [MockApiClient.matchQuery({operation})],
+        body: {hasEnoughCredits},
+      });
+    }
+
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/coding-agents/',
-        body: {integrations: []},
+        body: {
+          integrations: [
+            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
+          ],
+        },
       });
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/seer/repos/',
@@ -1306,13 +1318,9 @@ describe('SeerDrawerNextStep', () => {
       ['solution', 'autofix_code_changes', 'Yes, write a code fix'],
       ['code_changes', 'autofix_create_pr', 'Yes, draft a PR'],
     ])(
-      'swaps the next step after %s for the CTA when %s is unaffordable',
+      'keeps the next step after %s on screen but disabled when %s is unaffordable',
       async (step, operation, yesLabel) => {
-        const creditCheck = MockApiClient.addMockResponse({
-          url: creditCheckUrl,
-          match: [MockApiClient.matchQuery({operation})],
-          body: {hasEnoughCredits: false},
-        });
+        const creditCheck = mockCreditCheck(operation);
 
         render(
           <SeerDrawerNextStep
@@ -1323,22 +1331,19 @@ describe('SeerDrawerNextStep', () => {
           {organization: creditCheckOrganization}
         );
 
-        // Nothing is offered while the check is in flight.
-        expect(screen.queryByRole('button', {name: yesLabel})).not.toBeInTheDocument();
-        expect(
-          await screen.findByTestId('autofix-out-of-credits-cta')
-        ).toBeInTheDocument();
-        expect(screen.queryByRole('button', {name: yesLabel})).not.toBeInTheDocument();
-        expect(screen.queryByRole('button', {name: 'No'})).not.toBeInTheDocument();
-        expect(creditCheck).toHaveBeenCalledTimes(1);
+        await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(1));
+        expect(await screen.findByRole('button', {name: yesLabel})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'No'})).toBeDisabled();
+        // The surrounding drawer or tab shows the alert, never the prompt.
+        expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
       }
     );
 
-    it('offers the next step when the org can afford it', async () => {
+    it('holds the next step disabled while the check is in flight', async () => {
       MockApiClient.addMockResponse({
         url: creditCheckUrl,
-        match: [MockApiClient.matchQuery({operation: 'autofix_solution'})],
         body: {hasEnoughCredits: true},
+        asyncDelay: new Promise(() => {}),
       });
 
       render(
@@ -1350,18 +1355,82 @@ describe('SeerDrawerNextStep', () => {
         {organization: creditCheckOrganization}
       );
 
+      expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'No'})).toBeDisabled();
+      // Nothing else on screen waits on the check.
       expect(
-        await screen.findByRole('button', {name: 'Yes, make a plan'})
-      ).toBeInTheDocument();
-      expect(screen.queryByTestId('autofix-out-of-credits-cta')).not.toBeInTheDocument();
+        await screen.findByRole('button', {name: 'More code fix options'})
+      ).toBeEnabled();
     });
 
-    it('swaps the PR feedback form for the CTA', async () => {
-      MockApiClient.addMockResponse({
-        url: creditCheckUrl,
-        match: [MockApiClient.matchQuery({operation: 'autofix_pr_iteration'})],
-        body: {hasEnoughCredits: false},
-      });
+    it('leaves the coding agent hand-off available', async () => {
+      mockCreditCheck('autofix_solution');
+
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={makeAutofix()}
+        />,
+        {organization: creditCheckOrganization}
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled()
+      );
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      );
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Send to Copilot'})
+      ).toBeInTheDocument();
+    });
+
+    it('disables Ask Seer in code mode', async () => {
+      mockCreditCheck('autofix_solution');
+
+      render(
+        <AutofixChatProvider sendMessage={jest.fn()}>
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection('root_cause')]}
+            autofix={makeAutofix()}
+          />
+        </AutofixChatProvider>,
+        {
+          organization: OrganizationFixture({
+            ...codeModeOrganization,
+            features: [...codeModeOrganization.features, 'seer-credit-checks'],
+          }),
+        }
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled()
+      );
+      expect(screen.getByRole('button', {name: 'Ask Seer'})).toBeDisabled();
+    });
+
+    it('enables the next step when the org can afford it', async () => {
+      mockCreditCheck('autofix_solution', true);
+
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={makeAutofix()}
+        />,
+        {organization: creditCheckOrganization}
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeEnabled()
+      );
+      expect(screen.getByRole('button', {name: 'No'})).toBeEnabled();
+    });
+
+    it('disables the PR feedback form', async () => {
+      mockCreditCheck('autofix_pr_iteration');
 
       render(
         <SeerDrawerNextStep
@@ -1372,8 +1441,8 @@ describe('SeerDrawerNextStep', () => {
         {organization: creditCheckOrganization}
       );
 
-      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
-      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.getByRole('textbox')).toBeDisabled());
+      expect(screen.getByRole('button', {name: 'Submit'})).toBeDisabled();
     });
 
     it('does not check credits for a step that is not offered', () => {

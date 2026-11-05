@@ -12,10 +12,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  AutofixOutOfCreditsCta,
-  useAutofixCreditCheck,
-} from 'sentry/components/events/autofix/autofixCredits';
+import {useAutofixCreditCheck} from 'sentry/components/events/autofix/autofixCredits';
 import {
   getRepoPullRequestLink,
   hasCreatedPullRequests,
@@ -41,6 +38,7 @@ import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetai
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -307,39 +305,9 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
    * state still offers the step it just started.
    */
   const canAct = !!sendMessage && !isPolling && !isBusy && !isRefetching;
-  // Held disabled while checking, so a button the org can't afford is never
-  // clickable before it's swapped for the CTA.
-  const canContinue = canAct && !creditCheck.isPending;
-
-  let nextAction: ReactNode = null;
-  if (showsNextAction && !creditCheck.hasEnoughCredits) {
-    nextAction = <AutofixOutOfCreditsCta />;
-  } else if (showsNextAction) {
-    nextAction = (
-      <Flex gap="sm">
-        {canCreatePR && (
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={handleCreatePR}
-            disabled={!canContinue}
-          >
-            {t('Draft a pull request')}
-          </Button>
-        )}
-        {pendingNextStep && (
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={() => handleContinue(pendingNextStep)}
-            disabled={!canContinue}
-          >
-            {t('Continue: %s', STEP_LABELS[pendingNextStep])}
-          </Button>
-        )}
-      </Flex>
-    );
-  }
+  // Held disabled while checking, so a button is never clickable before the
+  // answer arrives, and while the org can't afford the step.
+  const canContinue = canAct && !creditCheck.isPending && creditCheck.hasEnoughCredits;
 
   return (
     <AutofixBlock id={id} shortId={shortId} step={step}>
@@ -352,7 +320,35 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
             </Button>
           </Flex>
         )}
-        {nextAction}
+        {/* Muted: the buttons it explains stay right below it, and the chat
+            panel's main alert sits above the composer. */}
+        {showsNextAction && !creditCheck.hasEnoughCredits && (
+          <SeerOutOfCreditsCta reason="autofix-continue" variant="muted" />
+        )}
+        {showsNextAction && (
+          <Flex gap="sm">
+            {canCreatePR && (
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={handleCreatePR}
+                disabled={!canContinue}
+              >
+                {t('Draft a pull request')}
+              </Button>
+            )}
+            {pendingNextStep && (
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => handleContinue(pendingNextStep)}
+                disabled={!canContinue}
+              >
+                {t('Continue: %s', STEP_LABELS[pendingNextStep])}
+              </Button>
+            )}
+          </Flex>
+        )}
       </Stack>
     </AutofixBlock>
   );
