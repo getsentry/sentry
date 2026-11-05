@@ -16,10 +16,9 @@ describe('ChartContextMenu', () => {
     ).toBeInTheDocument();
   });
 
-  // TODO: check disabled for no dashboards-edit feature
   it('"Add to Dashboard" is disabled for now', async () => {
     render(<ChartContextMenu visible setVisible={jest.fn()} />, {
-      organization: OrganizationFixture({features: []}),
+      organization: OrganizationFixture(),
     });
 
     await userEvent.click(screen.getByRole('button'));

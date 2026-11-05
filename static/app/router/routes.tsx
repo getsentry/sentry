@@ -1681,7 +1681,7 @@ function buildRoutes(): RouteObject[] {
   const dashboardChildren: SentryRouteObject[] = [
     {
       path: '/dashboards/',
-      component: withDomainRequired(make(() => import('sentry/views/dashboards'))),
+      component: withDomainRequired(NoOp),
       customerDomainOnlyRoute: true,
       children: [
         {
@@ -1693,7 +1693,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: '/organizations/:orgId/dashboards/',
-      component: withDomainRedirect(make(() => import('sentry/views/dashboards'))),
+      component: withDomainRedirect(NoOp),
       children: [
         {
           index: true,

@@ -26,12 +26,16 @@ from sentry.workflow_engine.types import DetectorType
 
 
 class DetectorSerializerResponseOptional(TypedDict, total=False):
-    owner: ActorSerializerResponse | None
-    createdBy: str | None
+    owner: Annotated[
+        ActorSerializerResponse | None, ApiDescription("Team or user that owns the monitor")
+    ]
+    createdBy: Annotated[str | None, ApiDescription("ID of the user who created the monitor")]
     alertRuleId: int | None
     ruleId: int | None
-    latestGroup: dict[str, Any] | None
-    description: str | None
+    latestGroup: Annotated[
+        dict[str, Any] | None, ApiDescription("Latest issue the monitor created")
+    ]
+    description: Annotated[str | None, ApiDescription("Description of the monitor")]
 
 
 @sentry_schema_serializer(
@@ -42,16 +46,25 @@ class DetectorSerializerResponseOptional(TypedDict, total=False):
 )
 class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     id: Annotated[str, ApiDescription("Monitor ID")]
-    projectId: str | None
+    projectId: Annotated[str | None, ApiDescription("ID of the project the monitor belongs to")]
     name: Annotated[str, ApiDescription("Monitor name")]
-    type: str
-    workflowIds: list[str] | None
-    dateCreated: datetime
-    dateUpdated: datetime
-    dataSources: list[dict[str, Any]] | None
-    conditionGroup: dict[str, Any] | None
-    config: dict[str, Any]
-    enabled: bool
+    type: Annotated[str, ApiDescription("Type of the monitor, such as metric_issue or error")]
+    workflowIds: Annotated[
+        list[str] | None, ApiDescription("IDs of the alerts connected to the monitor")
+    ]
+    dateCreated: Annotated[datetime, ApiDescription("When the monitor was created (ISO 8601)")]
+    dateUpdated: Annotated[datetime, ApiDescription("When the monitor was last updated (ISO 8601)")]
+    dataSources: Annotated[
+        list[dict[str, Any]] | None,
+        ApiDescription("Data sources the monitor evaluates, such as a query subscription"),
+    ]
+    conditionGroup: Annotated[
+        dict[str, Any] | None, ApiDescription("Conditions that decide the monitor's status")
+    ]
+    config: Annotated[
+        dict[str, Any], ApiDescription("Configuration of the monitor, which depends on its type")
+    ]
+    enabled: Annotated[bool, ApiDescription("Whether the monitor is enabled")]
 
 
 @register(Detector)

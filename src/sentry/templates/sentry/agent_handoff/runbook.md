@@ -1,12 +1,10 @@
-{# TODO: Select skill handoffs from the handoff code's context. #}
-
 # Set Up Sentry Access
 
 This private guide contains a short-lived, single-use setup code. Keep the guide and
 credentials private. Do not repeat them in conversation, logs, commits, or reports.
 
 Your goal is to ensure authenticated Sentry access for the intended account and
-organization, then ask the user what they would like to do next.
+organization, then follow the instructions below.
 
 ## Handoff Context
 
@@ -51,4 +49,4 @@ outcome is uncertain, check authentication before retrying. Ask the user for a n
 prompt when the code has expired or was already used. Never request a long-lived token
 in the conversation.
 
-Now ask the user what they would like to do next.
+{{ flow_instructions }}

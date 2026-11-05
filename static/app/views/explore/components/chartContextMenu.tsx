@@ -1,11 +1,9 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Feature} from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -114,24 +112,11 @@ export function ChartContextMenu({
       );
     }
 
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
     menuItems.push({
       key: 'add-to-dashboard',
       textValue: t('Add to Dashboard'),
-      label: (
-        <Feature
-          overrideName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-        >
-          {t('Add to Dashboard')}
-        </Feature>
-      ),
-      disabled: disableAddToDashboard,
+      label: t('Add to Dashboard'),
       onAction: () => {
-        if (disableAddToDashboard) {
-          return;
-        }
         trackAnalytics('trace_explorer.save_as', {
           save_type: 'dashboard',
           ui_source: 'chart',
@@ -174,7 +159,3 @@ export function ChartContextMenu({
     />
   );
 }
-
-export const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

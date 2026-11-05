@@ -45,7 +45,7 @@ class ServiceAccountService(RpcService):
     def get_service_account(
         self, *, organization_id: int, service_account_id: int
     ) -> RpcServiceAccount | None:
-        """Returns None when the account isn't in `organization_id`."""
+        """Returns None when the account isn't in `organization_id` or was deleted."""
 
     @rpc_method
     @abstractmethod
@@ -78,17 +78,18 @@ class ServiceAccountService(RpcService):
     ) -> RpcServiceAccount | None:
         """
         Replace an account's scopes and projects. Returns None when the account isn't in
-        `organization_id`. `scope_list` must not be empty and `project_ids` must be projects
-        in `organization_id`; neither is checked here. Callers must authorize the grant and
-        write the audit log.
+        `organization_id` or was deleted. `scope_list` must not be empty and `project_ids`
+        must be projects in `organization_id`; neither is checked here. Callers must
+        authorize the grant and write the audit log.
         """
 
     @rpc_method
     @abstractmethod
     def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
         """
-        Does nothing when the account isn't in `organization_id`. Callers must write the
-        audit log.
+        Soft-delete the account: keep the row, turn it off for good and remove its project
+        links. Does nothing when the account isn't in `organization_id` or was already
+        deleted. Callers must write the audit log.
         """
 
 

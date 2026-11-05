@@ -186,7 +186,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -207,7 +206,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.DYNAMIC.value,
             },
         }
@@ -386,7 +384,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
                 ],
             },
             "config": {
-                "threshold_period": 1,
                 "detection_type": AlertRuleDetectionType.DYNAMIC.value,
             },
         }
@@ -694,7 +691,6 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -851,7 +847,6 @@ class TestMetricAlertsResolution(TestMetricAlertsDetectorValidator):
             **self.valid_data,
             "dataSources": [self._make_data_source(timeWindow=3600)],
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.PERCENT.value,
                 "comparisonDelta": 86400,
             },
@@ -894,7 +889,6 @@ class TestMetricAlertsResolution(TestMetricAlertsDetectorValidator):
         update_data = {
             **self.valid_data,
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -1166,7 +1160,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }

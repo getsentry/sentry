@@ -98,6 +98,10 @@ export type SeerWorkflowConfigResponse = {
   strategy: string;
   version: number;
   /**
+   * ID of the user who created the config. Omitted if unset
+   */
+  createdBy?: string;
+  /**
    * When the latest visible run started. Omitted if there are none
    */
   dateLastRun?: string;
@@ -106,6 +110,55 @@ export type SeerWorkflowConfigResponse = {
    */
   lastRunStatus?: SeerAutomationRunStatus;
   name?: string;
+  /**
+   * ID of the user who last updated the config. Omitted if unset
+   */
+  updatedBy?: string;
+};
+
+/**
+ * Service account settings sent when creating or updating a workflow config
+ */
+type SeerServiceAccountRequest = {
+  allProjects: boolean;
+  projectIds: number[];
+  scopes: string[];
+};
+
+/**
+ * Body of a POST to create a workflow config
+ */
+export type SeerWorkflowConfigCreateRequest = {
+  serviceAccount: SeerServiceAccountRequest;
+  strategy: WorkflowStrategy;
+  enabled?: boolean;
+  /**
+   * Empty means all environments
+   */
+  environments?: string[];
+  /**
+   * Metric automations only; their projects come from the connected monitors
+   */
+  monitorIds?: number[];
+  name?: string | null;
+  /**
+   * [-1] for all projects, otherwise selected project IDs. Omitted means none
+   */
+  projectIds?: number[];
+  schedule?: string;
+};
+
+/**
+ * Body of a PUT to a workflow config. Send at most one of projectIds or monitorIds
+ */
+export type SeerWorkflowConfigUpdateRequest = {
+  enabled?: boolean;
+  monitorIds?: number[];
+  /**
+   * [-1] for all projects, otherwise selected project IDs
+   */
+  projectIds?: number[];
+  serviceAccount?: SeerServiceAccountRequest;
 };
 
 export type SeerWorkflowConfigsResponse = {
