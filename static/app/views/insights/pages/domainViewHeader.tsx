@@ -19,18 +19,19 @@ import {
   useModuleURLBuilder,
   type RoutableModuleNames,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
-import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName} from 'sentry/views/insights/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {useIsLaravelInsightsAvailable} from './platform/laravel/features';
+import {useIsNextJsInsightsAvailable} from './platform/nextjs/features';
+import {OVERVIEW_PAGE_TITLE} from './settings';
+import {useDomainViewFilters} from './useFilters';
 import {
   isModuleConsideredNew,
   isModuleEnabled,
   isModuleInBeta,
   isModuleVisible,
-} from 'sentry/views/insights/pages/utils';
-import {ModuleName} from 'sentry/views/insights/types';
-import {TopBar} from 'sentry/views/navigation/topBar';
+} from './utils';
 
 export type Props = {
   domainBaseUrl: string;

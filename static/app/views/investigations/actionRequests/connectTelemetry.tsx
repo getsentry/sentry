@@ -10,16 +10,14 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {
-  ActionKindApplyProps,
-  ActionKindUI,
-} from 'sentry/views/investigations/actionRequests/actionKinds';
-import {ApplyButton} from 'sentry/views/investigations/actionRequests/applyButton';
 import type {ActionRequestFollowUp} from 'sentry/views/investigations/api';
 import type {
   InvestigationActionRequest,
   InvestigationConnectTelemetryAction,
 } from 'sentry/views/investigations/types';
+
+import type {ActionKindApplyProps, ActionKindUI} from './actionKinds';
+import {ApplyButton} from './applyButton';
 
 export const connectTelemetryUI: ActionKindUI<InvestigationConnectTelemetryAction> = {
   Apply: ConnectTelemetryApply,

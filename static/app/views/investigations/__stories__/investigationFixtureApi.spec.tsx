@@ -10,12 +10,6 @@ import {
 
 import {QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
 import {InvestigationsPage} from 'sentry/views/investigations';
-import {
-  commentStoryAuthors,
-  commentedInvestigation,
-  commentedInvestigationComments,
-} from 'sentry/views/investigations/__stories__/commentStoryFixtures';
-import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
 import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
@@ -26,6 +20,13 @@ import {
   InvestigationOrchestrationFixture,
 } from 'sentry/views/investigations/fixtures';
 import {InvestigationHypotheses} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
+
+import {
+  commentStoryAuthors,
+  commentedInvestigation,
+  commentedInvestigationComments,
+} from './commentStoryFixtures';
+import {InvestigationFixtureApi} from './investigationFixtureApi';
 
 const organization = OrganizationFixture({
   features: ['investigations'],

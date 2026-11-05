@@ -12,16 +12,6 @@ import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
-  ActionRequestApply,
-  ActionRequestDetails,
-  getAppliedSummary,
-  getApplyErrorMessage,
-  getApplySuccessMessage,
-  getCannotApplyMessage,
-  useApplyCheck,
-} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
-import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
-import {
   canRetryFollowUp,
   isFollowUpPending,
   parseApplyError,
@@ -36,6 +26,17 @@ import type {
 } from 'sentry/views/investigations/types';
 import {getActorName} from 'sentry/views/investigations/utils';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {
+  ActionRequestApply,
+  ActionRequestDetails,
+  getAppliedSummary,
+  getApplyErrorMessage,
+  getApplySuccessMessage,
+  getCannotApplyMessage,
+  useApplyCheck,
+} from './actionRequestDetails';
+import type {ApplyCheck} from './applyButton';
 
 const CURRENT_STATES = new Set<InvestigationActionRequest['state']>([
   'suggested',

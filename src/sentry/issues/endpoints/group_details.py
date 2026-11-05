@@ -14,7 +14,7 @@ from sentry import analytics, features, options, tagstore, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.client import client
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_func, get_environments
@@ -101,6 +101,7 @@ class GroupDetailsPermission(GroupPermission):
 @cell_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     permission_classes = (GroupDetailsPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -242,8 +243,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
     )
     def get(self, request: Request, group: Group) -> Response[GroupDetailsResponse]:
         """
-        Return details on an individual issue, including its basic stats, comment
-        and user-report counts, and a summary of the latest event.
+        Return details on an individual issue, including its basic stats, comment count, and
+        user-report count.
         """
         from sentry.utils import snuba
 

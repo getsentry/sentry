@@ -281,6 +281,25 @@ detector:<detector_id>:<group_key>
 
 Overriding `get_issue_fingerprint` replaces the whole fingerprint.
 
+For handlers that emit several issue types, use
+[`build_detector_issue_fingerprint`](../utils/fingerprinting.py) to separate detector
+instances, issue types, and recurring problems. Return its result from
+`get_issue_fingerprint` after identifying the issue type and problem key for that group:
+
+```python
+from sentry.workflow_engine.utils.fingerprinting import build_detector_issue_fingerprint
+
+fingerprint = build_detector_issue_fingerprint(detector.id, issue_type.type_id, problem_key)
+```
+
+The handler supplies a stable problem key. Repeated findings use the same key;
+different problems use different keys. The helper returns one fingerprint entry
+containing all three parts. Separate entries are alternative grouping hashes, not
+components combined into one identity.
+
+Custom fingerprints must separate distinct detector instances, issue types, and
+problems. Keep them stable across evaluations so recurring findings reach the same issue.
+
 #### Stateful evaluation
 
 The stateful implementation always includes its detector state key:
@@ -290,12 +309,16 @@ detector:<detector_id>
 detector:<detector_id>:<group_key>
 ```
 
-Override `build_issue_fingerprint` only when the product needs additional stable
-grouping components. The engine appends the detector state key to trigger and resolution
-fingerprints. Currently occurrence creation passes `group_key` to this override while
-resolution calls it without that argument. Do not make custom components depend on the
-argument unless resolution is updated and trigger/resolution tests cover the behavior.
-Fingerprint changes can split or merge production issues and can break recovery.
+For findings that need independent state and recovery, use separate evaluation group
+keys, including the issue type when the same problem key can occur in several types.
+Evaluation group keys determine both the state tracked for each finding and its
+default stateful fingerprint.
+
+`build_issue_fingerprint` adds alternative grouping hashes alongside the detector state
+key. It does not add components to a combined identity, so do not use it to separate
+issue types: the state key would still be a shared hash. Custom stateful fingerprints
+must match between triggers and resolutions. Fingerprint changes can split or merge
+production issues and can break recovery.
 
 Test the exact trigger and resolution fingerprints. For grouped detectors, explicitly
 test that one key cannot resolve another key's issue.

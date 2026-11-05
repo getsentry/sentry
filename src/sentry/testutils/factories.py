@@ -230,6 +230,11 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, create_snuba_query
+from sentry.telemetry_classifiers.models import (
+    TelemetryClassifier,
+    TelemetryClassifierDataset,
+    TelemetryClassifierOutputType,
+)
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
@@ -2614,7 +2619,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_inbox_item_event(
         inbox_item: InboxItem,
-        type: str = "issue.assigned",
+        type: str = "issue.user_assigned",
         actor: User | RpcUser | None = None,
         **kwargs: Any,
     ) -> InboxItemEvent:
@@ -2730,6 +2735,24 @@ class Factories:
             region_slug=region_slug,
             mode=mode,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_telemetry_classifier(
+        project: Project | None = None, **kwargs: Any
+    ) -> TelemetryClassifier:
+        if project is None:
+            project = Factories.create_project()
+        defaults: dict[str, Any] = {
+            "name": petname.generate(2, " ", letters=10).title(),
+            "result_attribute": "sentry.classifier.result",
+            "dataset": TelemetryClassifierDataset.CONVERSATION,
+            "filter_query": "",
+            "natural_language_prompt": "Is the user frustrated?",
+            "compiled_prompt": "Return yes when the user is frustrated.",
+            "output_type": TelemetryClassifierOutputType.BINARY,
+        }
+        return TelemetryClassifier.objects.create(project=project, **{**defaults, **kwargs})
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -3612,9 +3635,11 @@ class Factories:
         for action in trigger_actions:
             Factories.create_seer_workflow_trigger_binding(config, action)
         if monitors:
-            BreachedMetricWorkflow(
+            workflow = BreachedMetricWorkflow(
                 config_id=config.id, organization_id=config.organization_id
-            ).set_monitor_selection([monitor.id for monitor in monitors])
+            )
+            with workflow.update_config() as update:
+                update.set_monitor_selection([monitor.id for monitor in monitors])
             config.refresh_from_db()
         return config
 

@@ -4,16 +4,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import {
-  blockRendersToolContent,
-  findLatestTodos,
-} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import type {
   AgentWriteApproval,
   Block,
   CallRecord,
   TodoItem,
 } from 'sentry/views/seerExplorer/types';
+
+import {blockRendersToolContent, findLatestTodos} from './toolUse';
 
 function createBlock(overrides?: Partial<Block>): Block {
   return {

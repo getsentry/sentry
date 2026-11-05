@@ -14,7 +14,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {IssueAssignee} from 'sentry/utils/dashboards/issueAssignee';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
 import type {FieldFormatterRenderFunctionPartial} from 'sentry/utils/discover/fieldRenderers';
@@ -25,6 +24,8 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+
+import {IssueAssignee} from './issueAssignee';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.

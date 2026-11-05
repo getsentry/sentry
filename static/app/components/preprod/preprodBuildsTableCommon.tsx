@@ -12,7 +12,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {FullRowLink} from 'sentry/components/preprod/preprodBuildsTableStyles';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';
@@ -22,6 +21,8 @@ import {
   getBuildNumber,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
+
+import {FullRowLink} from './preprodBuildsTableStyles';
 
 export function PreprodBuildsHeaderCells({
   showProjectColumn,

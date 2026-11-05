@@ -1,5 +1,6 @@
-import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
+
+import {parsePeriodToHours} from './parsePeriodToHours';
 
 export function getAbsoluteRangeFromPeriod(
   period: string,

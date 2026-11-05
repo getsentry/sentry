@@ -5,7 +5,7 @@ from typing import Any, assert_never
 from django.db import router, transaction
 from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
 from django.db.models.query import QuerySet
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
@@ -40,6 +40,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
@@ -86,13 +87,18 @@ detector_search_config = SearchConfig.create_from(
 parse_detector_query = partial(base_parse_search_query, config=detector_search_config)
 
 
-def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], user: User) -> Q:
+def convert_assignee_values(
+    value: Iterable[str], projects: Sequence[Project], user: RequestPrincipal
+) -> Q:
     """
     Convert an assignee search value to a Django Q object for filtering detectors.
     """
     actors_or_none: list[RpcUser | Team | None] = convert_actor_or_none_value(
         value, projects, user, None
     )
+    if not actors_or_none:
+        # my_teams for a caller with no teams; Q() would match every detector
+        return Q(pk__in=[])
     assignee_query = Q()
     for actor in actors_or_none:
         if isinstance(actor, (User, RpcUser)):
@@ -168,6 +174,11 @@ def get_detector_validator(
         data=request.data if data is None else data,
         partial=partial,
     )
+
+
+class BulkUpdateMonitorsSerializer(DetectorWorkflowMutationValidator):
+    # Redeclared for this endpoint's wording.
+    enabled = serializers.BooleanField(help_text="Whether to enable or disable the monitors")
 
 
 @cell_silo_endpoint
@@ -396,14 +407,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.QUERY,
             DetectorParams.ID,
         ],
-        request=inline_serializer(
-            name="BulkUpdateMonitors",
-            fields={
-                "enabled": serializers.BooleanField(
-                    help_text="Whether to enable or disable the monitors"
-                )
-            },
-        ),
+        request=BulkUpdateMonitorsSerializer,
         responses={
             200: inline_sentry_response_serializer(
                 "ListDetectorSerializerResponse", list[DetectorSerializerResponse]
@@ -437,7 +441,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        validator = DetectorWorkflowMutationValidator(data=request.data)
+        validator = BulkUpdateMonitorsSerializer(data=request.data)
         validator.is_valid(raise_exception=True)
         enabled = validator.validated_data.get("enabled", True)
 

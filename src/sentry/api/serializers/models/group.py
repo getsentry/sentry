@@ -8,6 +8,7 @@ from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequenc
 from datetime import datetime, timedelta, timezone
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
     Literal,
     NotRequired,
@@ -26,6 +27,7 @@ from sentry import tagstore
 from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.principal import has_user
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
@@ -131,10 +133,12 @@ class GroupProjectResponse(TypedDict):
 
 class BaseGroupResponseOptional(TypedDict, total=False):
     isUnhandled: bool
-    count: str
-    userCount: int
-    firstSeen: datetime | None
-    lastSeen: datetime | None
+    count: Annotated[str, ApiDescription("Total number of events in the issue")]
+    userCount: Annotated[int, ApiDescription("Number of users affected by the issue")]
+    firstSeen: Annotated[
+        datetime | None, ApiDescription("When the issue was first seen (ISO 8601)")
+    ]
+    lastSeen: Annotated[datetime | None, ApiDescription("When the issue was last seen (ISO 8601)")]
     derivedData: GroupDerivedDataResponse
 
 
@@ -143,11 +147,11 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     shareId: str | None
     shortId: str | None
     title: str
-    culprit: str | None
-    permalink: str
+    culprit: Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
+    permalink: Annotated[str, ApiDescription("URL of the issue in Sentry")]
     logger: str | None
-    level: GroupLevelStr
-    status: GroupStatusStr
+    level: Annotated[GroupLevelStr, ApiDescription("Severity level of the issue")]
+    status: Annotated[GroupStatusStr, ApiDescription("Issue status")]
     statusDetails: GroupStatusDetailsResponseOptional
     substatus: GroupSubStatusStr | None
     isPublic: bool
@@ -157,13 +161,15 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     seerFixabilityScore: float | None
     seerAutofixLastTriggered: datetime | None
     seerExplorerAutofixLastTriggered: datetime | None
-    project: GroupProjectResponse
+    project: Annotated[GroupProjectResponse, ApiDescription("Project the issue belongs to")]
     type: EventTypeStr
     issueType: str
     issueCategory: str
-    metadata: dict[str, Any]
+    metadata: Annotated[dict[str, Any], ApiDescription("Issue metadata")]
     numComments: int
-    assignedTo: ActorSerializerResponse | None
+    assignedTo: Annotated[
+        ActorSerializerResponse | None, ApiDescription("User or team the issue is assigned to")
+    ]
     isBookmarked: bool
     isSubscribed: bool
     subscriptionDetails: SubscriptionDetails | None

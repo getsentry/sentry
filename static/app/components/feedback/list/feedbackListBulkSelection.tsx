@@ -6,11 +6,12 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {useBulkEditFeedbacks} from 'sentry/components/feedback/list/useBulkEditFeedbacks';
 import type {Mailbox} from 'sentry/components/feedback/useMailbox';
 import {t, tct} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
+
+import {useBulkEditFeedbacks} from './useBulkEditFeedbacks';
 
 interface Props extends Pick<
   ListItemCheckboxState,

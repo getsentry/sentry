@@ -131,7 +131,6 @@
     "./pullRequest": "./src/iconPullRequest.tsx",
     "./pullRequestClosed": "./src/iconPullRequestClosed.tsx",
     "./pullRequestDraft": "./src/iconPullRequestDraft.tsx",
-    "./question": "./src/iconQuestion.tsx",
     "./receipt": "./src/iconReceipt.tsx",
     "./refresh": "./src/iconRefresh.tsx",
     "./releases": "./src/iconReleases.tsx",
@@ -662,10 +661,6 @@
       "./pullRequestDraft": {
         "types": "./dist/iconPullRequestDraft.d.ts",
         "import": "./dist/iconPullRequestDraft.js"
-      },
-      "./question": {
-        "types": "./dist/iconQuestion.d.ts",
-        "import": "./dist/iconQuestion.js"
       },
       "./receipt": {
         "types": "./dist/iconReceipt.d.ts",

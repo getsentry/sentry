@@ -90,6 +90,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-web-vitals-trace-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable data-fidelity annotations (dropped-data heatmap) on dashboard widget charts
     manager.add("organizations:dashboards-data-fidelity-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable low-confidence indicators on data browsing time series charts
+    manager.add("organizations:data-browsing-time-series-confidence", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the use of the events timeseries endpoint for dashboard widgets
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -286,7 +288,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-index", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer agentic triage scheduled autofix
     manager.add("organizations:seer-night-shift", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    manager.add("organizations:seer-night-shift-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:seer-workflows-monitor-cleanup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Capture Agentic triage training data for the fixability model
     manager.add("organizations:seer-fixability-training-data", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -299,14 +300,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Roll out structured LLM page context on STRUCTURED_CONTEXT_ROUTES to all orgs
     # Enable context engine experimental contexts
     manager.add("organizations:context-engine-experiments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable frontend override for bash mode
-    manager.add("organizations:seer-explorer-allow-bash-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable frontend override for context engine (only for AI/ML/Reasoning platform team)
     manager.add("organizations:seer-explorer-context-engine-allow-fe-override", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Agent-created PRs in Ask Seer chat; overrides seer-explorer-chat-coding
+    # Agent-created PRs in Ask Seer chat; also gates code editing tools in chat
     manager.add("organizations:ask-seer-create-pr", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable code editing tools in Seer Agent chat
-    manager.add("organizations:seer-explorer-chat-coding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Accept a chat prompt ("Ask Seer" question) and its context alongside a Seer Agent chat message
     manager.add("organizations:seer-explorer-chat-prompts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable sentry source code search tool
@@ -319,8 +316,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-chat-suggestions-actions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Gate Seer agent writes behind short-lived, scope-bound capability tokens + user-approved grants
     manager.add("organizations:seer-agent-token-flow", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable code mode tools for Slack-initiated Explorer sessions
-    manager.add("organizations:seer-slack-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the thinking blocks toggle in the Seer Agent top bar
     manager.add("organizations:seer-explorer-thinking-blocks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer to generate rich component embeds from an adjusted prompt
@@ -346,10 +341,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-pr-iteration-cap-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Keep PR iteration turns on their PR's latest commit, and retry a push the branch moved under
     manager.add("organizations:autofix-pr-iteration-pin-to-pr-head", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable the pr content verification prior to opening a PR
-    manager.add("organizations:autofix-verify-pr-content", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Steer autofix to run the repo's linter and tests over its changes
-    manager.add("organizations:autofix-should-run-repo-checks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:autofix-single-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose one-shot question answers on the Seer runs list (?expand=questions)
     manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -394,8 +385,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-summary-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Generate an issue summary when an issue is assigned for the first time
     manager.add("organizations:issue-summary-on-first-assignment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Make the "recommended" sort the default sort in the issue stream
-    manager.add("organizations:issue-stream-recommended-sort-default", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Serve the recommended_v2 scorer behind the issue stream's "recommended" sort
     manager.add("organizations:issue-stream-recommended-sort-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Lets organizations manage grouping configs
@@ -584,9 +573,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:relay-generate-billing-outcome", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     manager.add("organizations:claude-code-vault-reuse", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-
-    # Run LLM prompt-cache issue detection in shadow mode
-    manager.add("organizations:llm-cache-issue-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     # Assisted query agent feature flags — forwarded to Seer
     # Enable cross-event queries for the Traces strategy

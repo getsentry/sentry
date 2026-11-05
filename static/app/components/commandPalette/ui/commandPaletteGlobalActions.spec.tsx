@@ -32,11 +32,12 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
-import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {CommandPaletteProvider} from './cmdk';
+import {CommandPalette} from './commandPalette';
+import {CommandPaletteSlot} from './commandPaletteSlot';
 
 function makeRenderProps(closeModal: jest.Mock) {
   return {
@@ -526,42 +527,104 @@ describe('GlobalCommandPaletteActions - search recall', () => {
   });
 });
 
-describe('GlobalCommandPaletteActions - Seer XRay Mode gating', () => {
-  function mockOrgApis(organization: ReturnType<typeof OrganizationFixture>) {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/group-search-views/starred/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/starred/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/all-queries/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/users/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/members/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/teams/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [],
-    });
+function mockOrgApis(organization: ReturnType<typeof OrganizationFixture>) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/group-search-views/starred/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/dashboards/starred/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/dashboards/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/explore/all-queries/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/users/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/members/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/teams/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/projects/`,
+    body: [],
+  });
+}
+
+describe('GlobalCommandPaletteActions - settings-v3', () => {
+  function renderPalette(organization: ReturnType<typeof OrganizationFixture>) {
+    mockOrgApis(organization);
+
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/issues/`},
+        },
+      }
+    );
   }
 
+  it('lists account pages under Account Settings', async () => {
+    renderPalette(OrganizationFixture({features: ['settings-v3']}));
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'Personal Tokens');
+
+    expect(
+      await screen.findByRole('option', {name: /Account Settings.*Personal Tokens/})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Org Settings.*Personal Tokens/})
+    ).not.toBeInTheDocument();
+  });
+
+  it('titles the organization index page "General"', async () => {
+    renderPalette(OrganizationFixture({features: ['settings-v3']}));
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'General');
+
+    expect(
+      await screen.findByRole('option', {name: /Org Settings.*General/})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /General Settings/})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps account pages under Settings without the flag', async () => {
+    renderPalette(OrganizationFixture({features: []}));
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'Personal Tokens');
+
+    expect(
+      await screen.findByRole('option', {name: /Settings.*Personal Tokens/})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Account Settings/})
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('GlobalCommandPaletteActions - Seer XRay Mode gating', () => {
   function renderPalette(organization: ReturnType<typeof OrganizationFixture>) {
     render(
       <CommandPaletteProvider>

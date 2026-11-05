@@ -8,8 +8,9 @@ import type {
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
-import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
+
+import type {BaseEventAnalyticsParams} from './workflowAnalyticsEvents';
 
 type IssueStream = {
   group_id: string;
@@ -150,10 +151,6 @@ export type IssueEventParameters = {
   'issue_details.similar_issues.drawer_opened': {
     group_id: string;
     project_id: string;
-  };
-  'issue_details.streamline_ui_toggle': {
-    enforced_streamline_ui: boolean;
-    isEnabled: boolean;
   };
   'issue_details.tour.reminder': {method: 'dismissed' | 'timeout'};
   'issue_details.tour.skipped': Record<string, unknown>;
@@ -343,7 +340,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Merged Issues Drawer Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
-  'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
   'issue_details.tour.started': 'Issue Details: Tour Started',
   'issue_details.tour.reminder': 'Issue Details: Tour Reminder Acknowledged',

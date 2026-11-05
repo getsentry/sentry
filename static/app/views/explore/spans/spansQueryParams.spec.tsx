@@ -5,11 +5,12 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+
 import {
   getReadableQueryParamsFromLocation,
   getTargetWithReadableQueryParams,
-} from 'sentry/views/explore/spans/spansQueryParams';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+} from './spansQueryParams';
 
 function locationFixture(query: Location['query']): Location {
   return LocationFixture({query});

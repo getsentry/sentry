@@ -9,13 +9,17 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox';
-import type {
-  FilterKeyItem,
-  RecentQueryItem,
-  Section,
-} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
-import {useRecentSearches} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useRecentSearches';
-import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useRecentSearchFilters';
+import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import type {RecentSearch, TagCollection} from 'sentry/types/group';
+import {clamp} from 'sentry/utils/number/clamp';
+import {usePrevious} from 'sentry/utils/usePrevious';
+
+import type {FilterKeyItem, RecentQueryItem, Section} from './types';
+import {useRecentSearches} from './useRecentSearches';
+import {useRecentSearchFilters} from './useRecentSearchFilters';
 import {
   ALL_CATEGORY,
   ALL_CATEGORY_VALUE,
@@ -28,14 +32,7 @@ import {
   LOGIC_CATEGORY_VALUE,
   RECENT_SEARCH_CATEGORY,
   RECENT_SEARCH_CATEGORY_VALUE,
-} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
-import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
-import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import type {RecentSearch, TagCollection} from 'sentry/types/group';
-import {clamp} from 'sentry/utils/number/clamp';
-import {usePrevious} from 'sentry/utils/usePrevious';
+} from './utils';
 
 const MAX_OPTIONS_WITHOUT_SEARCH = 100;
 const MAX_OPTIONS_WITH_SEARCH = 8;

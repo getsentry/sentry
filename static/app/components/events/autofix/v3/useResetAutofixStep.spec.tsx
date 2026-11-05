@@ -4,7 +4,8 @@ import type {
   AutofixSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
+
+import {useResetAutofixStep} from './useResetAutofixStep';
 
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}

@@ -9,12 +9,8 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -25,7 +21,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
-import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -38,6 +33,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SEER_THRESHOLD_MAP} from 'sentry/views/settings/projectSeer';
+
+import {SEER_THRESHOLD_OPTIONS} from './legacy/constants';
 
 const PROJECTS_PER_PAGE = 20;
 
@@ -220,7 +217,7 @@ export function SeerAutomationProjectList() {
   };
 
   async function updateProjectsSeerValue(value: string) {
-    addLoadingMessage('Updating projects...', {duration: 60000});
+    toast.loading('Updating projects...', {duration: 60000});
     try {
       const batchSize = 20;
       const selectedProjects = Array.from(selected);
@@ -254,9 +251,9 @@ export function SeerAutomationProjectList() {
           })
         );
       }
-      addSuccessMessage('Projects updated successfully');
+      toast.success('Projects updated successfully');
     } catch {
-      addErrorMessage('Failed to update some projects');
+      toast.error('Failed to update some projects');
       // oxlint-disable-next-line react/todo
     } finally {
       Array.from(selected).forEach(projectId => {
@@ -275,7 +272,7 @@ export function SeerAutomationProjectList() {
   }
 
   async function updateProjectsSeerScanner(value: boolean) {
-    addLoadingMessage('Updating projects...', {duration: 60000});
+    toast.loading('Updating projects...', {duration: 60000});
     try {
       const batchSize = 20;
       const selectedProjects = Array.from(selected);
@@ -303,9 +300,9 @@ export function SeerAutomationProjectList() {
           })
         );
       }
-      addSuccessMessage('Projects updated successfully');
+      toast.success('Projects updated successfully');
     } catch {
-      addErrorMessage('Failed to update some projects');
+      toast.error('Failed to update some projects');
       // oxlint-disable-next-line react/todo
     } finally {
       Array.from(selected).forEach(projectId => {

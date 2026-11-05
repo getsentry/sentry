@@ -809,6 +809,33 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         assert {d["name"] for d in response.data} == {assigned_detector.name}
 
+    def test_query_by_assignee_my_teams_without_teams(self) -> None:
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[])
+        self.login_as(user=user)
+        self.create_detector(
+            project=self.project,
+            name="Team Detector",
+            type=MetricIssue.slug,
+            owner_team_id=self.team.id,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "assignee:my_teams"},
+        )
+        assert response.data == []
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "!assignee:my_teams"},
+        )
+        assert {d["name"] for d in response.data} == {
+            "Error Monitor",
+            "Issue Stream",
+            "Team Detector",
+        }
+
     def test_query_by_assignee_none(self) -> None:
         user = self.create_user()
         self.create_member(organization=self.organization, user=user)
@@ -1814,7 +1841,7 @@ class ConvertAssigneeValuesTest(APITestCase):
 
     def test_convert_assignee_values_empty(self) -> None:
         result = convert_assignee_values([], self.projects, self.user)
-        expected = Q()
+        expected = Q(pk__in=[])
         self.assertEqual(str(result), str(expected))
 
 

@@ -9,11 +9,12 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
-import {TraceHeaderComponents} from 'sentry/views/performance/traceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceOverviewData} from 'sentry/views/performance/traceDetails/useTraceOverviewData';
 import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+
+import {TraceHeaderComponents} from './styles';
 
 type MetaDataProps = {
   children: React.ReactNode;

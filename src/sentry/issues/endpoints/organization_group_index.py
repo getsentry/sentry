@@ -16,7 +16,7 @@ from sentry import analytics, features, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.event_search import SearchFilter
@@ -273,6 +273,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     }
     idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = {"GET": DEFAULT_DURATION_BUDGET, "PUT": 10.0, "DELETE": 10.0}
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
@@ -328,7 +329,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             IssueParams.GROUP_STATS_PERIOD,
             IssueParams.SHORT_ID_LOOKUP,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
             IssueParams.LIMIT,
             IssueParams.GROUP_INDEX_EXPAND,
@@ -520,9 +520,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
-            IssueParams.LIMIT,
         ],
         request=GroupValidator,
         responses={
@@ -574,9 +572,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
-            IssueParams.LIMIT,
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
