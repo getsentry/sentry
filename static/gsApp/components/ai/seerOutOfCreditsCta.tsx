@@ -2,15 +2,15 @@ import {useState} from 'react';
 
 import {usePrompts} from 'sentry/actionCreators/prompts';
 import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
-import {
-  SeerOutOfCreditsNotice,
-  type SeerOutOfCreditsEscalation,
-} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsNotice';
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {sendSeerTopUpRequest} from 'getsentry/actionCreators/upsell';
+import {
+  SeerOutOfCreditsNotice,
+  type SeerOutOfCreditsEscalation,
+} from 'getsentry/components/ai/seerOutOfCreditsNotice';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {trialPromptIsDismissed} from 'getsentry/utils/billing';

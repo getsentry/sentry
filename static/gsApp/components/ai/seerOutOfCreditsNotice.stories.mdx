@@ -2,11 +2,12 @@
 title: Seer Out of Credits
 description: Tells the viewer their organization is out of Seer credits and offers the one action they can take.
 category: patterns
-source: sentry/components/seer/outOfCredits/seerOutOfCreditsNotice
+source: getsentry/components/ai/seerOutOfCreditsNotice
 ---
 
-import {SeerOutOfCreditsNotice} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsNotice';
 import * as Storybook from 'sentry/stories';
+
+import {SeerOutOfCreditsNotice} from 'getsentry/components/ai/seerOutOfCreditsNotice';
 
 Product code renders `SeerOutOfCreditsCta`, which getsentry fills in: it picks
 the escalation from the viewer's billing access and whether the org can
