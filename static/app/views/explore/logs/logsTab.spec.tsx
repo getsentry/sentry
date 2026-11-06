@@ -217,7 +217,7 @@ describe('LogsTabContent', () => {
     });
   });
 
-  it('applies transformed sample-mode log suggestions to distinct indexed pipelines', async () => {
+  it('applies sample-mode log suggestions with distinct indexed transformations', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/search-agent/start/',
       method: 'POST',

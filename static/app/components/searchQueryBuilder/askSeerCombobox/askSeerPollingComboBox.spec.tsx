@@ -148,7 +148,7 @@ describe('AskSeerPollingComboBox results', () => {
         'This suggestion combines equations and other metric charts. Ask Seer for separate suggestions.',
     },
   ])(
-    'rejects unsupported $strategy pipelines with chart=$chartType',
+    'rejects unsupported $strategy transformations with chart=$chartType',
     async ({strategy, chartType, yAxes, reason}) => {
       const apply = jest.fn();
       MockApiClient.addMockResponse({
@@ -281,7 +281,7 @@ describe('AskSeerPollingComboBox results', () => {
     );
   });
 
-  it('shows result feedback in the footer and submits per-axis pipelines', async () => {
+  it('shows result feedback in the footer and submits per-axis transformations', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/search-agent/start/',
       method: 'POST',

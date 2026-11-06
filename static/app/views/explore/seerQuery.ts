@@ -60,7 +60,7 @@ function getSeerVisualizes(
  *   current page filter datetime, falling back to the page selection when Seer
  *   didn't return a time range.
  * - `query`, `sort`, and `groupBys` are passed through as-is; `visualizes` is
- *   converted to writable visualization entries, retaining their pipelines.
+ *   converted to writable visualization entries, retaining their transformations.
  */
 export function getSeerExploreQuery({
   pageDatetime,

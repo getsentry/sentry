@@ -175,7 +175,7 @@ describe('transformSeerResponse', () => {
 
 describe('mapSeerResponseItem', () => {
   it.each([{transformations: []}, {transformations: undefined}])(
-    'keeps the first interval for raw suggestions with pipeline $transformations',
+    'keeps the first interval for raw suggestions with transformations $transformations',
     ({transformations}) => {
       const result = mapSeerResponseItem({
         query: '',
