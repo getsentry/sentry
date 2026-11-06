@@ -129,8 +129,9 @@ def get_serialized_activity_items(
     group: "Group",
     user: RequestPrincipal | None,
     *,
-    access: Access,
     endpoint: str,
+    # Without it, investigation links are left out. Slack and Discord actions have none.
+    access: Access | None = None,
     limit: int = 99,
 ) -> list[dict[str, Any]] | None:
     """
@@ -148,7 +149,7 @@ def get_serialized_activity_items(
 
     # Investigation links are only shown to viewers who can open the investigation.
     hidden_types: list[GroupActionType] = []
-    if not can_view_issue_links(group.project.organization, user, access):
+    if access is None or not can_view_issue_links(group.project.organization, user, access):
         hidden_types.append(GroupActionType.INVESTIGATION_LINKED)
     oldest_entry = (
         GroupActionLogEntry.objects.filter(
