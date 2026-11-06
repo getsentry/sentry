@@ -68,7 +68,7 @@ STAGE_INPUT_ALIASES: dict[str, Stage] = {"connect_agent": Stage.CONNECT_MCP}
 
 class AgenticOnboardingRunRequest(TypedDict):
     client_run_id: UUID
-    onboarding_code: str
+    onboarding_code: str | None
     origin: RunOrigin | None
 
 
@@ -97,7 +97,7 @@ class AgenticOnboardingPermission(OrganizationPermission):
 
 class AgenticOnboardingRunRequestSerializer(CamelSnakeSerializer[AgenticOnboardingRunRequest]):
     client_run_id = serializers.UUIDField()
-    onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$")
+    onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$", required=False, default=None)
     origin = serializers.ChoiceField(choices=list(RunOrigin), required=False, default=None)
 
 
