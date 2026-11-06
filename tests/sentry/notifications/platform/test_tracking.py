@@ -6,6 +6,7 @@ from django.test import override_settings
 
 from sentry.analytics.events.notification_tracking import (
     NotificationTrackingEngagementEvent,
+    NotificationTrackingLinksAddedEvent,
     NotificationTrackingSentEvent,
 )
 from sentry.integrations.types import ExternalProviderEnum
@@ -22,6 +23,7 @@ from sentry.notifications.platform.tracking import (
     is_tracking_enabled,
     parse_referrer,
     record_engagement,
+    record_links_added,
     record_sent,
 )
 from sentry.notifications.platform.types import (
@@ -133,6 +135,68 @@ class RecordSentTest(TestCase):
         mock_record.side_effect = Exception("boom")
 
         record_sent(CONTEXT)
+
+        mock_logger.exception.assert_called_once()
+
+
+@mock.patch("sentry.notifications.platform.tracking.metrics.incr")
+@mock.patch("sentry.analytics.record")
+class RecordLinksAddedTest(TestCase):
+    @override_options(ENABLED_OPTIONS)
+    def test_records_link_metrics_and_event_without_a_send(
+        self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock
+    ) -> None:
+        record_links_added(CONTEXT, links=["seer", "issue", "seer"])
+
+        tags = {
+            "source": "activity-seer-rca-completed",
+            "provider": "email",
+            "category": "activity",
+        }
+        assert mock_incr.call_args_list == [
+            mock.call(
+                "notifications.tracking.link_sent", tags={**tags, "link": "issue"}, sample_rate=1.0
+            ),
+            mock.call(
+                "notifications.tracking.link_sent", tags={**tags, "link": "seer"}, sample_rate=1.0
+            ),
+        ]
+        assert_last_analytics_event(
+            mock_record,
+            NotificationTrackingLinksAddedEvent(
+                organization_id=1,
+                notification_uuid=CONTEXT.notification_uuid,
+                source="activity-seer-rca-completed",
+                category="activity",
+                provider="email",
+                links=["issue", "seer"],
+            ),
+        )
+
+    @override_options(ENABLED_OPTIONS)
+    def test_no_links(self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock) -> None:
+        record_links_added(CONTEXT, links=[])
+
+        mock_incr.assert_not_called()
+        mock_record.assert_not_called()
+
+    def test_disabled(self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock) -> None:
+        record_links_added(CONTEXT, links=["issue"])
+
+        mock_incr.assert_not_called()
+        mock_record.assert_not_called()
+
+    @override_options(ENABLED_OPTIONS)
+    @mock.patch("sentry.notifications.platform.tracking.logger")
+    def test_failure_does_not_raise(
+        self,
+        mock_logger: mock.MagicMock,
+        mock_record: mock.MagicMock,
+        mock_incr: mock.MagicMock,
+    ) -> None:
+        mock_record.side_effect = Exception("boom")
+
+        record_links_added(CONTEXT, links=["issue"])
 
         mock_logger.exception.assert_called_once()
 

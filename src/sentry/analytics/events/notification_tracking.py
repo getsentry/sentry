@@ -14,6 +14,17 @@ class NotificationTrackingSentEvent(analytics.Event):
     links: list[str] = field(default_factory=list)
 
 
+@analytics.eventclass("notifications.tracking.links_added")
+class NotificationTrackingLinksAddedEvent(analytics.Event):
+    organization_id: int
+    notification_uuid: str | None
+    source: str
+    category: str
+    provider: str
+    # The links and buttons an edit added to an already-sent message
+    links: list[str] = field(default_factory=list)
+
+
 @analytics.eventclass("notifications.tracking.engagement")
 class NotificationTrackingEngagementEvent(analytics.Event):
     organization_id: int
@@ -28,4 +39,5 @@ class NotificationTrackingEngagementEvent(analytics.Event):
 
 
 analytics.register(NotificationTrackingSentEvent)
+analytics.register(NotificationTrackingLinksAddedEvent)
 analytics.register(NotificationTrackingEngagementEvent)

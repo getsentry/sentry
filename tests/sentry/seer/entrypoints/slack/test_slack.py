@@ -70,6 +70,7 @@ from sentry.seer.entrypoints.slack.investigation_status import (
     MAX_SUMMARY_DESCRIPTION_LENGTH,
 )
 from sentry.seer.entrypoints.slack.messaging import (
+    SentThreadMessage,
     edit_thread_message,
     process_thread_update,
     schedule_all_thread_updates,
@@ -87,7 +88,10 @@ from sentry.shared_integrations.exceptions import (
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.http import absolute_uri
 from sentry.utils.locking import UnableToAcquireLock
+
+SENT_MESSAGE = SentThreadMessage(message_ts="1.1", links=frozenset())
 
 
 class SlackAutofixEntrypointTest(TestCase):
@@ -332,9 +336,9 @@ class SlackAutofixEntrypointTest(TestCase):
         data = self._create_update(AutofixStoppingPoint.SOLUTION)
         install = self._get_installation()
 
-        assert send_thread_update(install=install, thread=self.thread, data=data) == (
-            "1234567890.000100"
-        )
+        assert send_thread_update(
+            install=install, thread=self.thread, data=data
+        ) == SentThreadMessage(message_ts="1234567890.000100", links=frozenset())
         mock_send_threaded_message.assert_called_with(
             channel_id=self.thread["channel_id"],
             thread_ts=self.thread["thread_ts"],
@@ -942,53 +946,102 @@ class SlackAgentEntrypointTest(TestCase):
         assert payload["thread"]["channel_id"] == self.channel_id
         assert payload["slack_user_id"] == self.slack_user_id
 
-    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AGENT_RESPONSE]})
-    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
-    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
-    def test_edit_thread_message_records_sent(
-        self, mock_update_message: MagicMock, mock_record_sent: MagicMock
-    ) -> None:
-        data = SeerAgentResponse(
-            run_id=MOCK_RUN_ID, organization_id=self.organization.id, summary="Done."
+    def _agent_response_with_settings_link(self) -> SeerAgentResponse:
+        return SeerAgentResponse(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            summary="Done.",
+            missing_scope_settings_url=absolute_uri("/settings/integrations/slack/"),
         )
 
-        edit_thread_message(
+    def _agent_response_tracking_context(
+        self, data: SeerAgentResponse
+    ) -> NotificationTrackingContext:
+        return NotificationTrackingContext(
+            source=NotificationSource.SEER_AGENT_RESPONSE,
+            provider=NotificationProviderKey.SLACK,
+            category=NotificationCategory.SEER,
+            notification_uuid=data.notification_uuid,
+            organization_id=self.organization.id,
+        )
+
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AGENT_RESPONSE]})
+    @patch("sentry.seer.entrypoints.slack.messaging.record_links_added")
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    def test_edit_thread_message_records_added_links(
+        self,
+        mock_update_message: MagicMock,
+        mock_record_sent: MagicMock,
+        mock_record_links_added: MagicMock,
+    ) -> None:
+        data = self._agent_response_with_settings_link()
+
+        links = edit_thread_message(
             install=self._get_entrypoint().install,
             channel_id=self.channel_id,
             message_ts="1.1",
             data=data,
+            sent_links=["seer_agent_run"],
+        )
+
+        mock_update_message.assert_called_once()
+        mock_record_sent.assert_not_called()
+        mock_record_links_added.assert_called_once_with(
+            self._agent_response_tracking_context(data), links={"settings"}
+        )
+        assert links == {"seer_agent_run", "settings"}
+
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AGENT_RESPONSE]})
+    @patch("sentry.seer.entrypoints.slack.messaging.record_links_added")
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    def test_edit_thread_message_without_sent_links_records_sent(
+        self,
+        mock_update_message: MagicMock,
+        mock_record_sent: MagicMock,
+        mock_record_links_added: MagicMock,
+    ) -> None:
+        data = self._agent_response_with_settings_link()
+
+        links = edit_thread_message(
+            install=self._get_entrypoint().install,
+            channel_id=self.channel_id,
+            message_ts="1.1",
+            data=data,
+            sent_links=None,
         )
 
         mock_update_message.assert_called_once()
         mock_record_sent.assert_called_once_with(
-            NotificationTrackingContext(
-                source=NotificationSource.SEER_AGENT_RESPONSE,
-                provider=NotificationProviderKey.SLACK,
-                category=NotificationCategory.SEER,
-                notification_uuid=data.notification_uuid,
-                organization_id=self.organization.id,
-            ),
-            links=set(),
+            self._agent_response_tracking_context(data), links={"settings"}
         )
+        mock_record_links_added.assert_not_called()
+        assert links == {"settings"}
 
+    @patch("sentry.seer.entrypoints.slack.messaging.record_links_added")
     @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.update_message",
         side_effect=IntegrationResourceNotFoundError,
     )
-    def test_edit_thread_message_to_deleted_message_does_not_record_sent(
-        self, _mock_update_message: MagicMock, mock_record_sent: MagicMock
+    def test_edit_thread_message_to_deleted_message_records_nothing(
+        self,
+        _mock_update_message: MagicMock,
+        mock_record_sent: MagicMock,
+        mock_record_links_added: MagicMock,
     ) -> None:
-        edit_thread_message(
+        links = edit_thread_message(
             install=self._get_entrypoint().install,
             channel_id=self.channel_id,
             message_ts="1.1",
-            data=SeerAgentResponse(
-                run_id=MOCK_RUN_ID, organization_id=self.organization.id, summary="Done."
-            ),
+            data=self._agent_response_with_settings_link(),
+            sent_links=[],
         )
 
+        assert links is None
         mock_record_sent.assert_not_called()
+        mock_record_links_added.assert_not_called()
 
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message",
@@ -1028,7 +1081,7 @@ class SlackAgentEntrypointTest(TestCase):
             "input_id": "approval-1",
         }
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=SENT_MESSAGE)
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=True,
@@ -1054,7 +1107,7 @@ class SlackAgentEntrypointTest(TestCase):
         assert call_data.organization_id == self.organization.id
         assert call_data.summary == "Test summary"
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=SENT_MESSAGE)
     def test_on_agent_update_with_no_summary(self, mock_send: MagicMock) -> None:
         ep = self._get_entrypoint()
         cache_payload = ep.create_agent_cache_payload()
@@ -1070,7 +1123,7 @@ class SlackAgentEntrypointTest(TestCase):
         assert isinstance(call_data, SeerAgentError)
         assert call_data.error_message == "Seer was unable to generate a response."
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=SENT_MESSAGE)
     def test_on_agent_update_does_not_reuse_the_previous_turns_answer(
         self, mock_send: MagicMock
     ) -> None:
@@ -1090,7 +1143,7 @@ class SlackAgentEntrypointTest(TestCase):
 
         mock_send.assert_not_called()
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=SENT_MESSAGE)
     @patch(
         "sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval", return_value="9.9"
     )
@@ -1151,7 +1204,7 @@ class SlackAgentEntrypointTest(TestCase):
         mock_send_message.assert_not_called()
         mock_send_ephemeral.assert_not_called()
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=SENT_MESSAGE)
     def test_on_agent_update_rejects_invalid_write_approval(self, mock_send: MagicMock) -> None:
         ep = self._get_entrypoint()
         cache_payload = ep.create_agent_cache_payload()
@@ -1191,7 +1244,7 @@ class SlackAgentEntrypointTest(TestCase):
 
         mock_send.assert_not_called()
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=SENT_MESSAGE)
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=False,
@@ -1214,7 +1267,7 @@ class SlackAgentEntrypointTest(TestCase):
         assert call_data.missing_scope_settings_url is not None
         assert "/integrations/slack/" in call_data.missing_scope_settings_url
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=SENT_MESSAGE)
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=True,
@@ -1236,7 +1289,7 @@ class SlackAgentEntrypointTest(TestCase):
         assert isinstance(call_data, SeerAgentResponse)
         assert call_data.missing_scope_settings_url is None
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=SENT_MESSAGE)
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=False,
@@ -1266,7 +1319,7 @@ class SlackAgentEntrypointTest(TestCase):
         second_data = mock_send.call_args.kwargs["data"]
         assert second_data.missing_scope_settings_url is None
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=SENT_MESSAGE)
     def test_on_agent_update_does_not_duplicate_answers(self, mock_send: MagicMock) -> None:
         cache_payload = self._get_entrypoint().create_agent_cache_payload()
         state = _agent_state("Test summary")
@@ -1278,7 +1331,7 @@ class SlackAgentEntrypointTest(TestCase):
         assert isinstance(mock_send.call_args.kwargs["data"], SeerAgentResponse)
         assert mock_send.call_args.kwargs["data"].summary == "Test summary"
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=SENT_MESSAGE)
     @patch(
         "sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval", return_value="9.9"
     )
@@ -1484,6 +1537,49 @@ class SlackAgentEntrypointTest(TestCase):
             for call in mock_record.mock_calls
             if call.args[0] == EventLifecycleOutcome.HALTED
         ] == [IntegrationConfigurationError, IntegrationResourceNotFoundError]
+
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AGENT_RESPONSE]})
+    @patch("sentry.seer.entrypoints.slack.messaging.record_links_added")
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=False,
+    )
+    @patch("slack_sdk.web.client.WebClient.chat_update")
+    @patch("slack_sdk.web.client.WebClient.chat_postMessage")
+    def test_on_agent_update_edits_keep_the_answers_notification(
+        self,
+        post: Mock,
+        update: Mock,
+        _scope: Mock,
+        mock_record_sent: Mock,
+        mock_record_links_added: Mock,
+    ) -> None:
+        post.return_value = _slack_response({"ok": True, "ts": "1.1"})
+        update.return_value = _slack_response({"ok": True})
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("I found a missing cache key.")
+
+        def refresh() -> None:
+            SlackAgentEntrypoint.on_agent_update(
+                cache_payload=cache_payload, run_id=state.run_id, state=state
+            )
+
+        refresh()
+        state.repo_pr_states["acme/web"] = RepoPRState(
+            repo_name="acme/web", pr_creation_status="creating"
+        )
+        refresh()
+
+        mock_record_sent.assert_called_once()
+        context = mock_record_sent.call_args.args[0]
+        assert mock_record_sent.call_args.kwargs == {"links": {"settings"}}
+        mock_record_links_added.assert_called_once_with(context, links=set())
+        edited_blocks = str([block.to_dict() for block in update.call_args.kwargs["blocks"]])
+        assert f"notification_uuid={context.notification_uuid}" in edited_blocks
+        reply = SlackSeerAgentReplyCache.get(run_id=state.run_id)["b2"]
+        assert reply["notification_uuid"] == context.notification_uuid
+        assert reply["links"] == ["settings"]
 
 
 def _slack_response(data: dict[str, Any]) -> SlackResponse:

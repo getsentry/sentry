@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, assert_never
 
 from pydantic import ValidationError
@@ -30,6 +31,7 @@ from sentry.notifications.platform.templates.seer import (
 from sentry.notifications.platform.tracking import (
     NotificationLinkDecorator,
     NotificationTrackingContext,
+    record_links_added,
     record_sent,
 )
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
@@ -62,6 +64,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class SentThreadMessage:
+    message_ts: str
+    links: frozenset[str]
+    """The kinds of tracked links and buttons in the message."""
+
+
 def _render_tracked(
     data: NotificationData,
 ) -> tuple[SlackRenderable, NotificationTrackingContext, set[str]]:
@@ -81,9 +90,12 @@ def _render_tracked(
         notification_uuid=data.notification_uuid,
         organization_id=data.organization_id,
     )
-    tracked: set[str] = {
-        *links,
-        *provider.track_actions(renderable=renderable, context=tracking_context),
+    tracked = {
+        str(link)
+        for link in (
+            *links,
+            *provider.track_actions(renderable=renderable, context=tracking_context),
+        )
     }
     return renderable, tracking_context, tracked
 
@@ -94,10 +106,10 @@ def send_thread_update(
     thread: SlackThreadDetails,
     data: NotificationData,
     ephemeral_user_id: str | None = None,
-) -> str | None:
+) -> SentThreadMessage | None:
     """
     Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task.
-    Returns the posted message's ts, or None if it wasn't posted.
+    Returns the posted message, or None if it wasn't posted.
     """
     message_ts: str | None = None
     with SlackEntrypointEventLifecycleMetric(
@@ -159,17 +171,26 @@ def send_thread_update(
             lifecycle.record_failure(failure_reason=e)
             # Retry, hopefully it's transient
             raise
-    return message_ts
+    if message_ts is None:
+        return None
+    return SentThreadMessage(message_ts=message_ts, links=frozenset(tracked))
 
 
 def edit_thread_message(
-    *, install: SlackIntegration, channel_id: str, message_ts: str, data: NotificationData
-) -> None:
+    *,
+    install: SlackIntegration,
+    channel_id: str,
+    message_ts: str,
+    data: NotificationData,
+    sent_links: Collection[str] | None,
+) -> set[str] | None:
     """
-    Re-render a message we already posted from new data, recording the edit as a send of the
-    data's notification, since the re-rendered links and buttons carry its ID.
-    Returns once there's nothing left to do, including when the message is gone. Raises
-    IntegrationError otherwise, so the caller can retry.
+    Re-render a message we already posted from new data. `sent_links` are the links and buttons
+    already recorded under the data's notification; the edit records only the ones it adds. If
+    it's None, the notification hasn't been recorded as sent, so the edit records a send.
+
+    Returns every link and button now recorded under the notification, or None if the message is
+    gone. Raises IntegrationError if the edit fails otherwise, so the caller can retry.
     """
     with SlackEntrypointEventLifecycleMetric(
         interaction_type=SlackEntrypointInteractionType.EDIT_THREAD_MESSAGE,
@@ -184,9 +205,9 @@ def edit_thread_message(
             install.update_message(
                 channel_id=channel_id, message_ts=message_ts, renderable=renderable
             )
-            record_sent(tracking_context, links=tracked)
         except IntegrationResourceNotFoundError as e:
             lifecycle.record_halt(halt_reason=e)
+            return None
         except TimeoutError as e:
             lifecycle.record_failure(failure_reason=e)
             raise IntegrationError("Slack request timed out") from e
@@ -197,6 +218,11 @@ def edit_thread_message(
         except IntegrationError as e:
             lifecycle.record_failure(failure_reason=e)
             raise
+    if sent_links is None:
+        record_sent(tracking_context, links=tracked)
+        return tracked
+    record_links_added(tracking_context, links=tracked.difference(sent_links))
+    return tracked.union(sent_links)
 
 
 @instrumented_task(

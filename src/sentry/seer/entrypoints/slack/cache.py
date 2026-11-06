@@ -62,6 +62,10 @@ class SlackSeerAgentReply(TypedDict):
     pr_status_hash: NotRequired[str]
     # The scope link an answer was posted with; it's only looked up once per thread.
     missing_scope_settings_url: NotRequired[str | None]
+    # The notification an answer's links and buttons carry, kept across edits, and every kind of
+    # link and button recorded under it. Set together.
+    notification_uuid: NotRequired[str]
+    links: NotRequired[list[str]]
 
 
 class SlackSeerAgentReplyCache:
