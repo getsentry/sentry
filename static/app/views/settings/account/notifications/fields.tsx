@@ -363,12 +363,19 @@ const ON_OFF_CHOICES = [
   ['never', t('Off')],
 ] as const;
 
+const RECIPIENT_CHOICES = [
+  ['always', t('You and your team')],
+  ['self', t('Only you')],
+  ['team', t('Only your team')],
+  ['never', t('Off')],
+] as const;
+
 export const INBOX_FIELDS: SubSettingField[] = [
   {
     name: 'inboxAssignments',
     label: t('Assignments'),
     help: t('An issue is assigned to you or to one of your teams.'),
-    choices: ON_OFF_CHOICES,
+    choices: RECIPIENT_CHOICES,
   },
   {
     name: 'inboxMentions',
@@ -376,7 +383,7 @@ export const INBOX_FIELDS: SubSettingField[] = [
     help: t(
       'You or one of your teams is mentioned in an issue comment, or you are mentioned in an investigation.'
     ),
-    choices: ON_OFF_CHOICES,
+    choices: RECIPIENT_CHOICES,
   },
   {
     name: 'inboxPrReadyForReview',
