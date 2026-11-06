@@ -692,3 +692,39 @@ class TestContinueSingleRun(TestCase):
         assert kwargs["agent_run_options"]["enable_coding"] is False
         assert kwargs["agent_run_options"]["enable_write_pull_request"] is False
         assert kwargs["payload"]["pr_internal_settings"] is None
+
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    def test_raises_when_out_of_credits(self, mock_check_seer_credits: MagicMock) -> None:
+        with (
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            pytest.raises(SeerOutOfCreditsException),
+        ):
+            continue_single_run(
+                self.agent_run,
+                self.group,
+                "make a code fix",
+                user=self.user,
+                can_publish=True,
+                referrer=AutofixReferrer.SEER_EXPLORER,
+            )
+
+        mock_client_cls.return_value.continue_feature_run.assert_not_called()
+
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    def test_agentic_triage_run_skips_credit_check(
+        self, mock_check_seer_credits: MagicMock
+    ) -> None:
+        """The run's own referrer decides, not the reply's."""
+        self.seer_run.update(referrer=AutofixReferrer.AGENTIC_TRIAGE)
+
+        self._reply()
+
+        mock_check_seer_credits.assert_not_called()
