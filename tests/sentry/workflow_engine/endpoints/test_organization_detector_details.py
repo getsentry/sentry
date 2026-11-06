@@ -603,6 +603,28 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             )
         assert response.data["config"]["comparisonDelta"] == 300
 
+    def test_update_comparison_delta_with_non_percent_detection_type(self) -> None:
+        data = {
+            **self.valid_data,
+            "config": {
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+                "comparisonDelta": 3600,
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"] == [
+            ErrorDetail(
+                string="`comparisonDelta` can only be set when `detectionType` is 'percent', not 'static'.",
+                code="invalid",
+            )
+        ]
+
     def test_update_add_data_condition(self) -> None:
         """
         Test that we can add an additional data condition
@@ -1127,7 +1149,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     def test_update_config_invalid_schema(self) -> None:
         """Test updating detector config with invalid schema data fails validation"""
         # Config missing required field 'detection_type'
-        invalid_config = {"comparison_delta": 3600}
+        invalid_config: dict[str, Any] = {}
         data = {
             "config": invalid_config,
         }

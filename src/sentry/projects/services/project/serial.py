@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.db.models import QuerySet
 from rest_framework import serializers
 
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
@@ -34,10 +35,14 @@ class ProjectUpdateArgsSerializer(serializers.Serializer[ProjectUpdateArgs]):
     )
 
 
+def _normalize_project_slug(slug: str | None) -> str:
+    return slug or ""
+
+
 def serialize_project(project: Project) -> RpcProject:
     return RpcProject(
         id=project.id,
-        slug=project.slug or "",
+        slug=_normalize_project_slug(project.slug),
         name=project.name,
         organization_id=project.organization_id,
         status=project.status,
@@ -45,3 +50,11 @@ def serialize_project(project: Project) -> RpcProject:
         platform=project.platform,
         external_id=project.external_id,
     )
+
+
+def serialize_projects(projects: QuerySet[Project]) -> list[RpcProject]:
+    rpc_projects = []
+    for project in projects.values(*RpcProject.get_field_names()):
+        project["slug"] = _normalize_project_slug(project["slug"])
+        rpc_projects.append(RpcProject(**project))
+    return rpc_projects

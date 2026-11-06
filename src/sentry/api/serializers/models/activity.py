@@ -81,6 +81,8 @@ def serialize_group_notes(
     group: Group,
     notes: Sequence[Activity],
     user: RequestPrincipal | None,
+    *,
+    resolve_mentions: bool = False,
 ) -> list[GroupNoteSerializerResponse]:
     if not notes:
         return []
@@ -94,7 +96,9 @@ def serialize_group_notes(
             idempotency_key__in=[activity_action_idempotency_key(note) for note in notes],
         ).values_list("idempotency_key", "source")
     )
-    serialized_notes: list[ActivitySerializerResponse] = serialize(list(notes), user)
+    serialized_notes: list[ActivitySerializerResponse] = serialize(
+        list(notes), user, serializer=ActivitySerializer(resolve_mentions=resolve_mentions)
+    )
     return [
         {
             **item,

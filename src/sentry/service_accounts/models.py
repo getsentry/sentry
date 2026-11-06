@@ -34,6 +34,7 @@ __all__ = (
     "ServiceAccountProject",
     "ServiceAccountReplica",
     "ServiceAccountProjectReplica",
+    "ServiceAccountToken",
 )
 
 # Matches the `name` serializer in the service account API.
@@ -93,6 +94,8 @@ class ServiceAccount(ReplicatedControlModel):
     all_projects = models.BooleanField(default=False, db_default=False)
     # Always a human user, never another service account.
     created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
+    # Lets a retried create, such as an outbox redelivery, find the account it already made.
+    idempotency_key = models.CharField(max_length=64, null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(auto_now=True)
 
@@ -105,6 +108,10 @@ class ServiceAccount(ReplicatedControlModel):
                 fields=["organization_id", "name"],
                 condition=Q(is_active=True),
                 name="service_accounts_serviceaccount_org_name_unique_active",
+            ),
+            models.UniqueConstraint(
+                fields=["organization_id", "idempotency_key"],
+                name="service_accounts_serviceaccount_org_idempotency_key_unique",
             ),
         ]
 
@@ -123,6 +130,7 @@ class ServiceAccount(ReplicatedControlModel):
         project_ids: Iterable[int],
         all_projects: bool,
         created_by_id: int | None,
+        idempotency_key: str | None = None,
     ) -> ServiceAccount:
         """
         Raises `InvalidScopeError` for a scope outside `GRANTABLE_SCOPES` and `IntegrityError`
@@ -137,6 +145,7 @@ class ServiceAccount(ReplicatedControlModel):
                 scope_list=scope_list,
                 all_projects=all_projects,
                 created_by_id=created_by_id,
+                idempotency_key=idempotency_key,
             )
             if not all_projects:
                 ServiceAccountProject.objects.bulk_create(
@@ -290,3 +299,44 @@ class ServiceAccountProjectReplica(Model):
         ]
 
     __repr__ = sane_repr("service_account_id", "project_id")
+
+
+@control_silo_model
+class ServiceAccountToken(Model):
+    """
+    A long-lived credential an org admin creates for a service account. Requests made with
+    it act as the account, never as the admin who created it.
+
+    Revoking keeps the row and sets `date_deactivated`, so its history stays. Accounts are
+    soft-deleted, so the account foreign key only cascades when the org is deleted.
+    """
+
+    # A relocated token would need a new secret, so admins create new tokens instead.
+    __relocation_scope__ = RelocationScope.Excluded
+
+    service_account = FlexibleForeignKey(
+        "service_accounts.ServiceAccount", on_delete=models.CASCADE
+    )
+    # Copied from the account so outbox routing and the replica don't need a join.
+    organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
+    name = models.CharField(max_length=MAX_NAME_LENGTH)
+    token_hashed = models.TextField(unique=True)
+    token_last_characters = models.CharField(max_length=4)
+    # Fixed at creation. Effective access is this intersected with the account's current
+    # scopes, so narrowing the account narrows the token, but widening it doesn't.
+    scope_list = ArrayField(
+        models.TextField(), validators=[validate_grantable_scopes], default=list
+    )
+    # Always a human user, never another service account.
+    created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
+    date_added = models.DateTimeField(default=timezone.now)
+    date_expires = models.DateTimeField(null=True)
+    date_last_used = models.DateTimeField(null=True)
+    # Null while the token is active. There's no separate flag that could disagree with it.
+    date_deactivated = models.DateTimeField(null=True)
+
+    class Meta:
+        app_label = "service_accounts"
+        db_table = "service_accounts_serviceaccounttoken"
+
+    __repr__ = sane_repr("organization_id", "service_account_id", "name")

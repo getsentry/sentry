@@ -507,6 +507,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.releases",
     "sentry.seer",
     "sentry.scm",
+    "sentry.cadence",
 )
 
 # Silence internal hints from Django's system checks
@@ -834,6 +835,7 @@ SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment.
 TIMEDELTA_ALLOW_LIST = {
+    "cadence-tick",
     "deliver-from-outbox-control",
     "deliver-webhooks-control",
     "flush-buffers",
@@ -841,6 +843,7 @@ TIMEDELTA_ALLOW_LIST = {
     "sync-options",
     "sync-options-control",
     "schedule-digests",
+    "snuba-broken-subscription-recheck",
 }
 
 BGTASKS: dict[str, BgTaskConfig] = {
@@ -888,6 +891,7 @@ TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.ai_monitoring.tasks",
+    "sentry.cadence.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.objectstore_migration.tasks",
@@ -1052,6 +1056,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "selfhosted:sentry.tasks.send_ping",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
+    "cadence-tick": {
+        "task": "issues:sentry.cadence.tasks.cadence_tick",
+        "schedule": timedelta(seconds=10),
+    },
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
         "schedule": timedelta(seconds=10),
@@ -1148,6 +1156,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "snuba-subscription-checker": {
         "task": "alerts:sentry.snuba.tasks.subscription_checker",
         "schedule": crontab("*/20", "*", "*", "*", "*"),
+    },
+    "snuba-broken-subscription-recheck": {
+        "task": "alerts:sentry.snuba.tasks.schedule_broken_subscription_rechecks",
+        "schedule": timedelta(minutes=15),
     },
     "uptime-subscription-checker": {
         "task": "uptime:sentry.uptime.tasks.subscription_checker",
