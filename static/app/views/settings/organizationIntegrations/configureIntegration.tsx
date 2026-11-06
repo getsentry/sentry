@@ -18,6 +18,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
@@ -152,7 +153,17 @@ function IntegrationAction({
     return (
       <Button
         onClick={() =>
-          startFlow({provider, organization, onInstall: onUpdateIntegration})
+          startFlow({
+            provider,
+            organization,
+            // The default toast says the integration was "added", but this
+            // flow refreshes an existing workspace connection.
+            suppressSuccessMessage: true,
+            onInstall: () => {
+              toast.success(t('%s reconnected', provider.name));
+              onUpdateIntegration();
+            },
+          })
         }
         disabled={!canManageIntegrations(organization)}
         size="sm"
