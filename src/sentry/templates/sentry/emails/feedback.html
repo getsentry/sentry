@@ -182,7 +182,7 @@
         <ul class="tag-list">
         {% for tag_key, tag_value in tags %}
           <li>
-              <strong>{{ tag_key|as_tag_alias }}</strong>
+              <strong>{{ tag_key|as_tag_alias|sanitize_periods }}</strong>
               <em>=</em>
               <span>
               {% with query=tag_key|as_tag_alias|add:":\""|add:tag_value|add:"\""|urlencode %}

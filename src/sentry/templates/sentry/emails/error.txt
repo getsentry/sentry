@@ -1,5 +1,6 @@
 {% spaceless %}
 {% autoescape off %}
+{% load sentry_helpers %}
 {% if enhanced_privacy %}
 Details about this issue are not shown in this notification since enhanced
 privacy controls are enabled. For more details about this issue, view this
@@ -18,7 +19,7 @@ Details
 Tags
 ----
 {% for tag_key, tag_value in tags %}
-* {{ tag_key }} = {{ tag_value }}{% endfor %}
+* {{ tag_key|sanitize_periods }} = {{ tag_value }}{% endfor %}
 
 {% if interfaces %}{% for label, _, text in interfaces %}
 {{ label }}
