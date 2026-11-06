@@ -1710,7 +1710,6 @@
     "tests/sentry/seer/agent/test_client_utils.py": 6.2,
     "tests/sentry/seer/agent/test_coding_agent_handoff.py": 1.9,
     "tests/sentry/seer/agent/test_context_engine_utils.py": 5.3,
-    "tests/sentry/seer/agent/test_custom_tool_utils.py": 0.9,
     "tests/sentry/seer/agent/test_embed_widgets.py": 0.8,
     "tests/sentry/seer/agent/test_index_data.py": 11.0,
     "tests/sentry/seer/agent/test_monitoring_providers.py": 11.2,
