@@ -274,21 +274,6 @@ class SeerAutofixOperator[CachePayloadT]:
                         )
                     return
 
-            # Buttons are hidden when an org runs out of credits, but older messages may still
-            # have them, so check again before starting the step.
-            if not can_run_seer_operation(
-                group.organization, AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION[stopping_point]
-            ):
-                with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_OUT_OF_CREDITS,
-                    entrypoint_key=self.entrypoint.key,
-                ).capture():
-                    self.entrypoint.on_trigger_autofix_out_of_credits(
-                        started=stopping_point != AutofixStoppingPoint.ROOT_CAUSE
-                    )
-                lifecycle.record_halt(halt_reason="not_enough_seer_credits")
-                return
-
             try:
                 if not run_id:
                     with action_context_scope(ActionSource.SLACK, GroupActionActor.user(user.id)):

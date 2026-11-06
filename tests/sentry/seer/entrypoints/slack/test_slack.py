@@ -27,7 +27,6 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
     SeerAgentWriteApproval,
-    SeerAutofixOutOfCredits,
     SeerAutofixUpdate,
 )
 from sentry.notifications.platform.tracking import NotificationLink, NotificationTrackingContext
@@ -148,19 +147,6 @@ class SlackAutofixEntrypointTest(TestCase):
             renderable=ANY,
             slack_user_id=self.slack_request.user_id,
         )
-
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update")
-    def test_on_trigger_autofix_out_of_credits(self, mock_send_thread_update: MagicMock) -> None:
-        ep = self._get_entrypoint()
-        ep.on_trigger_autofix_out_of_credits(started=True)
-
-        mock_send_thread_update.assert_called_once()
-        kwargs = mock_send_thread_update.call_args.kwargs
-        data = kwargs["data"]
-        assert isinstance(data, SeerAutofixOutOfCredits)
-        assert data.organization_id == self.organization.id
-        assert data.started is True
-        assert kwargs["ephemeral_user_id"] == self.slack_request.user_id
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
     def test_on_trigger_autofix_success(self, mock_update_message: MagicMock) -> None:
