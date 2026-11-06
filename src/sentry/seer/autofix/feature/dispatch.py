@@ -149,61 +149,22 @@ def _org_allows_coding(group: Group) -> bool:
     )
 
 
-def _check_autofix_credits(group: Group, operation: SeerOperation, referrer: str | None) -> None:
-    """
-    Raise if the organization can't afford the operation under token-based
-    credits. Agentic triage runs stay free.
-    """
-    if (
-        not features.has("organizations:seer-credit-checks", group.organization)
-        or referrer == AutofixReferrer.AGENTIC_TRIAGE
-    ):
-        return
-    if not has_enough_seer_credits(group.organization, operation):
-        logger.info(
-            "autofix_feature.dispatch.out_of_credits",
+def _check_autofix_quota(group: Group, referrer: str | None) -> None:
+    """Raise if the organization has no seat-based Seer quota left."""
+    has_budget: bool = quotas.backend.check_seer_quota(
+        org_id=group.organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    )
+    if not has_budget:
+        logger.warning(
+            "autofix_feature.dispatch.quota_denied",
             extra={
                 "group_id": group.id,
                 "organization_id": group.organization.id,
-                "operation": operation.value,
                 "referrer": referrer,
             },
         )
-        raise SeerOutOfCreditsException()
-
-
-def _check_autofix_quota(
-    group: Group,
-    referrer: str | None,
-    *,
-    is_new_run: bool,
-    allow_free_cohort: bool,
-) -> bool:
-    """
-    Raise if the organization has no seat-based Seer quota left. Returns whether
-    the step uses quota, which is recorded once the run starts.
-    """
-    # Free cohort orgs bypass quota only when called from agentic triage
-    # (allow_free_cohort=True). Not exposed via the API.
-    skip_quota = is_new_run and allow_free_cohort and is_free_cohort_org(group.organization)
-    uses_quota = is_new_run and not skip_quota
-    if uses_quota:
-        has_budget: bool = quotas.backend.check_seer_quota(
-            org_id=group.organization.id,
-            data_category=DataCategory.SEER_AUTOFIX,
-        )
-        if not has_budget:
-            logger.warning(
-                "autofix_feature.dispatch.quota_denied",
-                extra={
-                    "group_id": group.id,
-                    "organization_id": group.organization.id,
-                    "referrer": referrer,
-                },
-            )
-            raise NoSeerQuotaException()
-
-    return uses_quota
+        raise NoSeerQuotaException()
 
 
 def check_autofix_billing(
@@ -219,12 +180,34 @@ def check_autofix_billing(
     checked for credits, everyone else for seat-based quota. Returns whether the
     operation uses quota.
     """
-    if features.has("organizations:token-billed-seer-enabled", group.organization):
-        _check_autofix_credits(group, operation, referrer)
+    organization = group.organization
+    if features.has("organizations:token-billed-seer-enabled", organization):
+        if (
+            features.has("organizations:seer-credit-checks", organization)
+            and referrer != AutofixReferrer.AGENTIC_TRIAGE  # Agentic triage runs stay free.
+            and not has_enough_seer_credits(organization, operation)
+        ):
+            logger.info(
+                "autofix_feature.dispatch.out_of_credits",
+                extra={
+                    "group_id": group.id,
+                    "organization_id": organization.id,
+                    "operation": operation.value,
+                    "referrer": referrer,
+                },
+            )
+            raise SeerOutOfCreditsException()
         return False
-    return _check_autofix_quota(
-        group, referrer, is_new_run=is_new_run, allow_free_cohort=skip_quota_for_free_cohort
+
+    # Quota counts runs, so only new runs use it.
+    # Free cohort orgs bypass quota only when called from agentic triage
+    # (skip_quota_for_free_cohort=True). Agentic triage is not exposed via the API.
+    uses_quota = is_new_run and not (
+        skip_quota_for_free_cohort and is_free_cohort_org(organization)
     )
+    if uses_quota:
+        _check_autofix_quota(group, referrer)
+    return uses_quota
 
 
 def continue_single_run(
