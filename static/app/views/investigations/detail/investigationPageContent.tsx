@@ -223,6 +223,11 @@ export function InvestigationPageContent({
   const commentCount = comments?.json.length ?? 0;
   const hasMoreComments =
     parseLinkHeader(comments?.headers.Link ?? null).next?.results === true;
+  const commentsLabel = hasMoreComments
+    ? t('%s+ comments', commentCount)
+    : commentCount > 0
+      ? tn('%s comment', '%s comments', commentCount)
+      : t('Comment');
   const isArchived = investigation.status === 'archived';
   const {data: commentCounts} = useQuery({
     ...investigationCommentCountsQueryOptions(organization.slug, investigation.id),
@@ -407,6 +412,8 @@ export function InvestigationPageContent({
                     size="sm"
                     variant="link"
                     icon={<IconChat size="xs" />}
+                    aria-label={commentsLabel}
+                    tooltipProps={{title: commentsLabel}}
                     onClick={() => {
                       if (investigation.status === 'archived') {
                         activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
@@ -419,11 +426,7 @@ export function InvestigationPageContent({
                       composerRef.current?.focus({preventScroll: true});
                     }}
                   >
-                    {hasMoreComments
-                      ? t('%s+ comments', commentCount)
-                      : commentCount > 0
-                        ? tn('%s comment', '%s comments', commentCount)
-                        : t('Comment')}
+                    {hasMoreComments ? `${commentCount}+` : commentCount}
                   </Button>
                 </Fragment>
               )}
