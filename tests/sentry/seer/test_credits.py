@@ -27,7 +27,7 @@ class SeerCreditsTest(TestCase):
         assert can_run_seer_operation(self.organization, SeerOperation.AUTOFIX_ROOT_CAUSE)
         mock_check_seer_credits.assert_not_called()
 
-    @with_feature("organizations:seer-credit-checks")
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -45,7 +45,7 @@ class SeerCreditsTest(TestCase):
             )
         )
 
-    @with_feature("organizations:seer-credit-checks")
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),

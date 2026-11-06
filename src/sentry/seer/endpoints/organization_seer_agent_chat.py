@@ -28,6 +28,7 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.credits import SeerOperation, can_run_seer_operation
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun
@@ -356,10 +357,21 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 return result
             resolved = result
 
-        if not has_access and not (
-            resolved is not None and _is_dashboard_generate_run(organization, resolved)
-        ):
+        is_dashboard_generate_run = resolved is not None and _is_dashboard_generate_run(
+            organization, resolved
+        )
+        if not has_access and not is_dashboard_generate_run:
             raise PermissionDenied(error)
+        # Do not bill for dashboard generation.
+        if not is_dashboard_generate_run and not can_run_seer_operation(
+            organization, SeerOperation.AGENT_CHAT_MESSAGE
+        ):
+            return Response(
+                {
+                    "detail": "Your organization does not have enough credits left for you to message Seer."
+                },
+                status=402,
+            )
 
         try:
             # Seer only exposes write_pull_request when coding and bash mode are also on.

@@ -60,8 +60,11 @@ SEER_OPERATIONS: dict[SeerOperation, SeerOperationConfig] = {
 }
 
 
-def can_run_seer_operation(organization: Organization, operation: SeerOperation) -> bool:
-    """Whether the organization has enough Seer credits to run the operation."""
+def has_enough_seer_credits(organization: Organization, operation: SeerOperation) -> bool:
+    """
+    Checks whether the organization has enough Seer credits to run the operation
+    for callers that already checked the org is token-billed.
+    """
     if not features.has("organizations:seer-credit-checks", organization):
         return True
 
@@ -75,3 +78,10 @@ def can_run_seer_operation(organization: Organization, operation: SeerOperation)
         )
     )
     return response.has_enough_credits
+
+
+def can_run_seer_operation(organization: Organization, operation: SeerOperation) -> bool:
+    """Whether the organization is token-billed and has enough Seer credits to run the operation."""
+    return not features.has(
+        "organizations:token-billed-seer-enabled", organization
+    ) or has_enough_seer_credits(organization, operation)

@@ -19,7 +19,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    @with_feature("organizations:seer-credit-checks")
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),
@@ -39,7 +39,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
             )
         )
 
-    @with_feature("organizations:seer-credit-checks")
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
