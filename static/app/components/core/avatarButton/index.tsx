@@ -1,2 +1,2 @@
 export {AvatarButton} from './avatarButton';
-export {useAvatarGradient} from './useAvatarGradient';
+export {useAvatarPalette} from './useAvatarPalette';

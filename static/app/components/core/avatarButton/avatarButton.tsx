@@ -23,6 +23,11 @@ interface AvatarButtonProps extends Omit<
   'aria-label': string;
   /** Omit to render an empty/unassigned placeholder. */
   avatar?: BaseAvatarProps;
+  /**
+   * Color of the button's border and raised edge. Defaults to a color derived
+   * from `avatar`. Use `useAvatarPalette` to derive it from another avatar.
+   */
+  borderColor?: string;
   /** Circular (e.g. users) vs squircle (e.g. teams) shape. Defaults to `avatar.round`. */
   round?: boolean;
   size?: AvatarButtonSize;
@@ -30,6 +35,7 @@ interface AvatarButtonProps extends Omit<
 
 export function AvatarButton({
   avatar,
+  borderColor,
   round: explicitRound,
   size: explicitSize,
   ...props
@@ -50,6 +56,9 @@ export function AvatarButton({
   });
 
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
+  const chonk = isSuggested
+    ? undefined
+    : (borderColor ?? (colors.type === 'none' ? undefined : colors.chonk));
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
@@ -71,17 +80,14 @@ export function AvatarButton({
   }
 
   if (avatarDefinition.type === 'letter') {
-    const avatarChonk = colors.type === 'letter' ? colors.chonk : undefined;
-
     return (
-      <StyledAvatarButton {...props} size={size} round={round} chonk={avatarChonk}>
+      <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
         <AvatarContainer
           size={size}
           round={round}
           padded={false}
           borderColor={
-            avatarChonk ??
-            (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
+            chonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
           }
           borderStyle={isSuggested ? 'dashed' : 'solid'}
         >
@@ -93,8 +99,6 @@ export function AvatarButton({
       </StyledAvatarButton>
     );
   }
-
-  const chonk = colors.type === 'image' ? colors.chonk : undefined;
 
   return (
     <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>

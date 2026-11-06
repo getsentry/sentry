@@ -24,6 +24,7 @@ import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {NavigationMenuHeader} from './navigationMenuHeader';
+import {useOrganizationPalette} from './useOrganizationPalette';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
@@ -39,6 +40,8 @@ export function UserDropdown() {
   const {mutate: updateOptions} = useMutateUserOptions();
   const settingsV3 = useSettingsV3();
   const organization = useOrganization({allowNull: true});
+  // Match the menu header, which takes its color from the organization.
+  const {borderColor: organizationBorderColor} = useOrganizationPalette(organization);
   const {scope: settingsScope} = useSettingsScope();
 
   const trackSettingsClicked = () => {
@@ -97,12 +100,13 @@ export function UserDropdown() {
             {...triggerProps}
             aria-label={user.email}
             avatar={avatarProps}
+            borderColor={organizationBorderColor}
             analyticsEventKey="navigation.primary_item_clicked"
             analyticsEventName="Navigation: Primary Item Clicked"
             analyticsParams={{item: 'account'}}
           />
         )}
-        menuTitle={<NavigationMenuHeader user={user} />}
+        menuTitle={<NavigationMenuHeader user={user} organization={organization} />}
         items={[
           {
             key: 'account-actions',
