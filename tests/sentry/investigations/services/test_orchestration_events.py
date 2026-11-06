@@ -37,6 +37,7 @@ from sentry.investigations.services.orchestration_events import (
     reconcile_orchestration_projection,
     synchronize_orchestration_projection,
 )
+from sentry.models.organizationmember import OrganizationMember
 from sentry.notebooks.endpoints.serializers import InvestigationBlockSerializer
 from sentry.notebooks.endpoints.validators.block import BlockUpdateValidator
 from sentry.notebooks.models import (
@@ -54,6 +55,8 @@ from sentry.notebooks.services.notebooks import (
     update_block,
     update_investigation,
 )
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -205,7 +208,7 @@ class InvestigationOrchestrationEventTransportTest(SeerRunMirrorMixin, TestCase)
         assert not investigation.orchestration_run.events.exists()
 
 
-class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
+class InvestigationOrchestrationEventTestBase(SeerRunMirrorMixin, TestCase):
     seer_run_id = 4815
 
     def setUp(self) -> None:
@@ -296,6 +299,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             **values,
         }
 
+
+class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBase):
     def test_execution_timestamps_survive_completion_and_snapshot_replay(self) -> None:
         started_at = timezone.now() - timedelta(minutes=5)
         completed_at = started_at + timedelta(minutes=2)
@@ -3616,6 +3621,230 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
         assert self.stale_keys() == set()
         assert set(self.request_states().values()) == {NotebookActionRequestState.SUPERSEDED}
+
+
+@with_feature(
+    {
+        "organizations:investigations": True,
+        "organizations:universal-inbox-recording": True,
+        "organizations:universal-inbox": False,
+    }
+)
+class InvestigationCompletedInboxTest(InvestigationOrchestrationEventTestBase):
+    def complete(self, *, sequence: int = 1, generation: int = 1) -> OrchestrationEventReceipt:
+        return self.deliver(
+            self.make_event(
+                sequence,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=sequence + 1,
+                        generation=generation,
+                        phase="completed",
+                        status="completed",
+                    )
+                },
+                generation=generation,
+            )
+        )
+
+    def test_records_system_event_for_creator_with_ui_disabled(self) -> None:
+        self.complete()
+
+        item = InboxItem.objects.get()
+        event = InboxItemEvent.objects.get(inbox_item=item)
+        assert item.organization_id == self.organization.id
+        assert item.user_id == self.user.id
+        assert item.subject_type == "notebook"
+        assert item.subject_id == str(self.investigation.id)
+        assert event.type == "notebook.completed"
+        assert event.actor_type == InboxActorType.SYSTEM
+        assert event.actor_id is None
+        assert event.data == {
+            "summary": "Investigation completed",
+            "seer_run_id": self.seer_run_id,
+        }
+
+    def test_replay_and_reconciliation_do_not_duplicate_pruned_events(self) -> None:
+        event = self.make_event(
+            1,
+            "workflow_updated",
+            {
+                "projection": self.projection(
+                    workflow_version=2, phase="completed", status="completed"
+                )
+            },
+        )
+        self.deliver(event)
+        InboxItemEvent.objects.get().delete()
+
+        self.deliver(event)
+        self.complete(sequence=2)
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=4, phase="completed", status="completed"),
+        )
+        reconcile_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=5, phase="completed", status="completed"),
+            expected_last_event_sequence=2,
+            expected_workflow_version=4,
+        )
+
+        assert not InboxItemEvent.objects.exists()
+
+    def test_new_generation_records_another_completion(self) -> None:
+        self.complete()
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=3, generation=2),
+        )
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(
+                workflow_version=4, generation=2, phase="completed", status="completed"
+            ),
+        )
+        self.complete(sequence=2)
+
+        assert InboxItem.objects.count() == 1
+        assert InboxItemEvent.objects.filter(type="notebook.completed").count() == 2
+
+    def test_terminal_snapshot_fast_forward_records_completion(self) -> None:
+        self.deliver(
+            self.make_event(
+                5,
+                "state_snapshot",
+                {
+                    "full": True,
+                    "terminal": True,
+                    "projection": self.projection(
+                        workflow_version=2, phase="completed", status="completed"
+                    ),
+                    "blocks": [],
+                    "reportRevision": 0,
+                },
+            )
+        )
+
+        assert InboxItemEvent.objects.get().type == "notebook.completed"
+
+    def test_reconciliation_records_first_completion(self) -> None:
+        reconcile_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=2, phase="completed", status="completed"),
+            expected_last_event_sequence=0,
+            expected_workflow_version=1,
+        )
+
+        assert InboxItemEvent.objects.get().type == "notebook.completed"
+
+    def test_rollback_removes_event_and_completion_marker(self) -> None:
+        with (
+            pytest.raises(RuntimeError),
+            transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)),
+        ):
+            self.complete()
+            assert InboxItemEvent.objects.count() == 1
+            raise RuntimeError("Roll back completion")
+
+        assert not InboxItem.objects.exists()
+        self.complete()
+        assert InboxItemEvent.objects.count() == 1
+
+    def test_recording_disabled_does_not_backfill_on_replay(self) -> None:
+        with self.feature({"organizations:universal-inbox-recording": False}):
+            self.complete()
+        self.complete(sequence=2)
+
+        assert not InboxItem.objects.exists()
+
+    def test_non_successful_states_do_not_record_completion(self) -> None:
+        for version, status in enumerate(
+            ("processing", "awaiting_input", "failed", "cancelled"), 2
+        ):
+            synchronize_orchestration_projection(
+                orchestration_run_id=self.orchestration_run.id,
+                seer_run_id=self.seer_run_id,
+                projection=self.projection(workflow_version=version, status=status),
+            )
+
+        assert not InboxItem.objects.exists()
+
+    def test_failure_event_carrying_completed_projection_does_not_notify(self) -> None:
+        self.deliver(
+            self.make_event(
+                1,
+                "workflow_failed",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="completed", status="completed"
+                    ),
+                    "error": {"code": "investigation_failed", "message": "Investigation failed"},
+                },
+            )
+        )
+
+        assert not InboxItem.objects.exists()
+
+    def test_archived_investigation_does_not_notify(self) -> None:
+        self.investigation.update(status=NotebookStatus.ARCHIVED)
+        self.complete()
+
+        assert not InboxItem.objects.exists()
+
+    def test_removed_creator_does_not_notify(self) -> None:
+        self.create_member(organization=self.create_organization(), user=self.user)
+        OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user.id
+        ).delete()
+        self.complete()
+
+        assert not InboxItem.objects.exists()
+
+    def test_inactive_creator_does_not_notify(self) -> None:
+        OrganizationMember.objects.get(organization=self.organization, user_id=self.user.id).update(
+            user_is_active=False
+        )
+        self.complete()
+
+        assert not InboxItem.objects.exists()
+
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    def test_creator_without_investigation_scope_does_not_notify(
+        self, mock_get_scopes: Mock
+    ) -> None:
+        self.complete()
+
+        assert not InboxItem.objects.exists()
+        mock_get_scopes.assert_called_once()
+
+    def test_closed_membership_does_not_notify(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.complete()
+
+        assert not InboxItem.objects.exists()
+
+    def test_investigations_disabled_does_not_notify(self) -> None:
+        with self.feature({"organizations:investigations": False}):
+            self.complete()
+
+        assert not InboxItem.objects.exists()
+
+    def test_missing_creator_does_not_notify(self) -> None:
+        self.investigation.update(created_by_id=None)
+        self.complete()
+
+        assert not InboxItem.objects.exists()
 
 
 @with_feature("organizations:investigations")

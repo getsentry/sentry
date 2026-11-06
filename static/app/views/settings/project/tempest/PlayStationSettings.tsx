@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -21,8 +22,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {useFetchTempestCredentials} from './hooks/useFetchTempestCredentials';
 import {useHasTempestWriteAccess} from './utils/access';
@@ -47,8 +46,10 @@ const CREDENTIAL_COLUMNS: TableColumnConfig[] = [
 
 export function PlayStationSettings({organization, project}: Props) {
   const hasWriteAccess = useHasTempestWriteAccess(project);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [setupInstructions, setSetupInstructions] = useQueryState(
+    'setupInstructions',
+    parseAsBoolean
+  );
 
   const {
     data: tempestCredentials,
@@ -107,7 +108,7 @@ export function PlayStationSettings({organization, project}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credentialErrors]);
 
-  const isSetupInstructionsOpen = location.query.setupInstructions === 'true';
+  const isSetupInstructionsOpen = setupInstructions ?? false;
   const hasCredentials = (tempestCredentials ?? []).length > 0;
   const showEmptyState = isSetupInstructionsOpen || !hasCredentials;
 
@@ -139,12 +140,7 @@ export function PlayStationSettings({organization, project}: Props) {
               <Button
                 size="sm"
                 onClick={() => {
-                  navigate({
-                    query: {
-                      ...location.query,
-                      setupInstructions: !isSetupInstructionsOpen,
-                    },
-                  });
+                  setSetupInstructions(!isSetupInstructionsOpen, {history: 'push'});
                 }}
               >
                 {isSetupInstructionsOpen

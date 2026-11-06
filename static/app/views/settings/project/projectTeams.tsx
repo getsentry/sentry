@@ -1,4 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
@@ -17,10 +18,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TeamSelect as TeamSelectForProject} from 'sentry/views/settings/components/teamSelect/teamSelectForProject';
@@ -29,16 +27,16 @@ import {ProjectPermissionAlert} from './projectPermissionAlert';
 import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 export default function ProjectTeams() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const [cursorParam, setCursorParam] = useQueryState('cursor', parseAsString);
+  const cursor = cursorParam || undefined;
 
   const {data, isPending, isError} = useQuery({
     ...projectTeamsApiOptions({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      cursor: decodeScalar(location.query.cursor),
+      cursor,
     }),
     select: selectJsonWithHeaders,
   });
@@ -47,19 +45,17 @@ export default function ProjectTeams() {
   const handleAddTeamToProject = useAddTeamToProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
-    cursor: decodeScalar(location.query.cursor),
+    cursor,
   });
 
   const handleRemoveTeamFromProject = useRemoveTeamFromProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
-    cursor: decodeScalar(location.query.cursor),
+    cursor,
   });
 
   const handleCursor: CursorHandler = resultsCursor => {
-    navigate({
-      query: {...location.query, cursor: resultsCursor},
-    });
+    setCursorParam(resultsCursor ?? null, {history: 'push'});
   };
 
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});

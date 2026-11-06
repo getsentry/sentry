@@ -23,7 +23,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 from sentry_sdk import traces
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
@@ -113,21 +113,24 @@ class GroupAnnotation(TypedDict):
 
 class GroupStatusDetailsResponseOptional(TypedDict, total=False):
     ignoreCount: Annotated[
-        int, ApiDescription("Number of additional events after which the issue stops being ignored")
+        int | None,
+        ApiDescription("Number of additional events after which the issue stops being ignored"),
     ]
     ignoreUntil: Annotated[
-        datetime, ApiDescription("When the issue stops being ignored (ISO 8601)")
+        datetime | None, ApiDescription("When the issue stops being ignored (ISO 8601)")
     ]
     ignoreUserCount: Annotated[
-        int,
+        int | None,
         ApiDescription(
             "Number of additional affected users after which the issue stops being ignored"
         ),
     ]
-    ignoreUserWindow: Annotated[int, ApiDescription("Time window in minutes for ignoreUserCount")]
-    ignoreWindow: Annotated[int, ApiDescription("Time window in minutes for ignoreCount")]
+    ignoreUserWindow: Annotated[
+        int | None, ApiDescription("Time window in minutes for ignoreUserCount")
+    ]
+    ignoreWindow: Annotated[int | None, ApiDescription("Time window in minutes for ignoreCount")]
     actor: Annotated[
-        UserSerializerResponse, ApiDescription("User who ignored or resolved the issue")
+        UserSerializerResponse | None, ApiDescription("User who ignored or resolved the issue")
     ]
     inNextRelease: Annotated[
         bool, ApiDescription("Whether the issue is resolved in the next release")
@@ -515,6 +518,11 @@ class GroupSerializerBase(Serializer, ABC):
             if self._expand("derivedData")
             else {}
         )
+        if not features.has(
+            "organizations:seer-impact-assessment", organization=item_list[0].organization
+        ):
+            for derived_data in derived_data_by_group_id.values():
+                derived_data.pop("impact", None)
 
         result = {}
         for item in item_list:

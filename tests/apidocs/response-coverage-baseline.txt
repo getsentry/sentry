@@ -921,8 +921,6 @@ untyped components/OrganizationProfilingChunksResponse
 untyped components/OrganizationProfilingFlamegraphResponse
 untyped components/ProjectProfilingProfileResponse
 untyped sentry.ai_monitoring.endpoints.organization_ai_conversation_details.AIConversationDetailsResponse.spans[]
-untyped sentry.ai_monitoring.transcript.models.TranscriptMessageResponse.evaluation
-untyped sentry.ai_monitoring.transcript.models.TranscriptMessageResponse.memory
 untyped sentry.api.endpoints.organization_events.EventsApiResponse.data[]
 untyped sentry.api.endpoints.organization_events.EventsMeta.debug_info
 untyped sentry.api.endpoints.organization_events.EventsMeta.discoverSplitDecision
