@@ -1,45 +1,39 @@
 import {useCallback} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {Group} from 'sentry/types/group';
 import type {PlatformExternalIssue} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 interface UseExternalIssuesOptions {
   group: Group;
   organization: OrganizationSummary;
 }
 
-function getExternalIssuesQueryKey({
-  group,
-  organization,
-}: UseExternalIssuesOptions): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/external-issues/', {
+function externalIssuesOptions({group, organization}: UseExternalIssuesOptions) {
+  return apiOptions.as<PlatformExternalIssue[]>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/external-issues/',
+    {
       path: {
         organizationIdOrSlug: organization.slug,
         issueId: group.id,
       },
-    }),
-  ];
+      staleTime: 60_000,
+    }
+  );
 }
 
 export function useExternalIssues({group, organization}: UseExternalIssuesOptions) {
   const queryClient = useQueryClient();
-  const {isPending, data = []} = useApiQuery<PlatformExternalIssue[]>(
-    getExternalIssuesQueryKey({group, organization}),
-    {staleTime: 60_000}
-  );
+  const {isPending, data = []} = useQuery(externalIssuesOptions({group, organization}));
 
   const onCreateExternalIssue = useCallback(
     (issue: PlatformExternalIssue) => {
-      setApiQueryData<PlatformExternalIssue[]>(
-        queryClient,
-        getExternalIssuesQueryKey({group, organization}),
-        existingIssues => existingIssues && [...existingIssues, issue]
+      queryClient.setQueryData(
+        externalIssuesOptions({group, organization}).queryKey,
+        existingIssues =>
+          existingIssues && {...existingIssues, json: [...existingIssues.json, issue]}
       );
     },
     [queryClient, group, organization]
@@ -47,10 +41,13 @@ export function useExternalIssues({group, organization}: UseExternalIssuesOption
 
   const onDeleteExternalIssue = useCallback(
     (issue: PlatformExternalIssue) => {
-      setApiQueryData<PlatformExternalIssue[]>(
-        queryClient,
-        getExternalIssuesQueryKey({group, organization}),
-        existingIssues => existingIssues?.filter(({id}) => id !== issue.id)
+      queryClient.setQueryData(
+        externalIssuesOptions({group, organization}).queryKey,
+        existingIssues =>
+          existingIssues && {
+            ...existingIssues,
+            json: existingIssues.json.filter(({id}) => id !== issue.id),
+          }
       );
     },
     [queryClient, group, organization]

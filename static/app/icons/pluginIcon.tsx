@@ -13,6 +13,7 @@ import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
 import github from 'sentry-logos/logo-github.svg';
 import gitlab from 'sentry-logos/logo-gitlab.svg';
 import google from 'sentry-logos/logo-google.svg';
+import grafana from 'sentry-logos/logo-grafana.svg';
 import heroku from 'sentry-logos/logo-heroku.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
 import jira from 'sentry-logos/logo-jira.svg';
@@ -65,6 +66,7 @@ const PLUGIN_ICONS = {
   github_enterprise: githubEnterprise,
   gcp: google,
   gitlab,
+  grafana,
   heroku,
   jira,
   jira_server: jiraserver,

@@ -10,8 +10,9 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import * as analytics from 'sentry/utils/analytics';
-import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+
+import {ProjectInstallPlatform} from './platform';
 
 type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
   platform: string;

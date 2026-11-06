@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -50,7 +51,6 @@ interface UseSeerDashboardSessionOptions {
     seerRunId: number | null
   ) => void;
   dashboard?: Pick<DashboardDetails, 'title' | 'widgets'>;
-  enabled?: boolean;
   onPostCompletePollEnd?: () => void;
   seerRunId?: number | null;
 }
@@ -71,7 +71,6 @@ export function useSeerDashboardSession({
   seerRunId: externalSeerRunId,
   dashboard,
   onDashboardUpdate,
-  enabled = true,
   onPostCompletePollEnd,
 }: UseSeerDashboardSessionOptions): UseSeerDashboardSessionResult {
   const organization = useOrganization();
@@ -93,7 +92,7 @@ export function useSeerDashboardSession({
     {
       staleTime: 0,
       retry: false,
-      enabled: !!seerRunId && enabled,
+      enabled: !!seerRunId,
       refetchInterval: query => {
         const status = query.state.data?.json?.session?.status;
         if (statusIsTerminal(status)) {
@@ -187,7 +186,7 @@ export function useSeerDashboardSession({
         }
       } catch {
         setIsUpdating(false);
-        addErrorMessage(errorMessage);
+        toast.error(errorMessage);
       }
     },
     [organization.slug, queryClient, seerRunId, dashboard]

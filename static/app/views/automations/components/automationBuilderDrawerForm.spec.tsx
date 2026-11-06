@@ -16,7 +16,8 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
+
+import {AutomationBuilderDrawerForm} from './automationBuilderDrawerForm';
 
 describe('AutomationBuilderDrawerForm', () => {
   const organization = OrganizationFixture();

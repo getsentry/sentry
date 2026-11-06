@@ -1,7 +1,4 @@
-import {
-  getSeverityColorVariant,
-  isSeverityFilterKey,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/utils';
+import {getSeverityColorVariant, isSeverityFilterKey} from './utils';
 
 describe('isSeverityFilterKey', () => {
   it.each([

@@ -1,8 +1,10 @@
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 import sentry_sdk
 from rest_framework.response import Response
+
+from sentry.apidocs.descriptions import ApiDescription
 
 
 class SentryAppErrorType(Enum):
@@ -12,8 +14,10 @@ class SentryAppErrorType(Enum):
 
 
 class SentryAppPublicErrorBody(TypedDict, total=False):
-    detail: str
-    context: dict[str, Any]
+    detail: Annotated[str, ApiDescription("Error message")]
+    context: Annotated[
+        dict[str, Any], ApiDescription("Additional public details about the error, if any")
+    ]
 
 
 class SentryAppBaseError(Exception):

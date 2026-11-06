@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
-import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+
+import type {IssueCategoryConfigMapping} from './types';
 
 export const feedbackConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {

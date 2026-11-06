@@ -3,7 +3,6 @@ import omit from 'lodash/omit';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {resolveDerivedStatusFields} from 'sentry/views/dashboards/datasetConfig/utils/releaseQueryFields';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {transformSessionsResponseToSeries} from 'sentry/views/dashboards/utils/transformSessionsResponseToSeries';
 import {
@@ -11,6 +10,8 @@ import {
   getDerivedMetrics,
   mapDerivedMetricsToFields,
 } from 'sentry/views/dashboards/utils/transformSessionsResponseToTable';
+
+import {resolveDerivedStatusFields} from './releaseQueryFields';
 
 export function transformSessionsResponseToTable(
   data: SessionApiResponse,

@@ -24,6 +24,7 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
@@ -141,7 +142,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["feature_id"] == SINGLE_RUN_FEATURE_ID
 
     @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
-    def test_get_returns_newer_step_run_with_null_feature_id(self, mock_get_run: MagicMock) -> None:
+    def test_get_returns_newer_step_run_with_autofix_feature_id(
+        self, mock_get_run: MagicMock
+    ) -> None:
         group = self.create_group()
         self._create_run(group, state_id=2, source=SINGLE_RUN_FEATURE_ID, minutes_ago=10)
         self._create_run(group, state_id=1, source="autofix", minutes_ago=1)
@@ -152,7 +155,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["run_id"] == 1
-        assert response.data["autofix"]["feature_id"] is None
+        assert response.data["autofix"]["feature_id"] == AUTOFIX_FEATURE_ID
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_forbidden_when_ai_features_hidden(
@@ -696,7 +699,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.post(self._get_url(group.id), data={}, format="json")
 
         assert response.status_code == 202, response.data
-        assert response.data["feature_id"] is None
+        assert response.data["feature_id"] == AUTOFIX_FEATURE_ID
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_seer_write_token_single_run_project_code_changes_is_allowed(
@@ -982,7 +985,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 202, response.data
-        assert response.data == {"run_id": 777, "sentry_run_id": str(run.uuid), "feature_id": None}
+        assert response.data == {
+            "run_id": 777,
+            "sentry_run_id": str(run.uuid),
+            "feature_id": AUTOFIX_FEATURE_ID,
+        }
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -1008,7 +1015,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 202, response.data
-        assert response.data == {"run_id": 555, "sentry_run_id": str(run.uuid), "feature_id": None}
+        assert response.data == {
+            "run_id": 555,
+            "sentry_run_id": str(run.uuid),
+            "feature_id": AUTOFIX_FEATURE_ID,
+        }
         assert mock_trigger_explorer.call_args.kwargs["run_id"] == 555
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
@@ -1036,7 +1047,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 202, response.data
-        assert response.data == {"run_id": 321, "sentry_run_id": str(run.uuid), "feature_id": None}
+        assert response.data == {
+            "run_id": 321,
+            "sentry_run_id": str(run.uuid),
+            "feature_id": AUTOFIX_FEATURE_ID,
+        }
         assert mock_trigger_explorer.call_args.kwargs["run_id"] == 321
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
@@ -1840,7 +1855,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 202, response.data
-        assert response.data == {"run_id": 123, "sentry_run_id": str(run.uuid), "feature_id": None}
+        assert response.data == {
+            "run_id": 123,
+            "sentry_run_id": str(run.uuid),
+            "feature_id": AUTOFIX_FEATURE_ID,
+        }
         payload = mock_explorer_update_request.call_args[0][0]["payload"]
         assert mock_explorer_update_request.call_args.kwargs["viewer_context"] == {
             "organization_id": self.organization.id,

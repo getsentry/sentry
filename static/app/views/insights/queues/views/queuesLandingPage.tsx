@@ -1,4 +1,4 @@
-import {PlatformizedQueuesOverview} from 'sentry/views/insights/queues/views/platformizedOverview';
+import {PlatformizedQueuesOverview} from './platformizedOverview';
 
 function PageWithProviders() {
   return <PlatformizedQueuesOverview />;

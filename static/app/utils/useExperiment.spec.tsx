@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useExperiment} from 'sentry/utils/useExperiment';
+import {useExperiment} from './useExperiment';
 
 function TestComponent({feature}: {feature: string}) {
   const {inExperiment, experimentAssignment} = useExperiment({

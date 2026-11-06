@@ -7,6 +7,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import APITestCase
+from sentry.viewer_context import ActorType, get_viewer_context
 
 
 @patch("sentry.seer.endpoints.admin_autofix_single_run.trigger_autofix_agent")
@@ -45,6 +46,27 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
             f"/organizations/sentry/issues/{self.group.id}/",
             query=f"project={self.project.id}&explorerRunId=321",
         )
+
+    def test_automated_start_has_no_owner(self, mock_trigger: MagicMock) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=321)
+        actor_types = []
+
+        def trigger(**kwargs: Any) -> Any:
+            ctx = get_viewer_context()
+            actor_types.append(ctx.actor.type if ctx else None)
+            return run
+
+        mock_trigger.side_effect = trigger
+
+        self.get_success_response(
+            organization_slug="sentry", short_id=self.group.qualified_short_id, automated=True
+        )
+
+        kwargs = mock_trigger.call_args.kwargs
+        assert kwargs["referrer"] == AutofixReferrer.ADMIN_AUTOMATED
+        assert kwargs["user"] is None
+        assert kwargs["actor_user_id"] is None
+        assert actor_types == [ActorType.SYSTEM]
 
     def test_coding_agent_project_is_rejected(self, mock_trigger: MagicMock) -> None:
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")

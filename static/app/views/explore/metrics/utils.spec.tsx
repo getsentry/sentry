@@ -2,8 +2,10 @@ import qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+
+import {NONE_UNIT} from './constants';
+import {decodeMetricsQueryParams} from './metricQuery';
 import {
   createTraceMetricEventsFilter,
   getEquationMetricsTotalFilter,
@@ -11,8 +13,7 @@ import {
   mapMetricUnitToFieldType,
   parseTraceMetricFromQuery,
   stripTraceMetricTokens,
-} from 'sentry/views/explore/metrics/utils';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+} from './utils';
 
 describe('mapMetricUnitToFieldType', () => {
   it.each([

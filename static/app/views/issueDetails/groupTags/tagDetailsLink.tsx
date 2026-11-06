@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
+
+import type {GroupTag} from './useGroupTags';
 
 export function TagDetailsLink({
   tag,

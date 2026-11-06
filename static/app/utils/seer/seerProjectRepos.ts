@@ -12,11 +12,12 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
+
 import type {
   SeerProjectMutateRepoPayload,
   SeerProjectRepoCreateInput,
   SeerProjectReposResponse,
-} from 'sentry/utils/seer/types';
+} from './types';
 
 export function isGitHubProvider(provider: string): boolean {
   // Provider strings arrive in two shapes depending on the source: the bare

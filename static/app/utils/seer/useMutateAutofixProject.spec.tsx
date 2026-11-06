@@ -6,7 +6,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {
   AutofixSettingsPartialSaveError,
   useMutateAutofixProject,
-} from 'sentry/utils/seer/useMutateAutofixProject';
+} from './useMutateAutofixProject';
 
 describe('useMutateAutofixProject', () => {
   const organization = OrganizationFixture();

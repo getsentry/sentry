@@ -1,6 +1,12 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import {
+  makeEAPError,
+  makeEAPOccurrence,
+} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
 import {
   getAttributeFilterSearch,
   getSearchInExploreTarget,
@@ -9,12 +15,7 @@ import {
   getTraceIssueSeverityClassName,
   parseJsonWithFix,
   TraceDrawerActionKind,
-} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import {
-  makeEAPError,
-  makeEAPOccurrence,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+} from './utils';
 
 describe('getAttributeFilterSearch', () => {
   it('formats an attribute key and value as a search filter', () => {

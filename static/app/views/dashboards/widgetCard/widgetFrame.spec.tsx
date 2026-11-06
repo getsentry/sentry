@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {WidgetFrame} from 'sentry/views/dashboards/widgetCard/widgetFrame';
+import {WidgetFrame} from './widgetFrame';
 
 describe('WidgetFrame', () => {
   describe('Layout', () => {

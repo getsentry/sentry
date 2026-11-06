@@ -10,21 +10,19 @@ import {t, tct} from 'sentry/locale';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
-import type {
-  ActionKindApplyProps,
-  ActionKindDetailsProps,
-  ActionKindUI,
-} from 'sentry/views/investigations/actionRequests/actionKinds';
-import {ApplyButton} from 'sentry/views/investigations/actionRequests/applyButton';
-import {
-  getChangedFieldLabels,
-  MonitorChanges,
-} from 'sentry/views/investigations/actionRequests/monitorChanges';
 import {getSourceMonitor, type SourceMonitor} from 'sentry/views/investigations/source';
 import type {
   InvestigationActionRequest,
   InvestigationUpdateDetectorAction,
 } from 'sentry/views/investigations/types';
+
+import type {
+  ActionKindApplyProps,
+  ActionKindDetailsProps,
+  ActionKindUI,
+} from './actionKinds';
+import {ApplyButton} from './applyButton';
+import {getChangedFieldLabels, MonitorChanges} from './monitorChanges';
 
 export const updateDetectorUI: ActionKindUI<InvestigationUpdateDetectorAction> = {
   Details: UpdateDetectorDetails,
@@ -110,6 +108,7 @@ function UpdateDetectorApply({
   finishing,
   message,
   onApply,
+  onLinkClick,
   onRecheck,
   rechecking,
 }: ActionKindApplyProps<InvestigationUpdateDetectorAction>) {
@@ -137,6 +136,7 @@ function UpdateDetectorApply({
           variant="primary"
           icon={<IconSiren />}
           to={makeMonitorDetailsPathname(organization.slug, action.detectorId)}
+          onClick={() => onLinkClick('view_monitor')}
         >
           {t('View monitor')}
         </LinkButton>

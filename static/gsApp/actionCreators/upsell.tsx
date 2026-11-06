@@ -1,16 +1,13 @@
 import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';
 import type {EventType} from 'getsentry/components/addEventsCTA';
+import {TrialRequestedStore} from 'getsentry/stores/trialRequestedStore';
 
 export function sendUpgradeRequest({
   organization,
@@ -46,9 +43,26 @@ export function sendTrialRequest({
     data: {},
     handleSuccess: () => {
       // show confirmation through trialStartedSidebarItem
-      TrialRequestedActions.requested();
+      TrialRequestedStore.markRequested();
       handleSuccess?.();
     },
+    ...rest,
+  });
+}
+
+export function sendSeerTopUpRequest({
+  organization,
+  ...rest
+}: {
+  api: Client;
+  organization: Organization;
+  handleSuccess?: () => void;
+}) {
+  const endpoint = `/organizations/${organization.slug}/seer-top-up-request/`;
+  return sendBasicRequest({
+    endpoint,
+    data: {},
+    successMessage: t('Admins emailed.'),
     ...rest,
   });
 }
@@ -78,22 +92,24 @@ async function sendBasicRequest({
   endpoint,
   data,
   handleSuccess,
+  successMessage = t('Request Sent'),
 }: {
   api: Client;
   data: Record<string, any>;
   endpoint: string;
   handleSuccess?: () => void;
+  successMessage?: string;
 }) {
   try {
-    addLoadingMessage(t('Requesting\u2026'));
+    toast.loading(t('Requesting\u2026'));
     await api.requestPromise(endpoint, {
       method: 'POST',
       data,
     });
-    addSuccessMessage(t('Request Sent'));
+    toast.success(successMessage);
     handleSuccess?.();
   } catch (err) {
-    addErrorMessage(t('Unable to send request'));
+    toast.error(t('Unable to send request'));
     Sentry.captureException(err);
   }
 }

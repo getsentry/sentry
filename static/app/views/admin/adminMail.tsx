@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
@@ -33,11 +33,8 @@ export default function AdminMail() {
 }
 
 function AdminMailContent() {
-  const {data, isPending, isError, refetch} = useApiQuery<Data>(
-    [getApiUrl('/internal/mail/')],
-    {
-      staleTime: 0,
-    }
+  const {data, isPending, isError, refetch} = useQuery(
+    apiOptions.as<Data>()('/internal/mail/', {staleTime: 0})
   );
   const api = useApi({persistInFlight: true});
 
@@ -64,11 +61,12 @@ function AdminMailContent() {
   const sendTestEmail = async () => {
     try {
       await api.requestPromise('/internal/mail/', {method: 'POST'});
-      addSuccessMessage(t('A test email has been sent to %s', testMailEmail));
+      toast.success(t('A test email has been sent to %s', testMailEmail));
     } catch (error: any) {
-      addErrorMessage(
-        error.responseJSON
-          ? error.responseJSON.error
+      const message: unknown = error.responseJSON?.error;
+      toast.error(
+        typeof message === 'string'
+          ? message
           : t('Unable to send test email. Check your server logs')
       );
     }

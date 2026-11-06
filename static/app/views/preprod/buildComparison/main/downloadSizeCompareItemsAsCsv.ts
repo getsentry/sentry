@@ -1,4 +1,5 @@
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {unparseCsv} from 'sentry/utils/unparseCsv';
@@ -24,8 +25,6 @@ export function downloadSizeCompareItemsAsCsv(diffItems: DiffItem[], filename: s
   downloadFromHref(`${filename}.csv`, encodedDataUrl);
 
   if (diffItems.length > CSV_ROW_LIMIT) {
-    addSuccessMessage(
-      t('Downloaded first %s of %s items', CSV_ROW_LIMIT, diffItems.length)
-    );
+    toast.success(t('Downloaded first %s of %s items', CSV_ROW_LIMIT, diffItems.length));
   }
 }

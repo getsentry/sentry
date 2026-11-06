@@ -203,6 +203,12 @@ register(
     type=Int,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "mail.send-dedupe.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # TOTP (Auth app)
 register(
@@ -273,6 +279,13 @@ register(
     "oauth.setup-code.allowed-client-ids",
     type=Sequence,
     default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Public CLI application used for private onboarding handoffs. Empty disables minting.
+register(
+    "onboarding.agent-handoff.client-id",
+    default="",
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -463,6 +476,12 @@ register(
 
 register(
     "cleanup.abort_execution",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.inbox-events.enabled",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -788,6 +807,20 @@ register(
 register(
     "gitlab.webhook-reconcile.rate-limit.retry-delay-seconds",
     default=73,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
+    default=300,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
+    default=1801,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1626,6 +1659,14 @@ register(
     type=Int,
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Kill switch for sentry.cadence: when False, no triggers are claimed or fired.
+register(
+    "cadence.tick.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -3877,6 +3918,14 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Use Seer embeddings similarity for every project. Off for self-hosted, which keeps the legacy
+# Redis index.
+register(
+    "similarity.seer_grouping.all_projects",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "delayed_processing.batch_size",
     default=10000,
@@ -4279,6 +4328,22 @@ register(
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Decompress chunk uploads into temporary files instead of memory, so a request
+# doesn't hold up to its full decompressed size in the web worker.
+register(
+    "chunk-upload.spool-decompressed-chunks",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# With spooling on, how many bytes of each decompressed chunk stay in memory
+# before the rest is written to a temporary file. 0 never writes to disk.
+register(
+    "chunk-upload.spool-max-memory-size",
+    type=Int,
+    default=1024 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "issues.client_error_sampling.project_allowlist",

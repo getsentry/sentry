@@ -1,8 +1,9 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {MonitorLink} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+
+import {MonitorLink} from './monitorLink';
 
 const LazyMonitorBlock = lazy(() => import('./monitorBlock'));
 
