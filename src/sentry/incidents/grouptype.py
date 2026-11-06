@@ -383,4 +383,16 @@ class MetricIssueDetectorSettings(DetectorSettings):
                 "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
             },
         },
+        # Only percent detectors have a `comparison_delta`. A null value counts as no delta.
+        "if": {
+            # Without `required`, the condition would also match when `detection_type` is missing
+            "required": ["detection_type"],
+            "properties": {"detection_type": {"const": AlertRuleDetectionType.PERCENT.value}},
+        },
+        "then": {
+            "required": ["comparison_delta"],
+            "properties": {"comparison_delta": {"type": "integer"}},
+        },
+        # `properties` only applies to keys which are present, so a missing delta passes, too
+        "else": {"properties": {"comparison_delta": {"type": "null"}}},
     }
