@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import {Fragment, useContext, useId, useMemo, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
@@ -82,6 +83,7 @@ function GridList<T extends ListItemBase>({
   ...props
 }: GridListProps<T>) {
   const {t} = useTranslation();
+  const theme = useTheme();
   const ref = useRef<HTMLUListElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const labelId = useId();
@@ -123,7 +125,8 @@ function GridList<T extends ListItemBase>({
     size,
     scrollRef,
     focusedKey: listState.selectionManager.focusedKey,
-    listPadding: 4,
+    // Matches the vertical padding of `ListWrap`.
+    listPadding: parseFloat(theme.space.xs),
   });
 
   const mergedProps = mergeProps(gridProps, props);

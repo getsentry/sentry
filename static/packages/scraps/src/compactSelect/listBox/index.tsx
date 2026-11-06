@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -102,7 +103,7 @@ interface ListBoxProps<T extends ListItemBase>
   virtualized?: boolean;
   /**
    * Vertical padding (in px) of the list above its first item, used to align
-   * virtualized rows. Defaults to 4 (theme.space.xs).
+   * virtualized rows. Defaults to `theme.space.xs`, the vertical padding of `ListWrap`.
    */
   virtualizedListPadding?: number;
 }
@@ -145,6 +146,7 @@ export function ListBox<T extends ListItemBase>({
   ...props
 }: ListBoxProps<T>) {
   const {t} = useTranslation();
+  const theme = useTheme();
   const listElementRef = useRef<HTMLUListElement>(null);
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const [hasEverOverflowed, setHasEverOverflowed] = useState(false);
@@ -251,7 +253,7 @@ export function ListBox<T extends ListItemBase>({
     size,
     scrollRef: scrollElementRef,
     focusedKey: listState.selectionManager.focusedKey,
-    listPadding: virtualizedListPadding ?? 4,
+    listPadding: virtualizedListPadding ?? parseFloat(theme.space.xs),
   });
 
   const refs = useMemo(() => {
