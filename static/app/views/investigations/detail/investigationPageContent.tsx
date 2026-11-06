@@ -413,7 +413,6 @@ export function InvestigationPageContent({
                     variant="link"
                     icon={<IconChat size="xs" />}
                     aria-label={commentsLabel}
-                    tooltipProps={{title: commentsLabel}}
                     onClick={() => {
                       if (investigation.status === 'archived') {
                         activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
@@ -426,7 +425,9 @@ export function InvestigationPageContent({
                       composerRef.current?.focus({preventScroll: true});
                     }}
                   >
-                    {hasMoreComments ? `${commentCount}+` : commentCount}
+                    <CommentCount>
+                      {hasMoreComments ? `${commentCount}+` : commentCount}
+                    </CommentCount>
                   </Button>
                 </Fragment>
               )}
@@ -673,4 +674,14 @@ const DetailsBody = styled(Stack)`
 const MetaDivider = styled('span')`
   height: 16px;
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
+/**
+ * Digits have no descenders, so the line box's descender room pushes a
+ * centered number above the icon. Trimming to the cap height and baseline
+ * centers the glyphs themselves.
+ */
+const CommentCount = styled('span')`
+  text-box-edge: cap alphabetic;
+  text-box-trim: trim-both;
 `;
