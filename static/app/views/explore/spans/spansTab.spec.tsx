@@ -384,7 +384,7 @@ describe('SpansTabContent', () => {
     );
   });
 
-  it('captures per-axis pipelines and the selected chart interval', async () => {
+  it('captures per-axis transformations and the selected chart interval', async () => {
     const visualizes = [
       {yAxes: ['avg(span.duration)'], transformations: ['fill(zero)', 'smooth(sma,5)']},
       {yAxes: ['avg(span.duration)'], transformations: ['fill(locf)']},

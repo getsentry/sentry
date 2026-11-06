@@ -210,7 +210,7 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it('captures per-axis pipelines and the default chart interval', async () => {
+  it('captures per-axis transformations and the default chart interval', async () => {
     const visualizes = [
       {
         yAxes: ['p50(value,bar,distribution,none)'],

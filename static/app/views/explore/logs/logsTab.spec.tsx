@@ -226,7 +226,7 @@ describe('LogsTabContent', () => {
     });
   });
 
-  it('captures per-axis pipelines and the default chart interval', async () => {
+  it('captures per-axis transformations and the default chart interval', async () => {
     const visualizes = [
       {yAxes: ['count(message)'], transformations: ['fill(zero)', 'smooth(sma,5)']},
       {yAxes: ['count(message)'], transformations: ['fill(locf)']},
