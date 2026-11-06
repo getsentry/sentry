@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import color from 'color';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
@@ -28,12 +27,7 @@ export function useAvatarGradient(
   fallback: Gradient
 ): Gradient {
   const avatarColors = useAvatarColors(avatar);
-  const dominant = avatarColors.type === 'none' ? null : avatarColors.dominant;
-  const [fallbackStart, fallbackEnd] = fallback;
-
-  return useMemo(
-    () =>
-      dominant ? getAvatarGradient(dominant, fallbackEnd) : [fallbackStart, fallbackEnd],
-    [dominant, fallbackStart, fallbackEnd]
-  );
+  return avatarColors.type === 'none'
+    ? fallback
+    : getAvatarGradient(avatarColors.dominant, fallback[1]);
 }
