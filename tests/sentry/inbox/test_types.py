@@ -5,16 +5,22 @@ from typing import Any, assert_type
 from unittest.mock import patch
 
 import pytest
-from django.db import connections
+from django.db import connections, router, transaction
 from openapi_schema_validator import OAS30Validator
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.inbox.event_retention import (
     cleanup_inbox_item_events,
     schedule_inbox_event_cleanup,
 )
 from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
+from sentry.inbox.item_retention import (
+    cleanup_inbox_items,
+    schedule_inbox_item_cleanup,
+)
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import (
     InboxCountResponse,
@@ -287,6 +293,283 @@ class InboxEventRetentionTest(TestCase):
             self._cleanup(item)
         assert item.events.count() == 1
         assert not item.events.filter(id__in=[event.id for event in events]).exists()
+
+
+class InboxItemRetentionTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(self.options({"cleanup.inbox-items.enabled": True}))
+
+    def _cleanup(self) -> None:
+        with BurstTaskRunner() as drain:
+            cleanup_inbox_items(organization_id=self.organization.id, user_id=self.user.id)
+            drain()
+
+    def test_item_limit_and_timestamp_ties(self) -> None:
+        timestamp = before_now(days=365)
+        items = [
+            self.create_inbox_item(subject_id=str(index), last_activity_at=timestamp)
+            for index in range(2_000)
+        ]
+        event = self.create_inbox_item_event(items[0])
+        recent = self.create_inbox_item(subject_id="recent")
+        self._cleanup()
+        items[0].refresh_from_db()
+        assert items[0].status == ObjectStatus.PENDING_DELETION
+        assert items[0].events.filter(id=event.id).exists()
+        assert InboxItem.objects.filter(status=ObjectStatus.ACTIVE).count() == 2_000
+        assert CellScheduledDeletion.objects.filter(
+            model_name="InboxItem", object_id=items[0].id
+        ).exists()
+        assert InboxItem.objects.filter(id=recent.id, status=ObjectStatus.ACTIVE).exists()
+        with self.tasks():
+            run_scheduled_deletions()
+        assert not InboxItem.objects.filter(id=items[0].id).exists()
+        assert not InboxItemEvent.objects.filter(id=event.id).exists()
+        assert InboxItem.objects.count() == 2_000
+
+    def test_disabled_cleanup_preserves_items(self) -> None:
+        old = self.create_inbox_item(subject_id="old", last_activity_at=before_now(days=1))
+        self.create_inbox_item(subject_id="recent")
+        with (
+            self.options({"cleanup.inbox-items.enabled": False}),
+            patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1),
+            patch.object(cleanup_inbox_items, "delay") as enqueue,
+            patch.object(schedule_inbox_item_cleanup, "delay") as next_page,
+        ):
+            schedule_inbox_item_cleanup()
+            cleanup_inbox_items(organization_id=self.organization.id, user_id=self.user.id)
+        enqueue.assert_not_called()
+        next_page.assert_not_called()
+        old.refresh_from_db()
+        assert old.status == ObjectStatus.ACTIVE
+        assert not CellScheduledDeletion.objects.filter(model_name="InboxItem").exists()
+
+    def test_cleanup_is_scoped_to_the_inbox(self) -> None:
+        old = self.create_inbox_item(subject_id="old", last_activity_at=before_now(days=1))
+        event = self.create_inbox_item_event(old)
+        current = self.create_inbox_item(subject_id="current", subject_type="test.reference")
+        other_user = self.create_inbox_item(user=self.create_user())
+        other_org = self.create_inbox_item(organization=self.create_organization())
+        with patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1):
+            self._cleanup()
+        assert set(
+            InboxItem.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", flat=True)
+        ) == {current.id, other_user.id, other_org.id}
+        assert InboxItemEvent.objects.filter(id=event.id).exists()
+        assert list(
+            CellScheduledDeletion.objects.filter(model_name="InboxItem").values_list(
+                "object_id", flat=True
+            )
+        ) == [old.id]
+
+    def test_scheduling_continues_in_batches_and_ignores_pending_items(self) -> None:
+        pending = self.create_inbox_item(subject_id="pending", status=ObjectStatus.PENDING_DELETION)
+        items = [self.create_inbox_item(subject_id=str(index)) for index in range(4)]
+        with (
+            patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1),
+            patch("sentry.inbox.item_retention.ITEM_BATCH_SIZE", 1),
+            BurstTaskRunner() as drain,
+        ):
+            cleanup_inbox_items(organization_id=self.organization.id, user_id=self.user.id)
+            assert CellScheduledDeletion.objects.filter(model_name="InboxItem").count() == 1
+            assert len(drain.queue) == 1
+            drain()
+        assert list(
+            InboxItem.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", flat=True)
+        ) == [items[-1].id]
+        assert set(
+            CellScheduledDeletion.objects.filter(model_name="InboxItem").values_list(
+                "object_id", flat=True
+            )
+        ) == {item.id for item in items[:-1]}
+        assert InboxItem.objects.filter(id=pending.id).exists()
+
+    def test_new_activity_cancels_deletion_with_ui_disabled(self) -> None:
+        old = self.create_inbox_item(
+            subject_id=str(self.group.id), last_activity_at=before_now(days=1)
+        )
+        original_event = self.create_inbox_item_event(old)
+        current = self.create_inbox_item(subject_id="current", last_activity_at=before_now(hours=1))
+
+        with (
+            self.feature(
+                {
+                    "organizations:universal-inbox-recording": True,
+                    "organizations:universal-inbox": False,
+                }
+            ),
+            patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1),
+        ):
+            self._cleanup()
+            assert CellScheduledDeletion.objects.filter(
+                model_name="InboxItem", object_id=old.id
+            ).exists()
+
+            ISSUE_USER_MENTIONED.record(
+                subject=self.group,
+                data=IssueMentionedData(summary="Mentioned you", comment_id=123),
+                recipient_user_ids=[self.user.id],
+                actor=SYSTEM_ACTOR,
+            )
+            with self.tasks():
+                run_scheduled_deletions()
+
+            old.refresh_from_db()
+            assert old.status == ObjectStatus.ACTIVE
+            assert old.events.count() == 2
+            assert old.events.filter(id=original_event.id).exists()
+            assert old.events.filter(data__comment_id=123).exists()
+            assert not CellScheduledDeletion.objects.filter(
+                model_name="InboxItem", object_id=old.id
+            ).exists()
+
+            self._cleanup()
+            with self.tasks():
+                run_scheduled_deletions()
+
+        assert not InboxItem.objects.filter(id=current.id).exists()
+        assert InboxItem.objects.filter(id=old.id, status=ObjectStatus.ACTIVE).exists()
+        assert InboxItem.objects.count() == 1
+        assert old.events.count() == 2
+
+    def test_schedule_active_inboxes_with_pagination(self) -> None:
+        other_org = self.create_organization()
+        recipients = [self.user, self.create_user(), self.create_user()]
+        for user in recipients:
+            self.create_inbox_item(user=user, subject_id="first")
+            self.create_inbox_item(user=user, subject_id="second")
+        self.create_inbox_item(organization=other_org)
+        self.create_inbox_item(user=self.create_user(), status=ObjectStatus.PENDING_DELETION)
+        with (
+            patch("sentry.inbox.item_retention.SCHEDULE_BATCH_SIZE", 2),
+            patch.object(cleanup_inbox_items, "delay") as enqueue,
+            patch.object(schedule_inbox_item_cleanup, "delay") as next_page,
+        ):
+            schedule_inbox_item_cleanup()
+            assert enqueue.call_count == 2
+            next_page.assert_called_once()
+            schedule_inbox_item_cleanup(**next_page.call_args.kwargs)
+        assert {
+            (call.kwargs["organization_id"], call.kwargs["user_id"])
+            for call in enqueue.call_args_list
+        } == {(self.organization.id, user.id) for user in recipients} | {
+            (other_org.id, self.user.id)
+        }
+        assert enqueue.call_count == 4
+
+    def test_rollouts_are_independent(self) -> None:
+        old = self.create_inbox_item(subject_id="old", last_activity_at=before_now(days=1))
+        self.create_inbox_item(subject_id="recent")
+        for _ in range(3):
+            self.create_inbox_item_event(old)
+        with (
+            self.options(
+                {"cleanup.inbox-items.enabled": False, "cleanup.inbox-events.enabled": True}
+            ),
+            patch("sentry.inbox.event_retention.MAX_EVENTS_PER_ITEM", 1),
+            patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1),
+        ):
+            cleanup_inbox_item_events(item_id=old.id)
+            self._cleanup()
+        old.refresh_from_db()
+        assert old.status == ObjectStatus.ACTIVE
+        assert old.events.count() == 1
+        with patch.object(cleanup_inbox_items, "delay") as enqueue:
+            schedule_inbox_item_cleanup()
+        enqueue.assert_called_once_with(organization_id=self.organization.id, user_id=self.user.id)
+        with patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1):
+            self._cleanup()
+        old.refresh_from_db()
+        assert old.status == ObjectStatus.PENDING_DELETION
+        assert old.events.count() == 1
+
+    def test_schedule_failure_rolls_back_pending_status(self) -> None:
+        old = self.create_inbox_item(subject_id="old", last_activity_at=before_now(days=1))
+        self.create_inbox_item(subject_id="recent")
+        with (
+            patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1),
+            patch.object(
+                CellScheduledDeletion, "schedule", side_effect=RuntimeError("schedule failed")
+            ),
+            pytest.raises(RuntimeError, match="schedule failed"),
+        ):
+            cleanup_inbox_items(organization_id=self.organization.id, user_id=self.user.id)
+        old.refresh_from_db()
+        assert old.status == ObjectStatus.ACTIVE
+        assert not CellScheduledDeletion.objects.filter(model_name="InboxItem").exists()
+
+    def test_next_sweep_finds_new_overflow(self) -> None:
+        old = self.create_inbox_item(subject_id="old", last_activity_at=before_now(days=1))
+        self.create_inbox_item(subject_id="recent")
+        with patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 2):
+            self._cleanup()
+            assert not CellScheduledDeletion.objects.filter(model_name="InboxItem").exists()
+            self.create_inbox_item(subject_id="new")
+            self._cleanup()
+        assert InboxItem.objects.filter(status=ObjectStatus.ACTIVE).count() == 2
+        assert CellScheduledDeletion.objects.filter(
+            model_name="InboxItem", object_id=old.id
+        ).exists()
+
+    def test_under_limit_only_probes_capacity(self) -> None:
+        self.create_inbox_item()
+        with self.assertNumQueries(1), patch.object(cleanup_inbox_items, "delay") as enqueue:
+            cleanup_inbox_items(organization_id=self.organization.id, user_id=self.user.id)
+        enqueue.assert_not_called()
+        assert not CellScheduledDeletion.objects.filter(model_name="InboxItem").exists()
+
+    def test_candidate_reactivated_after_selection_is_preserved(self) -> None:
+        old = self.create_inbox_item(subject_id="old", last_activity_at=before_now(days=1))
+        self.create_inbox_item(subject_id="recent")
+        queryset_type = type(InboxItem.objects.all())
+        select_for_update = queryset_type.select_for_update
+
+        def reactivate(queryset: Any, **kwargs: Any) -> Any:
+            old.update(last_activity_at=before_now(days=-1))
+            return select_for_update(queryset, **kwargs)
+
+        with (
+            patch.object(queryset_type, "select_for_update", autospec=True, side_effect=reactivate),
+            patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1),
+        ):
+            cleanup_inbox_items(organization_id=self.organization.id, user_id=self.user.id)
+
+        assert InboxItem.objects.filter(id=old.id, status=ObjectStatus.ACTIVE).exists()
+        assert not CellScheduledDeletion.objects.filter(model_name="InboxItem").exists()
+
+
+class InboxItemRetentionConcurrencyTest(TransactionTestCase):
+    def test_skip_item_being_recorded(self) -> None:
+        old = self.create_inbox_item(subject_id="old", last_activity_at=before_now(days=1))
+        event = self.create_inbox_item_event(old)
+        recent = self.create_inbox_item(subject_id="recent")
+        organization_id, user_id = self.organization.id, self.user.id
+
+        def run_cleanup() -> None:
+            try:
+                cleanup_inbox_items(organization_id=organization_id, user_id=user_id)
+            finally:
+                connections.close_all()
+
+        with (
+            self.options({"cleanup.inbox-items.enabled": True}),
+            patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1),
+        ):
+            with (
+                transaction.atomic(using=router.db_for_write(InboxItem)),
+                ContextPropagatingThreadPoolExecutor(max_workers=1) as executor,
+            ):
+                list(InboxItem.objects.filter(id=old.id).select_for_update())
+                executor.submit(run_cleanup).result(timeout=20)
+                assert not CellScheduledDeletion.objects.filter(model_name="InboxItem").exists()
+                assert InboxItem.objects.filter(id=recent.id, status=ObjectStatus.ACTIVE).exists()
+            with BurstTaskRunner() as drain:
+                cleanup_inbox_items(organization_id=organization_id, user_id=user_id)
+                drain()
+        old.refresh_from_db()
+        assert old.status == ObjectStatus.PENDING_DELETION
+        assert InboxItemEvent.objects.filter(id=event.id).exists()
 
 
 @with_feature("organizations:universal-inbox-recording")
