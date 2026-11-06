@@ -2225,6 +2225,40 @@ describe('SeerExplorerContent', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('holds the user’s own sends until a forwarded question goes out', async () => {
+      let answerCreditCheck!: () => void;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'agent_chat_message'})],
+        body: {hasEnoughCredits: true},
+        asyncDelay: new Promise<void>(resolve => {
+          answerCreditCheck = resolve;
+        }),
+      });
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+
+      renderContent({initialQuery: 'why is this slow?'});
+
+      // The check hasn't answered, so the forwarded question is still waiting.
+      const textarea = await getSeerExplorerInput();
+      await userEvent.type(textarea, 'my own question');
+      expect(screen.getByRole('button', {name: 'Send message'})).toBeDisabled();
+      await userEvent.keyboard('{Enter}');
+      expect(sendMessage).not.toHaveBeenCalled();
+
+      answerCreditCheck();
+
+      await waitFor(() => {
+        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0);
+      });
+      expect(sendMessage).toHaveBeenCalledTimes(1);
+      expect(textarea).toHaveTextContent('my own question');
+      expect(screen.getByRole('button', {name: 'Send message'})).toBeEnabled();
+    });
+
     it('disables retrying a timed out message', async () => {
       mockCreditCheck(false);
       const sendMessage = jest.fn();

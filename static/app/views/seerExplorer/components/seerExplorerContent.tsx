@@ -363,9 +363,16 @@ export function SeerExplorerContent({
     'agent_chat_message',
     {enabled: isComposerShown}
   );
-  // Gates every way this panel starts a message: the composer, suggestions, retry,
-  // `/investigate`, the autofix embeds, and a question forwarded from elsewhere.
   const isOutOfCredits = !hasEnoughCredits;
+  // A question forwarded from elsewhere waits for the first check (see the
+  // auto-submit below) and goes first. Until it does, the user's own sends wait
+  // too, or one would land ahead of it and the forwarded question would be
+  // dropped, or sent after it.
+  const isForwardedQueryWaiting =
+    isCheckingCredits && !!initialQuery?.trim() && (isEmptyState || !!appendInitialQuery);
+  // Gates every way this panel starts a message: the composer, suggestions, retry,
+  // `/investigate`, and the autofix embeds.
+  const isSendBlocked = isOutOfCredits || isForwardedQueryWaiting;
 
   const suggestions = useChatSuggestions({
     enabled: isEmptyState && !chatPrompt && !showLoadError && !isPolling && !readOnly,
@@ -620,11 +627,11 @@ export function SeerExplorerContent({
     !readOnly &&
     !showLoadError &&
     !isPolling &&
-    !isOutOfCredits &&
+    !isSendBlocked &&
     !!inputValue.text.trim();
   const handleSend = useCallback(() => {
     // Checked before `/investigate`, which starts a run of its own. The draft stays.
-    if (isOutOfCredits) {
+    if (isSendBlocked) {
       return;
     }
     const text = inputValue.text.trim();
@@ -648,7 +655,7 @@ export function SeerExplorerContent({
     userScrolledUpRef.current = false;
   }, [
     canSendMessage,
-    isOutOfCredits,
+    isSendBlocked,
     inputValue,
     startInvestigation,
     sendMessage,
@@ -693,7 +700,7 @@ export function SeerExplorerContent({
   }, [startNewSession, focusInput, readOnly, showLoadError]);
 
   const handleRetry = useCallback(() => {
-    if (!retryTarget || readOnly || isOutOfCredits) {
+    if (!retryTarget || readOnly || isSendBlocked) {
       return;
     }
     // Seer rebuilds the retried message from this request, so resend the question it answered.
@@ -704,7 +711,7 @@ export function SeerExplorerContent({
       retryTarget.chatPrompt
     );
     userScrolledUpRef.current = false;
-  }, [readOnly, isOutOfCredits, retryTarget, sendMessage]);
+  }, [readOnly, isSendBlocked, retryTarget, sendMessage]);
 
   // - Scroll effects ---------------------------------------------------------
 
@@ -837,7 +844,7 @@ export function SeerExplorerContent({
   return (
     <AutofixChatProvider
       isBusy={isPolling}
-      sendMessage={readOnly || isOutOfCredits ? undefined : postMessage}
+      sendMessage={readOnly || isSendBlocked ? undefined : postMessage}
     >
       <Stack
         ref={rootRef}
@@ -868,7 +875,7 @@ export function SeerExplorerContent({
               runId={runId}
               displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
               onSuggestionClick={
-                readOnly || isOutOfCredits ? undefined : handleSuggestionClick
+                readOnly || isSendBlocked ? undefined : handleSuggestionClick
               }
               suggestions={suggestions}
             />
@@ -903,7 +910,7 @@ export function SeerExplorerContent({
                     variant="secondary"
                     icon={<IconRefresh />}
                     onClick={handleRetry}
-                    disabled={isOutOfCredits}
+                    disabled={isSendBlocked}
                   >
                     {t('Retry')}
                   </Alert.Button>
