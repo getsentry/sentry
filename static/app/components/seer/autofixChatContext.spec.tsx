@@ -218,6 +218,31 @@ describe('AutofixChatProvider', () => {
     });
   });
 
+  it('leaves the message in the composer when the organization is out of credits', async () => {
+    const creditsOrganization = OrganizationFixture({
+      ...organization,
+      features: [
+        ...organization.features,
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/credit-check/`,
+      match: [MockApiClient.matchQuery({operation: 'agent_chat_message'})],
+      body: {hasEnoughCredits: false},
+    });
+
+    render(tree('Why is this issue spiking?'), {organization: creditsOrganization});
+    await userEvent.click(await screen.findByRole('button', {name: 'ask-seer'}));
+
+    expect(await screen.findByTestId('seer-explorer-out-of-credits')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('combobox', {name: 'Ask Seer a question'})
+    ).toHaveTextContent('Why is this issue spiking?');
+    expect(postChat).not.toHaveBeenCalled();
+  });
+
   it('leaves the entry point disabled with no provider above it', () => {
     render(<AskSeerButton query="anything" />, {organization});
 
