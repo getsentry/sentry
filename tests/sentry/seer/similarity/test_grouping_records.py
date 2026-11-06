@@ -21,7 +21,7 @@ DUMMY_POOL = ConnectionPool("dummy")
 @mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
 def test_delete_grouping_records_by_hash_success(
     mock_seer_request: MagicMock, mock_logger: MagicMock
-):
+) -> None:
     mock_seer_request.return_value = HTTPResponse(
         json.dumps({"success": True}).encode("utf-8"), status=200
     )
@@ -43,7 +43,7 @@ def test_delete_grouping_records_by_hash_success(
 @mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
 def test_delete_grouping_records_by_hash_timeout(
     mock_seer_request: MagicMock, mock_logger: MagicMock
-):
+) -> None:
     mock_seer_request.side_effect = ReadTimeoutError(
         DUMMY_POOL, SEER_HASH_GROUPING_RECORDS_DELETE_URL, "read timed out"
     )
@@ -66,7 +66,7 @@ def test_delete_grouping_records_by_hash_timeout(
 @mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
 def test_delete_grouping_records_by_hash_failure(
     mock_seer_request: MagicMock, mock_logger: MagicMock
-):
+) -> None:
     mock_seer_request.return_value = HTTPResponse(
         b"<!doctype html>\n<html lang=en>\n<title>500 Internal Server Error</title>\n<h1>Internal Server Error</h1>\n<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>\n",
         reason="INTERNAL SERVER ERROR",

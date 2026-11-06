@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from enum import Enum
-from typing import Any, Literal, TypedDict
+from typing import Annotated, Any, Literal, NotRequired, ReadOnly, Required, TypedDict
 
 import pytest
+from django.http import HttpRequest
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from jsonschema.exceptions import ValidationError
@@ -74,9 +75,15 @@ class BasicSerializer(Serializer):
         raise NotImplementedError
 
 
-class FailSerializer(Serializer):
-    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any):
-        raise NotImplementedError
+FailSerializer = type(
+    "FailSerializer",
+    (Serializer,),
+    {
+        "serialize": lambda self, obj, attrs, user, **kwargs: (_ for _ in ()).throw(
+            NotImplementedError()
+        )
+    },
+)
 
 
 def test_sentry_response_serializer_extension() -> None:
@@ -163,6 +170,43 @@ def test_enum_literal_schema() -> None:
         "type": "string",
         "nullable": True,
     }
+
+
+class ItemQualifiersResponse(TypedDict):
+    plain: str
+    not_required: NotRequired[str]
+    annotated: NotRequired[Annotated[str, "meta"]]
+    read_only: ReadOnly[NotRequired[str]]
+
+
+class PartialResponse(TypedDict, total=False):
+    plain: str
+    required: Required[str]
+
+
+class InheritedQualifiersResponse(PartialResponse):
+    child_plain: str
+    child_not_required: NotRequired[str]
+
+
+def test_typed_dict_item_qualifiers_with_postponed_annotations() -> None:
+    # This module uses `from __future__ import annotations`, under which
+    # `__required_keys__` ignores Required and NotRequired.
+    assert resolve_type_hint(ItemQualifiersResponse) == {
+        "type": "object",
+        "properties": {
+            "plain": {"type": "string"},
+            "not_required": {"type": "string"},
+            "annotated": {"type": "string"},
+            "read_only": {"type": "string"},
+        },
+        "required": ["plain"],
+    }
+    assert resolve_type_hint(PartialResponse)["required"] == ["required"]
+    assert resolve_type_hint(InheritedQualifiersResponse)["required"] == [
+        "child_plain",
+        "required",
+    ]
 
 
 def test_sentry_fails_when_serializer_not_typed() -> None:
@@ -255,13 +299,15 @@ def test_investigation_delete_schema_requires_camel_case_versions() -> None:
         ),
     ],
 )
-def test_investigation_polymorphic_requests_match_validation(serializer, payload, valid) -> None:
+def test_investigation_polymorphic_requests_match_validation(
+    serializer: type[serializers.Serializer], payload: dict[str, object], valid: bool
+) -> None:
     class ExampleEndpoint(Endpoint):
         permission_classes = ()
         schema = InvestigationSchema()
 
         @extend_schema(request=serializer, responses={204: None})
-        def post(self, request):
+        def post(self, request: HttpRequest) -> None:
             pass
 
     schema = generate_schema("investigations/", view=ExampleEndpoint)

@@ -3,7 +3,7 @@ import {
   fromNanoJoulesToWatts,
   makeFormatter,
   makeTimelineFormatter,
-} from 'sentry/utils/profiling/units/units';
+} from './units';
 
 describe('makeTimelineFormatter', () => {
   it('handles base', () => {

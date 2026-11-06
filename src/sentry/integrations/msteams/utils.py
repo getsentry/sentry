@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import enum
 import logging
+from collections.abc import Mapping
+from typing import cast
 
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -33,11 +35,12 @@ class ACTION_TYPE(str, enum.Enum):
     UNASSIGN = "5"
 
 
-def channel_filter(channel, name):
+def channel_filter(channel: Mapping[str, object], name: str) -> bool:
     # the general channel has no name in the list
     # retrieved from the REST API call
-    if channel.get("name"):
-        return name.lower() == channel.get("name").lower()
+    channel_name = channel.get("name")
+    if channel_name:
+        return name.lower() == cast(str, channel_name).lower()
     else:
         return name.lower() == "general"
 
@@ -67,7 +70,7 @@ def find_channel_id(integration: Integration | RpcIntegration, name: str) -> str
 
     # handle searching for channels first
     channel_list = client.get_channel_list(team_id)
-    filtered_channels = list(filter(lambda x: channel_filter(x, name), channel_list))
+    filtered_channels = [channel for channel in channel_list if channel_filter(channel, name)]
     if len(filtered_channels) > 0:
         return filtered_channels[0].get("id")
 
@@ -138,7 +141,7 @@ def send_incident_alert_notification(
     return success
 
 
-def get_preinstall_client(service_url):
+def get_preinstall_client(service_url: str) -> MsTeamsPreInstallClient:
     # may want try/catch here since this makes an external API call
     access_token = get_token_data()["access_token"]
     return MsTeamsPreInstallClient(access_token, service_url)

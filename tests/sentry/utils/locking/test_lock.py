@@ -55,10 +55,10 @@ class LockTestCase(unittest.TestCase):
         lock = Lock(backend, key, duration, routing_key)
 
         class MockTime:
-            time = 0
+            time: float = 0
 
             @classmethod
-            def incr(cls, delta):
+            def incr(cls, delta: float) -> None:
                 cls.time += delta
 
         with (
@@ -74,4 +74,5 @@ class LockTestCase(unittest.TestCase):
 
         with patch("sentry.utils.locking.lock.Lock.acquire", return_value="foo"):
             # Success case:
-            assert lock.blocking_acquire(initial_delay=0, timeout=1) == "foo"
+            result: object = lock.blocking_acquire(initial_delay=0, timeout=1)
+            assert result == "foo"

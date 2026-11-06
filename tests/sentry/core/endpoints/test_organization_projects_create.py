@@ -1,4 +1,5 @@
 import re
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 
@@ -33,7 +34,7 @@ class OrganizationProjectsCreateTest(APITestCase):
         self.email_username = fetch_slugifed_email_username(self.user.email)
         self.t1 = f"team-{self.email_username}"
 
-    def validate_team_with_suffix(self, team: Team):
+    def validate_team_with_suffix(self, team: Team) -> bool:
         pattern = rf"^{self.t1}-[a-z]{{3}}$"
         return bool(re.match(pattern, team.slug)) and bool(re.match(pattern, team.name))
 
@@ -263,7 +264,7 @@ class OrganizationProjectsCreateTest(APITestCase):
         create_reference = Team.objects.create
         # Call create team with the same slug as the above request
 
-        def create_copy(*args, **kwargs):
+        def create_copy(*args: Any, **kwargs: Any) -> Any:
             kwargs["slug"] = self.t1
             return create_reference(*args, **kwargs)
 
@@ -286,7 +287,7 @@ class OrganizationProjectsCreateTest(APITestCase):
         # function then call the reference unless the organization matches the test case
         get_reference = OrganizationMember.objects.get
 
-        def get_callthrough(*args, **kwargs):
+        def get_callthrough(*args: Any, **kwargs: Any) -> Any:
             if self.organization in kwargs.values():
                 raise OrganizationMember.DoesNotExist
             return get_reference(*args, **kwargs)

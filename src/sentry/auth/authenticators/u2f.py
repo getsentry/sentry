@@ -47,7 +47,8 @@ def create_credential_object(registeredKey: dict[str, str]) -> base.AttestedCred
 
 
 def _get_url_prefix() -> str:
-    return options.get("system.url-prefix")
+    url_prefix = options.get("system.url-prefix")
+    return url_prefix
 
 
 class U2fInterface(AuthenticatorInterface):
@@ -169,9 +170,11 @@ class U2fInterface(AuthenticatorInterface):
         for device in self.config.get("devices", ()):
             if isinstance(device["binding"], AuthenticatorData):
                 if decode_credential_id(device) == key:
-                    return device["name"]
+                    name = device["name"]
+                    return name
             elif device["binding"]["keyHandle"] == key:
-                return device["name"]
+                name = device["name"]
+                return name
         return None
 
     def get_registered_devices(self) -> list[dict[str, Any]]:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
@@ -35,6 +35,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import (
     Dashboard,
@@ -43,9 +44,6 @@ from sentry.models.dashboard import (
     DashboardRevision,
 )
 from sentry.models.organization import Organization
-
-EDIT_FEATURE = "organizations:dashboards-edit"
-READ_FEATURE = "organizations:dashboards-basic"
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +103,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="getOrganizationDashboard",
@@ -119,13 +118,10 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     )
     def get(
         self, request: Request, organization: Organization, dashboard: Dashboard
-    ) -> Response[DashboardDetailsResponse] | Response[None]:
+    ) -> Response[DashboardDetailsResponse]:
         """
         Return details about an organization's custom dashboard.
         """
-        if not features.has(READ_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
         body: DashboardDetailsResponse = serialize(dashboard, request.user)
         return self.respond(body)
 
@@ -145,9 +141,6 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         """
         Delete an organization's custom dashboard.
         """
-        if not features.has(EDIT_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
         self.check_object_permissions(request, dashboard)
 
         if dashboard.prebuilt_id is not None:
@@ -185,7 +178,6 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         dashboard: Dashboard,
     ) -> (
         Response[DashboardDetailsResponse]
-        | Response[None]
         | Response[DetailResponse]
         | Response[ValidationErrorResponse]
     ):
@@ -195,9 +187,6 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         that have been rearranged, updated queries and fields, specific
         display types, and so on.)
         """
-        if not features.has(EDIT_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
         self.check_object_permissions(request, dashboard)
 
         is_prebuilt = dashboard.prebuilt_id is not None
@@ -273,22 +262,20 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         """
         Update last_visited and increment visits counter
         """
-        if not features.has(EDIT_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
-        dashboard.visits = F("visits") + 1
+        dashboard.visits = cast(int, F("visits") + 1)
         dashboard.last_visited = timezone.now()
         dashboard.save(update_fields=["visits", "last_visited"])
 
         # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
+        user_id = acting_user_id(request.user)
         if (
             features.has(
                 "organizations:dashboards-user-last-visited", organization, actor=request.user
             )
-            and request.user.is_authenticated
+            and user_id is not None
         ):
             DashboardLastVisited.objects.update_or_create(
-                user_id=request.user.id,
+                user_id=user_id,
                 dashboard=dashboard,
                 defaults={"last_visited": timezone.now()},
             )
@@ -320,35 +307,33 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         Toggle favorite status for current user by adding or removing
         current user from dashboard favorites
         """
-        if not features.has(EDIT_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
         if not request.user.is_authenticated:
             return Response(status=401)
 
         should_favorite = request.data.get("shouldFavorite", request.data.get("isFavorited"))
+        user_id = require_user(request).id
 
         if features.has("organizations:dashboards-starred", organization, actor=request.user):
             if should_favorite:
                 DashboardFavoriteUser.objects.insert_favorite_dashboard(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=user_id,
                     dashboard=dashboard,
                 )
             else:
                 DashboardFavoriteUser.objects.unfavorite_dashboard(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=user_id,
                     dashboard=dashboard,
                 )
             return Response(status=204)
 
         current_favorites = set(dashboard.favorited_by)
 
-        if should_favorite and request.user.id not in current_favorites:
-            current_favorites.add(request.user.id)
-        elif not should_favorite and request.user.id in current_favorites:
-            current_favorites.remove(request.user.id)
+        if should_favorite and user_id not in current_favorites:
+            current_favorites.add(user_id)
+        elif not should_favorite and user_id in current_favorites:
+            current_favorites.remove(user_id)
         else:
             return Response(status=204)
 

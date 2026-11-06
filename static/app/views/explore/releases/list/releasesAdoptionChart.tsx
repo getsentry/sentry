@@ -8,8 +8,8 @@ import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {
@@ -45,10 +45,10 @@ import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
-import {sessionDisplayToField} from 'sentry/views/explore/releases/list/releasesRequest';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
+import {sessionDisplayToField} from './releasesRequest';
 
 type Props = {
   activeDisplay: ReleasesDisplayOption;
@@ -171,9 +171,8 @@ export function ReleasesAdoptionChart({
 
   useEffect(() => {
     if (isError) {
-      addErrorMessage(
-        (error as any)?.responseJSON?.detail ?? t('Error loading health data')
-      );
+      const detail: unknown = (error as any)?.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Error loading health data'));
     }
   }, [isError, error]);
 

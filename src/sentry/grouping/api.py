@@ -127,11 +127,12 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
     option_name: str  # Set in subclasses
 
     def _get_config_id(self, project: Project) -> str:
-        return project.get_option(
+        config_id = project.get_option(
             self.option_name,
             validate=lambda x: isinstance(x, str) and x in GROUPING_CONFIG_CLASSES,
             default=DEFAULT_GROUPING_CONFIG,
         )
+        return config_id
 
 
 class PrimaryGroupingConfigLoader(ProjectGroupingConfigLoader):

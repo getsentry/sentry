@@ -1,6 +1,6 @@
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useDetectorStatsPeriods} from 'sentry/views/detectors/hooks/useDetectorStatsPeriods';
+import {useDetectorStatsPeriods} from './useDetectorStatsPeriods';
 
 describe('useDetectorStatsPeriods', () => {
   it('does nothing when there is no statsPeriod in the URL', async () => {

@@ -5,8 +5,10 @@ from collections.abc import Mapping
 
 import orjson
 from cryptography.exceptions import InvalidSignature
+from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
+from sentry_viewercontext import viewer_context_var
 
 from sentry import options
 from sentry.constants import ObjectStatus
@@ -18,6 +20,7 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 from ..utils import logger, verify_signature
 
@@ -135,7 +138,7 @@ class DiscordRequest:
             return None
         return f"{DISCORD_BASE_URL}/webhooks/{application_id}/{token}"
 
-    def _get_context(self):
+    def _get_context(self) -> None:
         context = integration_service.get_integration_identity_context(
             integration_provider=IntegrationProviderSlug.DISCORD.value,
             integration_external_id=self.guild_id,
@@ -155,6 +158,23 @@ class DiscordRequest:
         self.authorize()
         self.validate_integration()
         self._validate_identity()
+        self._set_viewer_context_actor()
+
+    def _set_viewer_context_actor(self) -> None:
+        if not settings.SENTRY_VIEWER_CONTEXT_ENABLED:
+            return
+
+        current = get_viewer_context()
+        # A guild can span organizations. Keep only previously resolved scope.
+        viewer_context_var.set(
+            ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=self.user.id)
+                if self.user is not None
+                else Actor(type=ActorType.INTEGRATION),
+                organization_id=current.organization_id if current is not None else None,
+                project_id=current.project_id if current is not None else None,
+            )
+        )
 
     def authorize(self) -> None:
         public_key: str = options.get("discord.public-key")
@@ -239,7 +259,7 @@ class DiscordRequest:
     def _log_request(self) -> None:
         self._info("discord.request")
 
-    def _info(self, key: str, extra=None) -> None:
+    def _info(self, key: str, extra: dict[str, object] | None = None) -> None:
         if not extra:
             extra = {**self.logging_data}
         logger.info(key, extra=extra)

@@ -23,6 +23,7 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
+        assert self.event.group is not None
         self.group = self.event.group
         self.login_as(user=self.user)
 

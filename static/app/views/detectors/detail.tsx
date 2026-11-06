@@ -7,8 +7,9 @@ import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {DetectorDetailsContent} from 'sentry/views/detectors/components/details';
-import {useDetectorQuery} from 'sentry/views/detectors/hooks';
+
+import {DetectorDetailsContent} from './components/details';
+import {useDetectorQuery} from './hooks';
 
 function DetectorDetailsLoadingStates({
   detectorId,

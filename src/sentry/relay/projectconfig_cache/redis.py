@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 import zstandard
 
@@ -15,25 +15,25 @@ logger = logging.getLogger(__name__)
 
 
 class RedisProjectConfigCache(ProjectConfigCache):
-    def __init__(self, **options):
-        cluster_key = options.get("cluster", "default")
+    def __init__(self, **options: object) -> None:
+        cluster_key = cast(str, options.get("cluster", "default"))
         self.cluster = redis.redis_clusters.get_binary(cluster_key)
 
-        read_cluster_key = options.get("read_cluster", cluster_key)
+        read_cluster_key = cast(str, options.get("read_cluster", cluster_key))
         self.cluster_read = redis.redis_clusters.get_binary(read_cluster_key)
 
         super().__init__(**options)
 
-    def validate(self):
+    def validate(self) -> None:
         validate_dynamic_cluster(True, self.cluster)
 
-    def __get_redis_key(self, public_key) -> str:
+    def __get_redis_key(self, public_key: str) -> str:
         return f"relayconfig:{public_key}"
 
-    def __get_redis_rev_key(self, public_key) -> str:
+    def __get_redis_rev_key(self, public_key: str) -> str:
         return f"{self.__get_redis_key(public_key)}.rev"
 
-    def set_many(self, configs: dict[str, Mapping[str, Any]]):
+    def set_many(self, configs: Mapping[str, Mapping[str, object] | None]) -> None:
         metrics.incr("relay.projectconfig_cache.write", amount=len(configs), tags={"action": "set"})
 
         # Note: Those are multiple pipelines, one per cluster node.
@@ -55,14 +55,18 @@ class RedisProjectConfigCache(ProjectConfigCache):
             # the actual revision on the project config for consistency, the revision key can and
             # should only be used as an optimization. This is also why the used pipeline is not
             # made transactional.
-            if rev := config.get("rev"):
-                p.setex(self.__get_redis_rev_key(public_key), REDIS_CACHE_TIMEOUT, rev)
+            if config is not None and (rev := config.get("rev")):
+                p.setex(
+                    self.__get_redis_rev_key(public_key),
+                    REDIS_CACHE_TIMEOUT,
+                    cast(bytes | float | int | str, rev),
+                )
             else:
                 p.delete(self.__get_redis_rev_key(public_key))
 
         p.execute()
 
-    def get(self, public_key):
+    def get(self, public_key: str) -> Any:
         rv_b = self.cluster_read.get(self.__get_redis_key(public_key))
         if rv_b is not None:
             try:
@@ -73,7 +77,7 @@ class RedisProjectConfigCache(ProjectConfigCache):
             return json.loads(rv)
         return None
 
-    def get_rev(self, public_key) -> str | None:
+    def get_rev(self, public_key: str) -> str | None:
         if value := self.cluster_read.get(self.__get_redis_rev_key(public_key)):
             return value.decode()
         return None

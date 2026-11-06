@@ -10,15 +10,13 @@ import {EditLayoutDeprecated} from 'sentry/components/workflowEngine/layout/edit
 import {t, tct} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  DetectorTypeForm,
-  useDetectorTypeQueryState,
-} from 'sentry/views/detectors/components/detectorTypeForm';
-import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
-import {getNoPermissionToCreateMonitorsTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
-import {useCanCreateDetector} from 'sentry/views/detectors/utils/useCanCreateDetector';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {DetectorTypeForm, useDetectorTypeQueryState} from './components/detectorTypeForm';
+import {MonitorFeedbackButton} from './components/monitorFeedbackButton';
+import {getNoPermissionToCreateMonitorsTooltip} from './utils/monitorAccessMessages';
+import {useCanCreateDetector} from './utils/useCanCreateDetector';
+import {makeMonitorBasePathname} from './pathnames';
 
 function NewDetectorBreadcrumbs() {
   const organization = useOrganization();

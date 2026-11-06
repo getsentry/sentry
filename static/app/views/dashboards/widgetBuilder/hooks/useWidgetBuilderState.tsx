@@ -37,7 +37,7 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {
-  deserializeTransformations,
+  parseAsTransformations,
   remapTransformations,
   type QueryTransformations,
 } from 'sentry/views/dashboards/utils/transformations';
@@ -51,7 +51,6 @@ import {
   type WidgetBuilderStateLocalParams,
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/constants';
-import {useSeededQueryState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSeededQueryState';
 import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
@@ -72,6 +71,8 @@ import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/de
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {useSeededQueryState} from './useSeededQueryState';
 
 export {
   MAX_NUM_Y_AXES,
@@ -1149,7 +1150,8 @@ export function useWidgetBuilderState(): {
         case BuilderStateAction.SET_STATE:
           setTransformations(
             action.payload.transformations
-              ? (deserializeTransformations(action.payload.transformations) ?? undefined)
+              ? (parseAsTransformations.parse(action.payload.transformations) ??
+                  undefined)
               : undefined,
             options
           );
@@ -1527,11 +1529,6 @@ const parseAsColumns = createMultiParser({
   serialize: serializeFields,
   eq: bothEmpty,
 }).withDefault([]);
-
-const parseAsTransformations = createParser({
-  parse: deserializeTransformations,
-  serialize: (value: QueryTransformations[]) => JSON.stringify(value),
-});
 
 const parseAsQueries = createMultiParser({
   parse: (values: readonly string[]) => deserializeQuery([...values]),

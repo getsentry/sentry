@@ -7,12 +7,13 @@ import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraph
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
 import {getContext, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
-import type {FlamegraphRendererOptions} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
+
+import type {FlamegraphRendererOptions} from './flamegraphRenderer';
 import {
   DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS,
   FlamegraphRenderer,
-} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+} from './flamegraphRenderer';
 
 export class FlamegraphRenderer2D extends FlamegraphRenderer {
   ctx: CanvasRenderingContext2D | null = null;

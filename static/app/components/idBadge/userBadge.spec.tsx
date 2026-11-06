@@ -2,8 +2,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import type {AvatarUser} from 'sentry/types/user';
+
+import {UserBadge} from './userBadge';
 
 describe('UserBadge', () => {
   const user: AvatarUser = UserFixture();

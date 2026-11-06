@@ -8,7 +8,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import type {TagCollection} from 'sentry/types/group';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
@@ -22,7 +23,8 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
+
+import {AggregateColumnEditorModal} from './aggregateColumnEditorModal';
 
 const stringTags: TagCollection = {
   id: {

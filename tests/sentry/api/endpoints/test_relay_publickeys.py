@@ -1,3 +1,5 @@
+from contextlib import AbstractContextManager
+from typing import TypedDict, cast
 from unittest import mock
 from uuid import uuid4
 
@@ -10,7 +12,17 @@ from sentry.models.relay import Relay
 from sentry.testutils.cases import APITestCase
 
 
-def disable_internal_networks():
+class RelayInfo(TypedDict):
+    publicKey: str
+    internal: bool
+
+
+class RelayPublicKeysResponse(TypedDict):
+    public_keys: dict[str, str | None]
+    relays: dict[str, RelayInfo | None]
+
+
+def disable_internal_networks() -> AbstractContextManager[object]:
     return mock.patch.object(system, "INTERNAL_NETWORKS", ())
 
 
@@ -61,11 +73,11 @@ class RelayPublicKeysConfigTest(APITestCase):
         assert legacy_keys[self.non_existing_key] is None
 
         # check new results
-        relay_a_info = keys[self.relay_a.relay_id]
+        relay_a_info = cast(RelayInfo, keys[self.relay_a.relay_id])
         assert relay_a_info["publicKey"] == self.relay_a.public_key
         assert not relay_a_info["internal"]
 
-        relay_b_info = keys[self.relay_b.relay_id]
+        relay_b_info = cast(RelayInfo, keys[self.relay_b.relay_id])
         assert relay_b_info["publicKey"] == self.relay_b.public_key
         assert relay_b_info["internal"]
 
@@ -84,17 +96,17 @@ class RelayPublicKeysConfigTest(APITestCase):
         assert legacy_keys[self.non_existing_key] is None
 
         # check new results
-        relay_a_info = keys[self.relay_a.relay_id]
+        relay_a_info = cast(RelayInfo, keys[self.relay_a.relay_id])
         assert relay_a_info["publicKey"] == self.relay_a.public_key
         assert not relay_a_info["internal"]
 
-        relay_b_info = keys[self.relay_b.relay_id]
+        relay_b_info = cast(RelayInfo, keys[self.relay_b.relay_id])
         assert relay_b_info["publicKey"] == self.relay_b.public_key
         assert not relay_b_info["internal"]
 
         assert keys[self.non_existing_key] is None
 
-    def _call_endpoint(self, calling_relay):
+    def _call_endpoint(self, calling_relay: Relay) -> RelayPublicKeysResponse:
         raw_json, signature = self.private_key.pack(
             {
                 "relay_ids": [

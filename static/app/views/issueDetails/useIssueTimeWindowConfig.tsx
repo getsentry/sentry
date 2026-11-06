@@ -10,7 +10,8 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
 import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
-import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
+
+import {useGroupDefaultStatsPeriod} from './useGroupDefaultStatsPeriod';
 
 export function useIssueTimeWindowConfig({
   timelineWidth,

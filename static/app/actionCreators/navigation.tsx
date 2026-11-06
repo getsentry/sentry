@@ -1,6 +1,7 @@
 import type {Location, Query} from 'history';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';

@@ -4,12 +4,13 @@ import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
-import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
+
+import {useEventQuery} from './hooks/useEventQuery';
 import {
   groupEventApiOptions,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-} from 'sentry/views/issueDetails/utils';
+} from './utils';
 
 export const RESERVED_EVENT_IDS = new Set(['recommended', 'latest', 'oldest']);
 interface UseGroupEventOptions {

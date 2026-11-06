@@ -4,7 +4,11 @@ import {BreadcrumbList, type BreadcrumbListProps} from '@sentry/scraps/breadcrum
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-function ExampleBreadcrumbs({items}: BreadcrumbListProps) {
+interface ExampleBreadcrumbsProps extends BreadcrumbListProps {
+  title?: React.ReactNode;
+}
+
+function ExampleBreadcrumbs({items, title}: ExampleBreadcrumbsProps) {
   return (
     <MemoryRouter>
       <Text as="div">
@@ -20,12 +24,14 @@ function ExampleBreadcrumbs({items}: BreadcrumbListProps) {
               <BreadcrumbList items={items} />
             </Flex>
             <Container flex="1" minWidth={0}>
-              <BreadcrumbList.Title
-                item={{
-                  type: 'page-title',
-                  label: 'Authentication settings for the current organization',
-                }}
-              />
+              {title ?? (
+                <BreadcrumbList.Title
+                  item={{
+                    type: 'page-title',
+                    label: 'Authentication settings for the current organization',
+                  }}
+                />
+              )}
             </Container>
           </Flex>
         </Container>
@@ -44,6 +50,21 @@ describe('BreadcrumbList', () => {
             {type: 'link', label: 'Organization settings', to: '/settings/'},
             {type: 'link', label: 'Security', to: '/settings/security/'},
           ]}
+        />
+      ),
+      {viewport, tags: {area: 'core', parents: 'links'}}
+    );
+
+    it.snapshot(
+      'current item',
+      () => (
+        <ExampleBreadcrumbs
+          items={[{type: 'link', label: 'All Tags', to: '/tags/'}]}
+          title={
+            <BreadcrumbList.Current
+              item={{label: 'browser.name', labelTooltip: 'Event ID: 1a2b3c4d'}}
+            />
+          }
         />
       ),
       {viewport, tags: {area: 'core', parents: 'links'}}

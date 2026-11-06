@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
+from sentry.auth.principal import RequestPrincipal, acting_user_id
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.users.services.user.model import RpcUser
@@ -26,7 +27,7 @@ logger = logging.getLogger("sentry.security")
 def capture_security_activity(
     account: User | RpcUser | AnonymousUser | SecurityEmailAccount,
     type: str,  # FIXME: "type" is a built-in function, so this isn't a great name
-    actor: User | RpcUser | AnonymousUser,
+    actor: RequestPrincipal,
     ip_address: str,
     context: Mapping[str, Any] | None = None,
     send_email: bool = True,
@@ -37,7 +38,11 @@ def capture_security_activity(
 
     assert not isinstance(account, AnonymousUser)
 
-    logger_context = {"ip_address": ip_address, "user_id": account.id, "actor_id": actor.id}
+    logger_context = {
+        "ip_address": ip_address,
+        "user_id": account.id,
+        "actor_id": acting_user_id(actor),
+    }
 
     if type == "mfa-removed" or type == "mfa-added":
         assert context is not None

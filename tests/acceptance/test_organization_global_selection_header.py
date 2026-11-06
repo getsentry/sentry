@@ -302,6 +302,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
+        assert self.issue_2.group is not None
         self.issue_details.visit_issue_in_environment(self.org.slug, self.issue_2.group.id, "prod")
 
         # Make sure issue's project is in URL and in header
