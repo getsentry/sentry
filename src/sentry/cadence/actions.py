@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 # Spread out, since LOG exists to validate scheduling.
-@register_trigger_action(ScheduledTriggerType.LOG, spread_window=timedelta(minutes=1))
+@register_trigger_action(ScheduledTriggerType.LOG, spread_window=timedelta(seconds=30))
 def log_firings(firings: Sequence[TriggerFiring]) -> None:
     """
     Log each firing. For testing. seconds_since_scheduled includes the firing's offset
