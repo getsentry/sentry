@@ -622,20 +622,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         model = OrganizationMember.objects.get(id=organization_member.id)
         model.flags = self._deserialize_member_flags(organization_member.flags)  # type: ignore[assignment]  # TODO: make BitField a mypy plugin
-        try:
+        # Member flags aren't replicated to OrganizationMemberMapping, so there's
+        # no need to block on a synchronous flush. The outbox drains asynchronously.
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)), flush=False
+        ):
             model.save()
-        except (OutboxDatabaseError, OutboxFlushError):
-            # Guard against replication fanout failures. The membership has been
-            # updated, and its outbox has been committed alongside it,
-            # guaranteeing that it will eventually be valid in all regions.
-            logger.warning(
-                "organization_service.update_membership_flags.outbox-flush-failure",
-                extra={
-                    "organization_id": model.organization_id,
-                    "organization_member_id": model.id,
-                },
-                exc_info=True,
-            )
 
     def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         org = Organization.objects.get(id=organization_id)
