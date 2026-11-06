@@ -4,8 +4,8 @@ import {IconSettings} from '@sentry/icons/settings';
 import {IconSliders} from '@sentry/icons/sliders';
 import {IconUpload} from '@sentry/icons/upload';
 
-import {getOrganizationAvatarProps, UserAvatar} from '@sentry/scraps/avatar';
-import {AvatarButton, useAvatarButtonBorderColor} from '@sentry/scraps/avatarButton';
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
@@ -24,6 +24,7 @@ import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {NavigationMenuHeader} from './navigationMenuHeader';
+import {useOrganizationPalette} from './useOrganizationPalette';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
@@ -40,9 +41,7 @@ export function UserDropdown() {
   const settingsV3 = useSettingsV3();
   const organization = useOrganization({allowNull: true});
   // Match the menu header, which takes its color from the organization.
-  const organizationBorderColor = useAvatarButtonBorderColor(
-    organization ? getOrganizationAvatarProps(organization) : undefined
-  );
+  const {borderColor: organizationBorderColor} = useOrganizationPalette(organization);
   const {scope: settingsScope} = useSettingsScope();
 
   const trackSettingsClicked = () => {

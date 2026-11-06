@@ -1,13 +1,7 @@
 import type {ReactNode} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 
-import {
-  getOrganizationAvatarProps,
-  OrganizationAvatar,
-  UserAvatar,
-  type BaseAvatarProps,
-} from '@sentry/scraps/avatar';
-import {useAvatarGradient} from '@sentry/scraps/avatarButton';
+import {OrganizationAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {useInvertedTheme} from '@sentry/scraps/theme';
@@ -15,6 +9,8 @@ import {useInvertedTheme} from '@sentry/scraps/theme';
 import {t, tn} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+
+import {useOrganizationPalette} from './useOrganizationPalette';
 
 // Both headers take their gradient from the organization's avatar, so the
 // org and user menus match. The user menu falls back to the default gradient
@@ -28,9 +24,7 @@ export function NavigationMenuHeader({
   projectCount,
   user,
 }: NavigationMenuHeaderProps) {
-  const gradientAvatarProps = organization
-    ? getOrganizationAvatarProps(organization)
-    : undefined;
+  const {gradient} = useOrganizationPalette(organization);
 
   if (!user) {
     return (
@@ -38,7 +32,7 @@ export function NavigationMenuHeader({
         label={t('Organization')}
         title={organization.name || organization.slug}
         subtitle={tn('%s Project', '%s Projects', projectCount)}
-        gradientAvatarProps={gradientAvatarProps}
+        gradient={gradient}
         avatar={<OrganizationHeaderAvatar organization={organization} />}
       />
     );
@@ -53,7 +47,7 @@ export function NavigationMenuHeader({
           : user.name || user.username || user.email
       }
       subtitle={user.email}
-      gradientAvatarProps={gradientAvatarProps}
+      gradient={gradient}
       avatar={
         <Flex
           position="relative"
@@ -89,24 +83,21 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
   );
 }
 
-const DEFAULT_GRADIENT = {start: '#2c155c', end: '#4e168c'};
-
 function MenuHeader({
   label,
   title,
   subtitle,
   avatar,
-  gradientAvatarProps,
+  gradient,
 }: {
   avatar: ReactNode;
-  gradientAvatarProps: BaseAvatarProps | undefined;
+  gradient: {end: string; start: string};
   label: string;
   subtitle: string;
   title: string;
 }) {
   const currentTheme = useTheme();
   const invertedTheme = useInvertedTheme();
-  const gradient = useAvatarGradient(gradientAvatarProps, DEFAULT_GRADIENT);
 
   return (
     <ThemeProvider theme={currentTheme.type === 'dark' ? currentTheme : invertedTheme}>

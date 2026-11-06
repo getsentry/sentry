@@ -62,22 +62,38 @@ function isNeutral(hex: string): boolean {
   return (Math.max(...channels) - Math.min(...channels)) / 255 < MIN_SATURATION;
 }
 
+interface AvatarPalette {
+  /** `AvatarButton`'s border color for this avatar, for `borderColor`. */
+  borderColor: string | undefined;
+  /**
+   * A gradient in the avatar's color, each stop no lighter than the matching
+   * stop of `defaultGradient`, so text that reads on the default gradient
+   * still reads on this one.
+   */
+  gradient: Gradient;
+}
+
 /**
- * A gradient in the avatar's color, each stop no lighter than the matching
- * stop of `defaultGradient`, so text that reads on the default gradient still
- * reads on this one. Returns `defaultGradient` while the avatar has no usable
- * color: an image avatar still being sampled, or a neutral (gray) logo.
+ * Colors derived from an avatar, for UI that should match it. While the
+ * avatar has no usable color (an image avatar still being sampled),
+ * `borderColor` is `undefined` and `gradient` is `defaultGradient`. Neutral
+ * (gray) logos also keep `defaultGradient`.
  */
-export function useAvatarGradient(
+export function useAvatarPalette(
   avatar: BaseAvatarProps | undefined,
   defaultGradient: Gradient
-): Gradient {
+): AvatarPalette {
   const avatarColors = useAvatarColors(avatar);
-  if (avatarColors.type === 'none' || isNeutral(avatarColors.dominant)) {
-    return defaultGradient;
+  if (avatarColors.type === 'none') {
+    return {borderColor: undefined, gradient: defaultGradient};
   }
   return {
-    start: capLightness(avatarColors.dominant, defaultGradient.start),
-    end: capLightness(avatarColors.dominant, defaultGradient.end),
+    borderColor: avatarColors.chonk,
+    gradient: isNeutral(avatarColors.dominant)
+      ? defaultGradient
+      : {
+          start: capLightness(avatarColors.dominant, defaultGradient.start),
+          end: capLightness(avatarColors.dominant, defaultGradient.end),
+        },
   };
 }

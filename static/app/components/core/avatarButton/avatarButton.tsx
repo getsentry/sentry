@@ -25,8 +25,7 @@ interface AvatarButtonProps extends Omit<
   avatar?: BaseAvatarProps;
   /**
    * Color of the button's border and raised edge. Defaults to a color derived
-   * from `avatar`. Use `useAvatarButtonBorderColor` to derive it from another
-   * avatar.
+   * from `avatar`. Use `useAvatarPalette` to derive it from another avatar.
    */
   borderColor?: string;
   /** Circular (e.g. users) vs squircle (e.g. teams) shape. Defaults to `avatar.round`. */
