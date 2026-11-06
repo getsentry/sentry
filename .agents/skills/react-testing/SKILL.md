@@ -69,7 +69,7 @@ import {
 
 ### Assert the outcome of the interaction
 
-Use the real component and its providers with `MockApiClient` responses. When a request payload is part of the behavior, assert it as well as the resulting UI; a request being called alone does not prove the workflow succeeded. Do not introduce MSW, Playwright, or Vitest for these tests.
+Use the real component and its providers with `MockApiClient` responses. When a request payload is part of the behavior, assert it as well as the resulting UI; a request being called alone does not prove the workflow succeeded.
 
 ```tsx
 // ❌ A generic error check does not establish which failure was handled
