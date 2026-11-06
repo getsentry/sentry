@@ -289,7 +289,7 @@ Success: no issues found in 1 source file
     assert out == expected
 
 
-def test_drf_request_user_keeps_its_type_outside_sentry(tmp_path: pathlib.Path) -> None:
+def test_drf_request_user_includes_service_accounts_outside_sentry(tmp_path: pathlib.Path) -> None:
     # getsentry loads this plugin through a tools -> ../sentry/tools symlink
     tools = os.path.join(os.path.dirname(__file__), "../../../tools")
     os.symlink(os.path.realpath(tools), tmp_path / "tools")
@@ -300,7 +300,7 @@ reveal_type(x.user)
 """
     ret, out = call_mypy(src, cwd=str(tmp_path))
     assert ret == 0, out
-    assert "ServiceAccountPrincipal" not in out, out
+    assert "ServiceAccountPrincipal" in out, out
 
 
 def test_csp_response_attribute() -> None:
