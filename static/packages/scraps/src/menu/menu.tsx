@@ -407,6 +407,11 @@ interface OtherProps<T extends React.ElementType> {
 
 interface MenuListItemProps<T extends React.ElementType = 'li'>
   extends ListItemProps, OtherProps<T> {
+  /**
+   * Spaces the item from the item above it, as a margin outside its hover and
+   * press target. Used between the items of a menu section.
+   */
+  gapAbove?: boolean;
   ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
 }
 
@@ -431,6 +436,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   onDetailsHoverChange,
   tooltip,
   tooltipOptions,
+  gapAbove = false,
   ref,
   trailingActionRef,
   trailingActionWrapperProps,
@@ -497,6 +503,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
 
   return (
     <MenuItemWrap
+      gapAbove={gapAbove}
       hasTrailingAction={Boolean(trailingAction)}
       isFocused={isFocused || isDetailsActive}
       aria-disabled={disabled}
@@ -811,11 +818,20 @@ const StyledOverlay = styled(Overlay)<{
   overflow: auto;
 `;
 
-const MenuItemWrap = styled('li')<{hasTrailingAction: boolean; isFocused: boolean}>`
+const MenuItemWrap = styled('li')<{
+  gapAbove: boolean;
+  hasTrailingAction: boolean;
+  isFocused: boolean;
+}>`
   position: ${p => (p.hasTrailingAction ? 'relative' : 'static')};
   ${p => p.hasTrailingAction && p.isFocused && 'z-index: 1;'}
   list-style-type: none;
   margin: 0;
+  ${p =>
+    p.gapAbove &&
+    css`
+      margin-top: ${p.theme.space['2xs']};
+    `}
   padding: 0 ${p => p.theme.space.xs};
   cursor: pointer;
   scroll-margin: ${p => p.theme.space.xs} 0;

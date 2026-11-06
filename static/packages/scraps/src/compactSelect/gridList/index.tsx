@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import {useContext, useId, useMemo, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
@@ -14,11 +15,15 @@ import {
   SizeLimitMessage,
 } from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
 import {hasVisibleLeadingItems} from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
 import {ControlContext, ReserveLeadingSlot} from '@sentry/scraps/menu';
 import {useTranslation} from '@sentry/scraps/translation';
+import {
+  flattenSections,
+  useVirtualCollection,
+  VirtualRows,
+} from '@sentry/scraps/useVirtualCollection';
 
 import {GridListOption, type GridListOptionProps} from './option';
 import {GridListSection} from './section';
@@ -82,7 +87,9 @@ function GridList<T extends ListItemBase>({
   ...props
 }: GridListProps<T>) {
   const {t} = useTranslation();
+  const theme = useTheme();
   const ref = useRef<HTMLUListElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const labelId = useId();
   const {gridProps} = useGridList(
     {...props, 'aria-labelledby': label ? labelId : props['aria-labelledby']},
@@ -116,10 +123,18 @@ function GridList<T extends ListItemBase>({
     [listItems, hiddenOptions]
   );
 
-  const virtualizer = useVirtualizedItems({
-    listItems,
-    virtualized,
+  const virtualNodes = useMemo(
+    () => flattenSections(listItems, hiddenOptions),
+    [listItems, hiddenOptions]
+  );
+  const virtual = useVirtualCollection({
+    nodes: virtualNodes,
+    enabled: !!virtualized,
     size,
+    scrollRef,
+    focusedKey: listState.selectionManager.focusedKey,
+    // Matches the vertical padding of `ListWrap`.
+    listPadding: parseFloat(theme.space.xs),
   });
 
   const mergedProps = mergeProps(gridProps, props);
@@ -129,51 +144,36 @@ function GridList<T extends ListItemBase>({
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
-        <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
-          {/* oxlint-disable-next-line react/refs */}
-          <Container {...virtualizer.wrapperProps}>
-            <ListWrap
-              {...mergedProps}
-              style={{...mergedProps.style, ...virtualizer.listWrapStyle}}
-              onKeyDown={onKeyDown}
-              ref={ref}
-            >
-              {/* oxlint-disable-next-line react/refs */}
-              {virtualizer.items.map(row => {
-                const item = listItems[row.index];
-                if (!item) {
-                  return null;
-                }
-                if (item.type === 'section') {
-                  return (
-                    <GridListSection
-                      {...virtualizer.itemProps(row.index)}
-                      key={item.key}
-                      node={item}
-                      listState={listState}
-                      size={size}
-                    />
-                  );
-                }
-
-                return (
-                  <GridListOption
-                    key={item.key}
-                    {...virtualizer.itemProps(row.index)}
-                    node={item}
-                    listState={listState}
-                    size={size}
-                  />
-                );
-              })}
-
-              {!searchable && hiddenOptions.size > 0 && (
-                <SizeLimitMessage>
-                  {sizeLimitMessage ?? t('Use search to find more options…')}
-                </SizeLimitMessage>
+        <Container ref={scrollRef} height="100%" overflowY="auto">
+          <ListWrap {...mergedProps} onKeyDown={onKeyDown} ref={ref}>
+            <VirtualRows
+              virtual={virtual}
+              renderRow={({node, props: rowProps}) => (
+                <GridListOption
+                  {...rowProps}
+                  node={node}
+                  listState={listState}
+                  size={size}
+                />
               )}
-            </ListWrap>
-          </Container>
+              renderSection={(section, rows) => (
+                <GridListSection
+                  rowProps={section.props}
+                  node={section.node}
+                  listState={listState}
+                  showSeparator={section.node.key !== listItems[0]?.key}
+                >
+                  {rows}
+                </GridListSection>
+              )}
+            />
+
+            {!searchable && hiddenOptions.size > 0 && (
+              <SizeLimitMessage>
+                {sizeLimitMessage ?? t('Use search to find more options…')}
+              </SizeLimitMessage>
+            )}
+          </ListWrap>
         </Container>
       )}
     </ReserveLeadingSlot>
