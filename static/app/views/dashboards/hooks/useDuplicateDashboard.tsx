@@ -109,6 +109,7 @@ function copySavedFilters(target: DashboardDetails, source: DashboardDetails): v
   target.start = source.start;
   target.end = source.end;
   target.utc = source.utc;
+  target.queryPriority = source.queryPriority;
 }
 
 /**

@@ -16,6 +16,7 @@ from sentry.telemetry_classifiers.models import (
     TelemetryClassifierDataset,
     TelemetryClassifierStatus,
 )
+from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS, PrebuiltClassifier
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -87,6 +88,31 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
         }
 
 
+class PrebuiltClassifierResponse(TypedDict):
+    key: str
+    dataset: str
+    name: str
+    description: str
+    resultAttribute: str
+
+
+class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
+    def serialize(
+        self,
+        obj: PrebuiltClassifier,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> PrebuiltClassifierResponse:
+        return {
+            "key": obj.key,
+            "dataset": obj.dataset,
+            "name": obj.name,
+            "description": obj.description,
+            "resultAttribute": obj.result_attribute,
+        }
+
+
 class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassifier]):
     project = ProjectField(
         scope="project:write",
@@ -109,8 +135,8 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
         choices=TelemetryClassifierStatus.choices,
         default=TelemetryClassifierStatus.ENABLED,
     )
-    prebuilt_classifier_key = serializers.CharField(
-        max_length=256,
+    prebuilt_classifier_key = serializers.ChoiceField(
+        choices=list(PREBUILT_CLASSIFIERS),
         help_text="Key of the prebuilt classifier to run.",
     )
 
@@ -118,6 +144,13 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
         # TODO: Support custom classifiers once their prompts can be compiled.
         if {"natural_language_prompt", "output_type"} & self.initial_data.keys():
             raise serializers.ValidationError("Custom classifiers aren't supported yet.")
+
+        if PREBUILT_CLASSIFIERS[attrs["prebuilt_classifier_key"]].dataset != attrs["dataset"]:
+            raise serializers.ValidationError(
+                {
+                    "prebuilt_classifier_key": "This prebuilt classifier doesn't support this dataset."
+                }
+            )
 
         if TelemetryClassifier.objects.filter(
             project=attrs["project"], result_attribute=attrs["result_attribute"]

@@ -1,8 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Event, Frame} from 'sentry/types/event';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {buildStacktraceLinkQuery} from './useStacktraceLink';
 
@@ -21,37 +20,34 @@ interface UseSourceContextProps {
   projectSlug: string | undefined;
 }
 
-const sourceContextQueryKey = (
+const sourceContextOptions = (
   orgSlug: string,
   projectSlug: string | undefined,
   query: ReturnType<typeof buildStacktraceLinkQuery>
-): ApiQueryKey => [
-  getApiUrl(
+) =>
+  apiOptions.as<SourceContextResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-source-context/',
     {
       path: {
         organizationIdOrSlug: orgSlug,
         projectIdOrSlug: projectSlug!,
       },
+      query,
+      staleTime: Infinity,
     }
-  ),
-  {query},
-];
+  );
 
 export function useSourceContext(
   {event, frame, orgSlug, projectSlug}: UseSourceContextProps,
-  options: Partial<UseApiQueryOptions<SourceContextResponse>> = {}
+  options: {enabled?: boolean} = {}
 ) {
   const query = {
     ...buildStacktraceLinkQuery(event, frame),
     file: (frame.filename || frame.absPath)!,
   };
-  return useApiQuery<SourceContextResponse>(
-    sourceContextQueryKey(orgSlug, projectSlug, query),
-    {
-      staleTime: Infinity,
-      retry: false,
-      ...options,
-    }
-  );
+  return useQuery({
+    ...sourceContextOptions(orgSlug, projectSlug, query),
+    retry: false,
+    ...options,
+  });
 }

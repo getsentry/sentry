@@ -320,21 +320,25 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
             "getsentry.billing.trial.start_trial",
             "getsentry.billing.provision_new_org_for_billing._finalize_channel_subscription",
         ),
-        # INFRENG-813: platform trial locks in TrialService._create_product_trial and
-        # _create_subscription_trial
+        # Platform trial locks in TrialService._create_product_trial and _create_subscription_trial.
+        # Remove these entries when REVENG-695 lands:
         (
             "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_product_trial",
         ),
         (
             "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_subscription_trial",
         ),
-        # INFRENG-814: customer model_lock in MissingCustomerRelation.repair
+        # Customer model_lock in MissingCustomerRelation.repair.
+        # Remove this entry when REVENG-694 lands
         (
             "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
             "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
         ),
-        # INFRENG-804: platform charge lock in ChargeService.capture_charge (needs its own ticket)
-        ("getsentry.billing.platform.services.charge.service.ChargeService.capture_charge",),
+        # INFRENG-925: the test takes the subscription lock to see if it is held, inside the
+        # transaction of _apply_legacy_ondemand_max_spend
+        (
+            "tests.getsentry.utils.billing.test_billing.UpgradeOnDemandMaxSpendTest.test_reenable_runs_outside_subscription_lock.<locals>.record",
+        ),
     }
 )
 
@@ -388,7 +392,26 @@ def _assert_redis_transaction_allowed(message: str) -> None:
         if _matches_redis_transaction_lock_ratchet(callers):
             return
 
+        _redis_transaction_violations.append((message, callers))
         raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
+
+
+# Redis calls that the transaction check rejected since the last call to
+# `pop_redis_transaction_violations`: the message and the caller stack of each one
+_redis_transaction_violations: list[tuple[str, tuple[str, ...]]] = []
+
+
+def pop_redis_transaction_violations() -> list[tuple[str, tuple[str, ...]]]:
+    """
+    Returns the recorded transaction check violations and clears the record.
+
+    The pytest plugin calls this at the teardown of each test and fails the test if a violation
+    was recorded. A test that causes a violation on purpose calls this to clear it.
+    """
+    count = len(_redis_transaction_violations)
+    violations = _redis_transaction_violations[:count]
+    del _redis_transaction_violations[:count]
+    return violations
 
 
 def _matches_redis_transaction_ratchet(callers: tuple[str, ...]) -> bool:

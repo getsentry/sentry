@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
@@ -12,7 +11,6 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Feature} from 'sentry/components/acl/feature';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
@@ -444,8 +442,6 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
         ? projects[0]
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-
     return [
       {
         ...getSaveAsAlertMenuItem({
@@ -475,20 +471,8 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
         key: 'add-to-dashboard',
         textValue: t('Add to Dashboard'),
         details: dashboardCaseDetails,
-        label: (
-          <Feature
-            overrideName="feature-disabled:dashboards-edit"
-            features="organizations:dashboards-edit"
-            renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-          >
-            {t('Add to Dashboard')}
-          </Feature>
-        ),
-        disabled: disableAddToDashboard,
+        label: t('Add to Dashboard'),
         onAction: () => {
-          if (disableAddToDashboard) {
-            return;
-          }
           trackAnalytics('logs.save_as', {
             save_type: 'dashboard',
             ui_source: 'chart',
@@ -574,7 +558,3 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
     />
   );
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

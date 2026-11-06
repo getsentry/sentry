@@ -1005,18 +1005,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
     let index = tree.list.indexOf(node);
 
     if (node && index === -1) {
-      let parent_node = node.parent;
-      while (parent_node) {
-        // Transactions break autogrouping chains, so we can stop here
-        parent_node.expand(true, tree);
-        // This is very wasteful as it performs O(n^2) search each time we expand a node...
-        // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
-        // a low autogrouped node count.
-        index = node ? tree.list.indexOf(node) : -1;
+      const ancestors: BaseNode[] = [];
+      let parent = node.parent;
+      while (parent) {
+        ancestors.push(parent);
+        parent = parent.parent;
+      }
+
+      for (const ancestor of ancestors.toReversed()) {
+        ancestor.expand(true, tree);
+        index = tree.list.indexOf(node);
         if (index !== -1) {
           break;
         }
-        parent_node = parent_node.parent;
       }
     }
 

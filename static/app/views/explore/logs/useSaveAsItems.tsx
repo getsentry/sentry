@@ -1,11 +1,9 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {toast} from '@sentry/scraps/toast';
 
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import {Feature} from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -244,15 +242,7 @@ export function useSaveAsItems({
 
     return {
       key: 'add-to-dashboard',
-      label: (
-        <Feature
-          overrideName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
-        >
-          {t('Dashboard widget')}
-        </Feature>
-      ),
+      label: t('Dashboard widget'),
       textValue: t('Dashboard widget'),
       details: dashboardCaseDetails,
       children: dashboardsUrls,
@@ -280,7 +270,3 @@ export function useSaveAsItems({
     return saveAs;
   }, [organization, saveAsQuery, saveAsAlert, saveAsDashboard]);
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

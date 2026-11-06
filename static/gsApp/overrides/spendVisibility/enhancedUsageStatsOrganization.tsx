@@ -11,9 +11,7 @@ import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -276,46 +274,42 @@ function EnhancedUsageStatsOrganization({
   });
 
   const spikesListQueryEnabled = isSingleProject && !!project;
-  const spikesList = useApiQuery<SpikesList>(
-    [
-      // Get all the spikes in the time period
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/',
-        {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.id!},
-        }
-      ),
+  const spikesList = useQuery({
+    // Get all the spikes in the time period
+    ...apiOptions.as<SpikesList>()(
+      '/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/',
       {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.id!},
         query: {
           ...endpointQueryDatetime,
         },
-      },
-    ],
-    {staleTime: Infinity, retry: false, enabled: spikesListQueryEnabled}
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+    enabled: spikesListQueryEnabled,
+  });
 
   const spikeThresholdsQueryEnabled = isSingleProject && !!project && hasAccurateSpikes;
-  const spikeThresholds = useApiQuery<SpikeThresholds>(
-    [
-      // Only fetch spike thresholds if the interval is 1h
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project?.slug!,
-          },
-        }
-      ),
+  const spikeThresholds = useQuery({
+    // Only fetch spike thresholds if the interval is 1h
+    ...apiOptions.as<SpikeThresholds>()(
+      '/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project?.slug!,
+        },
         query: {
           ...endpointQueryDatetime,
           interval: REQUIRED_INTERVAL,
         },
-      },
-    ],
-    {staleTime: Infinity, retry: false, enabled: spikeThresholdsQueryEnabled}
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+    enabled: spikeThresholdsQueryEnabled,
+  });
 
   useRouteAnalyticsParams({
     subscription,

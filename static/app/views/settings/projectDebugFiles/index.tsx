@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Grid} from '@sentry/scraps/layout';
@@ -20,7 +21,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -34,13 +34,16 @@ export default function ProjectDebugSymbols() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const location = useLocation();
-  const navigate = useNavigate();
   const api = useApi();
   const queryClient = useQueryClient();
   const [showDetails, setShowDetails] = useState(false);
 
-  const query = location.query.query as string | undefined;
-  const cursor = location.query.cursor as string | undefined;
+  const [queryParams, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
+  const query = queryParams.query ?? undefined;
+  const cursor = queryParams.cursor ?? undefined;
 
   const debugFilesApiOptions = apiOptions.as<DebugFile[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
@@ -85,12 +88,9 @@ export default function ProjectDebugSymbols() {
 
   const handleSearch = useCallback(
     (value: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query: value ? value : undefined},
-      });
+      setQueryParams({cursor: null, query: value || null}, {history: 'push'});
     },
-    [navigate, location]
+    [setQueryParams]
   );
 
   const {mutate: handleDeleteDebugFile} = useMutation<unknown, RequestError, string>({

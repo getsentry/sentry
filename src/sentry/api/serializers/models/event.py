@@ -53,17 +53,24 @@ FULL_PAYLOAD_MAX_PER_PAGE = 10
 
 
 class EventTagOptional(TypedDict, total=False):
-    query: str
+    query: Annotated[
+        str,
+        ApiDescription(
+            'Search query that matches this tag\'s user, such as user.email:"user@example.com". Only set for user tags'
+        ),
+    ]
 
 
 class EventTag(EventTagOptional):
-    key: str
-    value: str
+    key: Annotated[str, ApiDescription("Tag key")]
+    value: Annotated[str, ApiDescription("Tag value")]
 
 
 class MeasurementValue(TypedDict):
-    value: float
-    unit: NotRequired[str | None]
+    value: Annotated[float, ApiDescription("Measurement value")]
+    unit: NotRequired[
+        Annotated[str | None, ApiDescription("Unit of the measurement, such as millisecond")]
+    ]
 
 
 def get_crash_files(events: Sequence[Event | GroupEvent]) -> list[EventAttachment]:
@@ -164,46 +171,98 @@ def get_entries(
 
 
 class BaseEventSerializerResponse(TypedDict):
-    id: str
-    groupID: str | None
-    eventID: str
-    projectID: str
-    message: str | None
-    title: str
-    location: str | None
-    user: EventUserApiContext | None
-    tags: list[EventTag]
-    platform: str | None
-    dateReceived: datetime | None
-    contexts: dict[str, object] | None
-    size: int | None
-    entries: list[Any]
-    dist: str | None
-    sdk: EventSdkApiContext | None
-    context: dict[str, object] | None
-    packages: dict[str, object]
-    type: EventTypeStr
-    metadata: dict[str, object]
-    errors: list[EventErrorApiContext]
+    id: Annotated[str, ApiDescription("ID of the event")]
+    groupID: Annotated[str | None, ApiDescription("ID of the issue the event belongs to")]
+    eventID: Annotated[str, ApiDescription("ID of the event")]
+    projectID: Annotated[str, ApiDescription("ID of the project the event belongs to")]
+    message: Annotated[str | None, ApiDescription("Event message")]
+    title: Annotated[str, ApiDescription("Event title")]
+    location: Annotated[
+        str | None, ApiDescription("Source location of the event, such as a file and line")
+    ]
+    user: Annotated[EventUserApiContext | None, ApiDescription("User context of the event")]
+    tags: Annotated[list[EventTag], ApiDescription("Tags attached to the event")]
+    platform: Annotated[
+        str | None, ApiDescription("Platform of the event, such as python or javascript")
+    ]
+    dateReceived: Annotated[
+        datetime | None, ApiDescription("When Sentry received the event (ISO 8601)")
+    ]
+    contexts: Annotated[
+        dict[str, object] | None,
+        ApiDescription("Contexts of the event, such as device, os, browser and runtime"),
+    ]
+    size: Annotated[int | None, ApiDescription("Size of the event payload in bytes")]
+    entries: Annotated[
+        list[Any],
+        ApiDescription(
+            "Event interfaces, such as exception, breadcrumbs and request, each with a type and data"
+        ),
+    ]
+    dist: Annotated[
+        str | None, ApiDescription("Distribution of the release the event was sent with")
+    ]
+    sdk: Annotated[EventSdkApiContext | None, ApiDescription("SDK that sent the event")]
+    context: Annotated[
+        dict[str, object] | None,
+        ApiDescription("Additional data sent with the event in its extra field"),
+    ]
+    packages: Annotated[
+        dict[str, object],
+        ApiDescription(
+            "Modules loaded when the event occurred, keyed by module name with their versions"
+        ),
+    ]
+    type: Annotated[
+        EventTypeStr, ApiDescription("Event type, such as error, default or transaction")
+    ]
+    metadata: Annotated[dict[str, object], ApiDescription("Event metadata")]
+    errors: Annotated[
+        list[EventErrorApiContext], ApiDescription("Errors Sentry found while processing the event")
+    ]
     # Typed variants come first: generated clients try `anyOf` members in order, and the
     # catch-all `IssueOccurrenceResponse` also matches every typed occurrence.
-    occurrence: MetricIssueOccurrenceResponse | IssueOccurrenceResponse | None
-    _meta: dict[str, object]
+    occurrence: Annotated[
+        MetricIssueOccurrenceResponse | IssueOccurrenceResponse | None,
+        ApiDescription(
+            "Issue occurrence data for events in non-error issues, such as performance issues. Null otherwise"
+        ),
+    ]
+    _meta: Annotated[
+        dict[str, object],
+        ApiDescription(
+            "Metadata about changes Sentry made to the event's fields, such as data scrubbing or trimming"
+        ),
+    ]
 
 
 class ErrorEventFields(TypedDict, total=False):
-    crashFile: str | None
-    culprit: str | None
-    dateCreated: datetime
-    fingerprints: list[str]
-    groupingConfig: GroupingConfig
+    crashFile: Annotated[str | None, ApiDescription("Crash report attachment of the event, if any")]
+    culprit: Annotated[str | None, ApiDescription("Function or module that caused the event")]
+    dateCreated: Annotated[datetime, ApiDescription("When the event occurred (ISO 8601)")]
+    fingerprints: Annotated[list[str], ApiDescription("Grouping hashes calculated for the event")]
+    groupingConfig: Annotated[
+        GroupingConfig, ApiDescription("Grouping configuration used to group the event")
+    ]
 
 
 class TransactionEventFields(TypedDict, total=False):
-    startTimestamp: float
-    endTimestamp: float
-    measurements: dict[str, MeasurementValue] | None
-    breakdowns: dict[str, dict[str, MeasurementValue]] | None
+    startTimestamp: Annotated[
+        float, ApiDescription("When the transaction started, as a Unix timestamp in seconds")
+    ]
+    endTimestamp: Annotated[
+        float, ApiDescription("When the transaction ended, as a Unix timestamp in seconds")
+    ]
+    measurements: Annotated[
+        dict[str, MeasurementValue] | None,
+        ApiDescription(
+            "Measurements recorded for the transaction, such as web vitals, keyed by name"
+        ),
+    ]
+    breakdowns: Annotated[
+        dict[str, dict[str, MeasurementValue]] | None,
+        ApiDescription("Span operation breakdowns for the transaction, keyed by breakdown name"),
+    ]
 
 
 class EventSerializerResponse(
@@ -213,18 +272,41 @@ class EventSerializerResponse(
 
 
 class SqlFormatEventSerializerResponse(EventSerializerResponse):
-    release: GroupEventReleaseSerializerResponse | None
+    release: Annotated[
+        GroupEventReleaseSerializerResponse | None,
+        ApiDescription("Release the event was sent with. Null when the event has no release"),
+    ]
 
 
 class IssueEventSerializerResponse(SqlFormatEventSerializerResponse):
-    userReport: UserReportSerializerResponse | None
-    sdkUpdates: list[dict[str, object]]
-    resolvedWith: list[str]
+    userReport: Annotated[
+        UserReportSerializerResponse | None,
+        ApiDescription("User feedback submitted for the event. Null when there's none"),
+    ]
+    sdkUpdates: Annotated[
+        list[dict[str, object]], ApiDescription("Suggested updates for the SDK that sent the event")
+    ]
+    resolvedWith: Annotated[
+        list[str],
+        ApiDescription(
+            "How the event's stack frames were resolved during processing, such as which source map lookup method was used"
+        ),
+    ]
 
 
 class GroupEventDetailsResponse(IssueEventSerializerResponse):
-    nextEventID: str | None
-    previousEventID: str | None
+    nextEventID: Annotated[
+        str | None,
+        ApiDescription(
+            "ID of the next event in the issue. Null for the latest event or when adjacentEvents is collapsed"
+        ),
+    ]
+    previousEventID: Annotated[
+        str | None,
+        ApiDescription(
+            "ID of the previous event in the issue. Null for the first event or when adjacentEvents is collapsed"
+        ),
+    ]
 
 
 @register(GroupEvent)
@@ -667,10 +749,12 @@ class SharedEventSerializer(EventSerializer):
 SimpleEventSerializerResponse = TypedDict(
     "SimpleEventSerializerResponse",
     {
-        "id": str,
-        "event.type": str,
+        "id": Annotated[str, ApiDescription("ID of the event")],
+        "event.type": Annotated[
+            str, ApiDescription("Event type, such as error, default or transaction")
+        ],
         "groupID": Annotated[str | None, ApiDescription("ID of the issue the event belongs to")],
-        "eventID": str,
+        "eventID": Annotated[str, ApiDescription("ID of the event")],
         "projectID": Annotated[str, ApiDescription("ID of the project the event belongs to")],
         "message": Annotated[str, ApiDescription("Event message")],
         "title": Annotated[str, ApiDescription("Event title")],

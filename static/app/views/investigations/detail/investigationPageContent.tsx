@@ -214,6 +214,7 @@ export function InvestigationPageContent({
   title: InvestigationTitle;
 }) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const composerRef = useRef<HTMLDivElement>(null);
   const activityRef = useRef<HTMLElement>(null);
   const {data: comments} = useInvestigationComments(investigation.id, {
@@ -243,6 +244,21 @@ export function InvestigationPageContent({
   if (recheckRunWait.waiting && isRunLive(orchestration)) {
     recheckRunWait.stop();
   }
+  // A run waiting on a person stops this page polling, and answering it only
+  // moves the projection. Once the run is past the wait, re-read the
+  // investigation so the notebook polls again while Seer writes it.
+  const runLeftAwaitingInput =
+    investigation.orchestration?.status === 'awaiting_input' &&
+    orchestration !== undefined &&
+    orchestration.status !== 'awaiting_input';
+  useEffect(() => {
+    if (runLeftAwaitingInput) {
+      void queryClient.invalidateQueries({
+        queryKey: getInvestigationDetailQueryOptions(organization.slug, investigation.id)
+          .queryKey,
+      });
+    }
+  }, [investigation.id, organization.slug, queryClient, runLeftAwaitingInput]);
   const actionRequestsStale = useRefetchStaleActionRequests(
     investigation.id,
     orchestration,
@@ -305,6 +321,21 @@ export function InvestigationPageContent({
             hypothesis: getHypothesisLLMContext(
               hypothesis,
               hypothesis.id === orchestration?.report.primaryHypothesisId
+            ),
+          },
+        })
+    : undefined;
+  const askSeerAboutHypotheses = askSeer
+    ? (hypotheses: InvestigationHypothesis[]) =>
+        askSeer({
+          prompt: t('What would you like to know about these hypotheses?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            hypotheses: hypotheses.map(hypothesis =>
+              getHypothesisLLMContext(
+                hypothesis,
+                hypothesis.id === orchestration?.report.primaryHypothesisId
+              )
             ),
           },
         })
@@ -484,6 +515,7 @@ export function InvestigationPageContent({
                         phase={investigation.orchestration.phase}
                         status={investigation.orchestration.status}
                         onAskSeer={askSeerAboutHypothesis}
+                        onAskSeerAboutHypotheses={askSeerAboutHypotheses}
                       />
                     ) : null}
                     <AnchoredActionRequests

@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import moment from 'moment-timezone';
+import {useQueryState} from 'nuqs';
 
 import {
   Container,
@@ -12,8 +13,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import {
@@ -39,8 +38,7 @@ export function UsageOverview({
   const [selectedProduct, setSelectedProduct] = useState<DataCategory | AddOnCategory>(
     DataCategory.ERRORS
   );
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [productFromQuery, setProductQuery] = useQueryState('product');
   const showSidePanel = useResponsivePropValue({
     zero: false,
     [SIDE_PANEL_MIN_CONTAINER_BREAKPOINT]: true,
@@ -51,7 +49,6 @@ export function UsageOverview({
   const startsAndEndsSameYear = startDate.year() === endDate.year();
 
   useEffect(() => {
-    const productFromQuery = location.query.product as string;
     if (productFromQuery) {
       const isAddOn = checkIsAddOn(productFromQuery);
       if (selectedProduct !== productFromQuery) {
@@ -81,30 +78,11 @@ export function UsageOverview({
           );
         } else {
           // if the query is an unselectable product, reset the query to the existing selected product
-          navigate(
-            {
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                product: selectedProduct,
-              },
-            },
-            {
-              replace: true,
-            }
-          );
+          setProductQuery(selectedProduct);
         }
       }
     }
-  }, [
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-    location.query.product,
-    selectedProduct,
-    location.pathname,
-    location.query,
-    navigate,
-    subscription,
-  ]);
+  }, [productFromQuery, selectedProduct, setProductQuery, subscription]);
 
   return (
     <Grid
@@ -144,16 +122,7 @@ export function UsageOverview({
                 ? {addOnCategory: product as AddOnCategory}
                 : {dataCategory: product as DataCategory}),
             });
-            navigate(
-              {
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  product,
-                },
-              },
-              {replace: true}
-            );
+            setProductQuery(product);
           }}
           selectedProduct={selectedProduct}
           usageData={usageData}
