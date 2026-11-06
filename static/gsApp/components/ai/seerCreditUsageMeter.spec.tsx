@@ -78,7 +78,7 @@ describe('SeerCreditUsageMeter', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('offers to turn on auto reload when it is off', async () => {
+  it('counts the month’s credits when auto reload is off', async () => {
     mockWallet(billingOrganization);
 
     render(<SeerCreditUsageMeter hasEnoughCredits />, {
@@ -93,10 +93,8 @@ describe('SeerCreditUsageMeter', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByText('250/1,000 credits remaining.')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Turn on auto reload.'})).toHaveAttribute(
-      'href',
-      settingsUrl
-    );
+    // The out-of-credits alert, not the meter, is where auto reload gets turned on.
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
   it('says credits reload automatically when auto reload is on', async () => {

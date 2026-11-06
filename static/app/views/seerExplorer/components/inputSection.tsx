@@ -7,7 +7,7 @@ import {motion} from 'framer-motion';
 import {Button} from '@sentry/scraps/button';
 import {Composer, type ComposerValue} from '@sentry/scraps/composer';
 import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -267,63 +267,91 @@ export function InputSection({
   return (
     <Container background="primary" width="100%" position="sticky" bottom="0">
       {prLinksBar}
-      {notice ? <Container margin="lg xl 0">{notice}</Container> : null}
-      <Flex align="end" margin="lg xl" gap="sm">
-        <StyledComposer
-          isWarningPlaceholder={interruptState === 'completed'}
-          ref={composerRef}
-          aria-label={t('Ask Seer a question')}
-          plugins={[]}
-          value={inputValue}
-          onChange={onInputChange}
-          onKeyDown={onKeyDown}
-          onClick={onInputClick}
-          placeholder={
-            interruptState === 'completed'
-              ? t('Interrupted. What should Seer do instead?')
-              : t('Ask Seer a question, or press / for commands.')
-          }
-          minHeight={20}
-          size="md"
-          data-test-id="seer-explorer-input"
-        />
-        {/* Keeps the meter centered on the button as the composer grows. */}
-        <Flex align="center" gap="sm">
-          {usageMeter}
-          {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
-            <Button
-              icon={<IconPause />}
-              onClick={onInterrupt}
-              size="md"
-              variant="primary"
-              disabled={interruptState === 'requested'}
-              aria-label={t('Interrupt button')}
-              tooltipProps={{
-                title:
-                  interruptState === 'requested' ? t('Winding down...') : t('Interrupt'),
-              }}
-            />
-          ) : (
-            <Button
-              icon={<IconArrow direction="right" />}
-              onClick={onSend}
-              size="md"
-              variant="secondary"
-              disabled={!canSendMessage}
-              aria-label={t('Send message')}
-            />
-          )}
-        </Flex>
-      </Flex>
+      <Stack gap="lg" padding="lg xl">
+        {notice}
+        {/* The editor and its toolbar read as one field, so the focus ring wraps both. */}
+        <ComposerFrame border="primary" radius="lg">
+          <StyledComposer
+            isWarningPlaceholder={interruptState === 'completed'}
+            ref={composerRef}
+            aria-label={t('Ask Seer a question')}
+            plugins={[]}
+            value={inputValue}
+            onChange={onInputChange}
+            onKeyDown={onKeyDown}
+            onClick={onInputClick}
+            placeholder={
+              interruptState === 'completed'
+                ? t('Interrupted. What should Seer do instead?')
+                : t('Ask Seer a question, or press / for commands.')
+            }
+            minHeight={60}
+            size="md"
+            data-test-id="seer-explorer-input"
+          />
+          <Flex
+            justify="end"
+            align="center"
+            gap="md"
+            padding="xs"
+            borderTop="primary"
+            background="primary"
+            radius="0 0 lg lg"
+          >
+            {usageMeter}
+            {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
+              <Button
+                icon={<IconPause />}
+                onClick={onInterrupt}
+                size="zero"
+                variant="primary"
+                disabled={interruptState === 'requested'}
+                aria-label={t('Interrupt button')}
+                tooltipProps={{
+                  title:
+                    interruptState === 'requested'
+                      ? t('Winding down...')
+                      : t('Interrupt'),
+                }}
+              />
+            ) : (
+              <Button
+                icon={<IconArrow />}
+                onClick={onSend}
+                size="zero"
+                variant="secondary"
+                disabled={!canSendMessage}
+                aria-label={t('Send message')}
+              />
+            )}
+          </Flex>
+        </ComposerFrame>
+      </Stack>
     </Container>
   );
 }
 
+const ComposerFrame = styled(Stack)`
+  transition: box-shadow ${p => p.theme.motion.smooth.fast};
+
+  &:focus-within {
+    ${p => p.theme.focusRing()};
+  }
+`;
+
 const StyledComposer = styled(Composer, {
   shouldForwardProp: prop => prop !== 'isWarningPlaceholder',
 })<{isWarningPlaceholder: boolean}>`
-  flex: 1;
   max-height: 120px;
+  /* The frame draws the border and the focus ring around the editor and toolbar. */
+  border: none;
+  border-radius: ${p => p.theme.radius.lg} ${p => p.theme.radius.lg} 0 0;
+
+  &:focus,
+  &:focus-visible {
+    box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk}
+      inset;
+  }
 
   &:empty::before {
     color: ${p =>
