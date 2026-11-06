@@ -66,7 +66,9 @@ export function KeyValueTableCard({
     : [...contentItems];
 
   const orderedItems = sortAlphabetically
-    ? truncatedItems.sort((a, b) => a.item.subject.localeCompare(b.item.subject))
+    ? truncatedItems.sort((a, b) =>
+        String(a.item.subject ?? '').localeCompare(String(b.item.subject ?? ''))
+      )
     : truncatedItems;
 
   return (
