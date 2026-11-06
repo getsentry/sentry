@@ -171,15 +171,6 @@ def check_autofix_billing(
             and referrer != AutofixReferrer.AGENTIC_TRIAGE  # Agentic triage runs stay free.
             and not has_enough_seer_credits(organization, operation)
         ):
-            logger.info(
-                "autofix_feature.dispatch.out_of_credits",
-                extra={
-                    "group_id": group.id,
-                    "organization_id": organization.id,
-                    "operation": operation.value,
-                    "referrer": referrer,
-                },
-            )
             raise SeerOutOfCreditsException()
         return False
 
@@ -188,21 +179,11 @@ def check_autofix_billing(
     # Only agentic triage does, and it is not exposed via API.
     skips_quota = skip_quota_for_free_cohort and is_free_cohort_org(organization)
     uses_quota = is_new_run and not skips_quota
-    if uses_quota:
-        has_budget: bool = quotas.backend.check_seer_quota(
-            org_id=group.organization.id,
-            data_category=DataCategory.SEER_AUTOFIX,
-        )
-        if not has_budget:
-            logger.warning(
-                "autofix_feature.dispatch.quota_denied",
-                extra={
-                    "group_id": group.id,
-                    "organization_id": group.organization.id,
-                    "referrer": referrer,
-                },
-            )
-            raise NoSeerQuotaException()
+    if uses_quota and not quotas.backend.check_seer_quota(
+        org_id=organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    ):
+        raise NoSeerQuotaException()
     return uses_quota
 
 
@@ -274,15 +255,37 @@ def trigger_autofix_feature(
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     is_new_run = args.existing_run_id is None
-    uses_quota = check_autofix_billing(
-        group,
-        args.step.seer_operation,
-        args.referrer,
-        is_new_run=is_new_run,
-        # Free cohort orgs bypass quota only when called from agentic triage
-        # (allow_free_cohort=True). Not exposed via the API.
-        skip_quota_for_free_cohort=args.allow_free_cohort,
-    )
+    try:
+        uses_quota = check_autofix_billing(
+            group,
+            args.step.seer_operation,
+            args.referrer,
+            is_new_run=is_new_run,
+            # Free cohort orgs bypass quota only when called from agentic triage
+            # (allow_free_cohort=True). Not exposed via the API.
+            skip_quota_for_free_cohort=args.allow_free_cohort,
+        )
+    except NoSeerQuotaException:
+        logger.warning(
+            "autofix_feature.dispatch.quota_denied",
+            extra={
+                "group_id": group.id,
+                "organization_id": group.organization.id,
+                "referrer": args.referrer.value,
+            },
+        )
+        raise
+    except SeerOutOfCreditsException:
+        logger.info(
+            "autofix_feature.dispatch.out_of_credits",
+            extra={
+                "group_id": group.id,
+                "organization_id": group.organization.id,
+                "operation": args.step.seer_operation.value,
+                "referrer": args.referrer.value,
+            },
+        )
+        raise
 
     single_run = should_use_single_run(
         group,
