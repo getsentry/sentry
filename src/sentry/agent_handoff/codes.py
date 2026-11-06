@@ -4,6 +4,7 @@ import secrets
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from enum import StrEnum
 
 from django.utils import timezone
 from pydantic import BaseModel, Extra, StrictInt, StrictStr
@@ -17,9 +18,15 @@ HANDOFF_LIFETIME = timedelta(minutes=5)
 compare_and_delete = redis.load_redis_script("utils/compare_and_delete.lua")
 
 
+class HandoffFlow(StrEnum):
+    GUIDED_NEXT_STEPS = "guided_next_steps"
+    ONBOARDING = "onboarding"
+
+
 class AgentHandoff(BaseModel):
     """Authorization context approved by the user for one agent handoff."""
 
+    flow: HandoffFlow = HandoffFlow.GUIDED_NEXT_STEPS
     user_id: StrictInt
     organization_id: StrictInt
     application_id: StrictInt
@@ -47,12 +54,14 @@ def _handoff_key(code: str) -> str:
 
 def issue_handoff(
     *,
+    flow: HandoffFlow,
     user_id: int,
     organization_id: int,
     application_id: int,
     scope_list: Sequence[str],
 ) -> IssuedAgentHandoff:
     context = AgentHandoff(
+        flow=flow,
         user_id=user_id,
         organization_id=organization_id,
         application_id=application_id,
@@ -60,8 +69,12 @@ def issue_handoff(
     )
     code = f"sntryh_{secrets.token_urlsafe(32)}"
     expires_at = timezone.now() + HANDOFF_LIFETIME
+    # Keep default handoffs readable by servers during a rolling deploy.
     stored = _get_redis_client().set(
-        _handoff_key(code), context.json(), ex=int(HANDOFF_LIFETIME.total_seconds()), nx=True
+        _handoff_key(code),
+        context.json(exclude_defaults=True),
+        ex=int(HANDOFF_LIFETIME.total_seconds()),
+        nx=True,
     )
     if not stored:
         raise RuntimeError("Unable to create an agent handoff")

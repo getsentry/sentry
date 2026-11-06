@@ -36,6 +36,7 @@ def render_agent_runbook(
     sentry_url: str,
     client_id: str,
     setup_code: str,
+    flow_instructions: str,
 ) -> str:
     """Render a private guide from already-authorized context and minted credentials."""
     instance_environment = (
@@ -62,6 +63,7 @@ def render_agent_runbook(
             "auth_status": auth_status,
             "installer": installer,
             "bootstrap": bootstrap,
+            "flow_instructions": flow_instructions,
         },
     )
 

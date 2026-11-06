@@ -9,7 +9,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {toast} from '@sentry/scraps/toast';
 
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import {Feature} from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -168,8 +167,6 @@ export function ToolbarSaveAs() {
     getSaveAsAlertMenuItem({alertsUrls, submenu: true, disabled: hasTransformations})
   );
 
-  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-
   const chartOptions = useMemo(() => {
     return visualizes.map((visualize, index) => {
       const func = parseFunction(withReadableConditionalFilter(visualize.yAxis));
@@ -178,10 +175,6 @@ export function ToolbarSaveAs() {
         key: String(index),
         label: func ? prettifyParsedFunction(func) : visualize.yAxis,
         onAction: () => {
-          if (disableAddToDashboard) {
-            return;
-          }
-
           trackAnalytics('trace_explorer.save_as', {
             save_type: 'dashboard',
             ui_source: 'toolbar',
@@ -191,25 +184,16 @@ export function ToolbarSaveAs() {
         },
       };
     });
-  }, [addToDashboard, disableAddToDashboard, organization, visualizes]);
+  }, [addToDashboard, organization, visualizes]);
 
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Dashboard widget'),
     submenu: chartOptions.length > 1 ? true : false,
-    label: (
-      <Feature
-        overrideName="feature-disabled:dashboards-edit"
-        features="organizations:dashboards-edit"
-        renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
-      >
-        {t('Dashboard widget')}
-      </Feature>
-    ),
-    disabled: disableAddToDashboard,
+    label: t('Dashboard widget'),
     children: chartOptions.length > 1 ? chartOptions : undefined,
     onAction: () => {
-      if (disableAddToDashboard || chartOptions.length > 1) {
+      if (chartOptions.length > 1) {
         return;
       }
 
@@ -294,10 +278,6 @@ export function ToolbarSaveAs() {
     />
   );
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;
 
 export const SaveStyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};

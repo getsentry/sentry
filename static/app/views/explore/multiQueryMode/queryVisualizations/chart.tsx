@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconGraph} from '@sentry/icons/graph';
@@ -9,7 +8,6 @@ import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Feature} from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -140,24 +138,11 @@ export function MultiQueryModeChart({
     );
   }
 
-  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Add to Dashboard'),
-    label: (
-      <Feature
-        overrideName="feature-disabled:dashboards-edit"
-        features="organizations:dashboards-edit"
-        renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-      >
-        {t('Add to Dashboard')}
-      </Feature>
-    ),
-    disabled: disableAddToDashboard,
+    label: t('Add to Dashboard'),
     onAction: () => {
-      if (disableAddToDashboard) {
-        return;
-      }
       trackAnalytics('trace_explorer.save_as', {
         save_type: 'dashboard',
         ui_source: 'compare chart',
@@ -248,7 +233,3 @@ export function MultiQueryModeChart({
     />
   );
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
-from typing import NotRequired, TypedDict, cast
+from typing import Annotated, NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -10,6 +10,7 @@ from sentry.api.serializers.models.pullrequest import PullRequestSerializerRespo
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
 from sentry.api.serializers.release_details_types import Author
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
@@ -26,27 +27,47 @@ class EmptyAuthor(TypedDict):
 
 
 class CommitSerializerResponse(TypedDict):
-    id: str
-    message: str | None
-    dateCreated: datetime
-    pullRequest: PullRequestSerializerResponse | None
-    suspectCommitType: str
+    id: Annotated[str, ApiDescription("Commit SHA")]
+    message: Annotated[str | None, ApiDescription("Commit message")]
+    dateCreated: Annotated[datetime, ApiDescription("When the commit was made (ISO 8601)")]
+    pullRequest: Annotated[
+        PullRequestSerializerResponse | None, ApiDescription("Pull request the commit belongs to")
+    ]
+    suspectCommitType: Annotated[
+        str,
+        ApiDescription(
+            "How the commit was found as a suspect commit: via commit in release or via SCM integration. Empty for other commits"
+        ),
+    ]
 
-    repository: NotRequired[RepositorySerializerResponse]
-    author: NotRequired[Author | EmptyAuthor]
+    repository: NotRequired[
+        Annotated[RepositorySerializerResponse, ApiDescription("Repository the commit belongs to")]
+    ]
+    author: NotRequired[
+        Annotated[
+            Author | EmptyAuthor,
+            ApiDescription(
+                "Author of the commit: a Sentry user when the email matches one, otherwise the name and email from the commit"
+            ),
+        ]
+    ]
 
 
 class CommitReleaseSerializerResponse(TypedDict):
-    version: str
-    shortVersion: str
-    ref: str | None
-    url: str | None
-    dateReleased: datetime | None
-    dateCreated: datetime
+    version: Annotated[str, ApiDescription("Version of the release")]
+    shortVersion: Annotated[str, ApiDescription("Short version of the release")]
+    ref: Annotated[str | None, ApiDescription("Commit ref of the release")]
+    url: Annotated[str | None, ApiDescription("URL of the release")]
+    dateReleased: Annotated[
+        datetime | None, ApiDescription("When the release was released (ISO 8601)")
+    ]
+    dateCreated: Annotated[datetime, ApiDescription("When the release was created (ISO 8601)")]
 
 
 class CommitSerializerResponseWithReleases(CommitSerializerResponse):
-    releases: list[CommitReleaseSerializerResponse]
+    releases: Annotated[
+        list[CommitReleaseSerializerResponse], ApiDescription("Releases that contain the commit")
+    ]
 
 
 def get_users_for_commits(

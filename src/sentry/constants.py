@@ -101,6 +101,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "accountspayable",
         "acl",
         "admin",
+        "agent-handoff",
         "answers",
         "ap",
         "api",
