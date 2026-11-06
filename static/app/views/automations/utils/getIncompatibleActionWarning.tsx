@@ -1,7 +1,10 @@
 import {t} from 'sentry/locale';
 import {ActionType, type Action} from 'sentry/types/workflowEngine/actions';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
 // Ticketing actions deliver via the issue-alert (create-a-ticket) path, which is
@@ -14,7 +17,7 @@ const METRIC_DETECTOR_UNSUPPORTED_ACTIONS = new Set<ActionType>([
   ActionType.AZURE_DEVOPS,
 ]);
 
-const SEER_ACTIVITY_SUPPORTED_ACTIONS = new Set<ActionType>([
+const ACTIVITY_TRIGGER_SUPPORTED_ACTIONS = new Set<ActionType>([
   ActionType.EMAIL,
   ActionType.SLACK,
   ActionType.SLACK_STAGING,
@@ -24,9 +27,25 @@ const SEER_ACTIVITY_SUPPORTED_ACTIONS = new Set<ActionType>([
   ActionType.WEBHOOK,
 ]);
 
+const ACTIVITY_TRIGGERS = new Set<DataConditionType>([
+  DataConditionType.SEER_ACTIVITY_TRIGGER,
+  DataConditionType.ISSUE_RESOLVED_TRIGGER,
+]);
+
 interface IncompatibleActionWarningContext {
   connectedDetectors: Detector[];
-  triggerConditions: DataCondition[];
+  triggers: DataConditionGroup;
+}
+
+function hasTrigger(triggers: DataConditionGroup, type: DataConditionType): boolean {
+  return triggers.conditions.some(condition => condition.type === type);
+}
+
+function canFireFromEventTrigger(triggers: DataConditionGroup): boolean {
+  return (
+    triggers.logicType !== DataConditionGroupLogicType.ALL &&
+    triggers.conditions.some(condition => !ACTIVITY_TRIGGERS.has(condition.type))
+  );
 }
 
 /**
@@ -35,15 +54,23 @@ interface IncompatibleActionWarningContext {
  */
 export function getIncompatibleActionWarnings(
   action: Action,
-  {connectedDetectors, triggerConditions}: IncompatibleActionWarningContext
+  {connectedDetectors, triggers}: IncompatibleActionWarningContext
 ): string[] {
   const warnings: string[] = [];
 
   if (
-    !SEER_ACTIVITY_SUPPORTED_ACTIONS.has(action.type) &&
-    triggerConditions.some(c => c.type === DataConditionType.SEER_ACTIVITY_TRIGGER)
+    !ACTIVITY_TRIGGER_SUPPORTED_ACTIONS.has(action.type) &&
+    hasTrigger(triggers, DataConditionType.SEER_ACTIVITY_TRIGGER)
   ) {
     warnings.push(t('This action is not supported for Seer activity triggers.'));
+  }
+
+  if (
+    !ACTIVITY_TRIGGER_SUPPORTED_ACTIONS.has(action.type) &&
+    hasTrigger(triggers, DataConditionType.ISSUE_RESOLVED_TRIGGER) &&
+    !canFireFromEventTrigger(triggers)
+  ) {
+    warnings.push(t('This action will not fire when an issue is resolved.'));
   }
 
   if (
@@ -54,4 +81,22 @@ export function getIncompatibleActionWarnings(
   }
 
   return warnings;
+}
+
+export function getPartialTriggerSupportMessage(
+  action: Action,
+  triggers: DataConditionGroup
+): string | null {
+  if (
+    ACTIVITY_TRIGGER_SUPPORTED_ACTIONS.has(action.type) ||
+    !hasTrigger(triggers, DataConditionType.ISSUE_RESOLVED_TRIGGER) ||
+    hasTrigger(triggers, DataConditionType.SEER_ACTIVITY_TRIGGER) ||
+    !canFireFromEventTrigger(triggers)
+  ) {
+    return null;
+  }
+
+  return t(
+    'This action will fire for your other triggers, but not when an issue is resolved.'
+  );
 }
