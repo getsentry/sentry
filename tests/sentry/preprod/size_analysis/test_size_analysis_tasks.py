@@ -115,7 +115,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
 
     @patch("sentry.preprod.size_analysis.tasks.create_preprod_status_check_task.apply_async")
     def test_failed_comparison_keeps_the_finished_ones(self, status_check):
-        head_artifact, pairs = self._create_comparable_pair()
+        head_artifact, _ = self._create_comparable_pair()
         with patch(
             "sentry.preprod.size_analysis.tasks.compare_size_analysis",
             side_effect=self._fail_on_second_call(RuntimeError("diff blew up")),
@@ -133,7 +133,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         status_check.assert_not_called()
 
     def test_deadline_kill_keeps_the_finished_ones(self):
-        head_artifact, pairs = self._create_comparable_pair()
+        head_artifact, _ = self._create_comparable_pair()
         with patch(
             "sentry.preprod.size_analysis.tasks.compare_size_analysis",
             side_effect=self._fail_on_second_call(WorkerKilled()),

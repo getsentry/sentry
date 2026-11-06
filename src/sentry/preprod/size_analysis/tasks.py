@@ -247,6 +247,7 @@ def compare_preprod_artifact_size_analysis(
                     },
                 )
 
+            # Every PENDING row exists before any file I/O, so a killed run leaves retryable rows
             for comp in comparisons:
                 _run_size_analysis_comparison(org_id, comp["head_metric"], comp["base_metric"])
 
@@ -554,6 +555,7 @@ def _run_size_analysis_comparison(
         )
         file.putfile(BytesIO(dumps_htmlsafe(comparison_results.dict()).encode()))
     except Exception:
+        # Not BaseException: a deadline kill can interrupt a statement, so nothing is written then
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
             comparison.state = PreprodArtifactSizeComparison.State.FAILED
             comparison.save()
