@@ -578,7 +578,8 @@ def _retry_push_on_moved_branch(
         )
     except SeerOutOfCreditsException:
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="out_of_credits")
-        return PrIterationOutcome.PR_CREATION_ERRORED
+        # Not PR_CREATION_ERRORED, which pauses iteration for good. Credits can be topped up.
+        return PrIterationOutcome.PUSH_FAILED
     except Exception as e:
         # End the iteration as errored, so the caller pauses the run and records the outcome.
         log_ctx.error(
