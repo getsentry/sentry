@@ -1,11 +1,12 @@
 import {matchRoutes, type RouteObject} from 'react-router';
 
 import * as constants from 'sentry/constants';
-import {buildRoutes} from 'sentry/router/routes';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {AuthenticatedApiErrorHandler} from 'sentry/views/app/authenticatedApiErrorHandler';
 import type {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
+
+import {buildRoutes} from './routes';
 
 // Setup a module mock so that we can replace
 // USING_CUSTOMER_DOMAIN with a getter.
@@ -308,6 +309,12 @@ describe('buildRoutes()', () => {
 
     expect(matches?.at(-1)?.route.path).toBe(routePath);
     expect(components).not.toContain(AuthenticatedApiErrorHandler);
+  });
+
+  it('redirects legacy project group urls to the organization issue details', () => {
+    expect(getRedirectTarget(buildRoutes(), '/test-org/test-project/group/123/')).toBe(
+      '/organizations/test-org/issues/123/'
+    );
   });
 
   it('matches legacy project event redirects under the organization layout', () => {

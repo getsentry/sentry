@@ -1,4 +1,4 @@
-import {compareProfiles} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
+import {compareProfiles} from './flamegraphThreadSelector';
 
 describe('compareProfiles', () => {
   it('should thread appropriately', () => {

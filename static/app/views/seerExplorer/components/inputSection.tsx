@@ -12,8 +12,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {PRLinksBar} from 'sentry/views/seerExplorer/components/prLinksBar';
 import type {RepoPRState, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+
+import {PRLinksBar} from './prLinksBar';
 
 interface FileApprovalActions {
   currentIndex: number;

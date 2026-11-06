@@ -7,12 +7,8 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -55,7 +51,7 @@ export default function LegacyWebhookDetails() {
 
   const toggleMutation = useMutation({
     mutationFn: (shouldEnable: boolean) => {
-      addLoadingMessage(shouldEnable ? t('Enabling…') : t('Disabling…'));
+      toast.loading(shouldEnable ? t('Enabling…') : t('Disabling…'));
       return fetchMutation<LegacyWebhookResponse>({
         method: 'POST',
         url: getApiUrl(
@@ -66,14 +62,14 @@ export default function LegacyWebhookDetails() {
       });
     },
     onSuccess: (responseData, shouldEnable) => {
-      addSuccessMessage(shouldEnable ? t('Webhooks enabled') : t('Webhooks disabled'));
+      toast.success(shouldEnable ? t('Webhooks enabled') : t('Webhooks disabled'));
       queryClient.setQueryData(webhookQueryOptions.queryKey, {
         json: responseData,
         headers: {},
       });
     },
     onError: (_error, shouldEnable) => {
-      addErrorMessage(
+      toast.error(
         shouldEnable ? t('Could not enable webhooks.') : t('Could not disable webhooks.')
       );
     },
@@ -81,7 +77,7 @@ export default function LegacyWebhookDetails() {
 
   const saveMutation = useMutation({
     mutationFn: (urls: string[]) => {
-      addLoadingMessage(t('Saving changes…'));
+      toast.loading(t('Saving changes…'));
       return fetchMutation<LegacyWebhookResponse>({
         method: 'POST',
         url: getApiUrl(
@@ -92,7 +88,7 @@ export default function LegacyWebhookDetails() {
       });
     },
     onSuccess: responseData => {
-      addSuccessMessage(t('Webhook URLs saved successfully.'));
+      toast.success(t('Webhook URLs saved successfully.'));
       setUrlsText(null);
       queryClient.setQueryData(webhookQueryOptions.queryKey, {
         json: responseData,
@@ -100,13 +96,13 @@ export default function LegacyWebhookDetails() {
       });
     },
     onError: () => {
-      addErrorMessage(t('Unable to save webhook URLs.'));
+      toast.error(t('Unable to save webhook URLs.'));
     },
   });
 
   const testMutation = useMutation({
     mutationFn: () => {
-      addLoadingMessage(t('Sending test event…'));
+      toast.loading(t('Sending test event…'));
       return fetchMutation({
         method: 'POST',
         url: getApiUrl('/organizations/$organizationIdOrSlug/test-fire-actions/', {
@@ -125,10 +121,10 @@ export default function LegacyWebhookDetails() {
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Test event sent successfully.'));
+      toast.success(t('Test event sent successfully.'));
     },
     onError: () => {
-      addErrorMessage(t('Failed to send test event.'));
+      toast.error(t('Failed to send test event.'));
     },
   });
 

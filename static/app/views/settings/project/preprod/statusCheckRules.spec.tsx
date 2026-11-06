@@ -4,7 +4,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {StatusCheckRules} from 'sentry/views/settings/project/preprod/statusCheckRules';
+import {StatusCheckRules} from './statusCheckRules';
 
 describe('StatusCheckRules', () => {
   const {organization} = initializeOrg();

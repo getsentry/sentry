@@ -8,12 +8,14 @@ import {Container, Flex, Stack, type ContainerProps} from '@sentry/scraps/layout
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -34,9 +36,6 @@ import {
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
-import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
-import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
-import {scaleThresholdsToInterval} from 'sentry/views/dashboards/widgetCard/scaleThresholdsToInterval';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {
   LegendSelection,
@@ -64,13 +63,17 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {canScaleThresholds} from './canScaleThresholds';
 import {WidgetCardConfidenceFooter} from './confidenceFooter';
+import {matchTimeSeriesToTableRowValue} from './matchTimeSeriesToTableRowValue';
+import {scaleThresholdsToInterval} from './scaleThresholdsToInterval';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 interface VisualizationWidgetProps {
   selection: PageFilters;
   widget: TWidget;
   dashboardFilters?: DashboardFilters;
+  disableFullscreen?: boolean;
   isFullScreen?: boolean;
   legendSelection?: LegendSelection;
   onDataFetchStart?: () => void;
@@ -99,6 +102,7 @@ function VisualizationWidgetComponent({
   legendSelection,
   onLegendSelectionChange,
   isFullScreen,
+  disableFullscreen,
 }: VisualizationWidgetProps) {
   const onWidgetError = useWidgetErrorCallback();
 
@@ -170,6 +174,7 @@ function VisualizationWidgetComponent({
             legendSelection={decodedLegendSelection}
             onLegendSelectionChange={handleLegendSelectionChange}
             isFullScreen={isFullScreen}
+            disableFullscreen={disableFullscreen}
             widgetInterval={timeseriesInterval ?? widgetInterval}
           />
         );
@@ -177,6 +182,16 @@ function VisualizationWidgetComponent({
     </WidgetCardDataLoader>
   );
 }
+
+// Only these widget datasets map to an Outcomes category on the backend
+// (DATASET_TO_CATEGORY in data_annotations.py). Everything else gets no band.
+const WIDGET_TYPE_TO_DROPPED_DATA_DATASET: Partial<Record<WidgetType, DiscoverDatasets>> =
+  {
+    [WidgetType.SPANS]: DiscoverDatasets.SPANS,
+    [WidgetType.LOGS]: DiscoverDatasets.OURLOGS,
+    [WidgetType.TRACEMETRICS]: DiscoverDatasets.TRACEMETRICS,
+    [WidgetType.ERRORS]: DiscoverDatasets.ERRORS,
+  };
 
 function shouldMemoizeVisualizationWidget(
   prevProps: VisualizationWidgetProps,
@@ -205,6 +220,7 @@ interface VisualizationWidgetContentProps {
   confidence?: Confidence;
   dashboardFilters?: DashboardFilters;
   dataScanned?: 'full' | 'partial';
+  disableFullscreen?: boolean;
   errorMessage?: string;
   ingestion?: IngestionMeta;
   isFullScreen?: boolean;
@@ -237,12 +253,33 @@ function VisualizationWidgetContent({
   legendSelection,
   onLegendSelectionChange,
   isFullScreen,
+  disableFullscreen,
   widgetInterval,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {selection} = usePageFilters();
+
+  // The band reflects the page filters, not this widget's own projects/query, so
+  // it won't follow a fullscreen zoom. Parameterize useDroppedData for per-widget
+  // scope before GA.
+  const droppedDataDataset = widget.widgetType
+    ? WIDGET_TYPE_TO_DROPPED_DATA_DATASET[widget.widgetType]
+    : undefined;
+  const droppedData = useDroppedDataLayer(
+    {
+      dataset: droppedDataDataset ?? DiscoverDatasets.SPANS,
+      interval: widgetInterval ?? '',
+    },
+    {
+      enabled:
+        defined(droppedDataDataset) &&
+        organization.features.includes('dashboards-data-fidelity-annotations'),
+      // disableFullscreen is true while creating or editing a widget.
+      hidden: disableFullscreen,
+    }
+  );
 
   const timeSeriesWithPlottable = timeseriesResults
     .map(({timeSeries, seriesName, queryIndex}) => {
@@ -478,6 +515,7 @@ function VisualizationWidgetContent({
             legendSelection={legendSelection}
             onLegendSelectionChange={onLegendSelectionChange}
             renderTooltipSeriesDetails={renderTooltipSeriesDetails}
+            droppedData={droppedData.band}
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
@@ -502,6 +540,7 @@ function VisualizationWidgetContent({
           legendSelection={legendSelection}
           onLegendSelectionChange={onLegendSelectionChange}
           renderTooltipSeriesDetails={renderTooltipSeriesDetails}
+          droppedData={droppedData.band}
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>

@@ -1,4 +1,4 @@
-import {MutableSearch, TokenType} from 'sentry/utils/tokenizeSearch';
+import {MutableSearch, TokenType} from './tokenizeSearch';
 
 describe('utils/tokenizeSearch', () => {
   describe('MutableSearch.fromQueryObject', () => {

@@ -7,8 +7,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -139,7 +139,7 @@ export function AuthenticateIntentForm({
       organization,
       referrer: decodeScalar(referrer),
     });
-    addSuccessMessage(t('Payment sent successfully.'));
+    toast.success(t('Payment sent successfully.'));
     onSuccess?.();
     setIsSubmitting(false);
   };

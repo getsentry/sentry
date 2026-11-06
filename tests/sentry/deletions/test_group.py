@@ -28,6 +28,8 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.referrer import Referrer
@@ -36,6 +38,37 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.utils.snuba import bulk_snuba_queries
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+
+class DeleteGroupInboxTest(TestCase):
+    def test_deletes_only_matching_issue_items(self) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", 1)
+        groups = [self.create_group(project=self.project) for _ in range(2)]
+        items = [self.create_inbox_item(subject_id=str(group.id)) for group in groups]
+        for item in items:
+            self.create_inbox_item_event(item)
+        other_subject = self.create_inbox_item(
+            subject_type="notebook", subject_id=str(groups[0].id)
+        )
+        other_org = self.create_inbox_item(
+            organization=self.create_organization(), subject_id=str(groups[0].id)
+        )
+        survivor_events = [
+            self.create_inbox_item_event(item) for item in [other_subject, other_org]
+        ]
+
+        with mock.patch.dict(os.environ, {"_SENTRY_CLEANUP": "1"}), self.tasks():
+            deletions.exec_sync_many(groups)
+
+        assert not Group.objects.filter(id__in=[group.id for group in groups]).exists()
+        assert not InboxItem.objects.filter(id__in=[item.id for item in items]).exists()
+        assert not InboxItemEvent.objects.filter(
+            inbox_item_id__in=[item.id for item in items]
+        ).exists()
+        assert (
+            InboxItemEvent.objects.filter(id__in=[event.id for event in survivor_events]).count()
+            == 2
+        )
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):

@@ -1,4 +1,3 @@
-import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -10,6 +9,8 @@ import {
 } from 'sentry/utils/issueTypeConfig';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {ProfileEventEvidence} from './profileEventEvidence';
 
 type EvidenceProps = {
   event: Event;

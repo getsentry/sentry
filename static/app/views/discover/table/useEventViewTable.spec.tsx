@@ -6,10 +6,8 @@ import {DataGrid} from 'sentry/components/tables/dataGrid';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {
-  useEventViewTable,
-  type RenderCellOptions,
-} from 'sentry/views/discover/table/useEventViewTable';
+
+import {useEventViewTable, type RenderCellOptions} from './useEventViewTable';
 
 const makeLocation = (fields: string[]) => LocationFixture({query: {field: fields}});
 

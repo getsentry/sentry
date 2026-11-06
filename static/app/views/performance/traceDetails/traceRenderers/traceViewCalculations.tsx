@@ -1,8 +1,9 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {clamp} from 'sentry/utils/number/clamp';
-import {TraceTimeCompression} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import type {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
+
+import {TraceTimeCompression} from './traceTimeCompression';
+import type {TraceView} from './traceView';
 
 export type CompressedView = {left: number; right: number; width: number};
 export type SpanMatrix = [number, number, number, number, number, number];

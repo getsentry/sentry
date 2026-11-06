@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -84,12 +85,16 @@ class ServiceAccount(ReplicatedControlModel):
     scope_list = ArrayField(
         models.TextField(), validators=[validate_grantable_scopes], default=list
     )
+    # False means the account was deleted, as on `User`. Nothing sets it back to True, and
+    # the row stays until the org is deleted so references to the account stay set.
     is_active = models.BooleanField(default=True, db_default=True)
     # Every active project in the org, including ones created later, instead of only the
     # linked `ServiceAccountProject`s. Explicit so access doesn't follow open membership.
     all_projects = models.BooleanField(default=False, db_default=False)
     # Always a human user, never another service account.
     created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
+    # Lets a retried create, such as an outbox redelivery, find the account it already made.
+    idempotency_key = models.CharField(max_length=64, null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(auto_now=True)
 
@@ -97,9 +102,15 @@ class ServiceAccount(ReplicatedControlModel):
         app_label = "service_accounts"
         db_table = "service_accounts_serviceaccount"
         constraints = [
+            # Inactive accounts don't reserve their name, so a deleted account's name can be reused.
             models.UniqueConstraint(
                 fields=["organization_id", "name"],
-                name="service_accounts_serviceaccount_org_name_unique",
+                condition=Q(is_active=True),
+                name="service_accounts_serviceaccount_org_name_unique_active",
+            ),
+            models.UniqueConstraint(
+                fields=["organization_id", "idempotency_key"],
+                name="service_accounts_serviceaccount_org_idempotency_key_unique",
             ),
         ]
 
@@ -118,7 +129,7 @@ class ServiceAccount(ReplicatedControlModel):
         project_ids: Iterable[int],
         all_projects: bool,
         created_by_id: int | None,
-        is_active: bool = True,
+        idempotency_key: str | None = None,
     ) -> ServiceAccount:
         """
         Raises `InvalidScopeError` for a scope outside `GRANTABLE_SCOPES` and `IntegrityError`
@@ -131,9 +142,9 @@ class ServiceAccount(ReplicatedControlModel):
                 organization_id=organization_id,
                 name=name,
                 scope_list=scope_list,
-                is_active=is_active,
                 all_projects=all_projects,
                 created_by_id=created_by_id,
+                idempotency_key=idempotency_key,
             )
             if not all_projects:
                 ServiceAccountProject.objects.bulk_create(
@@ -141,6 +152,26 @@ class ServiceAccount(ReplicatedControlModel):
                     for project_id in set(project_ids)
                 )
         return service_account
+
+    def deactivate(self) -> bool:
+        """
+        Delete the account: keep the row, so references to it stay set, but turn it off for
+        good and remove its project links. The outbox replicates both to the cell. Returns
+        False when the account was already deleted. Callers must write the audit log.
+        """
+        with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
+            account = (
+                ServiceAccount.objects.select_for_update()
+                .filter(id=self.id, is_active=True)
+                .first()
+            )
+            if account is None:
+                return False
+            account.replace_projects([])
+            account.all_projects = False
+            account.is_active = False
+            account.save()
+        return True
 
     def replace_projects(self, project_ids: Iterable[int]) -> None:
         project_ids = set(project_ids)
@@ -216,8 +247,8 @@ class ServiceAccountProject(DefaultFieldsModel, ControlOutboxProducingModel):
 class ServiceAccountReplica(Model):
     """
     The cell's copy of a `ServiceAccount`, written by its outbox. Deleting the account
-    deletes this row through the tombstone cascade. Like the account, this doesn't
-    check `is_active`, so callers must.
+    keeps this row with `is_active=False`, so cell references to it stay set. Like the
+    account, this doesn't check `is_active`, so callers must.
     """
 
     __relocation_scope__ = RelocationScope.Excluded

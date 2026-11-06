@@ -1,10 +1,7 @@
 import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -85,15 +82,15 @@ async function sendBasicRequest({
   handleSuccess?: () => void;
 }) {
   try {
-    addLoadingMessage(t('Requesting\u2026'));
+    toast.loading(t('Requesting\u2026'));
     await api.requestPromise(endpoint, {
       method: 'POST',
       data,
     });
-    addSuccessMessage(t('Request Sent'));
+    toast.success(t('Request Sent'));
     handleSuccess?.();
   } catch (err) {
-    addErrorMessage(t('Unable to send request'));
+    toast.error(t('Unable to send request'));
     Sentry.captureException(err);
   }
 }

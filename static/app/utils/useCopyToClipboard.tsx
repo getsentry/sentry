@@ -1,4 +1,5 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 
 type CopyCallback = (
@@ -31,13 +32,13 @@ export function copyToClipboard(
     .writeText(text)
     .then(() => {
       if (successMessage) {
-        addSuccessMessage(successMessage);
+        toast.success(successMessage);
       }
       return text;
     })
     .catch(_error => {
       if (errorMessage) {
-        addErrorMessage(errorMessage);
+        toast.error(errorMessage);
       }
     });
 

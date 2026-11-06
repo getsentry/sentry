@@ -1,9 +1,10 @@
 import {useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {ContextDataSection} from 'sentry/components/events/contexts/contextDataSection';
 import type {Event} from 'sentry/types/event';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {ContextDataSection} from './contextDataSection';
 
 type Props = {
   event: Event;

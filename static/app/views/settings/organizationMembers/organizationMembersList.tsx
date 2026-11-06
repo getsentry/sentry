@@ -6,9 +6,9 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
@@ -21,21 +21,19 @@ import {ORG_ROLES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
-import type {Member} from 'sentry/types/organization';
+import type {Member, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 import {MembersFilter} from './components/membersFilter';
+import {InviteBanner} from './inviteBanner';
 import {InviteRequestRow} from './inviteRequestRow';
 import {OrganizationMemberRow} from './organizationMemberRow';
 
@@ -81,11 +79,11 @@ function membersApiOptions({
   });
 }
 
-const getInviteRequestsQueryKey = ({organization}: any): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/invite-requests/', {
+const inviteRequestsOptions = ({organization}: {organization: Organization}) =>
+  apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/invite-requests/', {
     path: {organizationIdOrSlug: organization.slug},
-  }),
-];
+    staleTime: 0,
+  });
 
 function OrganizationMembersList() {
   const queryClient = useQueryClient();
@@ -93,24 +91,20 @@ function OrganizationMembersList() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const {data: inviteRequests = [], refetch: refetchInviteRequests} = useApiQuery<
-    Member[]
-  >(getInviteRequestsQueryKey({organization}), {staleTime: 0});
-  const {data: authProvider} = useApiQuery<OrganizationAuthProvider>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/auth-provider/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {staleTime: 0}
+  const {data: inviteRequests = [], refetch: refetchInviteRequests} = useQuery(
+    inviteRequestsOptions({organization})
   );
-  const {data: currentMember} = useApiQuery<Member>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
-        path: {organizationIdOrSlug: organization.slug, memberId: 'me'},
-      }),
-    ],
-    {staleTime: 30000}
+  const {data: authProvider} = useQuery(
+    apiOptions.as<OrganizationAuthProvider>()(
+      '/organizations/$organizationIdOrSlug/auth-provider/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    )
+  );
+  const {data: currentMember} = useQuery(
+    apiOptions.as<Member>()('/organizations/$organizationIdOrSlug/members/$memberId/', {
+      path: {organizationIdOrSlug: organization.slug, memberId: 'me'},
+      staleTime: 30000,
+    })
   );
   const membersQueryOptions = membersApiOptions({
     orgSlug: organization.slug,
@@ -170,18 +164,18 @@ function OrganizationMembersList() {
     try {
       await removeMember(id);
     } catch {
-      addErrorMessage(tct('Error removing [name] from [orgName]', {name, orgName}));
+      toast.error(tct('Error removing [name] from [orgName]', {name, orgName}));
       return;
     }
 
-    addSuccessMessage(tct('Removed [name] from [orgName]', {name, orgName}));
+    toast.success(tct('Removed [name] from [orgName]', {name, orgName}));
   };
 
   const handleLeave = async ({id}: Member) => {
     try {
       await removeMember(id);
     } catch {
-      addErrorMessage(tct('Error leaving [orgName]', {orgName: organization.slug}));
+      toast.error(tct('Error leaving [orgName]', {orgName: organization.slug}));
       return;
     }
 
@@ -190,7 +184,7 @@ function OrganizationMembersList() {
       orgId: organization.slug,
       removeOrg: true,
     });
-    addSuccessMessage(tct('You left [orgName]', {orgName: organization.slug}));
+    toast.success(tct('You left [orgName]', {orgName: organization.slug}));
   };
 
   const handleSendInvite = async ({id, expired}: any) => {
@@ -204,7 +198,7 @@ function OrganizationMembersList() {
       });
     } catch {
       setInvited(state => ({...state, [id]: null}));
-      addErrorMessage(t('Error sending invite'));
+      toast.error(t('Error sending invite'));
       return;
     }
 
@@ -212,26 +206,25 @@ function OrganizationMembersList() {
   };
 
   const updateInviteRequest = (id: string, data: Partial<Member>) => {
-    setApiQueryData<Member[]>(
-      queryClient,
-      getInviteRequestsQueryKey({organization}),
-      currentInviteRequests => {
-        return currentInviteRequests?.map(request => {
-          if (request.id === id) {
-            return {...request, ...data};
-          }
-
-          return request;
-        });
+    queryClient.setQueryData(inviteRequestsOptions({organization}).queryKey, oldData => {
+      if (!oldData) {
+        return oldData;
       }
-    );
+
+      return {
+        ...oldData,
+        json: oldData.json.map(request =>
+          request.id === id ? {...request, ...data} : request
+        ),
+      };
+    });
   };
 
   const removeInviteRequest = (id: string) => {
-    setApiQueryData<Member[]>(
-      queryClient,
-      getInviteRequestsQueryKey({organization}),
-      curentInviteRequests => curentInviteRequests?.filter(request => request.id !== id)
+    queryClient.setQueryData(inviteRequestsOptions({organization}).queryKey, oldData =>
+      oldData
+        ? {...oldData, json: oldData.json.filter(request => request.id !== id)}
+        : oldData
     );
   };
 
@@ -255,14 +248,14 @@ function OrganizationMembersList() {
       );
 
       removeInviteRequest(inviteRequest.id);
-      addSuccessMessage(successMessage);
+      toast.success(successMessage);
       trackAnalytics(eventKey, {
         member_id: parseInt(inviteRequest.id, 10),
         invite_status: inviteRequest.inviteStatus,
         organization,
       });
     } catch {
-      addErrorMessage(errorMessage);
+      toast.error(errorMessage);
     }
   };
 

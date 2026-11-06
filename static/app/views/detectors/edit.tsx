@@ -3,9 +3,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {EditExistingDetectorForm} from 'sentry/views/detectors/components/forms';
-import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
-import {useDetectorQuery} from 'sentry/views/detectors/hooks';
+
+import {EditExistingDetectorForm} from './components/forms';
+import {DetectorFormProvider} from './components/forms/context';
+import {useDetectorQuery} from './hooks';
 
 export default function DetectorEdit() {
   const params = useParams<{detectorId: string}>();

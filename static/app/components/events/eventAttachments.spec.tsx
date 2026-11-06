@@ -13,8 +13,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {ConfigStore} from 'sentry/stores/configStore';
+
+import {EventAttachments} from './eventAttachments';
 
 describe('EventAttachments', () => {
   const {organization, project} = initializeOrg({

@@ -6,10 +6,11 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {EventStackTrace} from 'sentry/components/events/eventStackTrace';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+
+import {EventStackTrace} from './eventStackTrace';
 
 describe('EventStackTrace', () => {
   const project = DetailedProjectFixture();

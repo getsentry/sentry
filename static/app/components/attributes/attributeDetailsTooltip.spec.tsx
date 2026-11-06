@@ -2,9 +2,10 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {FieldValueType} from 'sentry/utils/fields';
+
+import {AttributeDetailsTooltip} from './attributeDetailsTooltip';
 
 describe('AttributeDetailsTooltip', () => {
   beforeEach(() => {

@@ -9,20 +9,20 @@ import type {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {ReleaseSearchBar} from 'sentry/views/detectors/datasetConfig/components/releaseSearchBar';
+import type {FieldValue} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+import {ReleaseSearchBar} from './components/releaseSearchBar';
 import {
   getReleasesSeriesQueryOptions,
   transformMetricsResponseToSeries,
-} from 'sentry/views/detectors/datasetConfig/utils/releasesSeries';
+} from './utils/releasesSeries';
 import {
   BASE_DYNAMIC_INTERVALS,
   BASE_INTERVALS,
   getStandardTimePeriodsForInterval,
   MetricDetectorInterval,
-} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
-import type {FieldValue} from 'sentry/views/discover/table/types';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
-
+} from './utils/timePeriods';
 import type {DetectorDatasetConfig} from './base';
 import {parseEventTypesFromQuery} from './eventTypes';
 

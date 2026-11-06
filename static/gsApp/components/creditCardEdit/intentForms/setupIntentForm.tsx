@@ -3,7 +3,6 @@ import {useMutation} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -72,7 +71,7 @@ export function SetupIntentForm(props: IntentFormProps) {
       });
     },
     onSuccess: (data: Subscription) => {
-      addSuccessMessage(t('Updated payment method.'));
+      toast.success(t('Updated payment method.'));
       onSuccessWithSubscription?.(data);
       onSuccess?.();
     },

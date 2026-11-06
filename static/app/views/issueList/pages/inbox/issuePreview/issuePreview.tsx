@@ -48,21 +48,12 @@ import {
   groupEventApiOptions,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
-import {
-  IssuePreviewHeaderActions,
-  OpenIssueButton,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewHeaderActions';
-import {
-  IssuePreviewSeerProvider,
-  useIssuePreviewSeer,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
-import {
-  IssuePreviewSummary,
-  type IssueSummary,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSummary';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
 
+import {IssuePreviewHeaderActions, OpenIssueButton} from './issuePreviewHeaderActions';
+import {IssuePreviewSeerProvider, useIssuePreviewSeer} from './issuePreviewSeer';
+import {IssuePreviewSummary, type IssueSummary} from './issuePreviewSummary';
 import {IssuePreviewTimeline} from './issuePreviewTimeline';
 
 interface IssuePreviewProps {

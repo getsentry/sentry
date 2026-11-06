@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {FeedbackList} from 'sentry/components/feedback/list/feedbackList';
 import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
+
+import {FeedbackList} from './feedbackList';
 
 describe('FeedbackList', () => {
   const organization = OrganizationFixture();
