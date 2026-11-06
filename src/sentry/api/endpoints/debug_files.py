@@ -483,9 +483,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         def on_results(
             difs: Sequence[ProjectDebugFile],
         ) -> list[DebugFileSerializerResponse]:
-            # NOTE: we are only refreshing files if there is direct query for specific files.
-            # Symbolicator looks files up by debug id, Teapot looks shader binaries up by
-            # code id; both keep the files they use from expiring.
+            # NOTE: we are only refreshing files if there is direct query for specific files
             if (debug_id or code_id) and not query and not file_formats:
                 maybe_renew_debug_files(difs)
 

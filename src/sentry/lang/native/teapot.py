@@ -159,8 +159,7 @@ class TeapotClient:
             ],
         }
         if sources:
-            # Where teapot looks up the shader binaries the dump references, as for
-            # Symbolicator. Carries the system token; never log the body.
+            # Carries the system token; never log the body.
             body["sources"] = list(sources)
         data = orjson.dumps(body)
         headers = {

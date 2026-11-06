@@ -69,7 +69,7 @@ DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
-_DXIL_MAGIC = b"DXBC"
+_DXIL_HEADER = b"DXBC"
 _SHADER_CODE_ID_RE = re.compile(r"^[0-9a-f]{16}$")
 
 SHADER_GROUP_MAX_LENGTH = 512
@@ -910,7 +910,7 @@ def determine_dif_kind(path: str) -> DifKind:
             return DifKind.Il2Cpp
         elif data.startswith(b"["):
             return DifKind.DartSymbolMap
-        elif data.startswith(_DXIL_MAGIC):
+        elif data.startswith(_DXIL_HEADER):
             return DifKind.Dxil
         else:
             return DifKind.Object
