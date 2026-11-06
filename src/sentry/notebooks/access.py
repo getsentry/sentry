@@ -37,8 +37,7 @@ def issue_links_enabled(organization: Organization, actor: RequestPrincipal | No
 def can_view_issue_links(
     organization: Organization, actor: RequestPrincipal | None, access: Access
 ) -> bool:
-    """Whether a request can see investigation links, which name an investigation and its
-    hypothesis. Needs the scope the investigation endpoints require, not just `event:read`."""
+    """Issue activity only needs `event:read`; links also need the investigation scope."""
     return issue_links_enabled(organization, actor) and any(
         access.has_scope(scope) for scope in INVESTIGATION_SCOPES
     )
