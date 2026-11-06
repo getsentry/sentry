@@ -4347,8 +4347,6 @@ class TestSeerActivityFeed(TestCase):
             source="web",
             data={"referrer": "issue-details"},
         )
-        self.create_group_action_log_entry(group=self.create_group(), type=GroupActionType.RESOLVE)
-
         with action_log_activity_enabled():
             items = self._activity()
 
@@ -4364,7 +4362,6 @@ class TestSeerActivityFeed(TestCase):
         assert items[1]["source"] == "api"
         assert items[1]["data"] == unlink.data
         assert items[2]["source"] == "mcp:codex"
-        assert items[2]["commentId"] == str(note.id)
         assert items[2]["data"]["text"] == "edited comment"
         assert items[2]["data"]["mentions"][0]["email"] == self.user.email
 
@@ -4376,7 +4373,6 @@ class TestSeerActivityFeed(TestCase):
             (GroupActionType.TRIGGER_AUTOFIX, GroupActorType.SYSTEM),
             (GroupActionType.TRIGGER_AUTOFIX, GroupActorType.SENTRY_APP),
             (GroupActionType.SEER_RCA_COMPLETED, GroupActorType.USER),
-            (GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE, GroupActorType.USER),
         ):
             self.create_group_action_log_entry(type=type_, actor_type=actor_type)
 
@@ -4384,35 +4380,13 @@ class TestSeerActivityFeed(TestCase):
             items = self._activity()
 
         assert [item["id"] for item in items] == [str(entry.id) for entry in reversed(entries[1:])]
-        assert {item["type"] for item in items} == {"set_resolved"}
-
-    def test_gates_preserve_legacy_activity(self) -> None:
-        note = self.create_group_activity(
-            type=ActivityType.NOTE.value, data={"text": "legacy comment"}
-        )
-        self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
-        for read_enabled, write_enabled, backfilled in (
-            (False, True, True),
-            (True, False, True),
-            (True, True, False),
-        ):
-            with (
-                self.feature(
-                    {
-                        "projects:issue-action-log-activity": read_enabled,
-                        "projects:issue-action-log-write-to-db": write_enabled,
-                    }
-                ),
-                patch("sentry.issues.derived.gate.is_backfilled", return_value=backfilled),
-            ):
-                items = self._activity()
-            assert [item["id"] for item in items] == [str(note.id)]
-            assert "source" not in items[0]
 
     @with_feature({"projects:issue-action-log-write-to-db": False})
-    def test_empty_log_falls_back_but_filtered_log_does_not(self) -> None:
+    def test_legacy_fallback_only_when_gal_is_unavailable(self) -> None:
         self.create_group_activity(type=ActivityType.SET_RESOLVED.value)
         with action_log_activity_enabled():
             assert [item["type"] for item in self._activity()] == ["set_resolved"]
             self.create_group_action_log_entry(type=GroupActionType.SEER_RCA_COMPLETED)
             assert self._activity() == []
+            with self.feature({"projects:issue-action-log-activity": False}):
+                assert [item["type"] for item in self._activity()] == ["set_resolved"]

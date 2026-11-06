@@ -198,6 +198,7 @@ def get_serialized_activity_items(
     serialized.update(zip(entries, serialize(entries, user)))
 
     record_activity_read(endpoint, ActivityReadResult.GAL)
+
     if not include_first_seen:
         return [serialized[item] for item in page]
 

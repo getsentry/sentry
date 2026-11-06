@@ -1474,7 +1474,7 @@ def get_issue_details(
                 type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
                 user_id__isnull=False,
             )
-            activities = list(
+            activities: list[Activity] = list(
                 Activity.objects.filter(group=group)
                 .filter(activity_filter)
                 .order_by("-datetime", "-id")[:50]
