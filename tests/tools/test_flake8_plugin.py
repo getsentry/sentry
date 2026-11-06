@@ -23,6 +23,7 @@ from tools.flake8_plugin import (
     S028_msg,
     S030_allowlist,
     SentryCheck,
+    SentryVisitor,
     _s015_msg,
     get_api_violations,
 )
@@ -2354,6 +2355,22 @@ class E(Endpoint):
     enforced_only = _api_violations(src, enforced=SHAPED, all_rules=False)
     assert len(enforced_only) == 1
     assert enforced_only[0].rule == "S026"
+
+
+def test_super_call_is_recorded_once() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return super().get(request)
+"""
+    visitor = SentryVisitor("src/sentry/api/endpoints/t.py", 2000, _s015_msg())
+    visitor.visit(ast.parse(src))
+    calls = visitor._functions["E.get"].calls
+    assert len(calls) == 1
+    assert calls[0].kind == "super"
+    assert calls[0].name == "get"
 
 
 def test_api_violations_skip_private_methods() -> None:

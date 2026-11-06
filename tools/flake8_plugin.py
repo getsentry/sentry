@@ -1665,8 +1665,8 @@ class SentryVisitor(ast.NodeVisitor):
             kind = Kind.PARENT_CLASS_METHOD
             name = func.attr
 
-        # a plain function, i.e. helper()
-        elif isinstance(func, ast.Name):
+        # a plain function, i.e. helper(). The inner super() of super().helper() isn't one
+        elif isinstance(func, ast.Name) and func.id != "super":
             kind = Kind.NORMAL_FUNCTION
             name = func.id
 
