@@ -24,10 +24,11 @@ interface AvatarButtonProps extends Omit<
   /** Omit to render an empty/unassigned placeholder. */
   avatar?: BaseAvatarProps;
   /**
-   * Avatar to take the button's border color from, when it should match
-   * something other than the avatar it shows. Defaults to `avatar`.
+   * Color of the button's border and raised edge. Defaults to a color derived
+   * from `avatar`. Use `useAvatarButtonBorderColor` to derive it from another
+   * avatar.
    */
-  colorAvatar?: BaseAvatarProps;
+  borderColor?: string;
   /** Circular (e.g. users) vs squircle (e.g. teams) shape. Defaults to `avatar.round`. */
   round?: boolean;
   size?: AvatarButtonSize;
@@ -35,7 +36,7 @@ interface AvatarButtonProps extends Omit<
 
 export function AvatarButton({
   avatar,
-  colorAvatar,
+  borderColor,
   round: explicitRound,
   size: explicitSize,
   ...props
@@ -55,11 +56,10 @@ export function AvatarButton({
           : undefined,
   });
 
-  // `colors` drives the layout of the avatar shown (padding); `chonk` is the
-  // border color, which can come from `colorAvatar` instead.
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
-  const chonkColors = useAvatarColors(isSuggested ? undefined : (colorAvatar ?? avatar));
-  const chonk = chonkColors.type === 'none' ? undefined : chonkColors.chonk;
+  const chonk = isSuggested
+    ? undefined
+    : (borderColor ?? (colors.type === 'none' ? undefined : colors.chonk));
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';

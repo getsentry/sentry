@@ -12,22 +12,14 @@ function solidImage(hex: string): string {
   )}`;
 }
 
-// A skin-toned "photo" and a yellow organization logo.
+// A skin-toned "photo".
 const PHOTO = {url: solidImage('#d9a88c'), chonk: '#7a4a33'};
-const LOGO = {url: solidImage('#ffd744'), chonk: '#8a6d00'};
 
 const photoAvatar: BaseAvatarProps = {
   type: 'upload',
   identifier: 'jane',
   name: 'Jane Doe',
   uploadUrl: PHOTO.url,
-};
-
-const logoAvatar: BaseAvatarProps = {
-  type: 'upload',
-  identifier: 'acme',
-  name: 'Acme',
-  uploadUrl: LOGO.url,
 };
 
 /**
@@ -38,14 +30,12 @@ const logoAvatar: BaseAvatarProps = {
 function sampledQueryClient(): QueryClient {
   // No garbage collection timers, so Jest can exit once the snapshots are taken.
   const queryClient = new QueryClient({defaultOptions: {queries: {gcTime: Infinity}}});
-  for (const {url, chonk} of [PHOTO, LOGO]) {
-    for (const themeType of ['light', 'dark']) {
-      queryClient.setQueryData(['avatar-button-chonk', url, themeType], {
-        chonk,
-        dominant: chonk,
-        style: 'fill',
-      });
-    }
+  for (const themeType of ['light', 'dark']) {
+    queryClient.setQueryData(['avatar-button-chonk', PHOTO.url, themeType], {
+      chonk: PHOTO.chonk,
+      dominant: PHOTO.chonk,
+      style: 'fill',
+    });
   }
   return queryClient;
 }
@@ -69,16 +59,12 @@ describe('AvatarButton', () => {
     {tags: {avatar: 'image', area: 'core'}}
   );
 
-  // Shows the photo, with the border color taken from the logo.
+  // Shows the photo with an explicit border color, for example an organization's.
   it.snapshot(
-    'image-avatar-with-color-avatar',
+    'image-avatar-with-border-color',
     () => (
       <Frame>
-        <AvatarButton
-          aria-label="Jane Doe"
-          avatar={photoAvatar}
-          colorAvatar={logoAvatar}
-        />
+        <AvatarButton aria-label="Jane Doe" avatar={photoAvatar} borderColor="#8a6d00" />
       </Frame>
     ),
     {tags: {avatar: 'image', area: 'core'}}

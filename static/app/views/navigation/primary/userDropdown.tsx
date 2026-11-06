@@ -5,7 +5,7 @@ import {IconSliders} from '@sentry/icons/sliders';
 import {IconUpload} from '@sentry/icons/upload';
 
 import {getOrganizationAvatarProps, UserAvatar} from '@sentry/scraps/avatar';
-import {AvatarButton} from '@sentry/scraps/avatarButton';
+import {AvatarButton, useAvatarButtonBorderColor} from '@sentry/scraps/avatarButton';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
@@ -39,6 +39,10 @@ export function UserDropdown() {
   const {mutate: updateOptions} = useMutateUserOptions();
   const settingsV3 = useSettingsV3();
   const organization = useOrganization({allowNull: true});
+  // Match the menu header, which takes its color from the organization.
+  const organizationBorderColor = useAvatarButtonBorderColor(
+    organization ? getOrganizationAvatarProps(organization) : undefined
+  );
   const {scope: settingsScope} = useSettingsScope();
 
   const trackSettingsClicked = () => {
@@ -97,10 +101,7 @@ export function UserDropdown() {
             {...triggerProps}
             aria-label={user.email}
             avatar={avatarProps}
-            // Match the menu header, which takes its color from the organization.
-            colorAvatar={
-              organization ? getOrganizationAvatarProps(organization) : undefined
-            }
+            borderColor={organizationBorderColor}
             analyticsEventKey="navigation.primary_item_clicked"
             analyticsEventName="Navigation: Primary Item Clicked"
             analyticsParams={{item: 'account'}}
