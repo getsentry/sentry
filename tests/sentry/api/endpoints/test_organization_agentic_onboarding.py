@@ -25,6 +25,26 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         self.login_as(self.user)
         self.service = OnboardingProgressService()
 
+    def test_initialize_without_reporting_code(self) -> None:
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-run-index",
+            args=[self.organization.slug],
+        )
+        payload = {"clientRunId": str(uuid4()), "origin": "onboarding"}
+        response = self.client.post(path, payload)
+        assert response.status_code == 201, response.content
+        assert "onboardingCode" not in response.data
+        run = self.service.get(
+            run_id=response.data["runId"],
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+        assert run is not None
+        assert run.token_hash is None
+        resumed = self.client.post(path, payload)
+        assert resumed.status_code == 201
+        assert resumed.data["runId"] == run.run_id
+
     def test_run_origin(self) -> None:
         index_path = reverse(
             "sentry-api-0-organization-agentic-onboarding-run-index",
@@ -213,6 +233,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
         )
+        assert token == "abcdefghij"
         self.service.update(
             token=token,
             user_id=self.user.id,
@@ -236,6 +257,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
         )
+        assert token == "abcdefghij"
         expired = replace(run, expires_at=timezone.now() - timedelta(seconds=1))
         self.service.redis.set(
             self.service._state_key(run.run_id),
@@ -418,6 +440,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             onboarding_code="abcdefghij",
             origin=RunOrigin.ONBOARDING,
         )
+        assert token == "abcdefghij"
         self.service.update(
             token=token,
             user_id=self.user.id,
