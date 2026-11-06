@@ -161,6 +161,23 @@ describe('GlobalDrawer', () => {
     );
   });
 
+  it('respects shouldCloseOnInteractOutside for a document mousedown', async () => {
+    const shouldCloseOnInteractOutside = jest.fn(() => false);
+    render(
+      <GlobalDrawer>
+        <DrawerControl options={{shouldCloseOnInteractOutside}} />
+      </GlobalDrawer>,
+      {wrapper}
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Open Details'}));
+    expect(await screen.findByText('Details content')).toBeInTheDocument();
+
+    fireEvent.mouseDown(document);
+
+    expect(shouldCloseOnInteractOutside).toHaveBeenCalledWith(document.documentElement);
+    expect(screen.getByRole('complementary', {name: 'Details'})).toBeInTheDocument();
+  });
+
   it('keeps passive drawers open during outside interaction and navigation', async () => {
     const {rerender} = render(
       <OverlayContextProvider value={{location: {pathname: '/first', query: {}}}}>

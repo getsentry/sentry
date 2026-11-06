@@ -114,16 +114,17 @@ const DrawerContext = createContext<DrawerContextType>({
 /**
  * Resolves an event target to the nearest Element. Mouse/touch event targets
  * are not guaranteed to be Elements (e.g. text nodes or the Document), which
- * lack DOM traversal methods like `closest`.
+ * lack DOM traversal methods like `closest`. Targets without an Element
+ * ancestor fall back to the document's root element.
  */
-function getTargetElement(target: EventTarget | null): Element | null {
+function getTargetElement(target: EventTarget | null): Element {
   if (target instanceof Element) {
     return target;
   }
-  if (target instanceof Node) {
+  if (target instanceof Node && target.parentElement) {
     return target.parentElement;
   }
-  return null;
+  return document.documentElement;
 }
 
 function shouldCloseOnInteractOutsideByDefault(element: Element) {
@@ -210,13 +211,7 @@ export function GlobalDrawer({children}: GlobalDrawerProps) {
   const {shouldCloseOnInteractOutside = shouldCloseOnInteractOutsideByDefault} =
     currentDrawerConfig?.options ?? {};
   useOnClickOutside(panelRef, e => {
-    const targetElement = getTargetElement(e.target);
-    if (targetElement === null) {
-      handleClickOutside();
-      return;
-    }
-
-    if (!shouldCloseOnInteractOutside(targetElement)) {
+    if (!shouldCloseOnInteractOutside(getTargetElement(e.target))) {
       return;
     }
     handleClickOutside();
