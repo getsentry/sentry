@@ -111,7 +111,11 @@ function TriggerCell({trigger}: {trigger: InvestigationTrigger}) {
     );
   }
 
-  const label = trigger.automation.name ?? getStrategyLabel(trigger.automation.strategy);
+  const label = t(
+    '%s · Run %s',
+    trigger.automation.name ?? getStrategyLabel(trigger.automation.strategy),
+    trigger.runId
+  );
   return (
     <Text ellipsis>
       {automationsEnabled ? (
