@@ -1054,6 +1054,9 @@ class _InputCtx:
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
+        # `request.GET if c else {}` is a source when either branch is one
+        if isinstance(node, ast.IfExp):
+            return self._is(node.body, attrs, locals_) or self._is(node.orelse, attrs, locals_)
         if isinstance(node, ast.Name):
             return node.id in locals_
         # The attribute has to hang off the request. `serializer.data` and

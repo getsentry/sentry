@@ -2940,6 +2940,18 @@ class E(Endpoint):
     assert _api_violations(src) == []
 
 
+def test_conditional_copy_of_the_query_string_is_an_alias() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        params = request.GET.copy() if request.GET else {}
+        return params.get("k")
+"""
+    assert _summary(_api_violations(src)) == [("S026", 6, "E.get", "query:k")]
+
+
 def test_date_range_helper_called_inside_a_helper_uses_the_public_schema() -> None:
     src = """\
 class E(Endpoint):
