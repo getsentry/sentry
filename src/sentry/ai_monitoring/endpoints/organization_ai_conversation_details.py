@@ -50,7 +50,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import SpanIssueMeta, get_issues_by_span_for_traces
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
