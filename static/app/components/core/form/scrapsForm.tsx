@@ -21,6 +21,7 @@ import {
   useIsInsideFormElement,
 } from '@sentry/scraps/formPresentation';
 
+import {CheckboxGroupField} from './field/checkboxGroupField';
 import {CompactSelectField} from './field/compactSelectField';
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
@@ -58,6 +59,7 @@ export const defaultFormOptions = formOptions({
 const fieldComponents = {
   Base: BaseField,
   Checkbox: CheckboxField,
+  CheckboxGroup: CheckboxGroupField,
   CompactSelect: CompactSelectField,
   Input: InputField,
   Number: NumberField,

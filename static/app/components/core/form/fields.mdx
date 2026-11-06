@@ -253,19 +253,22 @@ Boolean choice with a label and optional hint text. The hint aligns beneath the 
 
 ### Checkbox group
 
-Use `field.Checkbox.Group` for multiple selections stored as one string array.
-Put the layout inside the group so its label names the group rather than an individual input.
-Each `field.Checkbox.Item` has its own checkbox label. Use layout primitives to arrange the items.
+Use `field.CheckboxGroup` for multiple selections stored as one string array.
+Its render callback provides a typed `Item` component. The array's element type determines the allowed item values and the `onChange` array type.
+Put the layout inside the callback so its label names the group rather than an individual input.
+Each `Item` has its own checkbox label. Use layout primitives to arrange the items.
 
 ```jsx
 <form.AppField name="scopes">
   {field => (
-    <field.Checkbox.Group value={field.state.value} onChange={field.handleChange}>
-      <field.Layout.Stack label={t('Scopes')} required>
-        <field.Checkbox.Item value="read">{t('Read')}</field.Checkbox.Item>
-        <field.Checkbox.Item value="write">{t('Write')}</field.Checkbox.Item>
-      </field.Layout.Stack>
-    </field.Checkbox.Group>
+    <field.CheckboxGroup value={field.state.value} onChange={field.handleChange}>
+      {({Item}) => (
+        <field.Layout.Stack label={t('Scopes')} required>
+          <Item value="read">{t('Read')}</Item>
+          <Item value="write">{t('Write')}</Item>
+        </field.Layout.Stack>
+      )}
+    </field.CheckboxGroup>
   )}
 </form.AppField>
 ```
@@ -275,6 +278,7 @@ to disable every item, or to an item to disable one option. A string passed to t
 `disabled` prop provides a tooltip with the reason.
 
 Validate the array in the schema, for example with `z.array(z.string()).min(1)`.
+For fixed choices, use `z.array(z.enum(['read', 'write']))` so that `Item` rejects other values. A typed array retains its element type even when the selection is empty.
 Keep a single array field rather than a boolean field for every option, so selections
 without a rendered item are preserved.
 
