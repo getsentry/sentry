@@ -669,12 +669,12 @@ class InvestigationLinkedAction(GroupAction):
     user_visible = True
 
     notebook_id: int  # notebooks.Notebook ID; the notebook may since have been deleted
-    # Seer's ID for the hypothesis whose evidence named the group, or None when the link
-    # isn't tied to one. Only meaningful within that investigation's projection.
-    hypothesis_id: Optional[str] = Field(default=None, max_length=128)
+    # Seer's ID for the hypothesis whose evidence named the group. Only meaningful within
+    # that investigation's projection.
+    hypothesis_id: str = Field(max_length=128)
     # That hypothesis's statement. Seer derives hypothesis IDs from the statement, so it
-    # can't change for this ID; None when hypothesis_id is.
-    hypothesis_statement: Optional[str] = Field(default=None, max_length=2_000)
+    # can't change for this ID.
+    hypothesis_statement: str = Field(max_length=2_000)
     # Seer's one-sentence explanation of why the group is relevant, or None if it gave none.
     reason: Optional[str] = Field(default=None, max_length=1_000)
 

@@ -7,7 +7,7 @@ from sentry.investigations.services.issue_links import link_investigation_issues
 from sentry.issues.action_log.types import ActionSource, InvestigationLinkedAction
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group
-from sentry.notebooks.models import NotebookProject, NotebookSourceType, NotebookStatus
+from sentry.notebooks.models import NotebookProject, NotebookStatus
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -90,24 +90,6 @@ class LinkInvestigationIssuesTest(TestCase):
 
         assert self.entries(other_project_group) == []
         assert self.entries(other_org_group) == []
-
-    def test_skips_the_issue_the_investigation_started_from(self) -> None:
-        self.investigation.source_type = NotebookSourceType.METRIC_OPEN_PERIOD
-        self.investigation.source = {"ref": {"groupId": str(self.group.id), "openPeriodId": "1"}}
-        self.investigation.source_key = "metric-open-period"
-        self.investigation.source_revision = 1
-        self.investigation.save()
-        linked = self.create_group(project=self.project)
-
-        self.complete([self.link(self.group), self.link(linked)])
-
-        assert self.entries() == []
-        assert len(self.entries(linked)) == 1
-
-    def test_drops_invalid_items_and_keeps_the_rest(self) -> None:
-        self.complete([{"groupId": "not-an-id"}, {"reason": "No group"}, self.link(self.group)])
-
-        assert len(self.entries()) == 1
 
     def test_stale_generation_publishes_nothing(self) -> None:
         self.orchestration_run.generation = 2

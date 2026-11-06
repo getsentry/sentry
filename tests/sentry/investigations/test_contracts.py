@@ -11,7 +11,6 @@ from sentry.auth.access import Access
 from sentry.auth.principal import RequestPrincipal
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.contracts import (
-    MAX_LINKED_ISSUES,
     MAX_PROJECTION_BYTES,
     ActionPayloadSerializer,
     ActionRequestedPayloadSerializer,
@@ -25,7 +24,6 @@ from sentry.investigations.contracts import (
     StrictCharField,
     valid_action_request,
     valid_action_requests,
-    valid_linked_issues,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
 from sentry.investigations.services.action_kinds.base import (
@@ -176,26 +174,17 @@ def test_projection_is_bounded_by_its_serialized_size() -> None:
     rejects(OrchestrationProjectionSerializer, projection(seerAddedThisLater="x" * (600 * 1024)))
 
 
-def test_linked_issues_keep_valid_items_once_per_group() -> None:
-    assert valid_linked_issues(
-        [
-            {"groupId": 7, "hypothesisId": "h-1", "reason": "First."},
-            {"groupId": "7"},
-            {"groupId": 0},
-            {"reason": "No group."},
-            {"groupId": 7, "reason": "Duplicate."},
-            {"groupId": 9, "reason": ""},
-            {"groupId": 8},
-        ]
-    ) == [
-        {"groupId": 7, "hypothesisId": "h-1", "hypothesisStatement": None, "reason": "First."},
-        {"groupId": 8, "hypothesisId": None, "hypothesisStatement": None, "reason": None},
-    ]
+def test_projection_validates_linked_issues() -> None:
+    linked = {"groupId": 7, "hypothesisId": "h-1", "hypothesisStatement": "Retries pile up"}
+    validator = OrchestrationProjectionSerializer(data=projection(linkedIssues=[linked]))
 
-
-def test_linked_issues_ignore_a_non_list_and_cap_the_count() -> None:
-    assert valid_linked_issues({"groupId": 7}) == []
-    assert len(valid_linked_issues([{"groupId": n} for n in range(1, 100)])) == MAX_LINKED_ISSUES
+    assert validator.is_valid(), validator.errors
+    assert validator.validated_data["linkedIssues"] == [linked]
+    rejects(OrchestrationProjectionSerializer, projection(linkedIssues=[{"groupId": 7}]))
+    rejects(
+        OrchestrationProjectionSerializer,
+        projection(linkedIssues=[{**linked, "groupId": "7"}]),
+    )
 
 
 def test_projection_phase_and_status_must_be_known_values() -> None:

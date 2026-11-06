@@ -389,8 +389,8 @@ class GroupActionLogEntrySerializer(Serializer):
         elif obj.type == GroupActionType.INVESTIGATION_LINKED.value:
             data = {
                 "investigation": attrs["investigation"],
-                "hypothesisId": obj.data.get("hypothesis_id"),
-                "hypothesisStatement": obj.data.get("hypothesis_statement"),
+                "hypothesisId": obj.data["hypothesis_id"],
+                "hypothesisStatement": obj.data["hypothesis_statement"],
                 "reason": obj.data.get("reason"),
             }
         elif (

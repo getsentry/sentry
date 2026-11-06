@@ -5,7 +5,6 @@ import logging
 from django.db.models import QuerySet
 
 from sentry.constants import ObjectStatus
-from sentry.investigations.contracts import valid_linked_issues
 from sentry.investigations.models import (
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
@@ -16,7 +15,7 @@ from sentry.issues.action_log.types import InvestigationLinkedAction
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.notebooks.access import issue_links_enabled
-from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookStatus
+from sentry.notebooks.models import Notebook, NotebookStatus
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +43,6 @@ def _linkable_projects(notebook: Notebook) -> QuerySet[Project]:
     return projects
 
 
-def _source_group_ids(notebook: Notebook) -> list[str]:
-    """The group the investigation started from. Its own page already links the investigation."""
-    if notebook.source_type != NotebookSourceType.METRIC_OPEN_PERIOD:
-        return []
-    return [notebook.source["ref"]["groupId"]]
-
-
 def link_investigation_issues(*, investigation_id: int, generation: int) -> None:
     """Record the issues a completed run linked on each issue's action log."""
     run = (
@@ -68,15 +60,11 @@ def link_investigation_issues(*, investigation_id: int, generation: int) -> None
         return
     notebook = run.investigation
 
-    linked = {
-        item["groupId"]: item
-        for item in valid_linked_issues(run.projection.get("linkedIssues"), log=True)
-    }
-    groups = (
-        Group.objects.filter(id__in=linked, project__in=_linkable_projects(notebook))
-        .exclude(id__in=_source_group_ids(notebook))
-        .select_related("project")
-    )
+    # Seer leaves out the issue the investigation started from, since it already links there.
+    linked = {item["groupId"]: item for item in run.projection.get("linkedIssues", [])}
+    groups = Group.objects.filter(
+        id__in=linked, project__in=_linkable_projects(notebook)
+    ).select_related("project")
     for group in groups:
         item = linked[group.id]
         publish_action(
@@ -84,7 +72,7 @@ def link_investigation_issues(*, investigation_id: int, generation: int) -> None
                 notebook_id=notebook.id,
                 hypothesis_id=item["hypothesisId"],
                 hypothesis_statement=item["hypothesisStatement"],
-                reason=item["reason"],
+                reason=item.get("reason"),
             ),
             source=ActionSource.SEER_INVESTIGATION,
             group_id=group.id,

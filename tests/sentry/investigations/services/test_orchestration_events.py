@@ -3855,7 +3855,13 @@ class InvestigationCompletedInboxTest(InvestigationOrchestrationEventTestBase):
 )
 @patch("sentry.tasks.seer.investigation.publish_investigation_issue_links.delay")
 class InvestigationIssueLinksScheduleTest(InvestigationOrchestrationEventTestBase):
-    LINKED_ISSUES = [{"groupId": 1, "reason": "Its timeouts start with the deploy."}]
+    LINKED_ISSUES = [
+        {
+            "groupId": 1,
+            "hypothesisId": "h-1",
+            "hypothesisStatement": "Payment retries exhaust the pool",
+        }
+    ]
 
     def completed(
         self, *, workflow_version: int, generation: int = 1, linked: bool = True

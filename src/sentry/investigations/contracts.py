@@ -436,6 +436,18 @@ class SteeringIntentSerializer(RelaxedContractSerializer):
     completed = StrictBooleanField(required=False)
 
 
+MAX_LINKED_ISSUES = 50
+
+
+class LinkedIssueSerializer(RelaxedContractSerializer):
+    """An issue that evidence for a confirmed hypothesis names, sent once the run completes."""
+
+    groupId = StrictIntegerField(min_value=1, max_value=I64_MAX)
+    hypothesisId = StrictCharField(max_length=128)
+    hypothesisStatement = StrictCharField(max_length=2_000)
+    reason = OptionalStrictCharField(1_000)
+
+
 class OrchestrationProjectionSerializer(RelaxedContractSerializer):
     """The projection blob Seer sends with every orchestration event."""
 
@@ -465,6 +477,9 @@ class OrchestrationProjectionSerializer(RelaxedContractSerializer):
         child=SteeringIntentSerializer(),
         required=False,
         max_length=MAX_PROJECTION_INTENTS,
+    )
+    linkedIssues = serializers.ListField(
+        child=LinkedIssueSerializer(), required=False, max_length=MAX_LINKED_ISSUES
     )
     errors = serializers.ListField(  # type: ignore[assignment]
         child=ProjectionErrorSerializer(),
@@ -675,54 +690,6 @@ def valid_action_requests(items: list[Any], *, log: bool = False) -> list[Action
         if request is not None and all(other["key"] != request["key"] for other in kept):
             kept.append(request)
     return kept
-
-
-MAX_LINKED_ISSUES = 50
-
-
-class LinkedIssueItem(TypedDict):
-    groupId: int
-    hypothesisId: str | None
-    hypothesisStatement: str | None
-    reason: str | None
-
-
-class LinkedIssueSerializer(RelaxedContractSerializer):
-    """One issue the investigation found relevant, from the projection's `linkedIssues`."""
-
-    groupId = StrictIntegerField(min_value=1, max_value=I64_MAX)
-    hypothesisId = OptionalStrictCharField(128, allow_blank=False, default=None)
-    hypothesisStatement = OptionalStrictCharField(2_000, allow_blank=False, default=None)
-    reason = OptionalStrictCharField(1_000, allow_blank=False, default=None)
-
-
-def valid_linked_issues(items: Any, *, log: bool = False) -> list[LinkedIssueItem]:
-    """The projection's linked issues that Sentry can use, one per group.
-
-    Like action requests, a bad item is dropped rather than failing the whole projection.
-    """
-    if not isinstance(items, list):
-        return []
-    kept: dict[int, LinkedIssueItem] = {}
-    for item in items[:MAX_LINKED_ISSUES]:
-        validator = LinkedIssueSerializer(data=item)
-        if validator.is_valid():
-            data = validator.validated_data
-            kept.setdefault(
-                data["groupId"],
-                {
-                    "groupId": data["groupId"],
-                    "hypothesisId": data["hypothesisId"],
-                    "hypothesisStatement": data["hypothesisStatement"],
-                    "reason": data["reason"],
-                },
-            )
-        elif log:
-            logger.warning(
-                "investigations.linked_issues.dropped",
-                extra={"fields": sorted(validator.errors)[:10]},
-            )
-    return list(kept.values())
 
 
 class ActionRequestedPayloadSerializer(RelaxedContractSerializer):
