@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
@@ -57,7 +56,7 @@ export default function ProjectReplaySettings() {
   );
 
   const replayIssuesContent = (
-    <Fragment>
+    <FormSearch route="/settings/:orgId/projects/:projectId/replays/">
       <ProjectPermissionAlert project={project} />
       <ReplaySettingsAlert />
 
@@ -113,39 +112,37 @@ export default function ProjectReplaySettings() {
           )}
         </AutoSaveForm>
       </FieldGroup>
-    </Fragment>
+    </FormSearch>
   );
 
   return (
-    <FormSearch route="/settings/:orgId/projects/:projectId/replays/">
-      <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
-        <SettingsPageHeader title={t('Replays')} />
-        {hasAccess ? (
-          <TabsWithGap
-            value={tab}
-            onChange={value => setTab(value as 'replay-issues' | 'bulk-delete')}
-          >
-            <TabList>
-              <TabList.Item key="replay-issues">{t('Replay Issues')}</TabList.Item>
-              <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
-            </TabList>
-            <TabPanels>
-              <TabPanels.Item key="replay-issues">{replayIssuesContent}</TabPanels.Item>
-              <TabPanels.Item key="bulk-delete">
-                <p>
-                  {t(
-                    'Deleting replays requires us to remove data from multiple storage locations which can take some time. You can monitor progress and audit requests here.'
-                  )}
-                </p>
-                <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
-              </TabPanels.Item>
-            </TabPanels>
-          </TabsWithGap>
-        ) : (
-          replayIssuesContent
-        )}
-      </SentryDocumentTitle>
-    </FormSearch>
+    <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
+      <SettingsPageHeader title={t('Replays')} />
+      {hasAccess ? (
+        <TabsWithGap
+          value={tab}
+          onChange={value => setTab(value as 'replay-issues' | 'bulk-delete')}
+        >
+          <TabList>
+            <TabList.Item key="replay-issues">{t('Replay Issues')}</TabList.Item>
+            <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
+          </TabList>
+          <TabPanels>
+            <TabPanels.Item key="replay-issues">{replayIssuesContent}</TabPanels.Item>
+            <TabPanels.Item key="bulk-delete">
+              <p>
+                {t(
+                  'Deleting replays requires us to remove data from multiple storage locations which can take some time. You can monitor progress and audit requests here.'
+                )}
+              </p>
+              <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
+            </TabPanels.Item>
+          </TabPanels>
+        </TabsWithGap>
+      ) : (
+        replayIssuesContent
+      )}
+    </SentryDocumentTitle>
   );
 }
 
