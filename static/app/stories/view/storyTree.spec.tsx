@@ -6,11 +6,16 @@ import {CategorizedStoryTree} from './storyTree';
 
 jest.mock('sentry/stories/storyManifest.generated', () => ({
   storyFiles: [
-    'app/components/core/drawer/drawer.mdx',
+    'app/components/core/avatar/avatar.mdx',
+    'packages/scraps/src/drawer/drawer.mdx',
     'gsApp/components/upsellModal/upsellModal.stories.tsx',
   ],
   storyFrontmatterIndex: {
-    'app/components/core/drawer/drawer.mdx': {
+    'app/components/core/avatar/avatar.mdx': {
+      category: 'display',
+      title: 'Avatar',
+    },
+    'packages/scraps/src/drawer/drawer.mdx': {
       category: 'overlays',
       title: 'GlobalDrawer',
     },
@@ -30,11 +35,16 @@ describe('CategorizedStoryTree', () => {
     ConfigStore.set('sentryMode', 'SAAS');
   });
 
-  it('uses the documented title without changing the filename-based route', async () => {
+  it('routes app and Scraps package docs to core by filename, not title', async () => {
     render(<CategorizedStoryTree />);
 
+    await userEvent.click(screen.getByText('Display'));
     await userEvent.click(screen.getByText('Overlays'));
 
+    expect(screen.getByRole('link', {name: 'Avatar'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/scraps/core/avatar/')
+    );
     expect(screen.getByRole('link', {name: 'GlobalDrawer'})).toHaveAttribute(
       'href',
       expect.stringContaining('/scraps/core/drawer/')

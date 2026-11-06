@@ -13,7 +13,7 @@ import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/layout/stack');
 
-import {SIZES} from './__stories__/consts';
+import {SIZES} from 'sentry/components/core/layout/__stories__/consts';
 
 export function CustomComponent(/** @type {Record<string, any>} */ props) {
   return <div {...props} />;
