@@ -20,6 +20,7 @@ import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay'
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -28,19 +29,19 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
-import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
-import {TransactionBreadcrumbs} from 'sentry/views/performance/transactionSummary/transactionBreadcrumbs';
-import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
-import {replaysRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {getTransactionSummaryParentCrumbs} from 'sentry/views/performance/breadcrumb';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
+import {eventsRouteWithQuery} from './transactionEvents/utils';
+import {profilesRouteWithQuery} from './transactionProfiles/utils';
+import {replaysRouteWithQuery} from './transactionReplays/utils';
+import {TAB_ANALYTICS} from './tabAnalytics';
 import {Tab} from './tabs';
-import TeamKeyTransactionButton from './teamKeyTransactionButton';
+import {TeamKeyTransactionButton} from './teamKeyTransactionButton';
+import {TransactionBreadcrumbs} from './transactionBreadcrumbs';
 import {TransactionThresholdButton} from './transactionThresholdButton';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
+import {transactionSummaryRouteWithQuery} from './utils';
 
 const REPLAY_COUNT_LIMIT = 50;
 
@@ -69,6 +70,8 @@ export function TransactionHeader({
 }: Props) {
   const {isInDomainView, view} = useDomainViewFilters();
   const navigate = useNavigate();
+  // Apdex and User Misery thresholds only apply to the transactions dataset.
+  const isInsightsEap = useInsightsEap();
 
   const getNewRoute = useCallback(
     (newTab: Tab) => {
@@ -169,7 +172,9 @@ export function TransactionHeader({
       headerTitle: {
         type: 'page-title' as const,
         label: transactionName,
-        leadingGraphic: project && <IdBadge project={project} avatarSize={16} hideName />,
+        leadingGraphic: project && (
+          <IdBadge disableLink project={project} avatarSize={16} hideName />
+        ),
       },
       hideDefaultTabs: true,
       tabs: {
@@ -177,7 +182,7 @@ export function TransactionHeader({
         tabList,
         value: currentTab,
       },
-      breadcrumbs: getTabCrumbs({
+      breadcrumbs: getTransactionSummaryParentCrumbs({
         location,
         organization,
         transaction: {
@@ -185,7 +190,7 @@ export function TransactionHeader({
           project: projectId,
         },
         view,
-      }),
+      }).map(({label, to}) => ({type: 'link' as const, label, to})),
       headerActions: (
         <Fragment>
           {metricsCardinality?.isLoading ? null : (
@@ -205,12 +210,14 @@ export function TransactionHeader({
             organization={organization}
             transactionName={transactionName}
           />
-          <TransactionThresholdButton
-            organization={organization}
-            transactionName={transactionName}
-            eventView={eventView}
-            onChangeThreshold={onChangeThreshold}
-          />
+          {isInsightsEap ? null : (
+            <TransactionThresholdButton
+              organization={organization}
+              transactionName={transactionName}
+              eventView={eventView}
+              onChangeThreshold={onChangeThreshold}
+            />
+          )}
         </Fragment>
       ),
     };

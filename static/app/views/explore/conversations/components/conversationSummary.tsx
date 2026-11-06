@@ -3,6 +3,9 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
+import {IconCalendar} from '@sentry/icons/calendar';
+import {IconFire} from '@sentry/icons/fire';
+import {IconUser} from '@sentry/icons/user';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
@@ -17,7 +20,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCalendar, IconFire, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -25,18 +27,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  getUserDisplayName,
-  normalizeUserField,
-  UserNotInstrumentedTooltip,
-} from 'sentry/views/explore/conversations/components/conversationsTable';
-import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
-import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {
   ConversationModelUsage,
   ConversationStats,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -61,10 +57,19 @@ import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenB
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {
+  getUserDisplayName,
+  normalizeUserField,
+  UserNotInstrumentedTooltip,
+} from './conversationsTable';
+import {ConversationTraceLink} from './conversationTraceLink';
+import {ToolTag} from './toolTag';
+
 interface ConversationSummaryProps {
   conversationId: string;
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
+  hasMoreSpans?: boolean;
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
   /** Project the conversation belongs to; rendered beneath the title. */
@@ -91,27 +96,23 @@ export function ConversationSummary({
   conversationId,
   title,
   project,
+  hasMoreSpans,
   isLoading,
   nodeTraceMap,
 }: ConversationSummaryProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const errorState = useMemo(() => getConversationErrorState(nodes), [nodes]);
+  const errorCount = stats?.errors ?? 0;
+  const erroredToolNames = new Set(stats?.errorToolNames);
   const usageByModel = stats?.usageByModel ?? [];
   const tokenBreakdowns = getTokenBreakdowns(usageByModel);
-  const toolNames = stats
-    ? [...stats.toolNames].sort(
-        (a, b) =>
-          Number(errorState.erroredToolNames.has(b)) -
-          Number(errorState.erroredToolNames.has(a))
-      )
-    : [];
+  const toolNames = stats?.toolNames ?? [];
   const startTimestamp = stats?.startTimestamp || null;
   const user = useMemo(() => getConversationUser(nodes), [nodes]);
   const userDisplayName = user ? getUserDisplayName(user) : null;
 
-  const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
+  const displayId = getConversationDisplayId(conversationId);
   // Prefer the human-readable title; fall back to the (possibly truncated) id.
   const headingText = title || displayId;
   const headingTooltip = title || conversationId;
@@ -122,7 +123,7 @@ export function ConversationSummary({
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
+    query: getConversationErrorsQuery(conversationId),
   });
 
   // Distinct traces the conversation spans, keyed by trace ID with a
@@ -205,11 +206,7 @@ export function ConversationSummary({
                   {t('Tools:')}
                 </Text>
                 {toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
-                  <ToolTag
-                    key={name}
-                    name={name}
-                    hasError={errorState.erroredToolNames.has(name)}
-                  />
+                  <ToolTag key={name} name={name} hasError={erroredToolNames.has(name)} />
                 ))}
                 {toolNames.length > VISIBLE_TOOL_COUNT && (
                   <InfoText
@@ -222,7 +219,7 @@ export function ConversationSummary({
                           <ToolTag
                             key={name}
                             name={name}
-                            hasError={errorState.erroredToolNames.has(name)}
+                            hasError={erroredToolNames.has(name)}
                           />
                         ))}
                       </Flex>
@@ -245,7 +242,11 @@ export function ConversationSummary({
                   </InfoText>
                 </Flex>
               )}
-              <ConversationTraceLink conversationId={conversationId} traces={traces} />
+              <ConversationTraceLink
+                conversationId={conversationId}
+                traces={traces}
+                hasMoreSpans={hasMoreSpans}
+              />
               {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />
@@ -286,9 +287,9 @@ export function ConversationSummary({
         />
         <Stat
           label={t('Errors')}
-          value={<Count value={errorState.errorCount} />}
+          value={<Count value={errorCount} />}
           icon={
-            errorState.errorCount > 0 ? (
+            errorCount > 0 ? (
               <IconFire
                 size="sm"
                 variant="danger"
@@ -296,9 +297,9 @@ export function ConversationSummary({
               />
             ) : undefined
           }
-          to={errorState.errorCount > 0 ? errorsUrl : undefined}
+          to={errorCount > 0 ? errorsUrl : undefined}
           onClick={
-            errorState.errorCount > 0
+            errorCount > 0
               ? () =>
                   trackAnalytics('conversations.detail.click-errors-link', {organization})
               : undefined
@@ -445,27 +446,16 @@ function getNumberAttrByConvention(
 function getTokenBreakdowns(
   usageByModel: ConversationModelUsage[]
 ): TokenBreakdownDetails[] {
-  return usageByModel.map(usage => {
-    const breakdown = getTokenBreakdown({
-      inputTokens: usage.inputTokens,
-      cachedTokens: usage.cacheReadTokens,
-      cacheWriteTokens: usage.cacheWriteTokens,
-      outputTokens: usage.outputTokens,
-      reasoningTokens: usage.reasoningTokens,
-      totalTokens: usage.totalTokens,
-    });
-
-    return {
-      cacheRead: breakdown.cached,
-      cacheWrite: breakdown.cacheWrite,
-      input: breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite,
-      isComplete: true,
-      output: breakdown.output,
-      reasoning: usage.reasoningTokens,
-      total: usage.totalTokens,
-      model: usage.model ?? t('Unknown model'),
-    };
-  });
+  return usageByModel.map(usage => ({
+    cacheRead: usage.cacheReadTokens,
+    cacheWrite: usage.cacheWriteTokens,
+    input: usage.inputTokens,
+    isComplete: true,
+    output: usage.outputTokens,
+    reasoning: usage.reasoningTokens,
+    total: usage.totalTokens,
+    model: usage.model ?? t('Unknown model'),
+  }));
 }
 
 function calculateTraceAggregates(nodes: AITraceSpanNode[]): TraceAggregates {
@@ -587,6 +577,10 @@ function getConversationUser(nodes: AITraceSpanNode[]): ConversationUser | null 
 
 const AGGREGATES_BAR_VISIBLE_TOOL_COUNT = 4;
 
+function getConversationErrorsQuery(conversationId: string): string {
+  return `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" has:span.status !span.status:[ok,cancelled,unknown]`;
+}
+
 /**
  * Aggregate metrics row for a conversation (LLM Calls, Errors, Tokens, Cost, Tools).
  * Used standalone in the trace AI tab.
@@ -607,7 +601,7 @@ export function ConversationAggregatesBar({
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
+    query: getConversationErrorsQuery(conversationId),
   });
 
   // minHeight matches the tool Tag height so the row stays the same height whether or not tools render

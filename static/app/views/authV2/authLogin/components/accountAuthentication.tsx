@@ -1,17 +1,20 @@
 import {Fragment, useCallback} from 'react';
+import {IconGithub} from '@sentry/icons/github';
+import {IconGoogle} from '@sentry/icons/google';
+import {IconVsts} from '@sentry/icons/vsts';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {slot} from '@sentry/scraps/slot';
 import {Text} from '@sentry/scraps/text';
 
-import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
-import {EmailAuth} from 'sentry/views/authV2/authLogin/components/emailAuth';
-import {SecondFactorAuth} from 'sentry/views/authV2/authLogin/components/secondFactorAuth';
 import type {EmailAuthResult} from 'sentry/views/authV2/authLogin/hooks/useEmailAuth';
 import type {AuthenticatedResult, MfaMethod} from 'sentry/views/authV2/authLogin/types';
+
+import {EmailAuth} from './emailAuth';
+import {SecondFactorAuth} from './secondFactorAuth';
 
 type AuthProviderLinkKey = keyof Pick<
   AuthConfig,

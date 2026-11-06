@@ -1,5 +1,9 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGithub} from '@sentry/icons/github';
+import {IconMail} from '@sentry/icons/mail';
 import * as qs from 'query-string';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,15 +13,14 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Card} from 'sentry/components/card';
 import {Carousel} from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {MissingMember, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -88,7 +91,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
       setMissingMembers(githubEntry.users ?? []);
     } catch (err: any) {
       if (err.status !== 403) {
-        addErrorMessage(t('Unable to fetching missing commit authors'));
+        toast.error(t('Unable to fetching missing commit authors'));
       }
     }
   }, [api, organization]);
@@ -155,14 +158,14 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
           data: {email},
         }
       );
-      addSuccessMessage(tct('Sent invite to [email]', {email}));
+      toast.success(tct('Sent invite to [email]', {email}));
       onSendInvite();
       const updatedMissingMembers = missingMembers.filter(
         member => member.email !== email
       );
       setMissingMembers(updatedMissingMembers);
     } catch {
-      addErrorMessage(t('Error sending invite'));
+      toast.error(t('Error sending invite'));
     }
     setSendingInvite(false);
   };

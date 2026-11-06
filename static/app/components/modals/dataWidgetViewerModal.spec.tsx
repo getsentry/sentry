@@ -4,6 +4,7 @@ import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {
@@ -17,13 +18,20 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import DataWidgetViewerModal from 'sentry/components/modals/dataWidgetViewerModal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardQueryPriority,
+  Widget,
+  WidgetQuery,
+} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
+
+import DataWidgetViewerModal from './dataWidgetViewerModal';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
@@ -51,10 +59,12 @@ async function renderModal({
   initialData: {organization, initialRouterConfig},
   widget,
   dashboardFilters,
+  queryPriority,
 }: {
   initialData: InitialData;
   widget: any;
   dashboardFilters?: DashboardFilters;
+  queryPriority?: DashboardQueryPriority;
 }) {
   const routerLocation = initialRouterConfig.location;
   const routerConfig: RouterConfig = {
@@ -85,6 +95,7 @@ async function renderModal({
       widget={widget}
       onEdit={() => {}}
       dashboardFilters={dashboardFilters}
+      queryPriority={queryPriority}
       widgetLegendState={widgetLegendState}
     />,
     {
@@ -157,6 +168,67 @@ describe('Modals -> DataWidgetViewerModal', () => {
     ProjectsStore.reset();
   });
 
+  it('uses a saved faster priority when the url does not set one', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    const lowPriorityMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            values: [
+              {timestamp: 1646100000000, value: 1},
+              {timestamp: 1646120000000, value: 1},
+            ],
+          }),
+        ],
+      },
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query?.sampling === 'LOW_PRIORITY';
+        },
+      ],
+    });
+    const widget = WidgetFixture({
+      title: 'Spans Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    });
+
+    await renderModal({
+      initialData: {
+        ...initialData,
+        organization: OrganizationFixture({
+          features: ['discover-query', 'low-priority-queries'],
+        }),
+      },
+      widget,
+      queryPriority: 'faster',
+    });
+
+    await waitFor(() => {
+      expect(lowPriorityMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-timeseries/',
+        expect.objectContaining({
+          query: expect.objectContaining({sampling: 'LOW_PRIORITY'}),
+        })
+      );
+    });
+  });
+
   describe('Errors Widgets', () => {
     describe('Area Chart Widget', () => {
       let mockQuery: WidgetQuery;
@@ -213,15 +285,17 @@ describe('Modals -> DataWidgetViewerModal', () => {
         };
         jest.mocked(ReactEchartsCore).mockClear();
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           body: {
-            data: [
-              [[1646100000], [{count: 1}]],
-              [[1646120000], [{count: 1}]],
+            timeSeries: [
+              TimeSeriesFixture({
+                yAxis: 'count()',
+                values: [
+                  {timestamp: 1646100000000, value: 1},
+                  {timestamp: 1646120000000, value: 1},
+                ],
+              }),
             ],
-            start: 1646100000,
-            end: 1646120000,
-            isMetricsData: false,
           },
         });
       });
@@ -506,6 +580,10 @@ describe('Modals -> DataWidgetViewerModal', () => {
       let mockWidget!: Widget;
 
       function mockEventsStats() {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-timeseries/',
+          body: {timeSeries: []},
+        });
         return MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
           body: {
@@ -918,6 +996,54 @@ describe('Modals -> DataWidgetViewerModal', () => {
       await renderModal({initialData, widget: mockWidget});
       expect(issuesMock).toHaveBeenCalled();
     });
+
+    it('renders the total issue count', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'GET',
+        match: [MockApiClient.matchData({cursor: undefined})],
+        headers: {'X-Hits': '15'},
+        body: [],
+      });
+      await renderModal({initialData, widget: mockWidget});
+      expect(await screen.findByText('Total Issues:')).toBeInTheDocument();
+      expect(screen.getByText('15')).toBeInTheDocument();
+    });
+
+    it('keeps the total issue count while the next page loads', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'GET',
+        match: [MockApiClient.matchData({cursor: undefined})],
+        headers: {
+          'X-Hits': '15',
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/issues/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/issues/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+        },
+        body: [],
+      });
+      let resolveNextPage!: () => void;
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'GET',
+        match: [MockApiClient.matchData({cursor: '0:10:0'})],
+        headers: {'X-Hits': '15'},
+        body: [],
+        asyncDelay: new Promise<void>(resolve => {
+          resolveNextPage = resolve;
+        }),
+      });
+
+      await renderModal({initialData, widget: mockWidget});
+      expect(await screen.findByText('Total Issues:')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      expect(screen.getByText('Total Issues:')).toBeInTheDocument();
+      expect(screen.getByText('15')).toBeInTheDocument();
+
+      resolveNextPage();
+    });
   });
 
   describe('Release Health Widgets', () => {
@@ -1097,8 +1223,8 @@ describe('Modals -> DataWidgetViewerModal', () => {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {},
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
       const projects = [ProjectFixture()];
       initialData = {
@@ -1202,10 +1328,63 @@ describe('Modals -> DataWidgetViewerModal', () => {
       expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
     });
 
-    it('does not make an events-stats request with an arbitrary table sort as a y-axis', async () => {
-      const eventsStatsMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {},
+    it.each([
+      {widgetType: WidgetType.SPANS, aggregate: 'count(span.duration)'},
+      {widgetType: WidgetType.LOGS, aggregate: 'count(message)'},
+    ])(
+      'disables Open in Explore for multi-query $widgetType widgets',
+      async ({widgetType, aggregate}) => {
+        const widget = WidgetFixture({
+          widgetType,
+          queries: ['http.status_code:200', 'http.status_code:500'].map(conditions => ({
+            fields: [],
+            aggregates: [aggregate],
+            columns: [],
+            conditions,
+            orderby: '',
+            name: '',
+          })),
+        });
+        await renderModal({initialData, widget});
+
+        const action = screen.getByRole('button', {name: 'Open in Explore'});
+        expect(action).toBeDisabled();
+        expect(action).not.toHaveAttribute('href');
+        await userEvent.hover(action);
+        expect(
+          await screen.findByText(
+            'Explore does not support multiple queries for this dataset'
+          )
+        ).toBeInTheDocument();
+      }
+    );
+
+    it('links multi-query metrics widgets to the metrics explorer', async () => {
+      const widget = WidgetFixture({
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: ['http.status_code:200', 'http.status_code:500'].map(conditions => ({
+          fields: [],
+          aggregates: ['avg(value,duration,d,none)'],
+          columns: [],
+          conditions,
+          orderby: '',
+          name: '',
+        })),
+      });
+      await renderModal({initialData, widget});
+
+      const action = screen.getByRole('button', {name: 'Open in Explore'});
+      const url = new URL(action.getAttribute('href')!, 'https://example.com');
+      expect(url.pathname).toBe('/organizations/org-slug/explore/metrics/');
+      expect(
+        url.searchParams.getAll('metric').map(metric => JSON.parse(metric).query)
+      ).toEqual(['http.status_code:200', 'http.status_code:500']);
+    });
+
+    it('does not make an events-timeseries request with an arbitrary table sort as a y-axis', async () => {
+      const eventsTimeseriesMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
       const mockWidget = WidgetFixture({
         widgetType: WidgetType.SPANS,
@@ -1221,11 +1400,11 @@ describe('Modals -> DataWidgetViewerModal', () => {
         ],
       });
       await renderModal({initialData, widget: mockWidget});
-      expect(eventsStatsMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+      expect(eventsTimeseriesMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
-            orderby: '-count(span.duration)',
+            sort: '-count(span.duration)',
 
             // The orderby should not appear as a yAxis
             yAxis: ['p90(span.duration)'],

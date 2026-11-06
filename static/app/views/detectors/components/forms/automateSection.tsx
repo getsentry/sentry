@@ -1,5 +1,7 @@
 import {useCallback, useContext, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -12,7 +14,6 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -21,8 +22,9 @@ import {getNoAlertWritePermissionTooltip} from 'sentry/views/automations/hooks/u
 import {canCreateDetachedAutomation} from 'sentry/views/automations/utils/permissions';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
-import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
+
+import {useDetectorFormProject} from './common/useDetectorFormProject';
 
 /**
  * Section that lets the user connect, disconnect, and create automations
@@ -32,16 +34,18 @@ export const AutomateSection = withFieldGroup({
   defaultValues: {workflowIds: [] as string[]},
   props: {} as {project: Project; step?: number},
   render: ({group, step, project}) => (
-    <group.AppField name="workflowIds">
-      {field => (
+    <group.Subscribe selector={state => state.values.workflowIds}>
+      {workflowIds => (
         <AutomateSectionInner
           step={step}
           project={project}
-          workflowIds={field.state.value}
-          setWorkflowIds={field.handleChange}
+          workflowIds={workflowIds}
+          setWorkflowIds={nextWorkflowIds =>
+            group.setFieldValue('workflowIds', nextWorkflowIds)
+          }
         />
       )}
-    </group.AppField>
+    </group.Subscribe>
   ),
 });
 

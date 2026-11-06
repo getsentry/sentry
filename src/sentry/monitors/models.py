@@ -3,15 +3,17 @@ from __future__ import annotations
 import logging
 import uuid
 import zoneinfo
-from collections.abc import Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Self, override
+from functools import cache
+from typing import TYPE_CHECKING, Any, ClassVar, Self, cast, override
 from uuid import uuid4
 
 import jsonschema
 from django.conf import settings
 from django.db import models
 from django.db.models import Case, IntegerField, Q, Value, When
+from django.db.models.base import ModelBase
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -23,6 +25,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     FlexibleForeignKey,
     LegacyTextJSONField,
     Model,
@@ -33,16 +36,14 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH, SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.utils import slugify_instance
+from sentry.db.models.utils import save_with_unique_slug, slugify_instance
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.base import ModelRelation
-from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
-from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
-from sentry.utils.retries import TimedRetryPolicy
-from sentry.workflow_engine.models import DataSource
+from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
@@ -50,7 +51,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
-    from sentry.workflow_engine.models import Detector
 
 MONITOR_CONFIG = {
     "type": "object",
@@ -69,6 +69,16 @@ MONITOR_CONFIG = {
     "required": ["checkin_margin", "max_runtime", "schedule_type", "schedule"],
     "additionalProperties": False,
 }
+
+
+@cache
+def get_monitor_config_validator() -> jsonschema.protocols.Validator:
+    validator_cls = cast(
+        "type[jsonschema.protocols.Validator]",
+        jsonschema.validators.validator_for(MONITOR_CONFIG),
+    )
+    validator_cls.check_schema(MONITOR_CONFIG)
+    return validator_cls(MONITOR_CONFIG)
 
 
 class MonitorLimitsExceeded(Exception):
@@ -171,7 +181,7 @@ class CheckInStatus:
     """
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.UNKNOWN, "unknown"),
             (cls.OK, "ok"),
@@ -202,11 +212,11 @@ class ScheduleType:
     INTERVAL = 2
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return ((cls.CRONTAB, "crontab"), (cls.INTERVAL, "interval"))
 
     @classmethod
-    def get_name(cls, value):
+    def get_name(cls, value: int) -> str:
         return dict(cls.as_choices())[value]
 
 
@@ -283,19 +293,35 @@ class Monitor(Model):
 
     __repr__ = sane_repr("guid", "project_id", "name")
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         if not self.slug:
-            lock = locks.get(
-                f"slug:monitor:{self.organization_id}", duration=5, name="monitor_slug"
-            )
-            with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(
+            return save_with_unique_slug(
+                self,
+                pick_slug=lambda: slugify_instance(
                     self,
                     self.name,
                     organization_id=self.organization_id,
                     max_length=DEFAULT_SLUG_MAX_LENGTH,
-                )
-        return super().save(*args, **kwargs)
+                ),
+                save_callback=lambda: super(Monitor, self).save(
+                    force_insert=force_insert,
+                    force_update=force_update,
+                    using=using,
+                    update_fields=update_fields,
+                ),
+            )
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
     @property
     def owner_actor(self) -> Actor | None:
@@ -314,13 +340,13 @@ class Monitor(Model):
         raise NotImplementedError("unknown schedule_type")
 
     @property
-    def timezone(self):
+    def timezone(self) -> zoneinfo.ZoneInfo:
         return zoneinfo.ZoneInfo(self.config.get("timezone") or "UTC")
 
-    def get_schedule_type_display(self):
+    def get_schedule_type_display(self) -> str:
         return ScheduleType.get_name(self.config["schedule_type"])
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, object]:
         return {
             "name": self.name,
             "status": self.status,
@@ -350,77 +376,29 @@ class Monitor(Model):
         next_checkin = self.get_next_expected_checkin(last_checkin)
         return next_checkin + get_checkin_margin(self.config.get("checkin_margin"))
 
-    def update_config(self, config_payload, validated_config):
-        monitor_config = self.config
+    def update_config(
+        self, config_payload: Mapping[str, object], validated_config: Mapping[str, object]
+    ) -> None:
         keys = set(config_payload.keys())
 
         # Always update schedule and schedule_type
         keys.update({"schedule", "schedule_type"})
         # Otherwise, only update keys that were specified in the payload
+        monitor_config = {**self.config}
         for key in keys:
             if key in validated_config:
                 monitor_config[key] = validated_config[key]
-        self.save()
+        if monitor_config != self.config:
+            self.update(config=monitor_config)
 
-    def get_validated_config(self):
+    def get_validated_config(self) -> dict[str, Any]:
         try:
-            jsonschema.validate(self.config, MONITOR_CONFIG)
+            get_monitor_config_validator().validate(self.config)
         except jsonschema.ValidationError:
             logging.warning("Monitor: %s invalid config: %s", self.id, self.config, exc_info=True)
         # We should always return the config here - just log an error if we detect that it doesn't
         # match the schema
         return self.config
-
-    def get_issue_alert_rule(self):
-        issue_alert_rule_id = self.config.get("alert_rule_id")
-        if issue_alert_rule_id:
-            issue_alert_rule = Rule.objects.filter(
-                project_id=self.project_id,
-                id=issue_alert_rule_id,
-                source=RuleSource.CRON_MONITOR,
-                status=ObjectStatus.ACTIVE,
-            ).first()
-            if issue_alert_rule:
-                return issue_alert_rule
-
-            # If issue_alert_rule_id is stale, clear it from the config
-            clean_config = self.config.copy()
-            clean_config.pop("alert_rule_id", None)
-            self.update(config=clean_config)
-
-        return None
-
-    def get_issue_alert_rule_data(self):
-        issue_alert_rule = self.get_issue_alert_rule()
-        if issue_alert_rule:
-            data = issue_alert_rule.data
-            issue_alert_rule_data: dict[str, Any | None] = dict()
-
-            # Build up alert target data
-            targets = []
-            for action in data.get("actions", []):
-                # Only include email alerts for now
-                if action.get("id") == "sentry.mail.actions.NotifyEmailAction":
-                    targets.append(
-                        {
-                            "targetIdentifier": action.get("targetIdentifier"),
-                            "targetType": action.get("targetType"),
-                        }
-                    )
-            issue_alert_rule_data["targets"] = targets
-
-            environment, issue_alert_rule_environment_id = None, issue_alert_rule.environment_id
-            if issue_alert_rule_environment_id:
-                try:
-                    environment = Environment.objects.get(id=issue_alert_rule_environment_id).name
-                except Environment.DoesNotExist:
-                    pass
-
-            issue_alert_rule_data["environment"] = environment
-
-            return issue_alert_rule_data
-
-        return None
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
@@ -439,7 +417,7 @@ def is_monitor_muted(monitor: Monitor) -> bool:
     A monitor is considered muted if ALL of its environments are muted.
     If a monitor has no environments, it is considered unmuted.
     """
-    env_counts = MonitorEnvironment.objects.filter(monitor_id=monitor.id).aggregate(
+    env_counts: dict[str, int] = MonitorEnvironment.objects.filter(monitor_id=monitor.id).aggregate(
         total=models.Count("id"), muted=models.Count("id", filter=Q(is_muted=True))
     )
 
@@ -466,9 +444,40 @@ def check_organization_monitor_limit(organization_id: int) -> None:
 
 
 @receiver(pre_save, sender=Monitor)
-def check_organization_monitor_limits_on_save(sender, instance, **kwargs):
-    if instance.pk is None:
+def check_organization_monitor_limits_on_save(
+    sender: type[Monitor], instance: Monitor, **kwargs: object
+) -> None:
+    if getattr(instance, "pk", None) is None:
         check_organization_monitor_limit(instance.organization_id)
+
+
+@cell_silo_model
+class MonitorCheckInConfig(DefaultFieldsModel):
+    """
+    A deduplicated, immutable snapshot of a monitor configuration, referenced
+    by check-ins. Rows are content-addressed by `hash`.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    hash = models.CharField(max_length=64)
+    config = models.JSONField()
+
+    # Rows never change, so they can stay cached for a long time
+    objects: ClassVar[BaseManager[Self]] = BaseManager(
+        cache_fields=("hash",), cache_ttl=60 * 60 * 24
+    )
+
+    class Meta:
+        app_label = "monitors"
+        db_table = "sentry_monitorcheckinconfig"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["hash"], name="sentry_monitorcheckinconfig_hash_unique"
+            ),
+        ]
+
+    __repr__ = sane_repr("hash")
 
 
 @cell_silo_model
@@ -476,8 +485,6 @@ class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
-    project_id = BoundedBigIntegerField(db_index=True)
-    monitor = FlexibleForeignKey("monitors.Monitor", db_index=False)
     monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment", db_index=False)
     """
     XXX(epurkhiser): Currently unused
@@ -547,35 +554,31 @@ class MonitorCheckIn(Model):
 
     monitor_config = LegacyTextJSONField(null=True)
     """
-    A snapshot of the monitor configuration at the time of the check-in.
+    Legacy snapshot of the monitor configuration at the time of the check-in.
+    No longer written; replaced by `checkin_config`.
     """
 
-    trace_id = UUIDField(null=True)
+    checkin_config = FlexibleForeignKey(
+        "monitors.MonitorCheckInConfig",
+        null=True,
+        on_delete=models.PROTECT,
+    )
+    """
+    References the MonitorCheckInConfig holding a snapshot of the monitor
+    configuration at the time of the check-in.
+    """
+
+    trace_id = UUIDField[str | uuid.UUID | None, uuid.UUID | None](null=True)
     """
     Trace ID associated during this check-in. Useful to find associated events
     that occurred during the check-in.
     """
 
-    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
-
     class Meta:
         app_label = "monitors"
         db_table = "sentry_monitorcheckin"
         indexes = [
-            # used for endpoints for monitor stats + list check-ins
-            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor", "date_added", "status"]),
-            # used for latest on api endpoints
-            models.Index(
-                fields=["monitor", "-date_added"],
-                condition=Q(status=CheckInStatus.IN_PROGRESS),
-                name="api_latest",
-            ),
-            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor", "status", "date_added"]),
-            # used for has_newer_result + thresholds
+            # used for has_newer_result + thresholds, monitor stats + list check-ins
             # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
             # column
             models.Index(fields=["monitor_environment", "date_added", "status"]),
@@ -600,18 +603,29 @@ class MonitorCheckIn(Model):
             ),
         ]
 
-    __repr__ = sane_repr("guid", "project_id", "status")
+    __repr__ = sane_repr("guid", "monitor_environment_id", "status")
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         if not self.date_added:
             self.date_added = timezone.now()
         if not self.date_updated:
             self.date_updated = self.date_added
-        return super().save(*args, **kwargs)
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
     # XXX(dcramer): BaseModel is trying to automatically set date_updated which is not
     # what we want to happen, so kill it here
-    def _update_timestamps(self):
+    def _update_timestamps(self) -> None:
         pass
 
 
@@ -619,6 +633,27 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
     """
     A manager that consolidates logic for monitor environment updates
     """
+
+    def get_existing(
+        self, project: Project, monitor_slug: str, environment_name: str | None
+    ) -> MonitorEnvironment | None:
+        """Fetch an existing monitor environment and its monitor in one query. Creates nothing."""
+        environment_name = environment_name or "production"
+        if not Environment.is_valid_name(environment_name):
+            return None
+
+        try:
+            environment = Environment.get_for_organization_id(
+                project.organization_id, environment_name
+            )
+            return self.select_related("monitor").get(
+                monitor__organization_id=project.organization_id,
+                monitor__project_id=project.id,
+                monitor__slug=monitor_slug,
+                environment_id=environment.id,
+            )
+        except (Environment.DoesNotExist, MonitorEnvironment.DoesNotExist):
+            return None
 
     def ensure_environment(
         self, project: Project, monitor: Monitor, environment_name: str | None
@@ -637,8 +672,14 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor,
             environment_id=environment.id,
-            defaults={"status": MonitorStatus.ACTIVE, "is_muted": is_monitor_muted(monitor)},
+            # Callable so the muted count only runs when the environment is created
+            defaults={
+                "status": MonitorStatus.ACTIVE,
+                "is_muted": lambda: is_monitor_muted(monitor),
+            },
         )
+        # Avoid re-fetching the monitor when following the relation
+        monitor_env.monitor = monitor
 
         # recompute per-project monitor check-in rate limit quota
         if created:
@@ -704,14 +745,14 @@ class MonitorEnvironment(Model):
     def get_environment(self) -> Environment:
         return Environment.objects.get_from_cache(id=self.environment_id)
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, object]:
         return {
             "name": self.get_environment().name,
             "status": self.status,
             "monitor": self.monitor.name,
         }
 
-    def get_last_successful_checkin(self):
+    def get_last_successful_checkin(self) -> MonitorCheckIn | None:
         return (
             MonitorCheckIn.objects.filter(monitor_environment=self, status=CheckInStatus.OK)
             .order_by("-date_added")
@@ -735,9 +776,11 @@ class MonitorEnvironment(Model):
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
-def check_monitor_environment_limits(sender, instance, **kwargs):
+def check_monitor_environment_limits(
+    sender: type[MonitorEnvironment], instance: MonitorEnvironment, **kwargs: object
+) -> None:
     if (
-        instance.pk is None
+        getattr(instance, "pk", None) is None
         and sender.objects.filter(monitor=instance.monitor).count()
         == settings.MAX_ENVIRONMENTS_PER_MONITOR
     ):
@@ -746,7 +789,7 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
         )
 
 
-def default_grouphash():
+def default_grouphash() -> str:
     """
     Generate a unique 32 character grouphash for a monitor incident
     """
@@ -833,6 +876,18 @@ def get_cron_monitor(detector: Detector) -> Monitor:
     return Monitor.objects.get(id=int(data_source.source_id))
 
 
+def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
+    try:
+        with in_test_hide_transaction_boundary():
+            return Detector.objects.get(
+                datasource__type=DATA_SOURCE_CRON_MONITOR,
+                datasource__source_id=str(monitor.id),
+                datasource__organization_id=monitor.organization_id,
+            )
+    except Detector.DoesNotExist:
+        return None
+
+
 @data_source_type_registry.register(DATA_SOURCE_CRON_MONITOR)
 class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
     @override
@@ -858,7 +913,7 @@ class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
 
     @override
     @staticmethod
-    def related_model(instance) -> list[ModelRelation]:
+    def related_model(instance: DataSource) -> list[ModelRelation]:
         return [ModelRelation(Monitor, {"id": instance.source_id})]
 
     @override

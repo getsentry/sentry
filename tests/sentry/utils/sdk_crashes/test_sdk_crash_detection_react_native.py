@@ -1,6 +1,7 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import wraps
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -19,13 +20,13 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
 )
 
 
-def decorators(func):
+def decorators(func: Callable[..., Any]) -> Any:
     @wraps(func)
     @django_db_all
     @pytest.mark.snuba
     @patch("random.random", return_value=0.1)
     @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         return func(*args, **kwargs)
 
     return wrapper
@@ -62,14 +63,14 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
 )
 @decorators
 def test_sdk_crash_is_reported_development_paths(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
     filename: str,
     expected_stripped_filename: str,
     detected: bool,
-):
+) -> None:
     event = store_event(data=get_crash_event(filename=filename))
 
     configs[1].organization_allowlist = [event.project.organization_id]
@@ -161,8 +162,13 @@ def test_sdk_crash_is_reported_development_paths(
 )
 @decorators
 def test_sdk_crash_is_reported_production_paths(
-    mock_sdk_crash_reporter, mock_random, store_event, configs, package_name: str, detected: bool
-):
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
+    package_name: str,
+    detected: bool,
+) -> None:
     expected_stripped_filename = f"{package_name}dist/js/integrations/reactnativeerrorhandlers.js"
     # Remove the first / from the path because the module is not prefixed with /.
     expected_stripped_filename = expected_stripped_filename[1:]
@@ -199,7 +205,10 @@ def test_sdk_crash_is_reported_production_paths(
 
 @decorators
 def test_beta_sdk_version_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="4.1.0-beta.0")
@@ -217,8 +226,11 @@ def test_beta_sdk_version_detected(
 
 @decorators
 def test_too_low_min_sdk_version_not_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
-):
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="3.9.9")
     event = store_event(data=event_data)
@@ -235,8 +247,11 @@ def test_too_low_min_sdk_version_not_detected(
 
 @decorators
 def test_organization_not_in_allowlist_not_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
-):
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
+) -> None:
     event = store_event(data=get_crash_event())
 
     configs[1].organization_allowlist = [event.project.organization_id + 1]
@@ -248,8 +263,11 @@ def test_organization_not_in_allowlist_not_detected(
 
 @decorators
 def test_organization_empty_allowlist_not_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
-):
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
+) -> None:
     event = store_event(data=get_crash_event())
 
     configs[1].organization_allowlist = []
@@ -264,7 +282,10 @@ def test_organization_empty_allowlist_not_detected(
 
 @decorators
 def test_console_mechanism_not_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event(
         exception={
@@ -299,7 +320,10 @@ def test_console_mechanism_not_detected(
 
 @decorators
 def test_sentry_wrapped_not_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event(
         exception={
@@ -382,10 +406,10 @@ def test_sentry_wrapped_not_detected(
 )
 @decorators
 def test_fetch_instrumentation_not_detected(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
     function: str,
     module: str,
     filename: str,
@@ -425,20 +449,31 @@ def test_fetch_instrumentation_not_detected(
 
 
 @pytest.mark.parametrize(
-    ["function", "module", "filename", "detected"],
+    ["function", "module", "filename", "abs_path", "detected"],
     [
-        # Supabase PostgREST .then handler (ESM build) — should be ignored
+        # Supabase PostgREST .then handler (ESM build) with a module field — should be ignored
         (
             "Reflect.apply.then$argument_0",
             "@sentry/core/build/esm/integrations/supabase",
             "node_modules/@sentry/core/build/esm/integrations/supabase.js",
+            "app:///node_modules/@sentry/core/build/esm/integrations/supabase.js",
             False,
         ),
-        # Supabase PostgREST .then handler (CJS build) — should be ignored
+        # Supabase PostgREST .then handler (CJS build) with a module field — should be ignored
         (
             "Reflect.apply.then$argument_0",
             "@sentry/core/build/cjs/integrations/supabase",
             "node_modules/@sentry/core/build/cjs/integrations/supabase.js",
+            "app:///node_modules/@sentry/core/build/cjs/integrations/supabase.js",
+            False,
+        ),
+        # Real-world React Native / Hermes frame: no `module` field, the path lives in
+        # `filename`/`abs_path`. Regression for event 9d3446c5d2a8426f86ea85596e22d022.
+        (
+            "Reflect.apply.then$argument_0",
+            None,
+            "@sentry/core/build/esm/integrations/supabase.js",
+            "@sentry/core/build/esm/integrations/supabase.js",
             False,
         ),
         # Different function in the same module — should be detected
@@ -446,6 +481,7 @@ def test_fetch_instrumentation_not_detected(
             "instrumentPostgRESTFilterBuilder",
             "@sentry/core/build/esm/integrations/supabase",
             "node_modules/@sentry/core/build/esm/integrations/supabase.js",
+            "app:///node_modules/@sentry/core/build/esm/integrations/supabase.js",
             True,
         ),
         # Same function in a different module — should be detected
@@ -453,33 +489,46 @@ def test_fetch_instrumentation_not_detected(
             "Reflect.apply.then$argument_0",
             "@sentry/core/build/esm/integrations/graphql",
             "node_modules/@sentry/core/build/esm/integrations/graphql.js",
+            "app:///node_modules/@sentry/core/build/esm/integrations/graphql.js",
+            True,
+        ),
+        # Same function in a different module, module-less frame — should be detected
+        (
+            "Reflect.apply.then$argument_0",
+            None,
+            "@sentry/core/build/esm/integrations/graphql.js",
+            "@sentry/core/build/esm/integrations/graphql.js",
             True,
         ),
     ],
 )
 @decorators
 def test_supabase_instrumentation_not_detected(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
     function: str,
-    module: str,
+    module: str | None,
     filename: str,
+    abs_path: str,
     detected: bool,
 ) -> None:
+    frame: dict[str, str] = {
+        "function": function,
+        "filename": filename,
+        "abs_path": abs_path,
+    }
+    if module is not None:
+        frame["module"] = module
+
     event_data = get_crash_event(
         exception={
             "values": [
                 get_exception(
                     frames=[
                         *get_frames(),
-                        {
-                            "function": function,
-                            "module": module,
-                            "filename": filename,
-                            "abs_path": f"app:///{filename}",
-                        },
+                        frame,
                     ],
                 ),
             ]
@@ -503,7 +552,10 @@ def test_supabase_instrumentation_not_detected(
 
 @decorators
 def test_sentry_wrapped_end_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event(
         exception={
@@ -539,7 +591,10 @@ def test_sentry_wrapped_end_detected(
 
 @decorators
 def test_console_mechanism_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event(
         exception={
@@ -574,7 +629,10 @@ def test_console_mechanism_detected(
 
 @decorators
 def test_missing_exception_not_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event(exception={"values": []})
 
@@ -683,11 +741,11 @@ _ENCODED_AUTH_CRASH_FRAMES = [
 )
 @decorators
 def test_dev_server_hot_reload_not_detected(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
-    frames,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
+    frames: list[dict[str, Any]],
     detected: bool,
 ) -> None:
     event_data = get_crash_event(exception={"values": [get_exception(frames=frames)]})

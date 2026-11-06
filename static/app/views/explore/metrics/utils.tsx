@@ -9,6 +9,7 @@ import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
+  FractionUnit,
   RateUnit,
   SizeUnit,
   stripEquationPrefix,
@@ -17,27 +18,27 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import type {
-  RawVisualize,
-  SavedQuery,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
+import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {
+  parseVisualize,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
+
+import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from './constants';
 import {
   defaultMetricQuery,
   encodeMetricQueryParams,
   type TraceMetric,
   type BaseMetricQuery,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregateExpression';
-import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
+} from './metricQuery';
+import {normalizeFunctionToken} from './parseAggregateExpression';
+import {parseMetricAggregate} from './parseMetricsAggregate';
 import {
   isTraceMetricTypeValue,
   TraceMetricKnownFieldKey,
   type SampleTableColumnKey,
-} from 'sentry/views/explore/metrics/types';
-import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {Visualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+} from './types';
 
 export function makeMetricsPathname({
   organizationSlug,
@@ -135,13 +136,8 @@ export function parseTraceMetricFromQuery(query: string): {
   };
 }
 
-export function hasDisplayMetricUnit(
-  hasMetricUnitsUI: boolean,
-  metricUnit?: string | null
-): metricUnit is string {
-  return (
-    hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
-  );
+export function hasDisplayMetricUnit(metricUnit?: string | null): metricUnit is string {
+  return !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT;
 }
 
 export function makeMetricSelectValue(metric: TraceMetric): string {
@@ -225,9 +221,7 @@ export function getMetricsUrlFromSavedQueryUrl({
     const defaultQuery = defaultMetricQuery();
 
     const visualizes =
-      queryItem.aggregateField
-        ?.filter<RawVisualize>(isRawVisualize)
-        .flatMap(vis => Visualize.fromJSON(vis)) || [];
+      queryItem.aggregateField?.flatMap(field => parseVisualize(field)) || [];
 
     const groupBys = queryItem.aggregateField?.filter<GroupBy>(isGroupBy) || [];
 
@@ -270,7 +264,7 @@ export function getMetricsUrlFromSavedQueryUrl({
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
-        period: savedQuery.range ?? null,
+        period: savedQuery.statsPeriod ?? null,
         start: savedQuery.start ?? null,
         utc: null,
       },
@@ -356,7 +350,7 @@ export function isCompleteTraceMetric(traceMetric: TraceMetric): boolean {
 
 const DURATION_UNIT_VALUES = new Set<string>(Object.values(DurationUnit));
 const SIZE_UNIT_VALUES = new Set<string>(Object.values(SizeUnit));
-const PERCENTAGE_UNIT_VALUES = new Set<string>(['ratio', 'percent']);
+const FRACTION_UNIT_VALUES = new Set<string>(Object.values(FractionUnit));
 
 /**
  * Maps a metric unit (from TraceMetric.unit) to the ColumnType and
@@ -379,7 +373,7 @@ export function mapMetricUnitToFieldType(metricUnit: string | null | undefined):
   if (SIZE_UNIT_VALUES.has(metricUnit)) {
     return {fieldType: 'size', unit: metricUnit};
   }
-  if (PERCENTAGE_UNIT_VALUES.has(metricUnit)) {
+  if (FRACTION_UNIT_VALUES.has(metricUnit)) {
     return {fieldType: 'percentage', unit: metricUnit};
   }
   return {fieldType: 'number', unit: undefined};

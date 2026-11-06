@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
@@ -40,8 +41,11 @@ def _event(head_sha: str = HEAD_SHA) -> GithubCheckSuiteEvent:
 
 
 def _pull_request_result(
-    *, state: str = "open", merged: bool = False, assignees: list[dict] | None = None
-) -> dict:
+    *,
+    state: str = "open",
+    merged: bool = False,
+    assignees: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     return {
         "data": {"state": state, "merged": merged},
         "raw": {"headers": None, "data": {"assignees": assignees or []}},
@@ -50,7 +54,7 @@ def _pull_request_result(
     }
 
 
-@patch(f"{CAP_EXHAUSTED_PATH}.automated_iteration_cap_reached", return_value=True)
+@patch(f"{CAP_EXHAUSTED_PATH}.automated_streak_cap_reached", return_value=True)
 class AssignUserForExhaustedCapTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -77,9 +81,10 @@ class AssignUserForExhaustedCapTest(TestCase):
             repository=self.repo, run_state=run_state, pr_id=555, group_id=1
         )
 
-    def _marker(self) -> dict | None:
+    def _marker(self) -> dict[str, Any] | None:
         self.seer_run.refresh_from_db()
-        return (self.seer_run.extras or {}).get(CAP_EXHAUSTED_EXTRA, {}).get(REPO_NAME)
+        marker = (self.seer_run.extras or {}).get(CAP_EXHAUSTED_EXTRA, {}).get(REPO_NAME)
+        return marker if isinstance(marker, dict) else None
 
     @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -105,7 +110,8 @@ class AssignUserForExhaustedCapTest(TestCase):
         _, pr_number, body = mock_actions.create_pull_request_comment.call_args[0]
         assert pr_number == str(PR_NUMBER)
         assert "@octocat" in body
-        assert "automated fix attempts" in body
+        assert "times in a row" in body
+        assert "then go back to fixing CI" in body
         marker = self._marker()
         assert marker is not None
         assert marker["assignees"] == ["octocat"]
@@ -137,6 +143,18 @@ class AssignUserForExhaustedCapTest(TestCase):
     def test_noop_when_cap_not_reached(self, mock_actions: MagicMock, mock_cap: MagicMock) -> None:
         mock_cap.return_value = False
 
+        with self.feature(FLAG):
+            assign_user_for_exhausted_cap(_event(), self._resolved())
+
+        mock_actions.update_issue.assert_not_called()
+        mock_actions.create_pull_request_comment.assert_not_called()
+        assert self._marker() is None
+
+    @patch(f"{CAP_EXHAUSTED_PATH}.total_iteration_cap_reached", return_value=True)
+    @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
+    def test_skips_when_total_cap_reached(
+        self, mock_actions: MagicMock, _mock_total_cap: MagicMock, _mock_cap: MagicMock
+    ) -> None:
         with self.feature(FLAG):
             assign_user_for_exhausted_cap(_event(), self._resolved())
 

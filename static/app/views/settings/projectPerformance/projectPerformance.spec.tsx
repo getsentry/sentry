@@ -179,6 +179,21 @@ describe('projectPerformance', () => {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
+  it('hides threshold settings for EAP organizations', async () => {
+    render(<ProjectPerformance />, {
+      initialRouterConfig,
+      organization: OrganizationFixture({
+        features: [...org.features, 'insights-modules-use-eap'],
+      }),
+    });
+
+    expect(
+      await screen.findByText('Performance Issues - Detector Threshold Settings')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Threshold Settings')).not.toBeInTheDocument();
+    expect(getMock).not.toHaveBeenCalled();
+  });
+
   it('updates the field', async () => {
     render(<ProjectPerformance />, {
       initialRouterConfig,

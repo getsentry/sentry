@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import JSONField
@@ -11,6 +11,7 @@ from django.db.models.functions import Cast
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
+from sentry_sdk import traces
 
 from sentry import features, onboarding_tasks, options, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
@@ -23,6 +24,7 @@ from sentry.api.serializers.models.role import (
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.utils import generate_locality_url
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
@@ -89,7 +91,6 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.display_name_filter import is_spam_display_name
-from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.project import OrganizationProjectResponse
@@ -106,44 +107,72 @@ logger = logging.getLogger(__name__)
 
 
 class _Status(TypedDict):
-    id: str
-    name: str
+    id: Annotated[
+        str,
+        ApiDescription(
+            "Status ID: active, pending_deletion, deletion_in_progress or relocation_pending_approval"
+        ),
+    ]
+    name: Annotated[str, ApiDescription("Status label, such as active or pending deletion")]
 
 
 class _Links(TypedDict):
-    organizationUrl: str
-    regionUrl: str
+    organizationUrl: Annotated[str, ApiDescription("Base URL of the organization")]
+    regionUrl: Annotated[str, ApiDescription("Base URL of the API for the organization's region")]
 
 
 class OnboardingTasksSerializerResponse(TypedDict):
-    task: str | None  # TODO: literal/enum
-    status: str  # TODO: literal/enum
-    completionSeen: datetime | None
-    dateCompleted: datetime
-    data: Any  # JSON objec
+    # TODO: literal/enum
+    task: Annotated[str | None, ApiDescription("Onboarding task key, such as create_project")]
+    status: Annotated[str, ApiDescription("Task status: complete or skipped")]  # TODO: literal/enum
+    completionSeen: Annotated[
+        datetime | None, ApiDescription("When the task's completion was marked as seen, or null")
+    ]
+    dateCompleted: Annotated[datetime, ApiDescription("When the task was completed or skipped")]
+    data: Annotated[
+        object, ApiDescription("Extra data recorded for the task, which depends on the task")
+    ]
 
 
 class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
-    features: list[str]  # Only included if include_feature_flags is True
-    extraOptions: dict[str, dict[str, Any]]
-    access: frozenset[str]  # Only if access=... is passed
-    onboardingTasks: list[OnboardingTasksSerializerResponse]  # Only if access=... is passed
+    # Only included if include_feature_flags is True
+    features: Annotated[list[str], ApiDescription("Features enabled for the organization")]
+    extraOptions: Annotated[
+        dict[str, dict[str, object]], ApiDescription("Server-wide options that the Sentry UI reads")
+    ]
+    # Only if access=... is passed
+    access: Annotated[
+        list[str], ApiDescription("Scopes the requesting user has in the organization")
+    ]
+    # Only if access=... is passed
+    onboardingTasks: Annotated[
+        list[OnboardingTasksSerializerResponse],
+        ApiDescription("Onboarding tasks the organization has completed or skipped"),
+    ]
 
 
 class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
-    id: str
-    slug: str
-    status: _Status
-    name: str
-    dateCreated: datetime
-    isEarlyAdopter: bool
-    require2FA: bool
-    avatar: SerializedAvatarFields
-    links: _Links
-    hasAuthProvider: bool
-    allowMemberInvite: bool
-    allowMemberProjectCreation: bool
-    allowSuperuserAccess: bool
+    id: Annotated[str, ApiDescription("Organization ID")]
+    slug: Annotated[str, ApiDescription("Organization slug")]
+    status: Annotated[_Status, ApiDescription("Organization status")]
+    name: Annotated[str, ApiDescription("Organization name, or its slug when it has no name")]
+    dateCreated: Annotated[datetime, ApiDescription("When the organization was created (ISO 8601)")]
+    isEarlyAdopter: Annotated[bool, ApiDescription("Whether the organization is an early adopter")]
+    require2FA: Annotated[
+        bool, ApiDescription("Whether members must use two-factor authentication")
+    ]
+    avatar: Annotated[SerializedAvatarFields, ApiDescription("Organization avatar")]
+    links: Annotated[_Links, ApiDescription("Organization and region URLs")]
+    hasAuthProvider: Annotated[
+        bool, ApiDescription("Whether SSO is configured for the organization")
+    ]
+    allowMemberInvite: Annotated[bool, ApiDescription("Whether members can invite other members")]
+    allowMemberProjectCreation: Annotated[
+        bool, ApiDescription("Whether members can create projects")
+    ]
+    allowSuperuserAccess: Annotated[
+        bool, ApiDescription("Whether Sentry superusers can access the organization")
+    ]
 
 
 class BaseOrganizationSerializer(serializers.Serializer):
@@ -224,11 +253,13 @@ class BaseOrganizationSerializer(serializers.Serializer):
 
 
 class TrustedRelaySerializerResponse(TypedDict, total=False):
-    name: str
-    description: str
-    publicKey: str
-    created: datetime
-    lastModified: datetime
+    name: Annotated[str, ApiDescription("Name of the Relay")]
+    description: Annotated[str, ApiDescription("Description of the Relay")]
+    publicKey: Annotated[str, ApiDescription("Public key of the Relay")]
+    created: Annotated[datetime, ApiDescription("When the Relay was added")]
+    lastModified: Annotated[
+        datetime, ApiDescription("When the Relay was added or its name or description last changed")
+    ]
 
 
 def _relay_internal_to_external(d: dict[str, Any]) -> TrustedRelaySerializerResponse:
@@ -368,6 +399,7 @@ class ControlSiloOrganizationMappingSerializer(
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> ControlSiloOrganizationMappingSerializerResponse:
+        assert obj.status is not None
         status = OrganizationStatus(obj.status)
         avatar_replica: OrganizationAvatarReplica | None = attrs["avatar"]
         if avatar_replica is not None:
@@ -463,7 +495,9 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         ]
         feature_set = set()
 
-        with start_span(op="features.check", name="check batch features"):
+        with traces.start_span(
+            name="check batch features", attributes={"sentry.op": "features.check"}
+        ):
             # Evaluate flags purely to populate the response — the user has not
             # actually encountered any experiments yet, so suppress the auto
             # exposure events the entity handler would otherwise log.
@@ -483,7 +517,9 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
 
-        with start_span(op="features.check", name="check individual features"):
+        with traces.start_span(
+            name="check individual features", attributes={"sentry.op": "features.check"}
+        ):
             # Remaining features should not be checked via the entity handler
             for feature_name in org_features:
                 if features.has(feature_name, obj, actor=user, skip_entity=True):
@@ -569,9 +605,10 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
             }
 
         if "access" in kwargs:
-            context["access"] = kwargs["access"].scopes
-            tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
-            context["onboardingTasks"] = serialize(tasks_to_serialize, user)
+            context["access"] = sorted(kwargs["access"].scopes)
+            requesting_user = cast(User, user)
+            tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, requesting_user))
+            context["onboardingTasks"] = serialize(tasks_to_serialize, requesting_user)
 
         return context
 
@@ -615,10 +652,15 @@ class OnboardingTasksSerializer(Serializer[OnboardingTasksSerializerResponse]):
 
 
 class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerResponse, total=False):
-    role: Any  # TODO: replace with enum/literal
-    orgRole: str
-    targetSampleRate: float
-    samplingMode: str
+    # TODO: replace with enum/literal
+    role: Annotated[str, ApiDescription("Deprecated, use orgRole")]
+    orgRole: Annotated[str, ApiDescription("The requesting user's role in the organization")]
+    targetSampleRate: Annotated[
+        float, ApiDescription("Target sample rate for dynamic sampling, from 0 to 1")
+    ]
+    samplingMode: Annotated[
+        str, ApiDescription("Where dynamic sampling target rates are set: organization or project")
+    ]
     planSampleRate: float
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
@@ -633,49 +675,181 @@ class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerRespo
     }
 )
 class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
-    experiments: dict[str, str]
-    isDefault: bool
-    defaultRole: str  # TODO: replace with enum/literal
+    experiments: Annotated[
+        dict[str, str],
+        ApiDescription(
+            "Experiment assignments for the organization, mapping each experiment name to active or control"
+        ),
+    ]
+    isDefault: Annotated[
+        bool,
+        ApiDescription("Whether this is the default organization of a single-organization install"),
+    ]
+    # TODO: replace with enum/literal
+    defaultRole: Annotated[str, ApiDescription("Role that new members get by default")]
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
-    orgRoleList: list[OrganizationRoleSerializerResponse]
-    teamRoleList: list[TeamRoleSerializerResponse]
-    openMembership: bool
-    allowSharedIssues: bool
-    enhancedPrivacy: bool
-    dataScrubber: bool
-    dataScrubberDefaults: bool
-    sensitiveFields: list[str]
-    safeFields: list[str]
-    storeCrashReports: int
-    attachmentsRole: str  # TODO: replace with enum/literal
-    debugFilesRole: str  # TODO: replace with enum/literal
-    eventsMemberAdmin: bool
-    alertsMemberWrite: bool
-    scrubIPAddresses: bool
-    scrapeJavaScript: bool
-    allowJoinRequests: bool
-    relayPiiConfig: str | None
-    relayDsnEndpoint: str | None
-    trustedRelays: list[TrustedRelaySerializerResponse]
-    pendingAccessRequests: int
-    hideAiFeatures: bool
+    orgRoleList: Annotated[
+        list[OrganizationRoleSerializerResponse],
+        ApiDescription("Organization roles available in the organization"),
+    ]
+    teamRoleList: Annotated[
+        list[TeamRoleSerializerResponse], ApiDescription("Team roles available in the organization")
+    ]
+    openMembership: Annotated[bool, ApiDescription("Whether members can freely join any team")]
+    allowSharedIssues: Annotated[
+        bool, ApiDescription("Whether limited details of issues can be shared with anonymous users")
+    ]
+    enhancedPrivacy: Annotated[
+        bool,
+        ApiDescription(
+            "Whether enhanced privacy controls limit personally identifiable information (PII) and source code in things like notifications"
+        ),
+    ]
+    dataScrubber: Annotated[
+        bool, ApiDescription("Whether server-side data scrubbing is required for all projects")
+    ]
+    dataScrubberDefaults: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the default scrubbers apply to all projects, to keep things like passwords and credit cards from being stored"
+        ),
+    ]
+    sensitiveFields: Annotated[
+        list[str],
+        ApiDescription("Additional field names that data scrubbing matches in all projects"),
+    ]
+    safeFields: Annotated[
+        list[str], ApiDescription("Field names that data scrubbers ignore in all projects")
+    ]
+    storeCrashReports: Annotated[
+        int,
+        ApiDescription(
+            "How many native crash reports to store per issue; 0 is disabled and -1 is unlimited"
+        ),
+    ]
+    # TODO: replace with enum/literal
+    attachmentsRole: Annotated[
+        str,
+        ApiDescription(
+            "Role required to download event attachments, such as native crash reports or log files"
+        ),
+    ]
+    # TODO: replace with enum/literal
+    debugFilesRole: Annotated[
+        str,
+        ApiDescription(
+            "Role required to download debug information files, ProGuard mappings and source maps"
+        ),
+    ]
+    eventsMemberAdmin: Annotated[
+        bool, ApiDescription("Whether members can delete events, through the event:admin scope")
+    ]
+    alertsMemberWrite: Annotated[
+        bool,
+        ApiDescription(
+            "Whether members can create, edit and delete alert rules, through the alerts:write scope"
+        ),
+    ]
+    scrubIPAddresses: Annotated[
+        bool,
+        ApiDescription(
+            "Whether IP addresses are kept from being stored for new events in all projects"
+        ),
+    ]
+    scrapeJavaScript: Annotated[
+        bool,
+        ApiDescription("Whether Sentry scrapes missing JavaScript source context when possible"),
+    ]
+    allowJoinRequests: Annotated[
+        bool, ApiDescription("Whether users can request to join the organization")
+    ]
+    relayPiiConfig: Annotated[
+        str | None,
+        ApiDescription(
+            "Advanced data scrubbing rules of the organization as a JSON string, or null"
+        ),
+    ]
+    relayDsnEndpoint: Annotated[
+        str | None, ApiDescription("Relay base URL used when displaying Client Key DSNs, or null")
+    ]
+    trustedRelays: Annotated[
+        list[TrustedRelaySerializerResponse],
+        ApiDescription("Local Relays registered for the organization"),
+    ]
+    pendingAccessRequests: Annotated[
+        int, ApiDescription("Number of pending requests to join teams in the organization")
+    ]
+    hideAiFeatures: Annotated[
+        bool, ApiDescription("Whether AI features are hidden for the organization")
+    ]
     aggregatedDataConsent: bool
     genAIConsent: bool
-    isDynamicallySampled: bool
-    issueAlertsThreadFlag: bool
-    metricAlertsThreadFlag: bool
-    requiresSso: bool
+    isDynamicallySampled: Annotated[
+        bool,
+        ApiDescription(
+            "Whether dynamic sampling keeps less than all events, for the organization or any of its projects"
+        ),
+    ]
+    issueAlertsThreadFlag: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the Slack integration posts replies in threads for issue alert notifications"
+        ),
+    ]
+    metricAlertsThreadFlag: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the Slack integration posts replies in threads for metric alert notifications"
+        ),
+    ]
+    requiresSso: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the requesting user must sign in with SSO to access the organization"
+        ),
+    ]
     rollbackEnabled: bool
     streamlineOnly: bool
-    defaultAutofixAutomationTuning: str
-    defaultSeerScannerAutomation: bool
-    enableSeerCoding: bool
-    defaultCodingAgent: str
-    defaultCodingAgentIntegrationId: str | None
-    defaultAutomatedRunStoppingPoint: str
-    autoEnableCodeReview: bool
-    autoOpenPrs: bool
-    defaultCodeReviewTriggers: list[str]
+    defaultAutofixAutomationTuning: Annotated[
+        str, ApiDescription("Default Autofix automation tuning for new projects")
+    ]
+    defaultSeerScannerAutomation: Annotated[
+        bool,
+        ApiDescription(
+            "Default issue scanner automation for new projects; on seat-based Seer plans, new projects always have it on"
+        ),
+    ]
+    enableSeerCoding: Annotated[
+        bool, ApiDescription("Whether Seer coding is enabled for the organization")
+    ]
+    defaultCodingAgent: Annotated[
+        str,
+        ApiDescription(
+            "Coding agent that automated Autofix runs on new projects hand off to, or seer; applies to seat-based Seer plans"
+        ),
+    ]
+    defaultCodingAgentIntegrationId: Annotated[
+        str | None, ApiDescription("Integration ID of the default coding agent, or null")
+    ]
+    defaultAutomatedRunStoppingPoint: Annotated[
+        str, ApiDescription("Step where automated Autofix runs on new projects stop by default")
+    ]
+    autoEnableCodeReview: Annotated[
+        bool,
+        ApiDescription(
+            "Whether code review is turned on for GitHub repositories when they're added"
+        ),
+    ]
+    autoOpenPrs: Annotated[
+        bool,
+        ApiDescription(
+            "Whether automated Autofix runs on new projects open pull requests by default"
+        ),
+    ]
+    defaultCodeReviewTriggers: Annotated[
+        list[str],
+        ApiDescription("Code review triggers that GitHub repositories get when they're added"),
+    ]
     hasGranularReplayPermissions: bool
     replayAccessMembers: list[int]
 
@@ -764,124 +938,133 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             "sentry:seer_default_coding_agent_integration_id", None
         )
 
-        context: OrganizationSerializerResponse = {
-            **base,
-            "experiments": features.get_experiment_assignments(obj, actor=user),
-            "isDefault": obj.is_default,
-            "defaultRole": obj.default_role,
-            "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],  # Deprecated
-            "orgRoleList": serialize(
-                roles.get_all(), serializer=OrganizationRoleSerializer(organization=obj)
-            ),
-            "teamRoleList": serialize(
-                roles.team_roles.get_all(), serializer=TeamRoleSerializer(organization=obj)
-            ),
-            "openMembership": bool(obj.flags.allow_joinleave),
-            "require2FA": bool(obj.flags.require_2fa),
-            "allowSharedIssues": not obj.flags.disable_shared_issues,
-            "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
-            "dataScrubber": bool(
-                obj.get_option("sentry:require_scrub_data", REQUIRE_SCRUB_DATA_DEFAULT)
-            ),
-            "dataScrubberDefaults": bool(
-                obj.get_option("sentry:require_scrub_defaults", REQUIRE_SCRUB_DEFAULTS_DEFAULT)
-            ),
-            "sensitiveFields": obj.get_option("sentry:sensitive_fields", None) or [],
-            "safeFields": obj.get_option("sentry:safe_fields", None) or [],
-            "storeCrashReports": convert_crashreport_count(
-                obj.get_option("sentry:store_crash_reports")
-            ),
-            "attachmentsRole": str(
-                obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)
-            ),
-            "debugFilesRole": str(
-                obj.get_option("sentry:debug_files_role", DEBUG_FILES_ROLE_DEFAULT)
-            ),
-            "eventsMemberAdmin": bool(
-                obj.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT)
-            ),
-            "alertsMemberWrite": bool(
-                obj.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT)
-            ),
-            "scrubIPAddresses": bool(
-                obj.get_option("sentry:require_scrub_ip_address", REQUIRE_SCRUB_IP_ADDRESS_DEFAULT)
-            ),
-            "scrapeJavaScript": bool(
-                obj.get_option("sentry:scrape_javascript", SCRAPE_JAVASCRIPT_DEFAULT)
-            ),
-            "allowJoinRequests": bool(
-                obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
-            ),
-            "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
-            "relayDsnEndpoint": obj.get_option("sentry:relay_dsn_endpoint") or None,
-            "hideAiFeatures": bool(
-                obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
-            ),
-            "genAIConsent": bool(
-                obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
-            ),
-            "aggregatedDataConsent": bool(
-                obj.get_option("sentry:aggregated_data_consent", DATA_CONSENT_DEFAULT)
-            ),
-            "issueAlertsThreadFlag": bool(
-                obj.get_option("sentry:issue_alerts_thread_flag", ISSUE_ALERTS_THREAD_DEFAULT)
-            ),
-            "metricAlertsThreadFlag": bool(
-                obj.get_option("sentry:metric_alerts_thread_flag", METRIC_ALERTS_THREAD_DEFAULT)
-            ),
-            "rollbackEnabled": bool(
-                obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
-            ),
-            "defaultAutofixAutomationTuning": obj.get_option(
-                "sentry:default_autofix_automation_tuning",
-                AUTOFIX_AUTOMATION_TUNING_DEFAULT,
-            ),
-            "defaultSeerScannerAutomation": obj.get_option(
-                "sentry:default_seer_scanner_automation",
-                DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-            ),
-            "enableSeerCoding": bool(
-                obj.get_option(
-                    "sentry:enable_seer_coding",
-                    ENABLE_SEER_CODING_DEFAULT,
-                )
-            ),
-            "defaultCodingAgent": obj.get_option(
-                "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
-            ),
-            "defaultCodingAgentIntegrationId": (
-                str(coding_agent_integration_id) if coding_agent_integration_id else None
-            ),
-            "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(obj),
-            "autoOpenPrs": bool(
-                obj.get_option(
-                    "sentry:auto_open_prs",
-                    AUTO_OPEN_PRS_DEFAULT,
-                )
-            ),
-            "autoEnableCodeReview": bool(
-                obj.get_option(
-                    "sentry:auto_enable_code_review",
-                    AUTO_ENABLE_CODE_REVIEW,
-                )
-            ),
-            "defaultCodeReviewTriggers": obj.get_option(
-                "sentry:default_code_review_triggers", DEFAULT_CODE_REVIEW_TRIGGERS
-            ),
-            "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
-            "trustedRelays": [
-                # serialize trusted relays info into their external form
-                _relay_internal_to_external(raw)
-                for raw in obj.get_option("sentry:trusted-relays") or []
-            ],
-            "requiresSso": access.requires_sso,
-            "pendingAccessRequests": OrganizationAccessRequest.objects.filter(
-                team__organization=obj
-            ).count(),
-            "isDynamicallySampled": is_dynamically_sampled,
-            "hasGranularReplayPermissions": bool(attrs.get("replay_permissions_enabled")),
-            "replayAccessMembers": attrs.get("replay_access_members", []),
-        }
+        context = cast(
+            "OrganizationSerializerResponse",
+            {
+                **base,
+                "experiments": features.get_experiment_assignments(obj, actor=user),
+                "isDefault": obj.is_default,
+                "defaultRole": obj.default_role,
+                "availableRoles": [
+                    {"id": r.id, "name": r.name} for r in roles.get_all()
+                ],  # Deprecated
+                "orgRoleList": serialize(
+                    roles.get_all(), serializer=OrganizationRoleSerializer(organization=obj)
+                ),
+                "teamRoleList": serialize(
+                    roles.team_roles.get_all(), serializer=TeamRoleSerializer(organization=obj)
+                ),
+                "openMembership": bool(obj.flags.allow_joinleave),
+                "require2FA": bool(obj.flags.require_2fa),
+                "allowSharedIssues": not obj.flags.disable_shared_issues,
+                "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
+                "dataScrubber": bool(
+                    obj.get_option("sentry:require_scrub_data", REQUIRE_SCRUB_DATA_DEFAULT)
+                ),
+                "dataScrubberDefaults": bool(
+                    obj.get_option("sentry:require_scrub_defaults", REQUIRE_SCRUB_DEFAULTS_DEFAULT)
+                ),
+                "sensitiveFields": obj.get_option("sentry:sensitive_fields", None) or [],
+                "safeFields": obj.get_option("sentry:safe_fields", None) or [],
+                "storeCrashReports": convert_crashreport_count(
+                    obj.get_option("sentry:store_crash_reports")
+                ),
+                "attachmentsRole": str(
+                    obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)
+                ),
+                "debugFilesRole": str(
+                    obj.get_option("sentry:debug_files_role", DEBUG_FILES_ROLE_DEFAULT)
+                ),
+                "eventsMemberAdmin": bool(
+                    obj.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT)
+                ),
+                "alertsMemberWrite": bool(
+                    obj.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT)
+                ),
+                "scrubIPAddresses": bool(
+                    obj.get_option(
+                        "sentry:require_scrub_ip_address", REQUIRE_SCRUB_IP_ADDRESS_DEFAULT
+                    )
+                ),
+                "scrapeJavaScript": bool(
+                    obj.get_option("sentry:scrape_javascript", SCRAPE_JAVASCRIPT_DEFAULT)
+                ),
+                "allowJoinRequests": bool(
+                    obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
+                ),
+                "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
+                "relayDsnEndpoint": obj.get_option("sentry:relay_dsn_endpoint") or None,
+                "hideAiFeatures": bool(
+                    obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
+                ),
+                "genAIConsent": bool(
+                    obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
+                ),
+                "aggregatedDataConsent": bool(
+                    obj.get_option("sentry:aggregated_data_consent", DATA_CONSENT_DEFAULT)
+                ),
+                "issueAlertsThreadFlag": bool(
+                    obj.get_option("sentry:issue_alerts_thread_flag", ISSUE_ALERTS_THREAD_DEFAULT)
+                ),
+                "metricAlertsThreadFlag": bool(
+                    obj.get_option("sentry:metric_alerts_thread_flag", METRIC_ALERTS_THREAD_DEFAULT)
+                ),
+                "rollbackEnabled": bool(
+                    obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
+                ),
+                "defaultAutofixAutomationTuning": obj.get_option(
+                    "sentry:default_autofix_automation_tuning",
+                    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+                ),
+                "defaultSeerScannerAutomation": obj.get_option(
+                    "sentry:default_seer_scanner_automation",
+                    DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+                ),
+                "enableSeerCoding": bool(
+                    obj.get_option(
+                        "sentry:enable_seer_coding",
+                        ENABLE_SEER_CODING_DEFAULT,
+                    )
+                ),
+                "defaultCodingAgent": obj.get_option(
+                    "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
+                ),
+                "defaultCodingAgentIntegrationId": (
+                    str(coding_agent_integration_id) if coding_agent_integration_id else None
+                ),
+                "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(
+                    obj
+                ),
+                "autoOpenPrs": bool(
+                    obj.get_option(
+                        "sentry:auto_open_prs",
+                        AUTO_OPEN_PRS_DEFAULT,
+                    )
+                ),
+                "autoEnableCodeReview": bool(
+                    obj.get_option(
+                        "sentry:auto_enable_code_review",
+                        AUTO_ENABLE_CODE_REVIEW,
+                    )
+                ),
+                "defaultCodeReviewTriggers": obj.get_option(
+                    "sentry:default_code_review_triggers", DEFAULT_CODE_REVIEW_TRIGGERS
+                ),
+                "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
+                "trustedRelays": [
+                    # serialize trusted relays info into their external form
+                    _relay_internal_to_external(raw)
+                    for raw in obj.get_option("sentry:trusted-relays") or []
+                ],
+                "requiresSso": access.requires_sso,
+                "pendingAccessRequests": OrganizationAccessRequest.objects.filter(
+                    team__organization=obj
+                ).count(),
+                "isDynamicallySampled": is_dynamically_sampled,
+                "hasGranularReplayPermissions": bool(attrs.get("replay_permissions_enabled")),
+                "replayAccessMembers": attrs.get("replay_access_members", []),
+            },
+        )
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(
@@ -946,8 +1129,12 @@ class OrganizationSerializer(OrganizationSummarySerializer):
     }
 )
 class OrganizationWithProjectsAndTeamsSerializerResponse(OrganizationSerializerResponse):
-    teams: list[TeamSerializerResponse]
-    projects: list[OrganizationProjectResponse]
+    teams: Annotated[
+        list[TeamSerializerResponse], ApiDescription("Active teams of the organization")
+    ]
+    projects: Annotated[
+        list[OrganizationProjectResponse], ApiDescription("Active projects of the organization")
+    ]
 
 
 class OrganizationWithProjectsAndTeamsSerializer(OrganizationSerializer):

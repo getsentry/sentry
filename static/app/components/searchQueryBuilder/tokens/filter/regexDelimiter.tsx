@@ -1,7 +1,6 @@
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-
-import type {SpaceSize} from 'sentry/utils/theme';
+import type {SpaceSize} from '@sentry/scraps/theme';
 
 interface RegexDelimiterProps {
   onMouseDown?: React.MouseEventHandler;

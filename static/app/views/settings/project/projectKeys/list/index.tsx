@@ -1,22 +1,19 @@
 import {Fragment, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconFlag} from '@sentry/icons/flag';
 import {useQuery, useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -81,15 +78,15 @@ export default function ProjectKeys() {
       );
     },
     onMutate: (data: ProjectKey) => {
-      addLoadingMessage(t('Revoking key\u2026'));
+      toast.loading(t('Revoking key\u2026'));
       setKeyListState(keyList.filter(key => key.id !== data.id));
     },
     onSuccess: () => {
-      addSuccessMessage(t('Revoked key'));
+      toast.success(t('Revoked key'));
     },
     onError: () => {
       setKeyListState([...keyList]);
-      addErrorMessage(t('Unable to revoke key'));
+      toast.error(t('Unable to revoke key'));
     },
   });
 
@@ -110,7 +107,7 @@ export default function ProjectKeys() {
       );
     },
     onMutate: ({data}) => {
-      addLoadingMessage(t('Saving changes\u2026'));
+      toast.loading(t('Saving changes\u2026'));
       setKeyListState(
         keyList.map(key => {
           if (key.id === data.id) {
@@ -125,10 +122,10 @@ export default function ProjectKeys() {
       );
     },
     onSuccess: ({isActive}: {isActive: boolean}) => {
-      addSuccessMessage(isActive ? t('Enabled key') : t('Disabled key'));
+      toast.success(isActive ? t('Enabled key') : t('Disabled key'));
     },
     onError: ({isActive}: {isActive: boolean}) => {
-      addErrorMessage(isActive ? t('Error enabling key') : t('Error disabling key'));
+      toast.error(isActive ? t('Error enabling key') : t('Error disabling key'));
       setKeyListState([...keyList]);
     },
   });
@@ -147,10 +144,10 @@ export default function ProjectKeys() {
     },
     onSuccess: (updatedKey: ProjectKey) => {
       setKeyListState([...keyList, updatedKey]);
-      addSuccessMessage(t('Created a new key.'));
+      toast.success(t('Created a new key.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to create new key. Please try again.'));
+      toast.error(t('Unable to create new key. Please try again.'));
     },
   });
 

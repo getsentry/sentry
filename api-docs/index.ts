@@ -12,8 +12,24 @@ function dictToString(dict) {
   return res.join('\n');
 }
 
+// Extensions that only the response coverage check reads: the Python source of a
+// TypedDict field, and the marker on a recursive TypedDict cut short.
+const COVERAGE_EXTENSIONS = ['x-sentry-source', 'x-sentry-cycle'];
+
+function stripCoverageExtensions(node: unknown) {
+  if (Array.isArray(node)) {
+    node.forEach(stripCoverageExtensions);
+  } else if (node && typeof node === 'object') {
+    for (const key of COVERAGE_EXTENSIONS) {
+      delete (node as Record<string, unknown>)[key];
+    }
+    Object.values(node).forEach(stripCoverageExtensions);
+  }
+}
+
 function bundle(originalFile) {
   const root = parse(fs.readFileSync(originalFile, 'utf8'));
+  stripCoverageExtensions(root);
   const options = {
     filter: ['relative', 'remote', 'local'],
     resolveCirculars: true,

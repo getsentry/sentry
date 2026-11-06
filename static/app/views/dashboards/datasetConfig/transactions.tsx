@@ -19,7 +19,6 @@ import {AggregationKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {
   useTransactionsSeriesQuery,
@@ -28,7 +27,9 @@ import {
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
-import {handleOrderByReset, type DatasetConfig} from './base';
+import {handleOrderByReset} from './utils/handleOrderByReset';
+import {transactionsResponseTransforms} from './utils/transactionsResponseTransforms';
+import {type DatasetConfig} from './base';
 import {
   filterAggregateParams,
   filterSeriesSortOptions,
@@ -37,7 +38,6 @@ import {
   getCustomEventsFieldRenderer,
   getTableSortOptions,
   getTimeseriesSortOptions,
-  transformEventsResponseToTable,
 } from './events';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -84,8 +84,7 @@ export const TransactionsConfig: DatasetConfig<
   ],
   useSeriesQuery: useTransactionsSeriesQuery,
   useTableQuery: useTransactionsTableQuery,
-  transformSeries: transformEventsResponseToSeries,
-  transformTable: transformEventsResponseToTable,
+  ...transactionsResponseTransforms,
   filterAggregateParams,
 };
 

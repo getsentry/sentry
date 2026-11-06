@@ -1,14 +1,12 @@
 import {defined} from 'sentry/utils/defined';
-import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {
-  isBaseVisualize,
-  isVisualizeFunction,
-  Visualize,
-  type BaseVisualize,
-} from 'sentry/views/explore/queryParams/visualize';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
+
+import {isGroupBy, type GroupBy} from './groupBy';
+import type {ReadableQueryParams} from './readableQueryParams';
+import {isVisualizeFunction, parseVisualize, type Visualize} from './visualize';
+import type {WritableQueryParams} from './writableQueryParams';
+
+const NUMERIC_LITERAL = /^-?\d*\.?\d+$/;
 
 type DerivedUpdatedManagedFields = {
   updatedFields?: string[];
@@ -154,12 +152,9 @@ function findAllFieldRefs(
       ? // null means to clear it so make sure to handle it correctly
         []
       : defined(writableQueryParams.aggregateFields)
-        ? writableQueryParams.aggregateFields
-            .filter<BaseVisualize>(isBaseVisualize)
-            .flatMap(visualize => {
-              const visualizes = Visualize.fromJSON(visualize);
-              return visualizes.flatMap(getVisualizeFields);
-            })
+        ? writableQueryParams.aggregateFields.flatMap(aggregateField =>
+            parseVisualize(aggregateField).flatMap(getVisualizeFields)
+          )
         : // undefined means it's unchanged so use the results from the readableQueryParams
           readableVisualizeFields;
 
@@ -174,9 +169,9 @@ function findAllFieldRefs(
 function getVisualizeFields(visualize: Visualize): string[] {
   if (isVisualizeFunction(visualize)) {
     // Parse conditionally so an `_if` filter query, which is the first argument, is not
-    // mistaken for a visualize field.
+    // mistaken for a visualize field. Formulas can also take plain numbers.
     const field = parseConditionalAggregate(visualize.yAxis)?.arguments?.[0];
-    return defined(field) ? [field] : [];
+    return defined(field) && !NUMERIC_LITERAL.test(field) ? [field] : [];
   }
 
   return []; // TODO: unsupported

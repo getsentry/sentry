@@ -2,8 +2,9 @@ import {useEffect, useEffectEvent, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Debouncer} from '@tanstack/react-pacer';
 
-import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
-import type {BreakpointSize} from 'sentry/utils/theme';
+import type {BreakpointSize} from '@sentry/scraps/theme';
+
+import {valueIsEqual} from './object/valueIsEqual';
 
 export type Breakpoints = Record<BreakpointSize, string>;
 

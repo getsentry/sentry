@@ -47,6 +47,8 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.tombstone import CellTombstone
 from sentry.monitors.models import Monitor
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
@@ -822,6 +824,22 @@ def setup_cross_db_deletion_data(
 
 @cell_silo_test
 class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
+    def test_user_deletion_cascades_to_inbox_items_and_events(self) -> None:
+        recipient = self.create_user()
+        self.create_member(organization=self.organization, user=recipient)
+        item = self.create_inbox_item(user=recipient)
+        event = self.create_inbox_item_event(item)
+        survivor = self.create_inbox_item()
+        survivor_event = self.create_inbox_item_event(survivor)
+
+        with assume_test_silo_mode_of(User), outbox_runner():
+            User.objects.get(id=recipient.id).delete()
+        self.run_hybrid_cloud_fk_jobs()
+
+        assert not InboxItem.objects.filter(id=item.id).exists()
+        assert not InboxItemEvent.objects.filter(id=event.id).exists()
+        assert InboxItemEvent.objects.filter(id=survivor_event.id).exists()
+
     def setUp(self) -> None:
         super().setUp()
         Monitor.objects.all().delete()

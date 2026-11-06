@@ -1,5 +1,9 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconDownload} from '@sentry/icons/download';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSearch} from '@sentry/icons/search';
 import {useMutation} from '@tanstack/react-query';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
@@ -9,10 +13,9 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconChevron, IconDownload, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -22,12 +25,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/main/buildComparisonMetricCards';
-import {downloadSizeCompareItemsAsCsv} from 'sentry/views/preprod/buildComparison/main/downloadSizeCompareItemsAsCsv';
-import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
-import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
-import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
-import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import type {
@@ -44,6 +41,13 @@ import {
   getCompareApiUrl,
   getCompareBuildPath,
 } from 'sentry/views/preprod/utils/buildLinkUtils';
+
+import {BuildComparisonMetricCards} from './buildComparisonMetricCards';
+import {downloadSizeCompareItemsAsCsv} from './downloadSizeCompareItemsAsCsv';
+import {InsightComparisonSection} from './insightComparisonSection';
+import {SizeCompareItemDiffTable} from './sizeCompareItemDiffTable';
+import {SizeCompareSelectedBuilds} from './sizeCompareSelectedBuilds';
+import {TreemapDiffSection} from './treemapDiffSection';
 
 function getMainComparison(
   response: SizeComparisonApiResponse | undefined
@@ -137,7 +141,7 @@ export function SizeCompareMainContent() {
     },
     onError: error => {
       const errorMessage = parseApiError(error);
-      addErrorMessage(
+      toast.error(
         errorMessage === 'Unknown API Error'
           ? t('Failed to trigger comparison. Please try again.')
           : errorMessage

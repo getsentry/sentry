@@ -1,9 +1,14 @@
+import copy
 import itertools
+from collections.abc import Iterator
+from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorFunction
+from sentry.models.project import Project
 from sentry.tasks.store import preprocess_event
 from sentry.tasks.symbolication import symbolicate_event
 from sentry.testutils.helpers.options import override_options
@@ -14,67 +19,107 @@ EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
 
 @pytest.fixture
-def mock_save_event():
+def mock_save_event() -> Iterator[MagicMock]:
     with mock.patch("sentry.tasks.store.save_event") as m:
         yield m
 
 
 @pytest.fixture
-def mock_process_event():
+def mock_process_event() -> Iterator[MagicMock]:
     with mock.patch("sentry.tasks.store.process_event") as m:
         yield m
 
 
 @pytest.fixture
-def mock_symbolicate_event():
+def mock_symbolicate_event() -> Iterator[MagicMock]:
     with mock.patch("sentry.tasks.symbolication.symbolicate_event") as m:
         yield m
 
 
 @pytest.fixture
-def mock_symbolication_function():
+def mock_symbolication_function() -> Iterator[MagicMock]:
     """Mocks the symbolication function invoked via `SymbolicatorFunction.__call__`."""
     with mock.patch.object(SymbolicatorFunction, "__call__") as m:
         yield m
 
 
 @pytest.fixture
-def mock_event_processing_store():
+def mock_event_processing_store() -> Iterator[MagicMock]:
     with mock.patch("sentry.services.eventstore.processing.event_processing_store") as m:
         yield m
 
 
 @django_db_all
-@pytest.mark.parametrize("inline", (False, True))
+@pytest.mark.parametrize(
+    "inline,disable_store,cache_key,redis_backups,unprocessed_pending",
+    [
+        (False, False, "e:1", 1, False),
+        (True, False, "e:1", 1, True),
+        (True, True, None, 0, True),
+        # Store re-enabled after ingest chose no cache key.
+        (False, False, None, 0, True),
+    ],
+)
 def test_move_to_symbolicate_event(
-    default_project,
-    mock_process_event,
-    mock_save_event,
-    mock_symbolicate_event,
-    mock_event_processing_store,
-    inline,
-):
+    default_project: Project,
+    mock_process_event: MagicMock,
+    mock_save_event: MagicMock,
+    mock_symbolicate_event: MagicMock,
+    mock_event_processing_store: MagicMock,
+    inline: bool,
+    disable_store: bool,
+    cache_key: str | None,
+    redis_backups: int,
+    unprocessed_pending: bool,
+) -> None:
     data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
-    cache_key = None if inline else "e:1"
     mock_event_processing_store.store.return_value = "e:1"
     with (
         override_options(
             {
                 "store.enable-inline-payloads": float(inline),
-                "store.disable-processing-store": inline,
+                "store.disable-processing-store": disable_store,
             }
         ),
         mock.patch("sentry.tasks.store.reprocessing2.backup_unprocessed_event") as backup,
     ):
         preprocess_event(cache_key=cache_key, data=data)
 
-    backup.assert_called_once_with(data=data)
+    assert backup.call_args_list == [mock.call(data=data)] * redis_backups
     assert mock_symbolicate_event.delay.call_count == 1
     kwargs = mock_symbolicate_event.delay.call_args.kwargs
-    assert kwargs["data"] == (data if inline else None)
+    assert kwargs["unprocessed_pending"] is unprocessed_pending
+    assert kwargs["unprocessed"] is None
+    assert kwargs["data"] == (data if unprocessed_pending else None)
     assert kwargs["cache_key"] == cache_key
     assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 0
+
+
+@django_db_all
+@pytest.mark.parametrize("load_shed", (False, True))
+def test_symbolication_passes_unprocessed_event_inline(
+    default_project: Project,
+    mock_process_event: MagicMock,
+    mock_symbolication_function: MagicMock,
+    load_shed: bool,
+) -> None:
+    data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
+    unprocessed = copy.deepcopy(data)
+
+    def _symbolicate_in_place(symbolicator: Any, data: dict[str, Any]) -> Any:
+        data["symbolicated"] = True
+        return data
+
+    mock_symbolication_function.side_effect = _symbolicate_in_place
+    with (
+        override_options({"store.enable-inline-payloads": 1.0}),
+        mock.patch("sentry.tasks.symbolication.killswitch_matches_context", return_value=load_shed),
+        TaskRunner(),
+    ):
+        symbolicate_event(data=data, symbolicate_functions=["js"], unprocessed_pending=True)
+
+    assert mock_process_event.delay.call_args.kwargs["unprocessed"] == unprocessed
 
 
 @django_db_all
@@ -92,16 +137,16 @@ def test_move_to_symbolicate_event(
     ],
 )
 def test_symbolication_continues_after_error_or_load_shedding(
-    default_project,
-    mock_event_processing_store,
-    mock_process_event,
-    mock_symbolication_function,
-    error,
-    load_shed,
-    expected_metrics,
-    symbolicate_functions,
-    inline,
-):
+    default_project: Project,
+    mock_event_processing_store: MagicMock,
+    mock_process_event: MagicMock,
+    mock_symbolication_function: MagicMock,
+    error: RuntimeError,
+    load_shed: bool,
+    expected_metrics: dict[str, Any],
+    symbolicate_functions: list[str],
+    inline: bool,
+) -> None:
     data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
     cache_key = None if inline else "e:1"
     mock_event_processing_store.get.return_value = data
@@ -135,8 +180,12 @@ def test_symbolication_continues_after_error_or_load_shedding(
 @django_db_all
 @pytest.mark.parametrize("inline", (False, True))
 def test_symbolicate_minidump_and_native_stacktrace(
-    default_project, mock_event_processing_store, mock_process_event, mock_save_event, inline
-):
+    default_project: Project,
+    mock_event_processing_store: MagicMock,
+    mock_process_event: MagicMock,
+    mock_save_event: MagicMock,
+    inline: bool,
+) -> None:
     """
     An event containing both a minidump and an additional raw native stacktrace
     (relay's `MinidumpMultiException` feature inserts the minidump placeholder
@@ -186,7 +235,7 @@ def test_symbolicate_minidump_and_native_stacktrace(
     stored_data = {}
     counter = itertools.count()
 
-    def _store(event_data):
+    def _store(event_data: dict[str, Any]) -> Any:
         key = f"e:{next(counter)}"
         stored_data[key] = event_data
         return key

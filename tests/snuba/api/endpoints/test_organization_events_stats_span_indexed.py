@@ -1,8 +1,10 @@
 from datetime import timedelta
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.search.utils import DEVICE_CLASS
 from sentry.testutils.helpers.datetime import before_now
@@ -27,7 +29,9 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def _do_request(self, data, url=None, features=None):
+    def _do_request(
+        self, data: dict[str, Any], url: str | None = None, features: dict[str, bool] | None = None
+    ) -> Response:
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
@@ -1278,7 +1282,7 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0]
 
-    def test_device_class_filter_empty(self):
+    def test_device_class_filter_empty(self) -> None:
         event_counts = [
             ("low", 1),
             ("", 2),
@@ -2511,7 +2515,7 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
         assert "debug_info" not in response.data["bar"]["meta"]
 
     @patch("sentry.utils.snuba_rpc.timeseries_rpc")
-    def test_debug_param_with_error(self, mock_query) -> None:
+    def test_debug_param_with_error(self, mock_query: MagicMock) -> None:
         self.user = self.create_user("superuser@example.com", is_superuser=True)
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(user=self.user)
@@ -2562,7 +2566,7 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
         assert "meta" not in response.data
         assert "debug_info" not in response.data
 
-    def test_groupby_non_existent_attribute(self):
+    def test_groupby_non_existent_attribute(self) -> None:
         self.store_spans(
             [
                 self.create_span({"description": "span"}, start_ts=self.day_ago),

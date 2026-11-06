@@ -10,8 +10,9 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {TransactionHeader} from 'sentry/views/performance/transactionSummary/header';
-import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
+
+import {TransactionHeader} from './header';
+import {Tab} from './tabs';
 
 const TRANSACTION_NAME = 'transaction_name';
 
@@ -91,10 +92,6 @@ describe('Performance > Transaction Summary Header', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-has-measurements/',
-      body: {measurements: true},
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       body: {threshold: '800', metric: 'lcp'},
     });
@@ -134,6 +131,26 @@ describe('Performance > Transaction Summary Header', () => {
     expect(
       screen.getByRole('menuitemradio', {name: 'Transaction Settings'})
     ).toBeInTheDocument();
+  });
+
+  it('hides the threshold action for EAP organizations', async () => {
+    const overrideRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      body: {threshold: '800', metric: 'lcp'},
+    });
+    renderHeader(initializeData({features: ['insights-modules-use-eap']}));
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Transaction Actions'})
+    );
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Star for Team'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Transaction Settings'})
+    ).not.toBeInTheDocument();
+    expect(overrideRequest).not.toHaveBeenCalled();
   });
 
   it('disables the star action until the viewer teams have finished loading', async () => {

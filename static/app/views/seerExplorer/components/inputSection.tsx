@@ -1,5 +1,7 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconPause} from '@sentry/icons/pause';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,10 +10,11 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconArrow, IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PRWidget} from 'sentry/views/seerExplorer/components/prWidget';
-import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {RepoPRState, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+
+import {PRLinksBar} from './prLinksBar';
 
 interface FileApprovalActions {
   currentIndex: number;
@@ -31,18 +34,14 @@ interface QuestionActions {
 }
 
 interface InputSectionProps {
-  blocks: Block[];
   composerRef: React.RefObject<HTMLDivElement | null>;
   enabled: boolean;
   inputValue: ComposerValue;
-  onCreatePR: (repoName?: string) => void;
   onInputChange: (value: ComposerValue) => void;
   onInputClick: () => void;
   onInterrupt: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
-  onPRWidgetClick: () => void;
   onSend: () => void;
-  prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
   canSendMessage?: boolean;
   /** Placeholder shown while `enabled` is false. Defaults to the read-only copy. */
@@ -50,32 +49,33 @@ interface InputSectionProps {
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
   questionActions?: QuestionActions;
+  runId?: SeerExplorerRunId | null;
 }
 
 export function InputSection({
-  blocks,
   enabled,
   inputValue,
   canSendMessage = true,
   disabledPlaceholder,
   interruptState = 'disabled',
-  onCreatePR,
   onInputChange,
   onInputClick,
   onInterrupt,
   onKeyDown,
-  onPRWidgetClick,
   onSend,
-  prWidgetButtonRef,
   repoPRStates,
   composerRef,
   fileApprovalActions,
   questionActions,
+  runId,
 }: InputSectionProps) {
-  // Check if there are any file patches for showing the PR widget
-  const hasCodeChanges = useMemo(() => {
-    return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
-  }, [blocks]);
+  const organization = useOrganization({allowNull: true});
+  // With ask-seer-create-pr the agent opens PRs, so show links to them.
+  const agentCreatesPRs = organization?.features.includes('ask-seer-create-pr');
+  // Keyed by run so collapse state resets when switching conversations.
+  const prLinksBar = agentCreatesPRs ? (
+    <PRLinksBar key={runId ?? undefined} repoPRStates={repoPRStates} />
+  ) : null;
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
@@ -148,8 +148,9 @@ export function InputSection({
   // Render disabled input element if not enabled
   if (!enabled) {
     return (
-      <InputBlock>
-        <InputRow>
+      <Container background="primary" width="100%" position="sticky" bottom="0">
+        {prLinksBar}
+        <Flex align="end" margin="lg xl" gap="sm">
           <StyledInputGroup>
             <InputGroup.TextArea
               disabled
@@ -162,8 +163,8 @@ export function InputSection({
               data-test-id="seer-explorer-input"
             />
           </StyledInputGroup>
-        </InputRow>
-      </InputBlock>
+        </Flex>
+      </Container>
     );
   }
 
@@ -258,8 +259,9 @@ export function InputSection({
   }
 
   return (
-    <InputBlock>
-      <InputRow>
+    <Container background="primary" width="100%" position="sticky" bottom="0">
+      {prLinksBar}
+      <Flex align="end" margin="lg xl" gap="sm">
         <StyledComposer
           isWarningPlaceholder={interruptState === 'completed'}
           ref={composerRef}
@@ -301,17 +303,8 @@ export function InputSection({
             aria-label={t('Send message')}
           />
         )}
-        {enabled && hasCodeChanges && (
-          <PRWidget
-            ref={prWidgetButtonRef}
-            blocks={blocks}
-            repoPRStates={repoPRStates}
-            onCreatePR={onCreatePR}
-            onToggleMenu={onPRWidgetClick}
-          />
-        )}
-      </InputRow>
-    </InputBlock>
+      </Flex>
+    </Container>
   );
 }
 
@@ -330,19 +323,6 @@ const StyledComposer = styled(Composer, {
 `;
 
 // Styled components
-const InputBlock = styled('div')`
-  width: 100%;
-  background: ${p => p.theme.tokens.background.primary};
-  position: sticky;
-  bottom: 0;
-`;
-
-const InputRow = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  gap: ${p => p.theme.space.sm};
-  margin: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-`;
 
 const StyledInputGroup = styled(InputGroup)`
   flex: 1;

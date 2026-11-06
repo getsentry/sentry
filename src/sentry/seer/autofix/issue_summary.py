@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 from urllib3.connectionpool import HTTPConnectionPool
@@ -63,7 +64,6 @@ from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.settings import is_self_hosted
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ def _trigger_autofix_task(
     auto_run_source: str,
     referrer: AutofixReferrer | str = AutofixReferrer.UNKNOWN,
     stopping_point: AutofixStoppingPoint | str | None = None,
-):
+) -> None:
     """
     Asynchronous task to trigger Autofix.
     Task queue serializes enum parameters to strings, so we need to convert them back.
@@ -171,7 +171,9 @@ def _trigger_autofix_task(
             sentry_sdk.capture_exception(e)
             return
 
-    with start_span(op="ai_summary.trigger_autofix", name="ai_summary.trigger_autofix"):
+    with traces.start_span(
+        name="ai_summary.trigger_autofix", attributes={"sentry.op": "ai_summary.trigger_autofix"}
+    ):
         try:
             group = Group.objects.get(id=group_id)
         except Group.DoesNotExist:
@@ -206,9 +208,9 @@ def _trigger_autofix_task(
             pass
 
         if run and SeerAutofixOperator.has_access(organization=group.project.organization):
-            SeerOperatorAutofixCache.migrate(
-                from_group_id=group_id, to_run_id=run.seer_run_state_id
-            )
+            run_state_id = run.seer_run_state_id
+            if run_state_id is not None:
+                SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_state_id)
 
 
 def _get_event(
@@ -248,7 +250,7 @@ def _call_seer(
     serialized_event: dict[str, Any],
     trace_tree: dict[str, Any] | None,
     experiment_variant: str | None = None,
-):
+) -> SummarizeIssueResponse:
     body = SummarizeIssueRequest(
         group_id=group.id,
         issue={
@@ -355,8 +357,9 @@ def get_and_update_group_fixability_score(
             extra={"group_id": group.id},
         )
 
-    with start_span(
-        op="ai_summary.generate_fixability_score", name="ai_summary.generate_fixability_score"
+    with traces.start_span(
+        name="ai_summary.generate_fixability_score",
+        attributes={"sentry.op": "ai_summary.generate_fixability_score"},
     ):
         issue_summary = _generate_fixability_score(group, summary=summary)
 

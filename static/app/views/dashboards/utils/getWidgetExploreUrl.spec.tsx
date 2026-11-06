@@ -4,10 +4,11 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+
 import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
-} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+} from './getWidgetExploreUrl';
 
 describe('getWidgetExploreUrl', () => {
   const organization = OrganizationFixture();
@@ -426,6 +427,16 @@ describe('getWidgetExploreUrl', () => {
     expect(query2.fields).toEqual([]);
     expect(query2.groupBys).toEqual(['span.description']);
     expect(query2.query).toBe('is_transaction:false');
+  });
+
+  it('returns null for widgets with an empty queries array', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+    expect(url).toBeNull();
   });
 
   it('returns null for log widgets with multiple queries', () => {

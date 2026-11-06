@@ -1,15 +1,17 @@
 import {useState} from 'react';
+import {IconHide} from '@sentry/icons/hide';
+import {IconShow} from '@sentry/icons/show';
+import type {DistributedOmit} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 import {InputField} from '@sentry/scraps/form/field/inputField';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconHide} from 'sentry/icons/iconHide';
-import {IconShow} from 'sentry/icons/iconShow';
-
 import type {InputFieldProps} from './inputField';
 
-export function PasswordField(props: Omit<InputFieldProps, 'type' | 'trailingItems'>) {
+export function PasswordField(
+  props: DistributedOmit<InputFieldProps, 'type' | 'trailingItems'>
+) {
   const [isFieldVisible, setisFieldVisible] = useState(false);
   const {t} = useTranslation();
 

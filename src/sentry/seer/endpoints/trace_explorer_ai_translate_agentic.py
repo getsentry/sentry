@@ -13,8 +13,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context
+from sentry.seer.endpoints.search_agent_start import resolve_referrer
 from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -48,6 +50,12 @@ class SearchAgentTranslateSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         help_text="Optional configuration options.",
+    )
+    referrer = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Which caller started the run (e.g. `search_bar`). Unknown values are ignored.",
     )
 
     def validate_options(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -156,7 +164,9 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         user_email = user_org_context.get("user_email")
         timezone = user_org_context.get("user_timezone")
 
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
+        viewer_context = SeerViewerContext(
+            organization_id=organization.id, user_id=acting_user_id(request.user)
+        )
         options["cross_event"] = features.has(
             "organizations:seer-assisted-query-cross-event-explorer",
             organization,
@@ -172,6 +182,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             organization,
             actor=request.user,
         )
+        options["source"] = resolve_referrer(request, validated_data.get("referrer")).value
         data = send_translate_agentic_request(
             organization.id,
             organization.slug,

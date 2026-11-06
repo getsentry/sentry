@@ -5,7 +5,8 @@ import type {LineSeriesOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -23,7 +24,7 @@ import {
   initSessionsChart,
 } from 'sentry/utils/sessions';
 import {getCrashFreePercent} from 'sentry/views/explore/releases/utils';
-import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
+import {DisplayModes} from 'sentry/views/projectDetail/displayModes';
 
 const omitIgnoredProps = (props: ProjectSessionsChartRequestProps) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
@@ -164,7 +165,7 @@ class ProjectSessionsChartRequest extends Component<
       });
       onTotalValuesChange(totalCount!);
     } catch {
-      addErrorMessage(t('Error loading chart data'));
+      toast.error(t('Error loading chart data'));
       this.setState({
         errored: true,
         reloading: false,

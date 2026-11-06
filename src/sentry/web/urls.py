@@ -5,8 +5,11 @@ import re
 from django.conf import settings
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_safe
 from django.views.generic import RedirectView
 
+from sentry.agent_handoff.views import AgentHandoffView
 from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
@@ -24,7 +27,7 @@ from sentry.web import api
 from sentry.web.frontend import csrf_failure, generic
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
-from sentry.web.frontend.auth_login import AuthLoginView
+from sentry.web.frontend.auth_login import AuthPageView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
@@ -38,8 +41,6 @@ from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
-from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
-from sentry.web.frontend.oauth_device import OAuthDeviceView
 from sentry.web.frontend.oauth_device_authorization import OAuthDeviceAuthorizationView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
@@ -54,7 +55,6 @@ from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.signup_verification_pending import SignupVerificationPendingView
 from sentry.web.frontend.sso_signup_verification import SSOSignupVerificationView
-from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 
@@ -64,6 +64,9 @@ from social_auth.views import complete
 
 # Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
+public_oauth_react_page_view = never_cache(
+    require_safe(GenericReactPageView.as_view(auth_required=False))
+)
 react_page_view = ReactPageView.as_view()
 
 urlpatterns: list[URLResolver | URLPattern] = [
@@ -169,6 +172,7 @@ urlpatterns += [
         JavaScriptSdkLoader.as_view(),
         name="sentry-js-sdk-loader",
     ),
+    re_path(r"^agent-handoff/$", AgentHandoffView.as_view(), name="sentry-agent-handoff"),
     # docs reference this for acquiring the sentry cli
     re_path(r"^get-cli/$", get_cli, name="get_cli_script"),
     re_path(
@@ -204,7 +208,7 @@ urlpatterns += [
             [
                 re_path(
                     r"^authorize/$",
-                    OAuthAuthorizeView.as_view(),
+                    public_oauth_react_page_view,
                     name="sentry-oauth-authorize",
                 ),
                 re_path(
@@ -225,7 +229,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^device/$",
-                    OAuthDeviceView.as_view(),
+                    public_oauth_react_page_view,
                     name="sentry-oauth-device",
                 ),
             ]
@@ -261,7 +265,7 @@ urlpatterns += [
             [
                 re_path(
                     r"^login/$",
-                    AuthLoginView.as_view(),
+                    AuthPageView.as_view(),
                     name="sentry-login",
                 ),
                 re_path(
@@ -306,7 +310,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^register/$",
-                    AuthLoginView.as_view(),
+                    AuthPageView.as_view(),
                     name="sentry-register",
                 ),
                 re_path(
@@ -337,11 +341,6 @@ urlpatterns += [
         r"^account/",
         include(
             [
-                re_path(
-                    r"^sudo/$",
-                    SudoView.as_view(),
-                    name="sentry-sudo",
-                ),
                 re_path(
                     r"^confirm-email/$",
                     accounts.start_confirm_email,
@@ -848,6 +847,12 @@ urlpatterns += [
         react_page_view,
         name="issues",
     ),
+    # Inbox
+    re_path(
+        r"^inbox/",
+        react_page_view,
+        name="inbox",
+    ),
     # Alerts
     re_path(
         r"^alerts/",
@@ -877,6 +882,12 @@ urlpatterns += [
         r"^explore/",
         react_page_view,
         name="explore",
+    ),
+    # Seer
+    re_path(
+        r"^seer/",
+        react_page_view,
+        name="seer",
     ),
     # Traces
     re_path(

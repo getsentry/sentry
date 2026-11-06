@@ -3,12 +3,10 @@ import * as qs from 'query-string';
 
 import type {EventTag} from 'sentry/types/event';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {
-  ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
-  type FieldKey,
-} from 'sentry/utils/fields';
-import {safeURL} from 'sentry/utils/url/safeURL';
+
+import type {Sort} from './discover/fields';
+import {safeURL} from './url/safeURL';
+import {ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS, type FieldKey} from './fields';
 
 // Create a string representation of the regex so we need to create a new regex
 // for each use to avoid carrying over state
@@ -150,6 +148,20 @@ export function decodeSorts(value: QueryValue, fallback?: string): Sort[] {
       ? {kind: 'desc', field: sort.substring(1)}
       : {kind: 'asc', field: sort}
   );
+}
+
+export function encodeSort(sort: Sort): string {
+  switch (sort.kind) {
+    case 'desc': {
+      return `-${sort.field}`;
+    }
+    case 'asc': {
+      return String(sort.field);
+    }
+    default: {
+      throw new Error('Unexpected sort type');
+    }
+  }
 }
 
 export function decodeBoolean(value: QueryValue): boolean | undefined;

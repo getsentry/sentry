@@ -13,13 +13,6 @@ interface FormFieldDefinition {
 }
 
 export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
-  'account-emails.email': {
-    name: 'email',
-    formId: 'account-emails',
-    route: '/settings/account/emails/',
-    label: t('Additional Email'),
-    hintText: t('Designate an alternative email for this account'),
-  },
   'account-details.name': {
     name: 'name',
     formId: 'account-details',
@@ -80,6 +73,13 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/account/details/',
     label: t('Default Issue Event'),
     hintText: t('Choose what event gets displayed by default'),
+  },
+  'account-emails.email': {
+    name: 'email',
+    formId: 'account-emails',
+    route: '/settings/account/emails/',
+    label: t('Additional Email'),
+    hintText: t('Designate an alternative email for this account'),
   },
   'notification-settings.personalActivityNotifications': {
     name: 'personalActivityNotifications',
@@ -285,24 +285,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Sync changes from CODEOWNERS'),
     hintText: t(
       'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
-    ),
-  },
-  'autofix-agent.agentOption': {
-    name: 'agentOption',
-    formId: 'autofix-agent',
-    route: '/settings/:orgId/projects/:projectId/seer',
-    label: t('Handoff to Agent'),
-    hintText: t(
-      'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. Manage Coding Agents.'
-    ),
-  },
-  'autofix-agent.stoppingPoint': {
-    name: 'stoppingPoint',
-    formId: 'autofix-agent',
-    route: '/settings/:orgId/projects/:projectId/seer',
-    label: t('Automation Steps'),
-    hintText: t(
-      'Choose which steps Seer should run automatically on issues. Depending on how actionable the issue is, Seer may stop at an earlier step.'
     ),
   },
   'project-user-feedback.feedback:branding': {
@@ -731,6 +713,13 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'If you have already linked this provider, pasting a new secret will override the existing secret.'
     ),
   },
+  'new-provider-form.webhookUrl': {
+    name: 'webhookUrl',
+    formId: 'new-provider-form',
+    route: '/settings/:orgId/feature-flags/change-tracking/new-provider/',
+    label: t('Webhook URL'),
+    hintText: '',
+  },
   'new-provider-form.secret': {
     name: 'secret',
     formId: 'new-provider-form',
@@ -738,6 +727,24 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Secret'),
     hintText: t(
       'Paste the signing secret given by your provider when creating the webhook.'
+    ),
+  },
+  'autofix-agent.agentOption': {
+    name: 'agentOption',
+    formId: 'autofix-agent',
+    route: '/settings/:orgId/projects/:projectId/seer',
+    label: t('Handoff to Agent'),
+    hintText: t(
+      'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. Manage Coding Agents.'
+    ),
+  },
+  'autofix-agent.stoppingPoint': {
+    name: 'stoppingPoint',
+    formId: 'autofix-agent',
+    route: '/settings/:orgId/projects/:projectId/seer',
+    label: t('Automation Steps'),
+    hintText: t(
+      'Choose which steps Seer should run automatically on issues. Depending on how actionable the issue is, Seer may stop at an earlier step.'
     ),
   },
 };

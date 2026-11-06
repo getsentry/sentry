@@ -1,11 +1,15 @@
+import {IconCopy} from '@sentry/icons/copy';
+
 import {DropdownMenu, type DropdownMenuProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-interface CopyAsDropdownProps extends Omit<DropdownMenuProps, 'trigger'> {
+interface CopyAsDropdownProps extends Omit<
+  DropdownMenuProps,
+  'trigger' | 'triggerLabel'
+> {
   items: DropdownMenuProps['items'];
 }
 
@@ -14,7 +18,11 @@ export function CopyAsDropdown(props: CopyAsDropdownProps) {
     <DropdownMenu
       size={props.size}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} icon={<IconCopy />} size="xs">
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={<IconCopy />}
+          size={props.size ?? 'xs'}
+        >
           {t('Copy as')}
         </OverlayTrigger.Button>
       )}

@@ -1,25 +1,26 @@
 import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
+import {IconStar} from '@sentry/icons/star';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import * as Storybook from 'sentry/stories';
+
 import {
   TourContextProvider,
   TourElement,
   type TourContextProviderProps,
-} from 'sentry/components/tours/components';
-import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
-import type {TourContextType} from 'sentry/components/tours/tourContext';
-import {IconStar} from 'sentry/icons';
-import * as Storybook from 'sentry/stories';
+} from './components';
+import {StartTourModal, startTourModalCss} from './startTour';
+import type {TourContextType} from './tourContext';
 
 const enum MyTour {
   NAME = 'my-tour-name',

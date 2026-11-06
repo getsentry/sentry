@@ -1,4 +1,10 @@
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconFire} from '@sentry/icons/fire';
+import {IconInfo} from '@sentry/icons/info';
+import {IconOpen} from '@sentry/icons/open';
+import {IconWarning} from '@sentry/icons/warning';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
@@ -9,22 +15,15 @@ import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
-import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconCheckmark,
-  IconFatal,
-  IconFire,
-  IconInfo,
-  IconOpen,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
   StatuspageIncident,
   StatusPageIncidentUpdate,
   StatusPageServiceStatus,
 } from 'sentry/types/system';
+
+import {DateTime} from './dateTime';
+import {TimeSince} from './timeSince';
 
 interface Props {
   incident: StatuspageIncident;

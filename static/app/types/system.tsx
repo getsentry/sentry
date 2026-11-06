@@ -1,5 +1,4 @@
-import type {ApiResult} from 'sentry/types/api';
-
+import type {ApiResult} from './api';
 import type {ParntershipAgreementType} from './overrides';
 import type {User} from './user';
 
@@ -8,14 +7,13 @@ export type PreloadRequestName = 'organization' | 'projects' | 'teams';
 export interface PreloadRequestResult {
   durationMs: number;
   outcome: 'success' | 'error';
+  error?: unknown;
   errorName?: string;
   status?: number;
 }
 
 export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
-  WEB_AUTHN_ASSSERT = 'WebAuthnAssert',
-  SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 
 export type OnSentryInitConfiguration = {

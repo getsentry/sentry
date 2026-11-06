@@ -14,8 +14,11 @@ import {
   getStaticDetectorThresholdSuffix,
 } from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
-import type {MetricDetectorFormData} from './metricFormData';
-import {METRIC_DETECTOR_FORM_FIELDS, useMetricDetectorFormField} from './metricFormData';
+import type {MetricDetectorFormData} from './metricFormFields';
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from './metricFormFields';
 
 function validateThresholdOrder(
   value: number,

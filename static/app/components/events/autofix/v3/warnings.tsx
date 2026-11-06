@@ -1,10 +1,11 @@
+import {IconClose} from '@sentry/icons/close';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {PrIterationPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';

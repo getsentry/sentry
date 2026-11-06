@@ -1,11 +1,9 @@
-import {
-  ResourceLink,
-  type ResourceLinkFormatProps,
-} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconGraph} from 'sentry/icons';
+import {IconGraph} from '@sentry/icons/graph';
+
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {getMetricsQueryHref, type MetricsQueryData} from './metricsQueryUtils';
+import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
 
 /**
  * The name the model gave the query, falling back to the metric's own name. The

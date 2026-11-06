@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
 
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 /**

@@ -1,17 +1,18 @@
 import styled from '@emotion/styled';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {REPLAY_TIMESTAMP_OPTIONS} from 'sentry/components/replays/preferences/replayPreferences';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+
+import {REPLAY_TIMESTAMP_OPTIONS} from './replayPreferences';
 
 export function ReplayPreferenceDropdown({
   speedOptions,

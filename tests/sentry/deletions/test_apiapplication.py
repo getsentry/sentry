@@ -18,10 +18,8 @@ class DeleteApiApplicationTest(TransactionTestCase, HybridCloudTestMixin):
         app = ApiApplication.objects.create(
             owner=self.user, status=ApiApplicationStatus.pending_deletion
         )
-        ApiToken.objects.create(application=app, user=self.user, scopes=0)
-        ApiGrant.objects.create(
-            application=app, user=self.user, scopes=0, redirect_uri="http://example.com"
-        )
+        ApiToken.objects.create(application=app, user=self.user)
+        ApiGrant.objects.create(application=app, user=self.user, redirect_uri="http://example.com")
         service_hook = self.create_service_hook(application=app)
         sh_id = service_hook.id
 
@@ -46,11 +44,10 @@ class DeleteApiApplicationTest(TransactionTestCase, HybridCloudTestMixin):
             status=ApiApplicationStatus.pending_deletion,
             redirect_uris="sentry-replay-debugger://sentry.io/auth",
         )
-        ApiToken.objects.create(application=app, user=self.user, scopes=0)
+        ApiToken.objects.create(application=app, user=self.user)
         ApiGrant.objects.create(
             application=app,
             user=self.user,
-            scopes=0,
             redirect_uri="sentry-replay-debugger://sentry.io/auth",
         )
         service_hook = self.create_service_hook(application=app)
@@ -73,10 +70,8 @@ class DeleteApiApplicationTest(TransactionTestCase, HybridCloudTestMixin):
 
     def test_skip_active(self) -> None:
         app = ApiApplication.objects.create(owner=self.user, status=ApiApplicationStatus.active)
-        ApiToken.objects.create(application=app, user=self.user, scopes=0)
-        ApiGrant.objects.create(
-            application=app, user=self.user, scopes=0, redirect_uri="http://example.com"
-        )
+        ApiToken.objects.create(application=app, user=self.user)
+        ApiGrant.objects.create(application=app, user=self.user, redirect_uri="http://example.com")
 
         ScheduledDeletion.schedule(instance=app, days=0)
 

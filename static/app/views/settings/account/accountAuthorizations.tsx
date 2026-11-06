@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -14,7 +15,6 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiApplication} from 'sentry/types/user';
@@ -58,10 +58,10 @@ function AccountAuthorizations() {
         method: 'DELETE',
         data: {authorization: authorization.id},
       });
-      addSuccessMessage(t('Saved changes'));
+      toast.success(t('Saved changes'));
     } catch (_err) {
       setApiQueryData<any>(queryClient, [ENDPOINT], oldData);
-      addErrorMessage(t('Unable to save changes, please try again'));
+      toast.error(t('Unable to save changes, please try again'));
     }
   };
 

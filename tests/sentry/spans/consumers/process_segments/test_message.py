@@ -1,10 +1,12 @@
 import uuid
 from hashlib import md5
-from typing import Any
+from typing import Any, cast
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import nodestore
 from sentry.constants import MAX_TAG_VALUE_LENGTH
@@ -33,6 +35,8 @@ from sentry.spans.consumers.process_segments.message import (
     EVIDENCE_SPAN_DATA_KEYS,
     MAX_EVIDENCE_LIST_ITEMS,
     MAX_EVIDENCE_VALUE_LENGTH,
+    MAX_OCCURRENCE_BREADCRUMBS_BYTES,
+    MAX_OCCURRENCE_EXTRA_BYTES,
     MAX_OCCURRENCE_TAGS_BYTES,
     MAX_SPAN_DATA_VALUE_LENGTH,
     MAX_SPAN_DESCRIPTION_LENGTH,
@@ -46,7 +50,7 @@ from sentry.spans.consumers.process_segments.message import (
     process_segment,
 )
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data
-from sentry.spans.consumers.process_segments.types import attribute_value
+from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -66,7 +70,7 @@ def generate_n_plus_one_spans(
     *,
     has_performance_issues_spans_relay_flag: bool = False,
     event_id: str | None = None,
-):
+) -> list[SpanEvent]:
     """
     Build a set of spans containing an N+1 problem.
 
@@ -104,7 +108,7 @@ def generate_n_plus_one_spans(
     )
     repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
-    def repeating_span():
+    def repeating_span() -> SpanEvent:
         return build_mock_span(
             project_id=project.id,
             span_op="db",
@@ -130,7 +134,7 @@ class TestSpansTask(TestCase):
     def tearDown(self) -> None:
         message_module.cache = None
 
-    def generate_basic_spans(self):
+    def generate_basic_spans(self) -> list[SpanEvent]:
         segment_span = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
@@ -182,8 +186,22 @@ class TestSpansTask(TestCase):
             assert span["op"]
             assert span["hash"]
 
+    @mock.patch.object(message_module, "spawn_conversation_title_generation")
+    def test_title_generation_failure_keeps_segment(self, mock_spawn: mock.MagicMock) -> None:
+        mock_spawn.side_effect = UnicodeEncodeError("utf-8", "hi", 0, 1, "surrogates not allowed")
+        spans = self.generate_basic_spans()
+
+        with mock.patch.object(message_module.logger, "exception") as mock_log:
+            processed_spans = process_segment(spans)
+
+        assert len(processed_spans) == len(spans)
+        mock_spawn.assert_called_once()
+        mock_log.assert_any_call("spans.process_segments.title_generation.error")
+
     def test_build_shim_event_data_supports_legacy_profile_id(self) -> None:
-        segment_span = build_mock_span(project_id=self.project.id, is_segment=True)
+        segment_span = cast(
+            CompatibleSpan, build_mock_span(project_id=self.project.id, is_segment=True)
+        )
         segment_span["hash"] = "hashed-segment"
 
         event = build_shim_event_data(segment_span, [segment_span])
@@ -210,7 +228,11 @@ class TestSpansTask(TestCase):
 
     def test_create_models_trim_environment_name(self) -> None:
         spans = self.generate_basic_spans()
-        spans[1]["attributes"]["sentry.environment"]["value"] = "a" * 100
+        attributes = spans[1]["attributes"]
+        assert attributes is not None
+        environment_attribute = attributes["sentry.environment"]
+        assert environment_attribute is not None
+        environment_attribute["value"] = "a" * 100
         assert process_segment(spans)
 
         # Environment is trimmed
@@ -320,7 +342,7 @@ class TestSpansTask(TestCase):
         )
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
-        def repeating_span():
+        def repeating_span() -> SpanEvent:
             return build_mock_span(
                 project_id=self.project.id,
                 span_op="db",
@@ -462,7 +484,7 @@ class TestSpansTask(TestCase):
             )
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
-    def test_record_signals(self, mock_track):
+    def test_record_signals(self, mock_track: MagicMock) -> None:
         span = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
@@ -480,7 +502,7 @@ class TestSpansTask(TestCase):
         assert "has_insights_agent_monitoring" not in signals
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
-    def test_record_signals_vitals_from_top_level_is_segment(self, mock_track):
+    def test_record_signals_vitals_from_top_level_is_segment(self, mock_track: MagicMock) -> None:
         span = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
@@ -499,7 +521,9 @@ class TestSpansTask(TestCase):
         assert "has_insights_vitals" in signals
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
-    def test_record_signals_does_not_set_screen_load_from_navigation_segment(self, mock_track):
+    def test_record_signals_does_not_set_screen_load_from_navigation_segment(
+        self, mock_track: MagicMock
+    ) -> None:
         span = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
@@ -516,7 +540,7 @@ class TestSpansTask(TestCase):
         assert "has_insights_screen_load" not in signals
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
-    def test_record_signals_agents_via_gen_ai_op_name(self, mock_track):
+    def test_record_signals_agents_via_gen_ai_op_name(self, mock_track: MagicMock) -> None:
         """Test that spans with gen_ai.operation.name attribute trigger agents insight."""
         span = build_mock_span(
             project_id=self.project.id,
@@ -556,8 +580,11 @@ class TestSpansTask(TestCase):
 
     def test_segment_name_propagation_when_name_missing(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
-        del segment_span["name"]
-        del segment_span["attributes"]["sentry.segment.name"]
+        segment_span_dict = cast(dict[str, Any], segment_span)
+        del segment_span_dict["name"]
+        segment_attributes = segment_span["attributes"]
+        assert segment_attributes is not None
+        del segment_attributes["sentry.segment.name"]
 
         processed_spans = process_segment([child_span, segment_span])
 
@@ -653,17 +680,29 @@ def test_truncate_value_for_occurrence_recurses_and_leaves_scalars_alone() -> No
 def test_trim_oversize_event_data() -> None:
     event_data = {
         "tags": [[f"dog_{i}", "very good"] for i in range(3000)],
+        "extra": {f"dog_{i}": "great" for i in range(3000)},
+        "breadcrumbs": {
+            "values": [{"type": "default", "message": "adopt don't shop"} for _ in range(500)]
+        },
     }
 
     original_tag_bytes = get_json_bytes(event_data["tags"])
+    original_extra_bytes = get_json_bytes(event_data["extra"])
+    original_breadcrumb_bytes = get_json_bytes(event_data["breadcrumbs"])
 
     _trim_event_data_for_occurrence(event_data)
 
     trimmed_tag_bytes = get_json_bytes(event_data["tags"])
+    trimmed_extra_bytes = get_json_bytes(event_data["extra"])
+    trimmed_breadcrumb_bytes = get_json_bytes(event_data["breadcrumbs"])
 
     assert original_tag_bytes > MAX_OCCURRENCE_TAGS_BYTES
+    assert original_extra_bytes > MAX_OCCURRENCE_EXTRA_BYTES
+    assert original_breadcrumb_bytes > MAX_OCCURRENCE_BREADCRUMBS_BYTES
 
     assert trimmed_tag_bytes <= MAX_OCCURRENCE_TAGS_BYTES
+    assert trimmed_extra_bytes <= MAX_OCCURRENCE_EXTRA_BYTES
+    assert trimmed_breadcrumb_bytes <= MAX_OCCURRENCE_BREADCRUMBS_BYTES
 
 
 def test_trim_event_data_caps_tag_values_by_character_count() -> None:
@@ -721,6 +760,173 @@ def test_trim_event_data_keeps_each_tag_whole() -> None:
             bare_extra_key = extra_naively_trimmed_tag[0]
             assert bare_extra_key.endswith("...")
             assert bare_extra_key not in orig_keys
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("event_id", "11212012123120120415201309082013"),
+        ("level", "warning"),
+        ("timestamp", "2012-12-31T11:21:33Z"),
+    ],
+)
+def test_trim_event_data_drops_corrupted_last_breadcrumb(field_name: str, value: str) -> None:
+    # Ensure that the second breadcrumb will get trimmed. Within the second breadcrumb, since all of
+    # the key fields have values which are longer than `http`, they'll be the ones to have their
+    # values chopped.
+    orig_breadcrumbs = {
+        "values": [
+            {"type": "default", "message": "dogs_are_great"},
+            {"type": "http", field_name: value},
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - 1
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # A naive trim leaves both breadcrumbs present, with the second one having a corrupted key
+        # field value
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert "..." in raw_trimmed_breadcrumbs[1][field_name]
+
+        # Trimming using the helper, however, drops the second breadcrumb
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {"type": "default", "message": "dogs_are_great"}
+        ]
+        mock_logger_info.assert_called_once_with(
+            "issue_detection.shim.breadcrumbs_dropped",
+            extra={"initial_count": 2, "final_count": 1},
+        )
+
+    # Now set the byte limit so that the key field doesn't have room to appear at all, and the
+    # behavior will be the same, with the corrupted breadcrumb dropped.
+    orig_breadcrumbs = {
+        "values": [
+            {"type": "default", "message": "dogs_are_great"},
+            {"type": "http", field_name: value},
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - len(value)
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # As before, both breadcrumbs are kept, but this time trimming removes the key field entirely
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert field_name not in raw_trimmed_breadcrumbs[1]
+
+        # And as before, trimming using the helper drops the second breadcrumb
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {"type": "default", "message": "dogs_are_great"}
+        ]
+        mock_logger_info.assert_called_once_with(
+            "issue_detection.shim.breadcrumbs_dropped",
+            extra={"initial_count": 2, "final_count": 1},
+        )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("event_id", "11212012123120120415201309082013"),
+        ("level", "warning"),
+        ("timestamp", "2012-12-31T11:21:33Z"),
+    ],
+)
+def test_trim_event_data_keeps_last_breadcrumb_if_non_key_field_truncated(
+    field_name: str, value: str
+) -> None:
+    # Ensure that the second breadcrumb will get trimmed. Within the second breadcrumb, since all of
+    # the key fields have values which are longer than `http`, they'll be the ones to have their
+    # values chopped.
+    orig_breadcrumbs = {
+        "values": [
+            {
+                "type": "default",
+                "message": "dogs_are_great",
+            },
+            {
+                "type": "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadcrumb",
+                field_name: value,
+            },
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - 1
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # A naive trim leaves both breadcrumbs present, with the second one having a trimmed non-key
+        # field but intact key field
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert raw_trimmed_breadcrumbs[1][field_name] == value
+        assert "..." in raw_trimmed_breadcrumbs[1]["type"]
+
+        # Trimming using the helper keeps the second breadcrumb, because the trimmed field isn't a
+        # key field
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {
+                "type": "default",
+                "message": "dogs_are_great",
+            },
+            {
+                "type": "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadc...",
+                field_name: value,
+            },
+        ]
+        mock_logger_info.assert_not_called()
+
+    # Now set the byte limit so that the non-key field doesn't have room to appear at all, and the
+    # behavior will be the same, with both breadcrumbs kept
+    orig_breadcrumbs = {
+        "values": [
+            {
+                "type": "default",
+                "message": "dogs_are_great",
+            },
+            {
+                "type": "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadcrumb",
+                field_name: value,
+            },
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - len(
+        "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadcrumb"
+    )
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # As before, both breadcrumbs are kept, but this time trimming removes the non-key field
+        # entirely
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert raw_trimmed_breadcrumbs[1][field_name] == value
+        assert "type" not in raw_trimmed_breadcrumbs
+
+        # And as before, trimming using the helper keeps the second breadcrumb because the omitted
+        # field wasn't a key field
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {"type": "default", "message": "dogs_are_great"},
+            {field_name: value},
+        ]
+        mock_logger_info.assert_not_called()
 
 
 def test_evidence_stays_under_the_producer_message_limit() -> None:
@@ -928,17 +1134,19 @@ class TestSegmentDropKillswitch(TestCase):
 
 @exclude_experimental_detectors
 class TestProcessSegmentCaching(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.base_ts = 1707953018.972  # Default `end_timestamp` generated by `build_mock_span`
         message_module.cache = None
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         message_module.cache = None
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_first_segment_calls_create_models(self, mock_create, mock_bump):
+    def test_first_segment_calls_create_models(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
 
@@ -947,7 +1155,7 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_duplicate_segment_is_noop(self, mock_create, mock_bump):
+    def test_duplicate_segment_is_noop(self, mock_create: MagicMock, mock_bump: MagicMock) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -959,7 +1167,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_segment_within_interval_is_noop(self, mock_create, mock_bump):
+    def test_segment_within_interval_is_noop(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -976,7 +1186,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_segment_exceeding_interval_calls_bump(self, mock_create, mock_bump):
+    def test_segment_exceeding_interval_calls_bump(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -993,7 +1205,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_bump_advances_cached_timestamp(self, mock_create, mock_bump):
+    def test_bump_advances_cached_timestamp(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -1028,7 +1242,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_different_release_triggers_create_models(self, mock_create, mock_bump):
+    def test_different_release_triggers_create_models(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -1045,7 +1261,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_different_environment_triggers_create_models(self, mock_create, mock_bump):
+    def test_different_environment_triggers_create_models(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -1062,7 +1280,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_out_of_order_old_event_is_noop(self, mock_create, mock_bump):
+    def test_out_of_order_old_event_is_noop(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         later = build_mock_span(
             project_id=self.project.id,
             is_segment=True,

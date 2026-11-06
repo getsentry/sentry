@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useDisclosure} from '@react-aria/disclosure';
 import {usePress} from '@react-aria/interactions';
 import {useDisclosureState} from '@react-stately/disclosure';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
@@ -12,7 +13,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 import type {PermissionResource, Permissions} from 'sentry/types/integrations';
@@ -20,12 +20,10 @@ import {
   comparePermissionLevels,
   toResourcePermissions,
 } from 'sentry/utils/consolidatedScopes';
-import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {
-  PermissionSelection,
-  permissionStateToList,
-} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
-import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+
+import type {WebhookSubscription} from './constants';
+import {PermissionSelection, permissionStateToList} from './permissionSelection';
+import {Subscriptions} from './resourceSubscriptions';
 
 type Props = {
   events: WebhookSubscription[];

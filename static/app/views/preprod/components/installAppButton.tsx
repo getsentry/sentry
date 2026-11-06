@@ -1,12 +1,13 @@
 import type {MouseEvent} from 'react';
+import {IconDownload} from '@sentry/icons/download';
 
 import {Button} from '@sentry/scraps/button';
 
-import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {openInstallModal} from 'sentry/views/preprod/components/installModal';
+
+import {openInstallModal} from './installModal';
 
 interface InstallAppButtonProps {
   artifactId: string;

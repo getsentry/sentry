@@ -1,3 +1,4 @@
+import {IconDelete} from '@sentry/icons/delete';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -10,8 +11,8 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
@@ -20,7 +21,6 @@ import {FieldGroup as LegacyFieldGroup} from 'sentry/components/forms/fieldGroup
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -58,13 +58,13 @@ export default function TeamSettings() {
       }),
     onSuccess: (resp: Team) => {
       updateTeamSuccess(team.slug, resp);
-      addSuccessMessage(t('Team name changed'));
+      toast.success(t('Team name changed'));
       navigate(`/settings/${organization.slug}/teams/${resp.slug}/settings/`, {
         replace: true,
       });
     },
     onError: () => {
-      addErrorMessage(t('Unable to save change'));
+      toast.error(t('Unable to save change'));
     },
   });
 

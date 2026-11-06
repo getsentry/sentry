@@ -1,5 +1,7 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconTerminal} from '@sentry/icons/terminal';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {PlatformIcon} from 'platformicons';
 
@@ -20,7 +22,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
-import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import type {CronDetector, Detector} from 'sentry/types/workflowEngine/detectors';
@@ -28,11 +29,6 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {HeaderCell} from 'sentry/views/detectors/components/detectorListTable';
-import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
-import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
-import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
-import {InsightsRedirectNotice} from 'sentry/views/detectors/list/common/insightsRedirectNotice';
-import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
 import {
   MonitorViewContext,
   type MonitorListAdditionalColumn,
@@ -53,6 +49,12 @@ import {
 } from 'sentry/views/insights/crons/utils';
 import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
+
+import {DetectorListActions} from './common/detectorListActions';
+import {DetectorListContent} from './common/detectorListContent';
+import {DetectorListHeader} from './common/detectorListHeader';
+import {InsightsRedirectNotice} from './common/insightsRedirectNotice';
+import {useDetectorListQuery} from './common/useDetectorListQuery';
 
 function VisualizationCell({detector}: {detector: CronDetector}) {
   const cronId = detector.dataSources[0].queryObj.id;

@@ -15,8 +15,12 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.utils.auth import AuthenticatedHttpRequest
-from sentry.workflow_engine.endpoints.utils.filters import exclude_disallowed_metric_detectors
+from sentry.workflow_engine.endpoints.utils.filters import (
+    exclude_disallowed_metric_detectors,
+    get_excluded_detector_types,
+)
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.types import DetectorAPIOperation
 
 
 class DetectorCountResponse(TypedDict):
@@ -62,10 +66,18 @@ class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
             }
             return self.respond(empty_response)
 
-        base_queryset = Detector.objects.with_type_filters().filter(
-            status=ObjectStatus.ACTIVE,
-            project__organization_id=organization.id,
-            project_id__in=filter_params["project_id"],
+        base_queryset = (
+            Detector.objects.with_type_filters()
+            .filter(
+                status=ObjectStatus.ACTIVE,
+                project__organization_id=organization.id,
+                project_id__in=filter_params["project_id"],
+            )
+            .exclude(
+                type__in=get_excluded_detector_types(
+                    DetectorAPIOperation.LIST, organization, actor=request.user
+                )
+            )
         )
 
         # Filter by detector types if specified

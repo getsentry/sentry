@@ -9,7 +9,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ResolveActions} from 'sentry/components/actions/resolve';
+import {ResolveActions} from './resolve';
 
 describe('ResolveActions', () => {
   const project = ProjectFixture({id: '1', slug: 'proj-1'});
@@ -32,7 +32,7 @@ describe('ResolveActions', () => {
         />
       );
       const button = screen.getByRole('button', {name: 'Resolve'});
-      expect(button).toHaveAttribute('aria-disabled', 'true');
+      expect(button).toBeDisabled();
       await userEvent.click(button);
       expect(spy).not.toHaveBeenCalled();
     });

@@ -1,17 +1,15 @@
+import {IconSpan} from '@sentry/icons/span';
 import queryString from 'query-string';
 
-import {
-  ResourceLink,
-  type ResourceLinkFormatProps,
-} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
 
 export function getTraceHref(
   {

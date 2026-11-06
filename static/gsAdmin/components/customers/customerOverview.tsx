@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
 
@@ -13,10 +14,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getLocalities} from 'sentry/utils/cells';
 import {defined} from 'sentry/utils/defined';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
@@ -25,7 +25,7 @@ import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDat
 import {CustomerContact} from 'admin/components/customerContact';
 import {CustomerStatus} from 'admin/components/customerStatus';
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailsContainer} from 'admin/components/detailsContainer';
+import {DetailsContainer, DetailsHeading} from 'admin/components/detailsContainer';
 import {ExtendProductTrialAction} from 'admin/components/extendProductTrialAction';
 import {getLogQuery} from 'admin/utils';
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
@@ -44,6 +44,7 @@ import {
 } from 'getsentry/types';
 import {
   displayBudgetName,
+  displayPriceWithCents,
   formatBalance,
   formatReservedWithUnits,
   getActiveProductTrial,
@@ -61,7 +62,6 @@ import {
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {titleCase} from 'getsentry/utils/titleCase';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type CustomerUpdateAction = (data: Record<string, unknown>) => Promise<unknown>;
 
@@ -193,7 +193,7 @@ function ReservedData({customer}: ReservedDataProps) {
         });
         return (
           <Fragment key={category}>
-            <h6>{categoryName}</h6>
+            <DetailsHeading>{categoryName}</DetailsHeading>
             <DescriptionList gap="md">
               <DetailLabel title={`Reserved ${categoryName}`}>
                 {formatReservedWithUnits(categoryHistory.reserved, category)}
@@ -283,7 +283,7 @@ function ReservedBudgetData({
 
   return (
     <Fragment>
-      <h6>{budgetName}</h6>
+      <DetailsHeading>{budgetName}</DetailsHeading>
       <DescriptionList gap="md">
         <DetailLabel title="Reserved Budget">
           {displayPriceWithCents({cents: reservedBudget.reservedBudget})}
@@ -343,7 +343,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
 
   return (
     <div data-test-id="seer-plan-summary">
-      <h6>Seer</h6>
+      <DetailsHeading>Seer</DetailsHeading>
       <DescriptionList gap="md">
         {!seatStatus && !legacyStatus && (
           <DetailLabel title="Plan">
@@ -565,19 +565,15 @@ function SampleRateRow({
 function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
-  const {data, isPending, isError} = useApiQuery<{
-    eapEffectiveSampleRate: number | null;
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
+  const {data, isPending, isError} = useQuery({
+    ...apiOptions.as<{
+      eapEffectiveSampleRate: number | null;
+    }>()('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: Infinity,
-      enabled: dynamicSamplingEnabled,
-    }
-  );
+    }),
+    enabled: dynamicSamplingEnabled,
+  });
 
   if (!dynamicSamplingEnabled) {
     return (
@@ -854,11 +850,11 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
           </DetailLabel>
         </DescriptionList>
 
-        <h6>Subscription</h6>
+        <DetailsHeading>Subscription</DetailsHeading>
         <SubscriptionSummary customer={customer} onAction={onAction} />
         <ReservedData customer={customer} />
         <ReservedBudgetsData customer={customer} />
-        <h6>PCSS</h6>
+        <DetailsHeading>PCSS</DetailsHeading>
         <DescriptionList gap="md">
           <DetailLabel title="Custom Price PCSS">
             {typeof customer.customPricePcss === 'number'
@@ -866,7 +862,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               : 'None'}
           </DetailLabel>
         </DescriptionList>
-        <h6>Total</h6>
+        <DetailsHeading>Total</DetailsHeading>
         <DescriptionList gap="md">
           <DetailLabel title="Custom Price (Total)">
             {typeof customer.customPrice === 'number'
@@ -918,7 +914,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
           <DynamicSampling organization={organization} />
         </DescriptionList>
 
-        <h6>Linked Accounts</h6>
+        <DetailsHeading>Linked Accounts</DetailsHeading>
         <DescriptionList gap="md">
           <DetailLabel title="Stripe ID">
             {customer.stripeCustomerID ? (
@@ -993,7 +989,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
           </DetailLabel>
         </DescriptionList>
 
-        <h6>Queries</h6>
+        <DetailsHeading>Queries</DetailsHeading>
         <DescriptionList gap="md">
           <DetailLabel title="Looker">
             <ExternalLink
@@ -1026,8 +1022,8 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
         </DescriptionList>
         {productTrialCategories.length + productTrialAddOns.length > 0 && (
           <Fragment>
-            <h6>Product Trials</h6>
-            <DescriptionList gap="md">
+            <DetailsHeading>Product Trials</DetailsHeading>
+            <DescriptionList gap="md" role="group" aria-label="Product Trials">
               {productTrialCategories.map(categoryInfo => {
                 const categoryName = getPlanCategoryName({
                   plan: customer.planDetails,
@@ -1070,7 +1066,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
           </Fragment>
         )}
         <Fragment>
-          <h6>Retention Settings</h6>
+          <DetailsHeading>Retention Settings</DetailsHeading>
           <table style={{borderSpacing: '15px', borderCollapse: 'separate'}}>
             <thead>
               <tr>

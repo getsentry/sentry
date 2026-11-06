@@ -1,13 +1,11 @@
-import {useTheme} from '@emotion/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -15,16 +13,16 @@ import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {BuildCompareHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildCompareHeaderContent';
-import {SizeCompareMainContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareMainContent';
-import {SizeCompareSelectionContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectionContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getCompareApiUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
+import {BuildCompareHeaderContent} from './header/buildCompareHeaderContent';
+import {SizeCompareMainContent} from './main/sizeCompareMainContent';
+import {SizeCompareSelectionContent} from './main/sizeCompareSelectionContent';
+
 export default function BuildComparison() {
   const organization = useOrganization();
-  const theme = useTheme();
   const {headArtifactId, baseArtifactId} = useParams<{
     baseArtifactId?: string;
     headArtifactId?: string;
@@ -68,9 +66,9 @@ export default function BuildComparison() {
     },
     onSuccess: response => {
       if (response?.status === 'exists') {
-        addErrorMessage(t('Comparison already exists'));
+        toast.error(t('Comparison already exists'));
       } else {
-        addSuccessMessage(t('Comparison rerun triggered'));
+        toast.success(t('Comparison rerun triggered'));
       }
       queryClient.invalidateQueries({queryKey: [compareUrl]});
     },
@@ -79,7 +77,7 @@ export default function BuildComparison() {
         handleStaffPermissionError(error.responseJSON?.detail);
         return;
       }
-      addErrorMessage(t('Failed to rerun comparison'));
+      toast.error(t('Failed to rerun comparison'));
     },
   });
 
@@ -87,13 +85,11 @@ export default function BuildComparison() {
     return (
       <SentryDocumentTitle title={t('Build comparison')}>
         <Stack flex={1}>
-          <Layout.Header>
-            <Placeholder
-              height="20px"
-              width="200px"
-              style={{marginBottom: theme.space.md}}
-            />
-          </Layout.Header>
+          <BuildCompareHeaderContent
+            headArtifactId={headArtifactId}
+            baseArtifactId={baseArtifactId}
+            isLoading
+          />
 
           <Layout.Body>
             <Layout.Main>
@@ -127,15 +123,13 @@ export default function BuildComparison() {
   return (
     <SentryDocumentTitle title={t('Build comparison')}>
       <Stack flex={1}>
-        <Layout.Header>
-          <BuildCompareHeaderContent
-            buildDetails={headBuildDetailsQuery.data}
-            headArtifactId={headArtifactId}
-            baseArtifactId={baseArtifactId}
-            onRerunComparison={() => rerunComparison()}
-            isRerunning={isRerunning}
-          />
-        </Layout.Header>
+        <BuildCompareHeaderContent
+          buildDetails={headBuildDetailsQuery.data}
+          headArtifactId={headArtifactId}
+          baseArtifactId={baseArtifactId}
+          onRerunComparison={() => rerunComparison()}
+          isRerunning={isRerunning}
+        />
 
         <Layout.Body>
           <Layout.Main width="full">{mainContent}</Layout.Main>

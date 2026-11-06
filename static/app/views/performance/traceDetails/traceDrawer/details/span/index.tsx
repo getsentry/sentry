@@ -1,16 +1,19 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 import type {Location} from 'history';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
-import {useSpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
+import {
+  useSpanProfileDetails,
+  type SpanProfileDetailsMetadata,
+} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   EntryType,
@@ -18,6 +21,7 @@ import {
   type EventTransaction,
 } from 'sentry/types/event';
 import type {NewQuery} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
@@ -31,7 +35,9 @@ import {
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
+  getScalarAttributeValue,
   useTraceItemDetails,
+  type TraceItemAttributeScalarValue,
   type TraceItemDetailsResponse,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -47,24 +53,24 @@ import {getIsAiGenerationNode} from 'sentry/views/insights/pages/agents/utils/ai
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/traceDetails/traceApi/useTransaction';
 import {IssueList} from 'sentry/views/performance/traceDetails/traceDrawer/details/issues/issues';
-import {AIInputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
-import {AIIOAlert} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiIOAlert';
-import {AIOutputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {AttributesSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
-import {CacheLifecycleSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/cacheLifecycle';
-import {Contexts} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/contexts';
-import {MCPInputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcpInput';
-import {MCPOutputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcpOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/traceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import {ReplayPreview} from 'sentry/views/performance/traceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 
 import {LogDetails} from './components/logDetails';
 import {ProfileDetails} from './components/profileDetails';
+import {AIInputSection} from './eapSections/aiInput';
+import {AIIOAlert} from './eapSections/aiIOAlert';
+import {AIOutputSection} from './eapSections/aiOutput';
+import {AttributesSection} from './eapSections/attributes';
+import {CacheLifecycleSection} from './eapSections/cacheLifecycle';
+import {Contexts} from './eapSections/contexts';
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
+import {MCPInputSection} from './eapSections/mcpInput';
+import {MCPOutputSection} from './eapSections/mcpOutput';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
 import {HttpErrorCard} from './sections/httpErrorCard';
 
@@ -99,7 +105,6 @@ export function useAvgSpanDuration(
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table', // TODO: replace with trace span details referrer
-    trackResponseAnalytics: false,
   });
 
   return result.data?.[0]?.['avg(span.duration)'];
@@ -116,25 +121,21 @@ export function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
   const profileId = node.profileId;
   const profilerId = node.profilerId;
 
-  const transaction = node.value.is_transaction ? node : node.findParentEapTransaction();
-  const profilerStart = transaction?.startTimestamp;
-  const profilerEnd = transaction?.endTimestamp;
-
   const profileMeta = useMemo(() => {
     if (profileId) {
       return profileId;
     }
 
-    if (profilerId && profilerStart && profilerEnd) {
+    if (profilerId) {
       return {
         profiler_id: profilerId,
-        start: new Date(profilerStart * 1000).toISOString(),
-        end: new Date(profilerEnd * 1000).toISOString(),
+        start: new Date(node.value.start_timestamp * 1000).toISOString(),
+        end: new Date(node.value.end_timestamp * 1000).toISOString(),
       };
     }
 
     return '';
-  }, [profileId, profilerId, profilerStart, profilerEnd]);
+  }, [node.value.end_timestamp, node.value.start_timestamp, profileId, profilerId]);
 
   const project = projects.find(proj => proj.slug === node.projectSlug);
 
@@ -245,12 +246,16 @@ function EAPSpanNodeDetailsContent({
 }) {
   const attributes = traceItemData.attributes;
 
-  const attributesMap = attributes.reduce<Record<string, string | number | boolean>>(
-    (acc, attribute) => {
-      acc[attribute.name] = attribute.value;
-      return acc;
-    },
-    {}
+  const attributesMap = useMemo(
+    () =>
+      attributes.reduce<Record<string, TraceItemAttributeScalarValue>>(
+        (acc, attribute) => {
+          acc[attribute.name] = getScalarAttributeValue(attribute);
+          return acc;
+        },
+        {}
+      ),
+    [attributes]
   );
 
   const links = traceItemData.links;
@@ -268,7 +273,10 @@ function EAPSpanNodeDetailsContent({
     )?.data;
 
   const threadIdAttribute = attributesMap['thread.id'];
-  const threadId = typeof threadIdAttribute === 'string' ? threadIdAttribute : undefined;
+  const threadId =
+    typeof threadIdAttribute === 'string' || typeof threadIdAttribute === 'number'
+      ? String(threadIdAttribute)
+      : undefined;
 
   const span = useMemo(() => {
     return {
@@ -279,12 +287,42 @@ function EAPSpanNodeDetailsContent({
     };
   }, [node, threadId]);
 
-  const {profile, frames} = useSpanProfileDetails(
-    organization,
-    project,
-    eventTransaction,
-    span
-  );
+  const profileMetadata = useMemo<SpanProfileDetailsMetadata>(() => {
+    const platform = attributesMap.platform;
+    const sdkName = attributesMap['sdk.name'];
+    const sdkVersion = attributesMap['sdk.version'];
+    const release = attributesMap.release;
+    const deviceArch = attributesMap['device.arch'];
+
+    return {
+      deviceArch: typeof deviceArch === 'string' ? deviceArch : undefined,
+      endTimestamp: node.value.end_timestamp,
+      platform:
+        typeof platform === 'string' ? (platform as PlatformKey) : project?.platform,
+      profileId: node.profileId,
+      profileStartTimestamp:
+        eventTransaction?.startTimestamp ??
+        (node.value.is_transaction
+          ? node.value.start_timestamp
+          : node.findParentEapTransaction()?.startTimestamp),
+      profilerId: node.profilerId,
+      projectId: String(node.value.project_id),
+      projectSlug: node.value.project_slug,
+      release:
+        eventTransaction?.release ??
+        (typeof release === 'string'
+          ? ({version: release} as NonNullable<EventTransaction['release']>)
+          : undefined),
+      sdkName: typeof sdkName === 'string' ? sdkName : node.sdkName,
+      sdkVersion: typeof sdkVersion === 'string' ? sdkVersion : undefined,
+      startTimestamp: node.value.start_timestamp,
+      traceId,
+      transactionId: node.transactionId,
+      transactionSpanId: node.transactionSpanId,
+    };
+  }, [attributesMap, eventTransaction, node, project?.platform, traceId]);
+
+  const {profile, frames} = useSpanProfileDetails(organization, profileMetadata, span);
   const logsQueryResult = useLogsPageDataQueryResult();
   const hasProfileDetails = defined(profile) && frames.length > 0;
   const hasLogDetails = (logsQueryResult?.data?.length ?? 0) > 0;
@@ -423,11 +461,10 @@ function EAPSpanNodeDetailsContent({
           />
         ) : null}
 
-        {eventTransaction && organization.features.includes('profiling') ? (
+        {organization.features.includes('profiling') ? (
           <ProfileDetails
             organization={organization}
-            project={project}
-            event={eventTransaction}
+            metadata={profileMetadata}
             span={span}
           />
         ) : null}

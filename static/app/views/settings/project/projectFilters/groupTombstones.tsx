@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {IconDelete} from '@sentry/icons/delete';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {Count} from 'sentry/components/count';
@@ -18,7 +19,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupTombstone} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -26,7 +26,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {getMessage, getTitle} from 'sentry/utils/events';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -127,7 +127,6 @@ interface GroupTombstonesProps {
 }
 
 export function GroupTombstones({project}: GroupTombstonesProps) {
-  const api = useApi();
   const location = useLocation();
   const organization = useOrganization();
   const {
@@ -149,10 +148,10 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
   const tombstones = tombstonesResp?.json;
   const tombstonesPageLinks = tombstonesResp?.headers.Link;
 
-  const handleUndiscard = (tombstoneId: GroupTombstone['id']) => {
-    api
-      .requestPromise(
-        getApiUrl(
+  const {mutate: undiscard} = useMutation({
+    mutationFn: (tombstoneId: GroupTombstone['id']) =>
+      fetchMutation({
+        url: getApiUrl(
           '/projects/$organizationIdOrSlug/$projectIdOrSlug/tombstones/$tombstoneId/',
           {
             path: {
@@ -162,19 +161,21 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
             },
           }
         ),
-        {
-          method: 'DELETE',
-        }
-      )
-      .then(() => {
-        addSuccessMessage(t('Events similar to these will no longer be filtered'));
-      })
-      .catch(() => {
-        addErrorMessage(t('We were unable to undiscard this issue'));
-      })
-      .finally(() => {
-        refetch();
-      });
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      toast.success(t('Events similar to these will no longer be filtered'));
+    },
+    onError: () => {
+      toast.error(t('We were unable to undiscard this issue'));
+    },
+    onSettled: () => {
+      refetch();
+    },
+  });
+
+  const handleUndiscard = (tombstoneId: GroupTombstone['id']) => {
+    undiscard(tombstoneId);
   };
 
   if (isPending) {

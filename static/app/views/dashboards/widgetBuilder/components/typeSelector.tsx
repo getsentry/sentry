@@ -1,10 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconMarkdown} from '@sentry/icons/markdown';
+import {IconNumber} from '@sentry/icons/number';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconTable} from '@sentry/icons/table';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {IconGraph, IconMarkdown, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -13,7 +17,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
-import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -23,6 +26,8 @@ import {
   canUseMetricsDashboardTable,
   canUseMetricsHeatMap,
 } from 'sentry/views/explore/metrics/metricsFlags';
+
+import {SectionHeader} from './common/sectionHeader';
 
 export const DISPLAY_TYPE_ICONS: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.AREA]: <IconGraph key="area" type="area" />,
@@ -210,17 +215,6 @@ export function WidgetBuilderTypeSelector({
                 type: BuilderStateAction.SET_DISPLAY_TYPE,
                 payload: newValue,
               });
-              if (
-                (newValue === DisplayType.TABLE ||
-                  newValue === DisplayType.BIG_NUMBER ||
-                  newValue === DisplayType.HEATMAP) &&
-                state.query?.length
-              ) {
-                dispatch({
-                  type: BuilderStateAction.SET_QUERY,
-                  payload: [state.query[0]!],
-                });
-              }
             }
             trackAnalytics('dashboards_views.widget_builder.change', {
               from: source,

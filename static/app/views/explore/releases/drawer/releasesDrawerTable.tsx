@@ -16,11 +16,11 @@ import {
   extractSelectionParameters,
   normalizeDateTimeParams,
 } from 'sentry/components/pageFilters/parse';
-import type {
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  DataGrid,
+  type GridColumnHeader,
+  type GridColumnOrder,
+} from 'sentry/components/tables/dataGrid';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -32,11 +32,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {
-  cleanReleaseCursors,
-  ReleasesDrawerFields,
-} from 'sentry/views/explore/releases/drawer/utils';
 import {getReleaseNewIssuesUrl} from 'sentry/views/explore/releases/utils';
+
+import {cleanReleaseCursors, ReleasesDrawerFields} from './utils';
 
 type ReleaseHealthItem = {
   date: string;
@@ -201,7 +199,7 @@ export function ReleasesDrawerTable({
 
   return (
     <div>
-      <GridEditable
+      <DataGrid
         error={isError}
         isLoading={isLoading}
         data={releaseData ?? []}

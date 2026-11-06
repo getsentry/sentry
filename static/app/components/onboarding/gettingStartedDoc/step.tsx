@@ -1,18 +1,16 @@
 import type React from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Container} from '@sentry/scraps/layout';
 
-import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
-import {
-  StepType,
-  type OnboardingStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+
+import {ContentBlocksRenderer} from './contentBlocks/renderer';
+import {StepIndexProvider} from './selectedCodeTabContext';
+import {StepType, type OnboardingStep} from './types';
 
 export const StepTitles: Record<StepType, string> = {
   [StepType.INSTALL]: t('Install'),

@@ -5,15 +5,17 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
+import {SpanFields} from 'sentry/views/insights/types';
+
 import {
   AI_AGENTS_TOOLS_DASHBOARD_DESCRIPTION,
   AI_AGENTS_TOOLS_DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
-import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
-import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
-import {SpanFields} from 'sentry/views/insights/types';
+} from './settings';
 
-const TOOL_SPANS_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:tool`;
+const TOOL_SPANS_FILTER = getToolSpansFilter();
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -78,13 +80,13 @@ const TOOLS_TABLE: PrebuiltWidget = {
       fields: [
         SpanFields.GEN_AI_TOOL_NAME,
         'count()',
-        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
+        'equation|count_if(`span.status:internal_error`) + count_if(`span.status:error`)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
-        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
+        'equation|count_if(`span.status:internal_error`) + count_if(`span.status:error`)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],

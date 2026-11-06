@@ -17,7 +17,8 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {StatusPageComponent} from 'sentry/types/system';
-import CronDetectorsList from 'sentry/views/detectors/list/cron';
+
+import CronDetectorsList from './cron';
 
 describe('CronDetectorsList', () => {
   const organization = OrganizationFixture();
@@ -27,10 +28,6 @@ describe('CronDetectorsList', () => {
       pathname: `/organizations/${organization.slug}/detectors/crons/`,
     },
   };
-
-  afterEach(() => {
-    fetchMock.resetMocks();
-  });
 
   beforeEach(() => {
     ConfigStore.set('statuspage', {
@@ -74,6 +71,10 @@ describe('CronDetectorsList', () => {
         return 50;
       },
     });
+  });
+
+  afterEach(() => {
+    fetchMock.resetMocks();
   });
 
   it('displays empty state when no cron monitors are found', async () => {

@@ -1,13 +1,21 @@
+import {Fragment, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {Button} from '@sentry/scraps/button';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
-import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCardDataLoader';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {VisualizationWidget} from './visualizationWidget';
+import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 jest.mock('sentry/views/dashboards/widgetCard/widgetCardDataLoader');
 jest.mock(
@@ -61,13 +69,28 @@ const spansBreakdownWidget = {
 
 const selection = PageFiltersFixture();
 
-// Series name format for a grouped SPANS query: "<groupValue> : <aggregate>"
+function makeResult(
+  yAxis: string,
+  groupBy: Array<{key: string; value: string}>,
+  value: number
+): WidgetTimeSeries {
+  const groupName = groupBy.map(group => group.value).join(',');
+  return {
+    queryIndex: 0,
+    widgetQuery: spansBreakdownWidget.queries[0]!,
+    // Series name format for a grouped query: "<groupValue> : <aggregate>"
+    seriesName: `${groupName} : ${yAxis}`,
+    timeSeries: {
+      yAxis,
+      groupBy,
+      values: [{timestamp: 1_000_000, value}],
+      meta: {interval: 300_000, valueType: 'integer', valueUnit: null},
+    },
+  };
+}
+
 const timeseriesResults = [
-  {
-    seriesName: 'my_transaction : count()',
-    data: [{name: 1_000_000, value: 10}],
-    color: '#000',
-  },
+  makeResult('count()', [{key: 'transaction', value: 'my_transaction'}], 10),
 ];
 
 // tableResults must be non-empty to trigger showBreakdownData
@@ -119,6 +142,107 @@ describe('VisualizationWidget breakdown series labels', () => {
     });
 
     expect(screen.getByRole('link', {name: 'my_transaction'})).toBeInTheDocument();
+  });
+
+  it('keeps the other group by values next to the model name', () => {
+    const modelWidget = {
+      ...spansBreakdownWidget,
+      queries: [
+        {
+          ...spansBreakdownWidget.queries[0]!,
+          fields: [SpanFields.GEN_AI_REQUEST_MODEL, 'gen_ai.generation.error', 'count()'],
+          columns: [SpanFields.GEN_AI_REQUEST_MODEL, 'gen_ai.generation.error'],
+        },
+      ],
+    };
+    jest.mocked(WidgetCardDataLoader).mockImplementation(({children}: any) =>
+      children({
+        timeseriesResults: [
+          makeResult(
+            'count()',
+            [
+              {key: SpanFields.GEN_AI_REQUEST_MODEL, value: 'gemini-3.7-flash'},
+              {key: 'gen_ai.generation.error', value: 'timed out'},
+            ],
+            4
+          ),
+          makeResult(
+            'count()',
+            [
+              {key: SpanFields.GEN_AI_REQUEST_MODEL, value: 'gemini-3.7-flash'},
+              {key: 'gen_ai.generation.error', value: 'connection refused'},
+            ],
+            1
+          ),
+        ],
+        tableResults: [
+          {
+            title: '',
+            data: [
+              {
+                [SpanFields.GEN_AI_REQUEST_MODEL]: 'gemini-3.7-flash',
+                'gen_ai.generation.error': 'timed out',
+                'count()': 4,
+              },
+              {
+                [SpanFields.GEN_AI_REQUEST_MODEL]: 'gemini-3.7-flash',
+                'gen_ai.generation.error': 'connection refused',
+                'count()': 1,
+              },
+            ],
+            meta: {fields: {}, units: {}},
+          },
+        ],
+        loading: false,
+      })
+    );
+
+    render(<VisualizationWidget widget={modelWidget} selection={selection} />, {
+      organization: OrganizationFixture({features: ['visibility-explore-view']}),
+    });
+
+    expect(screen.getAllByText('gemini-3.7-flash')).toHaveLength(2);
+    expect(screen.getByText(',timed out')).toBeInTheDocument();
+    expect(screen.getByText(',connection refused')).toBeInTheDocument();
+
+    // Explore links filter on every group by value, not just the model
+    const link = screen.getByRole('link', {name: /timed out/});
+    const query = new URLSearchParams(link.getAttribute('href')!.split('?')[1]).get(
+      'query'
+    );
+    expect(query).toContain('gen_ai.request.model:gemini-3.7-flash');
+    expect(query).toContain('gen_ai.generation.error:"timed out"');
+  });
+});
+
+describe('VisualizationWidget memoization', () => {
+  function EditableWidget() {
+    const [widget, setWidget] = useState(spansBreakdownWidget);
+    return (
+      <Fragment>
+        <Button onClick={() => setWidget(w => ({...w, title: `${w.title}!`}))}>
+          Rename
+        </Button>
+        <Button onClick={() => setWidget(w => ({...w, displayType: DisplayType.AREA}))}>
+          Change type
+        </Button>
+        <VisualizationWidget widget={widget} selection={selection} />
+      </Fragment>
+    );
+  }
+
+  it('does not re-render the chart when only the title changes', async () => {
+    render(<EditableWidget />, {organization: OrganizationFixture()});
+
+    // Let the releases request settle so its re-render isn't counted below
+    await waitFor(() => expect(TimeSeriesWidgetVisualization).toHaveBeenCalledTimes(2));
+    jest.mocked(TimeSeriesWidgetVisualization).mockClear();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Rename'}));
+    expect(TimeSeriesWidgetVisualization).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Change type'}));
+    expect(TimeSeriesWidgetVisualization).toHaveBeenCalled();
   });
 });
 
@@ -178,11 +302,7 @@ describe('VisualizationWidget threshold time windows', () => {
     jest.mocked(WidgetCardDataLoader).mockImplementationOnce(({children}: any) =>
       children({
         timeseriesResults: [
-          {
-            seriesName: 'v1 : sum(session)',
-            data: [{name: 1_000_000, value: 10}],
-            color: '#000',
-          },
+          makeResult('sum(session)', [{key: 'release', value: 'v1'}], 10),
         ],
         timeseriesInterval: '1h',
         loading: false,
@@ -272,4 +392,80 @@ describe('VisualizationWidget threshold time windows', () => {
       expect(screen.getByTestId('threshold-values')).toHaveTextContent('600, 1200');
     }
   );
+});
+
+describe('VisualizationWidget dropped-data heatmap', () => {
+  const orgWithFlags = () =>
+    OrganizationFixture({
+      features: [
+        'explore-data-fidelity-annotations',
+        'dashboards-data-fidelity-annotations',
+      ],
+    });
+
+  let droppedDataRequest: jest.Mock;
+
+  beforeEach(() => {
+    jest.mocked(TimeSeriesWidgetVisualization).mockClear();
+    droppedDataRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-dropped/',
+      body: {
+        droppedEvents: [OutcomeRowFixture({count: 10})],
+        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 90})],
+        meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+      },
+    });
+  });
+
+  function lastDroppedDataProp() {
+    const calls = jest.mocked(TimeSeriesWidgetVisualization).mock.calls;
+    return calls.at(-1)![0].droppedData;
+  }
+
+  it('passes the band to the chart', async () => {
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        widgetInterval="5m"
+      />,
+      {organization: orgWithFlags()}
+    );
+
+    await waitFor(() =>
+      expect(lastDroppedDataProp()).toEqual(
+        expect.objectContaining({dataset: DiscoverDatasets.SPANS})
+      )
+    );
+  });
+
+  it('hides the heatmap while editing a widget (disableFullscreen)', async () => {
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        widgetInterval="5m"
+        disableFullscreen
+      />,
+      {organization: orgWithFlags()}
+    );
+
+    await waitFor(() => expect(droppedDataRequest).toHaveBeenCalled());
+    expect(lastDroppedDataProp()).toBeUndefined();
+  });
+
+  it('does not request dropped data for unsupported widget types', async () => {
+    render(
+      <VisualizationWidget
+        widget={{...spansBreakdownWidget, widgetType: WidgetType.TRANSACTIONS}}
+        selection={selection}
+        widgetInterval="5m"
+      />,
+      {organization: orgWithFlags()}
+    );
+
+    await waitFor(() => expect(TimeSeriesWidgetVisualization).toHaveBeenCalled());
+    expect(droppedDataRequest).not.toHaveBeenCalled();
+    expect(lastDroppedDataProp()).toBeUndefined();
+  });
 });

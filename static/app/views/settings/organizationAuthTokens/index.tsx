@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {IconAdd} from '@sentry/icons/add';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -18,12 +18,12 @@ import type {OrgAuthToken} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
+
+import {OrganizationAuthTokensAuthTokenRow} from './authTokenRow';
 
 type FetchOrgAuthTokensResponse = OrgAuthToken[];
 type FetchOrgAuthTokensParameters = {
@@ -40,14 +40,11 @@ const TOKEN_COLUMNS: TableColumnConfig[] = [
   {key: 'actions', width: {zero: '1fr', xl: 'auto'}},
 ];
 
-export const makeFetchOrgAuthTokensForOrgQueryKey = ({
-  orgSlug,
-}: FetchOrgAuthTokensParameters) =>
-  [
-    getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
-  ] as const;
+export const orgAuthTokensOptions = ({orgSlug}: FetchOrgAuthTokensParameters) =>
+  apiOptions.as<FetchOrgAuthTokensResponse>()(
+    '/organizations/$organizationIdOrSlug/org-auth-tokens/',
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: Infinity}
+  );
 
 function TokenList({
   organization,
@@ -112,12 +109,7 @@ function OrganizationAuthTokensIndex() {
     isError,
     data: tokenList,
     refetch: refetchTokenList,
-  } = useApiQuery<FetchOrgAuthTokensResponse>(
-    makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
-    {
-      staleTime: Infinity,
-    }
-  );
+  } = useQuery(orgAuthTokensOptions({orgSlug: organization.slug}));
 
   const {mutate: handleRevokeToken, isPending: isRevoking} = useMutation<
     unknown,
@@ -135,24 +127,26 @@ function OrganizationAuthTokensIndex() {
       ),
 
     onSuccess: (_data, {token}) => {
-      addSuccessMessage(t('Revoked auth token for the organization.'));
+      toast.success(t('Revoked auth token for the organization.'));
 
-      setApiQueryData(
-        queryClient,
-        makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
+      queryClient.setQueryData(
+        orgAuthTokensOptions({orgSlug: organization.slug}).queryKey,
         oldData => {
-          if (!Array.isArray(oldData)) {
+          if (!oldData) {
             return oldData;
           }
 
-          return oldData.filter(oldToken => oldToken.id !== token.id);
+          return {
+            ...oldData,
+            json: oldData.json.filter(oldToken => oldToken.id !== token.id),
+          };
         }
       );
     },
     onError: error => {
       const message = t('Failed to revoke the auth token for the organization.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -234,10 +228,6 @@ function OrganizationAuthTokensIndex() {
       )}
     </Access>
   );
-}
-
-export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
-  return `${tokenPrefix}************${tokenLastCharacters}`;
 }
 
 export default OrganizationAuthTokensIndex;

@@ -300,6 +300,48 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
     }
 )
 
+# INFRENG-727: Existing lock calls inside DB transactions. The redis-blaster lock backend was not
+# wrapped by this check, so these stayed hidden until default locks moved to RedisClusterLockBackend.
+_REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
+    {
+        # --------------------------------
+        # Getsentry stacks. Getsentry tests use the same default lock backend and the same check.
+        # --------------------------------
+        #
+        # Remove this entry when REVENG-686 lands:
+        # https://linear.app/getsentry/issue/REVENG-686/delete-tally-usage
+        (
+            "getsentry.billing.reserved_budgets.reserved_budget_subscription_lock.<locals>.get_decorator.<locals>.lock_wrapper",
+            "getsentry.billing.reserved_budgets.recompute_all_reserved_budget_spends",
+        ),
+        # INFRENG-812: subscription_lock in start_trial during org provisioning
+        (
+            "getsentry.models.subscription.subscription_lock.<locals>.wrapper",
+            "getsentry.billing.trial.start_trial",
+            "getsentry.billing.provision_new_org_for_billing._finalize_channel_subscription",
+        ),
+        # Platform trial locks in TrialService._create_product_trial and _create_subscription_trial.
+        # Remove these entries when REVENG-695 lands:
+        (
+            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_product_trial",
+        ),
+        (
+            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_subscription_trial",
+        ),
+        # Customer model_lock in MissingCustomerRelation.repair.
+        # Remove this entry when REVENG-694 lands
+        (
+            "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
+            "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
+        ),
+        # INFRENG-925: the test takes the subscription lock to see if it is held, inside the
+        # transaction of _apply_legacy_ondemand_max_spend
+        (
+            "tests.getsentry.utils.billing.test_billing.UpgradeOnDemandMaxSpendTest.test_reenable_runs_outside_subscription_lock.<locals>.record",
+        ),
+    }
+)
+
 
 def _add_transaction_checks(
     client: RedisCluster[T] | StrictRedis[T],
@@ -347,12 +389,64 @@ def _assert_redis_transaction_allowed(message: str) -> None:
             return
         if _matches_redis_transaction_ratchet(callers):
             return
+        if _matches_redis_transaction_lock_ratchet(callers):
+            return
+
+        _redis_transaction_violations.append((message, callers))
         raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
+
+
+# Redis calls that the transaction check rejected since the last call to
+# `pop_redis_transaction_violations`: the message and the caller stack of each one
+_redis_transaction_violations: list[tuple[str, tuple[str, ...]]] = []
+
+
+def pop_redis_transaction_violations() -> list[tuple[str, tuple[str, ...]]]:
+    """
+    Returns the recorded transaction check violations and clears the record.
+
+    The pytest plugin calls this at the teardown of each test and fails the test if a violation
+    was recorded. A test that causes a violation on purpose calls this to clear it.
+    """
+    count = len(_redis_transaction_violations)
+    violations = _redis_transaction_violations[:count]
+    del _redis_transaction_violations[:count]
+    return violations
 
 
 def _matches_redis_transaction_ratchet(callers: tuple[str, ...]) -> bool:
     for signature in _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET:
         remaining_callers = iter(callers)
+        if all(caller in remaining_callers for caller in signature):
+            return True
+    return False
+
+
+_REDIS_LOCK_BACKEND_CALLERS = (
+    "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+    "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+)
+_REDIS_LOCK_INTERNAL_PREFIXES = ("sentry.utils.locking.", "sentry.utils.retries.", "contextlib.")
+
+
+def _matches_redis_transaction_lock_ratchet(
+    callers: tuple[str, ...],
+    allowlist: frozenset[tuple[str, ...]] = _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET,
+) -> bool:
+    if not callers or callers[0] not in _REDIS_LOCK_BACKEND_CALLERS:
+        return False
+    owner_index = 0
+    while owner_index < len(callers) and callers[owner_index].startswith(
+        _REDIS_LOCK_INTERNAL_PREFIXES
+    ):
+        owner_index += 1
+    if owner_index == len(callers):
+        return False
+    owner = callers[owner_index]
+    for owner_signature, *signature in allowlist:
+        if owner_signature != owner:
+            continue
+        remaining_callers = iter(callers[owner_index + 1 :])
         if all(caller in remaining_callers for caller in signature):
             return True
     return False

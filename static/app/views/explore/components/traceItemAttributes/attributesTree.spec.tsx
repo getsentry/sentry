@@ -7,11 +7,9 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {
-  AttributesTree,
-  type AttributesFieldRendererProps,
-} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+
+import {AttributesTree, type AttributesFieldRendererProps} from './attributesTree';
 
 describe('attributesTree', () => {
   const organization = OrganizationFixture();
@@ -162,6 +160,41 @@ describe('attributesTree', () => {
       expect(await within(row).findByText('Disabled Action')).toBeInTheDocument();
       expect(within(row).queryByText('Hidden Action')).not.toBeInTheDocument();
     }
+  });
+
+  it('renders an array attribute and types it as array in its details', async () => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {
+        type: 'array',
+        value: ['timestamp', 'message'],
+        name: 'tags[csv_headers,array]',
+      },
+    ];
+
+    render(
+      <AttributesTree
+        attributes={attributes}
+        config={{attributeDetailsType: 'log'}}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization,
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('attribute-tree-row')).toHaveTextContent(
+      '[timestamp,message]'
+    );
+
+    await userEvent.hover(
+      within(screen.getByTestId('tree-key-tags[csv_headers,array]')).getByText(
+        'csv_headers'
+      )
+    );
+
+    expect(await screen.findByText('array')).toBeInTheDocument();
   });
 
   it('describes an attribute key when an attribute details type is given', async () => {

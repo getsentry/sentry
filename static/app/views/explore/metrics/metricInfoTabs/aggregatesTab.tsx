@@ -3,32 +3,23 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
-import {
-  LoadingMaskRow,
-  StyledSimpleTable,
-  StyledSimpleTableHeader,
-  StyledSimpleTableHeaderCell,
-  StyledSimpleTableRowCell,
-  StyledTopResultsIndicator,
-  TransparentLoadingMask,
-} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
@@ -52,6 +43,16 @@ import {
   traceItemAttributeKeysOptions,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
+
+import {
+  LoadingMaskRow,
+  StyledSimpleTable,
+  StyledSimpleTableHeader,
+  StyledSimpleTableHeaderCell,
+  StyledSimpleTableRowCell,
+  StyledTopResultsIndicator,
+  TransparentLoadingMask,
+} from './metricInfoTabStyles';
 
 // TODO: add back filter actions or just revert this commit
 // once the metrics search bar supports filters on aggregates
@@ -175,7 +176,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 
   const topResultsCount = topEvents ? Math.min(result.data?.length ?? 0, topEvents) : 0;
 
-  const isPending = result.isPending && !isMetricOptionsEmpty;
+  const isEmptyEquation = isVisualizeEquation(visualize) && !visualize.expression.text;
+  const isPending = result.isPending && !isMetricOptionsEmpty && !isEmptyEquation;
 
   return (
     <AggregatesSimpleTable style={tableStyle}>
@@ -280,7 +282,14 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
         </SimpleTable.Empty>
       ) : (
         <SimpleTable.Empty>
-          <GenericWidgetEmptyStateWarning title={t('No aggregates found')} message="" />
+          <GenericWidgetEmptyStateWarning
+            title={
+              isEmptyEquation
+                ? t('Enter an equation to see aggregates')
+                : t('No aggregates found')
+            }
+            message=""
+          />
         </SimpleTable.Empty>
       )}
     </AggregatesSimpleTable>

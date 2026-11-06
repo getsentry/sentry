@@ -1,5 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -12,10 +15,10 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {Panel} from 'sentry/components/panels/panel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import type {SettingsEntryPoint} from 'sentry/utils/analytics/settingsAnalyticsEvents';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -160,7 +163,14 @@ function UsageTableRow({
           >
             {t('View Project Stats')}
           </Button>
-          <LinkButton icon={<IconSettings />} size="xs" to={projectSettingsLink}>
+          <LinkButton
+            icon={<IconSettings />}
+            size="xs"
+            to={projectSettingsLink}
+            analyticsEventKey="settings.entry_point_clicked"
+            analyticsEventName="Settings: Entry Point Clicked"
+            analyticsParams={{entry_point: 'usage_stats' satisfies SettingsEntryPoint}}
+          >
             {t('Project Settings')}
           </LinkButton>
         </Grid>

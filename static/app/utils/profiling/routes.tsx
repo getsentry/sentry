@@ -4,12 +4,15 @@ import type {Location, LocationDescriptor, Path} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import type {Trace} from 'sentry/types/profiling/core';
 import type {Project} from 'sentry/types/project';
+
 import {
   isContinuousProfileReference,
   isTransactionProfileReference,
-} from 'sentry/utils/profiling/guards/profile';
+} from './guards/profile';
 
 const PROFILING_BASE_PATHNAME = 'explore/profiles';
+
+export const PROFILE_CONTEXT_WINDOW_MS = 100;
 
 function generateProfilingRoute({organization}: {organization: Organization}): Path {
   return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/`;

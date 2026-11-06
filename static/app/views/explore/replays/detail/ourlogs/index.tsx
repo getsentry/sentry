@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
 import {Table} from '@sentry/scraps/table';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -33,8 +34,9 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
-import {OurLogFilters} from 'sentry/views/explore/replays/detail/ourlogs/ourlogFilters';
-import {ourlogsAsFrames} from 'sentry/views/explore/replays/detail/ourlogs/ourlogsAsFrames';
+
+import {OurLogFilters} from './ourlogFilters';
+import {ourlogsAsFrames} from './ourlogsAsFrames';
 
 export function OurLogs() {
   const replay = useReplayReader();
@@ -170,7 +172,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   );
 
   return (
-    <OurLogsContentWrapper>
+    <Stack flex="1 1 auto" minHeight="0">
       <OurLogFilters
         replayId={replayId}
         searchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
@@ -204,16 +206,9 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
           />
         )}
       </LogsItemContainer>
-    </OurLogsContentWrapper>
+    </Stack>
   );
 }
-
-const OurLogsContentWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-`;
 
 const BorderedSection = styled(FluidHeight)<{isStatus?: boolean}>`
   border: 1px solid ${p => p.theme.tokens.border.primary};

@@ -7,7 +7,11 @@ import {
   useRef,
   useSyncExternalStore,
 } from 'react';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconPin} from '@sentry/icons/pin';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -15,7 +19,6 @@ import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconCopy, IconPin, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
@@ -24,9 +27,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import {formatDollars} from 'sentry/utils/formatters';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {parseAsSingleScalar} from 'sentry/views/explore/queryParams/parsers';
 
 import type {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
@@ -37,7 +39,6 @@ import {
   type PinnedAttributeValue,
 } from './tracePinnedAttributeValues';
 
-export const TRACE_ATTRIBUTE_PINNING_FEATURE = 'trace-waterfall-attribute-pinning';
 const PINNED_ATTRIBUTE_PARAM = 'pinnedAttribute';
 
 type PinnedAttributeResponse = {
@@ -72,14 +73,12 @@ export function useTracePinnedAttribute({
   traceSlug: string;
   tree: TraceTree;
 }): PinnedAttributeState {
-  const location = useLocation();
-  const navigate = useNavigate();
   const organization = useOrganization();
-  const queryAttribute = location.query[PINNED_ATTRIBUTE_PARAM];
-  const attribute =
-    enabled && typeof queryAttribute === 'string' && queryAttribute.length > 0
-      ? queryAttribute
-      : null;
+  const [queryAttribute, setQueryAttribute] = useQueryState(
+    PINNED_ATTRIBUTE_PARAM,
+    parseAsSingleScalar
+  );
+  const attribute = enabled ? queryAttribute : null;
   const visibleAttribute = !isLoading && tree.type === 'trace' ? attribute : null;
   const setAttribute = useCallback(
     (next: string | null) => {
@@ -90,15 +89,9 @@ export function useTracePinnedAttribute({
         organization,
         action: next ? 'added' : 'removed',
       });
-      const query = {...location.query};
-      if (next) {
-        query[PINNED_ATTRIBUTE_PARAM] = next;
-      } else {
-        delete query[PINNED_ATTRIBUTE_PARAM];
-      }
-      navigate({...location, query}, {replace: true});
+      setQueryAttribute(next || null);
     },
-    [enabled, location, navigate, organization]
+    [enabled, organization, setQueryAttribute]
   );
 
   // Query the full loaded trace independently of the selected span or error.

@@ -1,4 +1,6 @@
 import {useTheme} from '@emotion/react';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconUser} from '@sentry/icons/user';
 import {useQuery} from '@tanstack/react-query';
 
 import {ActorAvatar, TeamAvatar} from '@sentry/scraps/avatar';
@@ -11,7 +13,6 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
@@ -27,7 +28,8 @@ import {selectUsersFromMembers} from 'sentry/utils/members/shared';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {getOwnerList} from 'sentry/views/issueDetails/header/getOwnerList';
+
+import {getOwnerList} from './getOwnerList';
 
 interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;

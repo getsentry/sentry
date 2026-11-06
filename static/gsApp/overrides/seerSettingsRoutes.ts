@@ -120,3 +120,13 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
     },
   ],
 });
+
+export const seerProjectSettingsRoutes = (): SentryRouteObject => ({
+  handle: {
+    settingsBreadcrumb: {type: 'project', to: '/settings/:orgId/projects/:projectId/'},
+    settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/seer/'},
+  },
+  path: 'seer/',
+  name: t('Seer'),
+  component: make(() => import('getsentry/views/seerAutomation/projectDetails')),
+});

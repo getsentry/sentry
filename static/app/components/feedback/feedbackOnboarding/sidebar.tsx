@@ -13,7 +13,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 
-import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -46,6 +45,8 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {FeedbackOnboardingLayout} from './feedbackOnboardingLayout';
 
 export function useFeedbackOnboardingDrawer() {
   const organization = useOrganization();
@@ -260,7 +261,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const isExcluded = excludedPlatformOptions.includes(currentPlatform.id);
 
   const radioButtons = (
-    <Header>
+    <Container padding="md 0">
       {showRadioButtons ? (
         <Container padding="md 0">
           <RadioGroup<typeof setupMode>
@@ -324,7 +325,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           </Flex>
         )
       )}
-    </Header>
+    </Container>
   );
 
   if (isLoading) {
@@ -396,10 +397,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     </Fragment>
   );
 }
-
-const Header = styled('div')`
-  padding: ${p => p.theme.space.md} 0;
-`;
 
 const TopRightBackgroundImage = styled('img')`
   position: absolute;

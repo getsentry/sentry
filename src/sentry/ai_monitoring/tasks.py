@@ -1,3 +1,4 @@
+import contextlib
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
@@ -7,7 +8,6 @@ from django.db.models import Q
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.ai_monitoring.conversation_titles import (
     ConversationTitleSpanData,
     clamp_conversation_id_for_storage,
@@ -25,6 +25,13 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
 from sentry.utils import metrics
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 CONVERSATION_TITLE_ROLLOUT_RATE_OPTION = "ai-monitoring.conversation-title-generation.rollout-rate"
 
@@ -58,9 +65,6 @@ def generate_ai_conversation_title(
         return
 
     organization = project.organization
-    if not features.has("organizations:gen-ai-conversation-title-generation", organization):
-        metrics.incr("ai_monitoring.conversation_title.skip", tags={"reason": "feature_disabled"})
-        return
     if organization.get_option("sentry:hide_ai_features"):
         metrics.incr("ai_monitoring.conversation_title.skip", tags={"reason": "hide_ai_features"})
         return
@@ -131,9 +135,7 @@ def spawn_conversation_title_generation(
 ) -> None:
     """Spawn one title-generation task per conversation (earliest user message wins)."""
     organization = project.organization
-    if not features.has(
-        "organizations:gen-ai-conversation-title-generation", organization
-    ) or organization.get_option("sentry:hide_ai_features"):
+    if organization.get_option("sentry:hide_ai_features"):
         return
 
     earliest_by_conversation: dict[str, ConversationTitleSpanData] = {}
@@ -162,11 +164,22 @@ def spawn_conversation_title_generation(
             first_user_message=first_user_message,
         )
 
-    for data in earliest_by_conversation.values():
-        generate_ai_conversation_title.delay(
-            project_id=project.id,
-            conversation_id=data.conversation_id,
-            first_user_message=clamp_user_message(data.first_user_message),
-            source_timestamp=data.source_timestamp.timestamp(),
+    scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+    if get_viewer_context() is None:
+        scope = viewer_context_scope(
+            ViewerContext(
+                actor=Actor(type=ActorType.SYSTEM),
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
         )
-        metrics.incr("ai_monitoring.conversation_title.enqueued")
+
+    with scope:
+        for data in earliest_by_conversation.values():
+            generate_ai_conversation_title.delay(
+                project_id=project.id,
+                conversation_id=data.conversation_id,
+                first_user_message=clamp_user_message(data.first_user_message),
+                source_timestamp=data.source_timestamp.timestamp(),
+            )
+            metrics.incr("ai_monitoring.conversation_title.enqueued")

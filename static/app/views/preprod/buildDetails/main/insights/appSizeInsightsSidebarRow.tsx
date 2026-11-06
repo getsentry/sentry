@@ -1,5 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconFlag} from '@sentry/icons/flag';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -8,20 +11,11 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Collapsible} from 'sentry/components/collapsible';
-import {IconInfo} from 'sentry/icons';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconFlag} from 'sentry/icons/iconFlag';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
-import {InsightTimedOutWarning} from 'sentry/views/preprod/buildDetails/main/insights/insightTimedOutWarning';
-import {openMainBinaryExportedSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/mainBinaryExportedSymbolsModal';
-import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
-import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
-import {openStripDebugSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/stripDebugSymbolsModal';
 import type {
   FileSavingsResultGroup,
   OptimizableImageFile,
@@ -31,6 +25,13 @@ import type {
   ProcessedInsight,
   ProcessedInsightFile,
 } from 'sentry/views/preprod/utils/insightProcessing';
+
+import {openAlternativeIconsInsightModal} from './alternativeIconsInsightInfoModal';
+import {InsightTimedOutWarning} from './insightTimedOutWarning';
+import {openMainBinaryExportedSymbolsModal} from './mainBinaryExportedSymbolsModal';
+import {openMinifyLocalizedStringsModal} from './minifyLocalizedStringsModal';
+import {openOptimizeImagesModal} from './optimizeImagesModal';
+import {openStripDebugSymbolsModal} from './stripDebugSymbolsModal';
 
 export function formatUpside(percentage: number): string {
   // percentage is between 0 and 1.

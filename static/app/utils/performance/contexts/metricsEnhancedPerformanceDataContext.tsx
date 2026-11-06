@@ -4,7 +4,7 @@ import {createContext, useCallback, useContext, useState} from 'react';
 import {WIDGET_MAP_DENY_LIST} from 'sentry/views/performance/landing/widgets/utils';
 import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
-import {AutoSampleState, useMEPSettingContext} from './metricsEnhancedSetting';
+import {AutoSampleState, useMEPSettingContext} from './useMEPSettingContext';
 
 interface MetricsEnhancedPerformanceDataContext {
   setIsMetricsData: (value?: boolean) => void;

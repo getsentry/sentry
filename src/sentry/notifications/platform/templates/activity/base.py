@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 from urllib.parse import urlencode
 
@@ -28,11 +29,14 @@ from sentry.notifications.platform.types import (
 )
 from sentry.types.activity import SEER_ACTIVITY_TYPES, ActivityType
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.email import group_id_to_email
 from sentry.utils.email.address import get_from_email_domain
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import is_valid_dot_atom
 from sentry.workflow_engine.models import Workflow
+
+logger = logging.getLogger(__name__)
 
 ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.SEER_RCA_STARTED.value: NotificationSource.ACTIVITY_SEER_RCA_STARTED,
@@ -96,6 +100,7 @@ class ActivityNotificationData(NotificationData):
     user_settings_url: str | None = None
     email_headers: dict[str, str] | None = None
     email_subject_prefix: str | None = None
+    enhanced_privacy: bool = False
 
 
 def create_activity_notification_example(
@@ -134,6 +139,15 @@ class AssignedNotificationData(ActivityNotificationData):
     assignee_label: str
     assignee_url: str | None = None
     is_automated: bool = False
+
+
+def build_subject_prefix(data: ActivityNotificationData) -> NotificationTextBlock:
+    if data.issue_title and data.issue_short_id and not data.enhanced_privacy:
+        return PlainTextBlock(text=f"{data.issue_short_id} - {data.issue_title}")
+    elif data.issue_short_id:
+        return PlainTextBlock(text=data.issue_short_id)
+    else:
+        return PlainTextBlock(text="An Issue")
 
 
 def build_footer(data: ActivityNotificationData) -> list[NotificationTextBlock]:
@@ -210,14 +224,27 @@ def build_activity_email_headers(
     if is_valid_dot_atom(list_id_label):
         headers["List-Id"] = f"<{list_id_label}.{settings.SENTRY_MAIL_LIST_NAMESPACE}>"
 
-    thread, created = GroupEmailThread.objects.get_or_create(
-        email=target.resource_id,
-        group=group,
-        defaults={"project": project, "msgid": message_id},
-    )
-    if not created:
-        headers["In-Reply-To"] = thread.msgid
-        headers["References"] = thread.msgid
+    email = target.resource_id
+    if GroupEmailThread.can_track_email(email):
+        thread, created = GroupEmailThread.objects.get_or_create(
+            email=email,
+            group=group,
+            defaults={"project": project, "msgid": message_id},
+        )
+        if not created:
+            headers["In-Reply-To"] = thread.msgid
+            headers["References"] = thread.msgid
+    else:
+        # Email is too long for GroupEmailThread.email; send without threading.
+        metrics.incr(
+            "mail.group_email_thread.skipped_long_email",
+            tags={"source": "activity_platform"},
+            sample_rate=1.0,
+        )
+        logger.warning(
+            "mail.group_email_thread.skipped_long_email",
+            extra={"group_id": group.id, "email_length": len(email)},
+        )
     return headers
 
 
@@ -281,6 +308,7 @@ def build_activity_notification_data(
         issue_short_id=group.qualified_short_id,
         issue_url=absolute_uri(issue_url),
         issue_title=build_attachment_title(group) or "",
+        enhanced_privacy=bool(organization.flags.enhanced_privacy),
         issue_culprit=group.culprit,
         issue_description=build_attachment_text(group),
         project_slug=project.slug,

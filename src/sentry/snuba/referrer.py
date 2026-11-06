@@ -133,6 +133,7 @@ class Referrer(StrEnum):
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
+    API_EXPLORE_DROPPED_DATA_SDK_VERSIONS = "api.explore.dropped-data.sdk-versions"
     API_EXPLORE_SPANS_RAW_COUNT_NORMAL = "api.explore.spans.raw-count.normal"
     API_EXPLORE_SPANS_RAW_COUNT_HIGH_ACCURACY = "api.explore.spans.raw-count.high-accuracy"
     API_EXPLORE_LOGS_RAW_COUNT_NORMAL = "api.explore.logs.raw-count.normal"
@@ -399,23 +400,11 @@ class Referrer(StrEnum):
     API_INSIGHTS_BROWSER_RESOURCES_PAGE_SELECTOR = "api.insights.browser.resources.page-selector"
 
     # AI Agents
-    API_INSIGHTS_AGENTS_MODELS_TABLE = "api.insights.agent-monitoring.models-table"
-    API_INSIGHTS_AGENTS_TOOLS_TABLE = "api.insights.agent-monitoring.tools-table"
     API_INSIGHTS_AGENTS_TRACE_DRAWER = "api.insights.agent-monitoring.trace-drawer"
     API_INSIGHTS_AGENTS_TRACE_DRAWER_TOOL_USAGE = (
         "api.insights.agent-monitoring.trace-drawer-tool-usage"
     )
     API_INSIGHTS_AGENTS_TRACES_TABLE = "api.insights.agent-monitoring.traces-table"
-    API_INSIGHTS_AGENTS_TOKEN_USAGE_WIDGET = "api.insights.agent-monitoring.token-usage-widget"
-    API_INSIGHTS_AGENTS_TOKEN_COST_WIDGET = "api.insights.agent-monitoring.token-cost-widget"
-    API_INSIGHTS_AGENTS_TOKEN_TYPES_WIDGET = "api.insights.agent-monitoring.token-types-widget"
-    API_INSIGHTS_AGENTS_TOOL_CALLS_WIDGET = "api.insights.agent-monitoring.tool-calls-widget"
-    API_INSIGHTS_AGENTS_TOOL_ERRORS_WIDGET = "api.insights.agent-monitoring.tool-errors-widget"
-    API_INSIGHTS_AGENTS_LLM_CALLS_WIDGET = "api.insights.agent-monitoring.llm-calls-widget"
-    API_INSIGHTS_AGENTS_AGENT_RUNS_WIDGET = "api.insights.agent-monitoring.agent-runs-widget"
-    API_INSIGHTS_AGENTS_AGENT_DURATION_WIDGET = (
-        "api.insights.agent-monitoring.agent-duration-widget"
-    )
     API_INSIGHTS_AGENTS_ONBOARDING = "api.insights.agent-monitoring.onboarding"
 
     # MCP (Model Context Protocol)
@@ -440,6 +429,7 @@ class Referrer(StrEnum):
     # Misc
     API_INSIGHTS_ORG_EVENT_AVERAGE_SPAN = "api.insights.org-event-average-span"
 
+    API_CODE_MAPPING_STACK_PREFIXES = "api.code-mapping.stack-prefixes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
@@ -452,18 +442,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
     API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_HISTOGRAM_TOP_TAGS = (
-        "api.organization-events-facets-performance-histogram.top_tags"
-    )
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_HISTOGRAM = (
-        "api.organization-events-facets-performance-histogram"
-    )
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_TOP_TAGS_ALL_TRANSACTIONS = (
-        "api.organization-events-facets-performance.top-tags.all_transactions"
-    )
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_TOP_TAGS_TAG_VALUES = (
-        "api.organization-events-facets-performance.top-tags.tag_values"
-    )
     API_ORGANIZATION_EVENTS_FACETS_TOP_TAGS = "api.organization-events-facets.top-tags"
     API_ORGANIZATION_EVENTS_HISTOGRAM_MIN_MAX_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events-histogram-min-max.metrics-enhanced.primary"
@@ -888,7 +866,6 @@ class Referrer(StrEnum):
     )
     TRANSACTION_ANOMALY_DETECTION = "transaction-anomaly-detection"
 
-    TSDB_MODELID_0 = "tsdb-modelid:0"
     TSDB_MODELID_1 = "tsdb-modelid:1"
     TSDB_MODELID_4 = "tsdb-modelid:4"
     TSDB_MODELID_7 = "tsdb-modelid:7"
@@ -896,7 +873,6 @@ class Referrer(StrEnum):
     TSDB_MODELID_100 = "tsdb-modelid:100"
     TSDB_MODELID_101 = "tsdb-modelid:101"
     TSDB_MODELID_104 = "tsdb-modelid:104"
-    TSDB_MODELID_105 = "tsdb-modelid:105"
     TSDB_MODELID_200 = "tsdb-modelid:200"
     TSDB_MODELID_201 = "tsdb-modelid:201"
     TSDB_MODELID_202 = "tsdb-modelid:202"
@@ -920,9 +896,6 @@ class Referrer(StrEnum):
     TSDB_MODELID_609 = "tsdb-modelid:609"
     TSDB_MODELID_610 = "tsdb-modelid:610"
     TSDB_MODELID_611 = "tsdb-modelid:611"
-    TSDB_MODELID_700 = "tsdb-modelid:700"
-    TSDB_MODELID_800 = "tsdb-modelid:800"
-    TSDB_MODELID_801 = "tsdb-modelid:801"
 
     TSDB_MODELID_4_frequency_snoozes = "tsdb-modelid:4.frequency_snoozes"
     TSDB_MODELID_300_user_count_snoozes = "tsdb-modelid:300.user_count_snoozes"

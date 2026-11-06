@@ -1,7 +1,7 @@
 import type {ReactElement} from 'react';
 import {ThemeProvider} from '@emotion/react';
 
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 
 import type {SnapshotTheme} from './snapshotScenarios';
 

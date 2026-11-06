@@ -1,16 +1,17 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/business';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {IconBusiness, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
+import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName, getTrialDaysLeft} from 'getsentry/utils/billing';

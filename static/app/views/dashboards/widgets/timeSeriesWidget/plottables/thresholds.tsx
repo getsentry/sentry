@@ -4,10 +4,11 @@ import type {
   SeriesOption,
 } from 'echarts';
 
+import type {Theme} from '@sentry/scraps/theme';
+
 import {MarkArea} from 'sentry/components/charts/components/markArea';
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import type {Theme} from 'sentry/utils/theme';
 import {normalizeUnit} from 'sentry/views/dashboards/utils/normalizeUnit';
 import {
   NEGATIVE_POLARITY_COLOR_ORDER,
@@ -17,10 +18,8 @@ import type {
   Thresholds as ThresholdsConfig,
   TimeSeriesValueUnit,
 } from 'sentry/views/dashboards/widgets/common/types';
-import type {
-  Plottable,
-  PlottableTimeSeriesValueType,
-} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+
+import type {Plottable, PlottableTimeSeriesValueType} from './plottable';
 
 type ThresholdPlottableOptions = {
   thresholds: ThresholdsConfig;

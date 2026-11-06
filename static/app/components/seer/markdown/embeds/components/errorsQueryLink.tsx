@@ -1,8 +1,5 @@
-import {
-  ResourceLink,
-  type ResourceLinkFormatProps,
-} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconSearch} from 'sentry/icons';
+import {IconSearch} from '@sentry/icons/search';
+
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -11,6 +8,7 @@ import {
   getErrorsQueryHref,
   type ErrorsQueryData,
 } from './errorsQueryUtils';
+import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
 
 /**
  * The name the model gave the query, or a description of what it searches. The

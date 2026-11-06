@@ -21,6 +21,7 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -38,28 +39,16 @@ import {
   SessionTerm,
 } from 'sentry/views/explore/releases/utils/sessionTerm';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
+
+import {ProjectBaseEventsChart} from './charts/projectBaseEventsChart';
+import {ProjectBaseSessionsChart} from './charts/projectBaseSessionsChart';
+import {ProjectErrorsBasicChart} from './charts/projectErrorsBasicChart';
+import {DisplayModes} from './displayModes';
 import {
   getANRRateText,
   isPlatformANRCompatible,
   isPlatformForegroundANRCompatible,
-} from 'sentry/views/projectDetail/utils';
-
-import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
-import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
-import {ProjectErrorsBasicChart} from './charts/projectErrorsBasicChart';
-
-export enum DisplayModes {
-  APDEX = 'apdex',
-  FAILURE_RATE = 'failure_rate',
-  TPM = 'tpm',
-  ERRORS = 'errors',
-  TRANSACTIONS = 'transactions',
-  STABILITY = 'crash_free',
-  STABILITY_USERS = 'crash_free_users',
-  ANR_RATE = 'anr_rate',
-  FOREGROUND_ANR_RATE = 'foreground_anr_rate',
-  SESSIONS = 'sessions',
-}
+} from './utils';
 
 type Props = {
   chartId: string;
@@ -87,6 +76,7 @@ export function ProjectCharts({
   query,
 }: Props) {
   const api = useApi();
+  const {selection} = usePageFilters();
   const theme = useTheme();
   const navigate = useNavigate();
   const [totalValues, setTotalValues] = useState<number | null>(null);
@@ -332,6 +322,7 @@ export function ProjectCharts({
                 yAxis="apdex(span.duration,300)"
                 field={['apdex(span.duration,300)']}
                 api={api}
+                selection={selection}
                 location={location}
                 organization={organization}
                 onTotalValuesChange={handleTotalValuesChange}
@@ -352,6 +343,7 @@ export function ProjectCharts({
                 yAxis="failure_rate()"
                 field={['failure_rate()']}
                 api={api}
+                selection={selection}
                 location={location}
                 organization={organization}
                 onTotalValuesChange={handleTotalValuesChange}
@@ -372,6 +364,7 @@ export function ProjectCharts({
                 yAxis="tpm()"
                 field={['tpm()']}
                 api={api}
+                selection={selection}
                 location={location}
                 organization={organization}
                 onTotalValuesChange={handleTotalValuesChange}
@@ -393,6 +386,7 @@ export function ProjectCharts({
                   yAxis="count()"
                   field={['count()']}
                   api={api}
+                  selection={selection}
                   location={location}
                   organization={organization}
                   onTotalValuesChange={handleTotalValuesChange}
@@ -421,6 +415,7 @@ export function ProjectCharts({
                 yAxis="count()"
                 field={['count()']}
                 api={api}
+                selection={selection}
                 location={location}
                 organization={organization}
                 onTotalValuesChange={handleTotalValuesChange}

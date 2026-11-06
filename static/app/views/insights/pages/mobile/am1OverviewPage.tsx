@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
+import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {
@@ -15,26 +16,18 @@ import {SearchBar as TransactionNameSearchBar} from 'sentry/components/performan
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  canUseMetricsData,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {
-  MOBILE_PLATFORMS,
-  OVERVIEW_PAGE_ALLOWED_OPS,
-} from 'sentry/views/insights/pages/mobile/settings';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateGenericPerformanceEventView,
@@ -46,7 +39,6 @@ import {
   DoubleChartRow,
   TripleChartRow,
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
-import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {Table} from 'sentry/views/performance/table';
@@ -54,6 +46,8 @@ import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+
+import {MOBILE_PLATFORMS, OVERVIEW_PAGE_ALLOWED_OPS} from './settings';
 
 const MOBILE_COLUMN_TITLES = [
   {title: 'Transaction'},
@@ -78,6 +72,12 @@ const REACT_NATIVE_COLUMN_TITLES = [
   {title: 'User misery'},
 ];
 
+const searchParamsParsers = {
+  cursor: parseAsString,
+  query: parseAsString,
+  isDefaultQuery: parseAsBoolean,
+};
+
 interface Am1MobileOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
 }
@@ -91,9 +91,8 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
   const {setPageDanger} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
-  const navigate = useNavigate();
+  const [, setSearchParams] = useQueryStates(searchParamsParsers);
   const {teams} = useUserTeams();
-  const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
@@ -137,19 +136,14 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
     PerformanceWidgetSetting.MOST_SLOW_FRAMES,
     PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
   ];
-  const tripleChartRowCharts = filterAllowedChartsMetrics(
-    organization,
-    [
-      PerformanceWidgetSetting.TPM_AREA,
-      PerformanceWidgetSetting.DURATION_HISTOGRAM,
-      PerformanceWidgetSetting.P50_DURATION_AREA,
-      PerformanceWidgetSetting.P75_DURATION_AREA,
-      PerformanceWidgetSetting.P95_DURATION_AREA,
-      PerformanceWidgetSetting.P99_DURATION_AREA,
-      PerformanceWidgetSetting.FAILURE_RATE_AREA,
-    ],
-    mepSetting
-  );
+  const tripleChartRowCharts = [
+    PerformanceWidgetSetting.TPM_AREA,
+    PerformanceWidgetSetting.P50_DURATION_AREA,
+    PerformanceWidgetSetting.P75_DURATION_AREA,
+    PerformanceWidgetSetting.P95_DURATION_AREA,
+    PerformanceWidgetSetting.P99_DURATION_AREA,
+    PerformanceWidgetSetting.FAILURE_RATE_AREA,
+  ];
 
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
@@ -182,15 +176,14 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
   function handleSearch(searchQuery: string) {
     trackAnalytics('performance.domains.mobile.search', {organization});
 
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(searchQuery).trim() || undefined,
+    setSearchParams(
+      {
+        cursor: null,
+        query: String(searchQuery).trim() || null,
         isDefaultQuery: false,
       },
-    });
+      {history: 'push'}
+    );
   }
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);

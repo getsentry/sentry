@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
@@ -30,6 +31,11 @@ from sentry.notifications.platform.target import (
     PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import (
+    NotificationLinkDecorator,
+    NotificationTrackingContext,
+    is_tracking_enabled,
+)
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationData,
@@ -47,6 +53,9 @@ from sentry.shared_integrations.exceptions import IntegrationError
 
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
+    from sentry.integrations.slack.message_builder.types import SlackAction
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -65,7 +74,11 @@ class SlackRenderable(TypedDict):
 class SlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         # Slack does not support rich text in the subject
         subject_block = HeaderBlock(text=PlainTextObject(text=rendered_template.subject_text))
@@ -141,6 +154,78 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         return False
 
     @classmethod
+    def track_actions(
+        cls, *, renderable: SlackRenderable, context: NotificationTrackingContext
+    ) -> set[SlackAction]:
+        """
+        Adds the notification to the action ID of each button that calls back into Sentry, in the
+        message's blocks and its attachments' blocks. Link buttons are skipped, since page loads
+        count their clicks, as are buttons whose action ID names no organization, since their
+        clicks can't be attributed. Returns the Slack actions of the buttons marked. Never raises.
+        """
+        from sentry.integrations.slack.message_builder.routing import (
+            SlackActionTracking,
+            decode_action_id,
+            encode_action_id,
+        )
+        from sentry.integrations.slack.message_builder.types import SlackAction
+
+        if not context.notification_uuid or not is_tracking_enabled(
+            context.source, context.provider
+        ):
+            return set()
+        tracking = SlackActionTracking(
+            notification_uuid=context.notification_uuid, source=context.source
+        )
+        tracked: set[SlackAction] = set()
+
+        def track(action_id: str | None) -> str | None:
+            if not action_id:
+                return None
+            routing_data = decode_action_id(action_id)
+            if routing_data.action not in SlackAction or routing_data.organization_id is None:
+                return None
+            tracked_action_id = encode_action_id(
+                action=routing_data.action,
+                organization_id=routing_data.organization_id,
+                project_id=routing_data.project_id,
+                tracking=tracking,
+            )
+            if tracked_action_id == action_id:
+                return None
+            tracked.add(SlackAction(routing_data.action))
+            return tracked_action_id
+
+        try:
+            attachment_blocks = [
+                block
+                for attachment in renderable.get("attachments", [])
+                for block in attachment.get("blocks", [])
+            ]
+            for block in [*renderable["blocks"], *attachment_blocks]:
+                if isinstance(block, ActionsBlock):
+                    for element in block.elements:
+                        if (
+                            isinstance(element, ButtonElement)
+                            and element.url is None
+                            and (tracked_action_id := track(element.action_id))
+                        ):
+                            element.action_id = tracked_action_id
+                elif isinstance(block, dict) and block.get("type") == "actions":
+                    for element in block.get("elements", []):
+                        if (
+                            element.get("type") == "button"
+                            and not element.get("url")
+                            and (tracked_action_id := track(element.get("action_id")))
+                        ):
+                            element["action_id"] = tracked_action_id
+        except Exception:
+            logger.exception(
+                "notifications.tracking.track_actions.failed", extra={"source": context.source}
+            )
+        return tracked
+
+    @classmethod
     def send(
         cls,
         *,
@@ -165,13 +250,13 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
             )
 
         try:
-            slack_target.integration_installation.send_notification(
+            response = slack_target.integration_installation.send_notification(
                 target=target, payload=renderable
             )
         except IntegrationError as e:
             return integration_error_result(e)
 
-        return SendSuccessResult()
+        return SendSuccessResult(provider_message_id=response.get("ts"))
 
     @classmethod
     def _send_with_threading(
@@ -186,12 +271,16 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         )
 
         try:
-            response = slack_target.integration_installation.send_notification_with_threading(
+            response = slack_target.integration_installation.send_notification_with_response(
                 target=slack_target.target,
                 payload=renderable,
                 threading_context=provider_threading_ctx,
             )
-            return SendSuccessResult(provider_message_id=response.get("ts"), is_threaded=True)
+            return SendSuccessResult(
+                provider_message_id=response.get("ts"),
+                is_threaded=True,
+                thread_identifier=provider_threading_ctx.thread_ts,
+            )
         except IntegrationError as e:
             return integration_error_result(e, is_threaded=True)
 

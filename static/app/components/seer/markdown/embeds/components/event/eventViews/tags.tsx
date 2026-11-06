@@ -1,20 +1,16 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconIssues} from '@sentry/icons/issues';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {EmbedSection} from 'sentry/components/seer/markdown/embeds/components/embedSection';
-import {
-  EventTagsRendererMap,
-  type EventTagRendererExtra,
-} from 'sentry/components/seer/markdown/embeds/components/event/eventViews/eventTagRenderers';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {
   INERT_LOCATION,
   INERT_NAVIGATE,
 } from 'sentry/components/seer/markdown/embeds/inertRouting';
-import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
@@ -24,6 +20,8 @@ import type {
   TraceItemDetailsMeta,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
+
+import {EventTagsRendererMap, type EventTagRendererExtra} from './eventTagRenderers';
 
 /**
  * Dropped from the tree the way issue details drops it: the replay is its own

@@ -18,6 +18,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import (
     Action,
@@ -190,7 +191,10 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
     def test_priority_detector(self) -> None:
         """Test priorityDetector param - workflows connected to the specified detector appear first."""
         fresh_org = self.create_organization(name="Fresh Org", owner=self.user)
-        fresh_project = self.create_project(organization=fresh_org)
+        fresh_project = self.create_project(
+            organization=fresh_org,
+            teams=[self.create_team(organization=fresh_org, members=[self.user])],
+        )
 
         workflow_a = self.create_workflow(organization_id=fresh_org.id, name="Workflow A")
         workflow_b = self.create_workflow(organization_id=fresh_org.id, name="Workflow B")
@@ -418,6 +422,36 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
 
         assert str(self.workflow.id) in {workflow["id"] for workflow in response.data}
+
+    def test_no_project_filter_scopes_to_member_projects_in_open_membership_org(self) -> None:
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        member_project = self.create_project(
+            organization=self.organization, teams=[self.create_team(members=[self.user])]
+        )
+        non_member_project = self.create_project(
+            organization=self.organization, teams=[self.create_team()]
+        )
+        non_member_detector = self.create_detector(project=non_member_project)
+        self.create_detector_workflow(
+            workflow=self.workflow, detector=self.create_detector(project=member_project)
+        )
+        self.create_detector_workflow(workflow=self.workflow_two, detector=non_member_detector)
+
+        response = self.get_success_response(self.organization.slug)
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_three.id),
+        }
+
+        for qs_params in (
+            {"project": "-1"},
+            {"project": str(non_member_project.id)},
+            {"id": str(self.workflow_two.id)},
+            {"detector": str(non_member_detector.id)},
+        ):
+            response = self.get_success_response(self.organization.slug, qs_params=qs_params)
+            assert str(self.workflow_two.id) in {w["id"] for w in response.data}, qs_params
 
     def test_query_filter_by_action(self) -> None:
         self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
@@ -668,6 +702,17 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             DetectorWorkflow.objects.count(),
         )
 
+    def _create_agent_client(self, user_id: int, scopes: list[str]) -> APIClient:
+        token, _ = agent_token.encode_agent_token(
+            user_id=user_id,
+            organization_id=self.organization.id,
+            scopes=scopes,
+            session_id="workflow-create",
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        return client
+
     def _assert_create_rejected_without_writes(
         self, data: dict[str, Any], status_code: int = 403
     ) -> None:
@@ -701,6 +746,27 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         )
 
         assert self._workflow_creation_model_counts() == model_counts
+
+    def test_create_rejects_client_action_id(self) -> None:
+        self._assert_create_rejected_without_writes(
+            {
+                "actionFilters": [
+                    {
+                        "logicType": "any",
+                        "conditions": [],
+                        "actions": [
+                            {
+                                "id": 2**62,
+                                "type": Action.Type.EMAIL,
+                                "config": {"targetType": "issue_owners"},
+                                "data": {},
+                            }
+                        ],
+                    }
+                ]
+            },
+            status_code=400,
+        )
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
@@ -800,6 +866,32 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert response.data == serialize(new_workflow)
+
+    def test_create_workflow__condition_result_defaults_to_true(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [{"type": Condition.FIRST_SEEN_EVENT, "comparison": True}],
+        }
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ISSUE_PRIORITY_DEESCALATING.value,
+                        "comparison": PriorityLevel.HIGH,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.data["triggers"]["conditions"][0]["conditionResult"] is True
+        assert response.data["actionFilters"][0]["conditions"][0]["conditionResult"] is True
 
     def test_create_workflow__with_triggers_invalid_logic_type(self) -> None:
         self.valid_workflow["triggers"] = {
@@ -1291,6 +1383,100 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         self.login_as(user=self.member_user)
 
         self._assert_create_rejected_without_writes({"detectorIds": [all_projects_detector.id]})
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_project_scoped_workflow_agent_token_advertises_alerts_write_and_retries(self) -> None:
+        detector = self.create_detector(project=self.project)
+        workflow_data = {**self.valid_workflow, "detectorIds": [detector.id]}
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self._create_agent_client(self.user.id, ["org:read"]).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data=workflow_data,
+                format="json",
+            )
+
+            retry_response = self._create_agent_client(self.user.id, ["alerts:write"]).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data=workflow_data,
+                format="json",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"]
+            == 'Bearer error="insufficient_scope", scope="alerts:write"'
+        )
+        assert retry_response.status_code == 201, retry_response.content
+        assert DetectorWorkflow.objects.filter(
+            workflow_id=retry_response.data["id"], detector=detector
+        ).exists()
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_team_admin_agent_token_advertises_project_alerts_write(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        workflow_data = {**self.valid_workflow, "detectorIds": [detector.id]}
+
+        with self.feature([agent_token.FEATURE_FLAG, "organizations:team-roles"]):
+            response = self._create_agent_client(self.team_admin_user.id, ["org:read"]).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data=workflow_data,
+                format="json",
+            )
+            retry_response = self._create_agent_client(
+                self.team_admin_user.id, ["org:read", "alerts:write"]
+            ).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data=workflow_data,
+                format="json",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"]
+            == 'Bearer error="insufficient_scope", scope="alerts:write"'
+        )
+        assert retry_response.status_code == 201, retry_response.content
+        assert DetectorWorkflow.objects.filter(
+            workflow_id=retry_response.data["id"], detector=detector
+        ).exists()
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_agent_token_does_not_advertise_scope_for_inaccessible_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        inaccessible_project = self.create_project(
+            organization=self.organization,
+            teams=[self.create_team(organization=self.organization)],
+        )
+        detector = self.create_detector(project=inaccessible_project)
+
+        with self.feature([agent_token.FEATURE_FLAG, "organizations:team-roles"]):
+            response = self._create_agent_client(self.team_admin_user.id, ["org:read"]).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={**self.valid_workflow, "detectorIds": [detector.id]},
+                format="json",
+            )
+
+        assert response.status_code == 403, response.content
+        assert "insufficient_scope" not in response.get("WWW-Authenticate", "")
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_all_projects_workflow_agent_token_advertises_org_write(self) -> None:
+        detector = ensure_default_all_projects_detector(self.organization.id)
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self._create_agent_client(self.user.id, ["org:read"]).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={**self.valid_workflow, "detectorIds": [detector.id]},
+                format="json",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
+        )
 
     def test_create_workflow_with_invalid_detector_ids(self) -> None:
         workflow_data = {

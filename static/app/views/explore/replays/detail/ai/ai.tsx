@@ -1,5 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconSync} from '@sentry/icons/sync';
+import {IconThumb} from '@sentry/icons/thumb';
 
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
@@ -12,17 +14,17 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {ChapterList} from 'sentry/views/explore/replays/detail/ai/chapterList';
-import {useReplaySummaryContext} from 'sentry/views/explore/replays/detail/ai/replaySummaryContext';
-import {ReplaySummaryLoading} from 'sentry/views/explore/replays/detail/ai/replaySummaryLoading';
-import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/explore/replays/detail/ai/utils';
 import {TabItemContainer} from 'sentry/views/explore/replays/detail/tabItemContainer';
+
+import {ChapterList} from './chapterList';
+import {useReplaySummaryContext} from './replaySummaryContext';
+import {ReplaySummaryLoading} from './replaySummaryLoading';
+import {NO_REPLAY_SUMMARY_MESSAGES} from './utils';
 
 const MAX_SEGMENTS_TO_SUMMARIZE = 150;
 

@@ -1,5 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconFlag} from '@sentry/icons/flag';
+import {IconSubtract} from '@sentry/icons/subtract';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -7,9 +9,9 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -18,7 +20,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
@@ -31,7 +32,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {ProjectItem as ProjectListItem} from 'sentry/views/settings/components/settingsProjectItem';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
+
+import {useTeamDetailsOutlet} from './teamDetails';
 
 export default function TeamProjects() {
   const location = useLocation();
@@ -90,14 +92,14 @@ export default function TeamProjects() {
       refetchLinkedProjects();
       refetchUnlinkedProjects();
       ProjectsStore.onUpdateSuccess(resp);
-      addSuccessMessage(
+      toast.success(
         action === 'add'
           ? t('Successfully added project to team.')
           : t('Successfully removed project from team')
       );
     },
     onError: () => {
-      addErrorMessage(t("Wasn't able to change project association."));
+      toast.error(t("Wasn't able to change project association."));
     },
   });
 

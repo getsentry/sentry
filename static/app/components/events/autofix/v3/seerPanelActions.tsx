@@ -1,23 +1,20 @@
+import {IconBot} from '@sentry/icons/bot';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconRefresh} from '@sentry/icons/refresh';
+
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Switch} from '@sentry/scraps/switch';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {AutofixDebugMenu} from 'sentry/components/events/autofix/v3/autofixDebugMenu';
-import {IconBot} from 'sentry/icons/iconBot';
-import {IconCopy} from 'sentry/icons/iconCopy';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {AutofixDebugMenu} from './autofixDebugMenu';
+
 export interface SeerPanelActionsProps {
   autofixState?: ExplorerAutofixState | null;
-  enableBashMode?: boolean;
   onCopyMarkdown?: () => void;
-  onEnableBashModeChange?: (enabled: boolean) => void;
   onOpenSeerAgent?: () => void;
   onReset?: () => void;
 }
@@ -28,9 +25,7 @@ export interface SeerPanelActionsProps {
  */
 export function SeerPanelActions({
   autofixState,
-  enableBashMode,
   onCopyMarkdown,
-  onEnableBashModeChange,
   onOpenSeerAgent,
   onReset,
 }: SeerPanelActionsProps) {
@@ -40,7 +35,7 @@ export function SeerPanelActions({
 
   return (
     <Flex align="center" gap="xs">
-      {isSentryEmployee && <AutofixDebugMenu autofixState={autofixState} />}
+      <AutofixDebugMenu autofixState={autofixState} />
       <Button
         size="xs"
         icon={<IconRefresh />}
@@ -59,18 +54,6 @@ export function SeerPanelActions({
         aria-label={t('Copy analysis as Markdown')}
         variant="transparent"
       />
-      {isSentryEmployee && onEnableBashModeChange && (
-        <Tooltip title={t('Force bash mode on for the autofix analysis')} skipWrapper>
-          <Flex align="center" gap="xs">
-            <Text size="xs">{t('Bash')}</Text>
-            <Switch
-              checked={enableBashMode ?? false}
-              onChange={() => onEnableBashModeChange(!enableBashMode)}
-              aria-label={t('Enable bash tools')}
-            />
-          </Flex>
-        </Tooltip>
-      )}
       {isSentryEmployee && hasDebugFlag && onOpenSeerAgent && (
         <Button
           size="xs"

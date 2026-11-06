@@ -1,12 +1,10 @@
-import {
-  ResourceLink,
-  type ResourceLinkFormatProps,
-} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconList} from 'sentry/icons';
+import {IconList} from '@sentry/icons/list';
+
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {getLogsQueryHref, type LogsQueryData} from './logsQueryUtils';
+import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
 
 /**
  * The name the model gave the query, or a description of what it searches. The

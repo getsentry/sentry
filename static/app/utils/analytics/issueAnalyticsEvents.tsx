@@ -8,8 +8,9 @@ import type {
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
-import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
+
+import type {BaseEventAnalyticsParams} from './workflowAnalyticsEvents';
 
 type IssueStream = {
   group_id: string;
@@ -92,7 +93,6 @@ export type IssueEventParameters = {
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
-  'issue-details.android-tombstones-cta-dismiss': {type: string};
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.engaged_view': {
     group_id: number;
@@ -152,10 +152,6 @@ export type IssueEventParameters = {
     group_id: string;
     project_id: string;
   };
-  'issue_details.streamline_ui_toggle': {
-    enforced_streamline_ui: boolean;
-    isEnabled: boolean;
-  };
   'issue_details.tour.reminder': {method: 'dismissed' | 'timeout'};
   'issue_details.tour.skipped': Record<string, unknown>;
   'issue_details.tour.started': {method: 'dropdown' | 'modal'};
@@ -206,6 +202,11 @@ export type IssueEventParameters = {
   };
   'issue_inbox.issue_viewed': IssueInboxItemParams;
   'issue_inbox.item_clicked': IssueInboxItemParams;
+  'issue_inbox.open_in_desktop_app_clicked': {
+    agent: 'cursor' | 'codex' | 'claude-code';
+    group_id: string;
+    event_id?: string;
+  };
   'issue_search.empty': {
     query: string;
     search_source: string;
@@ -256,6 +257,11 @@ export type IssueEventParameters = {
     area: string;
     action_status_details?: string;
     action_substatus?: string | null;
+  };
+  'issues_stream.copied': {
+    area: string;
+    copy_type: 'short_ids' | 'links';
+    count: number;
   };
   'issues_stream.issue_assigned': IssueStream & {
     area: string;
@@ -339,7 +345,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Merged Issues Drawer Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
-  'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
   'issue_details.tour.started': 'Issue Details: Tour Started',
   'issue_details.tour.reminder': 'Issue Details: Tour Reminder Acknowledged',
@@ -374,7 +379,9 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_inbox.assignment_filter_changed': 'Issue Inbox: Assignment Filter Changed',
   'issue_inbox.issue_viewed': 'Issue Inbox: Issue Viewed',
   'issue_inbox.item_clicked': 'Issue Inbox: Item Clicked',
+  'issue_inbox.open_in_desktop_app_clicked': 'Issue Inbox: Open in Desktop App Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
+  'issues_stream.copied': 'Issues Stream: Copied',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
@@ -399,8 +406,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
-  'issue-details.android-tombstones-cta-dismiss':
-    'Issue Details Android Tombstones CTA Dismissed',
   'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.copy_issue_details_as_markdown':

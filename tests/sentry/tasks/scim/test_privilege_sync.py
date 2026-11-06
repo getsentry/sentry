@@ -5,6 +5,7 @@ from django.db import IntegrityError
 from django.test import override_settings
 
 from sentry.conf.types.sentry_config import SentryMode
+from sentry.models.team import Team, TeamStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.scim.privilege_sync import (
     sync_scim_team_privileges,
@@ -182,6 +183,13 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
         self.user_two = self.create_user(email="user2@example.com")
         self.organization = self.create_organization(name="Test Org")
 
+    def add_to_team(self, user: User, team_slug: str) -> Team:
+        team = Team.objects.filter(organization=self.organization, slug=team_slug).first()
+        if team is None:
+            team = self.create_team(organization=self.organization, slug=team_slug)
+        self.create_member(organization=self.organization, user=user, teams=[team])
+        return team
+
     @override_settings(SENTRY_MODE=SentryMode.SELF_HOSTED)
     def test_non_saas_mode_is_noop(self) -> None:
         with override_settings(SUPERUSER_ORG_ID=self.organization.id):
@@ -211,6 +219,7 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
         assert not user.is_staff
 
     def test_batch_grant_and_revoke(self) -> None:
+        self.add_to_team(self.user_one, "snty-staff")
         user_service.update_user(user_id=self.user_two.id, attrs={"is_staff": True})
 
         with override_settings(SUPERUSER_ORG_ID=self.organization.id):
@@ -230,6 +239,7 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
         assert not user_two.is_staff
 
     def test_grant_failure_raises(self) -> None:
+        self.add_to_team(self.user_one, "snty-staff")
         with override_settings(SUPERUSER_ORG_ID=self.organization.id):
             with patch("sentry.tasks.scim.privilege_sync.update_privilege") as mock_update:
                 mock_update.side_effect = Exception("grant failure")
@@ -283,6 +293,7 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
         assert not user_one.is_staff
 
     def test_superuser_write_grant_sets_superuser_and_permission(self) -> None:
+        self.add_to_team(self.user_one, "snty-superuser-write")
         with override_settings(SUPERUSER_ORG_ID=self.organization.id):
             sync_scim_team_privileges(
                 team_slug="snty-superuser-write",
@@ -323,6 +334,7 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
             ).exists()
 
     def test_permission_team_grant_adds_permission_only(self) -> None:
+        self.add_to_team(self.user_one, "snty-broadcasts-admin")
         with override_settings(SUPERUSER_ORG_ID=self.organization.id):
             sync_scim_team_privileges(
                 team_slug="snty-broadcasts-admin",
@@ -357,3 +369,81 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
             assert not UserPermission.objects.filter(
                 user_id=self.user_one.id, permission="broadcasts.admin"
             ).exists()
+
+    def test_grant_for_non_member_revokes(self) -> None:
+        user_service.update_user(user_id=self.user_one.id, attrs={"is_staff": True})
+
+        with override_settings(SUPERUSER_ORG_ID=self.organization.id):
+            sync_scim_team_privileges(
+                team_slug="snty-staff",
+                organization_id=self.organization.id,
+                user_ids_to_grant=[self.user_one.id],
+                user_ids_to_revoke=[],
+            )
+
+        user = user_service.get_user(user_id=self.user_one.id)
+        assert user is not None
+        assert not user.is_staff
+
+    def test_stale_revoke_after_re_add_keeps_privilege(self) -> None:
+        # An Okta push removes all members and re-adds them in separate PATCH requests.
+        # The revoke task can run after the grant task; it must not strip the privilege.
+        self.add_to_team(self.user_one, "snty-staff")
+
+        with override_settings(SUPERUSER_ORG_ID=self.organization.id):
+            sync_scim_team_privileges(
+                team_slug="snty-staff",
+                organization_id=self.organization.id,
+                user_ids_to_grant=[self.user_one.id],
+                user_ids_to_revoke=[],
+            )
+            sync_scim_team_privileges(
+                team_slug="snty-staff",
+                organization_id=self.organization.id,
+                user_ids_to_grant=[],
+                user_ids_to_revoke=[self.user_one.id],
+            )
+
+        user = user_service.get_user(user_id=self.user_one.id)
+        assert user is not None
+        assert user.is_staff
+
+    def test_removed_from_superuser_write_keeps_superuser_from_read(self) -> None:
+        self.add_to_team(self.user_one, "snty-superuser-read")
+        user_service.update_user(user_id=self.user_one.id, attrs={"is_superuser": True})
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserPermission.objects.create(user_id=self.user_one.id, permission="superuser.write")
+
+        with override_settings(SUPERUSER_ORG_ID=self.organization.id):
+            sync_scim_team_privileges(
+                team_slug="snty-superuser-write",
+                organization_id=self.organization.id,
+                user_ids_to_grant=[],
+                user_ids_to_revoke=[self.user_one.id],
+            )
+
+        user = user_service.get_user(user_id=self.user_one.id)
+        assert user is not None
+        assert user.is_superuser
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not UserPermission.objects.filter(
+                user_id=self.user_one.id, permission="superuser.write"
+            ).exists()
+
+    def test_team_pending_deletion_revokes(self) -> None:
+        team = self.add_to_team(self.user_one, "snty-staff")
+        user_service.update_user(user_id=self.user_one.id, attrs={"is_staff": True})
+        team.update(status=TeamStatus.PENDING_DELETION)
+
+        with override_settings(SUPERUSER_ORG_ID=self.organization.id):
+            sync_scim_team_privileges(
+                team_slug="snty-staff",
+                organization_id=self.organization.id,
+                user_ids_to_grant=[],
+                user_ids_to_revoke=[self.user_one.id],
+            )
+
+        user = user_service.get_user(user_id=self.user_one.id)
+        assert user is not None
+        assert not user.is_staff

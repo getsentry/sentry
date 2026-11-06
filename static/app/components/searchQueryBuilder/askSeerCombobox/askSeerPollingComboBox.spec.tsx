@@ -6,7 +6,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
@@ -17,6 +16,8 @@ import {
   AsyncSDKIntegrationContextProvider,
   useAsyncSDKIntegrationStore,
 } from 'sentry/views/app/asyncSDKIntegrationProvider';
+
+import {AskSeerPollingComboBox} from './askSeerPollingComboBox';
 
 const defaultProviderProps = {
   enableAISearch: true,
@@ -148,6 +149,37 @@ describe('AskSeerPollingComboBox results', () => {
       area: '',
       natural_language_query: 'find slow spans',
     });
+  });
+
+  it('sends the search_bar referrer to the start endpoint', async () => {
+    const startRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'completed',
+          current_step: null,
+          completed_steps: [],
+          final_response: {query: 'span.duration:>30s'},
+        },
+      },
+    });
+    renderPollingComboBox(false);
+
+    await submitQuery();
+
+    await waitFor(() =>
+      expect(startRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/search-agent/start/',
+        expect.objectContaining({
+          data: expect.objectContaining({referrer: 'search_bar'}),
+        })
+      )
+    );
   });
 
   it('shows result feedback in the footer', async () => {

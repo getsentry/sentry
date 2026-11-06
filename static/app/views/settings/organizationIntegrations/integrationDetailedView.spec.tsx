@@ -14,7 +14,8 @@ import * as pipelineModal from 'sentry/components/pipeline/modal';
 import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import * as integrationUtil from 'sentry/utils/integrationUtil';
-import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
+
+import IntegrationDetailedView from './integrationDetailedView';
 
 describe('IntegrationDetailedView', () => {
   const organization = OrganizationFixture({
@@ -399,10 +400,7 @@ describe('IntegrationDetailedView', () => {
       organization,
     });
     await waitFor(() => {
-      expect(screen.getByRole('button', {name: 'Uninstall'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      expect(screen.getByRole('button', {name: 'Uninstall'})).toBeDisabled();
     });
   });
 

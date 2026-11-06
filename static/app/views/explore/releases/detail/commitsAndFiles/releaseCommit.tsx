@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 import * as Sentry from '@sentry/react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -12,7 +13,6 @@ import {CommitLink} from 'sentry/components/commitLink';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
 import {useUser} from 'sentry/utils/useUser';
@@ -87,7 +87,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
               <AuthorWrapper>
                 {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
                 {commit.author && commit.author.id === undefined && (
-                  <IconQuestion size="xs" />
+                  <IconInfo size="xs" />
                 )}
               </AuthorWrapper>
             </Tooltip>

@@ -23,19 +23,32 @@ DECLARE
     fk_add text;
     fk_drops text[] := '{}';
     fk_adds text[] := '{}';
+    locked_table text;
+    -- The order production statements name these tables in, taken from the primary's logs:
+    -- joins start from sentry_release before deploy and release_project, writes and group
+    -- queries name the rest before it. Locking them any other way deadlocks with those.
+    lock_order text[] := ARRAY[
+        'sentry_releasecommit', 'sentry_releaseactivity', 'sentry_releaseheadcommit',
+        'sentry_distribution', 'sentry_groupresolution',
+        'sentry_groupedmessage', 'sentry_releaseprojectenvironment',
+        'sentry_release',
+        'sentry_deploy', 'sentry_release_project'
+    ];
 BEGIN
-    LOCK TABLE "sentry_release" IN ACCESS EXCLUSIVE MODE;
-
-    id_sequence := pg_get_serial_sequence('sentry_release', 'id');
-    IF id_sequence IS NULL THEN
-        RAISE EXCEPTION 'sentry_release.id has no sequence to carry over';
-    END IF;
-    -- Any ALTER SEQUENCE blocks nextval until commit, so reserve_ids cannot claim an id
-    -- between the snapshot and the drop; the sequence is dropped below regardless.
-    EXECUTE format('ALTER SEQUENCE %s CACHE 1', id_sequence);
-    EXECUTE format(
-        'SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END FROM %s', id_sequence
-    ) INTO next_id;
+    FOR locked_table IN
+        SELECT table_name
+        FROM (
+            SELECT DISTINCT conrelid::regclass::text AS table_name
+            FROM pg_constraint
+            WHERE contype = 'f' AND confrelid = 'sentry_release'::regclass
+            UNION
+            SELECT 'sentry_release'
+        ) referencing
+        -- A constraint table the list does not know is locked after the ones it does.
+        ORDER BY array_position(lock_order, table_name) NULLS LAST, table_name
+    LOOP
+        EXECUTE format('LOCK TABLE %s IN ACCESS EXCLUSIVE MODE', locked_table);
+    END LOOP;
 
     FOR fk IN
         SELECT
@@ -45,6 +58,7 @@ BEGIN
             convalidated AS validated
         FROM pg_constraint
         WHERE contype = 'f' AND confrelid = 'sentry_release'::regclass
+        ORDER BY conrelid::regclass::text
     LOOP
         -- The primary key cannot be dropped while a foreign key still depends on it.
         fk_drop := format(
@@ -65,6 +79,17 @@ BEGIN
         -- Queued for after the column rename, so sentry_release(id) is the wide column.
         fk_adds := array_append(fk_adds, fk_add);
     END LOOP;
+
+    id_sequence := pg_get_serial_sequence('sentry_release', 'id');
+    IF id_sequence IS NULL THEN
+        RAISE EXCEPTION 'sentry_release.id has no sequence to carry over';
+    END IF;
+    -- Any ALTER SEQUENCE blocks nextval until commit, so reserve_ids cannot claim an id
+    -- between the snapshot and the drop; the sequence is dropped below regardless.
+    EXECUTE format('ALTER SEQUENCE %s CACHE 1', id_sequence);
+    EXECUTE format(
+        'SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END FROM %s', id_sequence
+    ) INTO next_id;
 
     FOREACH fk_drop IN ARRAY fk_drops LOOP
         EXECUTE fk_drop;
@@ -122,14 +147,6 @@ DECLARE
     fk_drops text[] := '{}';
     fk_adds text[] := '{}';
 BEGIN
-    LOCK TABLE "sentry_release" IN ACCESS EXCLUSIVE MODE;
-
-    id_sequence := pg_get_serial_sequence('sentry_release', 'id');
-    EXECUTE format('ALTER SEQUENCE %s CACHE 1', id_sequence);
-    EXECUTE format(
-        'SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END FROM %s', id_sequence
-    ) INTO next_id;
-
     FOR fk IN
         SELECT
             conrelid::regclass AS table_name,
@@ -137,7 +154,10 @@ BEGIN
             pg_get_constraintdef(oid) AS definition
         FROM pg_constraint
         WHERE contype = 'f' AND confrelid = 'sentry_release'::regclass
+        ORDER BY conrelid::regclass::text
     LOOP
+        EXECUTE format('LOCK TABLE %s IN ACCESS EXCLUSIVE MODE', fk.table_name);
+
         -- The primary key cannot be dropped while a foreign key still depends on it.
         fk_drop := format(
             'ALTER TABLE %s DROP CONSTRAINT %I', fk.table_name, fk.constraint_name
@@ -153,6 +173,14 @@ BEGIN
         -- Queued for after the column rename, so sentry_release(id) is the narrow column.
         fk_adds := array_append(fk_adds, fk_add);
     END LOOP;
+
+    LOCK TABLE "sentry_release" IN ACCESS EXCLUSIVE MODE;
+
+    id_sequence := pg_get_serial_sequence('sentry_release', 'id');
+    EXECUTE format('ALTER SEQUENCE %s CACHE 1', id_sequence);
+    EXECUTE format(
+        'SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END FROM %s', id_sequence
+    ) INTO next_id;
 
     FOREACH fk_drop IN ARRAY fk_drops LOOP
         EXECUTE fk_drop;

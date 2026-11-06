@@ -1,16 +1,17 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
+import {IconJson} from '@sentry/icons/json';
 import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -18,7 +19,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
-import {IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
@@ -248,7 +248,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               <div>
                 {scheduleAsText(dataSource.queryObj.config)}{' '}
                 {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB &&
-                  `(${dataSource.queryObj.config.timezone}) `}
+                  `(${dataSource.queryObj.config.timezone ?? 'UTC'}) `}
                 {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB && (
                   <Text variant="muted" monospace>
                     ({dataSource.queryObj.config.schedule})

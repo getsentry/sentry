@@ -3,9 +3,11 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
+  assertEAPSpanNode,
   makeEAPError,
   makeEAPOccurrence,
   makeEAPSpan,
+  makeEAPTrace,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
 import type {BaseNode, TraceTreeNodeExtra} from './baseNode';
@@ -342,11 +344,23 @@ describe('EapSpanNode', () => {
       });
     });
 
-    it('should inherit profiling and transaction IDs from its EAP transaction', () => {
+    it('should keep transaction event IDs separate from transaction span IDs', () => {
+      const standaloneSpan = new EapSpanNode(
+        null,
+        makeEAPSpan({
+          event_id: 'standalone-span-id',
+          transaction_id: 'legacy-transaction-event-id',
+          is_transaction: false,
+          additional_attributes: {
+            'transaction.span_id': 'standalone-transaction-id',
+          },
+        }),
+        createMockExtra()
+      );
       const transaction = new EapSpanNode(
         null,
         makeEAPSpan({
-          event_id: 'transaction-event-id',
+          event_id: 'transaction-span-id',
           transaction_id: 'transaction-id',
           is_transaction: true,
           profile_id: 'profile-id',
@@ -363,11 +377,34 @@ describe('EapSpanNode', () => {
         createMockExtra()
       );
 
+      expect(standaloneSpan.transactionId).toBeUndefined();
+      expect(standaloneSpan.transactionSpanId).toBe('standalone-transaction-id');
       expect(transaction.transactionId).toBe('transaction-id');
+      expect(transaction.transactionSpanId).toBe('transaction-span-id');
       expect(span.transactionId).toBe('transaction-id');
+      expect(span.transactionSpanId).toBe('transaction-span-id');
       expect(span.profileId).toBe('profile-id');
       expect(span.profilerId).toBe('profiler-id');
     });
+
+    it.each([undefined, '', 123])(
+      'should not use an invalid transaction span ID (%s) or fall back to an event ID',
+      transactionSpanId => {
+        const node = new EapSpanNode(
+          null,
+          makeEAPSpan({
+            transaction_id: 'transaction-event-id',
+            additional_attributes:
+              transactionSpanId === undefined
+                ? undefined
+                : {'transaction.span_id': transactionSpanId},
+          }),
+          createMockExtra()
+        );
+
+        expect(node.transactionSpanId).toBeUndefined();
+      }
+    );
 
     it('should return correct drawerTabsTitle', () => {
       const extra = createMockExtra();
@@ -634,6 +671,37 @@ describe('EapSpanNode', () => {
       list: [] as BaseNode[],
     });
 
+    it('can explicitly collapse the initial transaction summary', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'parent',
+            is_transaction: true,
+            children: [makeEAPSpan({event_id: 'child', is_transaction: true})],
+          }),
+          makeEAPSpan({event_id: 'sibling', is_transaction: true}),
+        ]),
+        {organization: OrganizationFixture(), replay: null}
+      ).build();
+      const parent = tree.root.findChild(node => node.id === 'parent');
+      const child = tree.root.findChild(node => node.id === 'child');
+      const sibling = tree.root.findChild(node => node.id === 'sibling');
+      assertEAPSpanNode(parent);
+      assertEAPSpanNode(child);
+      const parentIndex = tree.list.indexOf(parent);
+
+      expect(parent.expanded).toBe(false);
+      expect(tree.list.slice(parentIndex)).toEqual([parent, child, sibling]);
+
+      expect(parent.expand(false, tree)).toBe(true);
+      expect(tree.list.slice(parentIndex)).toEqual([parent, sibling]);
+      expect(parent.expand(false, tree)).toBe(false);
+      expect(tree.build().list.slice(parentIndex)).toEqual([parent, sibling]);
+
+      expect(parent.expand(true, tree)).toBe(true);
+      expect(tree.list.slice(parentIndex)).toEqual([parent, child, sibling]);
+    });
+
     it('should handle expanding transaction with reparenting', () => {
       const extra = createMockExtra();
       const transactionValue = makeEAPSpan({
@@ -720,7 +788,7 @@ describe('EapSpanNode', () => {
       transaction.expand(false, tree as any);
       expect(childTransaction.parent).toBe(span);
       expect(siblingTransaction.parent).toBe(siblingSpan);
-      expect(tree.list).toEqual([transaction, childTransaction, siblingTransaction]);
+      expect(tree.list).toEqual([transaction]);
     });
 
     it('should handle collapsing transaction with reparenting', () => {
@@ -898,12 +966,14 @@ describe('EapSpanNode', () => {
           event_id: 'event-id',
           transaction_id: 'transaction-id',
           is_transaction: true,
+          additional_attributes: {'transaction.span_id': 'transaction-span-id'},
         }),
         createMockExtra()
       );
 
       expect(node.matchById('event-id')).toBe(true);
       expect(node.matchById('transaction-id')).toBe(true);
+      expect(node.matchById('transaction-span-id')).toBe(false);
       expect(node.matchById('unrelated-id')).toBe(false);
     });
 

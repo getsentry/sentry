@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconSliders} from '@sentry/icons/sliders';
 import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {z} from 'zod';
@@ -6,14 +7,13 @@ import {z} from 'zod';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
@@ -116,7 +116,7 @@ function AccountSubscriptions() {
                         data: {...subscription, ...data},
                       }),
                     onSuccess: (_, variables) => {
-                      addSuccessMessage(
+                      toast.success(
                         `${variables.subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
                       );
                       setApiQueryData<Subscription[]>(
@@ -131,7 +131,7 @@ function AccountSubscriptions() {
                       );
                     },
                     onError: () => {
-                      addErrorMessage(
+                      toast.error(
                         `Unable to ${subscription.subscribed ? 'un' : ''}subscribe to ${subscription.listName}`
                       );
                     },

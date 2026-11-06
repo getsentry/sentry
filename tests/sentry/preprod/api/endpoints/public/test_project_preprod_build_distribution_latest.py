@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from django.urls import reverse
 
@@ -37,18 +38,18 @@ class LatestBuildTestBase(APITestCase):
             project=self.project, name="release"
         )
 
-    def _get_url(self):
+    def _get_url(self) -> str:
         return reverse(
             self.endpoint,
             args=[self.organization.slug, self.project.slug],
         )
 
-    def _get(self, url, data=None):
+    def _get(self, url: str, data: dict[str, Any] | None = None) -> Any:
         return self.client.get(url, data, HTTP_AUTHORIZATION=f"Bearer {self.api_token}")
 
-    def _create_installable_artifact(self, **kwargs):
+    def _create_installable_artifact(self, **kwargs: Any) -> PreprodArtifact:
         """Helper to create an installable artifact with sensible defaults."""
-        defaults = {
+        defaults: dict[str, Any] = {
             "project": self.project,
             "file_id": self.file.id,
             "installable_app_file_id": self.installable_file.id,

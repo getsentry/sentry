@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconSearch} from '@sentry/icons/search';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
@@ -12,13 +13,12 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -27,11 +27,8 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import type {
-  DashboardDetails,
-  DashboardListItem,
-  DashboardPermissions,
-} from 'sentry/views/dashboards/types';
+
+import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
 
 const TEAMS_PER_PAGE = 100;
 const MAX_TEAM_PAGES = 10;

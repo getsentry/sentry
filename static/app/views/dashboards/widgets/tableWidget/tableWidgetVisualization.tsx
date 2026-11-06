@@ -1,16 +1,23 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStar} from '@sentry/icons/star';
+import {
+  createLoader,
+  createSerializer,
+  parseAsNativeArrayOf,
+  parseAsString,
+  useQueryState,
+} from 'nuqs';
 
 import {Flex} from '@sentry/scraps/layout';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
-import {IconStar} from 'sentry/icons';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -22,7 +29,7 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -151,6 +158,14 @@ export const FRAMELESS_STYLES = {
  */
 const STARRED_COLUMN_WIDTH = 'max-content';
 
+const tableUrlParsers = {
+  sort: parseAsSort,
+  width: parseAsNativeArrayOf(parseAsString),
+};
+
+const loadTableUrlParams = createLoader(tableUrlParsers);
+const serializeTableUrlParams = createSerializer(tableUrlParsers);
+
 function isStarredColumn(key: string, aliases?: Record<string, string>): boolean {
   return key === SpanFields.IS_STARRED_TRANSACTION && !aliases?.[key];
 }
@@ -197,6 +212,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
+  const [, setLocationWidths] = useQueryState('width', tableUrlParsers.width);
 
   const getGenericRenderer: FieldRendererGetter = (field, _dataRow, meta) => {
     // NOTE: `alias` is set to `false` here because in almost all endpoints, we don't alias field names anymore. In the past, fields like `"p75(duration)"` would be aliased to `"p75_duration"`, but we don't do that much anymore, so we can safely assume that the field name is the same as the alias.
@@ -221,21 +237,16 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   };
 
   const {data, meta} = tableData;
-  const locationSort = decodeSorts(location?.query?.sort)[0];
+  const {sort: locationSort, width: locationWidths} = loadTableUrlParams(location.search);
   const numColumns = columns?.length ?? Object.keys(meta.fields).length;
 
   let widths = Array.from<number>({length: numColumns}).fill(COL_WIDTH_UNDEFINED);
-  const locationWidths = location.query?.width;
   // If at least one column has the width key and that key is defined, take that over url widths
   if (columns?.some(column => defined(column.width))) {
     widths = columns.map(column =>
       defined(column.width) ? column.width : COL_WIDTH_UNDEFINED
     );
-  } else if (
-    resizable &&
-    Array.isArray(locationWidths) &&
-    locationWidths.length === numColumns
-  ) {
+  } else if (resizable && locationWidths.length === numColumns) {
     widths = locationWidths.map(width => {
       const val = parseInt(width, 10);
       return isNaN(val) ? COL_WIDTH_UNDEFINED : val;
@@ -255,9 +266,9 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     }));
 
   return (
-    <GridEditable
+    <DataGrid
       data={data}
-      // GridEditable needs name, but this functionality is replaced by aliases
+      // DataGrid needs name, but this functionality is replaced by aliases
       columnOrder={columnOrder.map(column => ({...column, name: column.key}))}
       grid={{
         staticColumnWidths: getStaticColumnWidths(columnOrder, aliases),
@@ -290,7 +301,10 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
                 }
               : undefined,
             to: column.sortable
-              ? {...location, query: {...location.query, sort: encodeSort(nextSort)}}
+              ? serializeTableUrlParams(
+                  `${location.pathname}${location.search}${location.hash}`,
+                  {sort: nextSort}
+                )
               : undefined,
           };
         },
@@ -371,16 +385,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           }
 
           // Default is to fallback to location query
-          navigate(
-            {
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                width: widths,
-              },
-            },
-            {replace: true}
-          );
+          setLocationWidths(widths.map(String), {history: 'replace'});
         },
       }}
       stickyHeader={scrollable}
@@ -400,7 +405,7 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
 }) {
   const columnsWithName = columns?.map(column => ({...column, name: column.key})) ?? [];
   return (
-    <GridEditable
+    <DataGrid
       isLoading
       columnOrder={columnsWithName}
       data={[]}

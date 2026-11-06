@@ -2,13 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
-
 import {useConversationDirectHitRedirect} from './useConversationDirectHitRedirect';
+import type {Conversation} from './useConversations';
 
 const CONVERSATION: Conversation = {
   conversationId: 'conv-1',
-  duration: 1000,
   endTimestamp: 2000,
   errors: 0,
   firstInput: null,
@@ -19,6 +17,7 @@ const CONVERSATION: Conversation = {
   outputTokens: 0,
   projectId: null,
   startTimestamp: 1000,
+  timeSpan: 1000,
   title: null,
   toolCalls: 0,
   toolErrors: 0,

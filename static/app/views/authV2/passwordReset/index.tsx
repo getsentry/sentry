@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconArrow} from '@sentry/icons/arrow';
 import {useQuery} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -9,13 +10,12 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 
 import {PasswordResetForm} from './passwordResetForm';
 
@@ -34,7 +34,7 @@ export default function PasswordReset() {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
-  useBrandedAuthLoading(validation.isPending);
+  useAuthPageLoading(validation.isPending);
 
   if (validation.isPending) {
     return null;

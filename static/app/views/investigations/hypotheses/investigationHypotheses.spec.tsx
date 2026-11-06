@@ -4,12 +4,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {investigationOrchestrationQueryOptions} from 'sentry/views/investigations/api';
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
+import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
-} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
-import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+} from './investigationHypotheses';
 
 const organization = OrganizationFixture({features: ['investigations']});
 const orchestrationUrl =
@@ -74,6 +76,21 @@ describe('InvestigationHypotheses', () => {
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
   });
 
+  it('tallies the verdicts in the panel header', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+
+    renderHypotheses({phase: 'completed', status: 'completed'});
+
+    const toggle = await screen.findByRole('button', {name: /Hypotheses/});
+    expect(toggle).toHaveAccessibleName(
+      'Hypotheses 1 supported • 1 inconclusive • 1 refuted'
+    );
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('keeps the panel collapsed across refetches once the viewer closes it', async () => {
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
@@ -82,7 +99,7 @@ describe('InvestigationHypotheses', () => {
     const {queryClient} = renderHypotheses();
 
     await screen.findAllByTestId('investigation-hypothesis');
-    const toggle = screen.getByRole('button', {name: 'Hypotheses'});
+    const toggle = screen.getByRole('button', {name: /Hypotheses/});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
     await userEvent.click(toggle);
@@ -216,160 +233,97 @@ describe('InvestigationHypotheses', () => {
     expect(request).not.toHaveBeenCalled();
   });
 
-  it('sends a disposition command fenced on the workflow version', async () => {
+  it('asks Seer about a hypothesis from its menu', async () => {
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({workflowVersion: 7}),
+      body: InvestigationOrchestrationFixture(),
     });
-    const commandRequest = MockApiClient.addMockResponse({
-      url: commandsUrl,
-      method: 'POST',
-      body: {
-        accepted: true,
-        duplicate: false,
-        requestId: 'request-1',
-        workflowVersion: 8,
-        commandStatus: 'accepted',
-        commandError: null,
-        runId: '9001',
-        projection: InvestigationOrchestrationFixture({workflowVersion: 8}),
-      },
-    });
+    const onAskSeer = jest.fn();
 
-    renderHypotheses();
+    renderHypotheses({onAskSeer});
     await screen.findAllByTestId('investigation-hypothesis');
-
     await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
-
     await userEvent.click(
       await screen.findByRole('button', {
-        name: 'Actions for Database or cache degradation delayed the response',
+        name: 'Actions for An external SSO provider slowed the response',
       })
     );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Ask Seer'}));
 
-    await waitFor(() =>
-      expect(commandRequest).toHaveBeenCalledWith(
-        commandsUrl,
-        expect.objectContaining({
-          method: 'POST',
-          data: expect.objectContaining({
-            expectedWorkflowVersion: 7,
-            command: {
-              type: 'set_hypothesis_disposition',
-              hypothesisId: 'hypothesis-1',
-              disposition: 'accepted',
-            },
-          }),
-        })
-      )
-    );
+    expect(onAskSeer).toHaveBeenCalledTimes(1);
+    expect(onAskSeer).toHaveBeenCalledWith(expect.objectContaining({id: 'hypothesis-2'}));
   });
 
-  it('writes the returned projection straight into the cache', async () => {
+  it('asks Seer about every hypothesis from the panel menu', async () => {
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({workflowVersion: 7}),
+      body: InvestigationOrchestrationFixture(),
     });
-    const updated: InvestigationOrchestration = InvestigationOrchestrationFixture({
-      workflowVersion: 8,
-      hypotheses: InvestigationOrchestrationFixture().hypotheses!.map(hypothesis =>
-        hypothesis.id === 'hypothesis-1'
-          ? {
-              ...hypothesis,
-              effectiveStatus: 'accepted' as const,
-              // A viewer decision, which the card credits to them by name.
-              decisionSource: 'user' as const,
-            }
-          : hypothesis
-      ),
-    });
-    MockApiClient.addMockResponse({
-      url: commandsUrl,
-      method: 'POST',
-      body: {
-        accepted: true,
-        duplicate: false,
-        requestId: 'request-1',
-        workflowVersion: 8,
-        commandStatus: 'accepted',
-        commandError: null,
-        runId: '9001',
-        projection: updated,
-      },
-    });
+    const onAskSeerAboutHypotheses = jest.fn();
 
-    renderHypotheses();
+    renderHypotheses({onAskSeerAboutHypotheses});
     await screen.findAllByTestId('investigation-hypothesis');
+    await userEvent.click(screen.getByRole('button', {name: 'Actions for hypotheses'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Ask Seer'}));
 
-    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
-
-    await userEvent.click(
-      await screen.findByRole('button', {
-        name: 'Actions for Database or cache degradation delayed the response',
-      })
-    );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
-
-    // A response that does carry the decision lands without a refetch. The
-    // server only does that once Seer has applied the command; see the settled
-    // run below for what happens in between.
-    expect(await screen.findByText('Accepted by you')).toBeInTheDocument();
+    expect(onAskSeerAboutHypotheses).toHaveBeenCalledTimes(1);
+    expect(onAskSeerAboutHypotheses).toHaveBeenCalledWith([
+      expect.objectContaining({id: 'hypothesis-1'}),
+      expect.objectContaining({id: 'hypothesis-2'}),
+      expect.objectContaining({id: 'hypothesis-3'}),
+    ]);
   });
 
-  it('keeps re-reading a settled run until Seer applies an accepted command', async () => {
-    // A finished run polls no more, which is the point of settling it. But
-    // Sentry only queues a command: the response echoes the projection it
-    // already had with nothing but `workflowVersion` moved on, and Seer
-    // rewrites the real one later. Without the command reopening the polling,
-    // the card would sit on its old disposition until someone reloaded.
-    const orchestrationRequest = MockApiClient.addMockResponse({
+  it('offers only Ask Seer in a hypothesis menu', async () => {
+    MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({
-        status: 'completed',
-        workflowVersion: 7,
-      }),
-    });
-    const commandRequest = MockApiClient.addMockResponse({
-      url: commandsUrl,
-      method: 'POST',
-      body: {
-        accepted: true,
-        duplicate: false,
-        requestId: 'request-1',
-        workflowVersion: 8,
-        commandStatus: 'accepted',
-        commandError: null,
-        runId: '9001',
-        // Unchanged apart from the version, exactly as the endpoint returns it.
-        projection: InvestigationOrchestrationFixture({
-          status: 'completed',
-          workflowVersion: 8,
-        }),
-      },
+      body: InvestigationOrchestrationFixture(),
     });
 
-    renderHypotheses();
+    renderHypotheses({onAskSeer: jest.fn()});
     await screen.findAllByTestId('investigation-hypothesis');
-    await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
-    const callsWhileSettled = orchestrationRequest.mock.calls.length;
-
+    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
     await userEvent.click(
       await screen.findByRole('button', {
         name: 'Actions for Database or cache degradation delayed the response',
       })
     );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
-    await waitFor(() => expect(commandRequest).toHaveBeenCalled());
 
-    // Nothing else would ask again: the run is completed, so this only grows
-    // because the command put the query back on its interval.
-    await waitFor(
-      () =>
-        expect(orchestrationRequest.mock.calls.length).toBeGreaterThan(callsWhileSettled),
-      {timeout: 6000}
-    );
-  }, 15_000);
+    expect(
+      (await screen.findAllByRole('menuitemradio')).map(item => item.textContent)
+    ).toEqual(['Ask Seer']);
+  });
+
+  it('shows no menus without Ask Seer handlers', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderHypotheses();
+    await screen.findAllByTestId('investigation-hypothesis');
+    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
+
+    // Neither the panel's menu nor any card's.
+    expect(screen.queryByRole('button', {name: /^Actions for/})).not.toBeInTheDocument();
+  });
+
+  it('leaves the panel menu off while no hypotheses have arrived', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'investigating', hypotheses: []}),
+    });
+
+    renderHypotheses({onAskSeerAboutHypotheses: jest.fn(), phase: 'investigating'});
+
+    await screen.findByTestId('seer-status-block');
+    expect(
+      screen.getByTestId('investigation-hypotheses-placeholder')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Actions for hypotheses'})
+    ).not.toBeInTheDocument();
+  });
 
   it('renders hypotheses whose verification steps have not been planned yet', async () => {
     // `verificationSteps` is `required=False` with no default on the contract,
@@ -519,5 +473,272 @@ describe('InvestigationHypotheses', () => {
     renderHypotheses({phase});
 
     expect(await screen.findByTestId('seer-status-block')).toBeInTheDocument();
+  });
+
+  describe('a run waiting on its question', () => {
+    const question = 'Why did checkout latency increase after the deploy?';
+
+    function ParkedRunFixture(
+      params: Partial<InvestigationOrchestration> = {}
+    ): InvestigationOrchestration {
+      return InvestigationOrchestrationFixture({
+        phase: 'intake',
+        status: 'awaiting_input',
+        sourceType: 'manual',
+        hypotheses: [],
+        workflowVersion: 3,
+        pendingInput: {
+          missingFields: ['prompt'],
+          prompt: 'Provide the missing investigation context to begin the broad scan.',
+        },
+        ...params,
+      });
+    }
+
+    function mockProvideInput() {
+      return MockApiClient.addMockResponse({
+        url: commandsUrl,
+        method: 'POST',
+        body: {
+          accepted: true,
+          duplicate: false,
+          requestId: 'request-1',
+          workflowVersion: 4,
+          commandStatus: 'accepted',
+          commandError: null,
+          runId: '9001',
+          // Sentry only queues the command, so the run is still parked.
+          projection: ParkedRunFixture({workflowVersion: 4}),
+        },
+      });
+    }
+
+    it('sends the question as provide_input', async () => {
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: ParkedRunFixture()});
+      const commandRequest = mockProvideInput();
+
+      renderHypotheses({phase: 'intake', status: 'awaiting_input'});
+
+      const input = await screen.findByRole('textbox', {
+        name: 'What should Seer investigate?',
+      });
+      const submit = screen.getByRole('button', {name: 'Start investigation'});
+      expect(submit).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.type(input, `  ${question}  `);
+      await userEvent.click(submit);
+
+      await waitFor(() =>
+        expect(commandRequest).toHaveBeenCalledWith(
+          commandsUrl,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({
+              expectedWorkflowVersion: 3,
+              command: {type: 'provide_input', prompt: question},
+            }),
+          })
+        )
+      );
+      // Until Seer takes it, the question stays on screen and can't be sent twice.
+      await waitFor(() => expect(submit).toHaveAttribute('aria-busy', 'true'));
+      expect(input).toBeDisabled();
+      expect(input).toHaveValue(`  ${question}  `);
+    });
+
+    it('offers the question again when it could not be delivered', async () => {
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: ParkedRunFixture()});
+      const commandRequest = mockProvideInput();
+      const {queryClient} = renderHypotheses({phase: 'intake', status: 'awaiting_input'});
+
+      const input = await screen.findByRole('textbox', {
+        name: 'What should Seer investigate?',
+      });
+      await userEvent.type(input, question);
+      await userEvent.click(screen.getByRole('button', {name: 'Start investigation'}));
+      await waitFor(() => expect(input).toBeDisabled());
+
+      const {requestId} = commandRequest.mock.calls[0][1].data;
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: ParkedRunFixture({
+          workflowVersion: 4,
+          errors: [
+            {
+              code: 'seer_command_dispatch_failed',
+              message: 'Seer could not receive the workflow command.',
+              requestId,
+              retryable: true,
+            },
+          ],
+        }),
+      });
+      await act(() => queryClient.invalidateQueries());
+
+      await waitFor(() => expect(input).toBeEnabled());
+      expect(input).toHaveValue(question);
+    });
+
+    it('leaves the form out when the run is not waiting on a question', async () => {
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: ParkedRunFixture({
+          pendingInput: {missingFields: ['time_range'], prompt: 'Pick a time range.'},
+        }),
+      });
+
+      renderHypotheses({phase: 'intake', status: 'awaiting_input'});
+
+      expect(await screen.findByText('Pick a time range.')).toBeInTheDocument();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    });
+
+    it('starts the question box empty on another investigation', async () => {
+      const otherOrchestrationUrl =
+        '/organizations/org-slug/investigations/investigation-2/orchestration/';
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: ParkedRunFixture()});
+      MockApiClient.addMockResponse({
+        url: otherOrchestrationUrl,
+        body: ParkedRunFixture({investigationId: 'investigation-2'}),
+      });
+      const {queryClient, rerender} = renderHypotheses({
+        phase: 'intake',
+        status: 'awaiting_input',
+      });
+      // Already read, so the page swaps straight to it without unmounting the
+      // status block in between.
+      await queryClient.prefetchQuery(
+        investigationOrchestrationQueryOptions('org-slug', 'investigation-2')
+      );
+
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'What should Seer investigate?'}),
+        question
+      );
+      rerender(
+        <InvestigationHypotheses
+          investigationId="investigation-2"
+          phase="intake"
+          status="awaiting_input"
+        />
+      );
+
+      expect(
+        await screen.findByRole('textbox', {name: 'What should Seer investigate?'})
+      ).toHaveValue('');
+    });
+
+    describe('with fake timers', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+
+      afterEach(async () => {
+        try {
+          await act(() => jest.runOnlyPendingTimersAsync());
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      it('keeps re-reading the run until Seer takes the question', async () => {
+        const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+        MockApiClient.addMockResponse({url: orchestrationUrl, body: ParkedRunFixture()});
+        const commandRequest = mockProvideInput();
+
+        const {unmount} = renderHypotheses({phase: 'intake', status: 'awaiting_input'});
+
+        await user.type(
+          await screen.findByRole('textbox', {name: 'What should Seer investigate?'}),
+          question
+        );
+        await user.click(screen.getByRole('button', {name: 'Start investigation'}));
+        await waitFor(() => expect(commandRequest).toHaveBeenCalled());
+
+        // Long after the question was accepted the run is still parked, and
+        // nothing but the question keeps the query on its interval.
+        await act(() => jest.advanceTimersByTimeAsync(32_000));
+        const started = MockApiClient.addMockResponse({
+          url: orchestrationUrl,
+          body: InvestigationOrchestrationFixture({
+            phase: 'broad_scan',
+            status: 'processing',
+            sourceType: 'manual',
+            hypotheses: [],
+            workflowVersion: 4,
+          }),
+        });
+        await act(() => jest.advanceTimersByTimeAsync(2000));
+        expect(started).toHaveBeenCalled();
+
+        await waitFor(() =>
+          expect(screen.getByTestId('seer-status-block')).toHaveAttribute(
+            'data-variant',
+            'running'
+          )
+        );
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+
+        // The running block's clock ticks forever; leave nothing for the
+        // timers to replay once the test is done.
+        unmount();
+      }, 15_000);
+
+      it('stops re-reading a run that waits again after taking the question', async () => {
+        const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+        MockApiClient.addMockResponse({url: orchestrationUrl, body: ParkedRunFixture()});
+        const commandRequest = mockProvideInput();
+
+        renderHypotheses({phase: 'intake', status: 'awaiting_input'});
+
+        await user.type(
+          await screen.findByRole('textbox', {name: 'What should Seer investigate?'}),
+          question
+        );
+        await user.click(screen.getByRole('button', {name: 'Start investigation'}));
+        await waitFor(() => expect(commandRequest).toHaveBeenCalled());
+
+        MockApiClient.addMockResponse({
+          url: orchestrationUrl,
+          body: InvestigationOrchestrationFixture({
+            phase: 'broad_scan',
+            status: 'processing',
+            sourceType: 'manual',
+            hypotheses: [],
+            workflowVersion: 4,
+          }),
+        });
+        await act(() => jest.advanceTimersByTimeAsync(2000));
+
+        // Parked again, this time for a viewer session Seer needs renewed. That
+        // has nothing to do with the question, which landed long ago.
+        const parkedAgain = MockApiClient.addMockResponse({
+          url: orchestrationUrl,
+          body: InvestigationOrchestrationFixture({
+            phase: 'broad_scan',
+            status: 'awaiting_input',
+            sourceType: 'manual',
+            hypotheses: [],
+            workflowVersion: 4,
+            pendingInput: null,
+            errors: [
+              {
+                code: 'viewer_reauthentication_required',
+                message:
+                  'Investigation needs a fresh viewer session before it can continue.',
+                retryable: true,
+              },
+            ],
+          }),
+        });
+        // Past the window an accepted command keeps the query polling for.
+        await act(() => jest.advanceTimersByTimeAsync(32_000));
+        const callsWhileParked = parkedAgain.mock.calls.length;
+        expect(callsWhileParked).toBeGreaterThan(0);
+
+        await act(() => jest.advanceTimersByTimeAsync(10_000));
+        expect(parkedAgain.mock.calls).toHaveLength(callsWhileParked);
+      }, 15_000);
+    });
   });
 });

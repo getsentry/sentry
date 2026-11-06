@@ -1,18 +1,21 @@
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconDelete, IconEdit} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
 import {
   ProviderLabels,
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
+
+import {DataForwarderDeleteConfirm} from './dataForwarderDeleteConfirm';
 
 export function DataForwarderRow({
   dataForwarder,

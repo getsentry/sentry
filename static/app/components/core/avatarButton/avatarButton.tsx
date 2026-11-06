@@ -1,20 +1,20 @@
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconUser} from '@sentry/icons/user';
 import type {DistributedOmit} from 'type-fest';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
-import type {ButtonProps} from '@sentry/scraps/button';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
-
-import {IconUser} from 'sentry/icons';
 
 import {useAvatarColors} from './useAvatarColors';
 
 type AvatarButtonSize = 'xs' | 'sm' | 'md';
-type AvatarTriggerProps = React.ComponentProps<typeof OverlayTrigger.Button> &
-  Pick<ButtonProps, 'onClick'>;
+type AvatarTriggerProps = Omit<
+  React.ComponentProps<typeof OverlayTrigger.Button>,
+  'onClick'
+>;
 
 interface AvatarButtonProps extends Omit<
   AvatarTriggerProps,
@@ -136,7 +136,6 @@ const AvatarContainer = styled('div')<{
   height: 100%;
   overflow: hidden;
   border: 1px ${p => p.borderStyle} ${p => p.borderColor};
-  will-change: transform;
   border-radius: ${p =>
     p.round
       ? '50%'

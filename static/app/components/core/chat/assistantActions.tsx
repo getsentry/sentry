@@ -1,8 +1,9 @@
-import {Button, ButtonBar, type ButtonBarProps} from '@sentry/scraps/button';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconThumb} from '@sentry/icons/thumb';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {IconThumb} from 'sentry/icons';
+import {Button, ButtonBar, type ButtonBarProps} from '@sentry/scraps/button';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 type AssistantFeedback = 'positive' | 'negative';
 
@@ -65,6 +66,7 @@ export function AssistantActions({
         <CopyToClipboardButton
           aria-label={t('Copy to clipboard')}
           text={copyText}
+          icon={<IconCopy />}
           tooltipProps={{title: t('Copy to clipboard')}}
           onCopy={onCopy}
           onClick={e => {

@@ -1,16 +1,17 @@
+import {IconStar} from '@sentry/icons/star';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 
+import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
 import {SavedQueryLink, type SavedQueryData} from './savedQueryLink';
 
 export default function SavedQueryBlock({data}: {data: SavedQueryData}) {

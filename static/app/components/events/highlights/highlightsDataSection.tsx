@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -9,18 +10,11 @@ import {useModal} from '@sentry/scraps/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
-import {getContextMeta} from 'sentry/components/events/contexts/utils';
+import {getContextMeta} from 'sentry/components/events/contexts/dataUtils';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import {EditHighlightsModal} from 'sentry/components/events/highlights/editHighlightsModal';
-import {
-  EMPTY_HIGHLIGHT_DEFAULT,
-  getHighlightContextData,
-  getHighlightTagData,
-} from 'sentry/components/events/highlights/util';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {KeyValueColumns, KeyValueRow} from 'sentry/components/tables/keyValueTable';
-import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject, Project} from 'sentry/types/project';
@@ -32,6 +26,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {EditHighlightsModal} from './editHighlightsModal';
+import {
+  EMPTY_HIGHLIGHT_DEFAULT,
+  getHighlightContextData,
+  getHighlightTagData,
+} from './util';
 
 interface HighlightsDataSectionProps {
   event: Event;

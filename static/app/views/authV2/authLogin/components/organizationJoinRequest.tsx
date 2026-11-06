@@ -1,5 +1,7 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconMegaphone} from '@sentry/icons/megaphone';
 import {useMutation} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 import {z} from 'zod';
@@ -8,9 +10,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {IconArrow, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -109,7 +110,7 @@ function JoinRequestForm({
       onSuccess();
     },
     onError: () => {
-      addErrorMessage(t('Could not send request. Try again.'));
+      toast.error(t('Could not send request. Try again.'));
     },
   });
 

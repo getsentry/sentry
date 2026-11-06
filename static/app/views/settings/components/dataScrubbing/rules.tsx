@@ -1,11 +1,12 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Button} from '@sentry/scraps/button';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {Rule} from './types';

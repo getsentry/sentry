@@ -1,11 +1,12 @@
 import {Alert} from '@sentry/scraps/alert';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import {CodeBlockWrapper} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
+
+import {CodeBlockWrapper} from './insightInfoModal';
 
 const STRIP_SINGLE_BINARY = 'strip -rSTx AppBinary -o AppBinaryStripped';
 

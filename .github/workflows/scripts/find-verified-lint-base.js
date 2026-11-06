@@ -1,5 +1,9 @@
 import {execFileSync} from 'node:child_process';
 
+// A passing ratchet can carry stale budgets above live debt, so only this step proves
+// that committed budgets can stand in for scanning the base.
+export const EXACT_BUDGETS_STEP = 'Verify exact lint budgets';
+
 export async function findVerifiedLintBase({github, context, core}) {
   const git = args =>
     execFileSync('git', args, {
@@ -51,7 +55,7 @@ export async function findVerifiedLintBase({github, context, core}) {
             job.name === 'oxlint' &&
             job.head_sha === run.head_sha &&
             job.steps?.some(
-              step => step.name === 'Verify lint ratchet' && step.conclusion === 'success'
+              step => step.name === EXACT_BUDGETS_STEP && step.conclusion === 'success'
             )
         )
       ) {

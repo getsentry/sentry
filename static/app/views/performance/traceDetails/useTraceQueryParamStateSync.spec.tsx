@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 
-import {act, render} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
@@ -18,14 +19,31 @@ function Probe({disabled}: {disabled?: boolean}) {
   return null;
 }
 
+function ClearingProbe() {
+  const [search, setSearch] = useState<string | undefined>('db');
+  useTraceQueryParamStateSync({search});
+
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
+    setSearch(undefined);
+  }, []);
+
+  return null;
+}
+
 describe('useTraceQueryParamStateSync', () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    setWindowLocation('http://localhost/');
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    try {
+      cleanup();
+      jest.runOnlyPendingTimers();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('syncs changed state into the query string', async () => {
@@ -43,5 +61,15 @@ describe('useTraceQueryParamStateSync', () => {
     await act(() => jest.runAllTimersAsync());
 
     expect(router.location.query).not.toHaveProperty('search');
+  });
+
+  it('removes the key and keeps other params when the state is cleared', async () => {
+    setWindowLocation('http://localhost/trace/?search=db&keep=1');
+    const {router} = render(<ClearingProbe />);
+
+    await act(() => jest.runAllTimersAsync());
+
+    expect(router.location.pathname).toBe('/trace/');
+    expect(router.location.query).toEqual({keep: '1'});
   });
 });

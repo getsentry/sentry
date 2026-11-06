@@ -5,6 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
+import {useInitialDetectorDraft} from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {
   ProjectEnvironmentSection,
@@ -14,24 +15,26 @@ import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/commo
 import {useStepCounter} from 'sentry/views/detectors/components/forms/common/useStepCounter';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
-import {ConnectedTestUptimeMonitorButton} from 'sentry/views/detectors/components/forms/uptime/connectedTestUptimeMonitorButton';
-import {UptimeDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/uptime/detect';
-import {
-  uptimeFormDataToEndpointPayload,
-  uptimeSavedDetectorToFormData,
-} from 'sentry/views/detectors/components/forms/uptime/fields';
-import {formatUptimeUrl} from 'sentry/views/detectors/components/forms/uptime/formatUptimeUrl';
-import {PreviewSection} from 'sentry/views/detectors/components/forms/uptime/previewSection';
-import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
-import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
-import {UptimeIssuePreview} from 'sentry/views/detectors/components/forms/uptime/uptimeIssuePreview';
-import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
 import {createMapFormErrors} from 'sentry/views/detectors/components/uptime/formErrors';
 import {
   PreviewCheckResultProvider,
   usePreviewCheckResult,
 } from 'sentry/views/detectors/components/uptime/previewCheckContext';
 import {useUptimeAssertionFeatures} from 'sentry/views/detectors/components/uptime/useUptimeAssertionFeatures';
+
+import {ConnectedTestUptimeMonitorButton} from './connectedTestUptimeMonitorButton';
+import {UptimeDetectorFormDetectSection} from './detect';
+import {uptimeFormDataToEndpointPayload, uptimeSavedDetectorToFormData} from './fields';
+import {formatUptimeUrl} from './formatUptimeUrl';
+import {PreviewSection} from './previewSection';
+import {UptimeRegionWarning} from './regionWarning';
+import {UptimeDetectorResolveSection} from './resolve';
+import {
+  getUptimeDuplicateFormData,
+  UPTIME_DETECTOR_DRAFT_SCHEMA,
+} from './uptimeDraftConfig';
+import {UptimeIssuePreview} from './uptimeIssuePreview';
+import {UptimeDetectorVerificationSection} from './verification';
 
 const ENVIRONMENT_CONFIG: EnvironmentConfig = {
   includeAllEnvironments: false,
@@ -92,13 +95,17 @@ function NewUptimeDetectorFormContent({
 }) {
   const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
   const previewCheckResult = usePreviewCheckResult();
+  const draft = useInitialDetectorDraft();
 
   return (
     <NewDetectorLayout
       detectorType="uptime_domain_failure"
+      draftSchema={UPTIME_DETECTOR_DRAFT_SCHEMA}
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       initialFormData={
-        duplicateDetector ? uptimeSavedDetectorToFormData(duplicateDetector) : {}
+        duplicateDetector
+          ? getUptimeDuplicateFormData(duplicateDetector, draft ?? undefined)
+          : {}
       }
       extraFooterButton={
         hasRuntimeAssertions ? <ConnectedTestUptimeMonitorButton /> : undefined

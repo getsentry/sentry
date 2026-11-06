@@ -10,14 +10,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {
-  isPreferredAgentProvider,
-  parseAgentOption,
-} from 'sentry/utils/seer/preferredAgent';
+import {encodeSort} from 'sentry/utils/queryString';
+
+import {isPreferredAgentProvider, parseAgentOption} from './preferredAgent';
 import type {
   PreferredAgentProvider,
   SeerProjectSettingResponse,
@@ -25,7 +23,7 @@ import type {
   SeerBulkProjectSettingUpdatePayload,
   AutofixAgentSelectOption,
   AgentIntegration,
-} from 'sentry/utils/seer/types';
+} from './types';
 
 export const seerProjectSettingsSchema = z.object({
   agentOption: z.custom<AutofixAgentSelectOption>(value => {

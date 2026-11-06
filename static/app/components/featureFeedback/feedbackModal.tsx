@@ -1,5 +1,5 @@
 import {createContext, Fragment, useCallback, useContext, useMemo, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import type {Event} from '@sentry/core';
 import {
   BrowserClient,
@@ -14,10 +14,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {TextArea} from '@sentry/scraps/textarea';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Data} from 'sentry/components/forms/types';
@@ -27,7 +27,6 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -90,7 +89,6 @@ type FeedbackModalContextValue = {
   closeModal: () => void;
   handleSubmit: (submitEventData?: Event) => void;
   isCustomChildren: boolean;
-  isScreenSmall: boolean;
   isSelfHosted: boolean;
   state: Data;
 };
@@ -129,7 +127,7 @@ function FeedbackModalFooter({
   primaryDisabledReason,
   secondaryAction,
 }: FooterProps) {
-  const {Footer, closeModal, handleSubmit, isScreenSmall, isCustomChildren, state} =
+  const {Footer, closeModal, handleSubmit, isCustomChildren, state} =
     useFeedbackModalContext();
   return (
     <Footer>
@@ -159,7 +157,7 @@ function FeedbackModalFooter({
             isCustomChildren ? defined(primaryDisabledReason) : !defined(state.subject)
           }
         >
-          {onNext ? t('Next') : isScreenSmall ? t('Submit') : t('Submit Feedback')}
+          {onNext ? t('Next') : t('Submit')}
         </Button>
       </Grid>
     </Footer>
@@ -211,7 +209,6 @@ export function FeedbackModal<T extends Data>({
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
 
-  const theme = useTheme();
   const user = useUser();
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const [state, setState] = useState(
@@ -219,7 +216,6 @@ export function FeedbackModal<T extends Data>({
       ? ({subject: undefined, additionalInfo: undefined} as unknown as T)
       : props.initialData
   );
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const project = useMemo(() => {
     if (projectsLoaded && location.query.project) {
@@ -292,7 +288,7 @@ export function FeedbackModal<T extends Data>({
         }
       }
 
-      addSuccessMessage(t('Thanks for taking the time to provide us feedback!'));
+      toast.success(t('Thanks for taking the time to provide us feedback!'));
       closeModal();
     },
     [
@@ -320,21 +316,10 @@ export function FeedbackModal<T extends Data>({
       closeModal,
       handleSubmit,
       isSelfHosted,
-      isScreenSmall,
       isCustomChildren: props.children !== undefined,
       state,
     }),
-    [
-      Header,
-      Body,
-      Footer,
-      closeModal,
-      handleSubmit,
-      isSelfHosted,
-      isScreenSmall,
-      props.children,
-      state,
-    ]
+    [Header, Body, Footer, closeModal, handleSubmit, isSelfHosted, props.children, state]
   );
 
   if (props.children === undefined) {

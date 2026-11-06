@@ -1,6 +1,9 @@
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
+
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCopyId, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -12,11 +15,12 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/traceDetails/traceApi/utils';
-import {getTraceViewParentCrumbs} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {useAdjacentTraceNavigation} from 'sentry/views/performance/traceDetails/traceLinksNavigation/useAdjacentTraceNavigation';
 import {useTraceEventView} from 'sentry/views/performance/traceDetails/useTraceEventView';
 import {useTraceExploreTarget} from 'sentry/views/performance/traceDetails/useTraceExploreTarget';
 import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+
+import {getTraceViewParentCrumbs} from './breadcrumbs';
 
 const COPY_ID_LABEL = t('Copy trace ID to clipboard');
 
@@ -58,6 +62,7 @@ function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
   // Both lookups run unconditionally to keep hook order stable. Without
   // attributes they resolve to a disabled query.
   const attributes = hasTraceAttributes ? rootEvent.attributes : [];
+  const links = hasTraceAttributes ? rootEvent.links : undefined;
   const currentTraceStartTimestamp = hasTraceAttributes
     ? new Date(rootEvent.timestamp).getTime() / 1000
     : 0;
@@ -65,11 +70,13 @@ function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
   const previous = useAdjacentTraceNavigation({
     direction: 'previous',
     attributes,
+    links,
     currentTraceStartTimestamp,
   });
   const next = useAdjacentTraceNavigation({
     direction: 'next',
     attributes,
+    links,
     currentTraceStartTimestamp,
   });
 

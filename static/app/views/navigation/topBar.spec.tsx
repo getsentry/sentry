@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import {IconStack} from '@sentry/icons/stack';
 import {expectTypeOf} from 'expect-type';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -9,8 +10,6 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {IconStack} from 'sentry/icons';
-
 import {TopBar} from './topBar';
 
 const theme = ThemeFixture();
@@ -19,8 +18,8 @@ jest.mock('sentry/utils/useFeedbackForm', () => ({
   useFeedbackForm: () => jest.fn(),
 }));
 
-jest.mock('sentry/views/seerExplorer/utils', () => ({
-  ...jest.requireActual('sentry/views/seerExplorer/utils'),
+jest.mock('sentry/utils/seer/isSeerExplorerEnabled', () => ({
+  ...jest.requireActual('sentry/utils/seer/isSeerExplorerEnabled'),
   isSeerExplorerEnabled: () => true,
 }));
 

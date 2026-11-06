@@ -1,13 +1,14 @@
 import {css} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,11 +51,6 @@ function OnboardingSkipModal({
       value: 'docs',
       label: t("I'll read the docs myself"),
       description: t('I prefer to set things up at my own pace.'),
-    },
-    {
-      value: 'marketing',
-      label: t('I thought the onboarding was marketing junk'),
-      description: t("I didn't realize this was where I connect my code."),
     },
     {
       value: 'just_skip',

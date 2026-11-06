@@ -4,7 +4,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -25,10 +27,11 @@ import {
   useQueryParamsFields,
   useQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
-import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import {SpansQueryParamsProvider} from './spansQueryParamsProvider';
+import {SpansTabContent} from './spansTab';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -175,6 +178,116 @@ describe('SpansTabContent', () => {
       ],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
+  });
+
+  it('keeps Save beside the search controls when the sidebar is collapsed', async () => {
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+    });
+
+    const save = await screen.findByRole('button', {name: 'Save as'});
+    expect(screen.getByTestId('explore-span-toolbar')).not.toContainElement(save);
+    expect(screen.queryByRole('link', {name: /Compare/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Compare'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse sidebar'}));
+
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save as'})).toBeVisible();
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeInTheDocument();
+    localStorage.removeItem('explore-spans-toolbar');
+  });
+
+  it('allows query saves when a hidden sibling has transformations', async () => {
+    renderGlobalModal({organization, additionalWrapper: Wrapper});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
+    });
+    const {router} = render(
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              aggregateField: [
+                JSON.stringify({yAxes: ['count(span.duration)']}),
+                JSON.stringify({
+                  yAxes: ['avg(span.duration)'],
+                  transformations: ['fill(locf)', 'smooth(sma,5)'],
+                  visible: false,
+                }),
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByRole('button', {name: 'Save as'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitemradio', {name: 'Create a Monitor'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Dashboard widget'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'New Query'}));
+    expect(
+      await screen.findByPlaceholderText('Enter a name for your new query')
+    ).toBeVisible();
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    act(() => {
+      router.navigate('/organizations/org-slug/explore/traces/');
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled()
+    );
+    expect(screen.getByRole('button', {name: 'Chart actions'})).toBeEnabled();
+    expect(await screen.findByText(/No spans found/)).toBeInTheDocument();
+  });
+
+  it('shows the spans table timeout message', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 400,
+      body: {
+        detail:
+          'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.',
+      },
+    });
+
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
   });
 
   it('should fire analytics once per change', async () => {

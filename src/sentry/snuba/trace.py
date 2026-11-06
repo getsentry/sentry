@@ -2,9 +2,12 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Annotated, Any, Literal, NotRequired, TypedDict, cast
+
+from sentry_sdk import traces
 
 from sentry import options
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -46,7 +49,9 @@ from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.utils.numbers import base32_encode
 from sentry.utils.snuba import bulk_snuba_queries
 from sentry.utils.snuba_rpc import table_rpc
-from sentry.utils.tracing import set_span_data, start_span, trace
+
+if TYPE_CHECKING:
+    from sentry_sdk._types import AttributeValue as SpanAttributeValue
 
 # Mostly here for testing
 ERROR_LIMIT = 10_000
@@ -56,59 +61,128 @@ class SerializedEvent(TypedDict):
     """Fields shared by every item in a trace. Entries in `children` are full
     spans at runtime; only the shared fields are documented here."""
 
-    description: str
-    event_id: str
-    project_id: int
-    project_slug: str
-    transaction: str
+    description: Annotated[
+        str,
+        ApiDescription(
+            "Description of the item: the span description, the issue title or the error message"
+        ),
+    ]
+    event_id: Annotated[str, ApiDescription("ID of the item")]
+    project_id: Annotated[int, ApiDescription("ID of the project the item belongs to")]
+    project_slug: Annotated[str, ApiDescription("Slug of the project the item belongs to")]
+    transaction: Annotated[str, ApiDescription("Name of the transaction the item belongs to")]
 
 
 class SerializedIssue(SerializedEvent):
-    event_type: Literal["error", "occurrence"]
-    issue_id: int
-    level: str
-    start_timestamp: float
-    end_timestamp: NotRequired[float]
-    culprit: str | None
-    short_id: str | None
-    issue_type: int
+    event_type: Annotated[
+        Literal["error", "occurrence"], ApiDescription("Kind of issue item: error or occurrence")
+    ]
+    issue_id: Annotated[int, ApiDescription("ID of the issue")]
+    level: Annotated[str, ApiDescription("Level of the issue, such as error or warning")]
+    start_timestamp: Annotated[
+        float,
+        ApiDescription("When the error or occurrence started, as a Unix timestamp in seconds"),
+    ]
+    end_timestamp: NotRequired[
+        Annotated[
+            float,
+            ApiDescription(
+                "When the occurrence ended, as a Unix timestamp in seconds. Only set for occurrences"
+            ),
+        ]
+    ]
+    culprit: Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
+    short_id: Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    issue_type: Annotated[int, ApiDescription("Numeric issue type ID")]
 
 
 class SerializedSpan(SerializedEvent):
-    event_type: Literal["span"]
-    children: list[SerializedEvent]
-    errors: list[SerializedIssue]
-    occurrences: list[SerializedIssue]
-    duration: float
-    end_timestamp: float
-    measurements: dict[str, float]
-    browser_web_vital: dict[str, float]
-    mobile_app_vital: dict[str, float]
-    op: str
-    name: str
-    parent_span_id: str | None
-    profile_id: str
-    profiler_id: str
-    sdk_name: str
-    start_timestamp: float
-    is_transaction: bool
-    transaction_id: str
-    additional_attributes: NotRequired[dict[str, Any]]
+    event_type: Annotated[Literal["span"], ApiDescription("Kind of item, always span")]
+    children: Annotated[
+        list[SerializedEvent], ApiDescription("Child items of the item, such as spans")
+    ]
+    errors: Annotated[list[SerializedIssue], ApiDescription("Errors linked to the item")]
+    occurrences: Annotated[
+        list[SerializedIssue],
+        ApiDescription(
+            "Non-error issue occurrences, such as performance issues, linked to the item"
+        ),
+    ]
+    duration: Annotated[float, ApiDescription("Duration of the span in milliseconds")]
+    end_timestamp: Annotated[
+        float, ApiDescription("When the span ended, as a Unix timestamp in seconds")
+    ]
+    measurements: Annotated[
+        dict[str, float],
+        ApiDescription("Measurements recorded on the span, keyed by measurements.<name>"),
+    ]
+    browser_web_vital: Annotated[
+        dict[str, float],
+        ApiDescription(
+            "Browser web vitals recorded on the span, keyed by browser.web_vital.<name>"
+        ),
+    ]
+    mobile_app_vital: Annotated[
+        dict[str, float],
+        ApiDescription("Mobile app vitals recorded on the span, keyed by app.vitals.<name>"),
+    ]
+    op: Annotated[str, ApiDescription("Operation of the span, such as http.client or db")]
+    name: Annotated[str, ApiDescription("Name of the span")]
+    parent_span_id: Annotated[
+        str | None, ApiDescription("ID of the parent span. Null for root spans")
+    ]
+    profile_id: Annotated[str, ApiDescription("ID of the transaction profile linked to the span")]
+    profiler_id: Annotated[
+        str, ApiDescription("ID of the continuous profiling session linked to the span")
+    ]
+    sdk_name: Annotated[str, ApiDescription("Name of the SDK that sent the span")]
+    start_timestamp: Annotated[
+        float, ApiDescription("When the span started, as a Unix timestamp in seconds")
+    ]
+    is_transaction: Annotated[
+        bool, ApiDescription("Whether the span is a transaction (segment) span")
+    ]
+    transaction_id: Annotated[
+        str, ApiDescription("ID of the transaction event the span belongs to")
+    ]
+    additional_attributes: NotRequired[
+        Annotated[
+            dict[str, Any],
+            ApiDescription(
+                "Extra span attributes requested with additional_attributes, keyed by attribute name"
+            ),
+        ]
+    ]
 
 
 class SerializedUptimeCheck(SerializedEvent):
-    event_type: Literal["uptime_check"]
-    children: list[SerializedEvent]
-    errors: list[SerializedIssue]
-    occurrences: list[SerializedIssue]
-    transaction_id: str
-    op: str
-    start_timestamp: float
-    end_timestamp: float
-    duration: float
-    name: str
-    region_name: str
-    additional_attributes: dict[str, Any]
+    event_type: Annotated[
+        Literal["uptime_check"], ApiDescription("Kind of item, always uptime_check")
+    ]
+    children: Annotated[
+        list[SerializedEvent], ApiDescription("Child items of the item, such as spans")
+    ]
+    errors: Annotated[list[SerializedIssue], ApiDescription("Errors linked to the item")]
+    occurrences: Annotated[
+        list[SerializedIssue],
+        ApiDescription(
+            "Non-error issue occurrences, such as performance issues, linked to the item"
+        ),
+    ]
+    transaction_id: Annotated[str, ApiDescription("ID of the trace the uptime check belongs to")]
+    op: Annotated[str, ApiDescription("Operation of the uptime check, always uptime.request")]
+    start_timestamp: Annotated[
+        float, ApiDescription("When the uptime check started, as a Unix timestamp in seconds")
+    ]
+    end_timestamp: Annotated[
+        float, ApiDescription("When the uptime check ended, as a Unix timestamp in seconds")
+    ]
+    duration: Annotated[float, ApiDescription("Duration of the uptime check in milliseconds")]
+    name: Annotated[str, ApiDescription("URL the uptime check requested")]
+    region_name: Annotated[str, ApiDescription("Region the uptime check ran from")]
+    additional_attributes: Annotated[
+        dict[str, Any], ApiDescription("Extra uptime check attributes, keyed by attribute name")
+    ]
 
 
 SerializedTraceItem = SerializedSpan | SerializedIssue | SerializedUptimeCheck
@@ -356,7 +430,7 @@ def _process_errors_query(
     return error_data
 
 
-@trace
+@traces.trace
 def _run_errors_query(
     errors_query: DiscoverQueryBuilder,
     referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
@@ -512,7 +586,7 @@ def _process_perf_issues_query(
     return result
 
 
-@trace
+@traces.trace
 def _run_perf_issues_query(
     occurrence_query: DiscoverQueryBuilder,
     referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
@@ -521,7 +595,7 @@ def _run_perf_issues_query(
     return _process_perf_issues_query(occurrence_query, snuba_result)
 
 
-@trace
+@traces.trace
 def get_issues_by_span_for_traces(
     snuba_params: SnubaParams,
     trace_ids: Sequence[str],
@@ -731,7 +805,7 @@ def _serialize_columnar_uptime_item(
     return uptime_check
 
 
-@trace
+@traces.trace
 def query_trace_data(
     snuba_params: SnubaParams,
     trace_id: str,
@@ -869,17 +943,24 @@ def query_trace_data(
 
     id_to_span = {event["id"]: event for event in spans_data}
     id_to_error: dict[str, Any] = {}
-    for event in errors_data:
-        id_to_error.setdefault(event["trace.span"], []).append(event)
+    for error_event in errors_data:
+        id_to_error.setdefault(error_event["trace.span"], []).append(error_event)
     id_to_occurrence = defaultdict(list)
-    with start_span(op="process.occurrence_data", name="process.occurrence_data") as sdk_span:
+    with traces.start_span(
+        name="process.occurrence_data", attributes={"sentry.op": "process.occurrence_data"}
+    ) as sdk_span:
         for event in occurrence_data:
             offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])
             if len(offender_span_ids) == 0:
-                set_span_data(sdk_span, "evidence_data.empty", event["occurrence"].evidence_data)
+                sdk_span.set_attribute(
+                    "evidence_data.empty",
+                    cast("SpanAttributeValue", event["occurrence"].evidence_data),
+                )
             for span_id in offender_span_ids:
                 id_to_occurrence[span_id].append(event)
-    with start_span(op="process.trace_data", name="process.trace_data"):
+    with traces.start_span(
+        name="process.trace_data", attributes={"sentry.op": "process.trace_data"}
+    ):
         # calculate min & max start as a metric then log as a metric to see if we need to adjust
         # performance.traces.transaction_query_timebuffer_days
         span_min_ts = None
@@ -946,11 +1027,13 @@ def query_trace_data(
             for attr in metric_only_attributes:
                 span.pop(attr, None)
 
-    with start_span(op="process.errors_data", name="process.errors_data"):
+    with traces.start_span(
+        name="process.errors_data", attributes={"sentry.op": "process.errors_data"}
+    ):
         for errors in id_to_error.values():
             result.extend(errors)
     group_cache: dict[int, Group] = {}
-    with start_span(op="serializing_data", name="serializing_data"):
+    with traces.start_span(name="serializing_data", attributes={"sentry.op": "serializing_data"}):
         return [
             event
             for event in [

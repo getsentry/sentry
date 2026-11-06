@@ -1,8 +1,9 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, call, patch
 from uuid import uuid4
 
+import pytest
 from django.urls import reverse
 from urllib3.exceptions import ReadTimeoutError
 
@@ -13,6 +14,9 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import 
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.project import Project
+from sentry.search.events.types import SnubaParams
+from sentry.services.eventstore.models import Event
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
@@ -58,6 +62,25 @@ def test_conversation_probe_fetches_only_span_id() -> None:
     assert run_query.call_args.kwargs["offset"] == 0
     assert run_query.call_args.kwargs["limit"] == 1
     assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
+def test_conversation_probes_use_disjoint_windows() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    now = before_now()
+
+    with patch.object(
+        endpoint, "_conversation_exists", side_effect=[False, False, True]
+    ) as conversation_exists:
+        resolved = endpoint._resolve_time_window(SnubaParams(), None, now, "conversation-id")
+
+    assert resolved.start == now - timedelta(days=30)
+    assert [
+        (probe.args[0].start, probe.args[0].end) for probe in conversation_exists.mock_calls
+    ] == [
+        (now - timedelta(days=7), now),
+        (now - timedelta(days=14), now - timedelta(days=7)),
+        (now - timedelta(days=30), now - timedelta(days=14)),
+    ]
 
 
 def test_parent_repair_uses_spans_from_page() -> None:
@@ -372,7 +395,12 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             == f"/api/0/organizations/{self.organization.slug}/agents/conversations/{conversation_id}/"
         )
 
-    def do_request(self, conversation_id, query=None, **kwargs):
+    def do_request(
+        self,
+        conversation_id: str,
+        query: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Any:
         query = query or {}
 
         return self.client.get(
@@ -388,7 +416,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             **kwargs,
         )
 
-    def _store_conversation_span(self, conversation_id, timestamp, project=None) -> None:
+    def _store_conversation_span(
+        self, conversation_id: str, timestamp: datetime, project: Project | None = None
+    ) -> None:
         """One minimal span, enough for the conversation to resolve to a project."""
         self.store_ai_span(
             conversation_id=conversation_id,
@@ -860,6 +890,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             trace_id=trace_id,
             tool_name="search_database",
             tool_result="found 3 rows",
+            tool_result_size=4096,
             tool_output="tool output payload",
         )
 
@@ -878,6 +909,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
         assert span["gen_ai.tool.call.result"] == "found 3 rows"
+        assert span["gen_ai.tool.call.result.size"] == 4096
         assert "gen_ai.tool.output" not in span
 
     def test_returns_embeddings_attributes(self) -> None:
@@ -1019,7 +1051,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert ai_client_span["gen_ai.usage.total_tokens"] == 100
         assert ai_client_span["gen_ai.cost.total_tokens"] == 0.01
 
-    def test_returns_full_conversation_stats_on_each_page(self) -> None:
+    def test_returns_full_conversation_stats_on_first_page(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
@@ -1037,6 +1069,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             cost=0.01,
             input_cost=0.006,
             output_cost=0.004,
+            cache_read_cost=0.001,
+            cache_write_cost=0.002,
+            reasoning_cost=0.003,
             request_model="requested-model-a",
             response_model="model-a",
             trace_id=trace_id,
@@ -1054,6 +1089,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             cost=0.02,
             input_cost=0.012,
             output_cost=0.008,
+            cache_read_cost=0.002,
+            cache_write_cost=0.004,
+            reasoning_cost=0.006,
             request_model="model-b",
             trace_id=trace_id,
         )
@@ -1065,6 +1103,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             tool_name="database",
             status="internal_error",
             trace_id=trace_id,
+            cache_read_cost=1.0,
+            cache_write_cost=2.0,
+            reasoning_cost=3.0,
         )
 
         query: dict[str, Any] = {
@@ -1078,12 +1119,18 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 1
         expected_stats = {
+            "cacheReadTokens": 30,
+            "cacheWriteTokens": 15,
             "endTimestamp": int(now.timestamp() * 1000),
+            "cacheReadCost": pytest.approx(0.003),
+            "cacheWriteCost": pytest.approx(0.006),
+            "reasoningCost": pytest.approx(0.009),
             "errors": 1,
             "errorToolNames": ["database"],
             "inputTokens": 190,
             "llmCalls": 2,
             "outputTokens": 110,
+            "reasoningTokens": 12,
             "startTimestamp": int((now - timedelta(seconds=2)).timestamp() * 1000),
             "toolCalls": 1,
             "toolErrors": 1,
@@ -1106,6 +1153,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 "reasoningTokens": 8,
                 "inputCost": 0.012,
                 "outputCost": 0.008,
+                "cacheReadCost": 0.002,
+                "cacheWriteCost": 0.004,
+                "reasoningCost": 0.006,
                 "totalCost": 0.02,
             },
             {
@@ -1119,6 +1169,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 "reasoningTokens": 4,
                 "inputCost": 0.006,
                 "outputCost": 0.004,
+                "cacheReadCost": 0.001,
+                "cacheWriteCost": 0.002,
+                "reasoningCost": 0.003,
                 "totalCost": 0.01,
             },
         ]
@@ -1126,12 +1179,59 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         links = parse_link_header(response.headers["Link"])
         query["cursor"] = next(link for link in links.values() if link["rel"] == "next")["cursor"]
-        next_response = self.do_request(conversation_id, query)
+        run_bulk_table_queries = Spans.run_bulk_table_queries
+        with patch.object(
+            Spans, "run_bulk_table_queries", side_effect=run_bulk_table_queries
+        ) as mock_run_bulk:
+            next_response = self.do_request(conversation_id, query)
 
         assert next_response.status_code == 200
-        next_stats = next_response.data["stats"]
-        assert {field: next_stats[field] for field in expected_stats} == expected_stats
-        assert next_stats["usageByModel"] == expected_usage_by_model
+        assert next_response.data["stats"] is None
+        assert len(mock_run_bulk.call_args.args[0]) == 1
+
+    def test_missing_cost_breakdowns_without_costs(self) -> None:
+        self._assert_missing_cost_breakdowns(None, None, None)
+
+    def test_missing_cost_breakdowns_with_sdk_costs(self) -> None:
+        self._assert_missing_cost_breakdowns(0.006, 0.004, 0.01)
+
+    def _assert_missing_cost_breakdowns(
+        self, input_cost: float | None, output_cost: float | None, total_cost: float | None
+    ) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            operation_type="ai_client",
+            request_model="model-a",
+            cache_read_tokens=10,
+            cache_write_tokens=5,
+            reasoning_tokens=4,
+            input_cost=input_cost,
+            output_cost=output_cost,
+            cost=total_cost,
+        )
+
+        response = self.do_request(
+            conversation_id,
+            {
+                "project": [self.project.id],
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+            },
+        )
+
+        assert response.status_code == 200
+        stats = response.data["stats"]
+        usage = stats["usageByModel"][0]
+        for breakdown in ("cacheReadCost", "cacheWriteCost", "reasoningCost"):
+            assert stats[breakdown] == 0
+            assert usage[breakdown] == 0
+        assert usage["inputCost"] == (input_cost or 0)
+        assert usage["outputCost"] == (output_cost or 0)
+        assert usage["totalCost"] == (total_cost or 0)
+        assert stats["totalCost"] == (total_cost or 0)
 
     def test_timeout_returns_504(self) -> None:
         conversation_id = uuid4().hex
@@ -1146,9 +1246,16 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         assert response.status_code == 504
 
-    def _store_error_on_span(self, trace_id, span_id, timestamp, project=None):
+    def _store_error_on_span(
+        self,
+        trace_id: str,
+        span_id: str,
+        timestamp: datetime,
+        project: Project | None = None,
+    ) -> Event:
         project = project or self.project
         error_data = load_data("javascript", timestamp=timestamp)
+        assert error_data is not None
         error_data["contexts"]["trace"] = {
             "type": "trace",
             "trace_id": trace_id,
@@ -1311,6 +1418,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         span_id = span["span_id"]
 
         event_data = load_data("transaction", timestamp=now)
+        assert event_data is not None
         event_data["contexts"]["trace"]["trace_id"] = trace_id
         event_data["contexts"]["trace"]["span_id"] = span_id
         event = self.store_event(event_data, project_id=self.project.id)

@@ -1,6 +1,9 @@
 from datetime import timedelta
 from unittest import mock
 
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
+
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
@@ -13,7 +16,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
-from sentry.workflow_engine.models import Action, DataConditionGroup
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
+from sentry.workflow_engine.models import Action, DataConditionGroup, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -41,10 +45,7 @@ class TestDetectorSerializer(TestCase):
             "dataSources": None,
             "conditionGroup": None,
             "workflowIds": [],
-            "config": {
-                "thresholdPeriod": 1,
-                "detectionType": "static",
-            },
+            "config": {"detectionType": "static"},
             "owner": None,
             "enabled": detector.enabled,
             "alertRuleId": None,
@@ -168,10 +169,7 @@ class TestDetectorSerializer(TestCase):
                 ],
             },
             "workflowIds": [str(workflow.id)],
-            "config": {
-                "thresholdPeriod": 1,
-                "detectionType": "static",
-            },
+            "config": {"detectionType": "static"},
             "owner": {
                 "email": self.user.email,
                 "id": str(self.user.id),
@@ -210,7 +208,6 @@ class TestDetectorSerializer(TestCase):
             name="Migrated Detector",
             type=MetricIssue.slug,
             config={
-                "threshold_period": 1,
                 "detection_type": "static",
                 "comparison_delta": 3600,
             },
@@ -242,3 +239,79 @@ class TestDetectorSerializer(TestCase):
 
         assert len(result) == 2
         assert all(d["name"] in ["Test Detector 0", "Test Detector 1"] for d in result)
+
+    def test_serialize_bulk_nested_actions_one(self) -> None:
+        self._assert_serialize_bulk_nested_actions(1)
+
+    def test_serialize_bulk_nested_actions_three(self) -> None:
+        self._assert_serialize_bulk_nested_actions(3)
+
+    def _assert_serialize_bulk_nested_actions(self, detector_count: int) -> None:
+        action = self.create_action(
+            type=Action.Type.EMAIL,
+            data={},
+            config={"target_identifier": "123", "target_type": ActionTarget.USER.value},
+        )
+        detectors = []
+        expected: list[dict[str, object]] = []
+        for _ in range(detector_count):
+            group = self.create_data_condition_group(organization=self.organization)
+            self.create_data_condition_group_action(condition_group=group, action=action)
+            detector = self.create_detector(
+                project=self.project,
+                type=MetricIssue.slug,
+                workflow_condition_group=group,
+            )
+            detectors.append(detector)
+            expected.append(
+                {
+                    "id": str(detector.id),
+                    "projectId": str(self.project.id),
+                    "name": detector.name,
+                    "description": None,
+                    "type": MetricIssue.slug,
+                    "createdBy": None,
+                    "dateCreated": detector.date_added,
+                    "dateUpdated": detector.date_updated,
+                    "dataSources": None,
+                    "conditionGroup": {
+                        "id": str(group.id),
+                        "organizationId": str(self.organization.id),
+                        "logicType": group.logic_type,
+                        "conditions": [],
+                        "actions": [
+                            {
+                                "id": str(action.id),
+                                "type": "email",
+                                "data": {},
+                                "integrationId": None,
+                                "config": {"targetType": "user", "targetIdentifier": "123"},
+                                "status": "active",
+                            }
+                        ],
+                    },
+                    "workflowIds": [],
+                    "config": {"detectionType": "static"},
+                    "owner": None,
+                    "enabled": True,
+                    "alertRuleId": None,
+                    "ruleId": None,
+                    "latestGroup": None,
+                }
+            )
+
+        detectors = list(
+            Detector.objects.filter(id__in=[detector.id for detector in detectors]).order_by("id")
+        )
+        serializer = DetectorSerializer()
+        connection = connections[router.db_for_read(Detector)]
+        with CaptureQueriesContext(connection) as queries:
+            attrs = serializer.get_attrs(detectors, self.user)
+        assert len(queries) == 7
+
+        with CaptureQueriesContext(connection) as queries:
+            result = [
+                serializer.serialize(detector, attrs[detector], self.user) for detector in detectors
+            ]
+        assert len(queries) == 0
+        assert result == expected

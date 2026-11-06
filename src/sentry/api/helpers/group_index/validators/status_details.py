@@ -58,13 +58,14 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
         project = self.context["project"]
         if value == "latest":
             try:
-                return (
+                release = (
                     Release.objects.filter(
                         projects=project, organization_id=project.organization_id
                     )
                     .extra(select={"sort": "COALESCE(date_released, date_added)"})
                     .order_by("-sort")[0]
                 )
+                return release
             except IndexError:
                 raise serializers.ValidationError(
                     "No release data present in the system to form a basis for 'Next Release'"
@@ -82,11 +83,12 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
     def validate_inNextRelease(self, value: bool) -> "Release":
         project = self.context["project"]
         try:
-            return (
+            release = (
                 Release.objects.filter(projects=project, organization_id=project.organization_id)
                 .extra(select={"sort": "COALESCE(date_released, date_added)"})
                 .order_by("-sort")[0]
             )
+            return release
         except IndexError:
             raise serializers.ValidationError(
                 "No release data present in the system to form a basis for 'Next Release'"

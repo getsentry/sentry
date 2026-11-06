@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -9,12 +10,12 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Placeholder} from 'sentry/components/placeholder';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
+
+import {LoadingIndicator} from './loadingIndicator';
+import {Placeholder} from './placeholder';
 
 type AssignmentSource =
   | 'codeowners'

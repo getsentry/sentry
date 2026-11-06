@@ -1,28 +1,23 @@
 import {Fragment, useState} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconInfo} from '@sentry/icons/info';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSubtract} from '@sentry/icons/subtract';
 import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import type {InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
 import {Grid, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
-import {getContextMeta} from 'sentry/components/events/contexts/utils';
+import {getOrderedContextItems} from 'sentry/components/events/contexts/contextItems';
+import {getContextMeta} from 'sentry/components/events/contexts/dataUtils';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import type {
-  HighlightContext,
-  HighlightTags,
-} from 'sentry/components/events/highlights/util';
-import {
-  getHighlightContextData,
-  getHighlightTagData,
-} from 'sentry/components/events/highlights/util';
-import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject} from 'sentry/types/project';
@@ -31,6 +26,9 @@ import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {HighlightContext, HighlightTags} from './util';
+import {getHighlightContextData, getHighlightTagData} from './util';
 
 export interface EditHighlightsModalProps extends ModalRenderProps {
   event: Event;
@@ -417,14 +415,14 @@ export function EditHighlightsModal({
                 {highlightContext, highlightTags},
                 {
                   onError: () => {
-                    addErrorMessage(
+                    toast.error(
                       tct("Failed to update '[projectName]' project", {
                         projectName: project.name,
                       })
                     );
                   },
                   onSuccess: () => {
-                    addSuccessMessage(
+                    toast.success(
                       tct("Successfully updated '[projectName]' project", {
                         projectName: project.name,
                       })

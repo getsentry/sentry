@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
-
-import {IconWarning} from 'sentry/icons';
+import {IconWarning} from '@sentry/icons/warning';
 
 const _OffsetContainer = styled('span')`
   position: relative;

@@ -1,4 +1,6 @@
 import {useMemo} from 'react';
+import {IconBot} from '@sentry/icons/bot';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -16,15 +18,14 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconBot} from 'sentry/icons/iconBot';
-import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+import {ArtifactCard} from './artifactCard';
+import {ArtifactDetails} from './artifactDetails';
+import {artifactToMarkdown} from './utils';
 
 interface CodingAgentsCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;

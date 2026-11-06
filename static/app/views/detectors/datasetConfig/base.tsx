@@ -19,11 +19,9 @@ import type {
   EventTypes,
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {
-  MetricDetectorInterval,
-  MetricDetectorTimePeriod,
-} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 import type {FieldValue} from 'sentry/views/discover/table/types';
+
+import type {MetricDetectorInterval, MetricDetectorTimePeriod} from './utils/timePeriods';
 
 export interface DetectorSearchBarProps {
   environment: string;
@@ -58,12 +56,6 @@ interface DetectorSeriesQueryOptions {
    */
   query: string;
   end?: string | null;
-  /**
-   * Extra query parameters to pass
-   */
-  extra?: {
-    useOnDemandMetrics: 'true';
-  };
   extrapolationMode?: ExtrapolationMode;
   start?: string | null;
   /**

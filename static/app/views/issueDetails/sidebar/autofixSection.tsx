@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -35,7 +36,6 @@ import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAuto
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -44,13 +44,14 @@ import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnaly
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
-import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
-import {Resources} from 'sentry/views/issueDetails/sidebar/resources';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useCurrentTab} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import type {AutofixContentProps} from './autofixSectionTypes';
+import {Resources} from './resources';
+import {useOpenSeerDrawer} from './seerDrawer';
 
 interface AutofixSectionProps {
   group: Group;
@@ -113,7 +114,7 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
   );
 }
 
-export const AutofixQuotaContent = registerLLMContext(
+const AutofixQuotaContent = registerLLMContext(
   'autofix',
   OverrideOrDefault({
     overrideName: 'component:ai-configure-seer-quota-sidebar',
@@ -185,16 +186,11 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
       isPending || aiConfig.isAutofixSetupLoading ? undefined : needProjSetup,
   });
 
-  if (
-    // waiting on the onboarding checks to load
-    isPending ||
-    // autofix results are loading
-    autofix.isLoading ||
-    // waiting for the ai configs to load
-    aiConfig.isAutofixSetupLoading ||
-    // we're polling and no blocks have been added yet
-    (autofix.isPolling && !autofix.runState?.blocks?.length)
-  ) {
+  const isLoadingRun =
+    autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
+  const showRunPlaceholder = isLoadingRun && !autofix.isWaitingForRun;
+
+  if (isPending || aiConfig.isAutofixSetupLoading || showRunPlaceholder) {
     return <Placeholder height="160px" />;
   }
 

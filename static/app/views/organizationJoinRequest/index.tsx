@@ -1,4 +1,5 @@
 import type {MouseEvent} from 'react';
+import {IconMegaphone} from '@sentry/icons/megaphone';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -6,10 +7,9 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
-import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -43,7 +43,7 @@ export default function OrganizationJoinRequest() {
       });
     },
     onError: () => {
-      addErrorMessage(t('Request to join failed'));
+      toast.error(t('Request to join failed'));
     },
   });
 

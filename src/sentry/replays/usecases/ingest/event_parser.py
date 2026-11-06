@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import random
 import uuid
 from collections.abc import Callable, Iterator, MutableMapping
@@ -10,12 +11,13 @@ from enum import Enum
 from typing import Any, Literal, TypedDict, TypeVar
 
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.logging.handlers import SamplingFilter
 from sentry.replays.lib.eap.write import Value, new_trace_item
 from sentry.utils import json
-from sentry.utils.tracing import trace
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.replays.event_parser")
 logger.addFilter(SamplingFilter(0.001))
@@ -66,6 +68,11 @@ class MutationEvent:
     payload: dict[str, Any]
 
 
+@dataclass
+class OptionsEvent:
+    payload: dict[str, Any]
+
+
 @dataclass(frozen=True)
 class ParsedEventMeta:
     canvas_sizes: list[int]
@@ -73,7 +80,7 @@ class ParsedEventMeta:
     multiclick_events: list[MultiClickEvent]
     hydration_errors: list[HydrationError]
     mutation_events: list[MutationEvent]
-    options_events: list[dict[str, Any]]
+    options_events: list[OptionsEvent]
     request_response_sizes: list[tuple[Any, Any]]
     tap_events: list[TapEvent]
 
@@ -96,7 +103,7 @@ class EventContext(TypedDict):
     user_geo_subdivision: str | None
 
 
-@trace
+@traces.trace
 def parse_events(
     context: EventContext, events: list[dict[str, Any]]
 ) -> tuple[ParsedEventMeta, list[TraceItem]]:
@@ -316,10 +323,18 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
             return "ms"
 
 
-def get_timestamp_ms(event: dict[str, Any], event_type: EventType) -> float:
-    if get_timestamp_unit(event_type) == "s":
-        return float(event.get("timestamp", 0) * 1000)
-    return float(event.get("timestamp", 0))
+def get_timestamp_ms(event: Any, event_type: EventType) -> float | None:
+    """Return the event timestamp in milliseconds, or None if it is missing or malformed."""
+    timestamp = get_path(event, "timestamp")
+    if isinstance(timestamp, bool):
+        return None
+    try:
+        timestamp_f = float(timestamp)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(timestamp_f):
+        return None
+    return timestamp_f * 1000 if get_timestamp_unit(event_type) == "s" else timestamp_f
 
 
 #
@@ -706,7 +721,7 @@ class HighlightedEvents(TypedDict, total=False):
     clicks: list[ClickEvent]
     multiclicks: list[MultiClickEvent]
     request_response_sizes: list[tuple[int | None, int | None]]
-    options: list[dict[str, Any]]
+    options: list[OptionsEvent]
     taps: list[TapEvent]
 
 
@@ -787,7 +802,7 @@ def as_highlighted_event(
         else:
             return {}
     elif event_type == EventType.OPTIONS and sampled:
-        return {"options": [event]}
+        return {"options": [parse_options_event(event)]}
     elif event_type == EventType.TAP:
         tap = parse_tap_event(event["data"]["payload"])
         return {"taps": [tap]} if tap else {}
@@ -823,6 +838,16 @@ def parse_network_content_lengths(event: dict[str, Any]) -> tuple[int | None, in
         response_size = None
 
     return request_size, response_size
+
+
+def parse_options_event(event: dict[str, Any]) -> OptionsEvent:
+    payload = event["data"].get("payload", {})
+    if isinstance(payload, dict):
+        return OptionsEvent(payload)
+
+    # Clients can send a non-object payload (e.g. their own scrubbing replaced it with
+    # "[Filtered]"). Keep what arrived instead of dropping it; cap it since it's arbitrary.
+    return OptionsEvent({"payload": str(payload)[:256]})
 
 
 def parse_tap_event(payload: dict[str, Any]) -> TapEvent | None:

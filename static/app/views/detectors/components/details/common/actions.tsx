@@ -1,9 +1,11 @@
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEdit} from '@sentry/icons/edit';
+
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -38,7 +40,7 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
       },
       {
         onSuccess: data => {
-          addSuccessMessage(data.enabled ? t('Monitor enabled') : t('Monitor disabled'));
+          toast.success(data.enabled ? t('Monitor enabled') : t('Monitor disabled'));
         },
       }
     );

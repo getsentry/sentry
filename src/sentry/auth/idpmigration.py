@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
@@ -21,6 +22,8 @@ from sentry.utils.security import get_secure_token
 _TTL = timedelta(minutes=10)
 SSO_VERIFICATION_KEY = "confirm_account_verification_key"
 
+logger = logging.getLogger(__name__)
+
 
 def send_one_time_account_confirm_link(
     user: User,
@@ -34,12 +37,13 @@ def send_one_time_account_confirm_link(
     Create a one-time verification key for a user whose SSO identity
     has been deleted, presumably because the parent organization has
     switched identity providers. Store the key in Redis and send it
-    in an email to the associated address.
+    in an email to an address on the account.
 
     :param user: the user profile to link
     :param org: the organization whose SSO provider is being used
     :param provider: the SSO provider
-    :param email: the email address associated with the SSO identity
+    :param email: the IdP-asserted email. Not used as the link recipient; the link
+        goes to an address on the account (see send_confirm_email).
     :param identity_id: the SSO identity id
     """
     link = AccountConfirmLink(user, org, provider, email, identity_id)
@@ -50,13 +54,6 @@ def send_one_time_account_confirm_link(
 
 def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
     return redis.redis_clusters.get(settings.SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER)
-
-
-# Helper function for serializing named tuples with orjson.
-def _serialize_named_tuple(data: Any) -> Any:
-    if isinstance(data, tuple) and hasattr(data, "_asdict") and hasattr(data, "_fields"):
-        return list(data)
-    raise TypeError
 
 
 @dataclass
@@ -72,6 +69,16 @@ class AccountConfirmLink:
         self.verification_key = f"auth:one-time-key:{self.verification_code}"
 
     def send_confirm_email(self) -> None:
+        recipients = list(self.user.get_verified_emails().values_list("email", flat=True))
+        if not recipients and self.user.email:
+            recipients = [self.user.email]
+        if not recipients:
+            logger.warning(
+                "idpmigration.confirm_link_no_account_email",
+                extra={"user_id": self.user.id, "organization_id": self.organization.id},
+            )
+            return
+
         context = {
             "user": self.user,
             "organization": self.organization.name,
@@ -92,7 +99,7 @@ class AccountConfirmLink:
             type="user.confirm_email",
             context=context,
         )
-        msg.send_async([self.email])
+        msg.send_async(recipients)
         metrics.incr("idpmigration.confirm_link_sent", sample_rate=1.0)
 
     def store_in_redis(self) -> None:
@@ -107,13 +114,14 @@ class AccountConfirmLink:
             "email": self.email,
             "member_id": member.id if member is not None else None,
             "organization_id": self.organization.id,
-            "identity_id": self.identity_id,
+            # str() flattens a MigratingIdentityId to its current id.
+            "identity_id": str(self.identity_id),
             "provider": self.provider.provider,
         }
         client.setex(
             self.verification_key,
             int(_TTL.total_seconds()),
-            orjson.dumps(verification_value, default=_serialize_named_tuple).decode(),
+            orjson.dumps(verification_value).decode(),
         )
 
 
@@ -131,6 +139,14 @@ def get_verification_value_from_key(key: str) -> dict[str, Any] | None:
         return None
 
     verification_value: dict[str, Any] = orjson.loads(verification_str)
+    # Keys written before identity ids were stringified may hold an int, or
+    # ``[id, legacy_id]`` for a serialized MigratingIdentityId. Safe to remove once
+    # _TTL has elapsed after deploy.
+    identity_id = verification_value.get("identity_id")
+    if isinstance(identity_id, list):
+        identity_id = identity_id[0]
+    if identity_id is not None:
+        verification_value["identity_id"] = str(identity_id)
     metrics.incr(
         "idpmigration.confirmation_success",
         tags={"provider": verification_value.get("provider")},

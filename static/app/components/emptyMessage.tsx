@@ -1,10 +1,9 @@
 import {useTheme} from '@emotion/react';
 import {mergeProps} from '@react-aria/utils';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 /**
  * @deprecated Use `EmptyState` from `@sentry/scraps/emptyState` instead.

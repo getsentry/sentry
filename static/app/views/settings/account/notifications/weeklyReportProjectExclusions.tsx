@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -7,8 +8,8 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -16,7 +17,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
@@ -148,13 +148,13 @@ export function WeeklyReportProjectExclusions({
       return {previousExclusions};
     },
     onSuccess: () => {
-      addSuccessMessage(t('Updated weekly report project exclusions'));
+      toast.success(t('Updated weekly report project exclusions'));
     },
     onError: (_error, _variables, context) => {
       if (context?.previousExclusions) {
         queryClient.setQueryData(exclusionsOpts.queryKey, context.previousExclusions);
       }
-      addErrorMessage(t('Unable to update weekly report project exclusions'));
+      toast.error(t('Unable to update weekly report project exclusions'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: exclusionsOpts.queryKey});
@@ -305,7 +305,12 @@ export function WeeklyReportProjectExclusions({
                         </EmptyStateWarning>
                       ) : (
                         paginatedProjects.map(project => (
-                          <Item key={project.id}>
+                          <Flex
+                            justify="between"
+                            align="center"
+                            padding="lg xl"
+                            key={project.id}
+                          >
                             <IdBadge
                               project={project}
                               avatarSize={20}
@@ -318,7 +323,7 @@ export function WeeklyReportProjectExclusions({
                               onChange={() => handleToggle(String(project.id))}
                               aria-label={t('Toggle weekly report for %s', project.slug)}
                             />
-                          </Item>
+                          </Flex>
                         ))
                       )}
                     </StyledPanelBody>
@@ -392,13 +397,6 @@ const StyledPanelBody = styled(PanelBody)`
   & > div:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-`;
-
-const Item = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const PaginationCaption = styled('span')`

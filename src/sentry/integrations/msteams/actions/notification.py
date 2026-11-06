@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Sequence
+from typing import Any
 
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
@@ -29,7 +30,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
     provider = IntegrationProviderSlug.MSTEAMS.value
     integration_key = "team"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "team": {
@@ -56,7 +57,8 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             return
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
-            rules = [f.rule for f in futures]
+            contexts = [future.context for future in futures]
+            rules = [context.origin for context in contexts]
             card = MSTeamsIssueMessageBuilder(
                 event.group, event, rules, integration
             ).build_group_card(notification_uuid=notification_uuid)
@@ -72,8 +74,8 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
                     client.send_card(channel, card)
                 except (ApiError, IntegrationError) as e:
                     record_lifecycle_termination_level(lifecycle, e)
-            rule = rules[0] if rules else None
-            self.record_notification_sent(event, channel, rule, notification_uuid)
+            context = contexts[0] if contexts else None
+            self.record_notification_sent(event, channel, context, notification_uuid)
 
         key = f"msteams:{integration.id}:{channel}"
 
@@ -87,7 +89,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
         )
         yield self.future(send_notification, key=key)
 
-    def render_label(self):
+    def render_label(self) -> str:
         return self.label.format(
             team=self.get_integration_name(), channel=self.get_option("channel")
         )

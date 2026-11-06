@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {useListItemCheckboxContext} from './useListItemCheckboxState';
 
 const CheckboxClickTarget = styled('label')`
   cursor: pointer;
@@ -11,6 +11,10 @@ const CheckboxClickTarget = styled('label')`
   padding: ${p => p.theme.space.md};
   max-width: unset;
   line-height: 0;
+`;
+
+export const ListItemCheckbox = styled(Checkbox)`
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 export function ListItemSelectCheckbox({
@@ -24,7 +28,7 @@ export function ListItemSelectCheckbox({
   const htmlId = `${htmlPrefix}-${value}`;
   return (
     <CheckboxClickTarget htmlFor={htmlId}>
-      <Checkbox
+      <ListItemCheckbox
         id={htmlId}
         disabled={isSelected(value) === 'all-selected'}
         checked={isSelected(value) !== false}

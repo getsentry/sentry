@@ -1,16 +1,17 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {CodeOwner, CodeownersFile} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
@@ -101,9 +102,9 @@ export function CodeOwnerFileTable({
         }
       );
       onUpdate({...codeowner, ...data});
-      addSuccessMessage(t('CODEOWNERS file sync successful.'));
+      toast.success(t('CODEOWNERS file sync successful.'));
     } catch (_err) {
-      addErrorMessage(t('An error occurred trying to sync CODEOWNERS file.'));
+      toast.error(t('An error occurred trying to sync CODEOWNERS file.'));
     }
   };
 
@@ -125,10 +126,10 @@ export function CodeOwnerFileTable({
         }
       );
       onDelete(codeowner);
-      addSuccessMessage(t('Deletion successful'));
+      toast.success(t('Deletion successful'));
     } catch {
       // no 4xx errors should happen on delete
-      addErrorMessage(t('An error occurred'));
+      toast.error(t('An error occurred'));
     }
   };
 

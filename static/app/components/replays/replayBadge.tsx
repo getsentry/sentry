@@ -1,4 +1,6 @@
 import styled from '@emotion/styled';
+import {IconCalendar} from '@sentry/icons/calendar';
+import {IconDelete} from '@sentry/icons/delete';
 import invariant from 'invariant';
 
 import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -6,16 +8,15 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons/iconCalendar';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import * as events from 'sentry/utils/events';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
+
+import {LiveBadge, useLiveBadge} from './replayLiveIndicator';
 
 interface Props {
   replay: ReplayListRecord | ReplayListRecordWithTx;

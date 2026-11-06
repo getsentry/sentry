@@ -495,7 +495,6 @@ describe('OrganizationRepositories', () => {
     });
 
     const PROJECT = ProjectFixture({id: 'proj-1', slug: 'my-project'});
-    const organization = OrganizationFixture({features: ['code-mappings-refactor']});
 
     function setupRepoMocks(codeMappingBody: RepositoryProjectPathConfig[]) {
       MockApiClient.addMockResponse({
@@ -526,7 +525,7 @@ describe('OrganizationRepositories', () => {
 
     it('shows a + button for a repo with no code mappings', async () => {
       setupRepoMocks([]);
-      render(<OrganizationRepositories />, {organization});
+      render(<OrganizationRepositories />);
 
       expect(
         await screen.findByRole('button', {name: 'Connect project'})
@@ -550,7 +549,7 @@ describe('OrganizationRepositories', () => {
           provider: null,
         },
       ]);
-      render(<OrganizationRepositories />, {organization});
+      render(<OrganizationRepositories />);
 
       expect(
         await screen.findByRole('button', {name: 'Connect project'})
@@ -564,7 +563,7 @@ describe('OrganizationRepositories', () => {
         body: {repos: []},
       });
 
-      render(<OrganizationRepositories />, {organization});
+      render(<OrganizationRepositories />);
       renderGlobalModal();
 
       await userEvent.click(await screen.findByRole('button', {name: 'Connect project'}));
@@ -597,11 +596,19 @@ describe('OrganizationRepositories', () => {
         match: [MockApiClient.matchQuery({project: PROJECT.id})],
       });
       MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${PROJECT.slug}/code-mapping-prefixes/stack/`,
+        body: {prefixes: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/code-mapping-prefixes/repo/',
+        body: {prefixes: []},
+      });
+      MockApiClient.addMockResponse({
         url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repos/`,
         body: {repos: []},
       });
 
-      render(<OrganizationRepositories />, {organization});
+      render(<OrganizationRepositories />);
       renderGlobalModal();
 
       const chip = await screen.findByTestId(/^platform-icon-/);

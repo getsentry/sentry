@@ -1,41 +1,32 @@
 import {useCallback} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {OrgAuthToken} from 'sentry/types/user';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {
-  makeFetchOrgAuthTokensForOrgQueryKey,
-  tokenPreview,
-} from 'sentry/views/settings/organizationAuthTokens';
+import {orgAuthTokensOptions} from 'sentry/views/settings/organizationAuthTokens';
+
+import {tokenPreview} from './tokenUtils';
 
 type FetchOrgAuthTokenParameters = {
   orgSlug: string;
@@ -43,12 +34,11 @@ type FetchOrgAuthTokenParameters = {
 };
 type FetchOrgAuthTokenResponse = OrgAuthToken;
 
-const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
-  [
-    getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
-      path: {organizationIdOrSlug: orgSlug, tokenId},
-    }),
-  ] as const;
+const orgAuthTokenOptions = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
+  apiOptions.as<FetchOrgAuthTokenResponse>()(
+    '/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/',
+    {path: {organizationIdOrSlug: orgSlug, tokenId}, staleTime: Infinity}
+  );
 
 const schema = z.object({
   name: z.string().min(1, t('Name is required')),
@@ -75,45 +65,39 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
       }),
 
     onSuccess: (_data, {name}) => {
-      addSuccessMessage(t('Updated auth token.'));
+      toast.success(t('Updated auth token.'));
 
       // Update get by id query
-      setApiQueryData(
-        queryClient,
-        makeFetchOrgAuthTokenKey({orgSlug: organization.slug, tokenId: token.id}),
-        (oldData: OrgAuthToken | undefined) => {
+      queryClient.setQueryData(
+        orgAuthTokenOptions({orgSlug: organization.slug, tokenId: token.id}).queryKey,
+        oldData => {
           if (!oldData) {
             return oldData;
           }
 
-          oldData.name = name;
-
-          return oldData;
+          return {...oldData, json: {...oldData.json, name}};
         }
       );
 
       // Update get list query
       if (
-        getApiQueryData(
-          queryClient,
-          makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug})
+        queryClient.getQueryData(
+          orgAuthTokensOptions({orgSlug: organization.slug}).queryKey
         )
       ) {
-        setApiQueryData(
-          queryClient,
-          makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
-          (oldData: OrgAuthToken[] | undefined) => {
-            if (!Array.isArray(oldData)) {
+        queryClient.setQueryData(
+          orgAuthTokensOptions({orgSlug: organization.slug}).queryKey,
+          oldData => {
+            if (!oldData) {
               return oldData;
             }
 
-            const existingToken = oldData.find(oldToken => oldToken.id === token.id);
-
-            if (existingToken) {
-              existingToken.name = name;
-            }
-
-            return oldData;
+            return {
+              ...oldData,
+              json: oldData.json.map(oldToken =>
+                oldToken.id === token.id ? {...oldToken, name} : oldToken
+              ),
+            };
           }
         );
       }
@@ -123,7 +107,7 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
     onError: error => {
       const message = t('Failed to update the auth token.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -132,7 +116,7 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
     defaultValues: {name: token.name},
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       return mutation.mutateAsync(value).catch(() => {});
     },
   });
@@ -183,12 +167,7 @@ function OrganizationAuthTokensDetails() {
     isError,
     data: token,
     refetch: refetchToken,
-  } = useApiQuery<FetchOrgAuthTokenResponse>(
-    makeFetchOrgAuthTokenKey({orgSlug: organization.slug, tokenId}),
-    {
-      staleTime: Infinity,
-    }
-  );
+  } = useQuery(orgAuthTokenOptions({orgSlug: organization.slug, tokenId}));
 
   return (
     <div>

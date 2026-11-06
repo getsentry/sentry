@@ -1,9 +1,11 @@
+import {useId} from 'react';
+
 import {Input} from '@sentry/scraps/input';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
 
-import {ScmAlertOptionCard} from 'sentry/components/onboarding/scm/scmAlertOptionCard';
 import {t} from 'sentry/locale';
 import {
   INTERVAL_CHOICES,
@@ -29,25 +31,44 @@ export function ScmAlertFrequency({
   threshold = '10',
   onFieldChange,
 }: ScmAlertFrequencyProps) {
+  const groupName = useId();
   const isDefaultSelected = alertSetting === RuleAction.DEFAULT_ALERT;
   const isCustomSelected = alertSetting === RuleAction.CUSTOMIZED_ALERTS;
   const isLaterSelected = alertSetting === RuleAction.CREATE_ALERT_LATER;
 
   return (
     <Stack gap="md" role="radiogroup" aria-label={t('Alert frequency')}>
-      <ScmAlertOptionCard
-        label={t('High priority issues')}
-        description={t('Alert on new, regressed, and escalating issues')}
-        isSelected={isDefaultSelected}
-        onSelect={() => onFieldChange('alertSetting', RuleAction.DEFAULT_ALERT)}
-      />
-
-      <ScmAlertOptionCard
-        label={t('Custom threshold')}
-        isSelected={isCustomSelected}
-        onSelect={() => onFieldChange('alertSetting', RuleAction.CUSTOMIZED_ALERTS)}
+      <ToggleCard
+        variant="radio"
+        name={groupName}
+        value={RuleAction.DEFAULT_ALERT}
+        padding="lg"
+        aria-label={t('High priority issues')}
+        checked={isDefaultSelected}
+        onChange={() => onFieldChange('alertSetting', RuleAction.DEFAULT_ALERT)}
       >
-        {isCustomSelected && (
+        <Flex align="start" gap="md">
+          <ToggleCard.Indicator />
+          <Stack gap="xs">
+            <Text bold size="sm" density="comfortable">
+              {t('High priority issues')}
+            </Text>
+            <Text variant="secondary" size="sm" density="comfortable">
+              {t('Alert on new, regressed, and escalating issues')}
+            </Text>
+          </Stack>
+        </Flex>
+      </ToggleCard>
+
+      <ToggleCard
+        variant="radio"
+        name={groupName}
+        value={RuleAction.CUSTOMIZED_ALERTS}
+        padding="lg"
+        aria-label={t('Custom threshold')}
+        checked={isCustomSelected}
+        onChange={() => onFieldChange('alertSetting', RuleAction.CUSTOMIZED_ALERTS)}
+        details={
           <Stack gap="lg">
             <Stack gap="xs">
               <Text size="md" density="comfortable">
@@ -87,14 +108,32 @@ export function ScmAlertFrequency({
               />
             </Stack>
           </Stack>
-        )}
-      </ScmAlertOptionCard>
+        }
+      >
+        <Flex align="center" gap="md">
+          <ToggleCard.Indicator />
+          <Text bold size="sm" density="comfortable">
+            {t('Custom threshold')}
+          </Text>
+        </Flex>
+      </ToggleCard>
 
-      <ScmAlertOptionCard
-        label={t("I'll set up alerts later")}
-        isSelected={isLaterSelected}
-        onSelect={() => onFieldChange('alertSetting', RuleAction.CREATE_ALERT_LATER)}
-      />
+      <ToggleCard
+        variant="radio"
+        name={groupName}
+        value={RuleAction.CREATE_ALERT_LATER}
+        padding="lg"
+        aria-label={t("I'll set up alerts later")}
+        checked={isLaterSelected}
+        onChange={() => onFieldChange('alertSetting', RuleAction.CREATE_ALERT_LATER)}
+      >
+        <Flex align="center" gap="md">
+          <ToggleCard.Indicator />
+          <Text bold size="sm" density="comfortable">
+            {t("I'll set up alerts later")}
+          </Text>
+        </Flex>
+      </ToggleCard>
     </Stack>
   );
 }

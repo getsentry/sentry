@@ -12,7 +12,8 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
-import {SeverityLevel} from 'sentry/views/explore/logs/utils';
+
+import {SeverityLevel} from './utils';
 
 export const LOGS_GRID_BODY_ROW_HEIGHT = 26;
 
@@ -161,6 +162,8 @@ export const LogTableBodyCell = styled(SimpleTable.RowCell)<{
   justify-content: center;
   /* The issue details logs section's first column is narrower than its icons. */
   overflow: visible;
+  /* With visible overflow, the grid would otherwise widen columns to fit long log lines. */
+  min-width: 0;
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${p => p.theme.space.xl};
@@ -256,10 +259,9 @@ export const LogDetailTableActionsCell = styled(SimpleTable.RowCell)`
     padding: ${p => p.theme.space.xs} 0;
   }
 `;
-export const LogDetailTableActionsButtonBar = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-`;
+export function LogDetailTableActionsButtonBar(props: FlexProps) {
+  return <Flex gap="md" {...props} />;
+}
 
 export const DetailsWrapper = styled('tr')`
   align-items: center;

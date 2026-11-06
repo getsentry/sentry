@@ -1,4 +1,6 @@
 import {Fragment, useMemo} from 'react';
+import {IconBug} from '@sentry/icons/bug';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -10,21 +12,20 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
-import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEvidence';
-import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
-import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
-import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
-import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
-import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {IconBug} from 'sentry/icons/iconBug';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+import {ArtifactCard} from './artifactCard';
+import {ArtifactDetails} from './artifactDetails';
+import {ArtifactLoadingDetails} from './artifactLoadingDetails';
+import {AutofixEvidence} from './autofixEvidence';
+import {AutofixResetPrompt} from './autofixResetPrompt';
+import {useAutofixSectionEvidence} from './useAutofixSectionEvidence';
+import {useResetAutofixStep} from './useResetAutofixStep';
+import {useRethinkInChat} from './useRethinkInChat';
+import {artifactToMarkdown} from './utils';
 
 interface RootCauseCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;

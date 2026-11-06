@@ -1,6 +1,6 @@
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ScrollCarousel} from 'sentry/components/scrollCarousel';
+import {ScrollCarousel} from './scrollCarousel';
 
 describe('ScrollCarousel', () => {
   let intersectionOnbserverCb: (

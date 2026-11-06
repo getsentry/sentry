@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
@@ -6,10 +7,9 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -18,19 +18,17 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {
-  useDataForwarders,
-  useMutateDataForwarder,
-} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
-import {SegmentSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/segmentForm';
-import {SplunkSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/splunkForm';
-import {SQSSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/sqsForm';
+
+import {useDataForwarders, useMutateDataForwarder} from './util/hooks';
+import {SegmentSetupForm} from './util/segmentForm';
+import {SplunkSetupForm} from './util/splunkForm';
+import {SQSSetupForm} from './util/sqsForm';
 import {
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
   ProviderLabels,
   type DataForwarderPayload,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+} from './util/types';
 
 export default function OrganizationDataForwardingSetup() {
   const navigate = useNavigate();

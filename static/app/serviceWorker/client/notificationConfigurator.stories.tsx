@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
+import {IconList} from '@sentry/icons/list';
 import {z} from 'zod';
 
 import sentryLogo from 'sentry-images/logo.png';
@@ -12,14 +13,14 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {IconList} from 'sentry/icons';
-import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
-import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 import type {RequestMessage, AllNotificationOptions} from 'sentry/serviceWorker/types';
 import * as Storybook from 'sentry/stories';
 import type {AvatarProject} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {useServiceWorker} from './serviceWorkerContext';
+import {useNotificationPermission} from './useNotificationPermission';
 
 export default Storybook.story('ServiceWorker', story => {
   story('Notification Configurator', () => <NotificationConfigurator />);

@@ -1,4 +1,6 @@
 import {type CSSProperties, Fragment} from 'react';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -8,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopyId, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -21,11 +22,12 @@ import {
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {Divider} from 'sentry/views/issueDetails/divider';
-import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
-import {IssueDetailsJumpTo} from 'sentry/views/issueDetails/eventNavigation/issueDetailsJumpTo';
-import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
+
+import {IssueDetailsJumpTo} from './eventNavigation/issueDetailsJumpTo';
+import {SectionKey} from './context';
+import {Divider} from './divider';
+import {EventCreatedTooltip} from './eventCreatedTooltip';
+import {getFoldSectionKey} from './foldSection';
 
 type EventNavigationProps = {
   event: Event;
@@ -39,7 +41,7 @@ type EventNavigationProps = {
   style?: CSSProperties;
 };
 
-export const MIN_NAV_HEIGHT = 44;
+const MIN_NAV_HEIGHT = 44;
 
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
   const organization = useOrganization();

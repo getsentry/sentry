@@ -1,16 +1,17 @@
 import type {ReactElement, ReactNode} from 'react';
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
+import {IconLink} from '@sentry/icons/link';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import type {HeadingProps} from '@sentry/scraps/text';
 
-import {IconLink} from 'sentry/icons';
-import {useStory} from 'sentry/stories/view/useStory';
 import {slugify} from 'sentry/utils/slugify';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+import {useStory} from './useStory';
 
 export function StoryHeading(props: HeadingProps) {
   const {story} = useStory();

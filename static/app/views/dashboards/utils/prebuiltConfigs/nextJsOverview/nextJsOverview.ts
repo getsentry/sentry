@@ -7,10 +7,6 @@ import type {
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  DASHBOARD_DESCRIPTION,
-  DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/settings';
-import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
@@ -21,6 +17,8 @@ import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrar
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {WEB_VITALS_OPS} from 'sentry/views/insights/pages/frontend/settings';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE} from './settings';
 
 const CLIENT_QUERY = new MutableSearch('');
 CLIENT_QUERY.addFilterValue(
@@ -53,12 +51,12 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           conditions: `${SpanFields.SPAN_OP}:pageload`,
           aggregates: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(\`${SpanFields.TRACE_STATUS}:internal_error\`) + count_if(\`${SpanFields.TRACE_STATUS}:error\`)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
           fields: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(\`${SpanFields.TRACE_STATUS}:internal_error\`) + count_if(\`${SpanFields.TRACE_STATUS}:error\`)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },

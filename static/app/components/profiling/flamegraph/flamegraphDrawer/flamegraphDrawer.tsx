@@ -1,6 +1,7 @@
 import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconPanel} from '@sentry/icons/panel';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -8,7 +9,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
-import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {
@@ -30,6 +30,7 @@ import {useParams} from 'sentry/utils/useParams';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
 import {ProfileDetails} from './profileDetails';
+import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './styles';
 
 interface FlamegraphDrawerProps {
   canvasPoolManager: CanvasPoolManager;
@@ -290,7 +291,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawerImpl(
 const ResizableVerticalDrawer = styled('div')`
   width: 1px;
   grid-area: drawer;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
   position: relative;
 `;
@@ -349,62 +350,6 @@ const Separator = styled('li')`
   margin: 0 ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translateY(29%);
-`;
-
-export const ProfilingDetailsFrameTabs = styled('ul')`
-  display: flex;
-  list-style-type: none;
-  padding: 0 ${p => p.theme.space.md};
-  margin: 0;
-  border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
-  background-color: ${props => props.theme.tokens.background.secondary};
-  user-select: none;
-  grid-area: tabs;
-`;
-
-export const ProfilingDetailsListItem = styled('li')<{
-  margin?: 'none';
-  size?: 'sm';
-}>`
-  height: 100%;
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.font.size.sm};
-  margin-right: ${p => (p.margin === 'none' ? 0 : p.theme.space.md)};
-
-  button {
-    height: 100%;
-    border: none;
-    border-top: 2px solid transparent;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
-    font-weight: ${p => p.theme.font.weight.sans.regular};
-    margin: 0;
-
-    color: ${p => p.theme.tokens.content.primary};
-
-    display: inline-block;
-
-    &::after {
-      display: block;
-      content: attr(data-title);
-      font-weight: ${p => p.theme.font.weight.sans.medium};
-      height: 1px;
-      color: transparent;
-      overflow: hidden;
-      visibility: hidden;
-      white-space: nowrap;
-    }
-
-    &:hover {
-      color: ${p => p.theme.tokens.content.primary};
-    }
-  }
-
-  &.active button {
-    font-weight: ${p => p.theme.font.weight.sans.medium};
-    border-bottom: 2px solid ${prop => prop.theme.tokens.border.accent};
-  }
 `;
 
 const StyledButton = Button;

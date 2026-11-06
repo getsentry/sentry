@@ -1,29 +1,24 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
+import {IconFire} from '@sentry/icons/fire';
+import {IconSpan} from '@sentry/icons/span';
+import {IconTag} from '@sentry/icons/tag';
 
 import {InfoTip} from '@sentry/scraps/info';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
+import {getOrderedContextItems} from 'sentry/components/events/contexts/contextItems';
 import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
 import {
   TracePreview,
   TracePreviewFullTraceButton,
 } from 'sentry/components/events/interfaces/performance/tracePreview';
 import {eventHasSyntheticTrace} from 'sentry/components/events/interfaces/performance/utils';
-import {CrashReportSection} from 'sentry/components/feedback/feedbackItem/crashReportSection';
-import {FeedbackActivitySection} from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
-import {FeedbackItemHeader} from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
-import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
-import {FeedbackReplay} from 'sentry/components/feedback/feedbackItem/feedbackReplay';
-import {FeedbackUrl} from 'sentry/components/feedback/feedbackItem/feedbackUrl';
-import {MessageSection} from 'sentry/components/feedback/feedbackItem/messageSection';
-import {MessageTitle} from 'sentry/components/feedback/feedbackItem/messageTitle';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {KeyValueTableCardGrid} from 'sentry/components/tables/keyValueTable';
-import {IconChat, IconFire, IconSpan, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -31,6 +26,15 @@ import type {Project} from 'sentry/types/project';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+
+import {CrashReportSection} from './crashReportSection';
+import {FeedbackActivitySection} from './feedbackActivitySection';
+import {FeedbackItemHeader} from './feedbackItemHeader';
+import {FeedbackItemSection} from './feedbackItemSection';
+import {FeedbackReplay} from './feedbackReplay';
+import {FeedbackUrl} from './feedbackUrl';
+import {MessageSection} from './messageSection';
+import {MessageTitle} from './messageTitle';
 
 interface Props {
   eventData: Event | undefined;

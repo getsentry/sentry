@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconUser} from '@sentry/icons/user';
 import uniqBy from 'lodash/uniqBy';
 
 import {
@@ -22,16 +24,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {
-  AssignedTooltip,
-  type AssignmentDetails,
-  UnassignedTooltip,
-} from 'sentry/components/assigneeBadge';
-import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import {UserBadge} from 'sentry/components/idBadge/userBadge';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
-import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Actor} from 'sentry/types/core';
@@ -41,6 +33,16 @@ import type {User} from 'sentry/types/user';
 import {buildTeamId} from 'sentry/utils';
 import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useUser} from 'sentry/utils/useUser';
+
+import {TeamBadge} from './idBadge/teamBadge';
+import {UserBadge} from './idBadge/userBadge';
+import {
+  AssignedTooltip,
+  type AssignmentDetails,
+  UnassignedTooltip,
+} from './assigneeBadge';
+import {LoadingIndicator} from './loadingIndicator';
+import {SuggestedAvatarStack} from './suggestedAvatarStack';
 
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   suspectCommit: t('Suspect Commit'),

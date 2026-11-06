@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {IconEdit} from '@sentry/icons/edit';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {useStory} from './useStory';

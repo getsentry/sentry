@@ -1,10 +1,10 @@
 import type {Key} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -15,11 +15,9 @@ import {
   useSetQueryParamsCrossEvents,
 } from 'sentry/views/explore/queryParams/context';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
-import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
-import {
-  getCrossEventDropdownItems,
-  makeCrossEvent,
-} from 'sentry/views/explore/spans/crossEvents/utils';
+
+import {useCrossEventDatasetAvailability} from './useCrossEventDatasetAvailability';
+import {getCrossEventDropdownItems, makeCrossEvent} from './utils';
 
 export function CrossEventQueryingDropdown() {
   const organization = useOrganization();

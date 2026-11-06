@@ -1,6 +1,9 @@
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
+import {IconWarning} from '@sentry/icons/warning';
+
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {Spinner} from './spinner';

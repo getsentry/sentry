@@ -7,11 +7,6 @@ import type {
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  DASHBOARD_DESCRIPTION,
-  DASHBOARD_TITLE,
-  FRONTEND_SDK_NAMES,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
-import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
@@ -25,6 +20,8 @@ import {
   WEB_VITALS_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE, FRONTEND_SDK_NAMES} from './settings';
 
 const BASE_QUERY = new MutableSearch('');
 BASE_QUERY.addOp('(');
@@ -182,12 +179,12 @@ const TABLE_FIELDS = [
   SpanFields.TRANSACTION,
   SpanFields.PROJECT,
   'equation|tpm()',
-  `equation|p50_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-  `equation|p75_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-  `equation|p95_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+  `equation|p50_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
+  `equation|p75_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
+  `equation|p95_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
   `equation|failure_rate_if(${SpanFields.IS_TRANSACTION},equals,true)`,
   `count_unique(${SpanFields.USER})`,
-  `equation|sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+  `equation|sum_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
   'performance_score(measurements.score.total)',
 ];
 
@@ -204,12 +201,12 @@ const TRANSACTIONS_TABLE: PrebuiltWidget = {
       conditions: TABLE_QUERY.formatString(),
       aggregates: [
         'equation|tpm()',
-        `equation|p50_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-        `equation|p75_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-        `equation|p95_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+        `equation|p50_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
+        `equation|p75_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
+        `equation|p95_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
         `equation|failure_rate_if(${SpanFields.IS_TRANSACTION},equals,true)`,
         `count_unique(${SpanFields.USER})`,
-        `equation|sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+        `equation|sum_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
         'performance_score(measurements.score.total)',
       ],
       fields: TABLE_FIELDS,
@@ -231,7 +228,7 @@ const TRANSACTIONS_TABLE: PrebuiltWidget = {
         SpanFields.TRANSACTION,
         SpanFields.PROJECT,
       ],
-      orderby: `-equation|sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+      orderby: `-equation|sum_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
     },
   ],
   layout: {

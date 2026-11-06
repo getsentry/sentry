@@ -4,13 +4,17 @@ import uuid
 import zipfile
 from datetime import UTC, datetime, timedelta
 from hashlib import sha1
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import orjson
+import psycopg2.errors
 import pytest
 from django.core.files.base import ContentFile
+from django.db import OperationalError, connections, router
+from django.db.models.query import QuerySet
+from django.test.utils import CaptureQueriesContext
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -44,6 +48,8 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.testutils.objectstore import debug_files_test_both_backends
+
+_NO_RELEASE = cast(str, None)
 
 
 class BaseAssembleTest(TestCase):
@@ -119,8 +125,8 @@ class AssembleDifTest(BaseAssembleTest):
             )
 
         dif = ProjectDebugFile.objects.get(project_id=self.project.id, checksum=checksum)
-        assert dif.file_id is None
-        assert dif.storage_path is not None
+        assert cast("object", dif.file_id) is None
+        assert dif.storage_path
         assert not File.objects.filter(type="project.dif", checksum=checksum).exists()
         assert not FileBlobIndex.objects.exists()
 
@@ -140,8 +146,8 @@ class AssembleDifTest(BaseAssembleTest):
         for reference, checksum in files:
             file_blob = FileBlob.objects.get(checksum=checksum)
             ref_bytes = reference.getvalue()
-            with file_blob.getfile() as f:
-                assert f.read(len(ref_bytes)) == ref_bytes
+            with file_blob.getfile() as assembled_file:
+                assert assembled_file.read(len(ref_bytes)) == ref_bytes
             FileBlobOwner.objects.filter(blob=file_blob, organization_id=self.organization.id).get()
 
         rv = assemble_file(
@@ -160,8 +166,8 @@ class AssembleDifTest(BaseAssembleTest):
         assert f.type == "dummy.type"
 
         # upload all blobs a second time
-        for f, _ in files:
-            f.seek(0)
+        for uploaded_file, _ in files:
+            uploaded_file.seek(0)
         FileBlob.from_files(files, organization=self.organization)
 
         # assemble a second time
@@ -194,8 +200,8 @@ class AssembleDifTest(BaseAssembleTest):
         for reference, checksum in files:
             file_blob = FileBlob.objects.get(checksum=checksum)
             ref_bytes = reference.getvalue()
-            with file_blob.getfile() as f:
-                assert f.read(len(ref_bytes)) == ref_bytes
+            with file_blob.getfile() as assembled_file:
+                assert assembled_file.read(len(ref_bytes)) == ref_bytes
             FileBlobOwner.objects.filter(blob=file_blob, organization_id=self.organization.id).get()
 
         rv = assemble_file(
@@ -250,9 +256,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
         expected_debug_ids = ["eb6e60f1-65ff-4f6f-adff-f1bbeded627b"]
 
         for version, dist, count in [
-            (None, None, 0),
+            (_NO_RELEASE, None, 0),
             ("1.0", None, 1),
-            (None, "android", 0),
+            (_NO_RELEASE, "android", 0),
             ("1.0", "android", 1),
         ]:
             assemble_artifacts(
@@ -381,6 +387,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
+        assert details is not None
         assert "exceeds the maximum uncompressed file size" in details
 
         files = File.objects.filter()
@@ -478,6 +485,210 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(project_artifact_bundle) == 1
         assert project_artifact_bundle[0].date_added == expected_updated_date
 
+    @override_options({"sourcemaps.artifact-bundles.date-only-on-bundle": True})
+    def test_upload_same_bundle_id_with_date_only_on_bundle(self) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+        bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
+        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+
+        for time in ("2023-05-31T10:00:00", "2023-05-31T11:00:00", "2023-05-31T12:00:00"):
+            with freeze_time(time):
+                assemble_artifacts(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    version="1.0",
+                    dist="android",
+                    checksum=total_checksum,
+                    chunks=[blob1.checksum],
+                )
+
+        first_upload = datetime.fromisoformat("2023-05-31T10:00:00+00:00")
+        last_upload = datetime.fromisoformat("2023-05-31T12:00:00+00:00")
+
+        # Every upload re-dates the bundle itself.
+        artifact_bundle = ArtifactBundle.objects.get(bundle_id=bundle_id)
+        assert artifact_bundle.date_added == last_upload
+        assert artifact_bundle.date_last_modified == last_upload
+
+        # The rows linked to it keep the date of the first upload.
+        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        assert len(debug_id_artifact_bundles) == 2
+        assert {row.date_added for row in debug_id_artifact_bundles} == {first_upload}
+        release_artifact_bundle = ReleaseArtifactBundle.objects.get(
+            release_name="1.0", dist_name="android"
+        )
+        assert release_artifact_bundle.date_added == first_upload
+        project_artifact_bundle = ProjectArtifactBundle.objects.get(project_id=self.project.id)
+        assert project_artifact_bundle.date_added == first_upload
+
+    @override_options({"sourcemaps.artifact-bundles.date-only-on-bundle": True})
+    def test_upload_same_bundle_id_to_new_release_with_date_only_on_bundle(self) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        for time, version in (("2023-05-31T10:00:00", "1.0"), ("2023-05-31T11:00:00", "2.0")):
+            with freeze_time(time):
+                assemble_artifacts(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    version=version,
+                    dist="android",
+                    checksum=total_checksum,
+                    chunks=[blob1.checksum],
+                )
+
+        # A link the second upload creates still gets that upload's date.
+        assert ReleaseArtifactBundle.objects.get(
+            release_name="1.0", dist_name="android"
+        ).date_added == datetime.fromisoformat("2023-05-31T10:00:00+00:00")
+        assert ReleaseArtifactBundle.objects.get(
+            release_name="2.0", dist_name="android"
+        ).date_added == datetime.fromisoformat("2023-05-31T11:00:00+00:00")
+
+    @override_options({"sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle": True})
+    def test_upload_same_bundle_id_redates_debug_ids_by_bundle(self) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+
+        with freeze_time("2023-05-31T10:00:00"):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                dist="android",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+        with (
+            freeze_time("2023-05-31T11:00:00"),
+            CaptureQueriesContext(
+                connections[router.db_for_write(DebugIdArtifactBundle)]
+            ) as queries,
+        ):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                dist="android",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+
+        updates = [
+            query["sql"]
+            for query in queries.captured_queries
+            if 'UPDATE "sentry_debugidartifactbundle"' in query["sql"]
+        ]
+        assert len(updates) == 1
+        assert '"organization_id"' not in updates[0]
+
+        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        assert len(debug_id_artifact_bundles) == 2
+        assert {row.date_added for row in debug_id_artifact_bundles} == {
+            datetime.fromisoformat("2023-05-31T11:00:00+00:00")
+        }
+
+    def test_upload_same_bundle_id_to_new_release_when_redating_debug_ids_is_cancelled(
+        self,
+    ) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+
+        with freeze_time("2023-05-31T10:00:00"):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                dist="android",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+
+        cancelled = OperationalError("canceling statement due to user request")
+        cancelled.__cause__ = psycopg2.errors.QueryCanceled(
+            "canceling statement due to user request"
+        )
+        # The silo-limited manager of `DebugIdArtifactBundle` keeps its own reference to
+        # `BaseQuerySet.update`, so we patch Django's `QuerySet.update`, which that one calls.
+        real_update = QuerySet.update
+
+        def cancel_debug_id_update(queryset: QuerySet[Any, Any], **kwargs: Any) -> int:
+            if queryset.model is DebugIdArtifactBundle:
+                raise cancelled
+            return real_update(queryset, **kwargs)
+
+        with (
+            freeze_time("2023-05-31T11:00:00"),
+            patch.object(QuerySet, "update", cancel_debug_id_update),
+        ):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="2.0",
+                dist="android",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+
+        status, details = get_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+        )
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # The rest of the upload still commits: the bundle is re-dated and linked to the new release.
+        artifact_bundle = ArtifactBundle.objects.get()
+        assert artifact_bundle.date_added == datetime.fromisoformat("2023-05-31T11:00:00+00:00")
+        assert ReleaseArtifactBundle.objects.filter(
+            artifact_bundle=artifact_bundle, release_name="2.0", dist_name="android"
+        ).exists()
+        # Only the debug-ID rows keep their first date.
+        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        assert {row.date_added for row in debug_id_artifact_bundles} == {
+            datetime.fromisoformat("2023-05-31T10:00:00+00:00")
+        }
+
+    @patch("sentry.tasks.assemble.metrics.incr")
+    def test_upload_metric_tags_whether_bundle_was_created(self, mock_incr: MagicMock) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        for time in ("2023-05-31T10:00:00", "2023-05-31T11:00:00"):
+            with freeze_time(time):
+                assemble_artifacts(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    version="1.0",
+                    dist="android",
+                    checksum=total_checksum,
+                    chunks=[blob1.checksum],
+                )
+
+        # The first upload creates the bundle, and the second one re-uploads it.
+        assert [
+            call.kwargs["tags"]
+            for call in mock_incr.call_args_list
+            if call.args == ("sourcemaps.upload.artifact_bundle",)
+        ] == [{"created": "true"}, {"created": "false"}]
+
     def test_upload_multiple_artifacts_with_same_bundle_id_and_no_release_dist_pair(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
@@ -491,7 +702,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assemble_artifacts(
                 org_id=self.organization.id,
                 project_ids=[self.project.id],
-                version=None,
+                version=_NO_RELEASE,
                 checksum=total_checksum,
                 chunks=[blob1.checksum],
             )
@@ -553,7 +764,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
     def test_upload_multiple_artifacts_with_first_release_and_second_no_release_and_same_bundle_id(
         self,
-    ):
+    ) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -562,7 +773,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
         debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
-        for version in ("1.0", None):
+        for version in ("1.0", _NO_RELEASE):
             assemble_artifacts(
                 org_id=self.organization.id,
                 project_ids=[self.project.id],
@@ -589,7 +800,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
     def test_upload_multiple_artifacts_with_first_no_release_and_second_release_and_same_bundle_id(
         self,
-    ):
+    ) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -598,7 +809,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
         debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
-        for version in (None, "1.0"):
+        for version in (_NO_RELEASE, "1.0"):
             assemble_artifacts(
                 org_id=self.organization.id,
                 project_ids=[self.project.id],
@@ -625,7 +836,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
     def test_upload_multiple_artifacts_with_existing_bundle_id_duplicate(
         self,
-    ):
+    ) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -652,7 +863,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assemble_artifacts(
             org_id=self.organization.id,
             project_ids=[self.project.id],
-            version=None,
+            version=_NO_RELEASE,
             checksum=total_checksum,
             chunks=[blob1.checksum],
         )
@@ -887,7 +1098,7 @@ def test_get_url_extension(url: str, extension: str) -> None:
 class AssemblePlaceholderReleaseTest(BaseAssembleTest):
     debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
-    def assemble(self, bundle_file: bytes, version: str | None, dist: str | None = None) -> None:
+    def assemble(self, bundle_file: bytes, version: str, dist: str | None = None) -> None:
         blob = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         checksum = sha1(bundle_file).hexdigest()
         assemble_artifacts(
@@ -946,7 +1157,7 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
     def test_placeholder_release_from_manifest_ignored(self) -> None:
         self.assemble(
             make_artifact_bundle(make_debug_id_files(self.debug_id), release="null"),
-            version=None,
+            version=_NO_RELEASE,
         )
 
         assert self.release_names() == []
@@ -978,6 +1189,7 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
             {
                 "organization_id": self.organization.id,
                 "project_ids": [self.project.id],
+                "release": "undefined",
                 "kind": "undefined",
                 "outcome": "kept_files_without_debug_ids",
                 "artifact_count": 4,
@@ -1013,6 +1225,17 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
 
         assert self.release_names() == [("VERCEL_GIT_COMMIT_SHA", "")]
 
+    def test_env_var_release_logged_with_its_name(self) -> None:
+        with patch("sentry.tasks.assemble.logger") as logger:
+            self.assemble(
+                make_artifact_bundle(make_debug_id_files(self.debug_id)),
+                version="VERCEL_GIT_COMMIT_SHA",
+            )
+
+        (log,) = self.placeholder_release_logs(logger)
+        assert log["release"] == "VERCEL_GIT_COMMIT_SHA"
+        assert log["kind"] == "env_var"
+
     @override_options(
         {
             "sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases": True,
@@ -1044,7 +1267,14 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
 
 @freeze_time("2023-05-31T10:00:00")
 class ArtifactBundleIndexingTest(TestCase):
-    def _create_bundle_and_bind_to_release(self, release, dist, bundle_id, indexing_state, date):
+    def _create_bundle_and_bind_to_release(
+        self,
+        release: str,
+        dist: str,
+        bundle_id: str,
+        indexing_state: int,
+        date: datetime,
+    ) -> ArtifactBundle:
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id,
             bundle_id=bundle_id,
@@ -1098,7 +1328,7 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                artifact_bundle=None,
+                artifact_bundle=cast(ArtifactBundle, None),
                 release=release,
                 dist=dist,
             )
@@ -1107,8 +1337,8 @@ class ArtifactBundleIndexingTest(TestCase):
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_lower_bundles_than_threshold(
-        self, index_artifact_bundles_for_release
-    ):
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 
@@ -1128,7 +1358,7 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                artifact_bundle=None,
+                artifact_bundle=cast(ArtifactBundle, None),
                 release=release,
                 dist=dist,
             )
@@ -1137,8 +1367,8 @@ class ArtifactBundleIndexingTest(TestCase):
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_higher_bundles_than_threshold(
-        self, index_artifact_bundles_for_release
-    ):
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 
@@ -1214,14 +1444,18 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             project_ids=[],
         ) as post_assembler:
-            post_assembler._index_bundle_if_needed(artifact_bundle=None, release=release, dist=dist)
+            post_assembler._index_bundle_if_needed(
+                artifact_bundle=cast(ArtifactBundle, None),
+                release=release,
+                dist=dist,
+            )
 
         index_artifact_bundles_for_release.assert_not_called()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_newer_bundle_already_stored(
-        self, index_artifact_bundles_for_release
-    ):
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 
@@ -1273,7 +1507,7 @@ class ArtifactBundleIndexingTest(TestCase):
 @use_redis_cluster()
 def test_redis_assemble_status() -> None:
     task = AssembleTask.DIF
-    project_id = uuid.uuid4().hex
+    project_id = uuid.uuid4().int
     checksum = uuid.uuid4().hex
 
     # If it doesn't exist, it should return correct values.

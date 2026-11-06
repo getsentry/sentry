@@ -5,6 +5,7 @@ import logging
 from datetime import UTC, datetime, timedelta, timezone
 
 import sentry_sdk
+from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
@@ -50,8 +51,8 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.hashlib import md5_text
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.utils.tracing import start_span
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -64,11 +65,18 @@ logger = logging.getLogger(__name__)
 def _organization_viewer_context_scope(
     organization_id: int,
 ) -> contextlib.AbstractContextManager[None]:
-    if get_viewer_context() is not None:
+    current = get_viewer_context()
+    if (
+        current is not None
+        and current.organization_id == organization_id
+        and current.actor.type == ActorType.USER
+        and current.actor.user_id is not None
+        and current.actor.user_id > 0
+    ):
         return contextlib.nullcontext()
 
     return viewer_context_scope(
-        ViewerContext(organization_id=organization_id, actor_type=ActorType.SYSTEM)
+        ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=organization_id)
     )
 
 
@@ -111,21 +119,21 @@ def index_org_project_knowledge(org_id: int) -> None:
         )
         return
 
-    with start_span(
-        op="explorer.context_engine.get_top_transactions_for_org_projects",
+    with traces.start_span(
         name="explorer.context_engine.get_top_transactions_for_org_projects",
+        attributes={"sentry.op": "explorer.context_engine.get_top_transactions_for_org_projects"},
     ):
         transactions_by_project = get_top_transactions_for_org_projects(
             high_volume_projects, start, end
         )
-    with start_span(
-        op="explorer.context_engine.get_top_span_ops_for_org_projects",
+    with traces.start_span(
         name="explorer.context_engine.get_top_span_ops_for_org_projects",
+        attributes={"sentry.op": "explorer.context_engine.get_top_span_ops_for_org_projects"},
     ):
         span_ops_by_project = get_top_span_ops_for_org_projects(high_volume_projects, start, end)
-    with start_span(
-        op="explorer.context_engine.get_sdk_names_for_org_projects",
+    with traces.start_span(
         name="explorer.context_engine.get_sdk_names_for_org_projects",
+        attributes={"sentry.op": "explorer.context_engine.get_sdk_names_for_org_projects"},
     ):
         sdk_names_by_project = get_sdk_names_for_org_projects(high_volume_projects, start, end)
 
@@ -177,7 +185,7 @@ def index_org_project_knowledge(org_id: int) -> None:
     processing_deadline_duration=10 * 60,  # 10 minutes
     retry=Retry(times=3, on=(SnubaRPCRateLimitExceeded,), delay=60),
 )
-def build_service_map(organization_id: int, *args, **kwargs) -> None:
+def build_service_map(organization_id: int, *args: object, **kwargs: object) -> None:
     """
     Build service map for a single organization and send to Seer.
 
@@ -256,7 +264,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
     processing_deadline_duration=10 * 60,  # 10 minutes
     retry=Retry(times=3, on=(SeerApiError,), delay=60),
 )
-def index_repos(organization_id: int, *args, **kwargs) -> None:
+def index_repos(organization_id: int, *args: object, **kwargs: object) -> None:
     if not options.get("explorer.context_engine_indexing.enable"):
         logger.info("explorer.context_engine_indexing.enable flag is disabled")
         return
@@ -342,9 +350,11 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     Only the bucket matching the current hour is checked for the seer-explorer-index
     feature flag, keeping feature check volume at ~1/24th of total orgs.
     """
-    with start_span(
-        op="explorer.context_engine.get_allowed_org_ids_context_engine_indexing",
+    with traces.start_span(
         name="explorer.context_engine.get_allowed_org_ids_context_engine_indexing",
+        attributes={
+            "sentry.op": "explorer.context_engine.get_allowed_org_ids_context_engine_indexing"
+        },
     ):
         now = datetime.now(UTC)
         TOTAL_HOURLY_SLOTS = 24
@@ -447,9 +457,10 @@ def schedule_context_engine_indexing_tasks() -> None:
     processing_deadline_duration=30,
 )
 def index_sentry_knowledge() -> None:
-    response = make_index_sentry_knowledge_request(
-        body=AgentIndexSentryKnowledgeRequest(replace_existing=True)
-    )
+    with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))):
+        response = make_index_sentry_knowledge_request(
+            body=AgentIndexSentryKnowledgeRequest(replace_existing=True)
+        )
 
     if response.status >= 400:
         raise Exception(

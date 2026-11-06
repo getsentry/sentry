@@ -5,16 +5,17 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+
 import {
   AgeComparisonDetails,
   AgeComparisonNode,
   validateAgeComparisonCondition,
-} from 'sentry/views/automations/components/actionFilters/ageComparison';
+} from './actionFilters/ageComparison';
 import {
   AssignedToDetails,
   AssignedToNode,
   validateAssignedToCondition,
-} from 'sentry/views/automations/components/actionFilters/assignedTo';
+} from './actionFilters/assignedTo';
 import {
   AgeComparison,
   Attribute,
@@ -25,78 +26,75 @@ import {
   Priority,
   TargetType,
   TimeUnit,
-} from 'sentry/views/automations/components/actionFilters/constants';
+} from './actionFilters/constants';
 import {
   EventAttributeDetails,
   EventAttributeNode,
   validateEventAttributeCondition,
-} from 'sentry/views/automations/components/actionFilters/eventAttribute';
+} from './actionFilters/eventAttribute';
 import {
   EventFrequencyCountDetails,
   EventFrequencyNode,
   EventFrequencyPercentDetails,
   validateEventFrequencyCondition,
-} from 'sentry/views/automations/components/actionFilters/eventFrequency';
+} from './actionFilters/eventFrequency';
 import {
   EventUniqueUserFrequencyCountDetails,
   EventUniqueUserFrequencyNode,
   EventUniqueUserFrequencyPercentDetails,
   validateEventUniqueUserFrequencyCondition,
-} from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
+} from './actionFilters/eventUniqueUserFrequency';
 import {
   IssueCategoryDetails,
   IssueCategoryNode,
   validateIssueCategoryCondition,
-} from 'sentry/views/automations/components/actionFilters/issueCategory';
+} from './actionFilters/issueCategory';
 import {
   IssueOccurrencesDetails,
   IssueOccurrencesNode,
   validateIssueOccurrencesCondition,
-} from 'sentry/views/automations/components/actionFilters/issueOccurrences';
+} from './actionFilters/issueOccurrences';
 import {
   IssuePriorityDetails,
   IssuePriorityNode,
   validateIssuePriorityCondition,
-} from 'sentry/views/automations/components/actionFilters/issuePriority';
-import {IssuePriorityDeescalating} from 'sentry/views/automations/components/actionFilters/issuePriorityDeescalating';
+} from './actionFilters/issuePriority';
+import {IssuePriorityDeescalating} from './actionFilters/issuePriorityDeescalating';
 import {
   IssueTypeDetails,
   IssueTypeNode,
   validateIssueTypeCondition,
-} from 'sentry/views/automations/components/actionFilters/issueType';
+} from './actionFilters/issueType';
 import {
   LatestAdoptedReleaseDetails,
   LatestAdoptedReleaseNode,
   validateLatestAdoptedReleaseCondition,
-} from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
-import {LatestReleaseNode} from 'sentry/views/automations/components/actionFilters/latestRelease';
-import {
-  LevelDetails,
-  LevelNode,
-  validateLevelCondition,
-} from 'sentry/views/automations/components/actionFilters/level';
+} from './actionFilters/latestAdoptedRelease';
+import {LatestReleaseNode} from './actionFilters/latestRelease';
+import {LevelDetails, LevelNode, validateLevelCondition} from './actionFilters/level';
 import {
   PercentSessionsCountDetails,
   PercentSessionsNode,
   PercentSessionsPercentDetails,
   validatePercentSessionsCondition,
-} from 'sentry/views/automations/components/actionFilters/percentSessions';
+} from './actionFilters/percentSessions';
 import {
   SeerActivityTriggerDetails,
   SeerActivityTriggerNode,
   validateSeerActivityTriggerCondition,
-} from 'sentry/views/automations/components/actionFilters/seerActivityTrigger';
+} from './actionFilters/seerActivityTrigger';
 import {
   TaggedEventDetails,
   TaggedEventNode,
   validateTaggedEventCondition,
-} from 'sentry/views/automations/components/actionFilters/taggedEvent';
-import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
+} from './actionFilters/taggedEvent';
+import type {ValidateDataConditionProps} from './automationFormData';
+import type {DataConditionNodeComponentProps} from './dataConditionNodeContext';
 
 type DataConditionNode = {
   label: string;
   validate: (({condition}: ValidateDataConditionProps) => string | undefined) | undefined;
-  dataCondition?: React.ComponentType<any>;
+  dataCondition?: React.ComponentType<DataConditionNodeComponentProps>;
   defaultComparison?: any;
   details?: React.ComponentType<any>;
   warningMessage?: React.ComponentType<any>;

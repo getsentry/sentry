@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
@@ -7,9 +8,9 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {PageBanner} from 'sentry/components/alerts/pageBanner';
-import {IconBroadcast} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
+
+import {PageBanner} from './pageBanner';
 
 export default Storybook.story('PageBanner', story => {
   const storiesButton = (

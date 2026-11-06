@@ -13,7 +13,14 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.organizations.services.organization import RpcOrganization
 
-environment_visibility_filter_options = {
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
+
+    from sentry.models.environment import EnvironmentProject
+
+environment_visibility_filter_options: dict[
+    str, Callable[[QuerySet[EnvironmentProject]], QuerySet[EnvironmentProject]]
+] = {
     "all": lambda queryset: queryset,
     "hidden": lambda queryset: queryset.filter(is_hidden=True),
     "visible": lambda queryset: queryset.exclude(is_hidden=True),

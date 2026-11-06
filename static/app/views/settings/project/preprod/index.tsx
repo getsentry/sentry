@@ -4,7 +4,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';

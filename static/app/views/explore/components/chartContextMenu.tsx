@@ -1,18 +1,17 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
+import {useQueryParamsHasTransformations} from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
   type Visualize,
@@ -37,6 +36,7 @@ export function ChartContextMenu({
 }) {
   const {addToDashboard} = useAddToDashboard();
   const organization = useOrganization();
+  const hasTransformations = useQueryParamsHasTransformations();
 
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
@@ -54,6 +54,7 @@ export function ChartContextMenu({
       menuItems.push(
         getSaveAsAlertMenuItem({
           disabled:
+            hasTransformations ||
             isVisualizeEquation(visualizeYAxes[0]!) ||
             hasConditionalAggregateFilter(yAxis),
           to: getAlertsUrl({
@@ -104,36 +105,24 @@ export function ChartContextMenu({
       menuItems.push(
         getSaveAsAlertMenuItem({
           alertsUrls,
+          disabled: hasTransformations,
           submenu: true,
           label: getCreateAlertForLabel(),
         })
       );
     }
 
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
     menuItems.push({
       key: 'add-to-dashboard',
       textValue: t('Add to Dashboard'),
-      label: (
-        <Feature
-          overrideName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-        >
-          {t('Add to Dashboard')}
-        </Feature>
-      ),
-      disabled: disableAddToDashboard,
+      label: t('Add to Dashboard'),
       onAction: () => {
-        if (disableAddToDashboard) {
-          return;
-        }
         trackAnalytics('trace_explorer.save_as', {
           save_type: 'dashboard',
           ui_source: 'chart',
           organization,
         });
-        return addToDashboard(visualizeIndex);
+        return addToDashboard(visualizeIndex, {includeChartGroup: true});
       },
     });
 
@@ -147,6 +136,7 @@ export function ChartContextMenu({
     query,
     visualizeIndex,
     visualizeYAxes,
+    hasTransformations,
   ]);
 
   if (items.length === 0) {
@@ -169,7 +159,3 @@ export function ChartContextMenu({
     />
   );
 }
-
-export const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

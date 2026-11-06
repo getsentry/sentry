@@ -14,7 +14,6 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
 describe('ChooseYourBillingCycle', () => {
-  const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     organization,
@@ -23,7 +22,6 @@ describe('ChooseYourBillingCycle', () => {
   });
 
   beforeEach(() => {
-    api.clear();
     setMockDate(new Date('2025-08-13'));
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, subscription);
@@ -72,18 +70,22 @@ describe('ChooseYourBillingCycle', () => {
       await screen.findByText('Pay monthly or yearly, your choice')
     ).toBeInTheDocument();
 
-    const monthlyOption = screen.getByRole('radio', {name: 'Monthly billing cycle'});
-    expect(within(monthlyOption).getByText('Monthly')).toBeInTheDocument();
-    expect(within(monthlyOption).queryByText(/save 10%/)).not.toBeInTheDocument();
-    expect(within(monthlyOption).getByText(monthlyInfo)).toBeInTheDocument();
-    expect(within(monthlyOption).getByText(/Cancel anytime/)).toBeInTheDocument();
-
-    const yearlyOption = screen.getByRole('radio', {name: 'Yearly billing cycle'});
-    expect(within(yearlyOption).getByText('Yearly')).toBeInTheDocument();
-    expect(within(yearlyOption).getByText(/save 10%/)).toBeInTheDocument();
-    expect(within(yearlyOption).getByText(yearlyInfo)).toBeInTheDocument();
+    const monthlyCard = screen.getByTestId('billing-cycle-option-monthly');
     expect(
-      within(yearlyOption).getByText(/PAYG usage billed monthly, discount does not apply/)
+      screen.getByRole('radio', {name: 'Monthly billing cycle'})
+    ).toBeInTheDocument();
+    expect(within(monthlyCard).getByText('Monthly')).toBeInTheDocument();
+    expect(within(monthlyCard).queryByText(/save 10%/)).not.toBeInTheDocument();
+    expect(within(monthlyCard).getByText(monthlyInfo)).toBeInTheDocument();
+    expect(within(monthlyCard).getByText(/Cancel anytime/)).toBeInTheDocument();
+
+    const yearlyCard = screen.getByTestId('billing-cycle-option-annual');
+    expect(screen.getByRole('radio', {name: 'Yearly billing cycle'})).toBeInTheDocument();
+    expect(within(yearlyCard).getByText('Yearly')).toBeInTheDocument();
+    expect(within(yearlyCard).getByText(/save 10%/)).toBeInTheDocument();
+    expect(within(yearlyCard).getByText(yearlyInfo)).toBeInTheDocument();
+    expect(
+      within(yearlyCard).getByText(/PAYG usage billed monthly, discount does not apply/)
     ).toBeInTheDocument();
   }
 
@@ -94,9 +96,7 @@ describe('ChooseYourBillingCycle', () => {
   }: {
     location: ComponentProps<typeof AMCheckout>['location'];
   }) {
-    return (
-      <AMCheckout {...routeProps} api={api} location={location} navigate={jest.fn()} />
-    );
+    return <AMCheckout {...routeProps} location={location} navigate={jest.fn()} />;
   }
 
   it('renders for upgrade from developer', async () => {

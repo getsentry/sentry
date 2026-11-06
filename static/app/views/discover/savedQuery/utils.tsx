@@ -1,6 +1,7 @@
 import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   deleteHomepageQuery,
@@ -11,22 +12,19 @@ import {
   deleteSavedQuery,
   updateSavedQuery,
 } from 'sentry/actionCreators/discoverSavedQueries';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverDatasets,
-  DisplayModes,
-  SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
+import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+
+import {getDatasetFromLocationOrSavedQueryDataset} from './datasets';
 
 const DATASET_PARAM = 'queryDataset';
 
@@ -50,7 +48,7 @@ export function handleCreateQuery(
 
   promise
     .then((savedQuery: SavedQuery) => {
-      addSuccessMessage(t('Query saved'));
+      toast.success(t('Query saved'));
       trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'success'), {
         organization,
         ...extractAnalyticsQueryFields(payload),
@@ -59,7 +57,7 @@ export function handleCreateQuery(
       return savedQuery;
     })
     .catch((err: Error) => {
-      addErrorMessage(t('Query not saved'));
+      toast.error(t('Query not saved'));
       trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'failed'), {
         organization,
         ...extractAnalyticsQueryFields(payload),
@@ -81,7 +79,7 @@ export function handleUpdateQuery(
   payload.yAxis = yAxis;
 
   if (!eventView.name) {
-    addErrorMessage(t('Please name your query'));
+    toast.error(t('Please name your query'));
     return Promise.reject(new Error('Query name is required'));
   }
 
@@ -94,7 +92,7 @@ export function handleUpdateQuery(
 
   promise
     .then((savedQuery: SavedQuery) => {
-      addSuccessMessage(t('Query updated'));
+      toast.success(t('Query updated'));
 
       trackAnalytics('discover_v2.update_query_success', {
         organization,
@@ -107,7 +105,7 @@ export function handleUpdateQuery(
       return savedQuery;
     })
     .catch((err: Error) => {
-      addErrorMessage(t('Query not updated'));
+      toast.error(t('Query not updated'));
 
       trackAnalytics('discover_v2.update_query_failed', {
         organization,
@@ -138,7 +136,7 @@ export function handleUpdateQueryName(
 
   promise
     .then(_saved => {
-      addSuccessMessage(t('Query name saved'));
+      toast.success(t('Query name saved'));
 
       trackAnalytics('discover_v2.update_query_name_successs', {
         organization,
@@ -146,7 +144,7 @@ export function handleUpdateQueryName(
       });
     })
     .catch((err: Error) => {
-      addErrorMessage(t('Query name not saved'));
+      toast.error(t('Query name not saved'));
 
       trackAnalytics('discover_v2.update_query_failed', {
         organization,
@@ -172,14 +170,14 @@ export function handleDeleteQuery(
 
   promise
     .then(() => {
-      addSuccessMessage(t('Query deleted'));
+      toast.success(t('Query deleted'));
       trackAnalytics('discover_v2.delete_query_success', {
         organization,
         ...extractAnalyticsQueryFields(eventView.toNewQuery()),
       });
     })
     .catch((err: Error) => {
-      addErrorMessage(t('Query not deleted'));
+      toast.error(t('Query not deleted'));
       trackAnalytics('discover_v2.delete_query_failed', {
         organization,
         ...extractAnalyticsQueryFields(eventView.toNewQuery()),
@@ -199,7 +197,7 @@ export function handleUpdateHomepageQuery(
 
   return promise
     .then(savedQuery => {
-      addSuccessMessage(t('Saved as Errors default'));
+      toast.success(t('Saved as Errors default'));
       return savedQuery;
     })
     .catch((e: RequestError) => {
@@ -211,7 +209,7 @@ export function handleUpdateHomepageQuery(
           errorMessage = response.non_field_errors[0];
         }
       }
-      addErrorMessage(errorMessage);
+      toast.error(errorMessage);
     });
 }
 
@@ -220,10 +218,10 @@ export function handleResetHomepageQuery(api: Client, organization: Organization
 
   return promise
     .then(() => {
-      addSuccessMessage(t('Successfully removed Errors default'));
+      toast.success(t('Successfully removed Errors default'));
     })
     .catch(() => {
-      addErrorMessage(t('Unable to remove Errors default'));
+      toast.error(t('Unable to remove Errors default'));
     });
 }
 
@@ -307,48 +305,6 @@ export function getSavedQueryWithDataset<T extends SavedQuery | NewQuery>(
       savedQuery?.queryDataset
     ),
   };
-}
-
-export function getDatasetFromLocationOrSavedQueryDataset(
-  location: Location | undefined,
-  queryDataset: SavedQueryDatasets | undefined
-): DiscoverDatasets | undefined {
-  const dataset = decodeScalar(location?.query?.dataset);
-  if (dataset) {
-    return dataset as DiscoverDatasets;
-  }
-  const savedQueryDataset = decodeScalar(location?.query?.queryDataset) ?? queryDataset;
-  switch (savedQueryDataset) {
-    case SavedQueryDatasets.ERRORS:
-      return DiscoverDatasets.ERRORS;
-    case SavedQueryDatasets.TRANSACTIONS:
-      return DiscoverDatasets.TRANSACTIONS;
-    case SavedQueryDatasets.DISCOVER:
-      return DiscoverDatasets.DISCOVER;
-    default:
-      return undefined;
-  }
-}
-
-export function getSavedQueryDatasetFromLocationOrDataset(
-  location: Location | undefined,
-  dataset: DiscoverDatasets | undefined
-): SavedQueryDatasets | undefined {
-  const savedQueryDataset = decodeScalar(location?.query?.queryDataset);
-  if (savedQueryDataset) {
-    return savedQueryDataset as SavedQueryDatasets;
-  }
-  const discoverDataset = decodeScalar(location?.query?.dataset) ?? dataset;
-  switch (discoverDataset) {
-    case DiscoverDatasets.ERRORS:
-      return SavedQueryDatasets.ERRORS;
-    case DiscoverDatasets.TRANSACTIONS:
-      return SavedQueryDatasets.TRANSACTIONS;
-    case DiscoverDatasets.DISCOVER:
-      return SavedQueryDatasets.DISCOVER;
-    default:
-      return undefined;
-  }
 }
 
 export function getTransactionDeprecationMessage(tracesUrl: string) {

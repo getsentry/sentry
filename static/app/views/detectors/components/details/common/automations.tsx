@@ -1,5 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -8,8 +10,8 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -17,7 +19,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
-import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -168,7 +169,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
 
   const setWorkflowIds = useCallback(
     (newWorkflowIds: string[]) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       updateDetector(
         {
           detectorId: detector.id,
@@ -176,7 +177,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
         },
         {
           onSuccess: () => {
-            addSuccessMessage(t('Connected alerts updated'));
+            toast.success(t('Connected alerts updated'));
             queryClient.invalidateQueries({
               queryKey: automationsApiOptions(organization).queryKey,
             });

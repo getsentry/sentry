@@ -2,6 +2,10 @@ import {useEffect, useId, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconExclamation} from '@sentry/icons/exclamation';
+import {IconHide} from '@sentry/icons/hide';
+import {IconShow} from '@sentry/icons/show';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -11,7 +15,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconArrow, IconExclamation, IconHide, IconShow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   useEmailAuth,

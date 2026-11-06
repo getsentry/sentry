@@ -216,8 +216,3 @@ function AlertContainer({children}: {children: React.ReactNode}) {
     </Container>
   );
 }
-
-// XXX(epurkhiser): We are ONLY exporting this as default for the
-// processInitQueue COMPONENT_MAP
-const DO_NOT_USE_WebAuthnAssert = WebAuthnAssert;
-export default DO_NOT_USE_WebAuthnAssert;

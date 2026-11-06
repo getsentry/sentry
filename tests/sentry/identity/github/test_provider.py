@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -75,7 +76,7 @@ class FetchVerifiedPrimaryEmailTest(TestCase):
         ),
     ],
 )
-def test_get_verified_primary_email(emails: list, expected: str | None) -> None:
+def test_get_verified_primary_email(emails: list[Any], expected: str | None) -> None:
     assert get_verified_primary_email(emails) == expected
 
 

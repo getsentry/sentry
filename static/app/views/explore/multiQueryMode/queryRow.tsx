@@ -1,26 +1,25 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Grid} from '@sentry/scraps/layout';
 
 import {LazyRender} from 'sentry/components/lazyRender';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
-} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTable';
-import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
-import {
-  getQueryMode,
-  type ReadableExploreQueryParts,
-} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {GroupBySection} from 'sentry/views/explore/multiQueryMode/queryConstructors/groupBy';
-import {MenuSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/menu';
-import {SearchBarSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/search';
-import {SortBySection} from 'sentry/views/explore/multiQueryMode/queryConstructors/sortBy';
-import {VisualizeSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/visualize';
-import {MultiQueryModeChart} from 'sentry/views/explore/multiQueryMode/queryVisualizations/chart';
-import {MultiQueryTable} from 'sentry/views/explore/multiQueryMode/queryVisualizations/table';
+} from './hooks/useMultiQueryTable';
+import {useMultiQueryTimeseries} from './hooks/useMultiQueryTimeseries';
+import {GroupBySection} from './queryConstructors/groupBy';
+import {MenuSection} from './queryConstructors/menu';
+import {SearchBarSection} from './queryConstructors/search';
+import {SortBySection} from './queryConstructors/sortBy';
+import {VisualizeSection} from './queryConstructors/visualize';
+import {MultiQueryModeChart} from './queryVisualizations/chart';
+import {MultiQueryTable} from './queryVisualizations/table';
+import {getQueryMode, type ReadableExploreQueryParts} from './locationUtils';
 
 type Props = {
   index: number;
@@ -39,7 +38,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     sortBys,
     enabled: mode === Mode.AGGREGATE,
     queryExtras: {
-      caseInsensitive: caseInsensitive ? true : undefined,
+      caseInsensitive: caseInsensitive === '1' ? true : undefined,
     },
   });
 
@@ -50,7 +49,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     sortBys,
     enabled: mode === Mode.SAMPLES,
     queryExtras: {
-      caseInsensitive: caseInsensitive ? true : undefined,
+      caseInsensitive: caseInsensitive === '1' ? true : undefined,
     },
   });
 
@@ -58,7 +57,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     index,
     enabled: true,
     queryExtras: {
-      caseInsensitive: caseInsensitive ? true : undefined,
+      caseInsensitive: caseInsensitive === '1' ? true : undefined,
     },
   });
 
@@ -76,16 +75,25 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
 
   return (
     <Fragment>
-      <QueryConstructionSection>
+      <Grid
+        gap="md"
+        marginBottom="md"
+        columns={{zero: '1fr', '4xl': 'minmax(400px, 1fr) 1fr'}}
+      >
         <SearchBarSection query={queryParts} index={index} />
-        <DropDownGrid>
+        <Grid columns="repeat(3, minmax(0, auto)) min-content" align="end" gap="md">
           <VisualizeSection query={queryParts} index={index} />
           <GroupBySection query={queryParts} index={index} />
           <SortBySection query={queryParts} index={index} />
           <MenuSection index={index} totalQueryRows={totalQueryRows} />
-        </DropDownGrid>
-      </QueryConstructionSection>
-      <QueryVisualizationSection data-test-id={`section-visualization-${index}`}>
+        </Grid>
+      </Grid>
+      <Grid
+        columns="2fr 1.2fr"
+        gap="md"
+        marginBottom="xl"
+        data-test-id={`section-visualization-${index}`}
+      >
         <LazyRender containerHeight={260} withoutContainer>
           <MultiQueryModeChart
             index={index}
@@ -101,31 +109,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             spansTableResult={spansTableResult}
           />
         </LazyRender>
-      </QueryVisualizationSection>
+      </Grid>
     </Fragment>
   );
 }
-
-const QueryConstructionSection = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: minmax(400px, 1fr) 1fr;
-  }
-`;
-
-const DropDownGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, auto)) min-content;
-  align-items: end;
-  gap: ${p => p.theme.space.md};
-`;
-
-const QueryVisualizationSection = styled('div')`
-  display: grid;
-  grid-template-columns: 2fr 1.2fr;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.xl};
-`;

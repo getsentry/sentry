@@ -1,16 +1,17 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {TreeValueDropdown as KeyValueTreeValueDropdown} from 'sentry/components/keyValueTree/styles';
-import type {KeyValueTreeValue} from 'sentry/components/keyValueTree/utils';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
+
+import {TreeValueDropdown as KeyValueTreeValueDropdown} from './styles';
+import type {KeyValueTreeValue} from './utils';
 
 const TREE_VALUE_DROPDOWN_BUTTON_CLASS = 'tree-value-dropdown-button';
 

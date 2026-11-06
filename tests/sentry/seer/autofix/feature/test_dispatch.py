@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -7,10 +8,13 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
 from sentry.seer.autofix.feature.models import (
+    FEATURE_ID,
     LEGACY_FEATURE_ID,
+    SINGLE_RUN_FEATURE_ID,
     CodeChangesStepArgs,
     PrIterationStepArgs,
     RCAStepArgs,
+    SolutionStepArgs,
 )
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
@@ -28,7 +32,12 @@ class TestTriggerAutofixFeature(TestCase):
 
     def test_continues_feature_run(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
-        self.create_seer_agent_run(run=fake_run, source=LEGACY_FEATURE_ID)
+        self.create_seer_agent_run(
+            run=fake_run,
+            source=LEGACY_FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
 
         with (
             patch(
@@ -75,7 +84,7 @@ class TestTriggerAutofixFeature(TestCase):
         assert client_kwargs["organization"] == self.group.organization
         assert client_kwargs["project"] == self.group.project
         assert client_kwargs["group"] == self.group
-        assert client_kwargs["enable_bash_mode"] is False
+        assert client_kwargs["enable_bash_mode"] is True
 
         # A rerun uses the existing mirror rather than creating another one.
         run_kwargs = client.continue_feature_run.call_args.kwargs
@@ -119,6 +128,67 @@ class TestTriggerAutofixFeature(TestCase):
         client.start_feature_run.assert_not_called()
         mock_quotas.backend.check_seer_quota.assert_not_called()
         mock_quotas.backend.record_seer_run.assert_not_called()
+
+    def test_refuses_run_from_another_project(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        other_group = self.create_group(project=other_project)
+        foreign_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=foreign_run,
+            source=LEGACY_FEATURE_ID,
+            group=other_group,
+            project=other_project,
+        )
+
+        with (
+            patch(
+                "sentry.seer.autofix.feature.dispatch.SeerAgentClient", autospec=True
+            ) as MockClient,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+        ):
+            mock_quotas.backend.check_seer_quota.return_value = True
+
+            with pytest.raises(SeerPermissionError, match="Unknown run id for group"):
+                trigger_autofix_feature(
+                    self.group,
+                    AutofixFeatureArgs(
+                        referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                        step=AutofixStep.SOLUTION,
+                        existing_run_id=123,
+                        user_context="Find a solution",
+                        step_args=SolutionStepArgs(),
+                    ),
+                )
+
+        MockClient.return_value.continue_feature_run.assert_not_called()
+        MockClient.return_value.start_feature_run.assert_not_called()
+
+    def test_refuses_run_without_project(self) -> None:
+        unbound_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=unbound_run,
+            source=LEGACY_FEATURE_ID,
+            group=self.group,
+        )
+
+        with (
+            patch(
+                "sentry.seer.autofix.feature.dispatch.SeerAgentClient", autospec=True
+            ) as MockClient,
+            pytest.raises(SeerPermissionError, match="Unknown run id for group"),
+        ):
+            trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    step=AutofixStep.SOLUTION,
+                    existing_run_id=123,
+                    user_context="Find a solution",
+                    step_args=SolutionStepArgs(),
+                ),
+            )
+
+        MockClient.return_value.continue_feature_run.assert_not_called()
 
     def test_starts_feature_run_and_records_quota(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
@@ -245,7 +315,6 @@ class TestTriggerAutofixFeature(TestCase):
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     user=user,
-                    enable_bash_mode=True,
                 ),
             )
 
@@ -283,7 +352,12 @@ class TestTriggerAutofixFeature(TestCase):
 
     def test_pr_iteration_enables_coding_and_sends_its_step_args(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
-        self.create_seer_agent_run(run=fake_run, source=LEGACY_FEATURE_ID)
+        self.create_seer_agent_run(
+            run=fake_run,
+            source=LEGACY_FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
 
         with (
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
@@ -333,3 +407,136 @@ class TestTriggerAutofixFeature(TestCase):
                     existing_run_id=123,
                 ),
             )
+
+
+@django_db_all
+class TestSingleRunStart(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def _start(self, **kwargs: Any) -> MagicMock:
+        args = {
+            "referrer": AutofixReferrer.AGENTIC_TRIAGE,
+            "step": AutofixStep.ROOT_CAUSE,
+            "step_args": RCAStepArgs(),
+            **kwargs,
+        }
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+        with (
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.require_autofix_run_for_group"),
+        ):
+            mock_quotas.backend.check_seer_quota.return_value = True
+            mock_client_cls.return_value.start_feature_run.return_value = fake_run
+            mock_client_cls.return_value.continue_feature_run.return_value = fake_run
+            trigger_autofix_feature(self.group, AutofixFeatureArgs(**args))
+        return mock_client_cls
+
+    def _started_feature_id(self, mock_client_cls: MagicMock) -> str:
+        return mock_client_cls.return_value.start_feature_run.call_args.kwargs["feature_id"]
+
+    def _set_handoff(self) -> None:
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 456)
+
+    def test_flagged_org_starts_single_run(self) -> None:
+        with self.feature("organizations:autofix-single-run"):
+            mock_client_cls = self._start()
+
+        assert self._started_feature_id(mock_client_cls) == SINGLE_RUN_FEATURE_ID
+        payload = mock_client_cls.return_value.start_feature_run.call_args.kwargs["payload"]
+        assert payload["group_id"] == self.group.id
+        assert "step" not in payload
+
+    def test_unflagged_org_starts_steps(self) -> None:
+        mock_client_cls = self._start()
+
+        assert self._started_feature_id(mock_client_cls) == FEATURE_ID
+
+    def test_caller_can_ask_for_single_run(self) -> None:
+        mock_client_cls = self._start(single_run=True)
+
+        assert self._started_feature_id(mock_client_cls) == SINGLE_RUN_FEATURE_ID
+
+    def test_handoff_project_never_single_run(self) -> None:
+        self._set_handoff()
+        with self.feature("organizations:autofix-single-run"):
+            mock_client_cls = self._start(single_run=True)
+
+        assert self._started_feature_id(mock_client_cls) == FEATURE_ID
+
+    def test_retry_never_single_run(self) -> None:
+        with self.feature("organizations:autofix-single-run"):
+            mock_client_cls = self._start(single_run=True, existing_run_id=5)
+
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+        mock_client_cls.return_value.continue_feature_run.assert_called_once()
+
+    def test_single_run_stopping_point_sets_coding(self) -> None:
+        cases = [
+            (None, "code_changes", True, True),
+            (None, "root_cause", True, False),
+            (AutofixStoppingPoint.ROOT_CAUSE, "open_pr", True, False),
+            (AutofixStoppingPoint.SOLUTION, "open_pr", True, False),
+            (AutofixStoppingPoint.OPEN_PR, "root_cause", True, True),
+            (AutofixStoppingPoint.OPEN_PR, "open_pr", False, False),
+        ]
+        for caller_stopping_point, project_stopping_point, org_coding, expected in cases:
+            with self.subTest(caller=caller_stopping_point, project=project_stopping_point):
+                self.project.update_option(
+                    "sentry:seer_automated_run_stopping_point", project_stopping_point
+                )
+                self.organization.update_option("sentry:enable_seer_coding", org_coding)
+
+                mock_client_cls = self._start(single_run=True, stopping_point=caller_stopping_point)
+
+                assert mock_client_cls.call_args.kwargs["enable_coding"] is expected
+                start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+                assert start_kwargs["agent_run_options"]["enable_coding"] is expected
+
+    def test_only_open_pr_with_coding_gets_the_pr_tool(self) -> None:
+        cases = [
+            (AutofixStoppingPoint.OPEN_PR, True, True),
+            (AutofixStoppingPoint.OPEN_PR, False, False),
+            (AutofixStoppingPoint.CODE_CHANGES, True, False),
+            (AutofixStoppingPoint.ROOT_CAUSE, True, False),
+        ]
+        for stopping_point, org_coding, expected in cases:
+            with self.subTest(stopping_point=stopping_point, coding=org_coding):
+                self.organization.update_option("sentry:enable_seer_coding", org_coding)
+
+                mock_client_cls = self._start(single_run=True, stopping_point=stopping_point)
+
+                start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+                options = start_kwargs["agent_run_options"]
+                assert options.get("enable_write_pull_request", False) is expected
+                assert (start_kwargs["payload"]["pr_internal_settings"] is not None) is expected
+
+    def test_single_run_pr_internal_settings_match_the_pipeline_push(self) -> None:
+        self.organization.update_option("sentry:enable_seer_coding", True)
+        with self.feature("organizations:autofix-pr-iteration-review-request"):
+            mock_client_cls = self._start(
+                single_run=True, stopping_point=AutofixStoppingPoint.OPEN_PR
+            )
+
+        pr_internal_settings = mock_client_cls.return_value.start_feature_run.call_args.kwargs[
+            "payload"
+        ]["pr_internal_settings"]
+        assert pr_internal_settings["ready_for_review"] is False
+        assert (
+            f"Fixes [{self.group.qualified_short_id}]" in pr_internal_settings["description_suffix"]
+        )
+        assert "automatically generated by Sentry" in pr_internal_settings["description_suffix"]
+
+    def test_step_by_step_start_never_gets_the_pr_tool(self) -> None:
+        mock_client_cls = self._start(stopping_point=AutofixStoppingPoint.OPEN_PR)
+
+        options = mock_client_cls.return_value.start_feature_run.call_args.kwargs[
+            "agent_run_options"
+        ]
+        assert "enable_write_pull_request" not in options

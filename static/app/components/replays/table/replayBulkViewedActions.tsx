@@ -1,11 +1,11 @@
 import {useState} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconCheckmark} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -100,7 +100,7 @@ export function ReplayBulkViewedActions({
     });
 
     if (failed.length === 0) {
-      addSuccessMessage(
+      toast.success(
         tn(
           'Marked 1 replay as viewed.',
           'Marked %s replays as viewed.',
@@ -108,7 +108,7 @@ export function ReplayBulkViewedActions({
         )
       );
     } else if (succeededIds.size) {
-      addErrorMessage(
+      toast.error(
         t(
           'Updated %s of %s — some replays could not be updated. Try again or refresh the list.',
           succeededIds.size,
@@ -116,7 +116,7 @@ export function ReplayBulkViewedActions({
         )
       );
     } else {
-      addErrorMessage(t('Replays could not be updated. Try again or refresh the list.'));
+      toast.error(t('Replays could not be updated. Try again or refresh the list.'));
     }
 
     setIsLoading(false);

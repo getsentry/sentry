@@ -1,13 +1,12 @@
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
-import {
-  ActionMenuTrigger,
-  generateAction,
-} from 'sentry/components/replays/table/filters/utils';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {ActionMenuTrigger, generateAction} from './utils';
 
 const DEFAULT_NUMERIC_DROPDOWN_FORMATTER = (val: number) => val.toString();
 

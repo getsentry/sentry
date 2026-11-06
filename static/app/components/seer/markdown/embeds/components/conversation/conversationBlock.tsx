@@ -1,7 +1,8 @@
+import {IconChat} from '@sentry/icons/chat';
+
 import {Text} from '@sentry/scraps/text';
 
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
-import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';

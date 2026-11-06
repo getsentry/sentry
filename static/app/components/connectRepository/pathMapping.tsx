@@ -20,6 +20,7 @@ interface PathMappingProps {
   enableDelete?: boolean;
   projectSlug?: string;
   providerKey?: string;
+  repositoryId?: string;
   warning?: PathMappingWarning;
 }
 
@@ -35,6 +36,7 @@ export function PathMapping({
   defaultBranch,
   projectSlug,
   providerKey,
+  repositoryId,
   warning,
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
@@ -57,11 +59,16 @@ export function PathMapping({
       {showSummary && editing && <Container borderTop="muted" />}
       {editing && (
         <PathMappingEdit
+          // TODO(scttcper): Remove once TanStack Form's useFieldGroup handles `fields`
+          // changes; until then deleting a row above leaves the editor on a stale index.
+          // https://github.com/TanStack/form/issues/1648
+          key={fields}
           form={form}
           fields={fields}
           providerKey={providerKey}
           defaultBranch={defaultBranch}
           projectSlug={projectSlug}
+          repositoryId={repositoryId}
           hasCodeOwner={value.hasCodeOwner}
           warning={warning}
           onDelete={editorOnDelete}

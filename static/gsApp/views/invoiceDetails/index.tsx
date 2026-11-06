@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -10,11 +12,8 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -22,8 +21,8 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {InvoiceStatus} from 'getsentry/types';
 import type {BillingDetails, Invoice, InvoiceBase} from 'getsentry/types';
+import {displayPriceWithCents} from 'getsentry/utils/billing';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import {InvoiceDetailsActions} from './actions';
@@ -78,31 +77,23 @@ function InvoiceDetails() {
     isPending: isBillingDetailsLoading,
     isError: isBillingDetailsError,
     refetch: billingDetailsRefetch,
-  } = useApiQuery<BillingDetails>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/billing-details/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<BillingDetails>()(
+      '/customers/$organizationIdOrSlug/billing-details/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    ),
+    placeholderData: keepPreviousData,
+  });
   const {
     data: invoice,
     isPending: isInvoiceLoading,
     isError: isInvoiceError,
     refetch: invoiceRefetch,
-  } = useApiQuery<Invoice>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/invoices/$invoiceId/', {
-        path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
-      }),
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<Invoice>()('/customers/$organizationIdOrSlug/invoices/$invoiceId/', {
+      path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
       staleTime: Infinity,
-    }
+    })
   );
 
   if (isBillingDetailsError || isInvoiceError) {
@@ -136,7 +127,7 @@ function InvoiceDetails() {
           </PanelBody>
         ) : (
           <PanelBody withPadding>
-            <SenderContainer>
+            <Grid columns={{zero: 'auto', xl: 'auto auto'}} gap="xl" paddingLeft="md">
               <div>
                 <SenderName>
                   <IconSentry size="lg" /> {invoice.sender.name}
@@ -165,7 +156,7 @@ function InvoiceDetails() {
                   reloadInvoice={invoiceRefetch}
                 />
               )}
-            </SenderContainer>
+            </Grid>
             <hr />
             <InvoiceDetailsContents invoice={invoice} billingDetails={billingDetails} />
             <FinePrint>
@@ -218,7 +209,7 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
   const taxNumberName = `${getTaxFieldInfo(countryCode).label}:`;
 
   return (
-    <AttributeGroup>
+    <Grid columns={{zero: 'auto', xl: '1fr 1fr'}} gap="xl">
       <Attributes>
         <dt>{t('Account:')}</dt>
         <dd>
@@ -251,7 +242,7 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
           <DateTime date={invoice.dateCreated} dateOnly year />
         </dd>
       </Attributes>
-    </AttributeGroup>
+    </Grid>
   );
 }
 
@@ -334,32 +325,6 @@ const SenderName = styled('h3')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-`;
-
-const SenderContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: ${p => p.theme.space.xl};
-
-  padding-left: ${p => p.theme.space.md};
-
-  /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-    grid-template-rows: auto auto;
-  }
-`;
-
-const AttributeGroup = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-
-  /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-    grid-template-rows: auto auto;
-  }
 `;
 
 const Attributes = styled('dl')`

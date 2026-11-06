@@ -4,9 +4,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, type LinkButtonProps} from '@sentry/scraps/button';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
-import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
-import {ReplayPreviewPlayer} from 'sentry/components/events/eventReplay/replayPreviewPlayer';
-import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
 import {MissingReplayAlert} from 'sentry/components/replays/alerts/missingReplayAlert';
@@ -20,6 +17,10 @@ import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/repl
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
+
+import {REPLAY_LOADING_HEIGHT} from './constants';
+import {ReplayPreviewPlayer} from './replayPreviewPlayer';
+import {StaticReplayPreview} from './staticReplayPreview';
 
 interface Props {
   analyticsContext: string;
@@ -89,7 +90,12 @@ export function ReplayClipPreviewPlayer({
         }
 
         return (
-          <PlayerContainer data-test-id="player-container">
+          <FluidHeight
+            position="relative"
+            maxHeight={`${REPLAY_LOADING_HEIGHT + 16}px`}
+            minHeight={{zero: 'auto', xl: `${REPLAY_LOADING_HEIGHT + 16}px`}}
+            overflow="visible"
+          >
             <ReplayPlayerPluginsContextProvider>
               <ReplayReaderProvider replay={replay}>
                 <ReplayPlayerStateContextProvider>
@@ -103,21 +109,12 @@ export function ReplayClipPreviewPlayer({
                 </ReplayPlayerStateContextProvider>
               </ReplayReaderProvider>
             </ReplayPlayerPluginsContextProvider>
-          </PlayerContainer>
+          </FluidHeight>
         );
       }}
     </ReplayLoadingState>
   );
 }
-
-const PlayerContainer = styled(FluidHeight)`
-  position: relative;
-  max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    min-height: ${REPLAY_LOADING_HEIGHT + 16}px;
-  }
-  overflow: unset;
-`;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT}px;

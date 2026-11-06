@@ -1,9 +1,10 @@
 import {useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 export type ReleaseRegistrySdk = Record<
   string,
@@ -22,19 +23,15 @@ export type ReleaseRegistrySdk = Record<
  * Fetches the release registry list for SDKs
  */
 export function useSourcePackageRegistries(organization: Organization) {
-  const releaseRegistrySdk = useApiQuery<ReleaseRegistrySdk>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sdks/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
+  const releaseRegistrySdk = useQuery(
+    apiOptions.as<ReleaseRegistrySdk>()('/organizations/$organizationIdOrSlug/sdks/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: Infinity,
-    }
+    })
   );
 
   useEffect(() => {
-    if (releaseRegistrySdk.error) {
+    if (releaseRegistrySdk.error instanceof RequestError) {
       handleXhrErrorResponse(
         'Failed to fetch sentry release registry',
         releaseRegistrySdk.error

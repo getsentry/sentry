@@ -1,6 +1,8 @@
 import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconSearch} from '@sentry/icons/search';
 
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
@@ -9,7 +11,6 @@ import {Accordion} from 'sentry/components/container/accordion';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,10 +20,11 @@ import {
   Subtitle,
   WidgetContainer,
 } from 'sentry/views/explore/profiling/landing/styles';
-import {ExampleReplaysList} from 'sentry/views/explore/replays/selectors/exampleReplaysList';
-import {ProjectInfo} from 'sentry/views/explore/replays/selectors/projectInfo';
-import {SelectorLink} from 'sentry/views/explore/replays/selectors/selectorLink';
-import {transformSelectorQuery} from 'sentry/views/explore/replays/selectors/utils';
+
+import {ExampleReplaysList} from './exampleReplaysList';
+import {ProjectInfo} from './projectInfo';
+import {SelectorLink} from './selectorLink';
+import {transformSelectorQuery} from './utils';
 
 type ClickType = 'count_dead_clicks' | 'count_rage_clicks';
 type DeadOrRage = 'dead' | 'rage';

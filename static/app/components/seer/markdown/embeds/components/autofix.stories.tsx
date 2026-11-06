@@ -1,4 +1,5 @@
 import {useMemo, useState, type ReactNode} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -16,12 +17,7 @@ import {
   type AutofixExplorerStep,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {
-  NEXT_STEP,
-  STEP_LABELS,
-} from 'sentry/components/seer/markdown/embeds/components/autofix';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconArrow} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -32,6 +28,8 @@ import type {
   MilestoneKey,
   OverviewRun,
 } from 'sentry/views/seerWorkflows/overview/types';
+
+import {NEXT_STEP, STEP_LABELS} from './autofix';
 
 const ISSUE = {id: '6789012345', shortId: 'CHECKOUT-42'};
 

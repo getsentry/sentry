@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import logging
 from collections import namedtuple
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Self, cast
 
-from django.db import connections, models
+from django.db import models
 from django.db.models import Case, Exists, F, Func, OuterRef, Q, Subquery, Value, When
 from django.db.models.signals import pre_save
 from sentry_relay.exceptions import RelayError
@@ -22,20 +22,6 @@ if TYPE_CHECKING:
     from sentry.models.release import Release  # noqa: F401
 
 logger = logging.getLogger(__name__)
-
-MAX_RESERVED_IDS = 100_000
-
-
-def reserve_ids(model: type[models.Model], count: int, using: str) -> list[int]:
-    """Pk values claimed ahead of insert from the sequence on `using`, the write database."""
-    if not 1 <= count <= MAX_RESERVED_IDS:
-        raise ValueError(f"Cannot reserve {count} ids, expected 1 to {MAX_RESERVED_IDS}.")
-
-    sequence = f"{model._meta.db_table}_id_seq"
-    with connections[using].cursor() as cursor:
-        cursor.execute("SELECT nextval(%s) FROM generate_series(1, %s);", [sequence, count])
-        rows = cursor.fetchall()
-    return [row_id for (row_id,) in rows]
 
 
 def release_order_date(
@@ -60,18 +46,6 @@ class SemverFilter:
 
 
 class ReleaseQuerySet(BaseQuerySet["Release"]):
-    def bulk_create(self, objs: Iterable[Release], *args: Any, **kwds: Any) -> list[Release]:
-        releases = list(objs)
-        if not releases:
-            return super().bulk_create(releases, *args, **kwds)
-
-        self._for_write = True
-        ids = reserve_ids(self.model, len(releases), self.db)
-        for release, release_id in zip(releases, ids):
-            release.id = release_id
-            release.new_id = release_id
-        return super().bulk_create(releases, *args, **kwds)
-
     def annotate_prerelease_column(self) -> Self:
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
@@ -194,7 +168,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         self,
         organization_id: int,
         operator: str,
-        value,
+        value: str | list[str],
         project_ids: Sequence[int] | None = None,
         environments: Sequence[str | int] | None = None,
     ) -> Self:
@@ -203,8 +177,9 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
 
         if not environments or len(environments) != 1:
             raise InvalidSearchQuery("Choose a single environment to filter by release stage.")
+        environment = environments[0]
 
-        filters = {
+        filters: dict[str, Q] = {
             ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
             ReleaseStages.REPLACED: Q(adopted__isnull=False, unadopted__isnull=False),
             ReleaseStages.LOW_ADOPTION: Q(adopted__isnull=True, unadopted__isnull=True),
@@ -220,6 +195,16 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         rpes = ReleaseProjectEnvironment.objects.filter(
             release__organization_id=organization_id,
         ).select_related("release")
+
+        # Tag value autocomplete passes environment ids; search filters pass names.
+        if isinstance(environment, int):
+            rpes = rpes.filter(environment_id=environment)
+        elif isinstance(environment, str):
+            rpes = rpes.filter(environment__name=environment)
+        else:
+            raise TypeError(
+                f"Expected an environment name or id, got {type(environment).__name__}."
+            )
 
         if project_ids:
             rpes = rpes.filter(project_id__in=project_ids)
@@ -273,7 +258,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         return self.order_by("-date_added", "-id")
 
     @staticmethod
-    def massage_semver_cols_into_release_object_data(kwargs):
+    def massage_semver_cols_into_release_object_data(kwargs: dict[str, object]) -> None:
         """
         Helper function that takes kwargs as an argument and massages into it the release semver
         columns (if possible)
@@ -282,7 +267,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         """
         if "version" in kwargs:
             try:
-                version_info = parse_release(kwargs["version"])
+                version_info = parse_release(cast(str, kwargs["version"]))
                 package = version_info.get("package")
                 version_parsed = version_info.get("version_parsed")
 
@@ -310,7 +295,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
                 pass
 
     @staticmethod
-    def _convert_build_code_to_build_number(build_code):
+    def _convert_build_code_to_build_number(build_code: str | None) -> int | None:
         """
         Helper function that takes the build_code and checks if that build code can be parsed into
         a 64 bit integer
@@ -330,9 +315,8 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         return build_number
 
 
-def parse_semver_pre_save(instance, **kwargs):
-    # `Release.save()` claims the id before `pre_save`, so a set id doesn't mean the row exists.
-    if not instance._state.adding:
+def parse_semver_pre_save(instance: Release, **kwargs: object) -> None:
+    if instance.id:
         return
     ReleaseQuerySet.massage_semver_cols_into_release_object_data(instance.__dict__)
 

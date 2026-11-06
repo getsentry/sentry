@@ -1,4 +1,4 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PasswordReset from './index';
 
@@ -10,6 +10,10 @@ const routerConfig = {
 jest.unmock('@tanstack/react-pacer');
 
 describe('PasswordReset', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('resets the password and shows the success message', async () => {
     const validate = MockApiClient.addMockResponse({
       url: '/auth/recovery/confirm/',
@@ -70,6 +74,8 @@ describe('PasswordReset', () => {
   });
 
   it('counts down before navigating to sign-in', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     MockApiClient.addMockResponse({
       url: '/auth/recovery/confirm/',
       body: {valid: true},
@@ -83,25 +89,25 @@ describe('PasswordReset', () => {
       initialRouterConfig: routerConfig,
     });
 
-    await userEvent.type(
-      await screen.findByLabelText('New password'),
-      'a-secure-password'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Reset password'}));
-    await waitFor(() =>
-      expect(screen.getByText('Taking you back to sign in (3)…')).toBeVisible()
+    await user.type(await screen.findByLabelText('New password'), 'a-secure-password');
+    await user.click(screen.getByRole('button', {name: 'Reset password'}));
+    // framer-motion runs the fade-in on jsdom's real animation frames, which fake
+    // timers don't control. Poll in 1ms steps so this wait barely moves the
+    // countdown's clock.
+    await waitFor(
+      () => expect(screen.getByText('Taking you back to sign in (3)…')).toBeVisible(),
+      {interval: 1}
     );
 
-    expect(
-      await screen.findByText('Taking you back to sign in (2)…', {}, {timeout: 1500})
-    ).toBeVisible();
-    expect(
-      await screen.findByText('Taking you back to sign in (1)…', {}, {timeout: 1500})
-    ).toBeVisible();
+    await act(() => jest.advanceTimersByTimeAsync(1000));
+    expect(screen.getByText('Taking you back to sign in (2)…')).toBeVisible();
+
+    await act(() => jest.advanceTimersByTimeAsync(1000));
+    expect(screen.getByText('Taking you back to sign in (1)…')).toBeVisible();
     expect(router.location.pathname).toBe(routerConfig.location.pathname);
-    await waitFor(() => expect(router.location.pathname).toBe('/auth/login/'), {
-      timeout: 1500,
-    });
+
+    await act(() => jest.advanceTimersByTimeAsync(1000));
+    expect(router.location.pathname).toBe('/auth/login/');
     expect(screen.queryByText('Your password has been reset.')).not.toBeInTheDocument();
   });
 

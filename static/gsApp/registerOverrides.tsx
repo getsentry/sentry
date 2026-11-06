@@ -8,7 +8,6 @@ import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types'
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
 import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
-import {DashboardBanner} from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
 import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
 import DateRangeQueryLimitFooter from 'getsentry/components/features/dateRangeQueryLimitFooter';
@@ -31,6 +30,7 @@ import {
   MetricAlertQuotaMessage,
 } from 'getsentry/components/metricAlertQuotaMessage';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerConfigReminder';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
@@ -59,7 +59,10 @@ import OrgStatsBanner from 'getsentry/overrides/orgStatsBanner';
 import {OrgStatsProfilingBanner} from 'getsentry/overrides/orgStatsProfilingBanner';
 import {rootRoutes} from 'getsentry/overrides/rootRoutes';
 import {ScmGithubMultiOrgInstall} from 'getsentry/overrides/scmGithubMultiOrgInstall';
-import {seerSettingsRoutes} from 'getsentry/overrides/seerSettingsRoutes';
+import {
+  seerSettingsRoutes,
+  seerProjectSettingsRoutes,
+} from 'getsentry/overrides/seerSettingsRoutes';
 import {SpikeProtectionProjectSettings} from 'getsentry/overrides/spendVisibility/spikeProtectionProjectSettings';
 import {subscriptionSettingsRoutes} from 'getsentry/overrides/subscriptionSettingsRoutes';
 import {SuperuserAccessCategory} from 'getsentry/overrides/superuserAccessCategory';
@@ -96,10 +99,6 @@ const DisabledPerformancePage = lazy(
 
 const DisabledAlertsPage = lazy(() => import('./components/features/disabledAlertsPage'));
 
-const DisabledDashboardPage = lazy(
-  () => import('./components/features/disabledDashboardPage')
-);
-
 const EnhancedOrganizationStats = lazy(() =>
   import('getsentry/overrides/spendVisibility/enhancedIndex').then(module => ({
     default: module.EnhancedOrganizationStats,
@@ -116,6 +115,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    */
   'routes:root': rootRoutes,
   'routes:org-settings': seerSettingsRoutes,
+  'routes:project-settings': seerProjectSettingsRoutes,
   'routes:legacy-organization-redirects': legacyOrganizationRedirectRoutes,
 
   /**
@@ -226,10 +226,10 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:disabled-member': () => DisabledMemberView,
   'component:disabled-member-tooltip': () => DisabledMemberTooltip,
   'component:disabled-custom-symbol-sources': () => DisabledCustomSymbolSources,
-  'component:dashboards-header': () => DashboardBanner,
   'component:org-stats-banner': () => OrgStatsBanner,
   'component:org-stats-profiling-banner': () => OrgStatsProfilingBanner,
   'component:enhanced-org-stats': () => LazyEnhancedOrganizationStats,
+  'component:explore-quota-exceeded-alert': () => QuotaExceededAlert,
   'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
@@ -295,13 +295,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
       features={p.features}
     />
   ),
-  'feature-disabled:dashboards-sidebar-item': p =>
-    typeof p.children === 'function' ? p.children(p) : p.children,
-  'feature-disabled:dashboards-page': p => (
-    <LazyLoad LazyComponent={DisabledDashboardPage} {...p}>
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
-  ),
   'feature-disabled:alert-wizard-performance': p => (
     <DisabledAlertWizard {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
@@ -314,14 +307,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   ),
   'feature-disabled:open-discover': p => (
     <PowerFeatureHovercard features={['organizations:discover-basic']} id="open-discover">
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </PowerFeatureHovercard>
-  ),
-  'feature-disabled:dashboards-edit': p => (
-    <PowerFeatureHovercard
-      features={['organizations:dashboards-edit']}
-      id="dashboards-edit"
-    >
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PowerFeatureHovercard>
   ),

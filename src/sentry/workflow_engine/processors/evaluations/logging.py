@@ -3,19 +3,21 @@ from __future__ import annotations
 import logging
 import random
 from collections.abc import Iterator, Mapping, Sequence
-from dataclasses import asdict, is_dataclass
+from dataclasses import fields, is_dataclass
 from typing import TYPE_CHECKING, cast, overload
 
 from sentry import features, options
 from sentry.utils.sdk import sdk_logger
 from sentry.workflow_engine.processors.evaluations.base import (
     BaseWorkflowEngineEvaluationArtifact,
-    EvaluationType,
+)
+from sentry.workflow_engine.processors.evaluations.condition import (
+    DataConditionEvaluationArtifact,
 )
 from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluations.workflow import (
-    ProcessWorkflowsResult,
-    WorkflowEvaluationOutcome,
+from sentry.workflow_engine.processors.evaluations.serialization import (
+    EvaluationEmitter,
+    artifact_fields,
 )
 
 if TYPE_CHECKING:
@@ -54,115 +56,61 @@ def should_log(
     return _is_sampled()
 
 
-def redact_pii_from_artifact(artifact: dict[str, object]) -> dict[str, object]:
-    return _serialize_log_value(artifact)
+class LoggingEmitter(EvaluationEmitter[dict[str, object]]):
+    """Logs evaluation artifacts, redacting complex condition inputs."""
 
+    def filter(self, artifact: BaseWorkflowEngineEvaluationArtifact) -> dict[str, object]:
+        data = artifact_fields(artifact)
+        if isinstance(artifact, DataConditionEvaluationArtifact) and not isinstance(
+            artifact.input, ALLOWED_LOG_INPUT_TYPES
+        ):
+            # Condition input is arbitrary caller data that may contain PII.
+            data["input"] = None
+        return data
 
-@overload
-def _serialize_log_value(
-    value: BaseWorkflowEngineEvaluationArtifact, field_name: str | None = None
-) -> dict[str, object]: ...
+    def emit(
+        self,
+        organization: Organization,
+        result: WorkflowEngineResult,
+        evaluations: Iterator[dict[str, object]],
+    ) -> None:
+        # Evaluations are filtered lazily, so unsampled results skip serialization.
+        if not should_log(organization, result):
+            return
 
+        direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
 
-@overload
-def _serialize_log_value[K](
-    value: Mapping[K, object], field_name: str | None = None
-) -> dict[K, object]: ...
+        is_detector_result = isinstance(result, ProcessDetectorsResult)
 
-
-@overload
-def _serialize_log_value(value: object, field_name: str | None = None) -> object: ...
-
-
-def _serialize_log_value(value: object, field_name: str | None = None) -> object:
-    """Serialize an artifact value while redacting complex condition inputs."""
-    if field_name == "input":
-        return value if isinstance(value, ALLOWED_LOG_INPUT_TYPES) else None
-
-    if is_dataclass(value) and not isinstance(value, type):
-        return _serialize_log_value(asdict(value))
-
-    if isinstance(value, Mapping):
-        return {key: _serialize_log_value(item, str(key)) for key, item in value.items()}
-
-    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-        return [_serialize_log_value(item) for item in value]
-
-    return value
-
-
-def _serialize_empty_result(result: WorkflowEngineResult) -> dict[str, object] | None:
-    if isinstance(result, ProcessDetectorsResult):
-        return {
-            "evaluation_type": EvaluationType.DETECTOR,
-            "detector_id": result.detector_id,
-            "detector_type": result.detector_type,
-            "project_id": result.project_id,
-            "outcome": result.outcome,
-            "error": result.evaluation_error.msg if result.evaluation_error else None,
-        }
-
-    summary: dict[str, object] = {
-        "error": None,
-        "evaluation_phase": result.evaluation_phase,
-        "evaluation_type": EvaluationType.WORKFLOW,
-        "outcome": WorkflowEvaluationOutcome.NO_WORKFLOWS,
-    }
-    if isinstance(result, ProcessWorkflowsResult):
-        summary.update(
-            detector_id=result.detector_id,
-            detector_type=result.detector_type,
-            event_id=result.event_id,
-            group_id=result.group_id,
-            outcome=result.outcome,
-            project_id=result.project_id,
+        log_prefix = (
+            DETECTOR_EVALUATION_LOG_PREFIX if is_detector_result else WORKFLOW_EVALUATION_LOG_PREFIX
         )
 
-    return summary
+        for artifact in evaluations:
+            artifact["organization_id"] = organization.id
 
+            if direct_to_sentry:
+                sdk_logger.info(log_prefix, attributes=artifact)
+            else:
+                logger.info(log_prefix, extra=artifact)
 
-def _serialize_evaluation_artifacts(
-    result: WorkflowEngineResult,
-) -> Iterator[dict[str, object]]:
-    artifacts = result.evaluation_artifacts()
-    if not artifacts:
-        if summary := _serialize_empty_result(result):
-            yield summary
-        return
+    @overload
+    def serialize[K](self, value: Mapping[K, object]) -> dict[K, object]: ...
 
-    for artifact in artifacts:
-        serialized = _serialize_log_value(artifact)
-        if isinstance(result, ProcessDetectorsResult):
-            yield {
-                "evaluation_type": EvaluationType.DETECTOR,
-                "detector_id": result.detector_id,
-                "detector_type": result.detector_type,
-                "project_id": result.project_id,
-                **serialized,
+    @overload
+    def serialize(self, value: object) -> object: ...
+
+    def serialize(self, value: object) -> object:
+        """Convert filtered dataclasses to dicts; log attributes otherwise keep their values."""
+        if is_dataclass(value) and not isinstance(value, type):
+            return {
+                field.name: self.serialize(getattr(value, field.name)) for field in fields(value)
             }
-        else:
-            yield serialized
 
+        if isinstance(value, Mapping):
+            return {key: self.serialize(item) for key, item in value.items()}
 
-def emit_evaluation_logs(
-    organization: Organization,
-    result: WorkflowEngineResult,
-) -> None:
-    if not should_log(organization, result):
-        return
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            return [self.serialize(item) for item in value]
 
-    direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
-
-    is_detector_result = isinstance(result, ProcessDetectorsResult)
-
-    log_prefix = (
-        DETECTOR_EVALUATION_LOG_PREFIX if is_detector_result else WORKFLOW_EVALUATION_LOG_PREFIX
-    )
-
-    for artifact in _serialize_evaluation_artifacts(result):
-        artifact["organization_id"] = organization.id
-
-        if direct_to_sentry:
-            sdk_logger.info(log_prefix, attributes=artifact)
-        else:
-            logger.info(log_prefix, extra=artifact)
+        return value

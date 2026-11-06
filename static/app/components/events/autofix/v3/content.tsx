@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -17,19 +18,19 @@ import {
   useExplorerAutofix,
   type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {AutofixStartCard} from 'sentry/components/events/autofix/v3/autofixStartCard';
-import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
-import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
-import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
-import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
-import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
-import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
-import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+
+import {AutofixStartCard} from './autofixStartCard';
+import {CodeChangesCard} from './codeChangesCard';
+import {CodingAgentsCard} from './codingAgentsCard';
+import {SeerDrawerNextStep} from './nextStep';
+import {PullRequestsCard} from './pullRequestsCard';
+import {RootCauseCard} from './rootCauseCard';
+import {SeerEnableNotifications} from './seerEnableNotifications';
+import {SolutionCard} from './solutionCard';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -54,12 +55,10 @@ export function SeerDrawerContent({
     [autofix.runState]
   );
 
-  if (
-    // autofix results are loading
-    autofix.isLoading ||
-    // we're polling and no blocks have been added yet
-    (autofix.isPolling && !autofix.runState?.blocks?.length)
-  ) {
+  const isLoadingRun =
+    autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
+
+  if (isLoadingRun && !autofix.isWaitingForRun) {
     return (
       <Stack gap="xl">
         <Placeholder height="15rem" />

@@ -2,7 +2,8 @@ import {ButtonBar} from '@sentry/scraps/button';
 
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/traceDetails/traceApi/utils';
-import {TraceLinkNavigationButton} from 'sentry/views/performance/traceDetails/traceLinksNavigation/traceLinkNavigationButton';
+
+import {TraceLinkNavigationButton} from './traceLinkNavigationButton';
 
 export function TraceLinksNavigation({
   rootEventResults,
@@ -30,6 +31,7 @@ export function TraceLinksNavigation({
         <TraceLinkNavigationButton
           direction="previous"
           attributes={rootEventResults.data.attributes}
+          links={rootEventResults.data.links}
           currentTraceStartTimestamp={
             new Date(rootEventResults.data.timestamp).getTime() / 1000
           }
@@ -37,6 +39,7 @@ export function TraceLinksNavigation({
         <TraceLinkNavigationButton
           direction="next"
           attributes={rootEventResults.data.attributes}
+          links={rootEventResults.data.links}
           currentTraceStartTimestamp={
             new Date(rootEventResults.data.timestamp).getTime() / 1000
           }

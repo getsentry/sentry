@@ -4,10 +4,11 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
-import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {QUEUE_CHARTS} from './queueCharts';
+import {DETAILS_DASHBOARD_TITLE} from './settings';
 
 const SPAN_OP_FILTER = `${SpanFields.SPAN_OP}:[queue.process,queue.publish]`;
 
@@ -40,14 +41,14 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           fields: [
-            `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+            `equation|avg_if(\`${SpanFields.SPAN_OP}:queue.process\`,${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
-            `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+            `equation|avg_if(\`${SpanFields.SPAN_OP}:queue.process\`,${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
           conditions: SPAN_OP_FILTER,
-          orderby: `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+          orderby: `equation|avg_if(\`${SpanFields.SPAN_OP}:queue.process\`,${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -61,14 +62,14 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           fields: [
-            `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
+            `equation|1 - (count_if(\`${SpanFields.TRACE_STATUS}:ok\`) / count(${SpanFields.SPAN_DURATION}))`,
           ],
           aggregates: [
-            `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
+            `equation|1 - (count_if(\`${SpanFields.TRACE_STATUS}:ok\`) / count(${SpanFields.SPAN_DURATION}))`,
           ],
           columns: [],
           conditions: SPAN_OP_FILTER,
-          orderby: `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
+          orderby: `equation|1 - (count_if(\`${SpanFields.TRACE_STATUS}:ok\`) / count(${SpanFields.SPAN_DURATION}))`,
         },
       ],
     },
@@ -81,11 +82,11 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
-          aggregates: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
+          fields: [`equation|count_if(\`${SpanFields.SPAN_OP}:queue.publish\`)`],
+          aggregates: [`equation|count_if(\`${SpanFields.SPAN_OP}:queue.publish\`)`],
           columns: [],
           conditions: SPAN_OP_FILTER,
-          orderby: `equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+          orderby: `equation|count_if(\`${SpanFields.SPAN_OP}:queue.publish\`)`,
         },
       ],
     },
@@ -98,11 +99,11 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
-          aggregates: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
+          fields: [`equation|count_if(\`${SpanFields.SPAN_OP}:queue.process\`)`],
+          aggregates: [`equation|count_if(\`${SpanFields.SPAN_OP}:queue.process\`)`],
           columns: [],
           conditions: SPAN_OP_FILTER,
-          orderby: `equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+          orderby: `equation|count_if(\`${SpanFields.SPAN_OP}:queue.process\`)`,
         },
       ],
     },
@@ -141,13 +142,13 @@ const PRODUCER_TABLE: PrebuiltWidget = {
       name: '',
       fields: [
         SpanFields.TRANSACTION,
-        `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+        `equation|1 - (count_if(\`${SpanFields.TRACE_STATUS}:ok\`) / count(${SpanFields.SPAN_DURATION}))`,
+        `equation|count_if(\`${SpanFields.SPAN_OP}:queue.publish\`)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
-        `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+        `equation|1 - (count_if(\`${SpanFields.TRACE_STATUS}:ok\`) / count(${SpanFields.SPAN_DURATION}))`,
+        `equation|count_if(\`${SpanFields.SPAN_OP}:queue.publish\`)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],
@@ -177,16 +178,16 @@ const CONSUMER_TABLE: PrebuiltWidget = {
       fields: [
         SpanFields.TRANSACTION,
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
-        `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(\`${SpanFields.SPAN_OP}:queue.process\`,${SpanFields.SPAN_DURATION})`,
+        `equation|1 - (count_if(\`${SpanFields.TRACE_STATUS}:ok\`) / count(${SpanFields.SPAN_DURATION}))`,
+        `equation|count_if(\`${SpanFields.SPAN_OP}:queue.process\`)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
-        `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(\`${SpanFields.SPAN_OP}:queue.process\`,${SpanFields.SPAN_DURATION})`,
+        `equation|1 - (count_if(\`${SpanFields.TRACE_STATUS}:ok\`) / count(${SpanFields.SPAN_DURATION}))`,
+        `equation|count_if(\`${SpanFields.SPAN_OP}:queue.process\`)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],

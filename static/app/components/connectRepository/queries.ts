@@ -1,5 +1,7 @@
+// TODO Abdullah Khan: Clean up, move queries to separate hooks.
 import {useMemo} from 'react';
 import {
+  skipToken,
   useInfiniteQuery,
   useQueries,
   useQuery,
@@ -8,11 +10,6 @@ import {
 
 import type {SelectValue} from '@sentry/scraps/select';
 
-import {
-  normalizeRoot,
-  resolveBranch,
-} from 'sentry/components/connectRepository/normalization';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import type {
   Integration,
   IntegrationRepository,
@@ -20,14 +17,17 @@ import type {
   RepositoryProjectPathConfig,
 } from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {QUERY_API_CLIENT, useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {fetchMutation, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {normalizeRoot, resolveBranch} from './normalization';
+import type {CodeMappingPrefixesResponse, PathMappingValue} from './type';
 
 export type ProjectRepoListItem = {
   externalId: string | null;
@@ -264,6 +264,43 @@ export function projectCodeMappingsOptions({
       path: {organizationIdOrSlug: orgSlug},
       query: {project: projectId},
       staleTime: 30_000,
+    }
+  );
+}
+
+const PREFIXES_STALE_TIME_MS = 60_000;
+
+export function stackCodeMappingPrefixesOptions({
+  orgSlug,
+  projectSlug,
+}: {
+  orgSlug: string;
+  projectSlug: string | undefined;
+}) {
+  return apiOptions.as<CodeMappingPrefixesResponse>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/code-mapping-prefixes/stack/',
+    {
+      path: projectSlug
+        ? {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug}
+        : skipToken,
+      staleTime: PREFIXES_STALE_TIME_MS,
+    }
+  );
+}
+
+export function repoCodeMappingPrefixesOptions({
+  orgSlug,
+  repositoryId,
+}: {
+  orgSlug: string;
+  repositoryId: string | undefined;
+}) {
+  return apiOptions.as<CodeMappingPrefixesResponse>()(
+    '/organizations/$organizationIdOrSlug/code-mapping-prefixes/repo/',
+    {
+      path: repositoryId ? {organizationIdOrSlug: orgSlug} : skipToken,
+      query: {repositoryId},
+      staleTime: PREFIXES_STALE_TIME_MS,
     }
   );
 }

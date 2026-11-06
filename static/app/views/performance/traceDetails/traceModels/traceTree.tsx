@@ -23,10 +23,6 @@ import {
   isTraceError,
   isUptimeCheck,
 } from 'sentry/views/performance/traceDetails/traceGuards';
-import {
-  collectTraceMeasurements,
-  type RENDERABLE_MEASUREMENTS,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
@@ -39,8 +35,18 @@ import {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import {TraceNode} from './traceTreeNode/traceNode';
 import {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import {traceChronologicalSort} from './traceTreeNode/utils';
-import {makeExampleTrace} from './makeExampleTrace';
+import {makeExampleTraceData} from './makeExampleTraceData';
+import {
+  collectTraceMeasurements,
+  type RENDERABLE_MEASUREMENTS,
+} from './traceTree.measurements';
 import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
+import {
+  getVisibleParent,
+  getNodeDepth,
+  isLastVisibleChild,
+  getNodeConnectors,
+} from './traceTreeTraversal';
 
 /**
  *
@@ -334,14 +340,20 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   static Loading(organization: Organization): TraceTree {
-    const trace = makeExampleTrace(organization);
+    const trace = TraceTree.FromTrace(makeExampleTraceData(), {
+      replay: null,
+      organization,
+    });
     trace.type = 'loading';
     trace.build();
     return trace;
   }
 
   static ErrorState(organization: Organization): TraceTree {
-    const trace = makeExampleTrace(organization);
+    const trace = TraceTree.FromTrace(makeExampleTraceData(), {
+      replay: null,
+      organization,
+    });
     trace.type = 'error';
     trace.build();
     return trace;
@@ -993,18 +1005,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
     let index = tree.list.indexOf(node);
 
     if (node && index === -1) {
-      let parent_node = node.parent;
-      while (parent_node) {
-        // Transactions break autogrouping chains, so we can stop here
-        parent_node.expand(true, tree);
-        // This is very wasteful as it performs O(n^2) search each time we expand a node...
-        // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
-        // a low autogrouped node count.
-        index = node ? tree.list.indexOf(node) : -1;
+      const ancestors: BaseNode[] = [];
+      let parent = node.parent;
+      while (parent) {
+        ancestors.push(parent);
+        parent = parent.parent;
+      }
+
+      for (const ancestor of ancestors.toReversed()) {
+        ancestor.expand(true, tree);
+        index = tree.list.indexOf(node);
         if (index !== -1) {
           break;
         }
-        parent_node = parent_node.parent;
       }
     }
 
@@ -1092,89 +1105,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
    * Root node has a value of -1 as it is abstract.
    */
   static depth(node: BaseNode): number {
-    if (node.depth !== undefined) {
-      return node.depth;
-    }
-
-    const visibleParent = TraceTree.VisibleParent(node);
-    node.depth = visibleParent ? TraceTree.depth(visibleParent) + 1 : 0;
-    return node.depth;
+    return getNodeDepth(node);
   }
 
   static VisibleParent(node: BaseNode): BaseNode | null {
-    if (node.visibleParent !== undefined) {
-      return node.visibleParent;
-    }
-
-    let start = node.parent;
-
-    while (start) {
-      if (
-        start.directVisibleChildren.includes(node) &&
-        (start.isRootNodeChild() || TraceTree.VisibleParent(start) !== null)
-      ) {
-        node.visibleParent = start;
-        return node.visibleParent;
-      }
-
-      start = start.parent;
-    }
-
-    node.visibleParent = null;
-    return node.visibleParent;
+    return getVisibleParent(node);
   }
 
   static IsLastVisibleChild(node: BaseNode): boolean {
-    const visibleParent = TraceTree.VisibleParent(node);
-
-    if (!visibleParent) {
-      return node.isLastChild();
-    }
-
-    const visibleChildren = visibleParent.directVisibleChildren;
-    return visibleChildren[visibleChildren.length - 1] === node;
+    return isLastVisibleChild(node);
   }
 
   static ConnectorsTo(node: BaseNode): number[] {
-    if (node.connectors !== undefined) {
-      return node.connectors;
-    }
-
-    const connectors: number[] = [];
-    let start = TraceTree.VisibleParent(node);
-
-    if (start?.isRootNodeChild() && !TraceTree.IsLastVisibleChild(node)) {
-      node.connectors = [-TraceTree.depth(node)];
-      return node.connectors;
-    }
-
-    if (!TraceTree.IsLastVisibleChild(node)) {
-      connectors.push(TraceTree.depth(node));
-    }
-
-    while (start) {
-      if (!start.value) {
-        break;
-      }
-
-      const visibleParent = TraceTree.VisibleParent(start);
-      if (!visibleParent) {
-        break;
-      }
-
-      if (TraceTree.IsLastVisibleChild(start)) {
-        start = visibleParent;
-        continue;
-      }
-
-      connectors.push(
-        visibleParent.isRootNodeChild() ? -TraceTree.depth(start) : TraceTree.depth(start)
-      );
-      start = visibleParent;
-    }
-
-    node.connectors = connectors;
-    return connectors;
+    return getNodeConnectors(node);
   }
 
   toList(): BaseNode[] {

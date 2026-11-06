@@ -1,10 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import PaymentHistory from 'getsentry/views/subscriptionPage/paymentHistory';
@@ -28,25 +31,6 @@ describe('Subscription > PaymentHistory', () => {
     });
   });
 
-  it('renders', async () => {
-    const organization = OrganizationFixture({
-      slug: 'dogz-rule',
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({organization});
-    SubscriptionStore.set(organization.slug, subscription);
-
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/invoices/`,
-      method: 'GET',
-      body: [InvoiceFixture({isClosed: true, isPaid: true})],
-    });
-
-    render(<PaymentHistory />, {organization});
-
-    expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
-  });
-
   it('renders no receipts found', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
@@ -62,8 +46,7 @@ describe('Subscription > PaymentHistory', () => {
 
     render(<PaymentHistory />, {organization});
 
-    await screen.findByTestId('payment-list');
-    expect(screen.getByText('No receipts found')).toBeInTheDocument();
+    expect(await screen.findByText('No receipts found')).toBeInTheDocument();
   });
 
   it('renders an error for non-billing users', async () => {
@@ -76,15 +59,18 @@ describe('Subscription > PaymentHistory', () => {
       method: 'GET',
       body: [],
     });
-    MockApiClient.addMockResponse({
+    const invoicesRequest = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/invoices/`,
       method: 'GET',
-      body: [],
+      statusCode: 403,
+      body: {},
     });
 
     render(<PaymentHistory />, {organization});
+
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(screen.queryByTestId('payment-list')).not.toBeInTheDocument();
+    expect(invoicesRequest).not.toHaveBeenCalled();
   });
 
   it('renders unpaid invoice', async () => {
@@ -108,8 +94,7 @@ describe('Subscription > PaymentHistory', () => {
 
     render(<PaymentHistory />, {organization});
 
-    expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
-    expect(screen.getByText('Closed')).toBeInTheDocument();
+    expect(await screen.findByText('Closed')).toBeInTheDocument();
   });
 
   it('renders awaiting payment invoice', async () => {
@@ -128,8 +113,7 @@ describe('Subscription > PaymentHistory', () => {
 
     render(<PaymentHistory />, {organization});
 
-    expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
-    expect(screen.getByText('Awaiting payment')).toBeInTheDocument();
+    expect(await screen.findByText('Awaiting payment')).toBeInTheDocument();
   });
 
   it('renders paid invoice', async () => {
@@ -147,7 +131,161 @@ describe('Subscription > PaymentHistory', () => {
     });
     render(<PaymentHistory />, {organization});
 
-    expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
-    expect(screen.getByText('Paid')).toBeInTheDocument();
+    expect(await screen.findByText('Paid')).toBeInTheDocument();
+  });
+
+  it('renders receipts as table rows', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [
+        InvoiceFixture({
+          amountBilled: 12000,
+          amountRefunded: 2000,
+          receipt: {url: 'https://example.com/receipt.pdf'},
+        }),
+      ],
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    const table = await screen.findByRole('table', {name: 'Receipts'});
+    const row = await within(table).findByRole('row', {name: /^Jun 25, 2018/});
+
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['Date', 'Amount', 'Status', 'Receipt ID', '']);
+    expect(
+      within(row)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent)
+    ).toEqual(['Jun 25, 2018', '$120$20 refunded', 'Refunded', '1a2c3b4d5e6f', '']);
+    expect(within(row).getByRole('link', {name: 'Jun 25, 2018'})).toHaveAttribute(
+      'href',
+      '/settings/dogz-rule/billing/receipts/1a2c3b4d5e6f/'
+    );
+    expect(within(row).getByRole('button', {name: 'Download PDF'})).toHaveAttribute(
+      'href',
+      'https://example.com/receipt.pdf'
+    );
+  });
+
+  it('retries loading receipts when the request fails', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const invoicesRequest = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {},
+    });
+
+    render(<PaymentHistory />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Retry'}));
+
+    expect(invoicesRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it('renders usage CSV downloads for platform contract receipts', async () => {
+    window.open = jest.fn();
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+      features: ['invoice-usage-downloads'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+    ProjectsStore.loadInitialData([ProjectFixture({slug: 'my-project'})]);
+
+    const csv = 'https://sentry.io/organizations/dogz-rule/billing/contracts/1/export/';
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [
+        InvoiceFixture({
+          isClosed: true,
+          isPaid: true,
+          usageCsvLinks: {csv, csvPerProject: `${csv}per-project/`},
+        }),
+      ],
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    expect(
+      await screen.findByRole('button', {name: 'Download Usage CSV'})
+    ).toHaveAttribute('href', csv);
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Download Project Usage CSV'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'my-project'}));
+    expect(window.open).toHaveBeenCalledWith(`${csv}per-project/my-project/`, '_blank');
+  });
+
+  it('does not render usage CSV downloads without the feature flag', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const csv = 'https://sentry.io/organizations/dogz-rule/billing/contracts/1/export/';
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [
+        InvoiceFixture({
+          isClosed: true,
+          isPaid: true,
+          usageCsvLinks: {csv, csvPerProject: `${csv}per-project/`},
+        }),
+      ],
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    expect(await screen.findByText('Paid')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Download Usage CSV'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render usage CSV downloads for other receipts', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+      features: ['invoice-usage-downloads'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [InvoiceFixture({isClosed: true, isPaid: true})],
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    expect(await screen.findByText('Paid')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Download Usage CSV'})
+    ).not.toBeInTheDocument();
   });
 });

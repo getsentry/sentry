@@ -44,7 +44,7 @@ export function Header({noActionWrap, unified, ...props}: HeaderProps) {
         zero: noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)',
         '3xl': 'minmax(0, 1fr) auto',
       }}
-      padding={{'screen:sm': 'md lg 0 lg', 'screen:md': 'lg xl 0 xl'}}
+      padding={{xl: 'md lg 0 lg', '3xl': 'lg xl 0 xl'}}
       borderBottom={unified ? 'none' : 'primary'}
       {...props}
     />
@@ -97,7 +97,7 @@ export function Body({noRowGap, ...props}: BodyProps) {
       alignContent="start"
       gap={noRowGap ? '0 2xl' : '2xl'}
       background="primary"
-      padding={{'screen:sm': 'lg', 'screen:md': 'lg xl'}}
+      padding={{xl: 'lg', '3xl': 'lg xl'}}
       {...props}
     />
   );

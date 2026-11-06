@@ -1,6 +1,7 @@
 import {Fragment, type PropsWithChildren, useEffect} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
@@ -8,42 +9,24 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {handleExpressiveCodeCopyClick} from 'sentry/stories/view/expressiveCodeCopy';
-import {StorySidebar} from 'sentry/stories/view/storySidebar';
-import {
-  StoryTreeNode,
-  useFlatStoryList,
-  type StoryCategory,
-} from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
 
+import {handleExpressiveCodeCopyClick} from './expressiveCodeCopy';
 import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
+import {StorySidebar} from './storySidebar';
+import {StoryTreeNode, useFlatStoryList, type StoryCategory} from './storyTree';
 import {useStoryDarkModeTheme} from './useStoriesDarkMode';
 import {useStoriesLoader} from './useStoriesLoader';
-
-export function useStoryParams(): {storyCategory?: StoryCategory; storySlug?: string} {
-  const location = useLocation();
-  // Match: /scraps/:category/(one/optional/or/more/path/segments)
-  // Handles both /scraps/... and /organizations/{org}/scraps/...
-  // Supports optional trailing slashes
-  const match = location.pathname.match(/\/scraps\/([^/]+)\/(.+?)\/?$/);
-  return {
-    storyCategory: match?.[1] as StoryCategory | undefined,
-    storySlug: match?.[2] ?? undefined,
-  };
-}
+import {useStoryParams} from './useStoryParams';
 
 export default function Stories() {
   const location = useLocation();
-  return isLandingPage(location) && !location.query.name ? (
-    <StoriesLanding />
-  ) : (
-    <StoryDetail />
-  );
+  const [name] = useQueryState('name');
+  return isLandingPage(location) && !name ? <StoriesLanding /> : <StoryDetail />;
 }
 
 function StoriesLanding() {
@@ -63,7 +46,7 @@ function StoriesLanding() {
 }
 
 function StoryDetail() {
-  const location = useLocation();
+  const [name] = useQueryState('name');
   const {storyCategory, storySlug} = useStoryParams();
   const stories = useFlatStoryList();
 
@@ -73,7 +56,7 @@ function StoryDetail() {
   });
 
   // If we don't have a story node, try to find it by the filesystem path
-  if (!storyNode && location.query.name) {
+  if (!storyNode && name) {
     const nodes = Object.values(stories).flat();
     const queue = [...nodes];
 
@@ -83,7 +66,7 @@ function StoryDetail() {
         break;
       }
 
-      if (node.filesystemPath === location.query.name) {
+      if (node.filesystemPath === name) {
         storyNode = node;
         break;
       }

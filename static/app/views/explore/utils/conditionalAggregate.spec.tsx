@@ -6,6 +6,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
 import {
   applyConditionalFilter,
   areAllVisualizesInvalidConditionalFilters,
@@ -18,11 +19,11 @@ import {
   hasNoValidAggregatesForRequest,
   isConditionalAggregateFilterValid,
   isConditionalAggregateYAxisValid,
-  parseConditionalAggregate,
   supportsConditionalAggregateFilter,
   withBaseConditionalAggregateField,
   withReadableConditionalFilter,
-} from 'sentry/views/explore/utils/conditionalAggregate';
+} from './conditionalAggregate';
+import {parseConditionalAggregate} from './parseConditionalAggregate';
 
 describe('escapeConditionalFilter', () => {
   it('leaves filters without backticks alone', () => {

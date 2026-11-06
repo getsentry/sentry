@@ -11,9 +11,10 @@ import {z} from 'zod';
 import {t, tn} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {getTraceNodeAttribute} from './aiTraceNodes';
+import type {AITraceSpanNode} from './types';
 
 /**
  * Well-known `gen_ai.operation.name` values for memory operations.
@@ -149,6 +150,53 @@ export function getNodeMemory(
     storeId: str(SpanFields.GEN_AI_MEMORY_STORE_ID),
     rawRecords,
   };
+}
+
+/**
+ * The record count as `3 memories`, or undefined when the count is unknown.
+ */
+function memoriesCount(memory: Memory): string | undefined {
+  const count = memory.recordCount ?? memory.records?.length;
+  return count === undefined ? undefined : tn('%s memory', '%s memories', count);
+}
+
+/**
+ * A single record's content when captured, otherwise the record count. The
+ * record payload is opt-in, so content is often absent and only the count is
+ * shown.
+ */
+function recordsSummary(memory: Memory): string | undefined {
+  const count = memory.recordCount ?? memory.records?.length;
+  const content = count === 1 ? memory.records?.[0]?.content : undefined;
+  return typeof content === 'string' && content ? content : memoriesCount(memory);
+}
+
+/**
+ * One-line summary of a memory operation for the timeline and transcript, e.g.
+ * a search query, a stored record's text, or `3 memories`.
+ */
+export function getMemoryPreview(memory: Memory | undefined | null): string {
+  if (!memory) {
+    return '';
+  }
+
+  switch (memory.operation) {
+    case MemoryOperation.SEARCH:
+      return memory.query ? `“${memory.query}”` : '';
+    case MemoryOperation.CREATE:
+    case MemoryOperation.UPSERT:
+      return recordsSummary(memory) || '';
+    case MemoryOperation.UPDATE:
+      return recordsSummary(memory) || memory.recordId || memory.storeId || '';
+    case MemoryOperation.DELETE:
+      // A deleted record's content is not meaningful, so show only the count.
+      return memoriesCount(memory) || memory.recordId || t('all memories');
+    case MemoryOperation.CREATE_STORE:
+    case MemoryOperation.DELETE_STORE:
+      return memory.storeId || '';
+    default:
+      return recordsSummary(memory) || memory.storeId || '';
+  }
 }
 
 /**

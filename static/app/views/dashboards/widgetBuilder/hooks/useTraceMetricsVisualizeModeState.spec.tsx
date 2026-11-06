@@ -7,14 +7,7 @@ import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {
-  type EquationModeSnapshot,
-  useTraceMetricsVisualizeModeState,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {
-  BuilderStateAction,
-  serializeFields,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/utils/serialization.ts';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -22,6 +15,12 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {
+  type EquationModeSnapshot,
+  useTraceMetricsVisualizeModeState,
+} from './useTraceMetricsVisualizeModeState';
+import {BuilderStateAction} from './useWidgetBuilderState';
 
 const EQUATION_FEATURES = ['tracemetrics-enabled'];
 
@@ -349,6 +348,51 @@ describe('useTraceMetricsVisualizeModeState', () => {
     await waitFor(() => {
       expect(result.current.widgetBuilderState.legendAlias).toEqual(['my alias']);
     });
+  });
+
+  it('does not restore transformations onto a display type that cannot use them', async () => {
+    function useCombinedStateHooks() {
+      const modeState = useTraceMetricsVisualizeModeState();
+      const {state, dispatch} = useWidgetBuilderContext();
+      return {visualizeModeState: modeState, widgetBuilderState: state, dispatch};
+    }
+
+    const {result} = renderHookWithProviders(useCombinedStateHooks, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['sum(value,alpha_metric,counter,none)'],
+            transformations: '[{"0":["fill(zero)"]}]',
+          },
+        },
+      },
+    });
+
+    act(() => {
+      result.current.visualizeModeState.handleModeToggle(true);
+    });
+    act(() => {
+      result.current.dispatch({
+        type: BuilderStateAction.SET_DISPLAY_TYPE,
+        payload: DisplayType.TABLE,
+      });
+    });
+    await waitFor(() => {
+      expect(result.current.widgetBuilderState.displayType).toBe(DisplayType.TABLE);
+    });
+    act(() => {
+      result.current.visualizeModeState.handleModeToggle(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.visualizeModeState.isEquationMode).toBe(false);
+    });
+    expect(result.current.widgetBuilderState.transformations).toBeUndefined();
   });
 
   it('restores equation yAxis when toggling to equation mode with a cached snapshot', async () => {

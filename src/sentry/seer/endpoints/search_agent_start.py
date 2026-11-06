@@ -15,6 +15,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.client_kind import ClientKind, get_client_kind
+from sentry.auth.principal import acting_user_id
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
@@ -32,6 +34,35 @@ class SearchAgentResultTarget(StrEnum):
 
     UI_SEARCH = "ui_search"
     AGENT_SEARCH = "agent_search"
+
+
+class SearchAgentReferrer(StrEnum):
+    """Allowlist of callers that may start a search agent run.
+
+    Forwarded to Seer as the run's source; every caller gets its own
+    `assisted_query.<source>.<strategy>` RPC referrer there. To add a caller, add a
+    value here and to Seer's `ASSISTED_QUERY_SOURCES`.
+    """
+
+    SEARCH_BAR = "search_bar"
+    MCP = "mcp"
+    # Web UI request that didn't declare which surface it came from
+    FRONTEND = "frontend"
+    UNKNOWN = "unknown"
+
+
+def resolve_referrer(request: Request, raw: str | None) -> SearchAgentReferrer:
+    client_kind = get_client_kind(request)
+    if client_kind == ClientKind.MCP:
+        return SearchAgentReferrer.MCP
+    if raw:
+        try:
+            return SearchAgentReferrer(raw)
+        except ValueError:
+            logger.warning("search_agent.unknown_referrer", extra={"referrer": raw})
+    if client_kind == ClientKind.FRONTEND:
+        return SearchAgentReferrer.FRONTEND
+    return SearchAgentReferrer.UNKNOWN
 
 
 def infer_result_target(request: Request) -> SearchAgentResultTarget:
@@ -63,6 +94,12 @@ class SearchAgentStartSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Optional configuration options.",
     )
+    referrer = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Which caller started the run (e.g. `search_bar`). Unknown values are ignored.",
+    )
 
     def validate_options(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
         if value is None:
@@ -87,6 +124,7 @@ def send_search_agent_start_request(
     reflection_step: bool = False,
     code_mode: bool = False,
     result_target: SearchAgentResultTarget | None = None,
+    referrer: SearchAgentReferrer | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the outbox that starts the agent in Seer."""
     body = SearchAgentStartRequest(
@@ -112,6 +150,9 @@ def send_search_agent_start_request(
         options["metric_context"] = metric_context
     if result_target is not None:
         options["result_target"] = result_target.value
+    if referrer is not None:
+        # Seer combines this with the strategy to pick the RPC referrer.
+        options["source"] = referrer.value
     body["options"] = options
 
     return enqueue_seer_run(
@@ -159,6 +200,8 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         metric_context = options.get("metric_context")
         result_target = infer_result_target(request)
         sentry_sdk.set_tag("search_agent.result_target", result_target.value)
+        referrer = resolve_referrer(request, validated_data.get("referrer"))
+        sentry_sdk.set_tag("referrer", referrer.value)
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
@@ -192,13 +235,12 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         user_org_context = collect_user_org_context(request.user, organization)
         user_email = user_org_context.get("user_email")
         timezone = user_org_context.get("user_timezone")
+        user_id = acting_user_id(request.user)
         try:
-            viewer_context = SeerViewerContext(
-                organization_id=organization.id, user_id=request.user.id
-            )
+            viewer_context = SeerViewerContext(organization_id=organization.id, user_id=user_id)
             result = send_search_agent_start_request(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=user_id,
                 project_ids=project_ids,
                 natural_language_query=natural_language_query,
                 strategy=strategy,
@@ -223,6 +265,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                     actor=request.user,
                 ),
                 result_target=result_target,
+                referrer=referrer,
             )
             return Response(
                 {

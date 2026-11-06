@@ -21,14 +21,14 @@ function isLayoutFlexElement(
   importTracker: ImportTracker
 ): boolean {
   if (nameNode.type === 'JSXIdentifier') {
-    return importTracker.findLocalNames(LAYOUT_SOURCE, 'Flex').includes(nameNode.name);
+    return importTracker.is(nameNode, LAYOUT_SOURCE, 'Flex');
   }
   if (
     nameNode.type === 'JSXMemberExpression' &&
     nameNode.object.type === 'JSXIdentifier' &&
     nameNode.property.name === 'Flex'
   ) {
-    const info = importTracker.resolve(nameNode.object.name);
+    const info = importTracker.resolve(nameNode.object);
     return info?.source === LAYOUT_SOURCE && info.imported === '*';
   }
   return false;
@@ -179,7 +179,7 @@ export const preferStackForColumnFlex = defineRule({
   },
 
   create(context) {
-    const importTracker = createImportTracker();
+    const importTracker = createImportTracker(context);
 
     return {
       ...importTracker.visitors,

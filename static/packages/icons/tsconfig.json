@@ -1,0 +1,17 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "jsx": "react-jsx",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "rootDir": ".",
+    "outDir": ".types",
+    "tsBuildInfoFile": ".types/tsconfig.tsbuildinfo",
+    "types": ["jest", "node", "@testing-library/jest-dom"]
+  },
+  "include": ["src", "test"]
+}

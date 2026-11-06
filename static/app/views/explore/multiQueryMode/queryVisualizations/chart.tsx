@@ -1,16 +1,14 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconClock} from 'sentry/icons/iconClock';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
-import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -22,6 +20,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -32,7 +31,10 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  getFirstSamplingWarning,
+} from 'sentry/views/explore/utils';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -97,6 +99,15 @@ export function MultiQueryModeChart({
     </Fragment>
   );
 
+  const samplingWarning = getFirstSamplingWarning(
+    yAxes,
+    timeseriesResult.data,
+    chartInfo.dataScanned
+  );
+  const TitleBadges = samplingWarning ? (
+    <SamplingWarning yAxis={samplingWarning.yAxis} reason={samplingWarning.reason} />
+  ) : null;
+
   const items: MenuItemProps[] = [];
 
   const project =
@@ -127,24 +138,11 @@ export function MultiQueryModeChart({
     );
   }
 
-  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Add to Dashboard'),
-    label: (
-      <Feature
-        overrideName="feature-disabled:dashboards-edit"
-        features="organizations:dashboards-edit"
-        renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-      >
-        {t('Add to Dashboard')}
-      </Feature>
-    ),
-    disabled: disableAddToDashboard,
+    label: t('Add to Dashboard'),
     onAction: () => {
-      if (disableAddToDashboard) {
-        return;
-      }
       trackAnalytics('trace_explorer.save_as', {
         save_type: 'dashboard',
         ui_source: 'compare chart',
@@ -159,6 +157,7 @@ export function MultiQueryModeChart({
       key={index}
       height={CHART_HEIGHT}
       Title={Title}
+      TitleBadges={TitleBadges}
       Actions={[
         <Tooltip
           key="visualization"
@@ -234,7 +233,3 @@ export function MultiQueryModeChart({
     />
   );
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

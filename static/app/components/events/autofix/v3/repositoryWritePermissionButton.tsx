@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {IconOpen} from '@sentry/icons/open';
 import {focusManager} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -6,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
 
 type RepositoryPermissionCheckPhase = 'ready' | 'checking' | 'retry_available';

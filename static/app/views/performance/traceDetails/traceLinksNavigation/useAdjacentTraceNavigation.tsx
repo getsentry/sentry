@@ -1,18 +1,22 @@
 import {useMemo} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {ExternalLink} from '@sentry/scraps/link';
 import type {LinkProps} from '@sentry/scraps/link';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import type {ConnectedTraceConnection} from 'sentry/views/performance/traceDetails/traceLinksNavigation/types';
-import {useFindAdjacentTrace} from 'sentry/views/performance/traceDetails/traceLinksNavigation/useFindLinkedTraces';
+import type {
+  TraceItemResponseAttribute,
+  TraceItemResponseLink,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useTraceStateDispatch} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+
+import type {ConnectedTraceConnection} from './types';
+import {useFindAdjacentTrace} from './useFindLinkedTraces';
 
 const LINKED_TRACE_MAX_DURATION = 3600; // 1h in seconds
 
@@ -20,6 +24,7 @@ interface UseAdjacentTraceNavigationProps {
   attributes: TraceItemResponseAttribute[];
   currentTraceStartTimestamp: number;
   direction: ConnectedTraceConnection;
+  links?: TraceItemResponseLink[];
 }
 
 export interface AdjacentTraceNavigation {
@@ -38,6 +43,7 @@ export interface AdjacentTraceNavigation {
 export function useAdjacentTraceNavigation({
   direction,
   attributes,
+  links,
   currentTraceStartTimestamp,
 }: UseAdjacentTraceNavigationProps): AdjacentTraceNavigation {
   const organization = useOrganization();
@@ -92,6 +98,7 @@ export function useAdjacentTraceNavigation({
     adjacentTraceEndTimestamp,
     adjacentTraceStartTimestamp,
     attributes,
+    links,
   });
 
   const dateSelection = useMemo(

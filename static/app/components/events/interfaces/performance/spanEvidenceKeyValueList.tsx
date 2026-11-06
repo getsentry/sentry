@@ -2,34 +2,20 @@ import type {ReactNode} from 'react';
 import {Fragment, isValidElement, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconGraph} from '@sentry/icons/graph';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
-import {
-  slowDBQuerySpanFromEvent,
-  resolveSlowDBQuerySpan,
-  type SlowDBQuerySpan,
-} from 'sentry/components/events/interfaces/performance/slowDBQuerySpan';
-import {
-  extractSpanURLString,
-  formatChangingQueryParameters,
-  getSpanDuration,
-  getSpanFieldBytes,
-} from 'sentry/components/events/interfaces/performance/spanMetrics';
-import {
-  getSpanHash,
-  getSpanInfoFromTransactionEvent,
-} from 'sentry/components/events/interfaces/performance/utils';
 import type {
   ProcessedSpanType,
   RawSpanType,
@@ -42,7 +28,6 @@ import {
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
-import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -73,6 +58,19 @@ import {
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
+
+import {
+  slowDBQuerySpanFromEvent,
+  resolveSlowDBQuerySpan,
+  type SlowDBQuerySpan,
+} from './slowDBQuerySpan';
+import {
+  extractSpanURLString,
+  formatChangingQueryParameters,
+  getSpanDuration,
+  getSpanFieldBytes,
+} from './spanMetrics';
+import {getSpanHash, getSpanInfoFromTransactionEvent} from './utils';
 
 const formatter = new SQLishFormatter();
 
@@ -811,13 +809,11 @@ function getSpanEvidenceValue(span: Span | null) {
 
   if (span.op && span.op.startsWith('db') && span.description) {
     return (
-      <Container padding="2xs 0">
-        <NoPaddingClippedBox clipHeight={200}>
-          <StyledCodeSnippet language="sql">
-            {formatter.toString(span.description)}
-          </StyledCodeSnippet>
-        </NoPaddingClippedBox>
-      </Container>
+      <NoPaddingClippedBox clipHeight={200}>
+        <StyledCodeSnippet language="sql">
+          {formatter.toString(span.description)}
+        </StyledCodeSnippet>
+      </NoPaddingClippedBox>
     );
   }
 
@@ -825,11 +821,12 @@ function getSpanEvidenceValue(span: Span | null) {
 }
 
 const StyledCodeSnippet = styled(CodeBlock)`
+  --prism-block-background: transparent;
+
   pre[class*='language-'] {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;
-    /* Keeps the code flush with the plain values in the card's value column */
-    padding-inline: 0;
+    padding: 0;
   }
 
   z-index: 0;
@@ -945,6 +942,7 @@ const QueryCard = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   pre {
     margin: 0 !important;
-    padding-top: ${p => p.theme.space.md} !important;
+    padding-block: ${p => p.theme.space.md} !important;
+    padding-inline: ${p => p.theme.space.lg} !important;
   }
 `;

@@ -1,8 +1,8 @@
 import {useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -23,8 +23,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
-import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {CUSTOM_EQUATION_VALUE} from 'sentry/views/dashboards/widgetBuilder/constants';
 import {SortDirection, sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
@@ -32,7 +31,8 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {hasConditionalAggregateFilter} from 'sentry/views/explore/utils/conditionalAggregate';
 
-export const CUSTOM_EQUATION_VALUE = 'custom-equation';
+import {getColumnOptions} from './visualize/utils';
+import {ExploreArithmeticBuilder} from './exploreArithmeticBuilder';
 
 interface Values {
   sortBy: string;
@@ -117,7 +117,7 @@ export function SortBySelectors({
   ]);
 
   return (
-    <Wrapper>
+    <Grid gap="md" columns={{zero: '1fr', xl: '200px 1fr'}}>
       <Tooltip
         title={disableSortReason}
         disabled={!disableSortDirection || (disableSortDirection && disableSort)}
@@ -251,7 +251,7 @@ export function SortBySelectors({
         }
       </Tooltip>
       {showCustomEquation && (
-        <ArithmeticInputWrapper>
+        <Container column="1/-1">
           {widgetType === WidgetType.SPANS ? (
             <ExploreArithmeticBuilder
               equation={getEquation(customEquation.sortBy)}
@@ -281,24 +281,11 @@ export function SortBySelectors({
               hideFieldOptions
             />
           )}
-        </ArithmeticInputWrapper>
+        </Container>
       )}
-    </Wrapper>
+    </Grid>
   );
 }
-
-const Wrapper = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 200px 1fr;
-  }
-`;
-
-const ArithmeticInputWrapper = styled('div')`
-  grid-column: 1/-1;
-`;
 
 function getTimeseriesSortFieldValue(
   sortBy: string,

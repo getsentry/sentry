@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {IconPin} from '@sentry/icons/pin';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -17,18 +18,17 @@ import {
   type KeyValueTreeRowConfig,
 } from 'sentry/components/keyValueTree/utils';
 import {KeyValueColumns} from 'sentry/components/tables/keyValueTable';
-import {IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {GetFieldDefinitionType} from 'sentry/utils/fields';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {ATTRIBUTE_VALUE_TYPES, hasScrubbedValue} from 'sentry/views/explore/utils';
 
 import {AttributesTreeValue} from './attributesTreeValue';
+import {prettifyAttributeName} from './utils';
 
 interface Attribute {
   attribute_key: string;
@@ -220,7 +220,7 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
               {attributeKey}
             </AttributeDetailsTooltip>
           ) : (
-            <Text>{attributeKey}</Text>
+            <Text monospace>{attributeKey}</Text>
           )}
           {pinnedAttribute === originalAttribute.original_attribute_key && (
             <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
@@ -278,7 +278,11 @@ function getAttribute(
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
 ): Attribute | undefined {
   const attributeValue =
-    attribute.type === 'bool' ? String(attribute.value) : attribute.value;
+    attribute.type === 'bool'
+      ? String(attribute.value)
+      : attribute.type === 'array'
+        ? JSON.stringify(attribute.value)
+        : attribute.value;
 
   if (!defined(attributeValue)) {
     return undefined;

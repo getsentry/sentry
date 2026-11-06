@@ -16,16 +16,17 @@ import {
 } from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {AgentsChartsBanner} from 'sentry/views/explore/conversations/components/agentsChartsBanner';
-import {useAgentsChartsState} from 'sentry/views/explore/conversations/components/agentsChartsControls';
 import {useAgentFilter} from 'sentry/views/insights/pages/agents/hooks/useAgentFilter';
 import {
   getAgentRunsFilter,
+  getAiClientSpansFilter,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
+import {AgentsChartsBanner} from './agentsChartsBanner';
+import {useAgentsChartsState} from './agentsChartsControls';
+
 const COUNT = `count(${SpanFields.SPAN_DURATION})`;
 const COST = `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`;
 
@@ -88,7 +89,7 @@ export function AgentsCharts() {
   const agentFilterSuffix = agentQuery ? ` ${agentQuery}` : '';
 
   const agentRunsQuery = `${getAgentRunsFilter()}${agentFilterSuffix}`;
-  const estimatedCostQuery = `${AI_CLIENT_FILTER}${agentFilterSuffix}`;
+  const estimatedCostQuery = `${getAiClientSpansFilter()}${agentFilterSuffix}`;
   const toolCallsQuery = `${getToolSpansFilter()}${agentFilterSuffix}`;
 
   const widgets = useMemo<Widget[]>(() => {
@@ -113,7 +114,7 @@ export function AgentsCharts() {
       createGroupedWidget({
         id: 'explore-agents-agent-runs',
         interval: chartInterval,
-        title: t('Agent runs'),
+        title: t('Agent Runs'),
         description: t('Number of agent runs grouped by agent name.'),
         query: agentRunsQuery,
         groupBy: SpanFields.GEN_AI_AGENT_NAME,
@@ -124,7 +125,7 @@ export function AgentsCharts() {
       createGroupedWidget({
         id: 'explore-agents-tool-calls',
         interval: chartInterval,
-        title: t('Tool calls'),
+        title: t('Tool Calls'),
         description: t('Number of tool calls grouped by tool name.'),
         query: toolCallsQuery,
         groupBy: SpanFields.GEN_AI_TOOL_NAME,

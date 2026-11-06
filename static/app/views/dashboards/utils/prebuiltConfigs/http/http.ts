@@ -7,11 +7,12 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {
-  PERCENTAGE_3XX,
-  PERCENTAGE_4XX,
-  PERCENTAGE_5XX,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/constants';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {PERCENTAGE_3XX, PERCENTAGE_4XX, PERCENTAGE_5XX} from './constants';
 import {
   AVERAGE_DURATION_TEXT,
   BASE_FILTERS,
@@ -19,11 +20,7 @@ import {
   DASHBOARD_TITLE,
   RESPONSE_CODES_TEXT,
   THROUGHPUT_TEXT,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
-import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
-import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+} from './settings';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 

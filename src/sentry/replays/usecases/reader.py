@@ -4,10 +4,11 @@ import uuid
 import zlib
 from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db.models import Prefetch
+from sentry_sdk import traces
 from snuba_sdk import (
     Column,
     Condition,
@@ -29,12 +30,17 @@ from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba import raw_snql_query
-from sentry.utils.tracing import trace
 
 # METADATA QUERY BEHAVIOR.
 
 
-@trace
+class _SegmentRow(TypedDict):
+    segment_id: int
+    retention_days: int
+    timestamp: str
+
+
+@traces.trace
 def fetch_segments_metadata(
     project_id: int,
     replay_id: str,
@@ -68,7 +74,7 @@ def fetch_segment_metadata(
     return fetch_direct_storage_segment_meta(project_id, replay_id, segment_id)
 
 
-@trace
+@traces.trace
 def fetch_filestore_segments_meta(
     project_id: int,
     replay_id: str,
@@ -131,7 +137,7 @@ def fetch_filestore_segment_meta(
     )
 
 
-@trace
+@traces.trace
 def fetch_direct_storage_segments_meta(
     project_id: int,
     replay_id: str,
@@ -166,7 +172,7 @@ def fetch_direct_storage_segment_meta(
         return results[0]
 
 
-@trace
+@traces.trace
 def has_archived_segment(project_id: int, replay_id: str) -> bool:
     """Return true if an archive row exists for this replay."""
     snuba_request = Request(
@@ -234,7 +240,7 @@ def _fetch_segments_from_snuba(
 def segment_row_to_storage_meta(
     project_id: int,
     replay_id: str,
-    row,
+    row: _SegmentRow,
 ) -> RecordingSegmentStorageMeta:
     return RecordingSegmentStorageMeta(
         project_id=project_id,
@@ -249,7 +255,7 @@ def segment_row_to_storage_meta(
 # BLOB DOWNLOAD BEHAVIOR.
 
 
-@trace
+@traces.trace
 def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
     """Download segment data from remote storage."""
     yield b"["
@@ -301,7 +307,7 @@ def _download_segment(
     return unpack(decompressed)
 
 
-@trace
+@traces.trace
 def decompress(buffer: bytes) -> bytes:
     """Return decompressed output."""
     # If the file starts with a valid JSON character we assume its uncompressed.

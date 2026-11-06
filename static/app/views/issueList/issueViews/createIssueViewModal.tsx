@@ -5,19 +5,20 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import {useFormTypingAnimation} from 'sentry/views/issueList/issueViews/useFormTypingAnimation';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {useGenerateIssueViewTitle} from 'sentry/views/issueList/utils/useGenerateIssueViewTitle';
+
+import {getIssueViewQueryParams} from './getIssueViewQueryParams';
+import {useFormTypingAnimation} from './useFormTypingAnimation';
 
 interface CreateIssueViewModalProps
   extends
@@ -38,8 +39,9 @@ const schema = z.object({
   projects: z.array(z.number()),
   environments: z.array(z.string()),
   timeFilters: z.object({
-    start: z.string().nullable(),
-    end: z.string().nullable(),
+    // Page filters store absolute ranges as Date objects
+    start: z.union([z.string(), z.date()]).nullable(),
+    end: z.union([z.string(), z.date()]).nullable(),
     period: z.string().nullable(),
     utc: z.boolean().nullable(),
   }),

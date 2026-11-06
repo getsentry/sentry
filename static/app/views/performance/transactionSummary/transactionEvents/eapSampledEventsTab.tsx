@@ -19,9 +19,9 @@ import {t} from 'sentry/locale';
 import {DataCategory, type PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {encodeSort, type EventView} from 'sentry/utils/discover/eventView';
+import {type EventView} from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -38,7 +38,6 @@ import {
   decodeFilterFromLocation,
   SpanOperationBreakdownFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
-import {SampledEventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eapSampledEventsTable';
 import {
   ZOOM_END,
   ZOOM_START,
@@ -49,6 +48,7 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
+import {SampledEventsTable} from './eapSampledEventsTable';
 import {
   decodeEventsDisplayFilterFromLocation,
   EventsDisplayFilterName,

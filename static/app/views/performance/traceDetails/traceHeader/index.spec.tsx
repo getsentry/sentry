@@ -13,8 +13,6 @@ import {
   TraceMetaDataHeader,
   type TraceMetadataHeaderProps,
 } from 'sentry/views/performance/traceDetails/traceHeader';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
-import {Projects} from 'sentry/views/performance/traceDetails/traceHeader/projects';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {RootNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/rootNode';
 import {TraceNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/traceNode';
@@ -24,6 +22,9 @@ import {
   makeEAPTrace,
   makeUptimeCheck,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
+import {Projects} from './projects';
+import {TraceViewSources} from './traceViewSources';
 
 jest.mock('sentry/views/performance/traceDetails/traceState/traceStateProvider');
 jest.mock('sentry/views/performance/traceDetails/traceHeader/projects');
