@@ -66,6 +66,7 @@ from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
+from sentry.snuba.uptime_results import UptimeResults
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -300,6 +301,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         This endpoint can return timeseries for either 1 or many axis, and results grouped to the top events depending
         on the parameters passed
 
+        Explicitly requested transformations return HTTP 400 with a `detail` message when the
+        interpolation and smoothing feature is disabled or the dataset cannot execute them.
+        Transformed queries cannot combine `topEvents` with `comparisonDelta`.
+
         **Note**: For queries extending past `30d`, spanning billions of rows, or running on projects with low
         sample rates, the aggregation `yAxis=count_unique()` and filters on high-cardinality
         fields (such as `query=user.id:bc`) will not return accurate results. Use these queries for rough
@@ -314,15 +319,27 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         ):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
-            transformations = {}
-            if features.has(
+            transformations = get_transformations(request)
+            if transformations and not features.has(
                 "organizations:explore-interpolation-and-smoothing",
                 organization,
                 actor=request.user,
             ):
-                transformations = get_transformations(request)
+                raise ParseError(
+                    detail="Timeseries transformations are not enabled for this organization"
+                )
 
             dataset = self.get_dataset(request, organization)
+            if transformations:
+                if dataset not in RPC_DATASETS or dataset == UptimeResults:
+                    raise ParseError(
+                        detail="Timeseries transformations are not supported for dataset "
+                        f"{request.GET.get('dataset', 'discover')}"
+                    )
+                if top_events > 0 and comparison_delta is not None:
+                    raise ParseError(
+                        detail="Timeseries transformations do not support comparisonDelta with topEvents"
+                    )
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
                 if dataset not in TOP_EVENTS_DATASETS:
