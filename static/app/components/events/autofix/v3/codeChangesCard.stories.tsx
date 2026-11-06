@@ -450,6 +450,32 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
     );
   });
 
+  story('Pinned PR iteration without code changes', () => {
+    const explanation =
+      'The failed CI check also fails on main. It is unrelated to this PR, so I left the code unchanged.';
+    return (
+      <Stack gap="xl">
+        <Text size="sm" variant="muted">
+          This iteration made no new edits. Seer's explanation appears above the full PR
+          diff, which still includes changes from earlier work.
+        </Text>
+        <StatusExample label="The explanation and the full PR diff are both visible.">
+          <PinnedToPrHeadExample
+            pullRequest={pinnedPullRequest()}
+            noChangesExplanation={explanation}
+          />
+        </StatusExample>
+        <StatusExample label="If the diff cannot load, the explanation stays above the GitHub fallback.">
+          <PinnedToPrHeadExample
+            pullRequest={pinnedPullRequest()}
+            noChangesExplanation={explanation}
+            diffUnavailable
+          />
+        </StatusExample>
+      </Stack>
+    );
+  });
+
   story('PR diff unavailable', () => {
     return (
       <Stack gap="md">
@@ -774,9 +800,11 @@ class PullRequestFilesQueryClient extends QueryClient {
 function PinnedToPrHeadExample({
   pullRequest,
   diffUnavailable = false,
+  noChangesExplanation,
 }: {
   pullRequest: RepoPRState;
   diffUnavailable?: boolean;
+  noChangesExplanation?: string;
 }) {
   const organization = useOrganization();
   const user = useUser();
@@ -797,9 +825,16 @@ function PinnedToPrHeadExample({
           <CodeChangesCard
             groupId="1"
             autofix={autofix}
-            section={makeSection('completed', [
-              makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
-            ])}
+            section={makeSection(
+              'completed',
+              [
+                makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+                ...(noChangesExplanation
+                  ? [makeAssistantBlock('no-change-reply', noChangesExplanation)]
+                  : []),
+              ],
+              noChangesExplanation ? [] : undefined
+            )}
           />
           <PullRequestsCard
             autofix={autofix}
