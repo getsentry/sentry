@@ -18,7 +18,7 @@ export function useHasUnsupportedQueryTransformations(
 ) {
   const organization = useOrganization();
   return (
-    Boolean(transformations?.some(pipeline => pipeline.length)) &&
+    Boolean(transformations?.some(axisTransformations => axisTransformations.length)) &&
     !organization.features.includes('explore-interpolation-and-smoothing')
   );
 }

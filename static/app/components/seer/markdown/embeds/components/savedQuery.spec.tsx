@@ -37,7 +37,7 @@ function savedQueryResponse(overrides: Record<string, unknown> = {}) {
 
 describe('saved query embed', () => {
   it.each(['visualize', 'aggregateField'])(
-    'shows stored pipelines from %s without merging duplicate axes',
+    'shows stored transformations from %s without merging duplicate axes',
     async field => {
       const visualizes = [
         {yAxes: ['p95(span.duration)']},

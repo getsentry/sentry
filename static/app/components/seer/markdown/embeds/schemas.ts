@@ -68,9 +68,9 @@ const exploreQueryFields = {
     .array(z.array(z.string().min(1)))
     .optional()
     .describe(
-      'Ordered pipelines indexed by yAxes, including duplicate axes. Use [] for a raw axis. ' +
+      'Ordered transformations indexed by yAxes, including duplicate axes. Use [] for a raw axis. ' +
         'Steps use events-timeseries syntax, e.g. [[], ["fill(locf)", "smooth(sma,3)"]]. ' +
-        'With no yAxes, one pipeline applies to the default aggregate.'
+        'With no yAxes, transformations apply to the default aggregate.'
     ),
   interval: z
     .string()
@@ -86,7 +86,7 @@ const exploreQuerySchema = z
   .object(exploreQueryFields)
   .refine(data => (data.transformations?.length ?? 0) <= (data.yAxes?.length || 1), {
     path: ['transformations'],
-    message: 'Each pipeline must correspond to a y-axis.',
+    message: 'Each transformation array must correspond to a y-axis.',
   });
 
 type SeerEmbedLevel = 'inline' | 'block';

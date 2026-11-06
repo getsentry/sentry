@@ -53,7 +53,9 @@ export function toAggregateFields({
   transformations?: ReadonlyArray<readonly string[]>;
   yAxes?: string[];
 }): Array<{groupBy: string} | BaseVisualize> | undefined {
-  const visualizes = transformations?.some(pipeline => pipeline.length)
+  const visualizes = transformations?.some(
+    axisTransformations => axisTransformations.length
+  )
     ? (yAxes ?? []).map((yAxis, index) =>
         new VisualizeFunction(yAxis, {
           transformations: transformations[index],

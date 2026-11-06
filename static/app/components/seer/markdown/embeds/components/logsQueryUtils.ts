@@ -115,7 +115,8 @@ export function getLogsQueryHref(
     aggregateFields: toAggregateFields({
       groupBy,
       yAxes:
-        !yAxes?.length && transformations?.some(pipeline => pipeline.length)
+        !yAxes?.length &&
+        transformations?.some(axisTransformations => axisTransformations.length)
           ? resolveLogsYAxes(data)
           : yAxes,
       transformations,

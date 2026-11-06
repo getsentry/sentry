@@ -113,7 +113,8 @@ export function getSpansQueryHref(
   const {query, mode, sort, fields, groupBy, yAxes, transformations, interval} = data;
   const aggregateYAxes =
     !yAxes?.length &&
-    (mode === 'aggregate' || transformations?.some(pipeline => pipeline.length))
+    (mode === 'aggregate' ||
+      transformations?.some(axisTransformations => axisTransformations.length))
       ? [DEFAULT_AGGREGATE]
       : yAxes;
 
