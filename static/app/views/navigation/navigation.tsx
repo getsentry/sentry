@@ -24,6 +24,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {getReturnPath} from 'sentry/utils/useReturnPath';
+import {getClassifiersPath, useClassifiersEnabled} from 'sentry/views/classifiers/utils';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
   getInvestigationsPath,
@@ -161,6 +162,8 @@ export function SettingsNavigationBackButton({
       size="sm"
       icon={<IconArrow direction="left" />}
       aria-label={t('Back to app')}
+      analyticsEventKey="settings.back_to_app_clicked"
+      analyticsEventName="Settings: Back to App Clicked"
       tooltipProps={{title: t('Back to app')}}
       to={getReturnPath(
         getSettingsReturnPathKey(organization.slug),
@@ -223,6 +226,7 @@ export function PrimaryNavigationItems() {
   const organization = useOrganization({allowNull: true});
   const investigationsEnabled = useInvestigationsEnabled();
   const automationsEnabled = useAutomationsEnabled();
+  const classifiersEnabled = useClassifiersEnabled();
   const settingsV3 = useSettingsV3();
 
   const makeNavigationItemProps = useActivateNavigationGroup();
@@ -256,7 +260,9 @@ export function PrimaryNavigationItems() {
 
   const seerPath = automationsEnabled
     ? getAutomationsPath(organization.slug)
-    : getInvestigationsPath(organization.slug);
+    : investigationsEnabled
+      ? getInvestigationsPath(organization.slug)
+      : getClassifiersPath(organization.slug);
 
   const prefix = `organizations/${organization.slug}`;
   const inboxPath = getInboxPath(organization);
@@ -294,7 +300,7 @@ export function PrimaryNavigationItems() {
       </NavigationTourElement>
 
       {organization.features.includes('seer-primary-nav') &&
-        (investigationsEnabled || automationsEnabled) && (
+        (investigationsEnabled || automationsEnabled || classifiersEnabled) && (
           <PrimaryNavigation.ListItem>
             <PrimaryNavigation.Link
               to={seerPath}
