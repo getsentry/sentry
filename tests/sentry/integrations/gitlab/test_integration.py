@@ -673,6 +673,15 @@ class GitlabIssueSyncTest(GitLabTestCase):
             str(exception_info.value) == "Error Communicating with GitLab (HTTP 403): unauthorized"
         )
 
+    def test_get_group_id_returns_none_when_metadata_is_missing(self) -> None:
+        integration = Integration.objects.get(provider=self.provider)
+        integration.update(metadata={})
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        assert installation.get_group_id() is None
+
     def test_every_config_save_schedules_webhook_reconciliation(self) -> None:
         self.assert_config_schedules_reconciliation({})
 
@@ -1458,15 +1467,23 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         assert Integration.objects.filter(provider="gitlab").count() == 1
 
     @responses.activate
-    def test_config_step_rejects_blank_group(self) -> None:
-        self._initialize_pipeline()
-        resp = self._submit_config(group="")
-        assert resp.status_code == 400
-        assert resp.data["group"] == ["This field may not be blank."]
-        assert not Integration.objects.filter(provider="gitlab").exists()
+    def test_full_pipeline_flow_without_group(self) -> None:
+        resp = self._run_pipeline(group="", includeSubgroups=True)
+
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="gitlab")
+        assert integration.name == "gitlab.example.com"
+        assert integration.external_id == build_integration_external_id(
+            "gitlab.example.com", None, self.organization.id
+        )
+        assert integration.metadata["domain_name"] == "gitlab.example.com"
+        assert integration.metadata["group_id"] is None
+        assert integration.metadata["include_subgroups"] is False
 
     @responses.activate
-    def test_config_step_rejects_missing_group(self) -> None:
+    def test_config_step_allows_missing_group(self) -> None:
         self._initialize_pipeline()
         data = {
             "url": self.gitlab_url,
@@ -1474,33 +1491,26 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
             "clientSecret": self.client_secret,
         }
         resp = self._advance_step(data)
-        assert resp.status_code == 400
-        assert resp.data["group"] == ["This field is required."]
-        assert not Integration.objects.filter(provider="gitlab").exists()
+
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "oauth_login"
 
     @responses.activate
-    def test_build_integration_without_group_in_state_does_not_install(self) -> None:
-        self._stub_gitlab_oauth()
-        self._stub_gitlab_user()
+    def test_install_without_group_in_two_orgs_creates_separate_integrations(self) -> None:
+        self._run_pipeline(group="")
+        first = Integration.objects.get(provider="gitlab")
 
-        self._initialize_pipeline()
-        resp = self._submit_config()
-        pipeline_signature = self._get_pipeline_signature(resp)
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_org = self.create_organization(name="other-org", owner=self.user)
+        resp = self._run_pipeline(other_org, group="")
 
-        # Simulate state that bypassed the config step's validation.
-        original_build = GitlabIntegrationProvider.build_integration
-
-        def build_without_group(provider: Any, state: Any) -> Any:
-            installation_data = {**state["installation_data"], "group": ""}
-            return original_build(provider, {**state, "installation_data": installation_data})
-
-        with patch.object(GitlabIntegrationProvider, "build_integration", build_without_group):
-            resp = self._advance_step({"code": "gitlab-auth-code", "state": pipeline_signature})
-
-        assert resp.status_code == 400
-        assert resp.data["status"] == "error"
-        assert "group is required" in resp.data["data"]["detail"]
-        assert not Integration.objects.filter(provider="gitlab").exists()
+        assert resp.data["status"] == "complete"
+        second = Integration.objects.exclude(id=first.id).get(provider="gitlab")
+        assert second.external_id == build_integration_external_id(
+            "gitlab.example.com", None, other_org.id
+        )
+        assert first.id != second.id
 
     @responses.activate
     def test_config_strips_trailing_slash(self) -> None:

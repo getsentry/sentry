@@ -494,8 +494,8 @@ class GitlabIntegration(
 
     # Gitlab only functions
 
-    def get_group_id(self) -> str:
-        return self.model.metadata["group_id"]
+    def get_group_id(self) -> int | None:
+        return self.model.metadata.get("group_id")
 
     def search_projects(self, query: str | None) -> list[Mapping[str, object]]:
         client = self.get_client()
@@ -567,7 +567,7 @@ class GitlabPRCommentWorkflow(PRCommentWorkflow):
 
 class InstallationConfigSerializer(CamelSnakeSerializer[dict[str, Any]]):
     url = URLField(required=False, default="https://gitlab.com")
-    group = CharField(required=True, allow_blank=False)
+    group = CharField(required=False, allow_blank=True, default="")
     include_subgroups = BooleanField(required=False, default=False)
     verify_ssl = BooleanField(required=False, default=True)
     client_id = CharField(required=True)
@@ -730,7 +730,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             lambda: self._make_oauth_api_step(),
         ]
 
-    def _get_external_id(self, hostname: str, group_id: int) -> str:
+    def _get_external_id(self, hostname: str, group_id: int | None) -> str:
         """
         Each organization gets its own integration.
         The external_id is embedded in the webhook token, which is how inbound hooks find
@@ -754,23 +754,24 @@ class GitlabIntegrationProvider(IntegrationProvider):
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state["installation_data"]["url"]
 
-        # Guard against a missing group in the pipeline, we need this to
-        # properly key integrations.
-        if not state["installation_data"].get("group"):
-            raise IntegrationError("A GitLab group is required to install this integration.")
-
-        group = self.get_group_info(data["access_token"], state["installation_data"])
-        include_subgroups = state["installation_data"]["include_subgroups"]
+        requested_group = state["installation_data"].get("group")
+        if requested_group:
+            group = self.get_group_info(data["access_token"], state["installation_data"])
+            group_id = group.get("id")
+            if not group_id or not isinstance(group_id, int):
+                raise IntegrationError("Malformed group provided")
+            include_subgroups = state["installation_data"]["include_subgroups"]
+        else:
+            group = {}
+            group_id = None
+            include_subgroups = False
 
         hostname = urlparse(base_url).netloc
         verify_ssl = state["installation_data"]["verify_ssl"]
 
-        group_id = group["id"]
-        if not group_id or not isinstance(group_id, int):
-            raise IntegrationError("Malformed group provided")
-
         assert self.pipeline.organization is not None
-        legacy_external_id = f"{hostname}:{group_id}"
+        legacy_scope = group_id if group_id is not None else "_instance_"
+        legacy_external_id = f"{hostname}:{legacy_scope}"
         if OrganizationIntegration.objects.filter(
             organization_id=self.pipeline.organization.id,
             integration__provider=self.key,
@@ -796,17 +797,17 @@ class GitlabIntegrationProvider(IntegrationProvider):
             webhook_secret = secrets.token_hex(20)
 
         return {
-            "name": group["full_name"],
+            "name": group.get("full_name", hostname),
             "external_id": external_id,
             "metadata": {
                 "icon": group.get("avatar_url"),
                 "instance": hostname,
-                "domain_name": "{}/{}".format(hostname, group["full_path"]).rstrip("/"),
+                "domain_name": "{}/{}".format(hostname, group.get("full_path", "")).rstrip("/"),
                 "scopes": scopes,
                 "verify_ssl": verify_ssl,
                 "base_url": base_url,
                 "webhook_secret": webhook_secret,
-                "group_id": group.get("id"),
+                "group_id": group_id,
                 "include_subgroups": include_subgroups,
             },
             "user_identity": {
