@@ -53,6 +53,18 @@ describe('ListItem', () => {
     );
 
     it.snapshot(
+      'section-gap',
+      () => (
+        <ul style={{padding: 8, width: 300, listStyle: 'none'}}>
+          <ListItem size={size} label="First in section" />
+          <ListItem size={size} label="Spaced from the item above" gapAbove />
+          <ListItem size={size} label="Spaced from the item above" gapAbove />
+        </ul>
+      ),
+      {tags: {area: 'core', size, gapAbove: 'true'}}
+    );
+
+    it.snapshot(
       'reserved-leading-slot',
       () => (
         <ul style={{padding: 8, width: 300, listStyle: 'none'}}>
