@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
@@ -11,12 +11,10 @@ import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {hasDroppedData} from 'sentry/components/droppedData/buckets';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -46,6 +44,7 @@ import {
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   groupVisualizes,
@@ -53,8 +52,6 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
-import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
-import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
@@ -72,6 +69,8 @@ import {
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {ConfidenceFooter} from './confidenceFooter';
 
 interface ExploreChartsProps {
   extrapolate: boolean;
@@ -297,14 +296,11 @@ function Chart({
     visualize.chartType !== ChartType.HEATMAP &&
     organization.features.includes('explore-interpolation-and-smoothing');
   const {chartSelection, setChartSelection} = useChartSelection();
+  const [tab] = useTab();
+  const isAttributeBreakdown = tab === Tab.ATTRIBUTE_BREAKDOWNS;
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval});
-  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer({dataset});
-  const isDroppedDataLoaded = defined(droppedEvents);
-  const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
-  const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
+  const droppedData = useDroppedDataLayer({dataset, interval});
 
   const {
     dismiss: dismissChartSelectionAlert,
@@ -371,13 +367,8 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {isDroppedDataLoaded ? (
-        <DroppedDataLayerControl
-          dataset={dataset}
-          hasDroppedData={canShowDroppedData}
-          showDroppedData={isDroppedDataLayerOn}
-          onChange={setIsDroppedDataLayerOn}
-        />
+      {droppedData.layerControl ? (
+        <DroppedDataLayerControl {...droppedData.layerControl} />
       ) : null}
       <Tooltip
         title={
@@ -456,57 +447,51 @@ function Chart({
         Visualization={
           visualize.visible && (
             <ChartVisualization
+              key={isAttributeBreakdown ? 'attribute-breakdown' : 'zoom'}
               chartInfo={chartInfo}
               chartRef={chartRef}
               plottables={plottables}
-              tooltipLimit={
-                hasMultiAggregateCharts(organization) ? MAX_TOOLTIP_SERIES : undefined
-              }
-              droppedData={
-                showDroppedDataBand
+              tooltipLimit={MAX_TOOLTIP_SERIES}
+              droppedData={droppedData.band}
+              chartXRangeSelection={
+                isAttributeBreakdown
                   ? {
-                      dataset,
-                      droppedEvents,
-                      acceptedEvents,
-                      onClick: openDroppedDataDrawer,
+                      initialSelection: initialChartSelection,
+                      onSelectionEnd: () => {
+                        if (!isChartSelectionAlertDismissed) {
+                          dismissChartSelectionAlert();
+                        }
+                      },
+                      onInsideSelectionClick: params => {
+                        if (!params.selectionState) {
+                          return;
+                        }
+
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: true,
+                        });
+                      },
+                      onOutsideSelectionClick: params => {
+                        if (!params.selectionState?.isActionMenuVisible) {
+                          return;
+                        }
+
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: false,
+                        });
+                      },
+                      onClearSelection: () => {
+                        setChartSelection(null);
+                      },
+                      disabled: false,
+                      actionMenuRenderer: params => {
+                        return <FloatingTrigger chartIndex={index} params={params} />;
+                      },
                     }
                   : undefined
               }
-              chartXRangeSelection={{
-                initialSelection: initialChartSelection,
-                onSelectionEnd: () => {
-                  if (!isChartSelectionAlertDismissed) {
-                    dismissChartSelectionAlert();
-                  }
-                },
-                onInsideSelectionClick: params => {
-                  if (!params.selectionState) {
-                    return;
-                  }
-
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: true,
-                  });
-                },
-                onOutsideSelectionClick: params => {
-                  if (!params.selectionState?.isActionMenuVisible) {
-                    return;
-                  }
-
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: false,
-                  });
-                },
-                onClearSelection: () => {
-                  setChartSelection(null);
-                },
-                disabled: false,
-                actionMenuRenderer: params => {
-                  return <FloatingTrigger chartIndex={index} params={params} />;
-                },
-              }}
             />
           )
         }
@@ -537,9 +522,9 @@ function Chart({
                     rawSpanCounts={rawSpanCounts}
                     userQuery={query.trim()}
                   />
-                  {showDroppedDataBand ? (
+                  {droppedData.filterNote ? (
                     <DroppedDataFilterNote
-                      dataset={dataset}
+                      {...droppedData.filterNote}
                       hasUserQuery={!!query.trim()}
                       showIcon={{zero: false, xl: true}}
                     />

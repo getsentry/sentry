@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import {Confirm, openConfirmModal} from 'sentry/components/confirm';
 import * as Storybook from 'sentry/stories';
+
+import {Confirm, openConfirmModal} from './confirm';
 
 export default Storybook.story('Confirm', story => {
   story('Triggers', () => {

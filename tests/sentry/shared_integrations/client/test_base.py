@@ -7,7 +7,7 @@ from requests import PreparedRequest, Request
 from sentry.exceptions import RestrictedIPAddress
 from sentry.net.http import Session
 from sentry.shared_integrations.client.base import BaseApiClient
-from sentry.shared_integrations.exceptions import ApiHostError
+from sentry.shared_integrations.exceptions import ApiHostError, ApiRateLimitedError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.socket import override_blocklist
 
@@ -27,13 +27,13 @@ class BaseApiClientTest(TestCase):
 
     @responses.activate
     @patch.object(BaseApiClient, "finalize_request", side_effect=lambda req: req)
-    def test_finalize_request(self, mock_finalize_request) -> None:
+    def test_finalize_request(self, mock_finalize_request: MagicMock) -> None:
         # Ensure finalize_request is called before all requests
         get_response = responses.add(responses.GET, "https://example.com/get", json={})
         assert not mock_finalize_request.called
         assert get_response.call_count == 0
         self.api_client.get("https://example.com/get")
-        assert mock_finalize_request.called
+        assert bool(mock_finalize_request.called)
         assert get_response.call_count == 1
 
         # Ensure finalize_request can modify the request prior to sending
@@ -67,14 +67,30 @@ class BaseApiClientTest(TestCase):
     @patch.object(BaseApiClient, "finalize_request", side_effect=lambda req: req)
     @patch.object(Session, "send", side_effect=RestrictedIPAddress())
     @override_blocklist("172.16.0.0/12")
-    def test_restricted_ip_address(self, mock_finalize_request, mock_session_send) -> None:
+    def test_restricted_ip_address(
+        self, mock_finalize_request: MagicMock, mock_session_send: MagicMock
+    ) -> None:
         assert not mock_finalize_request.called
         with raises(ApiHostError):
             self.api_client.get("https://172.31.255.255")
         assert mock_finalize_request.called
 
+    @responses.activate
+    def test_rate_limit_error_includes_retry_after(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.com/rate-limited",
+            status=429,
+            headers={"Retry-After": "123"},
+        )
+
+        with raises(ApiRateLimitedError) as exc_info:
+            self.api_client.get("https://example.com/rate-limited")
+
+        assert exc_info.value.retry_after == 123
+
     @patch.object(Session, "send")
-    def test_default_timeout(self, mock_session_send) -> None:
+    def test_default_timeout(self, mock_session_send: MagicMock) -> None:
         response = MagicMock()
         response.status_code = 204
         mock_session_send.return_value = response
@@ -86,7 +102,7 @@ class BaseApiClientTest(TestCase):
     @patch.object(BaseApiClient, "track_response_data")
     @patch.object(Session, "send")
     def test_track_response_data_includes_integration_id(
-        self, mock_session_send, mock_track_response_data
+        self, mock_session_send: MagicMock, mock_track_response_data: MagicMock
     ) -> None:
         response = MagicMock()
         response.status_code = 204
@@ -105,7 +121,7 @@ class BaseApiClientTest(TestCase):
     @patch.object(BaseApiClient, "track_response_data")
     @patch.object(Session, "send")
     def test_track_response_data_includes_organization_id_from_logging_context(
-        self, mock_session_send, mock_track_response_data
+        self, mock_session_send: MagicMock, mock_track_response_data: MagicMock
     ) -> None:
         response = MagicMock()
         response.status_code = 204
@@ -124,7 +140,7 @@ class BaseApiClientTest(TestCase):
     @patch.object(BaseApiClient, "track_response_data")
     @patch.object(Session, "send")
     def test_track_response_data_uses_org_id_fallback_for_organization_id(
-        self, mock_session_send, mock_track_response_data
+        self, mock_session_send: MagicMock, mock_track_response_data: MagicMock
     ) -> None:
         response = MagicMock()
         response.status_code = 204
@@ -143,7 +159,7 @@ class BaseApiClientTest(TestCase):
     @patch("sentry.shared_integrations.client.base.metrics.incr")
     @patch.object(Session, "send")
     def test_request_and_response_metrics_include_api_request_type(
-        self, mock_session_send, mock_metrics_incr
+        self, mock_session_send: MagicMock, mock_metrics_incr: MagicMock
     ) -> None:
         response = MagicMock()
         response.status_code = 204
@@ -163,7 +179,7 @@ class BaseApiClientTest(TestCase):
         )
 
     @patch("sentry.shared_integrations.client.base.metrics.incr")
-    def test_get_cached_emits_hit_metric(self, mock_metrics_incr) -> None:
+    def test_get_cached_emits_hit_metric(self, mock_metrics_incr: MagicMock) -> None:
         with patch.object(self.api_client, "check_cache", return_value={"cached": True}):
             self.api_client.get_cached("https://example.com/repos/example/repo/commits")
 
@@ -174,7 +190,7 @@ class BaseApiClientTest(TestCase):
         )
 
     @patch("sentry.shared_integrations.client.base.metrics.incr")
-    def test_get_cached_emits_miss_metric(self, mock_metrics_incr) -> None:
+    def test_get_cached_emits_miss_metric(self, mock_metrics_incr: MagicMock) -> None:
         with (
             patch.object(self.api_client, "check_cache", return_value=None),
             patch.object(self.api_client, "request", return_value={"fresh": True}),
@@ -189,7 +205,9 @@ class BaseApiClientTest(TestCase):
         )
 
     @patch("sentry.shared_integrations.client.base.metrics.incr")
-    def test_get_cached_emits_api_request_type_metric_tag(self, mock_metrics_incr) -> None:
+    def test_get_cached_emits_api_request_type_metric_tag(
+        self, mock_metrics_incr: MagicMock
+    ) -> None:
         with patch.object(self.api_client, "check_cache", return_value={"cached": True}):
             self.api_client.get_cached(
                 "https://example.com/repos/example/repo/commits",

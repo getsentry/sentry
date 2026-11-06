@@ -30,33 +30,41 @@
                 "properties": {
                   "app": {
                     "type": "object",
+                    "description": "Custom integration that's installed",
                     "required": ["uuid", "slug", "sentryAppId"],
                     "properties": {
                       "uuid": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "UUID of the custom integration"
                       },
                       "slug": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Slug of the custom integration"
                       },
                       "sentryAppId": {
-                        "type": "integer"
+                        "type": "integer",
+                        "description": "ID of the custom integration"
                       }
                     }
                   },
                   "organization": {
                     "type": "object",
+                    "description": "Organization the integration is installed in",
                     "required": ["slug"],
                     "properties": {
                       "slug": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Slug of the organization the integration is installed in"
                       }
                     }
                   },
                   "uuid": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "UUID of the installation"
                   },
                   "status": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Status of the installation, such as pending or installed"
                   }
                 }
               }

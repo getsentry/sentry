@@ -16,7 +16,8 @@ import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
-import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
+
+import ConfigureIntegration from './configureIntegration';
 
 describe('ConfigureIntegration settings tab', () => {
   const org = OrganizationFixture({
@@ -169,7 +170,7 @@ describe('ConfigureIntegration settings tab', () => {
     expect(screen.queryByRole('link', {name: 'Slack'})).not.toBeInTheDocument();
   });
 
-  it('hides the Settings tab when there is no settings content', async () => {
+  it('hides the tabs when Code Mappings is the only tab', async () => {
     mockRequests(
       OrganizationIntegrationsFixture({
         provider: {...githubProvider, key: 'github'},
@@ -180,8 +181,10 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure();
 
-    expect(await screen.findByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Settings'})).not.toBeInTheDocument();
+    expect(
+      await screen.findByText('Set up stack trace linking by adding a code mapping.')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
   it('shows the Settings tab when there is organization config', async () => {

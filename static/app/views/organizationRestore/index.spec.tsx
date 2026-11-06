@@ -2,7 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationRestore from 'sentry/views/organizationRestore';
 
@@ -84,7 +85,7 @@ describe('OrganizationRestore', () => {
   });
 
   it('shows the API error when restoring fails', async () => {
-    const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    const addErrorMessage = jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: `/organizations/${pendingDeleteOrg.slug}/`,
       method: 'GET',

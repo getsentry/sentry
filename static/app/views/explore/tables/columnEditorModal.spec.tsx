@@ -6,10 +6,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
-import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
+
+import {ColumnEditorModal} from './columnEditorModal';
 
 const stringTags: TagCollection = {
   id: {

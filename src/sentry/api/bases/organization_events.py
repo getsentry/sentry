@@ -56,6 +56,7 @@ from sentry.search.eap.types import AdditionalQueries, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -290,7 +291,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         has_errors: bool,
         has_transactions_data: bool,
         organization: Organization,
-        user: User | AnonymousUser,
+        user: User | AnonymousUser | ServiceAccountPrincipal,
     ) -> int | None:
         """This can be removed once the discover dataset has been fully split"""
         source = DashboardDatasetSourcesTypes.INFERRED.value

@@ -1,14 +1,90 @@
 from unittest.mock import patch
 
+import pytest
+
 from sentry.api.serializers import serialize
+from sentry.inbox.notebook import (
+    NOTEBOOK,
+    NotebookCompletedData,
+    NotebookMentionedData,
+    NotebookParticipantAddedData,
+)
+from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.serializers import InboxItemEventSerializer, InboxItemSerializer
+from sentry.inbox.types import SYSTEM_ACTOR, InboxEventData
+from sentry.models.organization import Organization
+from sentry.notebooks.models import NotebookStatus
+from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
 
 class InboxItemSerializerTest(TestCase):
+    def test_notebook_titles(self) -> None:
+        first = self.create_notebook(organization=self.organization, title="First notebook")
+        archived = self.create_notebook(
+            organization=self.organization,
+            title="Archived notebook",
+            status=NotebookStatus.ARCHIVED,
+        )
+        other_org = self.create_notebook(
+            organization=self.create_organization(), title="Another organization's notebook"
+        )
+        deleted = self.create_notebook(organization=self.organization, title="Deleted notebook")
+        deleted_id = str(deleted.id)
+        deleted.delete()
+
+        assert inbox_item_type_registry.get("notebook") is NOTEBOOK
+        assert NOTEBOOK.get_subject_id(first) == str(first.id)
+        assert NOTEBOOK.get_organization_id(first) == self.organization.id
+        with self.assertNumQueries(1):
+            titles = NOTEBOOK.get_titles(
+                organization=self.organization,
+                subject_ids=[
+                    str(first.id),
+                    str(archived.id),
+                    str(other_org.id),
+                    deleted_id,
+                    "invalid",
+                ],
+            )
+        assert titles == {str(first.id): "First notebook", str(archived.id): "Archived notebook"}
+
+        items = [
+            self.create_inbox_item(subject_type="notebook", subject_id=subject_id)
+            for subject_id in [str(first.id), str(archived.id), str(other_org.id), deleted_id]
+        ]
+        for item in items:
+            self.create_inbox_item_event(
+                inbox_item=item, type="notebook.participant_added", data={"summary": "Added you"}
+            )
+
+        with self.assertNumQueries(3):
+            results = serialize(items, self.user, InboxItemSerializer())
+
+        assert [result["title"] for result in results] == [
+            "First notebook",
+            "Archived notebook",
+            None,
+            None,
+        ]
+
+    def test_notebook_url_without_inbox_item(self) -> None:
+        notebook = self.create_notebook(organization=self.organization, title="Notebook")
+        expected = notebook.get_absolute_url()
+
+        with self.assertNumQueries(0):
+            assert (
+                NOTEBOOK.get_url(organization=self.organization, subject_id=str(notebook.id))
+                == expected
+            )
+
     def test_bulk_summaries_and_unread_counts(self) -> None:
         first = self.create_group(project=self.project, data={"title": "First issue"})
         second = self.create_group(project=self.project, data={"title": "Second issue"})
@@ -33,7 +109,7 @@ class InboxItemSerializerTest(TestCase):
         assert results[0]["subtitle"] == "Mentioned you"
         assert results[0]["eventCount"] == 2
         assert results[0]["unreadEventCount"] == 1
-        assert results[0]["eventTypes"] == ["issue.assigned", "issue.mentioned"]
+        assert results[0]["eventTypes"] == ["issue.mentioned", "issue.user_assigned"]
         assert results[0]["latestEvent"]["id"] == str(latest.id)
         assert results[0]["latestEvent"]["data"] == {"commentId": "123"}
         assert results[1]["title"] == "Second issue"
@@ -57,6 +133,65 @@ class InboxItemSerializerTest(TestCase):
         group.delete()
 
         assert serialize(item, self.user, InboxItemSerializer())["title"] is None
+
+
+class TestNotebookEvents:
+    @pytest.mark.parametrize(
+        "event_type,data,expected_data",
+        [
+            (
+                "notebook.completed",
+                NotebookCompletedData(summary="Investigation completed", seer_run_id=123),
+                {"seerRunId": "123"},
+            ),
+            (
+                "notebook.mentioned",
+                NotebookMentionedData(summary="Mentioned you", comment_id=123),
+                {"commentId": "123", "blockId": None},
+            ),
+            (
+                "notebook.mentioned",
+                NotebookMentionedData(summary="Mentioned you", comment_id=123, block_id=456),
+                {"commentId": "123", "blockId": "456"},
+            ),
+            (
+                "notebook.participant_added",
+                NotebookParticipantAddedData(summary="Added you"),
+                {},
+            ),
+        ],
+    )
+    @with_feature(
+        {"organizations:universal-inbox-recording": True, "organizations:universal-inbox": False}
+    )
+    @django_db_all
+    def test_notebook_events(
+        self,
+        default_organization: Organization,
+        default_user: User,
+        event_type: str,
+        data: InboxEventData,
+        expected_data: dict[str, str | None],
+    ) -> None:
+        notebook = Factories.create_notebook(organization=default_organization, title="Notebook")
+        event_type_definition = inbox_item_event_type_registry.get(event_type)
+        assert event_type_definition.item_type is NOTEBOOK
+        assert event_type_definition.data_class is type(data)
+
+        event_type_definition.record(
+            subject=notebook, data=data, recipient_user_ids=[default_user.id], actor=SYSTEM_ACTOR
+        )
+
+        item = InboxItem.objects.get()
+        event = InboxItemEvent.objects.get(inbox_item=item)
+        result = serialize(event, default_user, InboxItemEventSerializer())
+
+        assert item.organization_id == default_organization.id
+        assert item.subject_type == "notebook"
+        assert item.subject_id == str(notebook.id)
+        assert result["type"] == event_type
+        assert result["summary"] == data.summary
+        assert result["data"] == expected_data
 
 
 class InboxItemEventSerializerTest(TestCase):

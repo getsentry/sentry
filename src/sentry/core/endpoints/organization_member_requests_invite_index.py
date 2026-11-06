@@ -28,6 +28,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
 from sentry.core.endpoints.organization_member_utils import get_allowed_org_roles
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -114,6 +115,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
         Create an invite request for an organization given an email and suggested
         role / teams.
         """
+        inviter = require_user(request)
         allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
@@ -140,7 +142,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 role=result["role"] or organization.default_role,
                 email=result["email"],
-                inviter_id=request.user.id,
+                inviter_id=inviter.id,
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 
@@ -160,7 +162,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
         )
 
-        async_send_notification(InviteRequestNotification, om, request.user)
+        async_send_notification(InviteRequestNotification, om, inviter)
 
         data: OrganizationMemberResponse = serialize(om)
         return Response(data, status=201)

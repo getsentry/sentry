@@ -1,6 +1,8 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypeAlias, TypedDict
+from typing import TypeAlias, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
@@ -9,6 +11,7 @@ from sentry.issues.action_log.types import ActionSource, GroupActionType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
@@ -18,6 +21,8 @@ from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
@@ -48,13 +53,13 @@ class ActivitySerializerResponse(TypedDict):
     commentId: str | None
     # The serialized acting user (a user serializer response), or null for
     # system/integration activity. Left loose: the full user shape is out of scope.
-    user: dict[str, Any] | None
+    user: dict[str, object] | None
     sentry_app: _ActivitySentryAppEmbed | None
     type: str
     # Polymorphic by activity type (note text, commit, pull request, unmerge
     # fingerprints + source/destination, ...). Loose by design — describing every
     # variant is out of scope.
-    data: dict[str, Any]
+    data: dict[str, object]
     dateCreated: datetime
 
 
@@ -120,7 +125,7 @@ PULL_REQUEST_ACTIVITY_TYPES = {
 
 
 def _resolve_mentioned_users(
-    activities: list[Activity],
+    activities: Sequence[Activity],
 ) -> dict[ActivityId, list[ResolvedMention]]:
     """The Sentry users each activity @mentions, keyed by activity id, resolved in one batch.
 
@@ -157,11 +162,20 @@ def _resolve_mentioned_users(
 
 @register(Activity)
 class ActivitySerializer(Serializer):
-    def __init__(self, environment_func=None, resolve_mentions: bool = False):
+    def __init__(
+        self,
+        environment_func: Callable[[], Environment | None] | None = None,
+        resolve_mentions: bool = False,
+    ) -> None:
         self.environment_func = environment_func
         self.resolve_mentions = resolve_mentions
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Activity],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[Activity, dict[str, object]]:
         from sentry.api.serializers.models.group import GroupSerializer
 
         # TODO(dcramer); assert on relations
@@ -268,7 +282,13 @@ class ActivitySerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj: Activity, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: Activity,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ActivitySerializerResponse:
         if (
             obj.type == ActivityType.SET_RESOLVED_IN_RELEASE.value
             and obj.data
@@ -298,8 +318,8 @@ class ActivitySerializer(Serializer):
         return {
             "id": str(obj.id),
             "commentId": str(obj.id) if obj.type == ActivityType.NOTE.value else None,
-            "user": attrs["user"],
-            "sentry_app": attrs["sentry_app"],
+            "user": cast(dict[str, object] | None, attrs["user"]),
+            "sentry_app": cast(_ActivitySentryAppEmbed | None, attrs["sentry_app"]),
             "type": obj.get_type_display(),
             "data": data,
             "dateCreated": obj.datetime,

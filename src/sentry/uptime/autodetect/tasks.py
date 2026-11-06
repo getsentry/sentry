@@ -57,7 +57,7 @@ logger = logging.getLogger("sentry.uptime-url-autodetection")
     namespace=uptime_tasks,
     processing_deadline_duration=60,
 )
-def schedule_autodetections():
+def schedule_autodetections() -> None:
     """
     Runs regularly and fires off a task for each autodetection bucket that needs to be run since
     this task last ran.
@@ -97,7 +97,7 @@ def schedule_autodetections():
     name="sentry.uptime.detectors.tasks.process_detection_bucket",
     namespace=uptime_tasks,
 )
-def process_autodetection_bucket(bucket: str):
+def process_autodetection_bucket(bucket: str) -> None:
     """
     Schedules url autodetection for all projects in this time bucket that saw promising urls.
     """
@@ -114,7 +114,7 @@ def process_autodetection_bucket(bucket: str):
     namespace=uptime_tasks,
     processing_deadline_duration=20,
 )
-def process_organization_url_ranking(organization_id: int):
+def process_organization_url_ranking(organization_id: int) -> None:
     org = Organization.objects.get_from_cache(id=organization_id)
     logger.info(
         "uptime.process_organization",

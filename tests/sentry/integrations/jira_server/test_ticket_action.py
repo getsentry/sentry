@@ -3,6 +3,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
@@ -57,9 +58,9 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         return results[0].callback(event, futures=[rule_future])
 
     def get_key(self, event: GroupEvent) -> str:
-        return ExternalIssue.objects.get_linked_issues(event, self.integration).values_list(
-            "key", flat=True
-        )[0]
+        return ExternalIssue.objects.get_linked_issues(
+            event, serialize_integration(self.integration)
+        ).values_list("key", flat=True)[0]
 
     @responses.activate()
     def test_ticket_rules(self) -> None:

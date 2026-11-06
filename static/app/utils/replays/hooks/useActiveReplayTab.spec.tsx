@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import {TabKey, useActiveReplayTab} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {TabKey, useActiveReplayTab} from './useActiveReplayTab';
 
 describe('useActiveReplayTab', () => {
   beforeEach(() => {

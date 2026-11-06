@@ -16,12 +16,13 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {FieldKind} from 'sentry/utils/fields';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
-} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+} from './traceItemSearchQueryBuilder';
 
 const defaultInitialProps: TraceItemSearchQueryBuilderProps = {
   itemType: TraceItemDataset.SPANS,

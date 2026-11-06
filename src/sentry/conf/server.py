@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, overload
+from typing import Any, Final, Literal, NotRequired, TypedDict, Union, overload
 from urllib.parse import urlparse
 
 import orjson
@@ -41,7 +41,7 @@ def gettext_noop(s: str) -> str:
 socket.setdefaulttimeout(5)
 
 
-_EnvTypes = Union[str, float, int, list, dict]
+_EnvTypes = Union[str, float, int, list[object], dict[str, object]]
 
 
 @overload
@@ -49,13 +49,15 @@ def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: env_types.Type | None = None) -> _EnvTypes: ...
+def env(
+    key: str, default: _EnvTypes, type: env_types.Type[_EnvTypes] | None = None
+) -> _EnvTypes: ...
 
 
 def env(
     key: str,
     default: str | _EnvTypes = "",
-    type: env_types.Type | None = None,
+    type: env_types.Type[_EnvTypes] | None = None,
 ) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
@@ -499,11 +501,13 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.notebooks.apps.NotebooksConfig",
     "sentry.seer_workflow_outputs.apps.SeerWorkflowOutputsConfig",
     "sentry.service_accounts.apps.ServiceAccountsConfig",
+    "sentry.agent_handoff.apps.AgentHandoffConfig",
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
     "sentry.seer",
     "sentry.scm",
+    "sentry.cadence",
 )
 
 # Silence internal hints from Django's system checks
@@ -805,6 +809,12 @@ VIEWER_CONTEXT_JWT_TTL: int = 900
 # First element is used to sign requests; request is accepted if signed with any element in the list.
 SCM_RPC_SHARED_SECRET: list[str] | None = None
 
+# Ed25519 public keys, as SubjectPublicKeyInfo PEM strings, that verify the grants Seer signs for
+# the SCM git endpoint. Only Seer holds a private key, so these aren't secret. A grant is accepted
+# if any listed key verifies it. To rotate, add the new public key here, switch Seer to the new
+# private key, wait 15 minutes for its old grants to expire, then remove the old public key.
+SCM_GIT_GRANT_PUBLIC_KEYS: list[str] = []
+
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
@@ -825,6 +835,7 @@ SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment.
 TIMEDELTA_ALLOW_LIST = {
+    "cadence-tick",
     "deliver-from-outbox-control",
     "deliver-webhooks-control",
     "flush-buffers",
@@ -878,8 +889,8 @@ TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
-    "sentry.ai_monitoring.issues.llm_cache_detection.tasks",
     "sentry.ai_monitoring.tasks",
+    "sentry.cadence.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.objectstore_migration.tasks",
@@ -896,6 +907,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
+    "sentry.inbox.event_retention",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.bitbucket_server.tasks",
@@ -1027,7 +1039,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.agentic_triage.cron",
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
-    "sentry.telemetry_classifiers.tasks",
+    "sentry.telemetry_classifiers.poc_tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1042,6 +1054,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "send-ping": {
         "task": "selfhosted:sentry.tasks.send_ping",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "cadence-tick": {
+        "task": "issues:sentry.cadence.tasks.cadence_tick",
+        "schedule": timedelta(seconds=10),
     },
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
@@ -1101,6 +1117,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "auto-remove-inbox": {
         "task": "issues:sentry.tasks.auto_remove_inbox",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
+    "cleanup-universal-inbox-events": {
+        "task": "notifications:sentry.inbox.event_retention.schedule_inbox_event_cleanup",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "schedule-deletions": {
@@ -1248,13 +1268,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "fetch-ai-model-metadata": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
-    },
-    "llm-cache-issue-detection": {
-        "task": (
-            "issues:sentry.ai_monitoring.issues.llm_cache_detection.tasks."
-            "run_llm_cache_issue_detection"
-        ),
-        "schedule": timedelta(minutes=1),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod.size:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -1450,7 +1463,10 @@ REST_FRAMEWORK = {
 }
 
 
-def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
+_OperationParameter = TypedDict("_OperationParameter", {"in": str, "required": NotRequired[bool]})
+
+
+def custom_parameter_sort(parameter: _OperationParameter) -> tuple[str, int]:
     """
     Sort parameters by type then if the parameter is required or not.
     It should group path parameters first, then query parameters.
@@ -2652,7 +2668,9 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
         "http_headers": {
             "request": {
                 "mode": "denylist",
-                "terms": ["forwarded", "-ip", "remote-", "via", "-user"],
+                # "grant" keeps the SCM git endpoint's X-Scm-Git-Grant out of spans and events.
+                # It's a credential, but none of the SDK's own terms match it.
+                "terms": ["forwarded", "-ip", "remote-", "via", "-user", "grant"],
             }
         },
         "cookies": {"mode": "off"},
@@ -3394,7 +3412,7 @@ SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 SENTRY_GITHUB_APP_USER_ID = 39604003
 
-SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
+SEER_AUTOFIX_FORCE_USE_REPOS: list[dict[str, object]] = []
 
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
@@ -3696,6 +3714,13 @@ if ngrok_host:
 
 if SILO_DEVSERVER or IS_DEV:
     LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
+    # Dev only: verifies the grants a local Seer signs. Its private half is committed to Seer's
+    # .envrc, in a public repository, so anyone can sign grants this key accepts.
+    SCM_GIT_GRANT_PUBLIC_KEYS = [
+        "-----BEGIN PUBLIC KEY-----\n"
+        "MCowBQYDK2VwAyEAq8SFj6uFiEB74zliRdruAG69shgf1FNJbj/UCnK0jFM=\n"
+        "-----END PUBLIC KEY-----\n"
+    ]
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.

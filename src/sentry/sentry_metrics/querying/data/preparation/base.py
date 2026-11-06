@@ -51,7 +51,7 @@ class PreparationStep(ABC):
 
 
 def run_preparation_steps(
-    intermediate_queries: list[IntermediateQuery], *steps
+    intermediate_queries: list[IntermediateQuery], *steps: PreparationStep
 ) -> list[IntermediateQuery]:
     """
     Takes a series of intermediate queries and steps and runs those intermediate queries on the supplied steps in an

@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import logging
-import os
-import time
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from functools import partial
 from operator import attrgetter
-from random import randrange
 from typing import Any
 
 import lxml.html
 import toronado
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.core.mail.message import make_msgid
 from django.utils.encoding import force_str
 
 from sentry import options
@@ -48,32 +46,13 @@ make_listid_from_instance = ListResolver(
 MAX_RECIPIENTS = 5
 
 
-# Slightly modified version of Django's `django.core.mail.message:make_msgid`
-# because we need to override the domain. If we ever upgrade to django 1.8, we
-# can/should replace this.
-def make_msgid(domain: str) -> str:
-    """Returns a string suitable for RFC 2822 compliant Message-ID, e.g:
-    <20020201195627.33539.96671@nightshade.la.mastaler.com>
-    Optional idstring if given is a string used to strengthen the
-    uniqueness of the message id.  Optional domain if given provides the
-    portion of the message id after the '@'.  It defaults to the locally
-    defined hostname.
-    """
-    timeval = time.time()
-    utcdate = time.strftime("%Y%m%d%H%M%S", time.gmtime(timeval))
-    pid = os.getpid()
-    randint = randrange(100000)
-    msgid = f"<{utcdate}.{pid}.{randint}@{domain}>"
-    return msgid
-
-
 def inline_css(value: str) -> str:
     tree = lxml.html.document_fromstring(value)
     toronado.inline(tree)
     # CSS media query support is inconsistent when the DOCTYPE declaration is
     # missing, so we force it to HTML5 here.
-    html = lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding=None).decode("utf-8")
-    return html
+    html = lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding=None)
+    return html.decode("utf-8")
 
 
 def message_to_dict(message: EmailMultiAlternatives) -> dict[str, Any]:
@@ -183,7 +162,7 @@ class MessageBuilder:
             headers.setdefault("Reply-To", reply_to)
 
         # Every message sent needs a unique message id
-        message_id = make_msgid(get_from_email_domain())
+        message_id = make_msgid(domain=get_from_email_domain())
         headers.setdefault("Message-Id", message_id)
 
         subject = force_str(self.subject)

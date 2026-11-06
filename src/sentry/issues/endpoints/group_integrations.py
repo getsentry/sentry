@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import Serializer, serialize
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
@@ -33,6 +33,7 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.cursors import CursorResult
 
 
 class LinkedExternalIssueResponse(TypedDict):
@@ -107,6 +108,8 @@ class IntegrationIssueSerializer(Serializer[IntegrationIssueSerializerResponse])
 @extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class GroupIntegrationsEndpoint(GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
@@ -137,7 +140,9 @@ class GroupIntegrationsEndpoint(GroupEndpoint):
         suggested_api="sentry-api-0-organization-group-group-integrations",
         url_names=["sentry-api-0-group-integrations"],
     )
-    def get(self, request: Request, group) -> Response[list[IntegrationIssueSerializerResponse]]:
+    def get(
+        self, request: Request, group: Group
+    ) -> Response[list[IntegrationIssueSerializerResponse]]:
         """
         List the organization's issue-tracker integrations and the external issues
         linked to this Sentry issue through each integration. The external issue's
@@ -175,5 +180,9 @@ class GroupIntegrationsEndpoint(GroupEndpoint):
             )
         )
 
-        self.add_cursor_headers(request, response, result)
+        self.add_cursor_headers(
+            request,
+            response,
+            cast("CursorResult[Any]", result),
+        )
         return response

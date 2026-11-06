@@ -5,7 +5,7 @@ import time
 import zlib
 from collections.abc import Generator, Iterable
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, cast
 
 import rb
 from rb.clients import LocalClient
@@ -150,7 +150,8 @@ class RedisBackend(Backend):
 
     def _get_timeline_namespace(self, key: str) -> str:
         if not self.is_redis_cluster:
-            return self.namespace
+            namespace = self.namespace
+            return namespace
 
         # Use a stable hash. The built-in ``hash`` is different in each process.
         partition = zlib.crc32(key.encode("utf-8")) % self.schedule_partitions
@@ -233,10 +234,13 @@ class RedisBackend(Backend):
         deadline: float,
         timestamp: float,
     ) -> Iterable[tuple[bytes, float]]:
-        return script(
-            [f"{namespace}:s:w"],
-            ["SCHEDULE", namespace, self.ttl, timestamp, deadline],
-            client,
+        return cast(
+            "Iterable[tuple[bytes, float]]",
+            script(
+                [f"{namespace}:s:w"],
+                ["SCHEDULE", namespace, self.ttl, timestamp, deadline],
+                client,
+            ),
         )
 
     def schedule(self, deadline: float, timestamp: float | None = None) -> Iterable[ScheduleEntry]:

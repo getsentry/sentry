@@ -1,17 +1,18 @@
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {useParams} from 'sentry/utils/useParams';
-import {EventList} from 'sentry/views/issueDetails/eventList';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {EventList} from './eventList';
+import {useGroupId} from './groupIdContext';
+import {useGroup} from './useGroup';
 
 function IssueEventsList() {
-  const params = useParams<{groupId: string}>();
+  const groupId = useGroupId();
   const {
     data: group,
     isPending: isGroupPending,
     isError: isGroupError,
     refetch: refetchGroup,
-  } = useGroup({groupId: params.groupId});
+  } = useGroup({groupId});
 
   if (isGroupPending) {
     return <LoadingIndicator />;

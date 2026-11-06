@@ -2,11 +2,8 @@ import {useCallback, useEffect, useMemo, useTransition} from 'react';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {
-  extractReferenceLabels,
-  resolveExpression,
-  unresolveExpression,
-} from 'sentry/views/explore/metrics/equationBuilder/utils';
+
+import {extractReferenceLabels, resolveExpression, unresolveExpression} from './utils';
 
 /**
  * A component that takes an equation in full resolved form and allows

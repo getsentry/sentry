@@ -4,8 +4,8 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -49,10 +49,10 @@ export function PasswordForm() {
         .mutateAsync(value)
         .then(() => {
           formApi.reset();
-          addSuccessMessage(t('Password has been changed'));
+          toast.success(t('Password has been changed'));
         })
         .catch(() => {
-          addErrorMessage(t('Error changing password'));
+          toast.error(t('Error changing password'));
         });
     },
   });

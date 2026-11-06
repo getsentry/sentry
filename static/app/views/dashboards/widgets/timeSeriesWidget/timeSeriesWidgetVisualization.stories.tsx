@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {ConfigStore} from 'sentry/stores/configStore';

@@ -1,5 +1,6 @@
 from unittest import mock
 
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.transaction_threshold import (
@@ -8,8 +9,10 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 pytestmark = [requires_snuba]
 
@@ -123,6 +126,36 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
             project=self.project,
             organization=self.org,
         ).exists()
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_creates_override_without_editor(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, scope_list=["project:write"], project_ids=[self.project.id]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                data={
+                    "transaction": self.data["transaction"],
+                    "project": [self.project.id],
+                    "metric": "duration",
+                    "threshold": "600",
+                },
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        assert response.status_code == 201, response.content
+        override = ProjectTransactionThresholdOverride.objects.get(project=self.project)
+        assert override.edited_by_id is None
 
     def test_creating_too_many_project_thresholds_raises_error(self) -> None:
         ProjectTransactionThresholdOverride.objects.create(

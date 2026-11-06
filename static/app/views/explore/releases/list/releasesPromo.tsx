@@ -8,7 +8,7 @@ import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {
   CompactSelect,
   MenuComponents,
@@ -17,8 +17,8 @@ import {
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import {sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -175,7 +175,7 @@ export function ReleasesPromo({organization, project}: Props) {
         return;
       }
       const app = apps.find(a => a.slug === sentryAppSlug);
-      addErrorMessage(
+      toast.error(
         tct('Unable to generate token for [name].', {name: app?.name ?? sentryAppSlug})
       );
       setSelectedApp(null);

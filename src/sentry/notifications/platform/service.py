@@ -72,7 +72,7 @@ class NotificationKillswitchedError(NotificationServiceError):
 
 
 class NotificationService[T: NotificationData]:
-    def __init__(self, *, data: T):
+    def __init__(self, *, data: T) -> None:
         self.data: Final[T] = data
 
     @staticmethod
@@ -146,6 +146,17 @@ class NotificationService[T: NotificationData]:
                 )
 
             # Step 4: Send the notification
+            tracking_context = NotificationTrackingContext(
+                source=self.data.source,
+                provider=target.provider_key,
+                category=template.category,
+                notification_uuid=self.data.notification_uuid,
+                organization_id=self.data.organization_id,
+            )
+            tracked = {
+                *links,
+                *provider.track_actions(renderable=renderable, context=tracking_context),
+            }
             result = provider.send(
                 target=target, renderable=renderable, thread_context=thread_context
             )
@@ -157,16 +168,7 @@ class NotificationService[T: NotificationData]:
                     case SendFailureStatus.FAILURE:
                         lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
             else:
-                record_sent(
-                    NotificationTrackingContext(
-                        source=self.data.source,
-                        provider=target.provider_key,
-                        category=template.category,
-                        notification_uuid=self.data.notification_uuid,
-                        organization_id=self.data.organization_id,
-                    ),
-                    links=links,
-                )
+                record_sent(tracking_context, links=tracked)
 
             # Step 5: Store threading result
             if threading_options is not None:
@@ -422,6 +424,17 @@ def notify_target_async(
             )
 
         # Step 5: Send the notification
+        tracking_context = NotificationTrackingContext(
+            source=notification_data.source,
+            provider=target.provider_key,
+            category=template.category,
+            notification_uuid=notification_data.notification_uuid,
+            organization_id=notification_data.organization_id,
+        )
+        tracked = {
+            *links,
+            *provider.track_actions(renderable=renderable, context=tracking_context),
+        }
         result = provider.send(target=target, renderable=renderable, thread_context=thread_context)
 
         if isinstance(result, SendFailure):
@@ -431,16 +444,7 @@ def notify_target_async(
                 case SendFailureStatus.FAILURE:
                     lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
         else:
-            record_sent(
-                NotificationTrackingContext(
-                    source=notification_data.source,
-                    provider=target.provider_key,
-                    category=template.category,
-                    notification_uuid=notification_data.notification_uuid,
-                    organization_id=notification_data.organization_id,
-                ),
-                links=links,
-            )
+            record_sent(tracking_context, links=tracked)
 
         # Step 6: Store threading result
         if options is not None:

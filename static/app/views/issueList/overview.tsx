@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {IconRefresh} from '@sentry/icons/refresh';
 import * as Sentry from '@sentry/react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -12,8 +13,8 @@ import * as qs from 'query-string';
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 
-import {addMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DATE_TIME_KEYS} from 'sentry/components/pageFilters/constants';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -52,12 +53,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import {IssueListTable} from 'sentry/views/issueList/issueListTable';
-import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
-import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -66,8 +61,14 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import {parseIssuePrioritySearch} from './utils/parseIssuePrioritySearch';
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
+import {IssueListTable} from './issueListTable';
+import {IssuesDataConsentBanner} from './issuesDataConsentBanner';
+import {IssueSelectionProvider} from './issueSelectionContext';
+import {IssueViewsHeader} from './issueViewsHeader';
+import type {IssueUpdateData} from './types';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
@@ -215,17 +216,12 @@ function IssueListOverviewInner({
   const query = defined(location.query.query)
     ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
-  const hasRecommendedSortDefault = organization.features.includes(
-    'issue-stream-recommended-sort-default'
-  );
   const hasIssueInbox = organization.features.includes('issue-inbox');
   // The stored sort is the user's preferred sort for the unsaved feed.
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
     ? (groupSearchView?.querySort ?? DEFAULT_ISSUE_STREAM_SORT)
-    : hasRecommendedSortDefault
-      ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
-      : DEFAULT_ISSUE_STREAM_SORT;
+    : (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED);
   const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
@@ -705,7 +701,7 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (hasRecommendedSortDefault && !urlParams.viewId) {
+    if (!urlParams.viewId) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
@@ -802,15 +798,19 @@ function IssueListOverviewInner({
     undo?: () => void;
   }) => {
     if (itemIds.length > 1) {
-      addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
+      toast.success(`${actionType} ${itemIds.length} ${t('Issues')}`, {
         duration: 4000,
-        undo,
+        ...(undo && {
+          action: {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo},
+        }),
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(`${actionType} ${shortId}`, 'success', {
+      toast.success(`${actionType} ${shortId}`, {
         duration: 4000,
-        undo,
+        ...(undo && {
+          action: {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo},
+        }),
       });
     }
 

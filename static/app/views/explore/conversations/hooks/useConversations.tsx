@@ -7,9 +7,10 @@ import {t} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldValueType} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useErrorsOnlyFilter} from 'sentry/views/explore/conversations/hooks/useErrorsOnlyFilter';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+
+import {useErrorsOnlyFilter} from './useErrorsOnlyFilter';
 
 export interface ConversationUser {
   email: string | null;

@@ -59,7 +59,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         value: int,
         detector_trigger: DataCondition,
         extra_trigger: DataCondition | None = None,
-    ):
+    ) -> dict[str, object]:
         self.query_subscription.refresh_from_db()
 
         conditions = [
@@ -116,7 +116,10 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         return evidence_data
 
     def verify_issue_occurrence(
-        self, occurrence: IssueOccurrence, evidence_data: dict, detector_trigger: DataCondition
+        self,
+        occurrence: IssueOccurrence,
+        evidence_data: dict[str, object],
+        detector_trigger: DataCondition,
     ) -> None:
         assert occurrence is not None
         assert occurrence.issue_title == self.detector.name
@@ -221,7 +224,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
 
     def test_title_comparison_delta(self) -> None:
-        self.detector.config.update({"comparison_delta": 60 * 60})
+        self.detector.config.update({"detection_type": "percent", "comparison_delta": 60 * 60})
 
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,

@@ -31,7 +31,8 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {OnboardingWithoutContext} from 'sentry/views/onboarding/onboarding';
+
+import {OnboardingWithoutContext} from './onboarding';
 
 jest.mock('sentry/utils/analytics');
 
