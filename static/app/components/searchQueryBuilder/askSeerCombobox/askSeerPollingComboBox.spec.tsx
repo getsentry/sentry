@@ -17,7 +17,9 @@ import {
   useAsyncSDKIntegrationStore,
 } from 'sentry/views/app/asyncSDKIntegrationProvider';
 
+import {AiQueryProvider} from './aiQueryContext';
 import {AskSeerPollingComboBox} from './askSeerPollingComboBox';
+import type {AskSeerStrategy} from './types';
 
 const defaultProviderProps = {
   enableAISearch: true,
@@ -28,7 +30,12 @@ const defaultProviderProps = {
 };
 
 const feedbackIntegration = {
-  createForm: jest.fn(),
+  createForm: jest.fn(() => ({
+    appendToDom: jest.fn(),
+    open: jest.fn(),
+    close: jest.fn(),
+    removeFromDom: jest.fn(),
+  })),
 } as unknown as FeedbackIntegration;
 
 function FeedbackProvider({children}: {children: React.ReactNode}) {
@@ -57,19 +64,24 @@ function renderPollingComboBox(
   >['fallbackMutationOptions']
 ) {
   const {organization} = initializeOrg({
-    organization: {hideAiFeatures: false},
+    organization: {
+      hideAiFeatures: false,
+      features: ['explore-interpolation-and-smoothing', 'seer-assisted-query-codemode'],
+    },
   });
 
   render(
-    <SearchQueryBuilderProvider {...defaultProviderProps}>
-      <AskSeerPollingComboBox
-        initialQuery=""
-        projectIds={[]}
-        strategy="Traces"
-        applySeerSearchQuery={() => {}}
-        fallbackMutationOptions={fallbackMutationOptions}
-      />
-    </SearchQueryBuilderProvider>,
+    <AiQueryProvider strategy="Traces">
+      <SearchQueryBuilderProvider {...defaultProviderProps}>
+        <AskSeerPollingComboBox
+          initialQuery=""
+          projectIds={[]}
+          strategy="Traces"
+          applySeerSearchQuery={() => {}}
+          fallbackMutationOptions={fallbackMutationOptions}
+        />
+      </SearchQueryBuilderProvider>
+    </AiQueryProvider>,
     withFeedback ? {organization, additionalWrapper: FeedbackProvider} : {organization}
   );
 
@@ -109,6 +121,87 @@ describe('AskSeerPollingComboBox results', () => {
     destroyAnnouncer();
     MockApiClient.clearMockResponses();
   });
+
+  it.each<{
+    chartType: number;
+    reason: string;
+    strategy: AskSeerStrategy;
+    yAxes: string[];
+  }>([
+    {
+      strategy: 'Issues',
+      chartType: 1,
+      yAxes: ['count()'],
+      reason: 'Chart transformations are not available for this search.',
+    },
+    {
+      strategy: 'Traces',
+      chartType: 3,
+      yAxes: ['count()'],
+      reason: 'Chart transformations are not supported on heatmaps.',
+    },
+    {
+      strategy: 'Metrics',
+      chartType: 1,
+      yAxes: ['count()', 'equation|1 + 2'],
+      reason:
+        'This suggestion combines equations and other metric charts. Ask Seer for separate suggestions.',
+    },
+  ])(
+    'rejects unsupported $strategy transformations with chart=$chartType',
+    async ({strategy, chartType, yAxes, reason}) => {
+      const apply = jest.fn();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/search-agent/start/',
+        method: 'POST',
+        body: {run_id: 1},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/search-agent/state/1/',
+        body: {
+          session: {
+            status: 'completed',
+            final_response: {
+              query: '',
+              visualizations: [
+                {
+                  chartType,
+                  yAxes,
+                  transformations: ['fill(locf)', 'smooth(sma,5)'],
+                },
+              ],
+            },
+          },
+        },
+      });
+      const {organization} = initializeOrg({
+        organization: {
+          features: [
+            'explore-interpolation-and-smoothing',
+            'seer-assisted-query-codemode',
+          ],
+        },
+      });
+      render(
+        <AiQueryProvider strategy={strategy}>
+          <SearchQueryBuilderProvider {...defaultProviderProps}>
+            <AskSeerPollingComboBox
+              initialQuery=""
+              projectIds={[]}
+              strategy={strategy}
+              applySeerSearchQuery={apply}
+            />
+          </SearchQueryBuilderProvider>
+        </AiQueryProvider>,
+        {organization}
+      );
+      await submitQuery();
+      expect(await screen.findByText(reason)).toBeInTheDocument();
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
+      await userEvent.keyboard('{ArrowDown}{Enter}');
+      expect(apply).not.toHaveBeenCalled();
+    }
+  );
 
   it('regenerates results when feedback is unavailable', async () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
@@ -188,7 +281,7 @@ describe('AskSeerPollingComboBox results', () => {
     );
   });
 
-  it('shows result feedback in the footer', async () => {
+  it('shows result feedback in the footer and submits per-axis transformations', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/search-agent/start/',
       method: 'POST',
@@ -201,7 +294,13 @@ describe('AskSeerPollingComboBox results', () => {
           status: 'completed',
           current_step: null,
           completed_steps: [],
-          final_response: {query: 'span.duration:>30s'},
+          final_response: {
+            query: 'span.duration:>30s',
+            visualizations: [
+              {yAxes: ['count()'], transformations: ['fill(locf)', 'smooth(sma,5)']},
+              {yAxes: ['count()'], transformations: ['smooth(ema)']},
+            ],
+          },
         },
       },
     });
@@ -215,6 +314,20 @@ describe('AskSeerPollingComboBox results', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Generate again'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: /Query parameters:/})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Give Feedback'}));
+    expect(feedbackIntegration.createForm).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        tags: expect.objectContaining({
+          'feedback.raw_result': JSON.stringify({
+            query: 'span.duration:>30s',
+            visualizations: [
+              {yAxes: ['count()'], transformations: ['fill(locf)', 'smooth(sma,5)']},
+              {yAxes: ['count()'], transformations: ['smooth(ema)']},
+            ],
+          }),
+        }),
+      })
+    );
   });
 
   it('does not autofocus the query builder after applying a selected query', async () => {

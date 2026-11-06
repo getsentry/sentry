@@ -16,6 +16,7 @@ import {
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
@@ -34,7 +35,11 @@ import {SpansQueryParamsProvider} from './spansQueryParamsProvider';
 import {SpansTabContent} from './spansTab';
 
 function Wrapper({children}: {children: ReactNode}) {
-  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
+  return (
+    <AiQueryProvider strategy="Traces">
+      <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>
+    </AiQueryProvider>
+  );
 }
 
 jest.mock('sentry/utils/analytics');
@@ -639,6 +644,144 @@ describe('SpansTabContent', () => {
   });
 
   describe('Ask Seer', () => {
+    it.each(['polling', 'synchronous', 'feature disabled', 'conflicting intervals'])(
+      'applies transformed duplicate axes through %s to the indexed request',
+      async transport => {
+        const response = {
+          responses: [
+            {
+              query: 'span.op:db',
+              sort: '',
+              group_by: [],
+              stats_period: '24h',
+              start: null,
+              end: null,
+              mode: 'aggregates',
+              visualization: [
+                {
+                  y_axes: ['avg(span.duration)'],
+                  interval: '1h',
+                  transformations: ['fill(locf)', 'smooth(sma,5)'],
+                },
+                {
+                  y_axes: ['avg(span.duration)'],
+                  interval: transport === 'conflicting intervals' ? '5m' : '1h',
+                  transformations: ['smooth(ema)'],
+                },
+              ],
+            },
+          ],
+          unsupported_reason: null,
+        };
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/search-agent/start/',
+          method: 'POST',
+          ...(transport === 'synchronous' ? {statusCode: 500} : {}),
+          body: {run_id: 1},
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/search-agent/state/1/',
+          body: {session: {status: 'completed', final_response: response}},
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/search-agent/translate/',
+          method: 'POST',
+          body: response,
+        });
+        const request = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-timeseries/',
+          body: {timeSeries: []},
+        });
+        const {router} = render(
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+          {
+            organization: {
+              ...organization,
+              features: [
+                ...organization.features,
+                'seer-assisted-query-codemode',
+                ...(transport === 'feature disabled'
+                  ? []
+                  : ['explore-interpolation-and-smoothing']),
+              ],
+            },
+            additionalWrapper: Wrapper,
+            initialRouterConfig: {
+              location: {pathname: '/organizations/org-slug/explore/traces/'},
+              route: '/organizations/:orgId/explore/traces/',
+            },
+          }
+        );
+        await userEvent.click(
+          screen.getByPlaceholderText('Search for spans, users, tags, and more')
+        );
+        await userEvent.click(await screen.findByText(/Ask AI to build your query/));
+        await userEvent.type(
+          screen.getByRole('combobox', {name: 'Ask Seer with Natural Language'}),
+          'smooth duration{Enter}'
+        );
+        if (transport === 'synchronous') {
+          await screen.findByText("Describe what you're looking for.");
+          await userEvent.type(
+            screen.getByRole('combobox', {name: 'Ask Seer with Natural Language'}),
+            'smooth duration{Enter}'
+          );
+        }
+        if (transport === 'feature disabled' || transport === 'conflicting intervals') {
+          expect(
+            await screen.findByText(
+              transport === 'feature disabled'
+                ? 'Chart transformations are not available for this search.'
+                : 'This suggestion uses different chart intervals. Ask Seer to use one interval for all charts.'
+            )
+          ).toBeInTheDocument();
+          expect(screen.queryByRole('option')).not.toBeInTheDocument();
+          expect(router.location.query.visualize).toBeUndefined();
+          expect(request).toHaveBeenLastCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              query: expect.objectContaining({yAxis: ['count(span.duration)']}),
+            })
+          );
+          return;
+        }
+        const option = await screen.findByRole('option', {
+          name: /avg\(span.duration\) with fill\(locf\), then smooth\(sma,5\).*avg\(span.duration\) with smooth\(ema\)/,
+        });
+        expect(option).toHaveTextContent(
+          'avg(span.duration) with fill(locf), then smooth(sma,5)'
+        );
+        await userEvent.click(option);
+        await waitFor(() =>
+          expect(request).toHaveBeenLastCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              query: expect.objectContaining({
+                interval: '1h',
+                yAxis: [
+                  'avg(span.duration)',
+                  'avg(span.duration)',
+                  'count(span.duration)',
+                ],
+                'transformations[0]': ['fill(locf)', 'smooth(sma,5)'],
+                'transformations[1]': ['smooth(ema)'],
+              }),
+            })
+          )
+        );
+        expect(router.location.query.visualize).toEqual([
+          JSON.stringify({
+            yAxes: ['avg(span.duration)'],
+            transformations: ['fill(locf)', 'smooth(sma,5)'],
+          }),
+          JSON.stringify({
+            yAxes: ['avg(span.duration)'],
+            transformations: ['smooth(ema)'],
+          }),
+        ]);
+      }
+    );
+
     describe('when the AI features are disabled', () => {
       afterEach(() => {
         ConfigStore.set('isSelfHosted', false);

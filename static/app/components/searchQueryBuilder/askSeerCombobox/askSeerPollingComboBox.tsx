@@ -134,6 +134,12 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const loadingContent = (
     <AskSeerLoadingStatus completedSteps={completedSteps} currentStep={currentStep} />
   );
+  const responseUnsupportedReason =
+    finalResponse &&
+    'unsupported_reason' in finalResponse &&
+    typeof finalResponse.unsupported_reason === 'string'
+      ? finalResponse.unsupported_reason
+      : null;
 
   return (
     <BaseAskSeerComboBox
@@ -142,7 +148,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       searchQuery={searchQuery}
       onSearchQueryChange={setSearchQuery}
       queries={queries}
-      unsupportedReason={unsupportedReason}
+      unsupportedReason={unsupportedReason || responseUnsupportedReason}
       submitQuery={submitQuery}
       isPending={isSessionPending || isPolling}
       isError={isSessionError || startFailed}

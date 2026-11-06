@@ -122,12 +122,27 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       const seerVisualizeFunctions = (result.visualizations ?? []).flatMap(viz =>
         viz.yAxes
           .filter(yAxis => !isEquation(yAxis))
-          .map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
+          .map(
+            yAxis =>
+              new VisualizeFunction(yAxis, {
+                chartType: viz.chartType,
+                transformations: viz.transformations,
+              })
+          )
       );
 
       const seerEquationMetricQueries = (result.visualizations ?? []).flatMap(viz =>
         viz.yAxes.filter(isEquation).flatMap(yAxis => {
           const parsed = parseAggregateExpression(yAxis, undefined, viz.chartType);
+          if (parsed.equationRow) {
+            parsed.equationRow.queryParams = parsed.equationRow.queryParams.replace({
+              aggregateFields: parsed.equationRow.queryParams.aggregateFields.map(field =>
+                isVisualize(field)
+                  ? field.replace({transformations: viz.transformations})
+                  : field
+              ),
+            });
+          }
           return [
             ...parsed.metricQueries,
             ...(parsed.equationRow ? [parsed.equationRow] : []),
@@ -302,6 +317,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       askSeerSuggestedQueryRef.current = JSON.stringify({
         selection,
         query: cleanedQuery,
+        metric: newEncodedMetrics,
         groupBys: seerQuery.groupBys,
         mode: seerQuery.mode,
         interval: seerQuery.interval,
