@@ -284,8 +284,6 @@ export function ListBox<T extends ListItemBase>({
       <VirtualSpacer height={spaceBefore} />
       <ListBoxOption
         {...rowProps}
-        // AriaOptionProps requires `key`.
-        key={node.key}
         item={node}
         listState={listState}
         size={size}

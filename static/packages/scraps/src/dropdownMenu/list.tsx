@@ -285,6 +285,16 @@ function DropdownMenuList({
     () => virtualNodes.filter(node => node.type !== 'section'),
     [virtualNodes]
   );
+  // The keys keyboard focus can reach, in order. Disabled items are skipped, so
+  // the first and last keys are the first and last focusable items. Matches the
+  // rule CompactSelect uses for its ArrowUp/Down region handoff.
+  const focusableKeys = useMemo(
+    () =>
+      items
+        .filter(node => node.type === 'item' && !state.disabledKeys.has(node.key))
+        .map(node => String(node.key)),
+    [items, state.disabledKeys]
+  );
   const hasLeadingItems = items.some(
     node => node.value?.leadingItems || node.value?.isSelected !== undefined
   );
@@ -378,7 +388,6 @@ function DropdownMenuList({
       // Read from the collection rather than the DOM, since a virtualized menu
       // only mounts some of its items. The key comes from the event target:
       // React Aria has already moved focusedKey to the next item by now.
-      const focusableKeys = getFocusableKeys(state);
       const targetKey = getMenuItemKey(e.target);
       // When keyboard navigation wraps past the last item, show the top of the
       // list again so the search field and first item are visible.
@@ -471,7 +480,7 @@ function DropdownMenuList({
         // ArrowDown moves from the search field into the filtered menu items.
         if (event.key === 'ArrowDown') {
           event.preventDefault();
-          focusItem(getFocusableKeys(state)[0]);
+          focusItem(focusableKeys[0]);
         }
       }}
     />
@@ -617,19 +626,6 @@ function filterMenuItems(items: MenuItemProps[], search: string): MenuItemProps[
 
     return isMenuItemHidden(query, item.label, item.textValue) ? [] : [item];
   });
-}
-
-/**
- * Returns the keys of the items keyboard focus can reach, in order. Disabled
- * items are skipped, so the first and last keys are the first and last
- * focusable items. Matches the rule CompactSelect uses for its ArrowUp/Down
- * region handoff.
- */
-function getFocusableKeys(state: TreeState<MenuItemProps>): string[] {
-  return [...state.collection]
-    .flatMap(node => (node.type === 'section' ? [...node.childNodes] : [node]))
-    .filter(node => node.type === 'item' && !state.disabledKeys.has(node.key))
-    .map(node => String(node.key));
 }
 
 /** The key of the menu item an event fired on, if it fired on one. */

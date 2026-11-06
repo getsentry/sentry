@@ -112,7 +112,8 @@ interface UseVirtualCollectionOptions<T> {
    */
   focusedKey?: Key | null;
   /**
-   * CSS padding (px) between the top of the scroll element and the first row.
+   * Vertical CSS padding (px) of the list, at each end. The first row starts
+   * below it, and rows scrolled into view keep clear of it.
    */
   listPadding?: number;
   /**
@@ -221,7 +222,10 @@ export function useVirtualCollection<T>({
       nodes[index]?.props?.details ? heights.withDetails : heights.regular,
     estimateKey: size,
     paddingStart: listPadding,
+    // The list's padding is the same at both ends, so a row scrolled into view
+    // at the bottom clears it too.
     scrollPaddingStart: listPadding,
+    scrollPaddingEnd: listPadding,
     overscan: 1,
     rangeExtractor,
     measureElement: measureRowWithMargins,
