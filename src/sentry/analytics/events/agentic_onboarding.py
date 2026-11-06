@@ -9,6 +9,7 @@ class AgenticOnboardingStageCompletedEvent(analytics.Event):
     origin: str | None
     stage: str
     status: str
+    connection_method: str | None = None
 
 
 @analytics.eventclass("agentic_onboarding.stage_status_changed")
@@ -19,6 +20,7 @@ class AgenticOnboardingStageStatusChangedEvent(analytics.Event):
     origin: str | None
     stage: str
     status: str
+    connection_method: str | None = None
 
 
 @analytics.eventclass("agentic_onboarding.run_completed")
@@ -28,6 +30,7 @@ class AgenticOnboardingRunCompletedEvent(analytics.Event):
     run_id: str
     origin: str | None
     status: str
+    connection_method: str | None = None
 
 
 analytics.register(AgenticOnboardingStageCompletedEvent)
