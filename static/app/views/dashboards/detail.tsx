@@ -9,7 +9,7 @@ import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
 import {
@@ -25,7 +25,6 @@ import {
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
-import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -50,6 +49,11 @@ import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {useDashboardChartInterval} from './hooks/useDashboardChartInterval';
+import {
+  enqueueDashboardWrite,
+  isDashboardQueryPriority,
+  SavedDashboardQueryPriorityProvider,
+} from './hooks/useDashboardQueryPriority';
 import {WidgetQueryQueueProvider} from './utils/widgetQueryQueue';
 import {WidgetBuilderV2} from './widgetBuilder/components/newWidgetBuilder';
 import {
@@ -74,7 +78,6 @@ import {
   calculateColumnDepths,
   getDashboardLayout,
 } from './layoutUtils';
-import {DashboardTitle} from './title';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -92,10 +95,6 @@ import {
 } from './utils';
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
-
-const OverrideHeader = OverrideOrDefault({
-  overrideName: 'component:dashboards-header',
-});
 
 const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.ERRORS,
@@ -325,6 +324,7 @@ class DashboardDetail extends Component<Props, State> {
           dashboardPermissions: dashboard.permissions,
           dashboardCreator: dashboard.createdBy,
           isPrebuiltDashboard: defined(dashboard.prebuiltId),
+          queryPriority: (modifiedDashboard ?? dashboard).queryPriority,
           widgetInterval: this.props.widgetInterval,
           onClose: () => {
             this.closeFullScreenView();
@@ -791,6 +791,22 @@ class DashboardDetail extends Component<Props, State> {
     }
   };
 
+  handleQueryPrioritySaved = (updated: DashboardDetails) => {
+    const {dashboard, onDashboardUpdate} = this.props;
+    const {modifiedDashboard} = this.state;
+    const {queryPriority} = updated;
+
+    // Patch only this field. Replacing the in-memory dashboard would drop
+    // widget edits that have not been saved yet.
+    if (modifiedDashboard) {
+      this.setState({modifiedDashboard: {...modifiedDashboard, queryPriority}});
+    }
+
+    if (dashboard.id) {
+      onDashboardUpdate?.({...dashboard, queryPriority});
+    }
+  };
+
   /**
    * A rename is its own transaction — the modal has already persisted it for a
    * saved dashboard. What is left is catching up the copies held in memory.
@@ -896,10 +912,14 @@ class DashboardDetail extends Component<Props, State> {
       case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
+          const queryPriority = isDashboardQueryPriority(location.query.queryPriority)
+            ? location.query.queryPriority
+            : modifiedDashboard.queryPriority;
           const newModifiedDashboard = {
             ...cloneDashboard(modifiedDashboard),
             ...getCurrentPageFilters(location),
             filters: getMergedDashboardFilters(modifiedDashboard.filters, location),
+            ...(queryPriority ? {queryPriority} : {}),
           };
           createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
@@ -1090,63 +1110,6 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  renderDefaultDashboardDetail() {
-    const {pageAlerts, organization, dashboard, location} = this.props;
-    const {modifiedDashboard, widgetLimitReached} = this.state;
-    return (
-      <DashboardPageFilters>
-        <Stack flex={1} padding="2xl 3xl">
-          <NoProjectMessage organization={organization}>
-            <Grid
-              columns={{zero: 'minmax(0, 1fr)', '3xl': 'minmax(0, 1fr) max-content'}}
-              gap="xl"
-              align="center"
-              marginBottom="xl"
-              height={{zero: 'auto', '3xl': '40px'}}
-            >
-              <DashboardTitle
-                dashboard={modifiedDashboard ?? dashboard}
-                onUpdate={this.setModifiedDashboard}
-                isEditingDashboard={this.isEditingDashboard}
-              />
-            </Grid>
-            <OverrideHeader organization={organization} />
-            <Stack gap="xl">
-              {pageAlerts}
-              <AdjustedFiltersAlert hasUnsavedChanges={false} />
-              <FiltersBar
-                dashboard={dashboard}
-                dashboardPermissions={dashboard.permissions}
-                dashboardCreator={dashboard.createdBy}
-                filters={{}} // Default Dashboards don't have filters set
-                location={location}
-                hasUnsavedChanges={false}
-                isEditingDashboard={false}
-                isPreview={false}
-                onDashboardFilterChange={this.handleChangeFilter}
-              />
-            </Stack>
-            <PrebuiltDashboardOnboardingGate prebuiltId={dashboard.prebuiltId}>
-              <NavigationTypeGate prebuiltId={dashboard.prebuiltId}>
-                <Dashboard
-                  dashboard={modifiedDashboard ?? dashboard}
-                  isEditingDashboard={this.isEditingDashboard}
-                  widgetLimitReached={widgetLimitReached}
-                  onUpdate={this.handleUpdateEditStateWidgets}
-                  handleUpdateWidgetList={this.handleUpdateWidgetList}
-                  handleAddCustomWidget={this.handleAddCustomWidget}
-                  isEmbedded={this.isEmbedded}
-                  isPreview={this.isPreview}
-                  widgetLegendState={this.state.widgetLegendState}
-                />
-              </NavigationTypeGate>
-            </PrebuiltDashboardOnboardingGate>
-          </NoProjectMessage>
-        </Stack>
-      </DashboardPageFilters>
-    );
-  }
-
   renderDashboardDetail() {
     const {
       navigate,
@@ -1219,6 +1182,7 @@ class DashboardDetail extends Component<Props, State> {
                       prebuiltDashboardId={dashboard.prebuiltId}
                       storageNamespace={this.props.storageNamespace}
                       widgetLimitReached={widgetLimitReached}
+                      onDashboardQueryPrioritySaved={this.handleQueryPrioritySaved}
                       onCancel={() => {
                         resetPageFilters(dashboard, location, navigate);
                         trackAnalytics('dashboards2.filter.cancel', {
@@ -1412,13 +1376,7 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   render() {
-    const {organization} = this.props;
-
-    if (organization.features.includes('dashboards-edit')) {
-      return this.renderDashboardDetail();
-    }
-
-    return this.renderDefaultDashboardDetail();
+    return this.renderDashboardDetail();
   }
 }
 
@@ -1454,18 +1412,22 @@ export function DashboardDetailWithInjectedProps(
   const widgetInterval = chartInterval;
 
   return (
-    <DashboardDetail
-      {...props}
-      theme={theme}
-      navigate={navigate}
-      api={api}
-      organization={organization}
-      projects={projects}
-      location={location}
-      params={params}
-      widgetInterval={widgetInterval}
-      queryClient={queryClient}
-      updateDashboard={updateDashboard.mutateAsync}
-    />
+    <SavedDashboardQueryPriorityProvider priority={props.dashboard.queryPriority}>
+      <DashboardDetail
+        {...props}
+        theme={theme}
+        navigate={navigate}
+        api={api}
+        organization={organization}
+        projects={projects}
+        location={location}
+        params={params}
+        widgetInterval={widgetInterval}
+        queryClient={queryClient}
+        updateDashboard={variables =>
+          enqueueDashboardWrite(() => updateDashboard.mutateAsync(variables))
+        }
+      />
+    </SavedDashboardQueryPriorityProvider>
   );
 }

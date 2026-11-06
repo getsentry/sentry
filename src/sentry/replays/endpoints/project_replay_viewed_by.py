@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -16,6 +16,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -31,11 +32,11 @@ from sentry.users.services.user.service import user_service
 
 
 class ReplayViewedByResponsePayload(TypedDict):
-    viewed_by: list[dict[str, Any]]
+    viewed_by: Annotated[list[dict[str, Any]], ApiDescription("Users who have viewed the replay")]
 
 
 class ReplayViewedByResponse(TypedDict):
-    data: ReplayViewedByResponsePayload
+    data: Annotated[ReplayViewedByResponsePayload, ApiDescription("Viewers of the replay")]
 
 
 @cell_silo_endpoint
