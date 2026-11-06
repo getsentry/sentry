@@ -1,28 +1,206 @@
+from collections.abc import Callable
 from datetime import datetime, timedelta
+from io import BytesIO
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+from django.db import connection, router, transaction
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
+from sentry.models.files.file import File
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
 )
+from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisDetectorHandler,
     PreprodSizeAnalysisGroupType,
     _artifact_to_tags,
 )
+from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.tasks import (
     _get_platform,
+    compare_preprod_artifact_size_analysis,
     maybe_emit_issues_from_absolute_size_results,
     maybe_emit_issues_from_diff_size_results,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.fixtures import Fixtures
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+
+
+class WorkerKilled(BaseException):
+    pass
+
+
+class _CompareTaskHelpers(Fixtures):
+    def _create_analysis_file(self) -> File:
+        results = SizeAnalysisResults(analysis_duration=1.0, download_size=100, install_size=200)
+        payload = results.json()
+        file = self.create_file(name="analysis.json", type="size_analysis.json")
+        file.putfile(BytesIO(payload.encode()))
+        return file
+
+    def _create_comparable_pair(
+        self,
+    ) -> tuple[
+        PreprodArtifact,
+        list[tuple[PreprodArtifactSizeMetrics, PreprodArtifactSizeMetrics]],
+    ]:
+        head_artifact, head_main, base_artifact, base_main = (
+            self.create_preprod_artifact_pair_for_comparison()
+        )
+        watch_type = PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
+        head_watch = self.create_preprod_artifact_size_metrics(
+            head_artifact, metrics_type=watch_type, identifier="watch"
+        )
+        base_watch = self.create_preprod_artifact_size_metrics(
+            base_artifact, metrics_type=watch_type, identifier="watch"
+        )
+        pairs = [(head_main, base_main), (head_watch, base_watch)]
+        for head_metric, base_metric in pairs:
+            for metric in (head_metric, base_metric):
+                analysis_file = self._create_analysis_file()
+                metric.analysis_file_id = analysis_file.id
+                metric.save()
+        return head_artifact, pairs
+
+    def _run_task(self, head_artifact: PreprodArtifact) -> None:
+        compare_preprod_artifact_size_analysis(
+            project_id=head_artifact.project_id,
+            org_id=head_artifact.project.organization_id,
+            artifact_id=head_artifact.id,
+            triggered_at=timezone.now().isoformat(),
+        )
+
+
+class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
+    def _fail_on_second_call(self, exc: BaseException) -> Callable[..., Any]:
+        calls: list[dict[str, Any]] = []
+
+        def compare(**kwargs: Any) -> Any:
+            calls.append(kwargs)
+            if len(calls) > 1:
+                raise exc
+            return compare_size_analysis(**kwargs)
+
+        return compare
+
+    @patch("sentry.preprod.size_analysis.tasks.create_preprod_size_pr_comment_task.apply_async")
+    @patch("sentry.preprod.size_analysis.tasks.create_preprod_status_check_task.apply_async")
+    def test_runs_every_comparison_then_dispatches_follow_ups(self, status_check, pr_comment):
+        head_artifact, pairs = self._create_comparable_pair()
+        main_head, main_base = pairs[0]
+        leftover = self.create_preprod_artifact_size_comparison(
+            head_size_analysis=main_head,
+            base_size_analysis=main_base,
+            state=PreprodArtifactSizeComparison.State.PENDING,
+        )
+
+        self._run_task(head_artifact)
+
+        rows = list(PreprodArtifactSizeComparison.objects.order_by("id"))
+        assert [row.state for row in rows] == [PreprodArtifactSizeComparison.State.SUCCESS] * 2
+        assert rows[0].id == leftover.id
+        assert all(row.file_id is not None for row in rows)
+        expected = {"preprod_artifact_id": head_artifact.id, "caller": "compare_completion"}
+        status_check.assert_called_once_with(kwargs=expected)
+        pr_comment.assert_called_once_with(kwargs=expected)
+
+    @patch("sentry.preprod.size_analysis.tasks.create_preprod_status_check_task.apply_async")
+    def test_failed_comparison_keeps_the_finished_ones(self, status_check):
+        head_artifact, _ = self._create_comparable_pair()
+        with patch(
+            "sentry.preprod.size_analysis.tasks.compare_size_analysis",
+            side_effect=self._fail_on_second_call(RuntimeError("diff blew up")),
+        ):
+            with pytest.raises(RuntimeError):
+                self._run_task(head_artifact)
+
+        states = list(
+            PreprodArtifactSizeComparison.objects.order_by("id").values_list("state", flat=True)
+        )
+        assert states == [
+            PreprodArtifactSizeComparison.State.SUCCESS,
+            PreprodArtifactSizeComparison.State.FAILED,
+        ]
+        status_check.assert_not_called()
+
+    def test_deadline_kill_keeps_the_finished_ones(self):
+        head_artifact, _ = self._create_comparable_pair()
+        with patch(
+            "sentry.preprod.size_analysis.tasks.compare_size_analysis",
+            side_effect=self._fail_on_second_call(WorkerKilled()),
+        ):
+            with pytest.raises(WorkerKilled):
+                self._run_task(head_artifact)
+
+        states = list(
+            PreprodArtifactSizeComparison.objects.order_by("id").values_list("state", flat=True)
+        )
+        assert states == [
+            PreprodArtifactSizeComparison.State.SUCCESS,
+            PreprodArtifactSizeComparison.State.PROCESSING,
+        ]
+
+    def test_failed_upload_marks_the_comparison_failed(self):
+        head_artifact, pairs = self._create_comparable_pair()
+        with patch.object(File, "putfile", side_effect=OSError("bucket unreachable")):
+            with pytest.raises(OSError):
+                self._run_task(head_artifact)
+
+        first = PreprodArtifactSizeComparison.objects.get(head_size_analysis=pairs[0][0])
+        second = PreprodArtifactSizeComparison.objects.get(head_size_analysis=pairs[1][0])
+        assert first.state == PreprodArtifactSizeComparison.State.FAILED
+        assert first.file_id is None
+        assert second.state == PreprodArtifactSizeComparison.State.PENDING
+
+
+class ComparePreprodArtifactSizeAnalysisTransactionTest(_CompareTaskHelpers, TransactionTestCase):
+    def test_file_io_runs_outside_any_transaction(self):
+        head_artifact, pairs = self._create_comparable_pair()
+        in_atomic_block: list[bool] = []
+        using = router.db_for_write(PreprodArtifactSizeComparison)
+
+        def record() -> None:
+            in_atomic_block.append(transaction.get_connection(using).in_atomic_block)
+
+        real_getfile = File.getfile
+        real_putfile = File.putfile
+
+        def spy_getfile(self_, *args, **kwargs):
+            record()
+            return real_getfile(self_, *args, **kwargs)
+
+        def spy_putfile(self_, *args, **kwargs):
+            record()
+            return real_putfile(self_, *args, **kwargs)
+
+        def spy_compare(*args, **kwargs):
+            record()
+            return compare_size_analysis(*args, **kwargs)
+
+        with (
+            patch.object(File, "getfile", spy_getfile),
+            patch.object(File, "putfile", spy_putfile),
+            patch("sentry.preprod.size_analysis.tasks.compare_size_analysis", spy_compare),
+            CaptureQueriesContext(connection) as ctx,
+        ):
+            self._run_task(head_artifact)
+
+        assert len(in_atomic_block) >= 8
+        assert set(in_atomic_block) == {False}
+        statements = [query["sql"] for query in ctx.captured_queries]
+        savepoints = [s for s in statements if s.startswith("SAVEPOINT")]
+        assert savepoints == []
+        states = list(PreprodArtifactSizeComparison.objects.values_list("state", flat=True))
+        assert states == [PreprodArtifactSizeComparison.State.SUCCESS] * 2
 
 
 class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):

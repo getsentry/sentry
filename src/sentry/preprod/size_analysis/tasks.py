@@ -230,42 +230,41 @@ def compare_preprod_artifact_size_analysis(
                             },
                         )
 
-            # Create PENDING comparison records in DB and run comparisons
-            with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
-                for comp in comparisons:
-                    head_metric = comp["head_metric"]
-                    base_metric = comp["base_metric"]
-                    comparison, created = PreprodArtifactSizeComparison.objects.get_or_create(
-                        head_size_analysis=head_metric,
-                        base_size_analysis=base_metric,
-                        organization_id=org_id,
-                        defaults={"state": PreprodArtifactSizeComparison.State.PENDING},
-                    )
+            for comp in comparisons:
+                comparison, created = PreprodArtifactSizeComparison.objects.get_or_create(
+                    head_size_analysis=comp["head_metric"],
+                    base_size_analysis=comp["base_metric"],
+                    organization_id=org_id,
+                    defaults={"state": PreprodArtifactSizeComparison.State.PENDING},
+                )
 
-                    logger.info(
-                        "preprod.size_analysis.compare.running_comparison",
-                        extra={
-                            "head_metric_id": head_metric.id,
-                            "base_metric_id": base_metric.id,
-                            "comparison_created": created,
-                        },
-                    )
-                    _run_size_analysis_comparison(org_id, head_metric, base_metric)
+                logger.info(
+                    "preprod.size_analysis.compare.running_comparison",
+                    extra={
+                        "head_metric_id": comp["head_metric"].id,
+                        "base_metric_id": comp["base_metric"].id,
+                        "comparison_created": created,
+                    },
+                )
 
-                for artifact_id in preprod_artifact_status_check_updates:
-                    # Update all artifact's status check with the new comparison
-                    create_preprod_status_check_task.apply_async(
-                        kwargs={
-                            "preprod_artifact_id": artifact_id,
-                            "caller": "compare_completion",
-                        }
-                    )
-                    create_preprod_size_pr_comment_task.apply_async(
-                        kwargs={
-                            "preprod_artifact_id": artifact_id,
-                            "caller": "compare_completion",
-                        }
-                    )
+            # Every PENDING row exists before any file I/O, so a killed run leaves retryable rows
+            for comp in comparisons:
+                _run_size_analysis_comparison(org_id, comp["head_metric"], comp["base_metric"])
+
+            for artifact_id in preprod_artifact_status_check_updates:
+                # Update all artifact's status check with the new comparison
+                create_preprod_status_check_task.apply_async(
+                    kwargs={
+                        "preprod_artifact_id": artifact_id,
+                        "caller": "compare_completion",
+                    }
+                )
+                create_preprod_size_pr_comment_task.apply_async(
+                    kwargs={
+                        "preprod_artifact_id": artifact_id,
+                        "caller": "compare_completion",
+                    }
+                )
 
             try:
                 artifact_type_name = PreprodArtifact.ArtifactType(
@@ -536,26 +535,33 @@ def _run_size_analysis_comparison(
             comparison.save()
             return
 
-    comparison_results = compare_size_analysis(
-        head_size_analysis=head_size_metric,
-        head_size_analysis_results=head_size_analysis_results,
-        base_size_analysis=base_size_metric,
-        base_size_analysis_results=base_size_analysis_results,
-    )
+    try:
+        comparison_results = compare_size_analysis(
+            head_size_analysis=head_size_metric,
+            head_size_analysis_results=head_size_analysis_results,
+            base_size_analysis=base_size_metric,
+            base_size_analysis_results=base_size_analysis_results,
+        )
 
-    logger.info(
-        "preprod.size_analysis.compare.create_file",
-        extra={"comparison_id": comparison.id},
-    )
+        logger.info(
+            "preprod.size_analysis.compare.create_file",
+            extra={"comparison_id": comparison.id},
+        )
 
-    with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
         file = File.objects.create(
             name=str(comparison.id),
             type="size_analysis_comparison.json",
             headers={"Content-Type": "application/json"},
         )
         file.putfile(BytesIO(dumps_htmlsafe(comparison_results.dict()).encode()))
+    except Exception:
+        # Not BaseException: a deadline kill can interrupt a statement, so nothing is written then
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+            comparison.state = PreprodArtifactSizeComparison.State.FAILED
+            comparison.save()
+        raise
 
+    with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
         comparison.file_id = file.id
         comparison.state = PreprodArtifactSizeComparison.State.SUCCESS
         comparison.save()
