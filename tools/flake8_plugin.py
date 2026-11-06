@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Literal, NamedTuple
 
+from tools.api_guidelines.helper_kinds import Kind
 from tools.api_guidelines.rules import ApiRule
 
 S001_fmt = (
@@ -857,6 +858,19 @@ def _start_and_end(node: ast.expr) -> _StartEnd:
     )
 
 
+@dataclass(frozen=True)
+class _HelperCall:
+    """One call a function makes to a possible helper"""
+
+    kind: Kind
+    name: str
+    # (positional index or keyword name, what request input it carries: "request" / "query string" / "request body")
+    passes: list[tuple[int | str, str]]
+    # True when the call has *args or **kwargs, so what it forwards is unknown
+    starred: bool
+    at: _StartEnd
+
+
 # Short source names used in violation keys, so a query and a body read of the
 # same name stay separate violations.
 _SOURCE_PREFIX = {"query string": "query", "request body": "body"}
@@ -913,6 +927,8 @@ class _InputCtx:
         self.is_public = is_public
         # the class a method is defined in (None for a module-level function)
         self.class_name = class_name
+        # the calls this function makes to possible helpers
+        self.calls: list[_HelperCall] = []
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -1617,6 +1633,84 @@ class SentryVisitor(ast.NodeVisitor):
                 msg = S028_msg.format(source, callee)
                 self._report_input(ctx, start_end, msg, "shaped", callee, source, ApiRule.S028)
 
+    def _request_payload_input(self, ctx: _InputCtx, argument: ast.expr) -> str | None:
+        """Returns what request input the argument carries: "request", "query string", "request body", or None"""
+        if _is_request(argument):
+            return "request"
+        return ctx.source_of(argument)
+
+    def _get_kind_of_helper(self, node: ast.Call) -> tuple[Kind | None, str | None]:
+        """Returns the "kind" of helper function and its name, or (None, None) if the call isn't a helper shape"""
+
+        func = node.func
+        kind = None
+        name = None
+
+        # a helper method, i.e. self.helper()
+        if (
+            isinstance(func, ast.Attribute)
+            and isinstance(func.value, ast.Name)
+            and func.value.id == "self"
+        ):
+            kind = Kind.CLASS_METHOD
+            name = func.attr
+
+        # a parent class method, i.e. super().helper()
+        elif (
+            isinstance(func, ast.Attribute)
+            and isinstance(func.value, ast.Call)
+            and isinstance(func.value.func, ast.Name)
+            and func.value.func.id == "super"
+        ):
+            kind = Kind.PARENT_CLASS_METHOD
+            name = func.attr
+
+        # a plain function, i.e. helper()
+        elif isinstance(func, ast.Name):
+            kind = Kind.NORMAL_FUNCTION
+            name = func.id
+
+        return (kind, name)
+
+    def _record_helper(self, node: ast.Call) -> None:
+        """Record a call to a possible helper and which arguments carry request input."""
+
+        # what kind of helper it is, and its name
+        kind, name = self._get_kind_of_helper(node)
+
+        if kind is None or name is None:
+            return
+
+        curr_ctx = self._input_stack[-1]
+
+        # [(arg index or keyword name, the request input it carries), ...]
+        request_params: list[tuple[int | str, str]] = []
+        # *args or **kwargs can forward anything so a call that has them is unresolved
+        starred = False
+
+        for index, argument in enumerate(node.args):
+            # *args can't be matched to a param and positions after it are unknown so we need to avoid this
+            if isinstance(argument, ast.Starred):
+                starred = True
+                break
+            request_payload = self._request_payload_input(curr_ctx, argument)
+            if request_payload is not None:
+                request_params.append((index, request_payload))
+
+        for keyword in node.keywords:
+            # **kwargs has no name to match
+            if keyword.arg is None:
+                starred = True
+                continue
+            request_payload = self._request_payload_input(curr_ctx, keyword.value)
+            if request_payload is not None:
+                request_params.append((keyword.arg, request_payload))
+
+        # recorded even when nothing is passed since the helper can still read self.request
+        curr_ctx.calls.append(
+            _HelperCall(kind, name, request_params, starred, _start_and_end(node))
+        )
+
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
         if legacy_name := self._s030_call_name(node.func):
@@ -1628,6 +1722,7 @@ class SentryVisitor(ast.NodeVisitor):
         if self._input_stack:
             self._record_validator(node)
             self._record_input_call(node)
+            self._record_helper(node)
         if _is_tests_path(self.filename):
             if (
                 isinstance(node.func, ast.Name)
