@@ -55,6 +55,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from sentry.workflow_engine.typings.notification_action import ActionTarget
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -585,6 +586,93 @@ class TestProjectTransfer(TestCase):
 
         # The workflow moved in place; the destination org has a matching active Slack integration,
         # so the same action is remapped to it and stays active.
+        action.refresh_from_db()
+        assert action.integration_id == to_integration.id
+        assert action.status == ObjectStatus.ACTIVE
+
+    def test_transfer_to_organization_disables_action_for_disabled_destination_org_integration(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+            # The shared Integration stays active while the destination org's link is disabled.
+            self.create_integration(
+                organization=self.to_org,
+                external_id="to-slack",
+                provider="slack",
+                oi_params={"status": ObjectStatus.DISABLED},
+            )
+
+        condition_group = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=condition_group
+        )
+        action = self.create_action(integration_id=from_integration.id, status=ObjectStatus.ACTIVE)
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
+
+        self.project.transfer_to(organization=self.to_org)
+
+        action.refresh_from_db()
+        assert action.integration_id == from_integration.id
+        assert action.status == ObjectStatus.DISABLED
+
+    def test_transfer_to_organization_disables_messaging_action_without_alert_rule_feature(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+            self.create_integration(
+                organization=self.to_org, external_id="to-slack", provider="slack"
+            )
+
+        condition_group = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=condition_group
+        )
+        action = self.create_action(integration_id=from_integration.id, status=ObjectStatus.ACTIVE)
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
+
+        with self.feature({"organizations:integrations-alert-rule": False}):
+            self.project.transfer_to(organization=self.to_org)
+
+        action.refresh_from_db()
+        assert action.integration_id == from_integration.id
+        assert action.status == ObjectStatus.DISABLED
+
+    def test_transfer_to_organization_remaps_non_messaging_action_without_alert_rule_feature(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-pagerduty", provider="pagerduty"
+            )
+            to_integration = self.create_integration(
+                organization=self.to_org, external_id="to-pagerduty", provider="pagerduty"
+            )
+
+        condition_group = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=condition_group
+        )
+        action = self.create_action(
+            type=Action.Type.PAGERDUTY,
+            integration_id=from_integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "service-123",
+                "target_display": "Test Service",
+            },
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
+
+        with self.feature({"organizations:integrations-alert-rule": False}):
+            self.project.transfer_to(organization=self.to_org)
+
         action.refresh_from_db()
         assert action.integration_id == to_integration.id
         assert action.status == ObjectStatus.ACTIVE
