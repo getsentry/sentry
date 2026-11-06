@@ -99,29 +99,26 @@ function IntegrationTabs({
     [getTabDisplay]
   );
 
+  if (tabs.length <= 1) {
+    return null;
+  }
+
   return (
-    <TabsContainer>
-      <Tabs value={activeTab} onChange={onTabChange}>
-        <TabList>
-          {tabs.map(tab => (
-            <TabList.Item key={tab} textValue={getTabDisplay ? getTabDisplay(tab) : tab}>
-              <Capitalized>{renderTab(tab)}</Capitalized>
-            </TabList.Item>
-          ))}
-        </TabList>
-      </Tabs>
-    </TabsContainer>
+    <Tabs value={activeTab} onChange={onTabChange}>
+      <TabList>
+        {tabs.map(tab => (
+          <TabList.Item key={tab} textValue={getTabDisplay ? getTabDisplay(tab) : tab}>
+            <Capitalized>{renderTab(tab)}</Capitalized>
+          </TabList.Item>
+        ))}
+      </TabList>
+    </Tabs>
   );
 }
 
 // Requires CSS transform because of how the tab rendering works
 const Capitalized = styled('div')`
   text-transform: capitalize;
-`;
-
-const TabsContainer = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 function Body({
@@ -141,9 +138,11 @@ function Body({
     <Fragment>
       <BreadcrumbTitle title={title} />
       {alert}
-      {topSection}
-      {tabs}
-      {content}
+      <Stack gap="xl">
+        {topSection}
+        {tabs}
+        <Container>{content}</Container>
+      </Stack>
     </Fragment>
   );
 }

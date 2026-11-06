@@ -1,0 +1,4 @@
+# Sources
+
+- [Epic Stack testing skill](https://agent-skills.md/skills/epicweb-dev/epic-stack/epic-testing), reviewed 2026-11-06. Third-party guidance, listed as MIT; used as conceptual input, without copying code or prose. Adopted workflow-based testing, specific assertions, relevant error cases, and test independence. Rewrote the guidance for Sentry's Jest, RTL, `MockApiClient`, and fixture conventions. Omitted Playwright, Vitest, MSW, Prisma/database setup, authentication helpers, and random-data defaults because they do not match this frontend testing workflow. Its API-only example does not prohibit Sentry tests from checking meaningful request payloads alongside UI outcomes.
+- `static/AGENTS.md` and the existing `react-testing` and `generate-snapshot-tests` skills: authoritative local conventions for test helpers, fixtures, API mocks, and visual coverage. Retained the separation between behavior tests and visual snapshots.
