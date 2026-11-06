@@ -169,14 +169,6 @@ class EnvironmentParams:
         type=str,
         description="The name of the environment.",
     )
-    VISIBILITY = OpenApiParameter(
-        name="visibility",
-        location="query",
-        required=False,
-        type=str,
-        description="""The visibility of the environments to filter by. Defaults to `visible`.""",
-        enum=["all", "hidden", "visible"],
-    )
 
 
 class OrganizationParams:
