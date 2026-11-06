@@ -16,7 +16,11 @@ def _guided_next_steps(mode: HandoffMode, user_id: int, organization_id: int) ->
 def _onboarding_instructions(mode: HandoffMode, user_id: int, organization_id: int) -> str:
     # TODO: In CLAIMED mode, create an onboarding run through organization RPC for
     # this user and organization, and include its run code for progress reporting.
-    return _guided_next_steps(mode, user_id, organization_id)
+    return (
+        "You're onboarding a new user to Sentry and setting up their project with Sentry.\n\n"
+        "Fetch the Sentry docs index at https://docs.sentry.io/index.md, then follow the "
+        "flow described in the agent-setup/get-started.md guide."
+    )
 
 
 _FLOW_HANDLERS: Mapping[HandoffFlow, Callable[[HandoffMode, int, int], str]] = {
