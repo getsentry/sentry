@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from rest_framework.response import Response
 
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import APITestCase
 from sentry.viewer_context import ActorType, get_viewer_context
@@ -83,6 +83,15 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
 
     def test_out_of_quota_returns_reason(self, mock_trigger: MagicMock) -> None:
         mock_trigger.side_effect = NoSeerQuotaException()
+
+        response = self.get_error_response(
+            organization_slug="sentry", short_id=self.group.qualified_short_id, status_code=400
+        )
+
+        assert response.data["detail"]
+
+    def test_out_of_credits_returns_reason(self, mock_trigger: MagicMock) -> None:
+        mock_trigger.side_effect = SeerOutOfCreditsException()
 
         response = self.get_error_response(
             organization_slug="sentry", short_id=self.group.qualified_short_id, status_code=400

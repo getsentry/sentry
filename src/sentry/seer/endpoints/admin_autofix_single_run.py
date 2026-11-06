@@ -11,7 +11,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import get_automation_handoff
 from sentry.seer.models import SeerPermissionError
@@ -75,6 +75,10 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
                 )
             except NoSeerQuotaException:
                 return Response({"detail": "Organization has no Seer quota"}, status=400)
+            except SeerOutOfCreditsException:
+                return Response(
+                    {"detail": "Organization does not have enough Seer credits"}, status=400
+                )
             except SeerPermissionError as e:
                 return Response({"detail": e.message}, status=400)
 
