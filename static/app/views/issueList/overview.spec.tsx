@@ -132,7 +132,7 @@ describe('IssueList', () => {
       datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
-    TagStore.init?.();
+    TagStore.reset();
   });
 
   afterEach(() => {
