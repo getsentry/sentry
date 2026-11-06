@@ -199,8 +199,9 @@ def get_serialized_activity_items(
 
     record_activity_read(endpoint, ActivityReadResult.GAL)
 
+    serialized_page = [serialized[item] for item in page]
     if not include_first_seen:
-        return [serialized[item] for item in page]
+        return serialized_page
 
     first_seen_entry = (
         oldest_entry if oldest_entry.type == GroupActionType.FIRST_SEEN.value else None
@@ -216,9 +217,7 @@ def get_serialized_activity_items(
             extra={"endpoint": endpoint, "group_id": group.id},
         )
 
-    return [serialized[item] for item in page] + [
-        dict(serialize_first_seen_entry(group, first_seen_entry))
-    ]
+    return serialized_page + [dict(serialize_first_seen_entry(group, first_seen_entry))]
 
 
 @register(GroupActionLogEntry)
