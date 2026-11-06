@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import string
 import time
 import uuid
 from collections.abc import Callable
@@ -10,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, NamedTuple
 
 from django.conf import settings
+from django.views.decorators.debug import sensitive_variables
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import json, redis
@@ -143,6 +145,44 @@ class OnboardingProgressService:
             return None
         return run
 
+    @sensitive_variables()
+    def issue_reporting_code(self, *, run_id: str, user_id: int, organization_id: int) -> str:
+        run = self.get(run_id=run_id, user_id=user_id, organization_id=organization_id)
+        if run is None:
+            raise RunNotFound
+
+        # A domain-separated derivation lets retries recover the code without
+        # persisting it in plaintext. Match the existing ten-character alphabet.
+        digest = hmac.new(
+            self.signing_secret,
+            f"agentic-onboarding:reporting-code:{run_id}".encode(),
+            hashlib.sha256,
+        ).digest()
+        value = int.from_bytes(digest)
+        alphabet = string.ascii_letters + string.digits
+        characters = []
+        for _ in range(TOKEN_LENGTH):
+            value, index = divmod(value, len(alphabet))
+            characters.append(alphabet[index])
+        code = "".join(characters)
+        token_hash = self._hash_token(code)
+
+        def activate(current: OnboardingRun) -> OnboardingRun:
+            if current.user_id != user_id or current.organization_id != organization_id:
+                raise RunNotFound
+            if datetime.now(timezone.utc) >= current.expires_at:
+                raise RunNotFound
+            if current.run_status is not RunStatus.ACTIVE:
+                raise OnboardingRunTerminal("Onboarding run is terminal")
+            if current.token_hash is not None and current.token_hash != token_hash:
+                raise ValueError("Onboarding run already has a reporting code")
+            return replace(current, token_hash=token_hash)
+
+        activate(run)
+        self._claim_token_index(self._token_index_key(token_hash), run_id, self._remaining_ttl(run))
+        self._atomic_update(run_id, activate)
+        return code
+
     def update(
         self,
         *,
@@ -222,6 +262,8 @@ class OnboardingProgressService:
         for attempt in range(CLIENT_CLAIM_RETRIES):
             raw_indexed = self.redis.get(key)
             indexed_run_id = self._decode(raw_indexed)
+            if indexed_run_id == run_id:
+                return
             if indexed_run_id is not None:
                 existing = self._load(self._state_key(indexed_run_id))
                 if existing is None and attempt < CLIENT_CLAIM_RETRIES - 1:
