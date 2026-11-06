@@ -1,7 +1,10 @@
 from unittest.mock import patch
 
+from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.test import APIClient
 
 from sentry import audit_log, options
 from sentry.models.apitoken import ApiToken
@@ -12,10 +15,12 @@ from sentry.models.orgauthtoken import (
     OrgAuthToken,
 )
 from sentry.testutils.cases import APITestCase, PermissionTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.types.cell import get_cell_by_name
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token, parse_token
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 @control_silo_test
@@ -535,5 +540,102 @@ class OrganizationAuthTokensOAuthTest(APITestCase):
             status_code=status.HTTP_403_FORBIDDEN,
             name="cli token",
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {integration_token.token}"},
+        )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+
+@control_silo_test(cells=create_test_cells("us"))
+@override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+@with_feature("organizations:service-accounts")
+class OrganizationAuthTokensServiceAccountTest(APITestCase):
+    endpoint = "sentry-api-0-org-auth-tokens"
+
+    def viewer_context_headers(self, actor: Actor) -> dict[str, str]:
+        viewer_context = encode_viewer_context(
+            ViewerContext(actor=actor, organization_id=self.organization.id),
+            key="service-account-secret",
+        )
+        return {"HTTP_X_VIEWER_CONTEXT": viewer_context}
+
+    def service_account_headers(self, scope_list: list[str]) -> dict[str, str]:
+        self.service_account = self.create_service_account(
+            organization=self.organization, scope_list=scope_list
+        )
+        return self.viewer_context_headers(
+            Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=self.service_account.id)
+        )
+
+    def test_create(self) -> None:
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                method="POST",
+                status_code=status.HTTP_201_CREATED,
+                name="seer token",
+                extra_headers=self.service_account_headers(["org:read", "org:ci", "org:tokens"]),
+            )
+        assert response.data["token"]
+        assert response.data["scopes"] == ["org:ci"]
+
+        token = OrgAuthToken.objects.get(id=response.data["id"])
+        assert token.organization_id == self.organization.id
+        assert token.created_by_id is None
+        assert AuditLogEntry.objects.filter(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("ORGAUTHTOKEN_ADD"),
+            target_object=token.id,
+        ).exists()
+        assert [m.to for m in mail.outbox] == [[self.user.email]]
+        assert f'Service account "{self.service_account.name}" has created' in mail.outbox[0].body
+
+    def test_list(self) -> None:
+        token = OrgAuthToken.objects.create(
+            organization_id=self.organization.id,
+            name="token 1",
+            token_hashed="ABCDEF",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            extra_headers=self.service_account_headers(["org:read", "org:tokens"]),
+        )
+        assert [t["id"] for t in response.data] == [str(token.id)]
+
+    def test_create_requires_org_tokens_scope(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="seer token",
+            extra_headers=self.service_account_headers(["org:admin", "org:ci"]),
+        )
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:tokens"'
+        )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_requires_account_to_hold_minted_scopes(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="seer token",
+            extra_headers=self.service_account_headers(["org:read", "org:tokens"]),
+        )
+        assert response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:ci"'
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_user_viewer_context_cannot_create(self) -> None:
+        # Session auth claims a user viewer context first, and its CSRF check rejects the POST.
+        self.client = APIClient(enforce_csrf_checks=True)
+        self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="seer token",
+            extra_headers=self.viewer_context_headers(
+                Actor(type=ActorType.USER, actor_id=self.user.id)
+            ),
         )
         assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()

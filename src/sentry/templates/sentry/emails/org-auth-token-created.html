@@ -6,14 +6,14 @@
 
 {% block main %}
   <h3>Security Notice</h3>
-  <p>User {{ actor.email }} has created a new Organization Auth Token "{{ token_name|sanitize_periods }}" for your Sentry organization {{ organization.name|sanitize_periods }}.</p>
+  <p>{% if actor.email %}User {{ actor.email }}{% else %}Service account "{{ actor.name }}"{% endif %} has created a new Organization Auth Token "{{ token_name|sanitize_periods }}" for your Sentry organization {{ organization.name|sanitize_periods }}.</p>
   <table>
     <tr>
       <td style="width:36px;vertical-align:top;padding-right:15px;">
-        {% avatar_for_email actor 36 %}
+        {% if actor.email %}{% avatar_for_email actor 36 %}{% endif %}
       </td>
       <td>
-        <strong>{{ actor.email }}</strong><br />
+        <strong>{% firstof actor.email actor.name %}</strong><br />
         {{ ip_address }}<br />
         {{ datetime }} UTC
       </td>
@@ -21,7 +21,7 @@
     {% block security_metadata %}{% endblock %}
   </table>
   <h4>Don't recognize this activity?</h4>
-  <p>We recommend to check with {{ actor.email }} if you are unsure about the purpose of this token. If you determine that this activity is malicious please contact <a href="mailto:{% security_contact %}">{% security_contact %}</a>.</p>
+  <p>{% if actor.email %}We recommend to check with {{ actor.email }} if you are unsure about the purpose of this token. {% endif %}If you determine that this activity is malicious please contact <a href="mailto:{% security_contact %}">{% security_contact %}</a>.</p>
   <p><a href="{% absolute_uri %}/settings/{{ organization.slug }}/auth-tokens/" class="btn">View or Revoke Token</a></p>
 {% endblock %}
 

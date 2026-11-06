@@ -11,6 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import (
     SessionNoAuthTokenAuthentication,
     UserAuthTokenAuthentication,
+    ViewerContextAuthentication,
 )
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import (
@@ -35,7 +36,11 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.FOUNDATIONS
-    authentication_classes = (SessionNoAuthTokenAuthentication, UserAuthTokenAuthentication)
+    authentication_classes = (
+        SessionNoAuthTokenAuthentication,
+        UserAuthTokenAuthentication,
+        ViewerContextAuthentication,
+    )
     permission_classes = (OrgAuthTokenPermission, DisallowImpersonatedTokenCreation)
 
     def convert_args(
