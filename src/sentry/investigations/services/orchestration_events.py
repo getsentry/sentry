@@ -18,6 +18,7 @@ from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
     OrchestrationProjectionSerializer,
     valid_action_requests,
+    valid_linked_issues,
 )
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
@@ -42,6 +43,7 @@ from sentry.investigations.services.orchestration import (
     requeue_commands_behind,
     schedule_orchestration_commands,
 )
+from sentry.notebooks.access import issue_links_enabled
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,
@@ -305,6 +307,33 @@ def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
     # not backfill old notifications when Seer replays a completed projection.
     control["inboxCompletedGeneration"] = run.generation
     record_notebook_completed(notebook=run.investigation, seer_run_id=seer_run.seer_run_state_id)
+
+
+def _schedule_issue_links(run: InvestigationOrchestrationRun) -> None:
+    """Link the run's issues once per completed generation, after the projection commits."""
+    from sentry.tasks.seer.investigation import publish_investigation_issue_links
+
+    if run.status != InvestigationOrchestrationStatus.COMPLETED or _notebook_writes_are_fenced(
+        run, event_generation=run.generation
+    ):
+        return
+    control = _control(run)
+    if control.get("issueLinksGeneration", 0) >= run.generation:
+        return
+    # Like the inbox marker, skipped generations are remembered so turning the flag on
+    # doesn't link old runs when Seer replays a completed projection.
+    control["issueLinksGeneration"] = run.generation
+    linked_issues = valid_linked_issues(run.projection.get("linkedIssues"))
+    if not linked_issues or not issue_links_enabled(run.investigation.organization):
+        return
+    investigation_id = run.investigation_id
+    # The items travel with the task so a newer generation can't replace them first.
+    transaction.on_commit(
+        lambda: publish_investigation_issue_links.delay(
+            investigation_id=investigation_id, linked_issues=linked_issues
+        ),
+        using=router.db_for_write(InvestigationOrchestrationRun),
+    )
 
 
 def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -> None:
@@ -937,6 +966,7 @@ def _apply_generation_event(
 
     if _event_carries_projection(event):
         _record_completed_inbox_event(run)
+        _schedule_issue_links(run)
     run.heartbeat_at = timezone.now()
     return True, None
 
@@ -1301,6 +1331,7 @@ def _synchronize_orchestration_projection(
                     if notebook_changed:
                         _bump_notebook(run, writes)
             _record_completed_inbox_event(run)
+            _schedule_issue_links(run)
             schedule_investigation_updates(run.investigation_id, database)
         run.date_updated = timezone.now()
         run.save(

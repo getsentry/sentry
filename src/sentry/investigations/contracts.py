@@ -436,6 +436,33 @@ class SteeringIntentSerializer(RelaxedContractSerializer):
     completed = StrictBooleanField(required=False)
 
 
+MAX_LINKED_ISSUES = 10
+
+
+class LinkedIssueSerializer(RelaxedContractSerializer):
+    """An issue that evidence for a confirmed hypothesis names, sent once the run completes."""
+
+    groupId = StrictIntegerField(min_value=1, max_value=I64_MAX, required=False, allow_null=True)
+    # Only when Seer had no group ID: the short ID a tool returned, like `PROJ-1A3`.
+    shortId = OptionalStrictCharField(128, allow_blank=False)
+    hypothesisId = StrictCharField(max_length=128)
+    hypothesisStatement = StrictCharField(max_length=2_000)
+    reason = OptionalStrictCharField(1_000)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if (attrs.get("groupId") is None) == (attrs.get("shortId") is None):
+            raise serializers.ValidationError("Exactly one of groupId or shortId is required.")
+        return attrs
+
+
+def valid_linked_issues(items: object) -> list[dict[str, Any]]:
+    """The linked issues Sentry can use. A bad item is dropped, so it can't block the run."""
+    if not isinstance(items, list):
+        return []
+    validators = [LinkedIssueSerializer(data=item) for item in items[:MAX_LINKED_ISSUES]]
+    return [dict(validator.validated_data) for validator in validators if validator.is_valid()]
+
+
 class OrchestrationProjectionSerializer(RelaxedContractSerializer):
     """The projection blob Seer sends with every orchestration event."""
 

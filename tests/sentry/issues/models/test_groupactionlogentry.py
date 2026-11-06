@@ -3,6 +3,7 @@ from sentry.issues.action_log.types import (
     GroupActionType,
     GroupActorType,
     ImpactAssessmentAction,
+    InvestigationLinkedAction,
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.testutils.cases import TestCase
@@ -47,6 +48,38 @@ class GroupActionLogEntryActionPropertyTest(TestCase):
         )
 
         assert isinstance(entry.action, ImpactAssessmentAction)
+
+    def test_investigation_linked_payload_snapshot(self) -> None:
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.INVESTIGATION_LINKED,
+            data={
+                "notebook_id": 12,
+                "hypothesis_id": "h-1",
+                "hypothesis_statement": "Payment retries exhaust the pool",
+                "reason": "Its timeouts start with the deploy.",
+            },
+        )
+
+        assert entry.action == InvestigationLinkedAction(
+            notebook_id=12,
+            hypothesis_id="h-1",
+            hypothesis_statement="Payment retries exhaust the pool",
+            reason="Its timeouts start with the deploy.",
+        )
+        assert (
+            GroupActionType.INVESTIGATION_LINKED
+            in InvestigationLinkedAction.get_user_visible_types()
+        )
+
+    def test_investigation_linked_payload_without_reason(self) -> None:
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.INVESTIGATION_LINKED,
+            data={"notebook_id": 12, "hypothesis_id": "h-1", "hypothesis_statement": "Retries"},
+        )
+
+        assert entry.action == InvestigationLinkedAction(
+            notebook_id=12, hypothesis_id="h-1", hypothesis_statement="Retries", reason=None
+        )
 
 
 class GroupActionLogEntryManagerTest(TestCase):
