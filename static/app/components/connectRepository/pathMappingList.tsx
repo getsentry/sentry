@@ -74,6 +74,9 @@ export const PathMappingList = withForm({
     const idRef = useRef(0);
     const nextId = () => idRef.current++;
 
+    // Row metadata is initialized once from form state and afterwards only kept
+    // in sync by handleAdd/handleDelete. Callers must not replace pathMappings
+    // from outside while mounted; remount the list (via `key`) instead.
     const [rowMeta, setRowMeta] = useState<RowMeta[]>(() => {
       const initial = form.state.values.pathMappings;
       idRef.current = initial.length;

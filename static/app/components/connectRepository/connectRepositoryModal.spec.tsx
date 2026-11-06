@@ -1,4 +1,5 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
+import {type QueryClient, useQueryClient} from '@tanstack/react-query';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -573,6 +574,62 @@ describe('ConnectRepositoryModal', () => {
       // Seeded row becomes visible after the query resolves.
       expect(await screen.findByText('src/')).toBeInTheDocument();
       expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
+    });
+
+    it('does not crash when the code-mappings query refetches with more mappings', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping],
+      });
+
+      let queryClient: QueryClient | undefined;
+      function CaptureQueryClient() {
+        const client = useQueryClient();
+        useEffect(() => {
+          queryClient = client;
+        }, [client]);
+        return null;
+      }
+
+      const closeModal = jest.fn();
+      render(
+        <Fragment>
+          <CaptureQueryClient />
+          <ConnectRepositoryModal
+            Body={ModalBody}
+            Footer={ModalFooter}
+            Header={makeClosableHeader(jest.fn())}
+            CloseButton={makeCloseButton(closeModal)}
+            closeModal={closeModal}
+            project={project}
+            mode="edit"
+            repositoryId={defaultEditRepo.repositoryId}
+            repoName={defaultEditRepo.repoName}
+            providerKey={defaultEditRepo.providerKey}
+            integrationId={defaultEditRepo.integrationId}
+            externalId={defaultEditRepo.externalId}
+          />
+        </Fragment>,
+        {organization}
+      );
+
+      expect(await screen.findByText('src/')).toBeInTheDocument();
+
+      // A background refetch returns an additional mapping for this repo.
+      const refetched = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping, secondMapping],
+      });
+      await queryClient!.invalidateQueries();
+      await waitFor(() => expect(refetched).toHaveBeenCalled());
+
+      // The open form keeps the rows it was seeded with and still renders.
+      expect(screen.getByText('src/')).toBeInTheDocument();
+      expect(screen.queryByText('vendor/')).not.toBeInTheDocument();
+      expect(screen.getByText('Paths (1)')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
     });
 
     it('POSTs new mappings, PUTs changed mappings, and DELETEs removed mappings on save', async () => {
