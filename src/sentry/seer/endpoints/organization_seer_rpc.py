@@ -14,11 +14,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.seer.agent.index_data import (
     rpc_get_issues_for_transaction,
@@ -197,6 +199,17 @@ _issue_scoped_org_methods: frozenset[str] = frozenset(
 )
 
 
+# Methods that read replays. The REST replay endpoints also enforce the org's granular
+# replay permissions (a member allowlist), so this route must too, or members left off
+# the allowlist could read replays here.
+_replay_methods: frozenset[str] = frozenset({"get_replay_metadata", "get_replay_summary_logs"})
+
+# Org-level methods that take a ``user_id`` to evaluate something as that user. The
+# argument is always the caller's own user, never one from the request body, so a
+# member can't act as someone else.
+_caller_user_methods: frozenset[str] = frozenset({"get_organization_features"})
+
+
 class SeerRpcPermission(OrganizationPermission):
     # Seer RPCs uses POST requests but is actually read only
     # So relax the permissions here.
@@ -295,6 +308,8 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
         if method_name in public_org_seer_method_registry:
             method = public_org_seer_method_registry[method_name]
             arguments["organization_id"] = organization.id
+            if method_name in _caller_user_methods:
+                arguments["user_id"] = acting_user_id(request.user)
             # These helpers also serve the internal Seer RPC, where org-wide reads are
             # intended. Binding the member's access keeps them to the member's projects.
             with bind_public_seer_caller(request.access):
@@ -345,6 +360,10 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         if not self._is_allowed(organization):
             raise NotFound()
+
+        # Checked before dispatch: the handler below turns any other exception into a 400.
+        if method_name in _replay_methods and not has_replay_permission(request, organization):
+            raise PermissionDenied("You do not have access to replays")
 
         try:
             arguments: dict[str, Any] = request.data.get("args", {})

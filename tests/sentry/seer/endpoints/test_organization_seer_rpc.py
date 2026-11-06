@@ -3,8 +3,11 @@ from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
+from sentry import features
 from sentry.models.apitoken import ApiToken
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.endpoints.seer_rpc import get_organization_projects
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -425,6 +428,95 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"has_code_mappings": False, "project_slug_to_id": {}}
+
+
+class TestOrganizationSeerRpcCallerBinding(APITestCase):
+    """Org-level methods act as the calling member, whatever the request body says."""
+
+    endpoint = "sentry-api-0-organization-seer-rpc"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.create_user())
+        self.project = self.create_project(organization=self.organization)
+        self.member = self.create_user()
+        self.create_member(organization=self.organization, user=self.member, role="member")
+        self.login_as(self.member)
+
+    def _post(self, method_name: str, args: dict[str, Any]) -> Any:
+        path = reverse(
+            self.endpoint,
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "method_name": method_name,
+            },
+        )
+        return self.client.post(path, data={"args": args}, format="json")
+
+    def _enable_granular_replay_permissions(self, *, allow_member: bool) -> None:
+        OrganizationOption.objects.set_value(
+            organization=self.organization,
+            key="sentry:granular-replay-permissions",
+            value=True,
+        )
+        # An allowlist only takes effect once it has someone on it.
+        allowed = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=allowed)
+        if allow_member:
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.organization.member_set.get(user_id=self.member.id)
+            )
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_organization_features_uses_the_caller_not_the_user_id_arg(self) -> None:
+        other = self.create_user()
+        self.create_member(organization=self.organization, user=other, role="owner")
+
+        with patch("sentry.features.batch_has", wraps=features.batch_has) as batch_has:
+            response = self._post("get_organization_features", {"user_id": other.id})
+
+        assert response.status_code == 200
+        actors = {
+            call.kwargs["actor"].id
+            for call in batch_has.call_args_list
+            if call.kwargs.get("organization") == self.organization
+        }
+        assert actors == {self.member.id}
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_replay_metadata_denied_off_the_replay_allowlist(self) -> None:
+        self._enable_granular_replay_permissions(allow_member=False)
+
+        response = self._post("get_replay_metadata", {"replay_id": "a" * 32})
+
+        assert response.status_code == 403
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_replay_summary_logs_denied_off_the_replay_allowlist(self) -> None:
+        self._enable_granular_replay_permissions(allow_member=False)
+
+        response = self._post(
+            "get_replay_summary_logs", {"project_id": self.project.id, "replay_id": "a" * 32}
+        )
+
+        assert response.status_code == 403
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_replay_methods_reach_dispatch_on_the_replay_allowlist(self) -> None:
+        self._enable_granular_replay_permissions(allow_member=True)
+
+        # Past the replay gate, dispatch rejects the missing project_id.
+        response = self._post("get_replay_summary_logs", {"replay_id": "a" * 32})
+
+        assert response.status_code == 400
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_replay_methods_reach_dispatch_without_granular_permissions(self) -> None:
+        response = self._post("get_replay_summary_logs", {"replay_id": "a" * 32})
+
+        assert response.status_code == 400
 
 
 class TestOrganizationSeerRpcTeamRestrictedMember(APITestCase):

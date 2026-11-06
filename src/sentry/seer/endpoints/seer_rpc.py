@@ -863,15 +863,31 @@ def get_monitoring_provider_connections(
 def refresh_monitoring_provider_token(
     *, identity_id: int
 ) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
-    """Refresh the access token for a monitoring provider identity."""
+    """Refresh the access token for one of the viewer's monitoring provider identities.
+
+    ``identity_id`` carries no org, so the endpoint's org binding never covers this
+    method. The identity must instead belong to the user in the signed viewer context,
+    the same user ``get_monitoring_provider_connections`` listed it for. Another user's
+    identity reads as not found, so a caller can't rotate tokens it doesn't own or
+    probe which identity ids exist.
+    """
     if not settings.SEER_GHE_ENCRYPT_KEY:
         logger.error("Cannot encrypt monitoring provider access token without SEER_GHE_ENCRYPT_KEY")
         return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
 
-    identity = identity_service.get_identity(filter={"id": identity_id})
+    viewer_user_id = get_acting_user_id(get_viewer_context())
+    if viewer_user_id is None:
+        metrics.incr("seer.rpc.monitoring_provider_refresh.denied", tags={"reason": "no_user"})
+        logger.warning(
+            "monitoring_provider.refresh.no_viewer_user", extra={"identity_id": identity_id}
+        )
+        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
+
+    identity = identity_service.get_identity(filter={"id": identity_id, "user_id": viewer_user_id})
     if identity is None:
         logger.error(
-            "monitoring_provider.refresh.identity_not_found", extra={"identity_id": identity_id}
+            "monitoring_provider.refresh.identity_not_found",
+            extra={"identity_id": identity_id, "user_id": viewer_user_id},
         )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
 

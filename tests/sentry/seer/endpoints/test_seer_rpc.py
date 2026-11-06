@@ -57,7 +57,14 @@ from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.viewer_context import Actor, ActorId, ActorType, ViewerContext, encode_viewer_context
+from sentry.viewer_context import (
+    Actor,
+    ActorId,
+    ActorType,
+    ViewerContext,
+    encode_viewer_context,
+    viewer_context_scope,
+)
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -1056,6 +1063,7 @@ class TestGetMonitoringProviderConnections(APITestCase):
 class TestRefreshMonitoringProviderToken(APITestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(self._viewer(self.user.id))
         self.idp = self.create_identity_provider(type="datadog", external_id="datadog-ext-r")
         self.identity = self.create_identity(
             user=self.user,
@@ -1071,9 +1079,38 @@ class TestRefreshMonitoringProviderToken(APITestCase):
             },
         )
 
+    def _viewer(self, user_id: int | None) -> Any:
+        actor = (
+            Actor(type=ActorType.USER, actor_id=user_id)
+            if user_id is not None
+            else Actor(type=ActorType.SYSTEM)
+        )
+        return viewer_context_scope(
+            ViewerContext(actor=actor, organization_id=self.organization.id)
+        )
+
     def _save_identity(self) -> None:
         with assume_test_silo_mode_of(Identity):
             self.identity.save()
+
+    @responses.activate
+    def test_other_users_identity_is_not_found(self) -> None:
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=self.organization)
+
+        with self._viewer(other_user.id):
+            result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "identity_not_found"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_viewer_without_user_is_denied(self) -> None:
+        with self._viewer(None):
+            result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "identity_not_found"}
+        assert len(responses.calls) == 0
 
     @responses.activate
     def test_success(self) -> None:
