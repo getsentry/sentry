@@ -26,10 +26,6 @@ import {SpanFields} from 'sentry/views/insights/types';
  */
 export const PAGELOADS_FIELD = webVitalCountField('ttfb');
 
-/**
- * Interactions. The SDK sends one interaction span per INP measurement, and
- * Relay extracts one INP metric from each, so the counts match.
- */
 export const INTERACTIONS_FIELD = webVitalCountField('inp');
 
 const INTERVAL = '5m';
