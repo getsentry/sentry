@@ -388,21 +388,41 @@ class DatabaseBackedOrganizationService(OrganizationService):
         organization_id: int,
         user_id: int,
     ) -> RpcOrganizationMember | None:
-        with transaction.atomic(router.db_for_write(OrganizationMember)):
-            try:
-                org_member = OrganizationMember.objects.get(
-                    user_id=user_id, organization_id=organization_id
-                )
-                return serialize_member(org_member)
-            except OrganizationMember.DoesNotExist:
+        org_member: OrganizationMember | None = None
+        try:
+            # This transaction is required to bind the member to a variable
+            # when replication fails. The outbox_context is just to flag
+            # that this is an outbox-producing operation.
+            with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
                 try:
-                    org_member = OrganizationMember.objects.select_for_update().get(
-                        id=organization_member_id, organization_id=organization_id
+                    org_member = OrganizationMember.objects.get(
+                        user_id=user_id, organization_id=organization_id
                     )
-                    org_member.set_user(user_id)
-                    org_member.save()
+                    return serialize_member(org_member)
                 except OrganizationMember.DoesNotExist:
-                    return None
+                    try:
+                        org_member = OrganizationMember.objects.select_for_update().get(
+                            id=organization_member_id, organization_id=organization_id
+                        )
+                        org_member.set_user(user_id)
+                        org_member.save()
+                    except OrganizationMember.DoesNotExist:
+                        return None
+        except (OutboxDatabaseError, OutboxFlushError):
+            if org_member is None:
+                raise
+
+            # Guard against replication fanout failures. The membership has been
+            # attached to the user, and its outbox has been committed alongside it,
+            # guaranteeing that it will eventually be valid in all regions.
+            logger.warning(
+                "organization_service.set_user_for_organization_member.outbox-flush-failure",
+                extra={
+                    "organization_id": organization_id,
+                    "organization_member_id": org_member.id,
+                },
+                exc_info=True,
+            )
         return serialize_member(org_member)
 
     def _query_organizations(

@@ -343,6 +343,51 @@ def test_add_organization_member_outbox_flush_failure() -> None:
 
 
 @django_db_all(transaction=True)
+def test_set_user_for_organization_member_outbox_flush_failure() -> None:
+    org = Factories.create_organization()
+    user = Factories.create_user(email="test@sentry.io")
+    invite = Factories.create_member(organization=org, email="test@sentry.io")
+    with outbox_runner():
+        pass
+    assert not CellOutbox.objects.filter(
+        category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE, object_identifier=invite.id
+    ).exists()
+
+    with patch.object(
+        OrganizationMember, "handle_async_replication", side_effect=Exception("replication failed")
+    ) as mock_replication:
+        rpc_member = organization_service.set_user_for_organization_member(
+            organization_member_id=invite.id,
+            organization_id=org.id,
+            user_id=user.id,
+        )
+
+    mock_replication.assert_called()
+    assert rpc_member is not None
+    assert rpc_member.id == invite.id
+    assert rpc_member.user_id == user.id
+    assert OrganizationMember.objects.filter(id=invite.id, user_id=user.id).exists()
+    assert CellOutbox.objects.filter(
+        category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE, object_identifier=invite.id
+    ).exists()
+
+    # At this point, the membership change has been committed, but the outbox
+    # has not been processed, so the mapping should not reference the user yet.
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        assert not OrganizationMemberMapping.objects.filter(
+            organizationmember_id=invite.id, user_id=user.id
+        ).exists()
+
+    with outbox_runner():
+        pass
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        assert OrganizationMemberMapping.objects.filter(
+            organizationmember_id=invite.id, user_id=user.id
+        ).exists()
+
+
+@django_db_all(transaction=True)
 def test_update_membership_flags_outbox_flush_failure() -> None:
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")
