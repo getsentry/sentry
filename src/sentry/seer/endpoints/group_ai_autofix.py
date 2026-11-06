@@ -169,7 +169,8 @@ def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferre
     except ValueError:
         logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
-    # Agentic triage runs skip the credit check, so callers can't claim to be it.
+    # Real agentic triage runs never come through this endpoint, so don't trust a
+    # request claiming to be one. Agentic triage runs skip the Seer credit check.
     if referrer == AutofixReferrer.AGENTIC_TRIAGE:
         logger.warning("group_ai_autofix.internal_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
