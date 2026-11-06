@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, Field, StrictBool, StrictFloat, StrictInt, StrictStr
+from pydantic import BaseModel, Field
 
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 
@@ -803,66 +803,6 @@ class ExecuteIssuesQuerySuccessResponse(BaseModel):
 
     def __hash__(self) -> int:
         return id(self)
-
-
-class TimeseriesQueryValue(BaseModel):
-    timestamp: float
-    value: float | None = Field(..., nullable=True)
-    incomplete: bool
-    comparisonValue: float | None = Field(None, nullable=True)
-    filled: bool = False
-    smoothed: bool = False
-    comparisonFilled: bool = False
-    comparisonSmoothed: bool = False
-    sampleCount: float | None = Field(None, nullable=True)
-    sampleRate: float | None = Field(None, nullable=True)
-    confidence: Literal["low", "high"] | None = Field(None, nullable=True)
-    incompleteReason: str | None = None
-
-
-class TimeseriesQueryGroupBy(BaseModel):
-    key: str
-    value: StrictStr | StrictBool | StrictInt | StrictFloat | None = Field(..., nullable=True)
-
-
-class TimeseriesQuerySeriesMeta(BaseModel):
-    valueType: str
-    valueUnit: str | None = Field(..., nullable=True)
-    interval: float
-    order: int | None = None
-    isOther: bool = False
-    dataScanned: Literal["partial", "full"] | None = None
-
-
-class TimeseriesQuerySeries(BaseModel):
-    yAxis: str
-    values: list[TimeseriesQueryValue]
-    meta: TimeseriesQuerySeriesMeta
-    groupBy: list[TimeseriesQueryGroupBy] | None = Field(None, nullable=True)
-
-
-class TimeseriesQueryIngestionMeta(BaseModel):
-    status: str
-    delaySeconds: float | None = None
-    completeThrough: float | None = None
-
-
-class TimeseriesQueryMeta(BaseModel):
-    dataset: str
-    start: float
-    end: float
-    ingestion: TimeseriesQueryIngestionMeta | None = None
-
-
-class ExecuteTimeseriesQueryV2Response(BaseModel):
-    """Ordered events-timeseries results. Intervals and timestamps are milliseconds."""
-
-    timeSeries: list[TimeseriesQuerySeries]
-    meta: TimeseriesQueryMeta | None = None
-
-    def dict(self, **kwargs: Any) -> dict[str, Any]:
-        kwargs.setdefault("exclude_unset", True)
-        return super().dict(**kwargs)
 
 
 class ExecuteTimeseriesQuerySuccessResponse(BaseModel):

@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 from time import time
-from typing import Any, get_args, get_type_hints
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -14,11 +14,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.request import Request
-from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsResponse
 
-from sentry.api.client import client
 from sentry.api.client_kind import ClientKind, get_client_kind
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
@@ -33,7 +31,6 @@ from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
-from sentry.seer.agent.tools import execute_timeseries_query_v2
 from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
@@ -48,7 +45,6 @@ from sentry.seer.endpoints.seer_rpc import (
 )
 from sentry.seer.models.run import SeerRunType
 from sentry.seer.sentry_data_models import (
-    ExecuteTimeseriesQueryV2Response,
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
     HeaderAuthConnectionData,
@@ -81,21 +77,6 @@ class TestSeerRpc(APITestCase):
         signature = generate_request_signature(path, data.encode())
 
         return f"rpcsignature {signature}"
-
-    def _call_timeseries_v2(self, args: dict[str, Any]) -> Response:
-        path = self._get_path("execute_timeseries_query_v2")
-        data: dict[str, Any] = {
-            "args": {
-                "org_id": self.organization.id,
-                "dataset": "spans",
-                "y_axes": ["count()"],
-                "query": "",
-                "stats_period": "1h",
-                **args,
-            },
-            "meta": {},
-        }
-        return self.client.post(path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data))
 
     def test_invalid_endpoint(self) -> None:
         path = self._get_path("not_a_method")
@@ -132,194 +113,6 @@ class TestSeerRpc(APITestCase):
         assert response.status_code == 200
         assert "projects" in response.data
         assert project.id in [p["id"] for p in response.data["projects"]]
-
-    @with_feature("organizations:explore-interpolation-and-smoothing")
-    def test_timeseries_v2_preserves_the_wire_contract(self) -> None:
-        payload = {
-            "timeSeries": [
-                {
-                    "yAxis": "avg(span.duration)",
-                    "groupBy": [{"key": "status", "value": 200}],
-                    "meta": {
-                        "valueType": "duration",
-                        "valueUnit": "millisecond",
-                        "interval": 15000,
-                        "isOther": False,
-                        "order": 0,
-                        "dataScanned": "partial",
-                    },
-                    "values": [
-                        {
-                            "timestamp": 1000,
-                            "value": None,
-                            "incomplete": True,
-                            "incompleteReason": "INGESTION_PENDING",
-                            "comparisonValue": 0,
-                            "filled": False,
-                            "smoothed": False,
-                            "comparisonFilled": True,
-                            "comparisonSmoothed": True,
-                            "sampleCount": None,
-                            "sampleRate": None,
-                            "confidence": None,
-                        },
-                        {"timestamp": 16000, "value": 0, "incomplete": False},
-                    ],
-                },
-            ],
-            "meta": {
-                "dataset": "spans",
-                "start": 1000,
-                "end": 31000,
-                "ingestion": {
-                    "status": "delayed",
-                    "delaySeconds": 30,
-                    "completeThrough": 1000,
-                },
-            },
-        }
-        with patch("sentry.seer.agent.tools.client.get", return_value=Response(payload)):
-            response = self._call_timeseries_v2(
-                {
-                    "y_axes": ["avg(span.duration)"],
-                    "transformations": [["fill(zero)", "smooth(sma,3)"]],
-                    "group_by": ["status"],
-                    "interval": "15s",
-                }
-            )
-
-        assert response.status_code == 200
-        body = orjson.loads(response.content)
-        assert body == payload
-        assert type(body["timeSeries"][0]["groupBy"][0]["value"]) is int
-
-    def test_timeseries_v2_registered_response_schema(self) -> None:
-        annotation = get_type_hints(seer_method_registry["execute_timeseries_query_v2"])["return"]
-        assert ExecuteTimeseriesQueryV2Response in get_args(annotation)
-        schema = ExecuteTimeseriesQueryV2Response.schema()
-        definitions = schema["definitions"]
-        assert schema["required"] == ["timeSeries"]
-        assert schema["properties"]["timeSeries"]["type"] == "array"
-        value = definitions["TimeseriesQueryValue"]
-        assert value["required"] == ["timestamp", "value", "incomplete"]
-        assert value["properties"]["value"]["nullable"] is True
-        assert value["properties"]["comparisonValue"]["nullable"] is True
-        assert value["properties"]["sampleCount"]["nullable"] is True
-        assert value["properties"]["sampleRate"]["nullable"] is True
-        assert value["properties"]["confidence"]["nullable"] is True
-        assert (
-            definitions["TimeseriesQuerySeriesMeta"]["properties"]["valueUnit"]["nullable"] is True
-        )
-        assert definitions["TimeseriesQuerySeries"]["properties"]["groupBy"]["nullable"] is True
-        group_value = definitions["TimeseriesQueryGroupBy"]["properties"]["value"]
-        assert group_value["nullable"] is True
-        assert {entry["type"] for entry in group_value["anyOf"]} == {
-            "string",
-            "boolean",
-            "integer",
-            "number",
-        }
-
-    @with_feature("organizations:explore-interpolation-and-smoothing")
-    def test_timeseries_v2_invalid_input(self) -> None:
-        self.create_project(organization=self.organization)
-        cases: list[tuple[dict[str, Any], str]] = [
-            ({"dataset": "errors"}, "Only spans, logs, and tracemetrics support this RPC."),
-            ({"y_axes": []}, "y_axes must be a nonempty list of aggregate strings."),
-            ({"y_axes": "count()"}, "y_axes must be a nonempty list of aggregate strings."),
-            (
-                {"transformations": {"0": ["fill(zero)"]}},
-                "transformations must contain one pipeline per y_axes position.",
-            ),
-            (
-                {"transformations": [[], []]},
-                "transformations must contain one pipeline per y_axes position.",
-            ),
-            (
-                {"transformations": ["fill(zero)"]},
-                "Each transformation pipeline must be a list of strings.",
-            ),
-            (
-                {"transformations": [[None]]},
-                "Each transformation pipeline must be a list of strings.",
-            ),
-            (
-                {"transformations": [["smooth(sma,0)"]]},
-                "smooth(sma,0): window_size argument invalid: Window size must be positive.",
-            ),
-            ({"stats_period": None}, "Provide stats_period or both start and end."),
-            ({"interval": "invalid"}, "interval must use stats-period syntax, such as '1m'."),
-            ({"interval": "0s"}, "Interval cannot result in a zero duration."),
-            (
-                {"group_by": ["span.op"], "comparison_delta": 3600},
-                "Grouped time-series comparisons are not supported.",
-            ),
-            (
-                {"project_ids": [1], "project_slugs": ["project-slug"]},
-                "Provide project_ids or project_slugs, not both.",
-            ),
-        ]
-        for args, detail in cases:
-            response = self._call_timeseries_v2(args)
-
-            assert response.status_code == 200
-            assert orjson.loads(response.content) == {"_seer_error_detail": detail}
-
-    @with_feature({"organizations:explore-interpolation-and-smoothing": False})
-    def test_timeseries_v2_feature_disabled(self) -> None:
-        response = self._call_timeseries_v2({"transformations": [["fill(zero)"]]})
-
-        assert response.status_code == 200
-        assert orjson.loads(response.content) == {
-            "_seer_error_detail": "Time-series transformations are not enabled for this organization."
-        }
-
-    @with_feature({"organizations:explore-interpolation-and-smoothing": False})
-    def test_timeseries_v2_raw_query_with_feature_disabled(self) -> None:
-        cases: list[list[list[str]] | None] = [None, [[]]]
-        for transformations in cases:
-            response = self._call_timeseries_v2({"transformations": transformations})
-
-            assert response.status_code == 200
-            assert orjson.loads(response.content) == {"timeSeries": []}
-
-    def test_timeseries_v2_preserves_api_failures(self) -> None:
-        for status_code in (429, 500):
-            with patch(
-                "sentry.seer.agent.tools.client.get",
-                side_effect=client.ApiError(status_code, {"detail": "upstream failure"}),
-            ):
-                with pytest.raises(client.ApiError) as error:
-                    execute_timeseries_query_v2(
-                        org_id=self.organization.id,
-                        dataset="spans",
-                        y_axes=["count()"],
-                        query="",
-                        stats_period="1h",
-                    )
-
-            assert error.value.status_code == status_code
-            assert error.value.body == {"detail": "upstream failure"}
-
-    def test_timeseries_v2_rejects_projects_from_another_organization(self) -> None:
-        other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
-        selectors: list[dict[str, Any]] = [
-            {"project_ids": [other_project.id]},
-            {"project_slugs": [other_project.slug]},
-        ]
-        for selector in selectors:
-            with pytest.raises(client.ApiError) as error:
-                execute_timeseries_query_v2(
-                    org_id=self.organization.id,
-                    dataset="spans",
-                    y_axes=["count()"],
-                    query="",
-                    stats_period="1h",
-                    **selector,
-                )
-
-            assert error.value.status_code == 403
 
     def test_dispatch_declares_seer_as_the_client_kind(self) -> None:
         org = self.create_organization()
@@ -1852,32 +1645,6 @@ class TestSeerRpcViewerContextAuth(APITestCase):
             HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=other_org.id),
         )
         assert response.status_code == 403
-
-    def test_timeseries_v2_viewer_context_org_binding(self) -> None:
-        org = self.create_organization()
-        other_org = self.create_organization()
-        path = self._get_path("execute_timeseries_query_v2")
-        data: dict[str, Any] = {
-            "args": {
-                "org_id": org.id,
-                "dataset": "spans",
-                "y_axes": ["count()"],
-                "query": "",
-                "stats_period": "1h",
-            },
-            "meta": {},
-        }
-        denied = self.client.post(
-            path, data=data, HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=other_org.id)
-        )
-        allowed = self.client.post(
-            path, data=data, HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id)
-        )
-
-        assert denied.status_code == 403
-        assert denied.json() == {"detail": "Viewer context organization does not match request"}
-        assert allowed.status_code == 200
-        assert allowed.json() == {"timeSeries": []}
 
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
