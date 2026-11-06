@@ -538,14 +538,23 @@ export function getLogsUrlFromSavedQueryUrl({
   });
 }
 
-export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): string {
+export function ourlogToJson(
+  ourlog: TraceItemDetailsResponse | undefined,
+  useRawAttributeNames = false
+): string {
   if (!ourlog) {
     warn(fmt`cannot copy undefined ourlog`);
     return '';
   }
 
   const copy: Record<string, string | number | boolean> = {
-    ...ourlog.attributes.reduce((it, {name, value}) => ({...it, [name]: value}), {}),
+    ...ourlog.attributes.reduce(
+      (it, {name, rawName, value}) =>
+        DeprecatedLogDetailFields.includes(name)
+          ? it
+          : {...it, [useRawAttributeNames ? (rawName ?? name) : name]: value},
+      {}
+    ),
     id: ourlog.itemId,
   };
   let warned = false;
@@ -560,8 +569,7 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
 
   // Trimming any sentry. prefixes
   for (const key in copy) {
-    if (DeprecatedLogDetailFields.includes(key)) {
-      delete copy[key];
+    if (useRawAttributeNames) {
       continue;
     }
     if (key.startsWith('sentry.')) {
