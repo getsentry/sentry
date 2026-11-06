@@ -101,12 +101,15 @@ def do_put(
             metrics.error_message = put.error_message
             metrics.save()
         case PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
-            # Refresh each attempt, but don't reopen finished results on a duplicate start.
-            PreprodArtifactSizeMetrics.objects.filter(id=metrics.id).exclude(
+            # Reset the timeout and clear errors when an attempt starts.
+            # Check the state in the update so a concurrent completion is preserved.
+            PreprodArtifactSizeMetrics.objects.filter(
+                id=metrics.id,
                 state__in=[
-                    PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-                    PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
-                ]
+                    PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                    PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+                    PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                ],
             ).update(
                 state=put.state,
                 error_code=None,
