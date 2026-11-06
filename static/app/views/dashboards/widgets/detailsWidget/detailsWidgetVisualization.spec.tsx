@@ -8,9 +8,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
-import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
+
+import {DetailsWidgetVisualization} from './detailsWidgetVisualization';
+import type {DefaultDetailWidgetFields} from './types';
 
 type TestSpan = Pick<SpanResponse, DefaultDetailWidgetFields>;
 

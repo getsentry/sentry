@@ -1,6 +1,7 @@
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+
+import {NONE_UNIT} from './constants';
+import type {TraceMetric} from './metricQuery';
 
 export function parseMetricAggregate(aggregate: string): {
   aggregation: string;

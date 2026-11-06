@@ -311,7 +311,6 @@ static/app/actionCreators/events.tsx
 static/app/actionCreators/group.spec.tsx
 static/app/actionCreators/group.tsx
 static/app/actionCreators/guides.tsx
-static/app/actionCreators/indicator.tsx
 static/app/actionCreators/integrations.tsx
 static/app/actionCreators/members.tsx
 static/app/actionCreators/modal.tsx

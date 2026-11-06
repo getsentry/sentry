@@ -12,14 +12,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
-  calculateRelativeTiming,
-  getCompressedTimeBounds,
-  getNodeTimeBounds,
-  type TraceBounds,
-} from 'sentry/views/insights/pages/agents/components/aiSpanList';
-import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {
   type ColorByOpType,
   getToolInputPreview,
   getGenAiOpType,
@@ -47,6 +39,15 @@ import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+
+import {
+  calculateRelativeTiming,
+  getCompressedTimeBounds,
+  getNodeTimeBounds,
+  type TraceBounds,
+} from './aiSpanList';
+import {AiSpanStatusIcon} from './aiSpanStatusIcon';
+import {LLMCosts} from './llmCosts';
 
 interface SpanPresentation {
   color: string;

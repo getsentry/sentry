@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
+import {orgNeedsSeerTrial} from './orgNeedsSeerTrial';
 
 describe('orgNeedsSeerTrial', () => {
   it('returns true when seer-user-billing-launch is present', () => {

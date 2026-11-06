@@ -1,6 +1,7 @@
 import {useQueryClient, useMutation} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
@@ -50,7 +51,7 @@ export const useUpdateGroupSearchViewStarredOrder = () => {
       );
     },
     onError: () => {
-      addErrorMessage(t('Failed to update starred views order'));
+      toast.error(t('Failed to update starred views order'));
     },
   });
 };

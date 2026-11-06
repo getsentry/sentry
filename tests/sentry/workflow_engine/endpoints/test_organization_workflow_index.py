@@ -18,6 +18,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import (
     Action,
@@ -865,6 +866,32 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert response.data == serialize(new_workflow)
+
+    def test_create_workflow__condition_result_defaults_to_true(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [{"type": Condition.FIRST_SEEN_EVENT, "comparison": True}],
+        }
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ISSUE_PRIORITY_DEESCALATING.value,
+                        "comparison": PriorityLevel.HIGH,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.data["triggers"]["conditions"][0]["conditionResult"] is True
+        assert response.data["actionFilters"][0]["conditions"][0]["conditionResult"] is True
 
     def test_create_workflow__with_triggers_invalid_logic_type(self) -> None:
         self.valid_workflow["triggers"] = {

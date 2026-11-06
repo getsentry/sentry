@@ -5,7 +5,8 @@ import type {
   LinkedDashboard,
 } from 'sentry/views/dashboards/types';
 import {DashboardFilterKeys, WidgetType} from 'sentry/views/dashboards/types';
-import {getLinkedDashboardUrl} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
+
+import {getLinkedDashboardUrl} from './getLinkedDashboardUrl';
 
 describe('getLinkedDashboardUrl', () => {
   const organizationSlug = 'test-org';

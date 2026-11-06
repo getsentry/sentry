@@ -3,15 +3,16 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
 import {
   LEVEL_CHOICES,
   LEVEL_MATCH_CHOICES,
   type Level,
   type MatchType,
-} from 'sentry/views/automations/components/actionFilters/constants';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+} from './constants';
 
 export function LevelDetails({condition}: {condition: DataCondition}) {
   return tct("The event's level [match] [level]", {

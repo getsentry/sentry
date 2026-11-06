@@ -7,11 +7,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useInboxIssueCount} from 'sentry/views/issueList/pages/inbox/useInboxIssueCount';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
-import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issueCount';
-import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {IssueViews} from './issueViews/issueViews';
+import {IssueCount} from './issueCount';
 
 function InboxCountBadgeImpl() {
   const {data: count} = useInboxIssueCount();

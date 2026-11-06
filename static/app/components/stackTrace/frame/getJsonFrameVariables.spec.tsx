@@ -1,5 +1,5 @@
-import {getFrameVariableCopyText} from 'sentry/components/stackTrace/frame/getFrameVariableCopyText';
-import {getJsonFrameVariables} from 'sentry/components/stackTrace/frame/getJsonFrameVariables';
+import {getFrameVariableCopyText} from './getFrameVariableCopyText';
+import {getJsonFrameVariables} from './getJsonFrameVariables';
 
 it('sorts variables and preserves scalar kinds and nested annotations without type labels', () => {
   const removedMeta = {rem: [['!config', 'x']]};

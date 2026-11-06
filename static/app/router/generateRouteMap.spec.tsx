@@ -8,10 +8,11 @@ import path from 'node:path';
 
 import * as constants from 'sentry/constants';
 import {getOverride} from 'sentry/overrideRegistry';
-import type {RouteMap} from 'sentry/router/routeMapTestUtils';
-import {collectRouteMap, ROUTE_OVERRIDE_HOOKS} from 'sentry/router/routeMapTestUtils';
-import {buildRoutes} from 'sentry/router/routes';
 import type {OverrideName} from 'sentry/types/overrides';
+
+import type {RouteMap} from './routeMapTestUtils';
+import {collectRouteMap, ROUTE_OVERRIDE_HOOKS} from './routeMapTestUtils';
+import {buildRoutes} from './routes';
 
 // Mirror routes.spec.tsx: replace USING_CUSTOMER_DOMAIN with a spy-able getter.
 jest.mock('sentry/constants', () => {

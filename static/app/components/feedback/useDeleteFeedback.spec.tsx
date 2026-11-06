@@ -12,7 +12,7 @@ import {
 import {GlobalModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
+import {useDeleteFeedback} from './useDeleteFeedback';
 
 const mockRefetchFeedbackList = jest.fn();
 

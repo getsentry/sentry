@@ -1,7 +1,7 @@
 import {IconBuilding} from '@sentry/icons/building';
 import {IconUser} from '@sentry/icons/user';
 
-import {getSettingsFieldSections} from 'sentry/views/settings/settingsCommandPaletteActions';
+import {getSettingsFieldSections} from './settingsCommandPaletteActions';
 
 function getSection(sections: ReturnType<typeof getSettingsFieldSections>, key: string) {
   const section = sections.find(s => s.key === key);

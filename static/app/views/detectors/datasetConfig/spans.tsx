@@ -10,25 +10,25 @@ import {AggregationKey, FieldValueType, getFieldDefinition} from 'sentry/utils/f
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
-import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
+import type {FieldValue} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+import {TraceSearchBar} from './components/traceSearchBar';
 import {
   getDiscoverSeriesQueryOptions,
   transformEventsStatsComparisonSeries,
   transformEventsStatsToSeries,
-} from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
+} from './utils/discoverSeries';
 import {
   BASE_DYNAMIC_INTERVALS,
   BASE_INTERVALS,
   getEapTimePeriodsForInterval,
   MetricDetectorInterval,
-} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+} from './utils/timePeriods';
 import {
   translateAggregateTag,
   translateAggregateTagBack,
-} from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
-import type {FieldValue} from 'sentry/views/discover/table/types';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
-
+} from './utils/translateAggregateTag';
 import type {DetectorDatasetConfig} from './base';
 
 type SpansSeriesResponse = EventsStats;

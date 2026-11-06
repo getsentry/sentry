@@ -6,18 +6,19 @@ import type {ParserMap} from 'nuqs';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
+
+import {QueryParamsContextProvider} from './queryParams/context';
 import {
   applyQueryParamsUpdates,
   loadQueryParamsFromLocation,
   type QueryParamsUpdates,
   type QueryParamsValues,
-} from 'sentry/views/explore/queryParams/parsers';
+} from './queryParams/parsers';
 import type {
   ReadableQueryParams,
   ReadableQueryParamsOptions,
-} from 'sentry/views/explore/queryParams/readableQueryParams';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+} from './queryParams/readableQueryParams';
+import type {WritableQueryParams} from './queryParams/writableQueryParams';
 
 interface ExploreQueryParamsProviderProps<Parsers extends ParserMap> {
   children: ReactNode;
