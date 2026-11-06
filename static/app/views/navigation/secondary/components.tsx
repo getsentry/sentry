@@ -307,7 +307,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       padding={isMobile ? 'md lg' : '0 sm 0 sm'}
     >
       {props.children}
-      <SecondaryNavigationToggle />
+      <SecondaryNavigationCloseButton />
     </Grid>
   );
 }
@@ -329,33 +329,22 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
   );
 }
 
-function SecondaryNavigationToggle() {
-  const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
-  const isCollapsed = view !== 'expanded';
-
-  if (layout === 'mobile') {
-    return (
-      <Button
-        size="sm"
-        icon={<IconClose />}
-        aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-        onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
-        variant="transparent"
-      />
-    );
-  }
+/**
+ * Closes the sidebar. Clicking a primary nav item is the only way to reopen it.
+ */
+function SecondaryNavigationCloseButton() {
+  const {setView} = useSecondaryNavigation();
 
   return (
     <Button
       size="sm"
-      icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-      aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-      onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
-      variant={isCollapsed ? 'primary' : 'transparent'}
+      icon={<IconClose />}
+      aria-label={t('Close')}
+      onClick={() => setView('collapsed')}
+      variant="transparent"
       analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
       analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-      analyticsParams={{is_collapsed: isCollapsed}}
+      analyticsParams={{is_collapsed: false}}
     />
   );
 }
