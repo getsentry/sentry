@@ -27,6 +27,7 @@ import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import {useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
 
 import {
   OrganizationAvatar,
@@ -303,7 +304,7 @@ export function GlobalCommandPaletteActions() {
   const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
   const {organizations} = useLegacyStore(OrganizationsStore);
-  const sentryConfig = useLegacyStore(ConfigStore);
+  const sentryConfig = useStore(ConfigStore);
   const settingsV3 = useSettingsV3();
   const params = useParams();
   const location = useLocation();

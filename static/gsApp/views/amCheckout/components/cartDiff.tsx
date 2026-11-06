@@ -4,6 +4,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import isEqual from 'lodash/isEqual';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack, Container} from '@sentry/scraps/layout';
@@ -11,7 +12,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -61,7 +61,7 @@ type SharedOnDemandChange = CheckoutChange<'sharedMaxBudget', number>;
 type PerCategoryOnDemandChange = CheckoutChange<DataCategory, number | null>;
 
 function AddedHighlight({value}: {value: string}) {
-  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
+  const prefersDarkMode = useStore(ConfigStore, state => state.theme) === 'dark';
   return (
     <Added prefersDarkMode={prefersDarkMode}>
       <span>{value}</span>
@@ -70,7 +70,7 @@ function AddedHighlight({value}: {value: string}) {
 }
 
 function RemovedHighlight({value}: {value: string}) {
-  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
+  const prefersDarkMode = useStore(ConfigStore, state => state.theme) === 'dark';
   return (
     <Removed prefersDarkMode={prefersDarkMode}>
       <span>{value}</span>

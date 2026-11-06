@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsInteger, useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
@@ -37,7 +38,6 @@ import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
@@ -200,7 +200,7 @@ function OnboardingPanel({
 
 export function Onboarding() {
   const api = useApi();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
   const [guidedStep, setGuidedStep] = useQueryState('guidedStep', parseAsInteger);

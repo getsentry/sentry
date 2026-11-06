@@ -10,11 +10,11 @@ import {
 } from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -154,7 +154,7 @@ export function Trace({
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
-  const {theme: colorMode} = useLegacyStore(ConfigStore);
+  const colorMode = useStore(ConfigStore, state => state.theme);
 
   const rerenderRef = useRef(rerender);
   rerenderRef.current = rerender;

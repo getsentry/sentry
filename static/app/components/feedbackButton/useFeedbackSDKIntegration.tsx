@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 import type * as Sentry from '@sentry/react';
+import {useStore} from 'zustand';
 
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useAsyncSDKIntegrationStore} from 'sentry/views/app/asyncSDKIntegrationProvider';
 
 export type FeedbackIntegration = NonNullable<ReturnType<typeof Sentry.getFeedback>>;
@@ -14,19 +14,19 @@ export function useFeedbackSDKIntegration(): {
   defaultOptions: NonNullable<UseFeedbackOptions>;
   feedback: FeedbackIntegration | undefined;
 } {
-  const config = useLegacyStore(ConfigStore);
+  const colorMode = useStore(ConfigStore, state => state.theme);
   const {state} = useAsyncSDKIntegrationStore();
 
   const feedback = state.Feedback as FeedbackIntegration | undefined;
 
   const defaultOptions = useMemo((): NonNullable<UseFeedbackOptions> => {
     return {
-      colorScheme: config.theme === 'dark' ? ('dark' as const) : ('light' as const),
+      colorScheme: colorMode === 'dark' ? ('dark' as const) : ('light' as const),
       submitButtonLabel: t('Send Feedback'),
       messagePlaceholder: t('What did you expect?'),
       formTitle: t('Give Feedback'),
     };
-  }, [config.theme]);
+  }, [colorMode]);
 
   return {feedback, defaultOptions};
 }

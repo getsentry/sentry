@@ -1,5 +1,6 @@
 import {useEffect, useRef, type ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
+import {useStore} from 'zustand';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
@@ -47,7 +48,7 @@ function setRecentBootstrapTag(orgSlug: string) {
  * OrganizationStore if it is not already present.
  */
 export function OrganizationContextProvider({children}: Props) {
-  const configStore = useLegacyStore(ConfigStore);
+  const configStore = useStore(ConfigStore);
   const {organizations} = useLegacyStore(OrganizationsStore);
   const {organization, error} = useLegacyStore(OrganizationStore);
   const lastOrganizationSlug =

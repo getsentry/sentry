@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
+import {useStore} from 'zustand';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
@@ -11,7 +12,6 @@ import {Text} from '@sentry/scraps/text';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -90,7 +90,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(ConfigStore);
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(p => p.id === currentPlatformKey)!;
