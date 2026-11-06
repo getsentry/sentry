@@ -2,12 +2,13 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconClose} from '@sentry/icons/close';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
@@ -17,8 +18,7 @@ import {Form} from 'sentry/components/forms/form';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {DocIntegration, IntegrationFeature} from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -50,9 +50,9 @@ export function DocIntegrationModal(props: Props) {
     isError,
     isPending,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>([getApiUrl('/integration-features/')], {
-    staleTime: 0,
-  });
+  } = useQuery(
+    apiOptions.as<IntegrationFeature[]>()('/integration-features/', {staleTime: 0})
+  );
 
   if (isPending) {
     return <LoadingIndicator />;

@@ -6,7 +6,8 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';

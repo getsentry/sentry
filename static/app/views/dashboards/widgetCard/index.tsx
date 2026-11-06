@@ -5,7 +5,6 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import qs from 'query-string';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -33,9 +32,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {withApi} from 'sentry/utils/withApi';
-import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/constants';
+import {useDashboardQueryPriority} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
@@ -86,8 +84,6 @@ export const SESSION_DURATION_ALERT = (
 );
 
 type Props = {
-  api: Client;
-  selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
@@ -111,6 +107,7 @@ type Props = {
   onLegendSelectChanged?: () => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
+  selection?: PageFilters;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
@@ -144,6 +141,7 @@ function WidgetCard(props: Props) {
     history: 'replace',
   });
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
+  const {priority: dashboardQueryPriority} = useDashboardQueryPriority();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Resolve TOP_N → AREA before capturing context (the render body mutates
@@ -184,9 +182,10 @@ function WidgetCard(props: Props) {
     organization.features.includes('seer-explorer-chat-prompts') &&
     isSeerExplorerEnabled(organization);
 
+  const {selection: globalSelection} = usePageFilters();
+  const selection = props.selection ?? globalSelection;
+
   const {
-    api,
-    selection,
     widget,
     isMobile,
     tableItemLimit,
@@ -317,6 +316,7 @@ function WidgetCard(props: Props) {
         widget,
         widgetLegendState,
         dashboardFilters,
+        queryPriority: dashboardQueryPriority,
         widgetInterval,
         onClose: () => {
           // Filter out Widget Viewer Modal query params when exiting the Modal
@@ -454,7 +454,6 @@ function WidgetCard(props: Props) {
           noVisualizationPadding
         >
           <WidgetCardChartContainer
-            api={api}
             selection={selection}
             widget={widget}
             isMobile={isMobile}
@@ -482,7 +481,7 @@ function WidgetCard(props: Props) {
   );
 }
 
-export default registerLLMContext('widget', withApi(withPageFilters(WidgetCard)));
+export default registerLLMContext('widget', WidgetCard);
 
 function useTimeRangeWarning({widget}: {widget: TWidget}) {
   const {

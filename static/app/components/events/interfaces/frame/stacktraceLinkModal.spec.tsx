@@ -13,7 +13,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import * as analytics from 'sentry/utils/analytics';
 
 import {StacktraceLinkModal} from './stacktraceLinkModal';

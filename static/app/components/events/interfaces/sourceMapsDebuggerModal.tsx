@@ -4,9 +4,9 @@ import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconCircle} from '@sentry/icons/circle';
+import {IconInfo} from '@sentry/icons/info';
 import {IconMegaphone} from '@sentry/icons/megaphone';
 import {IconOpen} from '@sentry/icons/open';
-import {IconQuestion} from '@sentry/icons/question';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {IconWarning} from '@sentry/icons/warning';
 
@@ -19,9 +19,9 @@ import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import {ProgressRing} from 'sentry/components/progressRing';
@@ -906,7 +906,7 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
             none: <IconCircle size="md" variant="muted" />,
             checked: <IconCheckmark size="md" variant="success" />,
             alert: <IconWarning size="md" variant="warning" />,
-            question: <IconQuestion size="md" variant="muted" />,
+            question: <IconInfo size="md" variant="muted" />,
           }[status]
         }
         <Line className="source-map-debugger-modal-checklist-line" />

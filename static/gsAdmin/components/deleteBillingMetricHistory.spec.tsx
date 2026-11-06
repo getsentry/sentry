@@ -8,6 +8,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as modal from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
 import type {Organization} from 'sentry/types/organization';
@@ -343,7 +344,7 @@ describe('deleteBillingMetricHistory export function', () => {
   it('opens modal with correct props', () => {
     const organization = OrganizationFixture();
     const onSuccess = jest.fn();
-    const openModalMock = jest.spyOn(require('sentry/actionCreators/modal'), 'openModal');
+    const openModalMock = jest.spyOn(modal, 'openModal');
 
     deleteBillingMetricHistory({organization, onSuccess});
 

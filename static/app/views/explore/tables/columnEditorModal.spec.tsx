@@ -6,7 +6,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 

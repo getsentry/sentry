@@ -6,9 +6,6 @@ import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
-import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -139,47 +136,36 @@ export function DashboardActionBar({
     dashboard.permissions,
     dashboard.createdBy
   );
+  if (isPrebuiltDashboard) {
+    return null;
+  }
+
   return (
-    <DashboardEditFeature>
-      {hasFeature => {
-        const showAddWidget = hasFeature && !isPrebuiltDashboard;
-        const showEdit = hasEditAccess && !isPrebuiltDashboard;
-
-        if (!showAddWidget && !showEdit) {
-          return null;
-        }
-
-        return (
-          <DashboardControls>
-            {showAddWidget && (
-              <AddWidgetDropdown
-                hasEditAccess={hasEditAccess}
-                onAddWidget={onAddWidget}
-                widgetLimitReached={widgetLimitReached}
-              />
-            )}
-            {showEdit && (
-              <Button
-                size="sm"
-                icon={<IconEdit />}
-                onClick={onEdit}
-                disabled={hasUnsavedFilters || isSaving}
-                tooltipProps={{
-                  title: isSaving
-                    ? DASHBOARD_SAVING_MESSAGE
-                    : hasUnsavedFilters
-                      ? UNSAVED_FILTERS_MESSAGE
-                      : undefined,
-                }}
-                data-test-id="dashboard-edit"
-              >
-                {t('Edit')}
-              </Button>
-            )}
-          </DashboardControls>
-        );
-      }}
-    </DashboardEditFeature>
+    <DashboardControls>
+      <AddWidgetDropdown
+        hasEditAccess={hasEditAccess}
+        onAddWidget={onAddWidget}
+        widgetLimitReached={widgetLimitReached}
+      />
+      {hasEditAccess && (
+        <Button
+          size="sm"
+          icon={<IconEdit />}
+          onClick={onEdit}
+          disabled={hasUnsavedFilters || isSaving}
+          tooltipProps={{
+            title: isSaving
+              ? DASHBOARD_SAVING_MESSAGE
+              : hasUnsavedFilters
+                ? UNSAVED_FILTERS_MESSAGE
+                : undefined,
+          }}
+          data-test-id="dashboard-edit"
+        >
+          {t('Edit')}
+        </Button>
+      )}
+    </DashboardControls>
   );
 }
 
@@ -242,35 +228,5 @@ function DashboardControls({children}: {children: React.ReactNode}) {
     >
       {children}
     </Flex>
-  );
-}
-
-function DashboardEditFeature({
-  children,
-}: {
-  children: (hasFeature: boolean) => React.ReactNode;
-}) {
-  const renderDisabled = (p: any) => (
-    <Hovercard
-      body={
-        <FeatureDisabled
-          features={p.features}
-          hideHelpToggle
-          featureName={t('Dashboard Editing')}
-        />
-      }
-    >
-      {p.children(p)}
-    </Hovercard>
-  );
-
-  return (
-    <Feature
-      overrideName="feature-disabled:dashboards-edit"
-      features="organizations:dashboards-edit"
-      renderDisabled={renderDisabled}
-    >
-      {({hasFeature}) => children(hasFeature)}
-    </Feature>
   );
 }

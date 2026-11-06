@@ -90,6 +90,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-web-vitals-trace-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable data-fidelity annotations (dropped-data heatmap) on dashboard widget charts
     manager.add("organizations:dashboards-data-fidelity-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable low-confidence indicators on data browsing time series charts
+    manager.add("organizations:data-browsing-time-series-confidence", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the use of the events timeseries endpoint for dashboard widgets
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)

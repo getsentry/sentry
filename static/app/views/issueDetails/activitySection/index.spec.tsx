@@ -45,7 +45,6 @@ describe('ActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
   const tenMinutesAgo = () => new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  user.options.prefersIssueDetailsStreamlinedUI = true;
   ConfigStore.set('user', user);
 
   ProjectsStore.loadInitialData([project]);
@@ -1195,7 +1194,7 @@ describe('ActivitySection', () => {
 
     render(
       <GroupIdProvider groupId={updatedActivityGroup.id}>
-        <ActivityDrawer project={project} />
+        <ActivityDrawer />
       </GroupIdProvider>,
       {
         initialRouterConfig: {
@@ -1275,7 +1274,7 @@ describe('ActivitySection', () => {
 
     render(
       <GroupIdProvider groupId={updatedActivityGroup.id}>
-        <ActivityDrawer project={project} />
+        <ActivityDrawer />
       </GroupIdProvider>,
       {
         initialRouterConfig: {

@@ -3,9 +3,9 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack, Grid} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 
 import {InstallDetailsContent} from './installDetailsContent';

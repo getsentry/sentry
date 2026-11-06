@@ -10,9 +10,9 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {
   ExternalActorMapping,

@@ -10,7 +10,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import type {DetailedProject} from 'sentry/types/project';
 import * as analytics from 'sentry/utils/analytics';
 

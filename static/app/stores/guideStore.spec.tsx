@@ -1,11 +1,12 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {UserFixture} from 'sentry-fixture/user';
 
+import {openModal, closeModal} from '@sentry/scraps/modal';
+
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {ConfigStore} from './configStore';
 import {GuideStore} from './guideStore';
-import {ModalStore} from './modalStore';
 
 jest.mock('sentry/utils/analytics');
 
@@ -23,7 +24,7 @@ describe('GuideStore', () => {
         }),
       })
     );
-    GuideStore.init();
+    GuideStore.reset();
     data = [
       {
         guide: 'trace_view',
@@ -34,10 +35,6 @@ describe('GuideStore', () => {
     GuideStore.registerAnchor('issue_stream');
     GuideStore.registerAnchor('trace_view_guide_row');
     GuideStore.registerAnchor('trace_view_guide_row_details');
-  });
-
-  afterEach(() => {
-    GuideStore.teardown();
   });
 
   it('should move through the steps in the guide', () => {
@@ -65,7 +62,7 @@ describe('GuideStore', () => {
 
     GuideStore.fetchSucceeded(data);
     window.location.hash = '#assistant';
-    window.dispatchEvent(new Event('load'));
+    GuideStore.onURLChange();
     expect(GuideStore.getState().currentGuide?.guide).toBe('issue_stream');
     GuideStore.closeGuide();
     expect(GuideStore.getState().currentGuide?.guide).toBe('trace_view');
@@ -73,11 +70,11 @@ describe('GuideStore', () => {
   });
 
   it('should force hide', () => {
-    expect(GuideStore.state.forceHide).toBe(false);
+    expect(GuideStore.getState().forceHide).toBe(false);
     GuideStore.setForceHide(true);
-    expect(GuideStore.state.forceHide).toBe(true);
+    expect(GuideStore.getState().forceHide).toBe(true);
     GuideStore.setForceHide(false);
-    expect(GuideStore.state.forceHide).toBe(false);
+    expect(GuideStore.getState().forceHide).toBe(false);
   });
 
   it('should record analytics events when guide is cued', () => {
@@ -92,7 +89,7 @@ describe('GuideStore', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
 
-    window.dispatchEvent(new Event('load'));
+    GuideStore.onURLChange();
     expect(spy).toHaveBeenCalledTimes(1);
 
     GuideStore.nextStep();
@@ -113,24 +110,24 @@ describe('GuideStore', () => {
     ];
 
     GuideStore.fetchSucceeded(data);
-    expect(GuideStore.state.guides).toHaveLength(1);
-    expect(GuideStore.state.guides[0]!.guide).toBe(data[0]!.guide);
+    expect(GuideStore.getState().guides).toHaveLength(1);
+    expect(GuideStore.getState().guides[0]!.guide).toBe(data[0]!.guide);
   });
 
   it('hides when a modal is open', () => {
     expect(GuideStore.getState().forceHide).toBe(false);
 
-    ModalStore.openModal(() => <div />, {});
+    openModal(() => <div />, {});
 
     expect(GuideStore.getState().forceHide).toBe(true);
 
-    ModalStore.closeModal();
+    closeModal();
 
     expect(GuideStore.getState().forceHide).toBe(false);
   });
 
   it('should return a stable reference from getState', () => {
-    ModalStore.openModal(() => <div />, {});
+    openModal(() => <div />, {});
     const state = GuideStore.getState();
     expect(Object.is(state, GuideStore.getState())).toBe(true);
   });
