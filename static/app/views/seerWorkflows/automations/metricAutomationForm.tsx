@@ -162,6 +162,10 @@ export function MetricAutomationForm(props: Props) {
     enabled: monitorIds.length > 0,
     placeholderData: keepPreviousData,
   });
+  // The query is disabled with no monitors connected, so its state only matters otherwise
+  const hasMonitorsError = monitorIds.length > 0 && monitorsQuery.isError;
+  const isResolvingMonitors =
+    monitorIds.length > 0 && (monitorsQuery.isLoading || monitorsQuery.isPlaceholderData);
   // For typing
   const monitors =
     monitorIds.length > 0
@@ -217,57 +221,54 @@ export function MetricAutomationForm(props: Props) {
           <form.FieldGroup title={t('Scope')}>
             <Fragment>
               <Stack gap="lg">
-                {monitorsQuery.isError ? (
-                  <LoadingError onRetry={monitorsQuery.refetch} />
-                ) : (
-                  <form.AppField name="monitorIds">
-                    {field => (
-                      <field.Layout.Stack
-                        label={t('Connected monitors')}
-                        hintText={t(
-                          'Search by monitor name. You can connect more than one.'
-                        )}
-                      >
-                        <field.SelectAsync
-                          multiple
-                          clearable
-                          value={field.state.value}
-                          onChange={field.handleChange}
-                          placeholder={t('Connect metric monitors…')}
-                          queryOptions={debouncedInput => {
-                            // Filter query by form input
-                            const baseOptions = detectorListApiOptions(organization, {
-                              query: debouncedInput
-                                ? `type:metric_issue name:"*${escapeSearchValue(debouncedInput)}*"`
-                                : 'type:metric_issue',
-                              projects: [-1],
-                              limit: 100,
-                              sortBy: '-latestGroup',
-                            });
-                            return queryOptions({
-                              ...baseOptions,
-                              select: ({json}) => {
-                                const results = json.filter(
-                                  monitor => monitor.type === 'metric_issue'
-                                );
-                                // Keep already-selected monitors in the options so their labels still render
-                                const selected = monitors.filter(
-                                  monitor =>
-                                    field.state.value.includes(monitor.id) &&
-                                    !results.some(result => result.id === monitor.id)
-                                );
-                                return [...selected, ...results].map(monitor => ({
-                                  value: monitor.id,
-                                  label: `${monitor.name} · ${getProjectSlug(monitor.projectId)}`,
-                                }));
-                              },
-                            });
-                          }}
-                        />
-                      </field.Layout.Stack>
-                    )}
-                  </form.AppField>
-                )}
+                <form.AppField name="monitorIds">
+                  {field => (
+                    <field.Layout.Stack
+                      label={t('Connected monitors')}
+                      hintText={t(
+                        'Search by monitor name. You can connect more than one.'
+                      )}
+                    >
+                      <field.SelectAsync
+                        multiple
+                        clearable
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        placeholder={t('Connect metric monitors…')}
+                        queryOptions={debouncedInput => {
+                          // Filter query by form input
+                          const baseOptions = detectorListApiOptions(organization, {
+                            query: debouncedInput
+                              ? `type:metric_issue name:"*${escapeSearchValue(debouncedInput)}*"`
+                              : 'type:metric_issue',
+                            projects: [-1],
+                            limit: 100,
+                            sortBy: '-latestGroup',
+                          });
+                          return queryOptions({
+                            ...baseOptions,
+                            select: ({json}) => {
+                              const results = json.filter(
+                                monitor => monitor.type === 'metric_issue'
+                              );
+                              // Keep already-selected monitors in the options so their labels still render
+                              const selected = monitors.filter(
+                                monitor =>
+                                  field.state.value.includes(monitor.id) &&
+                                  !results.some(result => result.id === monitor.id)
+                              );
+                              return [...selected, ...results].map(monitor => ({
+                                value: monitor.id,
+                                label: `${monitor.name} · ${getProjectSlug(monitor.projectId)}`,
+                              }));
+                            },
+                          });
+                        }}
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+                {hasMonitorsError && <LoadingError onRetry={monitorsQuery.refetch} />}
                 <ConnectedMonitorList
                   monitorIds={monitorIds}
                   monitors={monitors}
@@ -407,11 +408,7 @@ export function MetricAutomationForm(props: Props) {
               )}
               <form.SubmitButton
                 variant="primary"
-                disabled={
-                  monitorsQuery.isLoading ||
-                  monitorsQuery.isPlaceholderData ||
-                  monitorsQuery.isError
-                }
+                disabled={isResolvingMonitors || hasMonitorsError}
               >
                 {props.mode === 'create' ? t('Create automation') : t('Save changes')}
               </form.SubmitButton>
@@ -576,5 +573,5 @@ function resolveServiceAccountProjects(
  * only unescapes `\"` and `\*`, so backslashes are dropped rather than escaped.
  */
 function escapeSearchValue(value: string): string {
-  return value.replace(/\\/g, '').replace(/["*]/g, '\\$&');
+  return value.replace(/[\\"*]/g, char => (char === '\\' ? '' : `\\${char}`));
 }
