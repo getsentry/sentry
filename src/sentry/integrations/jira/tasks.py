@@ -69,18 +69,19 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
     cloud_id = payload["cloud_id"]
     api_base_url = payload["api_base_url"]
     system_token = payload["system_token"]
-    client = ForgeInstallationClient()
+    client = ForgeInstallationClient(api_base_url, system_token)
 
-    # Forge-only integrations are keyed by cloud ID. Connect integrations keep their
-    # clientKey until the cloud ID backfill rekeys them.
+    # 1. The site already has an integration keyed by its cloud ID.
+    # 2. Otherwise, unless the app is Forge-native, it replaces the Connect app, so the
+    #    site has a Connect integration keyed by its clientKey. A failed lookup is retried,
+    #    never taken to mean there's no Connect integration.
+    # 3. Otherwise, create a Forge-only integration keyed by the cloud ID.
     integration = Integration.objects.filter(provider="jira", external_id=cloud_id).first()
     if integration is None and payload["app_id"] not in options.get("jira.forge.native-app-ids"):
-        # The Connect app's Forge successor: the site also has the Connect install, so a
-        # failed lookup is retried rather than taken to mean there's no Connect integration.
-        client_key = client.get_connect_client_key(api_base_url, system_token)
+        client_key = client.get_connect_client_key()
         integration = Integration.objects.get(provider="jira", external_id=client_key)
     elif integration is None:
-        server_info = client.get_server_info(api_base_url, system_token)
+        server_info = client.get_server_info()
         base_url = server_info["baseUrl"]
         integration, _ = Integration.objects.get_or_create(
             provider="jira",

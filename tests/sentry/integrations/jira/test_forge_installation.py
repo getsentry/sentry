@@ -81,7 +81,7 @@ class JiraForgeInstallationWebhookTest(APITestCase):
             pytest.raises(Integration.DoesNotExist),
         ):
             sync_forge_installation(**kwargs)
-        mock_get_key.assert_called_once_with(API_BASE_URL, SYSTEM_TOKEN)
+        mock_get_key.assert_called_once_with()
 
     @freeze_time("2025-01-01 00:00:00")
     def test_takes_site_from_api_base_url(
