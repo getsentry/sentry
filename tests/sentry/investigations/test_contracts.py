@@ -184,7 +184,8 @@ def test_linked_issues_keep_valid_items_once_per_group() -> None:
             {"groupId": 0},
             {"reason": "No group."},
             {"groupId": 7, "reason": "Duplicate."},
-            {"groupId": 8, "reason": ""},
+            {"groupId": 9, "reason": ""},
+            {"groupId": 8},
         ]
     ) == [
         {"groupId": 7, "hypothesisId": "h-1", "hypothesisStatement": None, "reason": "First."},

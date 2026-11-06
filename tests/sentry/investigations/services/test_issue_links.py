@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from sentry.constants import ObjectStatus
 from sentry.investigations.services.issue_links import link_investigation_issues
 from sentry.issues.action_log.types import ActionSource, InvestigationLinkedAction
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group
-from sentry.notebooks.models import NotebookSourceType, NotebookStatus
+from sentry.notebooks.models import NotebookProject, NotebookSourceType, NotebookStatus
+from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -131,3 +133,53 @@ class LinkInvestigationIssuesTest(TestCase):
         self.complete([self.link(self.group)])
 
         assert self.entries() == []
+
+    def test_an_org_wide_investigation_links_any_active_project(self) -> None:
+        NotebookProject.objects.filter(notebook=self.investigation).delete()
+        other_group = self.create_group(project=self.create_project(organization=self.organization))
+        deleted_project_group = self.create_group(
+            project=self.create_project(
+                organization=self.organization, status=ObjectStatus.PENDING_DELETION
+            )
+        )
+
+        self.complete([self.link(other_group), self.link(deleted_project_group)])
+
+        assert len(self.entries(other_group)) == 1
+        assert self.entries(deleted_project_group) == []
+
+    def test_a_creator_who_left_the_organization_links_nothing(self) -> None:
+        self.investigation.update(created_by_id=self.create_user().id)
+
+        self.complete([self.link(self.group)])
+
+        assert self.entries() == []
+
+    def test_an_investigation_without_a_creator_links_nothing(self) -> None:
+        self.investigation.update(created_by_id=None)
+
+        self.complete([self.link(self.group)])
+
+        assert self.entries() == []
+
+    @with_feature("organizations:service-accounts")
+    def test_a_service_account_links_only_while_it_can_access_the_projects(self) -> None:
+        with outbox_runner():
+            account = self.create_service_account(
+                organization=self.organization, project_ids=[self.project.id]
+            )
+        self.investigation.update(created_by_id=None, created_by_service_account_id=account.id)
+        other_project = self.create_project(organization=self.organization)
+        self.create_notebook_project(self.investigation, other_project)
+
+        self.complete([self.link(self.group)])
+        assert self.entries() == []
+
+        NotebookProject.objects.filter(project=other_project).delete()
+        self.complete([self.link(self.group)], generation=2)
+        assert len(self.entries()) == 1
+
+        ServiceAccountReplica.objects.filter(service_account_id=account.id).update(is_active=False)
+        linked = self.create_group(project=self.project)
+        self.complete([self.link(linked)], generation=3)
+        assert self.entries(linked) == []

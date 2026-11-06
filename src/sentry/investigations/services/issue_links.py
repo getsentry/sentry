@@ -2,21 +2,21 @@ from __future__ import annotations
 
 import logging
 
+from django.db.models import QuerySet
+
+from sentry.constants import ObjectStatus
 from sentry.investigations.contracts import valid_linked_issues
 from sentry.investigations.models import (
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
 )
+from sentry.investigations.services.actor_access import actor_can_investigate
 from sentry.issues.action_log import ActionSource, publish_action
 from sentry.issues.action_log.types import InvestigationLinkedAction
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.notebooks.access import issue_links_enabled
-from sentry.notebooks.models import (
-    Notebook,
-    NotebookProject,
-    NotebookSourceType,
-    NotebookStatus,
-)
+from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookStatus
 
 logger = logging.getLogger(__name__)
 
@@ -26,52 +26,57 @@ def issue_link_idempotency_key(notebook_id: int) -> str:
     return f"investigation:{notebook_id}"
 
 
-def _source_group_id(notebook: Notebook) -> int | None:
+def _linkable_projects(notebook: Notebook) -> QuerySet[Project]:
+    """The active projects the investigation covers, while its creator can still investigate.
+
+    No selected projects means the whole organization, the same as when it was created.
+    """
+    selected = list(notebook.projects.values_list("id", flat=True))
+    projects = Project.objects.filter(
+        organization_id=notebook.organization_id, status=ObjectStatus.ACTIVE
+    )
+    if not actor_can_investigate(
+        organization=notebook.organization, actor=notebook.creator_actor, project_ids=selected
+    ):
+        return projects.none()
+    if selected:
+        return projects.filter(id__in=selected)
+    return projects
+
+
+def _source_group_ids(notebook: Notebook) -> list[str]:
     """The group the investigation started from. Its own page already links the investigation."""
     if notebook.source_type != NotebookSourceType.METRIC_OPEN_PERIOD:
-        return None
-    ref = notebook.source.get("ref")
-    group_id = ref.get("groupId") if isinstance(ref, dict) else None
-    try:
-        return int(group_id) if isinstance(group_id, int | str) else None
-    except ValueError:
-        return None
+        return []
+    return [notebook.source["ref"]["groupId"]]
 
 
 def link_investigation_issues(*, investigation_id: int, generation: int) -> None:
     """Record the issues a completed run linked on each issue's action log."""
     run = (
         InvestigationOrchestrationRun.objects.select_related("investigation__organization")
-        .filter(investigation_id=investigation_id)
+        .filter(
+            investigation_id=investigation_id,
+            # A newer generation schedules its own links once it completes.
+            generation=generation,
+            status=InvestigationOrchestrationStatus.COMPLETED,
+            investigation__status=NotebookStatus.ACTIVE,
+        )
         .first()
     )
-    # A newer generation schedules its own links once it completes.
-    if (
-        run is None
-        or run.generation != generation
-        or run.status != InvestigationOrchestrationStatus.COMPLETED
-    ):
+    if run is None or not issue_links_enabled(run.investigation.organization):
         return
     notebook = run.investigation
-    if notebook.status == NotebookStatus.ARCHIVED or not issue_links_enabled(notebook.organization):
-        return
 
-    source_group_id = _source_group_id(notebook)
     linked = {
         item["groupId"]: item
         for item in valid_linked_issues(run.projection.get("linkedIssues"), log=True)
-        if item["groupId"] != source_group_id
     }
-    if not linked:
-        return
-
-    # Seer only reads the investigation's projects, so a group outside them isn't one it saw.
-    groups = Group.objects.filter(
-        id__in=linked,
-        project__organization_id=notebook.organization_id,
-        project_id__in=NotebookProject.objects.filter(notebook=notebook).values("project_id"),
-    ).select_related("project")
-    published = 0
+    groups = (
+        Group.objects.filter(id__in=linked, project__in=_linkable_projects(notebook))
+        .exclude(id__in=_source_group_ids(notebook))
+        .select_related("project")
+    )
     for group in groups:
         item = linked[group.id]
         publish_action(
@@ -86,14 +91,8 @@ def link_investigation_issues(*, investigation_id: int, generation: int) -> None
             project=group.project,
             idempotency_key=issue_link_idempotency_key(notebook.id),
         )
-        published += 1
 
     logger.info(
         "investigations.issue_links.published",
-        extra={
-            "investigation_id": notebook.id,
-            "generation": generation,
-            "linked": len(linked),
-            "published": published,
-        },
+        extra={"investigation_id": notebook.id, "generation": generation, "linked": len(linked)},
     )

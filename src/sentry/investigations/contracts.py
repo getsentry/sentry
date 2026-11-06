@@ -691,9 +691,9 @@ class LinkedIssueSerializer(RelaxedContractSerializer):
     """One issue the investigation found relevant, from the projection's `linkedIssues`."""
 
     groupId = StrictIntegerField(min_value=1, max_value=I64_MAX)
-    hypothesisId = OptionalStrictCharField(128)
-    hypothesisStatement = OptionalStrictCharField(2_000)
-    reason = OptionalStrictCharField(1_000)
+    hypothesisId = OptionalStrictCharField(128, allow_blank=False, default=None)
+    hypothesisStatement = OptionalStrictCharField(2_000, allow_blank=False, default=None)
+    reason = OptionalStrictCharField(1_000, allow_blank=False, default=None)
 
 
 def valid_linked_issues(items: Any, *, log: bool = False) -> list[LinkedIssueItem]:
@@ -706,23 +706,22 @@ def valid_linked_issues(items: Any, *, log: bool = False) -> list[LinkedIssueIte
     kept: dict[int, LinkedIssueItem] = {}
     for item in items[:MAX_LINKED_ISSUES]:
         validator = LinkedIssueSerializer(data=item)
-        if not validator.is_valid():
-            if log:
-                logger.warning(
-                    "investigations.linked_issues.dropped",
-                    extra={"fields": sorted(validator.errors)[:10]},
-                )
-            continue
-        data = validator.validated_data
-        kept.setdefault(
-            data["groupId"],
-            {
-                "groupId": data["groupId"],
-                "hypothesisId": data.get("hypothesisId") or None,
-                "hypothesisStatement": data.get("hypothesisStatement") or None,
-                "reason": data.get("reason") or None,
-            },
-        )
+        if validator.is_valid():
+            data = validator.validated_data
+            kept.setdefault(
+                data["groupId"],
+                {
+                    "groupId": data["groupId"],
+                    "hypothesisId": data["hypothesisId"],
+                    "hypothesisStatement": data["hypothesisStatement"],
+                    "reason": data["reason"],
+                },
+            )
+        elif log:
+            logger.warning(
+                "investigations.linked_issues.dropped",
+                extra={"fields": sorted(validator.errors)[:10]},
+            )
     return list(kept.values())
 
 

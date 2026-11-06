@@ -12,7 +12,6 @@ from django.db.models import Max
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.auth.access import from_user
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
@@ -21,13 +20,15 @@ from sentry.investigations.models import (
     InvestigationOrchestrationStatus,
 )
 from sentry.investigations.services.action_kinds.base import FollowUpCommandType
-from sentry.investigations.services.actor_access import resolve_investigation_service_account
+from sentry.investigations.services.actor_access import (
+    resolve_investigation_service_account,
+    user_can_investigate,
+)
 from sentry.investigations.services.breached_metrics import (
     BreachedMetricSource,
     resolve_breached_metric_sources,
 )
 from sentry.models.organization import Organization
-from sentry.notebooks.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlockExecution,
@@ -153,11 +154,7 @@ def _validate_creation_actor(
             {"creator": "A user or service account with a positive integer ID is required."}
         )
     if creator.type == ActorType.USER:
-        user = user_service.get_user(user_id=creator.id)
-        access = from_user(user, organization=organization)
-        if not any(access.has_scope(scope) for scope in INVESTIGATION_SCOPES) or not (
-            has_investigations_access(organization, actor=user)
-        ):
+        if not user_can_investigate(organization, user_service.get_user(user_id=creator.id)):
             raise PermissionDenied
         # Open membership grants authorized human members access to every active project.
         _validate_project_ids(organization.id, project_ids)

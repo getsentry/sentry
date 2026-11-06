@@ -31,7 +31,6 @@ from sentry.issues.action_log.types import (
     GroupActionType,
     GroupActorType,
     ImpactAssessmentAction,
-    InvestigationLinkedAction,
 )
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.impact.types import get_impact_level
@@ -145,11 +144,10 @@ def get_serialized_activity_items(
     if not should_serve_action_log_activity(group.project, user, endpoint=endpoint):
         return None
 
-    hidden_types = (
-        []
-        if issue_links_enabled(group.project.organization, user)
-        else [GroupActionType.INVESTIGATION_LINKED]
-    )
+    # Investigation links are only shown to viewers who can open the investigation.
+    hidden_types: list[GroupActionType] = []
+    if not issue_links_enabled(group.project.organization, user):
+        hidden_types.append(GroupActionType.INVESTIGATION_LINKED)
     oldest_entry = (
         GroupActionLogEntry.objects.filter(
             group_id=group.id,
@@ -226,6 +224,14 @@ class LinkedInvestigationResponse(TypedDict):
     status: str
 
 
+def _investigation_summary(
+    notebook: Notebook | None, organization_id: int | None
+) -> LinkedInvestigationResponse | None:
+    if notebook is None or notebook.organization_id != organization_id:
+        return None
+    return {"id": str(notebook.id), "title": notebook.title, "status": notebook.status}
+
+
 def _linked_investigations(
     item_list: Sequence[GroupActionLogEntry],
 ) -> dict[GroupActionLogEntry, LinkedInvestigationResponse | None]:
@@ -233,33 +239,18 @@ def _linked_investigations(
     links = [item for item in item_list if item.type == GroupActionType.INVESTIGATION_LINKED.value]
     if not links:
         return {}
-    organization_by_project = dict(
+    organization_ids = dict(
         Project.objects.filter(id__in={item.project_id for item in links}).values_list(
             "id", "organization_id"
         )
     )
-    notebooks = Notebook.objects.in_bulk(
-        {
-            item.action.notebook_id
-            for item in links
-            if isinstance(item.action, InvestigationLinkedAction)
-        }
-    )
-    linked: dict[GroupActionLogEntry, LinkedInvestigationResponse | None] = {}
-    for item in links:
-        action = item.action
-        notebook = (
-            notebooks.get(action.notebook_id)
-            if isinstance(action, InvestigationLinkedAction)
-            else None
+    notebooks = Notebook.objects.in_bulk({item.data["notebook_id"] for item in links})
+    return {
+        item: _investigation_summary(
+            notebooks.get(item.data["notebook_id"]), organization_ids.get(item.project_id)
         )
-        if notebook is None or notebook.organization_id != organization_by_project.get(
-            item.project_id
-        ):
-            linked[item] = None
-            continue
-        linked[item] = {"id": str(notebook.id), "title": notebook.title, "status": notebook.status}
-    return linked
+        for item in links
+    }
 
 
 @register(GroupActionLogEntry)
@@ -396,14 +387,11 @@ class GroupActionLogEntrySerializer(Serializer):
                 "sourceEventId": action.source_event_id,
             }
         elif obj.type == GroupActionType.INVESTIGATION_LINKED.value:
-            action = obj.action
-            if not isinstance(action, InvestigationLinkedAction):
-                raise TypeError("Investigation link entry has an unexpected action type")
             data = {
                 "investigation": attrs["investigation"],
-                "hypothesisId": action.hypothesis_id,
-                "hypothesisStatement": action.hypothesis_statement,
-                "reason": action.reason,
+                "hypothesisId": obj.data.get("hypothesis_id"),
+                "hypothesisStatement": obj.data.get("hypothesis_statement"),
+                "reason": obj.data.get("reason"),
             }
         elif (
             obj.type == GroupActionType.SET_RESOLVED_IN_RELEASE.value
