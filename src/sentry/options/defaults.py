@@ -813,14 +813,14 @@ register(
 
 register(
     "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
-    default=3600,
+    default=300,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
-    default=601,
+    default=1801,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
