@@ -36,19 +36,17 @@ interface Props {
  */
 export function NavigationTypeGate({children, prebuiltId}: Props) {
   const organization = useOrganization();
-  const {isEnabled: isWebVitalsDashboard, otherSpanFilterQuery} =
-    useNavigationTypeExperiment(prebuiltId);
+  const {isEnabled: isWebVitalsDashboard} = useNavigationTypeExperiment(prebuiltId);
   const location = useLocation();
 
-  const switcherFilter = getSwitcherFilter(
-    getDashboardFiltersFromURL(location)?.[DashboardFilterKeys.GLOBAL_FILTER],
-    organization
-  );
+  const globalFilters =
+    getDashboardFiltersFromURL(location)?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
+  const switcherFilter = getSwitcherFilter(globalFilters, organization);
   const buckets = switcherFilter ? getBucketsFromGlobalFilters([switcherFilter]) : [];
   const hidesThresholds = Boolean(switcherFilter) && !bucketsKeepThresholds(buckets);
 
   const {counts, isPending} = useNavigationTypeCounts({
-    additionalQuery: otherSpanFilterQuery,
+    globalFilters,
     enabled: hidesThresholds && isWebVitalsDashboard,
   });
 

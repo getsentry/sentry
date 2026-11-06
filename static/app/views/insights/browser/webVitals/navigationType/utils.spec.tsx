@@ -1,9 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 
 import {
   buildNavigationTypeGlobalFilter,
+  getNavigationTypeDataset,
+  NAVIGATION_TYPE_BUCKET_ORDER,
   NavigationTypeBucket,
   WEB_VITALS_NAVIGATION_TYPE_FEATURE,
 } from './settings';
@@ -21,6 +24,16 @@ describe('hidesNavigationTypeChip', () => {
   it('hides the chip where the switcher replaces it', () => {
     expect(
       hidesNavigationTypeChip(WEB_VITALS_NAVIGATION_TYPE_FILTER, withFlag, true)
+    ).toBe(true);
+    expect(
+      hidesNavigationTypeChip(
+        buildNavigationTypeGlobalFilter(
+          NAVIGATION_TYPE_BUCKET_ORDER,
+          WidgetType.TRACEMETRICS
+        ),
+        withFlag,
+        true
+      )
     ).toBe(true);
   });
 
@@ -68,6 +81,21 @@ describe('showsNavigationTypeSwitcher', () => {
     ).toBe(true);
   });
 
+  it('shows on a metrics backed copy that carries the filter', () => {
+    expect(
+      showsNavigationTypeSwitcher(
+        [
+          buildNavigationTypeGlobalFilter(
+            NAVIGATION_TYPE_BUCKET_ORDER,
+            WidgetType.TRACEMETRICS
+          ),
+        ],
+        withFlag,
+        false
+      )
+    ).toBe(true);
+  });
+
   it('stays off on a dashboard without the filter', () => {
     expect(showsNavigationTypeSwitcher([], withFlag, false)).toBe(false);
   });
@@ -91,5 +119,22 @@ describe('showsNavigationTypeSwitcher', () => {
     expect(
       showsNavigationTypeSwitcher([WEB_VITALS_NAVIGATION_TYPE_FILTER], withoutFlag, true)
     ).toBe(false);
+  });
+});
+
+describe('getNavigationTypeDataset', () => {
+  it('falls back to spans for a dashboard without the filter', () => {
+    expect(getNavigationTypeDataset([])).toBe(WidgetType.SPANS);
+  });
+
+  it('reads the dataset from the filter the dashboard carries', () => {
+    expect(
+      getNavigationTypeDataset([
+        buildNavigationTypeGlobalFilter(
+          NAVIGATION_TYPE_BUCKET_ORDER,
+          WidgetType.TRACEMETRICS
+        ),
+      ])
+    ).toBe(WidgetType.TRACEMETRICS);
   });
 });

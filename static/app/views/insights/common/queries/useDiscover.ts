@@ -51,6 +51,19 @@ export const useSpans = <Fields extends SpanProperty[]>(
   return useDiscover<Fields, SpanResponse>(options, DiscoverDatasets.SPANS, referrer);
 };
 
+type TraceMetricsResponse = Record<string, string | number | null | undefined>;
+
+export const useTraceMetrics = <Fields extends string[]>(
+  options: UseDiscoverOptions<Fields> = {},
+  referrer: string
+) => {
+  return useDiscover<Fields, TraceMetricsResponse>(
+    options,
+    DiscoverDatasets.TRACEMETRICS,
+    referrer
+  );
+};
+
 const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
   options: UseDiscoverOptions<T> = {},
   dataset: DiscoverDatasets,
