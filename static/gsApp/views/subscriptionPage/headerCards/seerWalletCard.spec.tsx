@@ -22,6 +22,7 @@ function WalletFixture(params: Partial<SeerWalletBalance> = {}): SeerWalletBalan
     creditPriceCents: 1,
     included: {total: 500, remaining: 320, resetsAt: '2026-11-01'},
     purchased: {total: 0, remaining: 0, expiresAt: null},
+    percentUsed: 0.36,
     ...params,
   };
 }
@@ -200,6 +201,15 @@ describe('SeerWalletCard', () => {
       await screen.findByText('Unable to load your Seer credits.')
     ).toBeInTheDocument();
     expect(screen.getAllByRole('heading')).toHaveLength(1);
+  });
+
+  it('shows an error when the wallet has no pricing', async () => {
+    mockWallet(WalletFixture({creditPriceCents: undefined}));
+    render(<SeerWalletCard organization={organization} />);
+
+    expect(
+      await screen.findByText('Unable to load your Seer credits.')
+    ).toBeInTheDocument();
   });
 
   it('shows validation errors from the API', async () => {

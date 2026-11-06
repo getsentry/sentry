@@ -2,39 +2,68 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Annotated, Any, Literal, NotRequired, TypedDict
 
 # The API schema generator does not resolve PEP 695 aliases yet.
 MessageRole = Literal["user", "assistant", "embedding", "evaluation", "memory"]
 
+from sentry.apidocs.descriptions import ApiDescription
+
 
 class ToolCallResponse(TypedDict):
-    name: str
-    nodeId: str
-    hasError: bool
-    duration: NotRequired[float]
+    name: Annotated[str, ApiDescription("Name of the tool")]
+    nodeId: Annotated[str, ApiDescription("ID of the tool call's span")]
+    hasError: Annotated[bool, ApiDescription("Whether the tool call failed")]
+    duration: NotRequired[Annotated[float, ApiDescription("Duration of the tool call in seconds")]]
 
 
 class TranscriptMessageResponse(TypedDict):
-    id: str
-    role: MessageRole
-    content: str
-    timestamp: float
-    nodeId: str
-    traceId: NotRequired[str]
-    projectId: NotRequired[str]
-    userEmail: NotRequired[str]
-    reasoning: NotRequired[str]
-    agentName: NotRequired[str]
-    modelName: NotRequired[str]
-    duration: NotRequired[float]
-    toolCalls: NotRequired[list[ToolCallResponse]]
-    embeddingInput: NotRequired[str]
-    embeddingTokens: NotRequired[float]
-    embeddingHasError: NotRequired[bool]
+    id: Annotated[str, ApiDescription("ID of the message")]
+    role: Annotated[
+        MessageRole,
+        ApiDescription("Role of the message: user, assistant, embedding, evaluation or memory"),
+    ]
+    content: Annotated[str, ApiDescription("Content of the message")]
+    timestamp: Annotated[
+        float, ApiDescription("When the message was recorded, as a Unix timestamp in seconds")
+    ]
+    nodeId: Annotated[str, ApiDescription("ID of the span the message comes from")]
+    traceId: NotRequired[Annotated[str, ApiDescription("ID of the trace the message comes from")]]
+    projectId: NotRequired[
+        Annotated[str, ApiDescription("ID of the project the message comes from")]
+    ]
+    userEmail: NotRequired[Annotated[str, ApiDescription("Email of the user who sent the message")]]
+    reasoning: NotRequired[
+        Annotated[str, ApiDescription("Reasoning the model recorded for the message")]
+    ]
+    agentName: NotRequired[
+        Annotated[str, ApiDescription("Name of the agent that produced the message")]
+    ]
+    modelName: NotRequired[
+        Annotated[str, ApiDescription("Name of the model that produced the message")]
+    ]
+    duration: NotRequired[
+        Annotated[
+            float, ApiDescription("Duration of the span that produced the message in seconds")
+        ]
+    ]
+    toolCalls: NotRequired[
+        Annotated[list[ToolCallResponse], ApiDescription("Tool calls the message made")]
+    ]
+    embeddingInput: NotRequired[Annotated[str, ApiDescription("Input of the embedding call")]]
+    embeddingTokens: NotRequired[
+        Annotated[float, ApiDescription("Number of tokens the embedding call used")]
+    ]
+    embeddingHasError: NotRequired[
+        Annotated[bool, ApiDescription("Whether the embedding call failed")]
+    ]
     # Arbitrary provider JSON is intentionally open at the wire boundary.
-    evaluation: NotRequired[dict[str, Any]]
-    memory: NotRequired[dict[str, Any]]
+    evaluation: NotRequired[
+        Annotated[dict[str, Any], ApiDescription("Evaluation result recorded by the provider")]
+    ]
+    memory: NotRequired[
+        Annotated[dict[str, Any], ApiDescription("Memory operation recorded by the provider")]
+    ]
 
 
 @dataclass(frozen=True, slots=True)

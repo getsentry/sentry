@@ -4,10 +4,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Feature} from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {DisabledText} from 'sentry/views/explore/components/chartContextMenu';
 
 type ChartContextMenuProps = {
   setVisible: (visible: boolean) => void;
@@ -15,7 +12,6 @@ type ChartContextMenuProps = {
 };
 
 export function ChartContextMenu({visible, setVisible}: ChartContextMenuProps) {
-  const organization = useOrganization();
   const items: MenuItemProps[] = useMemo(() => {
     const menuItems = [];
 
@@ -31,21 +27,11 @@ export function ChartContextMenu({visible, setVisible}: ChartContextMenuProps) {
     });
 
     // TODO: remove this once we have dashboards support for errors
-    const disableAddToDashboard =
-      !organization.features.includes('dashboards-edit') || true;
     menuItems.push({
       key: 'add-to-dashboard',
       textValue: t('Add to Dashboard'),
-      label: (
-        <Feature
-          overrideName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-        >
-          {t('Add to Dashboard')}
-        </Feature>
-      ),
-      disabled: disableAddToDashboard,
+      label: t('Add to Dashboard'),
+      disabled: true,
       onAction: () => {},
     });
 
@@ -66,7 +52,7 @@ export function ChartContextMenu({visible, setVisible}: ChartContextMenuProps) {
     }
 
     return menuItems;
-  }, [organization, visible, setVisible]);
+  }, [visible, setVisible]);
 
   if (items.length === 0) {
     return null;

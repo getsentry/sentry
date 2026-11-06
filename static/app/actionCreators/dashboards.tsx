@@ -61,8 +61,18 @@ export function createDashboard(
   orgSlug: string,
   newDashboard: DashboardDetails
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters, utc} =
-    newDashboard;
+  const {
+    title,
+    widgets,
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
+    utc,
+    queryPriority,
+  } = newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
@@ -80,6 +90,7 @@ export function createDashboard(
         end,
         filters,
         utc,
+        ...(queryPriority ? {queryPriority} : {}),
       },
       query: {
         project: projects,
@@ -413,19 +424,20 @@ export function updateDashboardPermissions(
     }
   );
 
-  promise.catch(response => {
-    const errorResponse =
-      response instanceof RequestError ? response?.responseJSON : null;
-
-    if (errorResponse) {
-      const errors = flattenErrors(errorResponse, {});
-      toast.error(errors[Object.keys(errors)[0]!]! as string);
-    } else {
-      toast.error(t('Unable to update dashboard permissions'));
-    }
-  });
+  promise.catch(showDashboardPermissionsError);
 
   return promise;
+}
+
+export function showDashboardPermissionsError(response: unknown) {
+  const errorResponse = response instanceof RequestError ? response?.responseJSON : null;
+
+  if (errorResponse) {
+    const errors = flattenErrors(errorResponse, {});
+    toast.error(errors[Object.keys(errors)[0]!]! as string);
+  } else {
+    toast.error(t('Unable to update dashboard permissions'));
+  }
 }
 
 export function validateWidget(
