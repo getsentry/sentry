@@ -126,9 +126,11 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
     return null;
   }
 
+  // The API returns `dataSources: null` when a detector has no linked data source
+  const dataSources: MetricDetector['dataSources'] | null = detector.dataSources;
   const unit = getMetricDetectorSuffix(
     detectionType,
-    detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+    dataSources?.[0]?.queryObj?.snubaQuery?.aggregate || 'count()'
   );
   switch (detectionType) {
     case 'static': {
@@ -162,15 +164,21 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
 }
 
 function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
+  // The API returns `dataSources: null` when a detector has no linked data source
+  const dataSources: MetricDetector['dataSources'] | null = detector.dataSources;
+  if (!dataSources?.length) {
+    return <MetricDetectorConfigDetails detector={detector} />;
+  }
+
   const datasetConfig = getDatasetConfig(
     getDetectorDataset(
-      detector.dataSources[0].queryObj?.snubaQuery.dataset || Dataset.ERRORS,
-      detector.dataSources[0].queryObj?.snubaQuery.eventTypes || []
+      dataSources[0].queryObj?.snubaQuery.dataset || Dataset.ERRORS,
+      dataSources[0].queryObj?.snubaQuery.eventTypes || []
     )
   );
   return (
     <Fragment>
-      {detector.dataSources.map(dataSource => {
+      {dataSources.map(dataSource => {
         if (!dataSource.queryObj) {
           return null;
         }
@@ -195,9 +203,15 @@ function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
 }
 
 function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
+  // The API returns `dataSources: null` when a detector has no linked data source
+  const dataSources: UptimeDetector['dataSources'] | null = detector.dataSources;
+  if (!dataSources?.length) {
+    return null;
+  }
+
   return (
     <Fragment>
-      {detector.dataSources.map(dataSource => {
+      {dataSources.map(dataSource => {
         return (
           <Fragment key={dataSource.id}>
             <DetailItem>{middleEllipsis(dataSource.queryObj.url, 40)}</DetailItem>
@@ -214,7 +228,12 @@ function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
 }
 
 function CronDetectorDetails({detector}: {detector: CronDetector}) {
-  const config = detector.dataSources[0].queryObj.config;
+  // The API returns `dataSources: null` when a detector has no linked data source
+  const dataSources: CronDetector['dataSources'] | null = detector.dataSources;
+  const config = dataSources?.[0]?.queryObj.config;
+  if (!config) {
+    return null;
+  }
 
   return <DetailItem>{scheduleAsText(config)}</DetailItem>;
 }

@@ -1,4 +1,9 @@
-import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
+import * as Sentry from '@sentry/react';
+import {
+  CronDetectorFixture,
+  IssueStreamDetectorFixture,
+  UptimeDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +13,11 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import type {
+  CronDetector,
+  MetricDetector,
+  UptimeDetector,
+} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 import {DetectorLink} from './detectorLink';
@@ -154,5 +163,64 @@ describe('DetectorLink', () => {
 
     expect(screen.getByText(/8% higher than previous 1 hour/)).toBeInTheDocument();
     expect(screen.getByText(/15% higher than previous 1 hour/)).toBeInTheDocument();
+  });
+
+  describe('when the API returns dataSources: null', () => {
+    beforeEach(() => {
+      jest.mocked(Sentry.captureException).mockClear();
+    });
+
+    it('renders an uptime detector without crashing', () => {
+      const detector = {
+        ...UptimeDetectorFixture({name: 'Uptime Without Source'}),
+        dataSources: null,
+      } as unknown as UptimeDetector;
+
+      render(<DetectorLink detector={detector} />, {organization});
+
+      expect(
+        screen.getByRole('link', {name: /uptime without source/i})
+      ).toBeInTheDocument();
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+    });
+
+    it('renders a cron detector without crashing', () => {
+      const detector = {
+        ...CronDetectorFixture({name: 'Cron Without Source'}),
+        dataSources: null,
+      } as unknown as CronDetector;
+
+      render(<DetectorLink detector={detector} />, {organization});
+
+      expect(
+        screen.getByRole('link', {name: /cron without source/i})
+      ).toBeInTheDocument();
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+    });
+
+    it('still renders metric detector thresholds', () => {
+      const detector = {
+        ...mockDetector,
+        dataSources: null,
+        conditionGroup: {
+          id: 'cg-1',
+          logicType: DataConditionGroupLogicType.ALL,
+          conditions: [
+            {
+              id: 'c-1',
+              type: DataConditionType.GREATER,
+              comparison: 10,
+              conditionResult: DetectorPriorityLevel.HIGH,
+            },
+          ],
+        },
+      } as unknown as MetricDetector;
+
+      render(<DetectorLink detector={detector} />, {organization});
+
+      expect(screen.getByRole('link', {name: /test detector/i})).toBeInTheDocument();
+      expect(screen.getByText(/10/)).toBeInTheDocument();
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+    });
   });
 });
