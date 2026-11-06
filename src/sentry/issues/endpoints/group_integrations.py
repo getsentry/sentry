@@ -9,7 +9,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
@@ -66,15 +66,11 @@ class IntegrationIssueSerializer(Serializer[IntegrationIssueSerializerResponse])
             integration_id__in=[i.id for i in item_list],
         )
 
+        integrations_by_id = {i.id: i for i in item_list}
         issues_by_integration = defaultdict(list)
         for ei in external_issues:
             # TODO(jess): move into an external issue serializer?
-            integration = integration_service.get_integration(
-                integration_id=ei.integration_id,
-                using_replica=options.get("integration_service.get_integration.using_replica"),
-            )
-            if integration is None:
-                continue
+            integration = integrations_by_id[ei.integration_id]
             installation = integration.get_installation(organization_id=self.group.organization.id)
             if hasattr(installation, "get_issue_url") and hasattr(
                 installation, "get_issue_display_name"

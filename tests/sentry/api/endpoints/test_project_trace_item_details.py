@@ -24,6 +24,22 @@ from sentry.utils.snuba_rpc import SnubaRPCBadRequest
 class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
     endpoint = "sentry-api-0-project-trace-item-details"
 
+    def test_raw_attribute_names_feature_enabled(self) -> None:
+        with self.feature("organizations:trace-item-details-raw-attribute-names"):
+            _, response = self.get_item({})
+
+        assert response.data["attributes"] == [
+            {"name": "span.op", "rawName": "sentry.op", "type": "str", "value": "http.server"}
+        ]
+
+    def test_raw_attribute_names_feature_disabled(self) -> None:
+        with self.feature({"organizations:trace-item-details-raw-attribute-names": False}):
+            _, response = self.get_item({})
+
+        assert response.data["attributes"] == [
+            {"name": "span.op", "type": "str", "value": "http.server"}
+        ]
+
     def test_routing_hint_is_forwarded_unchanged(self) -> None:
         self.assert_routing_hint({"routing_hint": " opaque+/== "}, " opaque+/== ")
 
@@ -104,6 +120,18 @@ class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
             )
 
         assert response.data == {"detail": "Invalid trace item details request."}
+
+
+@pytest.mark.parametrize(
+    "name,query_name",
+    [("sentry.op", "span.op"), ("custom.attribute", "custom.attribute")],
+)
+def test_raw_attribute_names(name: str, query_name: str) -> None:
+    assert convert_rpc_attribute_to_json(
+        [{"name": name, "value": {"valStr": "value"}}],
+        SupportedTraceItemType.SPANS,
+        use_raw_attribute_names=True,
+    ) == [{"name": query_name, "rawName": name, "type": "str", "value": "value"}]
 
 
 def test_convert_rpc_attribute_to_json_serializes_known_string_array_without_array_flag() -> None:

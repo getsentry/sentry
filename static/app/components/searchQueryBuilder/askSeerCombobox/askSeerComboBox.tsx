@@ -15,7 +15,7 @@ import {AskSeerSearchHeader} from './askSeerSearchHeader';
 import {AskSeerSearchSkeleton} from './askSeerSearchSkeleton';
 import {BaseAskSeerComboBox} from './baseAskSeerComboBox';
 import type {QueryTokensProps} from './types';
-import {formatQueryToNaturalLanguage} from './utils';
+import {formatQueryToNaturalLanguage, getAskSeerErrorMessage} from './utils';
 
 interface AskSeerMutationResult<T extends QueryTokensProps> {
   queries: T[];
@@ -41,11 +41,22 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     formatQueryToNaturalLanguage(initialQuery)
   );
 
-  const {mutate, data, isPending, isError} = useMutation({
+  const {
+    mutate,
+    data,
+    error: mutationError,
+    isPending,
+    isError,
+  } = useMutation({
     ...askSeerMutationOptions,
     onError: (error, variables, onMutateResult, context) => {
       askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
-      toast.error(t('Seer failed to process your search. Please try again.'));
+      toast.error(
+        getAskSeerErrorMessage(
+          error,
+          t('Seer failed to process your search. Please try again.')
+        )
+      );
       trackAnalytics('ai_query.error', {
         organization,
         area: analyticsArea,
@@ -65,13 +76,17 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       submitQuery={mutate}
       isPending={isPending}
       isError={isError}
+      hasResponse={data !== undefined}
       loadingContent={
         <Stack flex="1">
           <AskSeerSearchHeader title={t('Let me think about that...')} loading />
           <AskSeerSearchSkeleton />
         </Stack>
       }
-      errorTitle={t('An error occurred while fetching Seer queries')}
+      errorTitle={getAskSeerErrorMessage(
+        mutationError,
+        t('An error occurred while fetching Seer queries')
+      )}
       emptyTitle={t("Describe what you're looking for.")}
     />
   );

@@ -2,15 +2,10 @@ import {Fragment, useState} from 'react';
 import {IconSort} from '@sentry/icons/sort';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  EventDrawerBody,
-  EventNavigator,
-  Header,
-} from 'sentry/components/events/eventDrawer';
-import {t, tct} from 'sentry/locale';
+import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
+import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -21,7 +16,6 @@ import {TagDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDrawerCon
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 import {GroupDistributionsSearchInput} from './groupDistributionsSearchInput';
-import {TagExportDropdown} from './tagExportDropdown';
 import {TagFlagPicker} from './tagFlagPicker';
 import {DrawerTab} from './types';
 
@@ -47,29 +41,12 @@ export function TagsDistributionDrawer({
 
   return (
     <Fragment>
-      <EventNavigator>
-        <Header>
-          {tagKey
-            ? tct('Tag Details - [tagKey]', {tagKey})
-            : includeFeatureFlagsTab
-              ? t('Tags & Feature Flags')
-              : t('All Tags')}
-        </Header>
-
-        {tagKey ? (
-          <TagExportDropdown
-            organization={organization}
-            project={project}
-            group={group}
-            tagKey={tagKey}
-          />
-        ) : (
-          <Grid flow="column" align="center" gap="md" marginLeft="auto">
-            {includeFeatureFlagsTab ? (
-              <TagFlagPicker setTab={setTab} tab={DrawerTab.TAGS} />
-            ) : null}
+      {tagKey ? null : (
+        <EventNavigator
+          leadingItems={
             <GroupDistributionsSearchInput
               includeFeatureFlagsTab={includeFeatureFlagsTab}
+              placeholder={t('Filter tags')}
               search={search}
               onChange={value => {
                 setSearch(value);
@@ -79,14 +56,25 @@ export function TagsDistributionDrawer({
                 });
               }}
             />
-            {includeFeatureFlagsTab ? (
-              <Tooltip title="Highlighted tags are shown first">
-                <Button aria-label="" disabled size="xs" icon={<IconSort />} />
-              </Tooltip>
-            ) : null}
-          </Grid>
-        )}
-      </EventNavigator>
+          }
+          trailingItems={
+            includeFeatureFlagsTab ? (
+              <Fragment>
+                <TagFlagPicker setTab={setTab} tab={DrawerTab.TAGS} />
+                <Tooltip title={t('Highlighted tags are shown first')}>
+                  <Button
+                    aria-label={t('Sort Tags')}
+                    disabled
+                    size="sm"
+                    variant="transparent"
+                    icon={<IconSort />}
+                  />
+                </Tooltip>
+              </Fragment>
+            ) : null
+          }
+        />
+      )}
       <EventDrawerBody>
         {tagKey ? (
           <TagDetailsDrawerContent group={group} />

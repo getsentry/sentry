@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {toast} from '@sentry/scraps/toast';
@@ -6,8 +7,7 @@ import {toast} from '@sentry/scraps/toast';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
@@ -33,11 +33,8 @@ export default function AdminMail() {
 }
 
 function AdminMailContent() {
-  const {data, isPending, isError, refetch} = useApiQuery<Data>(
-    [getApiUrl('/internal/mail/')],
-    {
-      staleTime: 0,
-    }
+  const {data, isPending, isError, refetch} = useQuery(
+    apiOptions.as<Data>()('/internal/mail/', {staleTime: 0})
   );
   const api = useApi({persistInFlight: true});
 
