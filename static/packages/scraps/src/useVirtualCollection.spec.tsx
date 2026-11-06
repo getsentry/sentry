@@ -2,7 +2,7 @@ import {Fragment, useRef} from 'react';
 import type {Node} from '@react-types/shared';
 import {fireEvent, render, screen} from '@testing-library/react';
 
-import {shouldVirtualize, useVirtualCollection} from './useVirtualCollection';
+import {groupVirtualRows, useVirtualCollection} from './useVirtualCollection';
 
 const ROW_COUNT = 300;
 const ROW_HEIGHT = 36;
@@ -155,26 +155,30 @@ describe('useVirtualCollection', () => {
   });
 });
 
-describe('shouldVirtualize', () => {
-  const isSection = (item: {section?: boolean}) => Boolean(item.section);
+describe('groupVirtualRows', () => {
+  it('puts the rows of each section under their section row', () => {
+    const row = (key: string, type = 'item', parentKey?: string) => ({
+      node: {key, type, parentKey} as (typeof nodes)[number],
+      props: undefined,
+      spaceBefore: 0,
+    });
+    const groups = groupVirtualRows([
+      row('top'),
+      row('section-a', 'section'),
+      row('a-1', 'item', 'section-a'),
+      row('a-2', 'item', 'section-a'),
+      row('after'),
+    ]);
 
-  it('virtualizes flat lists above the threshold', () => {
     expect(
-      shouldVirtualize(
-        Array.from({length: 151}, () => ({})),
-        {isSection}
-      )
-    ).toBe(true);
-    expect(
-      shouldVirtualize(
-        Array.from({length: 150}, () => ({})),
-        {isSection}
-      )
-    ).toBe(false);
-  });
-
-  it('never virtualizes lists with sections', () => {
-    const items = [{section: true}, ...Array.from({length: 500}, () => ({}))];
-    expect(shouldVirtualize(items, {isSection, threshold: 1})).toBe(false);
+      groups.map(group => ({
+        section: group.section?.node.key,
+        rows: group.rows.map(r => r.node.key),
+      }))
+    ).toEqual([
+      {section: undefined, rows: ['top']},
+      {section: 'section-a', rows: ['a-1', 'a-2']},
+      {section: undefined, rows: ['after']},
+    ]);
   });
 });

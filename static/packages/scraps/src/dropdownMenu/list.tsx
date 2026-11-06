@@ -37,6 +37,8 @@ import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 import {
   DEFAULT_VIRTUALIZE_THRESHOLD,
+  flattenSections,
+  groupVirtualRows,
   useVirtualCollection,
   VirtualSpacer,
   type VirtualRow,
@@ -209,32 +211,12 @@ interface DropdownMenuVirtualRowsProps extends DropdownMenuCollectionProps {
   rows: Array<VirtualRow<MenuItemProps>>;
 }
 
-/**
- * Renders the mounted rows of a virtualized menu. Rows are flat, so the items
- * of each section are put back inside their section. The virtualizer keeps a
- * section's own row mounted while any of its items are, so items always
- * follow their section row.
- */
+/** Renders the mounted rows of a virtualized menu, with each item in its section. */
 function DropdownMenuVirtualRows({
   rows,
   collection,
   ...itemProps
 }: DropdownMenuVirtualRowsProps) {
-  const groups: Array<{
-    items: Array<VirtualRow<MenuItemProps>>;
-    section?: VirtualRow<MenuItemProps>;
-  }> = [];
-  for (const row of rows) {
-    const group = groups.at(-1);
-    if (row.node.type === 'section') {
-      groups.push({section: row, items: []});
-    } else if (group?.section && group.section.node.key === row.node.parentKey) {
-      group.items.push(row);
-    } else {
-      groups.push({items: [row]});
-    }
-  }
-
   const renderItem = ({node, props, spaceBefore}: VirtualRow<MenuItemProps>) => (
     <Fragment key={node.key}>
       <VirtualSpacer height={spaceBefore} />
@@ -249,7 +231,7 @@ function DropdownMenuVirtualRows({
     </Fragment>
   );
 
-  return groups.map(({section, items}) => {
+  return groupVirtualRows(rows).flatMap(({section, rows: items}) => {
     if (!section) {
       return items.map(renderItem);
     }
@@ -328,15 +310,7 @@ function DropdownMenuList({
   const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
-  // Each section is followed by its items, so a long section is windowed like
-  // any other run of items instead of mounting all at once.
-  const virtualNodes = useMemo(
-    () =>
-      stateCollection.flatMap(node =>
-        node.type === 'section' ? [node, ...node.childNodes] : [node]
-      ),
-    [stateCollection]
-  );
+  const virtualNodes = useMemo(() => flattenSections(stateCollection), [stateCollection]);
   const items = useMemo(
     () => virtualNodes.filter(node => node.type !== 'section'),
     [virtualNodes]

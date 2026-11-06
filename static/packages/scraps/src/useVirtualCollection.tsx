@@ -14,19 +14,19 @@ import {useVirtualRows} from '@sentry/scraps/useVirtualRows';
 export const DEFAULT_VIRTUALIZE_THRESHOLD = 150;
 
 /**
- * Whether a flat list of items is long enough to virtualize. Lists with
- * sections are never virtualized: a section that renders as one tall row would
- * not limit how many items mount. To window a list with sections, pass each
- * section's items to `useVirtualCollection` as rows, like DropdownMenu does.
+ * Lists a collection's nodes in the order `useVirtualCollection` expects: each
+ * section is followed by its child nodes, so a long section is windowed like
+ * any other run of rows instead of mounting all at once.
  */
-export function shouldVirtualize<T>(
-  items: readonly T[],
-  {
-    isSection,
-    threshold = DEFAULT_VIRTUALIZE_THRESHOLD,
-  }: {isSection: (item: T) => boolean; threshold?: number}
-): boolean {
-  return items.length > threshold && !items.some(isSection);
+export function flattenSections<T>(
+  nodes: Iterable<Node<T>>,
+  hiddenKeys?: ReadonlySet<Key>
+): Array<Node<T>> {
+  return [...nodes].flatMap(node =>
+    node.type === 'section'
+      ? [node, ...[...node.childNodes].filter(child => !hiddenKeys?.has(child.key))]
+      : [node]
+  );
 }
 
 const ROW_HEIGHT_ESTIMATES = {
@@ -58,10 +58,10 @@ interface UseVirtualCollectionOptions<T> {
   /** Whether to virtualize. When false, every node is returned as a row. */
   enabled: boolean;
   /**
-   * Collection nodes, in render order. A section can be windowed too: pass the
-   * section node followed by its child nodes, and the section's row stays
-   * mounted while any of its children are, so the section's heading and group
-   * element are always there to wrap them.
+   * Collection nodes, in render order. Use `flattenSections` so each section
+   * is followed by its child nodes. A section's row stays mounted while any of
+   * its children are, so its heading and group element are there to wrap them;
+   * `groupVirtualRows` puts them back together.
    */
   nodes: ReadonlyArray<Node<T>>;
   /**
@@ -212,6 +212,37 @@ export function useVirtualCollection<T>({
     rows,
     spaceAfter: enabled && last ? Math.max(0, totalSize - last.end) : 0,
   };
+}
+
+export interface VirtualRowGroup<T> {
+  rows: Array<VirtualRow<T>>;
+  /** The section's own row. Undefined for a row that is not in a section. */
+  section?: VirtualRow<T>;
+}
+
+/**
+ * Puts the rows of each section back under their section, so callers can render
+ * them inside the section's group element. `useVirtualCollection` keeps a
+ * section's row mounted while any of its rows are, so they always follow it.
+ *
+ * Render the groups with `flatMap`, so rows outside sections stay siblings and
+ * keep their elements when the list reorders.
+ */
+export function groupVirtualRows<T>(
+  rows: ReadonlyArray<VirtualRow<T>>
+): Array<VirtualRowGroup<T>> {
+  const groups: Array<VirtualRowGroup<T>> = [];
+  for (const row of rows) {
+    const group = groups.at(-1);
+    if (row.node.type === 'section') {
+      groups.push({section: row, rows: []});
+    } else if (group?.section && group.section.node.key === row.node.parentKey) {
+      group.rows.push(row);
+    } else {
+      groups.push({rows: [row]});
+    }
+  }
+  return groups;
 }
 
 /**

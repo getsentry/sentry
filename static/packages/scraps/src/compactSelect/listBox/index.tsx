@@ -19,7 +19,13 @@ import {Container} from '@sentry/scraps/layout';
 import {ReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation';
-import {useVirtualCollection, VirtualSpacer} from '@sentry/scraps/useVirtualCollection';
+import {
+  flattenSections,
+  groupVirtualRows,
+  useVirtualCollection,
+  VirtualSpacer,
+  type VirtualRow,
+} from '@sentry/scraps/useVirtualCollection';
 
 import {ListBoxDetailsHoverContext, ListBoxOption} from './option';
 import {ListBoxSection} from './section';
@@ -247,8 +253,12 @@ export function ListBox<T extends ListItemBase>({
     cancelFocusClear();
   };
 
+  const virtualNodes = useMemo(
+    () => flattenSections(listItems, hiddenOptions),
+    [listItems, hiddenOptions]
+  );
   const virtual = useVirtualCollection({
-    nodes: listItems,
+    nodes: virtualNodes,
     enabled: !!virtualized,
     size,
     scrollRef: scrollElementRef,
@@ -268,6 +278,21 @@ export function ListBox<T extends ListItemBase>({
     // listItems is a dependency so the tracker re-runs when the options change.
     // oxlint-disable-next-line react/memo-dependencies
   }, [hasEverOverflowed, listItems, scrollContainerRef]);
+
+  const renderOption = ({node, props: rowProps, spaceBefore}: VirtualRow<T>) => (
+    <Fragment key={node.key}>
+      <VirtualSpacer height={spaceBefore} />
+      <ListBoxOption
+        {...rowProps}
+        // AriaOptionProps requires `key`.
+        key={node.key}
+        item={node}
+        listState={listState}
+        size={size}
+        showDetails={showDetails}
+      />
+    </Fragment>
+  );
 
   return (
     <ListBoxDetailsHoverContext value={onDetailsHoverChange}>
@@ -292,32 +317,24 @@ export function ListBox<T extends ListItemBase>({
           >
             {overlayIsOpen && (
               <Fragment>
-                {virtual.rows.map(({node, props: rowProps, spaceBefore}) => (
-                  <Fragment key={node.key}>
-                    <VirtualSpacer height={spaceBefore} />
-                    {node.type === 'section' ? (
+                {groupVirtualRows(virtual.rows).flatMap(({section, rows}) =>
+                  section ? (
+                    <Fragment key={section.node.key}>
+                      <VirtualSpacer height={section.spaceBefore} />
                       <ListBoxSection
-                        {...rowProps}
-                        item={node}
+                        rowProps={section.props}
+                        item={section.node}
                         listState={listState}
-                        hiddenOptions={hiddenOptions}
-                        size={size}
                         showSectionHeaders={showSectionHeaders}
-                        showDetails={showDetails}
-                      />
-                    ) : (
-                      <ListBoxOption
-                        {...rowProps}
-                        // AriaOptionProps requires `key`.
-                        key={node.key}
-                        item={node}
-                        listState={listState}
-                        size={size}
-                        showDetails={showDetails}
-                      />
-                    )}
-                  </Fragment>
-                ))}
+                        showSeparator={section.node.key !== listItems[0]?.key}
+                      >
+                        {rows.map(renderOption)}
+                      </ListBoxSection>
+                    </Fragment>
+                  ) : (
+                    rows.map(renderOption)
+                  )
+                )}
                 <VirtualSpacer height={virtual.spaceAfter} />
               </Fragment>
             )}

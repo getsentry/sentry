@@ -5,10 +5,7 @@ import * as Sentry from '@sentry/react';
 import type {DistributedOmit} from 'type-fest';
 
 import {useTranslation} from '@sentry/scraps/translation';
-import {
-  DEFAULT_VIRTUALIZE_THRESHOLD,
-  shouldVirtualize as shouldVirtualizeItems,
-} from '@sentry/scraps/useVirtualCollection';
+import {DEFAULT_VIRTUALIZE_THRESHOLD} from '@sentry/scraps/useVirtualCollection';
 
 import {Control, type ControlProps} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
@@ -31,8 +28,8 @@ interface BaseSelectProps<Value extends SelectKey> extends Omit<
 > {
   options: Array<SelectOptionOrSection<Value>>;
   /**
-   * Number of options above which virtualization will be enabled.
-   * Note that virtualization is always disabled if there are sections in the options.
+   * Number of options, counting the options inside sections, above which
+   * virtualization will be enabled.
    * @default 150
    */
   virtualizeThreshold?: number;
@@ -148,18 +145,19 @@ export function CompactSelect<Value extends SelectKey>({
     if (needsMeasuring) {
       let longestOption: (typeof options)[number] | undefined;
       let longestLength = -1;
-      for (const option of options) {
-        const length =
-          'options' in option
-            ? 0
-            : option.textValue
-              ? option.textValue.length
-              : typeof option.label === 'string'
-                ? option.label.length
-                : 0;
-        if (length > longestLength) {
-          longestOption = option;
-          longestLength = length;
+      for (const item of options) {
+        for (const option of 'options' in item ? item.options : [item]) {
+          const length = option.textValue
+            ? option.textValue.length
+            : typeof option.label === 'string'
+              ? option.label.length
+              : 0;
+          if (length > longestLength) {
+            // Measure an option in a section inside it, so the width includes
+            // the section's header.
+            longestOption = 'options' in item ? {...item, options: [option]} : option;
+            longestLength = length;
+          }
         }
       }
       return longestOption ? getItemsWithKeys([longestOption]) : [];
@@ -276,11 +274,20 @@ export function CompactSelect<Value extends SelectKey>({
   );
 }
 
+function countOptions<Value extends SelectKey>(
+  items: Array<SelectOptionOrSection<Value>>
+) {
+  return items.reduce(
+    (sum, item) => sum + ('options' in item ? item.options.length : 1),
+    0
+  );
+}
+
 function shouldVirtualize<Value extends SelectKey>(
   items: Array<SelectOptionOrSection<Value>>,
-  threshold?: number
+  threshold = DEFAULT_VIRTUALIZE_THRESHOLD
 ) {
-  return shouldVirtualizeItems(items, {threshold, isSection: item => 'options' in item});
+  return countOptions(items) > threshold;
 }
 
 function trackVirtualizationMetrics<Value extends SelectKey>(
@@ -289,9 +296,7 @@ function trackVirtualizationMetrics<Value extends SelectKey>(
   title = 'unknown'
 ) {
   const hasSections = items.some(item => 'options' in item);
-  const optionCount = items.reduce((sum, item) => {
-    return 'options' in item ? sum + item.options.length : sum + 1;
-  }, 0);
+  const optionCount = countOptions(items);
 
   const threshold = virtualizeThreshold;
 
