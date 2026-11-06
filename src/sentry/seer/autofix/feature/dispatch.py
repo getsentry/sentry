@@ -215,7 +215,10 @@ def _check_autofix_credits(group: Group, operation: SeerOperation, referrer: str
     Raise if the organization can't afford the operation under token-based
     credits. Agentic triage runs stay free.
     """
-    if referrer == AutofixReferrer.AGENTIC_TRIAGE:
+    if (
+        not features.has("organizations:seer-credit-checks", group.organization)
+        or referrer == AutofixReferrer.AGENTIC_TRIAGE
+    ):
         return
     if not has_enough_seer_credits(group.organization, operation):
         logger.info(
