@@ -73,7 +73,7 @@ import {
   useNavigationTour,
   useNavigationTourModal,
 } from './navigationTour';
-import {usePrimaryNavigation} from './primaryNavigationContext';
+import {hasSecondaryNavigation, usePrimaryNavigation} from './primaryNavigationContext';
 import {useSecondaryNavigation} from './secondaryNavigationContext';
 import {useCollapsedNavigation} from './useCollapsedNavigation';
 import {useSettingsNavigation} from './useSettingsNavigation';
@@ -116,13 +116,12 @@ function NavigationImpl() {
     SECONDARY_SIDEBAR_WIDTH
   );
 
+  const isPeekVisible =
+    collapsedNavigation.view === 'peek' && hasSecondaryNavigation(activeGroup);
   const sidebarAnimationProps = useMemo(
     () =>
-      makeCollapsedSecondaryWrapperAnimationProps(
-        collapsedNavigation.view === 'peek',
-        secondarySidebarWidth
-      ),
-    [collapsedNavigation.view, secondarySidebarWidth]
+      makeCollapsedSecondaryWrapperAnimationProps(isPeekVisible, secondarySidebarWidth),
+    [isPeekVisible, secondarySidebarWidth]
   );
 
   return (
@@ -170,7 +169,7 @@ function NavigationImpl() {
 
       {isCollapsed ? (
         <CollapsedSecondaryWrapper
-          data-visible={collapsedNavigation.view === 'peek'}
+          data-visible={isPeekVisible}
           data-test-id="collapsed-secondary-sidebar"
           height="100%"
           left={`${PRIMARY_SIDEBAR_WIDTH}px`}

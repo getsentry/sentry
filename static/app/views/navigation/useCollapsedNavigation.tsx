@@ -26,7 +26,7 @@ const IGNORE_ELEMENTS = [
  */
 export function useCollapsedNavigation() {
   const {setActiveGroup} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
+  const {view, setView, isForceCollapsed} = useSecondaryNavigation();
 
   const isCollapsed = view !== 'expanded';
   // Keep a ref so event handlers can read the latest isCollapsed value during
@@ -129,6 +129,12 @@ export function useCollapsedNavigation() {
     element.addEventListener('mouseenter', handleMouseEnter);
     element.addEventListener('mouseleave', handleMouseLeave);
 
+    // When a page forces the sidebar collapsed, the cursor may already be
+    // inside the navigation, so no mouseenter event fires.
+    if (isForceCollapsed && element.matches(':hover')) {
+      hoverIn();
+    }
+
     const handleFocusIn = (e: FocusEvent) => {
       if (e.target instanceof HTMLElement && e.target.matches(':focus-visible')) {
         clearTimeout(closeTimer);
@@ -165,6 +171,7 @@ export function useCollapsedNavigation() {
   }, [
     closeNavigation,
     isCollapsed,
+    isForceCollapsed,
     navigationParentRef,
     setView,
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
