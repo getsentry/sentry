@@ -101,6 +101,26 @@ describe('useVirtualCollection', () => {
     expect(spanned).toBe(ROW_COUNT * ROW_HEIGHT);
   });
 
+  it('mounts rows when the list is only as tall as its content', () => {
+    // Like DropdownMenu's list, which has no padding: before any row mounts,
+    // its height comes from the spacers alone.
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+      configurable: true,
+      get(this: HTMLElement) {
+        if (this.tagName !== 'UL') {
+          return ROW_HEIGHT;
+        }
+        const content =
+          sum(spacerHeights()) + screen.queryAllByTestId('row').length * ROW_HEIGHT;
+        return Math.min(VIEWPORT_HEIGHT, content);
+      },
+    });
+
+    render(<TestList enabled />);
+
+    expect(screen.getAllByTestId('row').length).toBeGreaterThan(0);
+  });
+
   it('keeps the focused row mounted after it scrolls out of view', () => {
     render(<TestList enabled focusedKey="row-0" />);
 

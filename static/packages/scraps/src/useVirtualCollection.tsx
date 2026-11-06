@@ -207,10 +207,13 @@ export function useVirtualCollection<T>({
     });
   }, [enabled, listPadding, nodes, virtualItems, virtualizer]);
 
+  // Before any row mounts, the spacer stands in for the whole list. A list
+  // without padding of its own would otherwise be 0px tall, and the
+  // virtualizer mounts no rows into a viewport of 0px, so it would stay empty.
   const last = virtualItems.at(-1);
   return {
     rows,
-    spaceAfter: enabled && last ? Math.max(0, totalSize - last.end) : 0,
+    spaceAfter: enabled ? Math.max(0, totalSize - (last?.end ?? listPadding)) : 0,
   };
 }
 
