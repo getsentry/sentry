@@ -258,6 +258,52 @@ describe('OrganizationDropdown', () => {
     ).toEqual(['project-b', 'project-a']);
   });
 
+  it('keeps the All Projects order while starring from the open submenu', async () => {
+    const projects = [
+      ProjectFixture({id: '1', slug: 'project-a', isMember: true}),
+      ProjectFixture({id: '2', slug: 'project-b', isMember: true}),
+    ];
+    ProjectsStore.loadInitialData(projects);
+    const projectMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project-b/`,
+      method: 'PUT',
+      body: {...projects[1], isBookmarked: true},
+    });
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    const toggle = screen.getByRole('button', {name: 'Toggle organization menu'});
+    await userEvent.click(toggle);
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
+    const getSubmenu = () =>
+      within(
+        screen
+          .getByRole('textbox', {name: 'Search'})
+          .closest<HTMLElement>('[data-overlay]')!
+      );
+    const getSubmenuOrder = () =>
+      getSubmenu()
+        .getAllByRole('menuitemradio', {name: /^project-/})
+        .map(item => item.textContent);
+
+    expect(getSubmenuOrder()).toEqual(['project-a', 'project-b']);
+    await userEvent.hover(getSubmenu().getByRole('menuitemradio', {name: 'project-b'}));
+    await userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{Enter}');
+    expect(projectMock).toHaveBeenCalled();
+    await getSubmenu().findByRole('button', {name: 'Remove Bookmark'});
+
+    expect(getSubmenuOrder()).toEqual(['project-a', 'project-b']);
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(toggle);
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
+
+    expect(getSubmenuOrder()).toEqual(['project-b', 'project-a']);
+  });
+
   it('bookmarks a project without navigating away from the settings v3 menu', async () => {
     const project = ProjectFixture({
       id: '1',

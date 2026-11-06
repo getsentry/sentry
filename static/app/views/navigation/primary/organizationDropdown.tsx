@@ -38,10 +38,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {
-  sortProjects,
-  sortProjectsByBookmarkAndMembership,
-} from 'sentry/utils/project/sortProjects';
+import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {useApi} from 'sentry/utils/useApi';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -160,8 +157,14 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const createOrganizationItem = makeCreateOrganizationMenuItem();
 
   if (settingsV3) {
-    const memberProjects = sortProjects(projects.filter(project => project.isMember));
-    const otherProjects = sortProjects(projects.filter(project => !project.isMember));
+    const memberProjects = sortProjectsByBookmarkAndMembership(
+      projects.filter(project => project.isMember),
+      bookmarkedSnapshot
+    );
+    const otherProjects = sortProjectsByBookmarkAndMembership(
+      projects.filter(project => !project.isMember),
+      bookmarkedSnapshot
+    );
     // Unbookmarked projects fill the remaining slots, so the list is not empty
     // when nothing is bookmarked.
     const quickAccessProjects = sortProjectsByBookmarkAndMembership(
