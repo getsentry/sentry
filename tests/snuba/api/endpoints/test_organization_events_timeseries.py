@@ -81,7 +81,6 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             "profiles",
             "profileFunctions",
             "issuePlatform",
-            "uptime_results",
         ]:
             with self.feature(
                 {
@@ -99,29 +98,75 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
                 "detail": f"Timeseries transformations are not supported for dataset {dataset}"
             }
 
-    def test_transformed_grouped_comparisons_rejected(self) -> None:
-        for comparison_delta in [0, 86400]:
+    def test_uptime_timeseries_rejected_with_no_projects(self) -> None:
+        cases: list[tuple[bool, dict[str, Any]]] = [
+            (False, {}),
+            (True, {}),
+            (False, {"transformations[0]": ["fill(zero)"]}),
+            (True, {"transformations[0]": ["fill(zero)"]}),
+            (True, {"topEvents": 5, "groupBy": "project.id"}),
+            (True, {"comparisonDelta": 86400}),
+        ]
+        for enabled, params in cases:
             with self.feature(
                 {
                     "organizations:discover-basic": True,
-                    "organizations:explore-interpolation-and-smoothing": True,
+                    "organizations:explore-interpolation-and-smoothing": enabled,
                 }
             ):
                 response = self.get_error_response(
                     self.org.slug,
-                    **{
-                        "dataset": "spans",
-                        "topEvents": 5,
-                        "groupBy": "span.op",
-                        "comparisonDelta": comparison_delta,
-                        "transformations[0]": ["fill(zero)"],
-                    },
+                    dataset="uptime_results",
+                    **params,
                     status_code=400,
                 )
 
             assert response.data == {
-                "detail": "Timeseries transformations do not support comparisonDelta with topEvents"
+                "detail": "Timeseries queries are not supported for dataset uptime_results"
             }
+
+    def test_uptime_timeseries_rejected_with_projects(self) -> None:
+        project = self.create_project(organization=self.org, teams=[])
+        with self.feature("organizations:discover-basic"):
+            response = self.get_error_response(
+                self.org.slug, dataset="uptime_results", project=project.id, status_code=400
+            )
+
+        assert response.data == {
+            "detail": "Timeseries queries are not supported for dataset uptime_results"
+        }
+
+    def test_grouped_comparisons_rejected(self) -> None:
+        for dataset, enabled, transformations in [
+            ("spans", False, {}),
+            ("spans", True, {}),
+            ("spans", False, {"transformations[0]": ["fill(zero)"]}),
+            ("spans", True, {"transformations[0]": ["fill(zero)"]}),
+            ("discover", False, {}),
+            ("discover", True, {"transformations[0]": ["fill(zero)"]}),
+        ]:
+            for comparison_delta in [0, 86400]:
+                with self.feature(
+                    {
+                        "organizations:discover-basic": True,
+                        "organizations:explore-interpolation-and-smoothing": enabled,
+                    }
+                ):
+                    response = self.get_error_response(
+                        self.org.slug,
+                        **{
+                            "dataset": dataset,
+                            "topEvents": 5,
+                            "groupBy": "project.id",
+                            "comparisonDelta": comparison_delta,
+                            **transformations,
+                        },
+                        status_code=400,
+                    )
+
+                assert response.data == {
+                    "detail": "comparisonDelta is not supported with topEvents"
+                }
 
     def test_no_transformations_when_feature_disabled(self) -> None:
         with self.feature(

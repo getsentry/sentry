@@ -303,7 +303,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
 
         Explicitly requested transformations return HTTP 400 with a `detail` message when the
         interpolation and smoothing feature is disabled or the dataset cannot execute them.
-        Transformed queries cannot combine `topEvents` with `comparisonDelta`.
+        Timeseries queries are not supported for the uptime results dataset.
+        Queries cannot combine `topEvents` with `comparisonDelta`.
 
         **Note**: For queries extending past `30d`, spanning billions of rows, or running on projects with low
         sample rates, the aggregation `yAxis=count_unique()` and filters on high-cardinality
@@ -320,6 +321,14 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
             transformations = get_transformations(request)
+            dataset = self.get_dataset(request, organization)
+            if dataset == UptimeResults:
+                raise ParseError(
+                    detail="Timeseries queries are not supported for dataset uptime_results"
+                )
+            if top_events > 0 and comparison_delta is not None:
+                raise ParseError(detail="comparisonDelta is not supported with topEvents")
+
             if transformations and not features.has(
                 "organizations:explore-interpolation-and-smoothing",
                 organization,
@@ -329,17 +338,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     detail="Timeseries transformations are not enabled for this organization"
                 )
 
-            dataset = self.get_dataset(request, organization)
-            if transformations:
-                if dataset not in RPC_DATASETS or dataset == UptimeResults:
-                    raise ParseError(
-                        detail="Timeseries transformations are not supported for dataset "
-                        f"{request.GET.get('dataset', 'discover')}"
-                    )
-                if top_events > 0 and comparison_delta is not None:
-                    raise ParseError(
-                        detail="Timeseries transformations do not support comparisonDelta with topEvents"
-                    )
+            if transformations and dataset not in RPC_DATASETS:
+                raise ParseError(
+                    detail="Timeseries transformations are not supported for dataset "
+                    f"{request.GET.get('dataset', 'discover')}"
+                )
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
                 if dataset not in TOP_EVENTS_DATASETS:
