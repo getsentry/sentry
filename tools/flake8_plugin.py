@@ -399,6 +399,39 @@ def _is_iterable_elms_literals(
     return _is_literal_strings(node)
 
 
+def _loop_var_name(target: ast.expr) -> str | None:
+    """The loop variable a for loop or comprehension binds: `for f in ...` or the first of `for f, v in ...`."""
+    # check if its a single looping variable
+    if isinstance(target, ast.Name):
+        return target.id
+    # check if its multi looping variables
+    if isinstance(target, (ast.Tuple, ast.List)) and target.elts:
+        first_var = target.elts[0]
+        if isinstance(first_var, ast.Name):
+            return first_var.id
+    return None
+
+
+def _fields_serializer(node: ast.expr) -> str | None:
+    """X for a loop over `X().fields` (or its .keys() / .items()), else None."""
+    if (
+        isinstance(node, ast.Call)
+        and not node.args
+        and not node.keywords
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in ("keys", "items")
+    ):
+        node = node.func.value
+    if (
+        isinstance(node, ast.Attribute)
+        and node.attr == "fields"
+        and isinstance(node.value, ast.Call)
+        and isinstance(node.value.func, ast.Name)
+    ):
+        return node.value.func.id
+    return None
+
+
 def _collect_eap_suite_class_names(tree: ast.AST) -> set[str]:
     """Classes in this module that inherit an EAP events endpoint test base."""
     class_bases: dict[str, list[str]] = {}
@@ -508,6 +541,8 @@ _DATE_RANGE_HELPERS = frozenset(("get_date_range_from_params", "get_date_range_f
 _DATE_RANGE_PARAMS = frozenset(
     ("START", "END", "STATS_PERIOD", "STATS_PERIOD_START", "STATS_PERIOD_END")
 )
+
+_UNRESOLVED: Literal["UNRESOLVED"] = "UNRESOLVED"
 
 
 def _looks_like_a_class(func: ast.expr) -> bool:
@@ -921,6 +956,12 @@ class _InputCtx:
         self.computed_reads: list[tuple[_StartEnd, str, str]] = []
         # loop variable names currently marked safe (i.e, keys that are known/fixed)
         self.safe_loop_vars: set[str] = set()
+        # loop variable -> serializer, for `for f in X().fields` when X isn't declared on this function.
+        # A helper has no declared names, so whether X is declared is only known at merge time
+        self.field_loop_vars: dict[str, str] = {}
+        # (start_end, rendered key, source, serializer) reads keyed by one of those loop variables,
+        # dropped in the merge when the public method declares the serializer, otherwise S027
+        self.field_reads: list[tuple[_StartEnd, str, str, str]] = []
         # (start_end, callee, source) the whole dict passed somewhere
         self.hand_offs: list[tuple[_StartEnd, str, str]] = []
         # true only for an HTTP method that publish_status marks PUBLIC on a top-level endpoint class
@@ -957,6 +998,10 @@ class _InputCtx:
             self.literal_reads.append((_start_and_end(node), key.value, source))
         elif isinstance(key, ast.Name) and key.id in self.safe_loop_vars:
             return
+        elif isinstance(key, ast.Name) and key.id in self.field_loop_vars:
+            self.field_reads.append(
+                (_start_and_end(node), key.id, source, self.field_loop_vars[key.id])
+            )
         else:
             self.computed_reads.append((_start_and_end(node), ast.unparse(key), source))
 
@@ -1166,16 +1211,7 @@ class SentryVisitor(ast.NodeVisitor):
         ):
             return None
 
-        loop_var = None
-        # check if its a single looping variable
-        if isinstance(target, ast.Name):
-            loop_var = target.id
-
-        # check if its multi looping variables
-        elif isinstance(target, (ast.Tuple, ast.List)) and target.elts:
-            first_var = target.elts[0]
-            if isinstance(first_var, ast.Name):
-                loop_var = first_var.id
+        loop_var = _loop_var_name(target)
 
         # an outer loop already marked this loop variable name, but we need to leave it to the outer loop so
         # the inner loop reusing the name keeps the outer name safe
@@ -1183,6 +1219,26 @@ class SentryVisitor(ast.NodeVisitor):
             return None
 
         return loop_var
+
+    def _new_field_loop_var(
+        self, target: ast.expr, iter_node: ast.expr, curr_method: _InputCtx
+    ) -> tuple[str, str] | None:
+        """(loop variable, serializer) for `for f in X().fields` when X isn't declared on this function.
+
+        Only called when the loop isn't already safe. Whether X is declared is decided in the merge,
+        against the public method's @extend_schema.
+        """
+        serializer = _fields_serializer(iter_node)
+        if serializer is None:
+            return None
+        loop_var = _loop_var_name(target)
+        if (
+            loop_var is None
+            or loop_var in curr_method.safe_loop_vars
+            or loop_var in curr_method.field_loop_vars
+        ):
+            return None
+        return loop_var, serializer
 
     def visit_For(self, node: ast.For) -> None:
         """Visitor for tracking looping variables declared within a for loop (i.e, `for X in (iterable collection)`, tracking X)"""
@@ -1200,11 +1256,19 @@ class SentryVisitor(ast.NodeVisitor):
         if loop_var is not None:
             curr_method.safe_loop_vars.add(loop_var)
 
+        field_var = None
+        if loop_var is None:
+            field_var = self._new_field_loop_var(node.target, node.iter, curr_method)
+            if field_var is not None:
+                curr_method.field_loop_vars[field_var[0]] = field_var[1]
+
         for statement in node.body:
             self.visit(statement)
 
         if loop_var is not None:
             curr_method.safe_loop_vars.discard(loop_var)
+        if field_var is not None:
+            curr_method.field_loop_vars.pop(field_var[0], None)
 
         for statement in node.orelse:
             self.visit(statement)
@@ -1221,6 +1285,7 @@ class SentryVisitor(ast.NodeVisitor):
         curr_method = self._input_stack[-1]
 
         valid_vars: list[str] = []
+        field_vars: list[str] = []
 
         for comp_node in node.generators:
             self.visit(comp_node.iter)
@@ -1230,6 +1295,11 @@ class SentryVisitor(ast.NodeVisitor):
             if loop_var is not None:
                 curr_method.safe_loop_vars.add(loop_var)
                 valid_vars.append(loop_var)
+            else:
+                field_var = self._new_field_loop_var(comp_node.target, comp_node.iter, curr_method)
+                if field_var is not None:
+                    curr_method.field_loop_vars[field_var[0]] = field_var[1]
+                    field_vars.append(field_var[0])
 
             for condition in comp_node.ifs:
                 self.visit(condition)
@@ -1242,6 +1312,8 @@ class SentryVisitor(ast.NodeVisitor):
 
         for var in valid_vars:
             curr_method.safe_loop_vars.discard(var)
+        for var in field_vars:
+            curr_method.field_loop_vars.pop(var, None)
 
     visit_ListComp = visit_SetComp = visit_GeneratorExp = visit_DictComp = visit_comprehension_types
 
@@ -1495,9 +1567,9 @@ class SentryVisitor(ast.NodeVisitor):
     def _new_input_ctx(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> _InputCtx | None:
         """Build the accumulator for a top-level function or a method of a top-level class, else None.
 
-        Only PUBLIC HTTP methods are reported. The others are stored too, so calls into
-        them can be followed. The caller pushes it onto _input_stack once the decorators
-        and arguments have been visited.
+        Only PUBLIC HTTP methods are reported, every other ctx is a helper whose
+        "facts" get merged into the public methods that call it. The caller pushes it
+        onto _input_stack once the decorators and arguments have been visited.
         """
         if self._function_depth != 0:
             return None
@@ -1612,9 +1684,11 @@ class SentryVisitor(ast.NodeVisitor):
 
     def _report_public_inputs(self) -> None:
         """Report input reads and hand-offs for each public endpoint method after traversing through the complete file"""
-        for ctx in self._function_ctxs:
-            if not ctx.is_public:
+        for http_ctx in self._function_ctxs:
+            if not http_ctx.is_public:
                 continue
+            # the HTTP method's own facts plus those of every same-file helper it reaches
+            ctx = self._merged_http_method_inputs(http_ctx)
             for start_end, name in ctx.query_validators:
                 if name not in ctx.declared_params:
                     msg = S025_query_msg.format(name)
@@ -1714,6 +1788,154 @@ class SentryVisitor(ast.NodeVisitor):
         curr_ctx.calls.append(
             _HelperCall(kind, name, request_params, starred, _start_and_end(node))
         )
+
+    def _helper_call_ctx_lookup(
+        self, helper_call: _HelperCall, endpoint_class: str, helper_defined_class: str | None
+    ) -> _InputCtx | Literal["UNRESOLVED"] | None:
+        """Return the ctx of the same-file function that `helper_call` runs.
+
+        `endpoint_class` is the endpoint class the helper was called in.
+        `helper_defined_class` is the class that defines the helper function making the `helper_call`.
+
+        Returns None if the name isn't defined in this file, and _UNRESOLVED if the lookup reaches a class from another file before finding the method.
+        """
+        if helper_call.kind == Kind.NORMAL_FUNCTION:
+            return self._functions.get(helper_call.name)
+
+        if helper_call.kind == Kind.PARENT_CLASS_METHOD:
+            after = helper_defined_class
+        else:
+            after = None
+
+        for cls in self._handle_inheritance_method_lookup(public_class=endpoint_class, after=after):
+            if cls not in self._module_classes:
+                return _UNRESOLVED
+            ctx = self._functions.get(f"{cls}.{helper_call.name}")
+            if ctx is not None:
+                return ctx
+
+        return None
+
+    def _handle_inheritance_method_lookup(
+        self, public_class: str, after: str | None = None
+    ) -> list[str]:
+        """Returns class names in depth-first method lookup order starting from `public_class` all the way up to its parents to deal with inheritance.
+        When `after` is set, skip everything until the class associated with `after` has been passed.
+        `public_class` the starting endpoint class name whose inheritance chain is being searched
+        `after` is the class name that called `super()`; when set, all classes up to and including `after` are skipped
+
+        Class Grandfather()
+
+        Class Father(Grandfather)
+
+        Class Child(Father)
+
+        _handle_inheritance_method_lookup("Child") -> ["Child", "Father", "Grandfather"]
+        _handle_inheritance_method_lookup(public_class="Child", after="Father") -> ["Grandfather"]
+        """
+        order: list[str] = []
+        self._walk_class_bases(name=public_class, visited=set(), order=order)
+
+        if after is not None:
+            if after not in order:
+                return []
+
+            # returns the classes that only come after `after`
+            return order[order.index(after) + 1 :]
+
+        return order
+
+    def _walk_class_bases(self, name: str, visited: set[str], order: list[str]) -> None:
+        """Appends `name` and each of its bases depth first, left to right, and each class once.
+        `name` the name of the current class being visited in the inheritance tree
+        `visited` set of class names already seen during the walk
+        `order` list that collects class names in depth first, left to right lookup order as the recursion walks up the parents
+        """
+        if name in visited:
+            return
+        visited.add(name)
+        order.append(name)
+
+        class_node = self._module_classes.get(name)
+        if class_node is None:
+            return
+
+        for base in class_node.bases:
+            base_name = _name_of(base)
+            if base_name != "object":
+                self._walk_class_bases(base_name, visited, order)
+
+    def _merged_http_method_inputs(self, http_ctx: _InputCtx) -> _InputCtx:
+        """Return a new ctx with `http_ctx`'s own facts plus those of every same-file helper it reaches.
+        Stored ctxs are never changed, so a helper shared by two public methods is merged into each separately.
+        _report_public_inputs() runs S025-S028 on the result, so reads inside helpers are reported under the HTTP method's `http_ctx`.
+        """
+        assert http_ctx.class_name is not None  # to satisfy mypy
+
+        # create the ctx based off of the http method (its our ctx that will hold everything the http method ctx holds + the helpers ctx holds)
+        new_ctx = _InputCtx(
+            scope=http_ctx.scope,
+            declared_params=http_ctx.declared_params,
+            declared_body=http_ctx.declared_body,
+            is_public=True,
+            class_name=http_ctx.class_name,
+        )
+
+        self._merge_ctx_into(new_ctx=new_ctx, ctx=http_ctx, seen={http_ctx.scope})
+
+        return new_ctx
+
+    def _merge_ctx_into(self, new_ctx: _InputCtx, ctx: _InputCtx, seen: set[str]) -> None:
+        """Copies `ctx`'s facts (i.e. `literal_reads`, `hand_offs`, `computed_reads`) into `new_ctx`, then do the same for each same-file helper
+        `ctx` calls.
+        `seen` holds the scopes already copied into `new_ctx` for this HTTP method, starting with its own.
+        """
+        assert new_ctx.class_name is not None  # satisfying mypy
+
+        # positions of calls whose helper was followed, so their S028 hand-off is dropped
+        followed: set[_StartEnd] = set()
+
+        # helper ctxs to merge next
+        to_visit: list[_InputCtx] = []
+
+        # loop over all the helper calls this function makes
+        for call in ctx.calls:
+            if call.starred:
+                continue
+
+            # gets the ctx of the helper
+            helper_ctx = self._helper_call_ctx_lookup(
+                helper_call=call,
+                endpoint_class=new_ctx.class_name,
+                helper_defined_class=ctx.class_name,
+            )
+
+            # skip it unless it's a helper in the same file (None = not in this file, _UNRESOLVED = reached another file)
+            if not isinstance(helper_ctx, _InputCtx):
+                continue
+
+            followed.add(call.at)
+            to_visit.append(helper_ctx)
+
+        new_ctx.query_validators += ctx.query_validators
+        new_ctx.body_validators += ctx.body_validators
+        new_ctx.literal_reads += ctx.literal_reads
+        new_ctx.computed_reads += ctx.computed_reads
+        # a loop over X().fields reads a fixed set of keys when the public method declares X
+        for start_end, key, source, serializer in ctx.field_reads:
+            if serializer in new_ctx.declared_params or serializer in new_ctx.declared_body:
+                continue
+            new_ctx.computed_reads.append((start_end, key, source))
+        for start_end, callee, source in ctx.hand_offs:
+            if start_end not in followed:
+                new_ctx.hand_offs.append((start_end, callee, source))
+
+        for helper_ctx in to_visit:
+            if helper_ctx.scope in seen:
+                continue
+
+            seen.add(helper_ctx.scope)
+            self._merge_ctx_into(new_ctx=new_ctx, ctx=helper_ctx, seen=seen)
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)

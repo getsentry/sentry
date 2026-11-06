@@ -2420,6 +2420,283 @@ class E(Endpoint):
     assert _api_violations(src) == []
 
 
+def _summary(violations: list[ApiInputViolation]) -> list[tuple[ApiRule, int, str, str]]:
+    """(rule, line, scope, key) for each violation, in report order."""
+    summary = []
+    for violation in violations:
+        summary.append((violation.rule, violation.line, violation.scope, violation.key))
+    return summary
+
+
+def test_helper_method_read_is_reported_under_the_public_method() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._status(request)
+
+    def _status(self, request):
+        return request.GET.get("status")
+"""
+    assert _summary(_api_violations(src)) == [("S026", 8, "E.get", "query:status")]
+
+
+def test_helper_defined_below_and_module_function_are_followed() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        self._one(request)
+        return build(request)
+
+    def _one(self, request):
+        return request.GET.get("one")
+
+
+def build(request):
+    return request.GET.get("two")
+"""
+    assert _summary(_api_violations(src)) == [
+        ("S026", 9, "E.get", "query:one"),
+        ("S026", 13, "E.get", "query:two"),
+    ]
+
+
+def test_helpers_of_helpers_are_followed() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._outer(request)
+
+    def _outer(self, request):
+        return self._inner(request)
+
+    def _inner(self, request):
+        return request.GET.get("deep")
+"""
+    assert _summary(_api_violations(src)) == [("S026", 11, "E.get", "query:deep")]
+
+
+def test_helper_serializer_is_checked_against_the_public_method_schema() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._validate(request)
+
+    def _validate(self, request):
+        return QuerySerializer(data=request.GET)
+"""
+    assert _summary(_api_violations(src)) == [("S025", 8, "E.get", "query:QuerySerializer")]
+
+
+def test_helper_serializer_declared_on_the_public_method_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[QuerySerializer])
+    def get(self, request) -> Response[X]:
+        return self._validate(request)
+
+    def _validate(self, request):
+        return QuerySerializer(data=request.GET)
+"""
+    assert _api_violations(src) == []
+
+
+def test_subclass_override_wins_over_the_base_method() -> None:
+    src = """\
+class Base(Endpoint):
+    def _limit(self, request):
+        return request.GET.get("base_limit")
+
+
+class E(Base):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._limit(request)
+
+    def _limit(self, request):
+        return request.GET.get("limit")
+"""
+    assert _summary(_api_violations(src)) == [("S026", 13, "E.get", "query:limit")]
+
+
+def test_inherited_helper_resolves_from_the_public_class() -> None:
+    src = """\
+class Base(Endpoint):
+    def _shared(self, request):
+        return self._limit(request)
+
+    def _limit(self, request):
+        return request.GET.get("base_limit")
+
+
+class E(Base):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._shared(request)
+
+    def _limit(self, request):
+        return request.GET.get("limit")
+"""
+    assert _summary(_api_violations(src)) == [("S026", 16, "E.get", "query:limit")]
+
+
+def test_super_call_skips_the_defining_class() -> None:
+    src = """\
+class Base(Endpoint):
+    def _filters(self, request):
+        return request.GET.get("base")
+
+
+class E(Base):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._filters(request)
+
+    def _filters(self, request):
+        super()._filters(request)
+        return request.GET.get("child")
+"""
+    assert _summary(_api_violations(src)) == [
+        ("S026", 14, "E.get", "query:child"),
+        ("S026", 3, "E.get", "query:base"),
+    ]
+
+
+def test_method_from_a_base_in_another_file_is_not_followed() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        self.get_filters(request)
+        return self.paginate(request.GET)
+"""
+    assert _summary(_api_violations(src)) == [("S028", 6, "E.get", "query:paginate")]
+
+
+def test_hand_off_to_a_followed_helper_is_dropped_but_other_hand_offs_stay() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        self._use(request.GET)
+        return parse_filters(request.GET)
+
+    def _use(self, params):
+        return None
+"""
+    assert _summary(_api_violations(src)) == [("S028", 6, "E.get", "query:parse_filters")]
+
+
+def test_starred_call_to_a_helper_keeps_its_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request, *args) -> Response[X]:
+        return self._use(request.GET, *args)
+
+    def _use(self, params, *args):
+        return None
+"""
+    assert _summary(_api_violations(src)) == [("S028", 5, "E.get", "query:_use")]
+
+
+def test_helper_shared_by_two_public_methods_is_reported_for_each() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._shared(request)
+
+    def post(self, request) -> Response[X]:
+        return self._shared(request)
+
+    def _shared(self, request):
+        return request.GET.get("k")
+"""
+    assert _summary(_api_violations(src)) == [
+        ("S026", 11, "E.get", "query:k"),
+        ("S026", 11, "E.post", "query:k"),
+    ]
+
+
+def test_helper_with_no_public_caller_is_not_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return Response()
+
+    def _unused(self, request):
+        return request.GET.get("k")
+"""
+    assert _api_violations(src) == []
+
+
+def test_calls_in_decorators_are_not_followed() -> None:
+    src = """\
+def configure(request):
+    return request.GET.get("k")
+
+
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @some_decorator(configure(request))
+    def get(self, request) -> Response[X]:
+        return Response()
+"""
+    assert _api_violations(src) == []
+
+
+def test_helper_loop_over_a_declared_serializers_fields_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[MySerializer])
+    def get(self, request) -> Response[X]:
+        return self._a(request)
+
+    def _a(self, request):
+        for f in MySerializer().fields:
+            request.GET.get(f)
+        return [request.GET.get(name) for name in MySerializer().fields]
+"""
+    assert _api_violations(src) == []
+
+
+def test_helper_loop_over_an_undeclared_serializers_fields_is_s027() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._a(request)
+
+    def _a(self, request):
+        for f in MySerializer().fields:
+            request.GET.get(f)
+"""
+    assert _summary(_api_violations(src)) == [("S027", 9, "E.get", "query:f")]
+
+
 def _run_s023(src: str) -> list[str]:
     return [e for e in _run(src, filename="src/sentry/apidocs/t.py") if "S023" in e]
 
