@@ -117,7 +117,7 @@ describe('OrganizationDropdown', () => {
     expect(projectItems).toHaveLength(2);
     expect(projectItems[1]?.closest('[data-overlay]')).toHaveStyle({
       maxWidth: 'min(258px, 100%)',
-      maxHeight: '240px',
+      maxHeight: '384px',
     });
   });
 
