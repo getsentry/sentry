@@ -2,7 +2,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -302,6 +308,45 @@ describe('OrganizationDropdown', () => {
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
 
     expect(getSubmenuOrder()).toEqual(['project-b', 'project-a']);
+  });
+
+  it('shows the star as busy while the bookmark request is in flight', async () => {
+    const project = ProjectFixture({id: '1', slug: 'javascript', isMember: true});
+    ProjectsStore.loadInitialData([project]);
+    let resolveRequest!: () => void;
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {...project, isBookmarked: true},
+      asyncDelay: new Promise<void>(resolve => {
+        resolveRequest = resolve;
+      }),
+    });
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'javascript'}));
+    await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByRole('button', {name: 'Bookmark'})).not.toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+    await userEvent.keyboard('{Enter}');
+
+    expect(screen.getByRole('button', {name: 'Remove Bookmark'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+
+    resolveRequest();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Remove Bookmark'})).not.toHaveAttribute(
+        'aria-busy',
+        'true'
+      )
+    );
   });
 
   it('bookmarks a project without navigating away from the settings v3 menu', async () => {

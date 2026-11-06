@@ -128,6 +128,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />
       ),
       label: isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
+      busy: project.id in pendingBookmarks,
       onAction: () => toggleBookmark({project, isBookmarked: !isBookmarked}),
     };
   };
