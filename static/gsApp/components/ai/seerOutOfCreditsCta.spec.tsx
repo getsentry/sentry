@@ -56,6 +56,8 @@ describe('SeerOutOfCreditsCta', () => {
 
     render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
+    // Nothing shows until the setting loads, so the "off" copy never flashes.
+    expect(screen.queryByTestId('seer-out-of-credits')).not.toBeInTheDocument();
     expect(
       await screen.findByText(
         'Your organization does not have enough credits left for you to message Seer, and you have no auto top-ups remaining. Adjust your spend and turn on auto top-up.'
@@ -119,7 +121,7 @@ describe('SeerOutOfCreditsCta', () => {
     render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
     expect(
-      screen.getByText(
+      await screen.findByText(
         'Your organization does not have enough credits left for you to message Seer.'
       )
     ).toBeInTheDocument();
@@ -165,8 +167,8 @@ describe('SeerOutOfCreditsCta', () => {
 
     render(<SeerOutOfCreditsCta reason={reason} variant="muted" />, {organization});
 
-    expect(screen.getByText(copy)).toBeInTheDocument();
-    expect(await screen.findByRole('button', {name: 'Contact Admin'})).toBeEnabled();
+    expect(await screen.findByText(copy)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Contact Admin'})).toBeEnabled();
   });
 
   it('shows the admins as emailed for the rest of the billing period', async () => {
@@ -192,6 +194,8 @@ describe('SeerOutOfCreditsCta', () => {
 
     render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
+    // "Contact Admin" can't be clicked before the earlier request has loaded.
+    expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Admins emailed'})).toBeDisabled();
     expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
   });
@@ -219,8 +223,8 @@ describe('SeerOutOfCreditsCta', () => {
 
     render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
-    await waitFor(() => expect(prompts).toHaveBeenCalled());
-    expect(screen.getByRole('button', {name: 'Contact Admin'})).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Contact Admin'})).toBeEnabled();
+    expect(prompts).toHaveBeenCalled();
     expect(
       screen.queryByRole('button', {name: 'Admins emailed'})
     ).not.toBeInTheDocument();

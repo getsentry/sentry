@@ -41,7 +41,11 @@ export function SeerOutOfCreditsCta({reason, variant}: SeerOutOfCreditsCtaProps)
   const [isRequestingCredits, setIsRequestingCredits] = useState(false);
   const escalation = getEscalation(organization, subscription);
 
-  const {isPromptDismissed, snoozePrompt} = usePrompts({
+  const {
+    isLoading: isPromptLoading,
+    isPromptDismissed,
+    snoozePrompt,
+  } = usePrompts({
     features: [TOP_UP_REQUESTED_PROMPT],
     organization,
     // A request counts until the billing period ends, when the included Seer
@@ -53,7 +57,7 @@ export function SeerOutOfCreditsCta({reason, variant}: SeerOutOfCreditsCtaProps)
   // The copy changes when auto reload is already on: the org has used up the
   // top-ups it allows. Only billing members see that copy, and only they can
   // read the setting.
-  const {data: autoTopUp} = useQuery({
+  const {data: autoTopUp, isPending: isAutoTopUpPending} = useQuery({
     ...seerWalletAutoTopUpOptions(organization),
     enabled: escalation === 'configure',
     retry: false,
@@ -68,6 +72,16 @@ export function SeerOutOfCreditsCta({reason, variant}: SeerOutOfCreditsCtaProps)
       handleSuccess: () => snoozePrompt(TOP_UP_REQUESTED_PROMPT),
     });
     setIsRequestingCredits(false);
+  }
+
+  // Wait for what the notice depends on. Otherwise billing members with auto
+  // reload on see the "off" copy first, and members who already emailed their
+  // admins this period could send another request before "Admins emailed" shows.
+  if (
+    (escalation === 'configure' && isAutoTopUpPending) ||
+    (escalation === 'request' && isPromptLoading)
+  ) {
+    return null;
   }
 
   return (
