@@ -106,26 +106,39 @@ function TriggerCell({trigger}: {trigger: InvestigationTrigger}) {
     return (
       <Flex align="center" gap="sm" minWidth={0}>
         <UserAvatar user={trigger.user} size={16} />
-        <Text ellipsis>{getActorName(trigger.user)}</Text>
+        <Text variant="muted" ellipsis>
+          {getActorName(trigger.user)}
+        </Text>
       </Flex>
     );
   }
 
   const label = trigger.automation.name ?? getStrategyLabel(trigger.automation.strategy);
   return (
-    <Text ellipsis>
+    <Text variant="muted" ellipsis>
       {automationsEnabled ? (
-        <Link
+        <TriggerLink
           to={`${getAutomationDetailPath(organization.slug, trigger.automation.id)}runs/`}
         >
           {label}
-        </Link>
+        </TriggerLink>
       ) : (
         label
       )}
     </Text>
   );
 }
+
+// Links to other objects in a list row stay muted, like the Monitors list's issue cells.
+const TriggerLink = styled(Link)`
+  color: ${p => p.theme.tokens.content.secondary};
+
+  &:hover,
+  &:focus-visible {
+    color: ${p => p.theme.tokens.content.primary};
+    text-decoration: underline;
+  }
+`;
 
 function InvestigationActions({
   investigation,
