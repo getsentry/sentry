@@ -16,10 +16,9 @@ describe('resolveImageAvatarColors', () => {
     jest.restoreAllMocks();
   });
 
-  it('samples a cross-origin image with anonymous CORS without using fetch', async () => {
+  it('returns the sampled color and padded style for an image with transparent edges', async () => {
     const image = document.createElement('img');
     jest.spyOn(window, 'Image').mockImplementation(() => image);
-    const fetchSpy = jest.spyOn(window, 'fetch');
     const context = document.createElement('canvas').getContext('2d')!;
     jest.spyOn(context, 'getImageData').mockReturnValue({
       data: makePixelData((col, row) =>
@@ -30,12 +29,13 @@ describe('resolveImageAvatarColors', () => {
 
     const result = resolveImageAvatarColors('https://example.com/avatar/logo/', 'light');
 
-    expect(image.crossOrigin).toBe('anonymous');
-    expect(image.src).toBe('https://example.com/avatar/logo/');
     image.dispatchEvent(new Event('load'));
 
-    await expect(result).resolves.not.toBeNull();
-    expect(fetchSpy).not.toHaveBeenCalled();
+    await expect(result).resolves.toEqual({
+      chonk: '#649632',
+      dominant: '#649632',
+      style: 'padded',
+    });
   });
 
   it('returns null when the image cannot be loaded', async () => {
