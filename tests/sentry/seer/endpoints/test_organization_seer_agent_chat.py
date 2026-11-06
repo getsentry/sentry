@@ -62,6 +62,31 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client.get_run.assert_called_once_with(run_id=123)
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_reports_single_run_feature_id(self, mock_client_class: MagicMock) -> None:
+        mock_client_class.return_value.get_run.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            metadata={"feature_id": "autofix_single_run"},
+        )
+
+        response = self.client.get(f"{self.url}123/")
+
+        assert response.status_code == 200
+        assert response.data["feature_id"] == "autofix_single_run"
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_reports_no_feature_id_for_other_runs(self, mock_client_class: MagicMock) -> None:
+        mock_client_class.return_value.get_run.return_value = SeerRunState(
+            run_id=123, blocks=[], status="completed", updated_at="2024-01-01T00:00:00Z"
+        )
+
+        response = self.client.get(f"{self.url}123/")
+
+        assert response.data["feature_id"] is None
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_includes_failure_reason(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.get_run.return_value = SeerRunState(
