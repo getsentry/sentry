@@ -162,11 +162,17 @@ class MigrationLockBackend(LockBackend):
             return self.selector_func.check_new()
         return True
 
-    def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
+    def acquire(
+        self,
+        key: str,
+        duration: int,
+        routing_key: str | None = None,
+        token: str | None = None,
+    ) -> None:
         backend = self._get_backend(key=key, routing_key=routing_key)
         other = self.backend_new if backend is self.backend_old else self.backend_old
 
-        backend.acquire(key=key, duration=duration, routing_key=routing_key)
+        backend.acquire(key=key, duration=duration, routing_key=routing_key, token=token)
         if backend is self.backend_old and not self._uses_new():
             return
         try:
@@ -177,12 +183,12 @@ class MigrationLockBackend(LockBackend):
 
         if held_elsewhere:
             try:
-                backend.release(key=key, routing_key=routing_key)
+                backend.release(key=key, routing_key=routing_key, token=token)
             except Exception:
                 pass
             raise Exception(f"Could not set key: {key!r}")
 
-    def release(self, key: str, routing_key: str | None = None) -> None:
+    def release(self, key: str, routing_key: str | None = None, token: str | None = None) -> None:
         # Release on the backend that the selector picks now
         # Release on the other backend only if that fails
         # (the selector can have picked a different backend at acquire time)
@@ -195,7 +201,7 @@ class MigrationLockBackend(LockBackend):
         errors = []
         for backend in backends:
             try:
-                backend.release(key=key, routing_key=routing_key)
+                backend.release(key=key, routing_key=routing_key, token=token)
             except Exception as e:
                 errors.append(e)
             else:

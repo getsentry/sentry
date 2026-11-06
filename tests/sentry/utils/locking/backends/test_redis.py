@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 from functools import cached_property
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import pytest
 import rb
 from redis.client import StrictRedis
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import ResponseError
 from sentry_redis_tools.clients import RedisCluster
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.locking import LockNotOwned
 from sentry.utils.locking.backends.redis import (
     BaseRedisLockBackend,
     RedisClusterLockBackend,
     RedisLockBackend,
 )
+from sentry.utils.locking.lock import Lock
 from sentry.utils.redis import clusters, redis_clusters
 
 
@@ -58,7 +62,7 @@ class RedisBackendTestCaseBase:
             self.backend.acquire(key, duration)
 
     def test_release_fail_on_missing(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(LockNotOwned):
             self.backend.release("missing-key")
 
     def test_release_fail_on_conflict(self) -> None:
@@ -68,6 +72,78 @@ class RedisBackendTestCaseBase:
 
         with pytest.raises(Exception):
             self.backend.acquire(key, duration)
+
+    def test_release_wrong_token_raises_lock_not_owned(self) -> None:
+        key = "lock"
+        self.backend.acquire(key, 60, token="holder")
+        with pytest.raises(LockNotOwned):
+            self.backend.release(key, token="other")
+        assert self.backend.locked(key)
+        self.backend.release(key, token="holder")
+        assert not self.backend.locked(key)
+
+    def test_per_acquisition_token_survives_stale_release(self) -> None:
+        # An expired holder's release must not delete a newer acquisition that
+        # reused this process's backend. A fencing token per acquire is what
+        # stops that: the stale token fails the script compare.
+        key = "lock"
+        client = self.backend.get_client(key)
+        full_key = self.backend.prefix_key(key)
+
+        self.backend.acquire(key, 60, token="old")
+        client.delete(full_key)
+        self.backend.acquire(key, 60, token="new")
+
+        with pytest.raises(LockNotOwned):
+            self.backend.release(key, token="old")
+        assert self.backend.locked(key)
+
+        self.backend.release(key, token="new")
+        assert not self.backend.locked(key)
+
+    def test_lock_stale_release_does_not_delete_newer_hold(self) -> None:
+        key = "lock"
+        client = self.backend.get_client(key)
+        full_key = self.backend.prefix_key(key)
+
+        first = Lock(self.backend, key, 60)
+        first.acquire()
+        client.delete(full_key)
+
+        second = Lock(self.backend, key, 60)
+        second.acquire()
+        assert first.token != second.token
+
+        first.release()
+        assert self.backend.locked(key)
+
+        second.release()
+        assert not self.backend.locked(key)
+
+    def test_release_connection_error_is_not_lock_not_owned(self) -> None:
+        key = "lock"
+        self.backend.acquire(key, 60, token="holder")
+        with (
+            mock.patch(
+                "sentry.utils.locking.backends.redis.delete_lock",
+                side_effect=RedisConnectionError("down"),
+            ),
+            pytest.raises(RedisConnectionError),
+        ):
+            self.backend.release(key, token="holder")
+        assert self.backend.locked(key)
+        self.backend.release(key, token="holder")
+
+    def test_release_err_prefixed_nolock_is_lock_not_owned(self) -> None:
+        key = "lock"
+        with (
+            mock.patch(
+                "sentry.utils.locking.backends.redis.delete_lock",
+                side_effect=ResponseError("ERR NOLOCK No lock at key exists at key: x"),
+            ),
+            pytest.raises(LockNotOwned),
+        ):
+            self.backend.release(key, token="holder")
 
     def test_locked(self) -> None:
         key = "lock:testkey"

@@ -5,14 +5,26 @@ from uuid import uuid4
 
 import rb
 from redis.client import StrictRedis
+from redis.exceptions import ResponseError
 from sentry_redis_tools.clients import RedisCluster
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
+from sentry.utils.locking import LockNotOwned
 from sentry.utils.locking.backends import LockBackend
 
 delete_lock = redis.load_redis_script("utils/locking/delete_lock.lua")
+
+
+def _delete_refused(error: ResponseError) -> bool:
+    """True when delete_lock.lua refused because this token does not own the key.
+
+    Redis may prefix the script's ``NOLOCK`` / ``LOCKHELD`` reply with ``ERR``.
+    A connection failure has neither prefix, and that token can still delete the key.
+    """
+    message = str(error).removeprefix("ERR ")
+    return message.startswith(("NOLOCK", "LOCKHELD"))
 
 
 class BaseRedisLockBackend(LockBackend):
@@ -34,15 +46,30 @@ class BaseRedisLockBackend(LockBackend):
     def prefix_key(self, key: str) -> str:
         return f"{self.prefix}{key}"
 
-    def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
+    def acquire(
+        self,
+        key: str,
+        duration: int,
+        routing_key: str | None = None,
+        token: str | None = None,
+    ) -> None:
         client = self.get_client(key, routing_key)
         full_key = self.prefix_key(key)
-        if client.set(full_key, self.uuid, ex=duration, nx=True) is not True:
+        # ``token`` fences this acquisition. Without it, the process-wide uuid
+        # is reused and a stale release can delete a newer hold in this process.
+        value = token or self.uuid
+        if client.set(full_key, value, ex=duration, nx=True) is not True:
             raise Exception(f"Could not set key: {full_key!r}")
 
-    def release(self, key: str, routing_key: str | None = None) -> None:
+    def release(self, key: str, routing_key: str | None = None, token: str | None = None) -> None:
         client = self.get_client(key, routing_key)
-        delete_lock((self.prefix_key(key),), (self.uuid,), client)
+        value = token or self.uuid
+        try:
+            delete_lock((self.prefix_key(key),), (value,), client)
+        except ResponseError as error:
+            if _delete_refused(error):
+                raise LockNotOwned(str(error)) from error
+            raise
 
     def locked(self, key: str, routing_key: str | None = None) -> bool:
         client = self.get_client(key, routing_key)

@@ -19,13 +19,15 @@ class LockTestCase(unittest.TestCase):
         lock = Lock(backend, key, duration, routing_key)
 
         lock.acquire()
-        backend.acquire.assert_called_once_with(key, duration, routing_key)
+        backend.acquire.assert_called_once_with(key, duration, routing_key, lock.token)
+        assert lock.token is not None
 
         lock.locked()
         backend.locked.assert_called_once_with(key, routing_key)
 
+        token = lock.token
         lock.release()
-        backend.release.assert_called_once_with(key, routing_key)
+        backend.release.assert_called_once_with(key, routing_key, token)
 
         backend.acquire.side_effect = Exception("Boom!")
         with pytest.raises(UnableToAcquireLock):
@@ -40,9 +42,32 @@ class LockTestCase(unittest.TestCase):
         lock = Lock(backend, key, duration, routing_key)
 
         with lock.acquire():
-            backend.acquire.assert_called_once_with(key, duration, routing_key)
+            token = lock.token
+            backend.acquire.assert_called_once_with(key, duration, routing_key, token)
+            assert token is not None
 
-        backend.release.assert_called_once_with(key, routing_key)
+        backend.release.assert_called_once_with(key, routing_key, token)
+
+    def test_each_acquire_uses_a_fresh_token(self) -> None:
+        backend = mock.Mock(spec=LockBackend)
+        lock = Lock(backend, "lock", 60)
+
+        lock.acquire()
+        first = lock.token
+        lock.release()
+        lock.acquire()
+        second = lock.token
+
+        assert first is not None
+        assert second is not None
+        assert first != second
+        assert backend.acquire.call_args_list == [
+            call("lock", 60, None, first),
+            call("lock", 60, None, second),
+        ]
+        assert backend.release.call_args_list == [
+            call("lock", None, first),
+        ]
 
     @patch("sentry.utils.locking.lock.random.random", return_value=0.5)
     @patch("sentry.utils.locking.lock.Lock.acquire", side_effect=UnableToAcquireLock)
