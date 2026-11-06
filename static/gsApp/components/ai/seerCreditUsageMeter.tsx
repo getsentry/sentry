@@ -66,7 +66,7 @@ export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterPro
 interface SeerCreditUsageMeterViewProps {
   autoReloadEnabled: boolean;
   /**
-   * Where the tooltip's auto reload links go.
+   * Where the tooltip links once auto reload has run out of top-ups.
    */
   configureAutoReloadTo: LinkProps['to'];
   /**
@@ -107,9 +107,9 @@ export function SeerCreditUsageMeterView({
     <Tooltip
       // `false` would force it closed, so only pass it to force it open.
       forceVisible={forceTooltipVisible || undefined}
-      maxWidth={320}
+      maxWidth={250}
       title={
-        <Stack gap="md">
+        <Stack gap="lg">
           <Text>
             {autoReloadEnabled
               ? tct('Your organization has used [percent] of your available credits.', {
@@ -134,7 +134,7 @@ export function SeerCreditUsageMeterView({
         </Stack>
       }
     >
-      <Flex align="center" gap="sm" data-test-id="seer-credit-usage-meter">
+      <Flex align="center" gap="xs" data-test-id="seer-credit-usage-meter">
         <Text size="sm" variant="muted" tabular>
           {`${percent}%`}
         </Text>
@@ -152,12 +152,10 @@ function AutoReloadStatus({
   SeerCreditUsageMeterViewProps,
   'autoReloadEnabled' | 'hasEnoughCredits' | 'configureAutoReloadTo'
 >) {
+  // The designs only count the month's credits here; the out-of-credits alert is
+  // where billing members turn auto reload on.
   if (!autoReloadEnabled) {
-    return (
-      <Text>
-        <Link to={configureAutoReloadTo}>{t('Turn on auto reload.')}</Link>
-      </Text>
-    );
+    return null;
   }
   // Auto reload is on and still can't cover a message, so the org has used
   // every top-up its threshold and daily cap allow.
@@ -177,10 +175,15 @@ function AutoReloadStatus({
 const UsageBar = styled(ProgressBar, {
   shouldForwardProp: prop => prop !== 'isWarning',
 })<{isWarning: boolean}>`
-  width: 48px;
+  width: 50px;
+  height: 10px;
   flex-shrink: 0;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.full};
+  background: ${p => p.theme.tokens.background.tertiary};
 
   &:before {
+    border-radius: ${p => p.theme.radius.full};
     background-color: ${p =>
       p.isWarning
         ? p.theme.tokens.graphics.warning.vibrant

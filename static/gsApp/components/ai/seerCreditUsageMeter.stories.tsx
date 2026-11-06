@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {IconArrow} from '@sentry/icons/arrow';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
@@ -11,21 +11,39 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SeerCreditUsageMeterView} from './seerCreditUsageMeter';
 
 /**
- * The meter beside a send button, as in the chat composer, with room above it
- * for the tooltip, which opens upwards.
+ * The meter beside the send button in the chat composer's toolbar.
+ */
+function ComposerToolbar({children}: {children: React.ReactNode}) {
+  return (
+    <Flex
+      justify="end"
+      align="center"
+      gap="md"
+      padding="xs"
+      border="primary"
+      radius="lg"
+      background="primary"
+    >
+      {children}
+      <Button
+        size="zero"
+        variant="secondary"
+        icon={<IconArrow />}
+        aria-label="Send message"
+      />
+    </Flex>
+  );
+}
+
+/**
+ * A composer toolbar with room above it for the tooltip, which opens upwards.
  */
 function NextToSendButton({children}: {children: React.ReactNode}) {
   return (
-    <Flex align="end" justify="end" width="420px" height="200px">
-      <Flex align="center" gap="sm">
-        {children}
-        <Button
-          size="md"
-          variant="secondary"
-          icon={<IconArrow direction="right" />}
-          aria-label="Send message"
-        />
-      </Flex>
+    <Flex align="end" width="420px" height="200px">
+      <Container width="100%">
+        <ComposerToolbar>{children}</ComposerToolbar>
+      </Container>
     </Flex>
   );
 }
@@ -38,7 +56,7 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
         <Text as="p">
           The usage meter in the Seer chat composer, for billing members of an
           organization with token-billed Seer. With auto reload off, the tooltip counts
-          monthly credits and links to turning auto reload on. Product code renders{' '}
+          monthly credits. Product code renders{' '}
           <Storybook.JSXNode
             name="SeerCreditUsageMeter"
             props={{hasEnoughCredits: true}}
@@ -115,8 +133,8 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
       <Fragment>
         <Text as="p">
           The organization can't afford a message and auto reload is off. The bar is
-          warning-colored and the tooltip still offers to turn auto reload on, next to the
-          out-of-credits alert above the composer.
+          warning-colored, and the out-of-credits alert above the composer offers to turn
+          auto reload on.
         </Text>
         <NextToSendButton>
           <SeerCreditUsageMeterView
@@ -149,9 +167,9 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
             {label: '90% used', percentUsed: 0.9, hasEnoughCredits: true},
             {label: "Can't afford a message", percentUsed: 0.6, hasEnoughCredits: false},
           ].map(({label, percentUsed, hasEnoughCredits}) => (
-            <Stack key={label} gap="sm" align="start">
+            <Stack key={label} gap="sm" width="200px">
               <Text variant="muted">{label}</Text>
-              <Flex align="center" gap="sm">
+              <ComposerToolbar>
                 <SeerCreditUsageMeterView
                   percentUsed={percentUsed}
                   remaining={Math.round((1 - percentUsed) * 1000)}
@@ -160,13 +178,7 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
                   hasEnoughCredits={hasEnoughCredits}
                   configureAutoReloadTo={configureAutoReloadTo}
                 />
-                <Button
-                  size="md"
-                  variant="secondary"
-                  icon={<IconArrow direction="right" />}
-                  aria-label="Send message"
-                />
-              </Flex>
+              </ComposerToolbar>
             </Stack>
           ))}
         </Storybook.SideBySide>
