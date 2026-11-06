@@ -268,6 +268,8 @@ def _maybe_reply_to_single_run(
             referrer=AutofixReferrer.SEER_EXPLORER,
         )
     except SeerApiError as e:
+        if e.status == 404:
+            return Response({"session": None}, status=404)
         sentry_sdk.capture_exception(e)
         return Response({"detail": "Failed to start or continue chat session"}, status=500)
     except ValueError:
