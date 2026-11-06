@@ -169,7 +169,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, organization_id: int, user_id: int
     ) -> RpcOrganizationMember | None:
         try:
-            member = OrganizationMember.objects.get(
+            member = OrganizationMember.objects.select_related("organization").get(
                 user_id=user_id, organization_id=organization_id
             )
         except OrganizationMember.DoesNotExist:
@@ -271,7 +271,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, organization_id: int, email: str
     ) -> RpcOrganizationMember | None:
         member = first_matching_email(
-            OrganizationMember.objects.filter(organization_id=organization_id), email
+            OrganizationMember.objects.select_related("organization").filter(
+                organization_id=organization_id
+            ),
+            email,
         )
         if member is None:
             return None

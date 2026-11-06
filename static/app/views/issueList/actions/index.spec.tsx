@@ -575,6 +575,62 @@ describe('IssueListActions', () => {
     });
   });
 
+  describe('copy', () => {
+    beforeEach(() => {
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
+      GroupStore.loadInitialData([
+        GroupFixture({
+          id: '1',
+          shortId: 'PROJ-1',
+          permalink: 'https://sentry.io/organizations/org-slug/issues/1/',
+        }),
+        GroupFixture({
+          id: '2',
+          shortId: 'PROJ-2',
+          permalink: 'https://sentry.io/organizations/org-slug/issues/2/',
+        }),
+        GroupFixture({id: '3', shortId: 'PROJ-3'}),
+      ]);
+    });
+
+    it('copies selected issue IDs', async () => {
+      render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Issue IDs'}));
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('PROJ-1\nPROJ-2');
+    });
+
+    it('copies selected issue links', async () => {
+      render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Copy Issue Links'})
+      );
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'https://sentry.io/organizations/org-slug/issues/1/\nhttps://sentry.io/organizations/org-slug/issues/2/'
+      );
+    });
+
+    it('disables copy when all issues in the query are selected', async () => {
+      render(<WrappedComponent queryCount={1500} />);
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+      await userEvent.click(
+        screen.getByText(/Select the first 1,000 issues that match this search query/)
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+
+      expect(screen.getByRole('menuitemradio', {name: /Copy Issue IDs/})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+  });
+
   describe('performance issues', () => {
     it('disables options that are not supported for performance issues', async () => {
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {

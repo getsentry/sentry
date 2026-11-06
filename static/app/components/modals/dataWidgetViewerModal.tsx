@@ -57,9 +57,11 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {SavedDashboardQueryPriorityProvider} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {
   DashboardFilters,
   DashboardPermissions,
+  DashboardQueryPriority,
   Widget,
 } from 'sentry/views/dashboards/types';
 import {
@@ -121,6 +123,7 @@ export interface DataWidgetViewerModalOptions {
   dashboardPermissions?: DashboardPermissions;
   isPrebuiltDashboard?: boolean;
   onEdit?: () => void;
+  queryPriority?: DashboardQueryPriority;
   widgetInterval?: string;
 }
 
@@ -266,6 +269,7 @@ function DataWidgetViewerModal(props: Props) {
     dashboardPermissions,
     dashboardCreator,
     isPrebuiltDashboard,
+    queryPriority,
     widgetInterval,
   } = props;
   const {selection} = usePageFilters();
@@ -737,7 +741,7 @@ function DataWidgetViewerModal(props: Props) {
   );
 
   return (
-    <Fragment>
+    <SavedDashboardQueryPriorityProvider priority={queryPriority}>
       <Header closeButton>
         <Stack gap="md">
           <Flex align="center" gap="sm">
@@ -801,7 +805,7 @@ function DataWidgetViewerModal(props: Props) {
           </Grid>
         </Flex>
       </Footer>
-    </Fragment>
+    </SavedDashboardQueryPriorityProvider>
   );
 }
 

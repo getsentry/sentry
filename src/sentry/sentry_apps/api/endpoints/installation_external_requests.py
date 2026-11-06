@@ -1,5 +1,5 @@
 import logging
-from typing import NotRequired, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -15,6 +15,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.response_types import (
     DetailResponse,
@@ -49,8 +50,17 @@ class SentryAppInstallationExternalRequestsSerializer(serializers.Serializer):
 
 
 class SentryAppExternalRequestOptionsResponse(TypedDict):
-    choices: list[list[str]]
-    defaultValue: NotRequired[str]
+    choices: Annotated[
+        list[list[str]],
+        ApiDescription(
+            "Select options returned by the installed app. Each choice is a `[value, label]` pair"
+        ),
+    ]
+    defaultValue: NotRequired[
+        Annotated[
+            str, ApiDescription("Value of the option to select by default, if the app returned one")
+        ]
+    ]
 
 
 @extend_schema(tags=["Integration"])

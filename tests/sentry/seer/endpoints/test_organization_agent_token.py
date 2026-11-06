@@ -2129,10 +2129,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                         },
                     ],
                 },
-                "config": {
-                    "thresholdPeriod": 1,
-                    "detectionType": AlertRuleDetectionType.STATIC.value,
-                },
+                "config": {"detectionType": AlertRuleDetectionType.STATIC.value},
                 "workflowIds": [self._resource("workflow").id],
             },
             ("OrganizationMonitorIndexEndpoint", "POST"): {
@@ -2644,6 +2641,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 patch(
                     "sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent",
                     return_value=SimpleNamespace(seer_run_state_id=1, uuid=uuid4()),
+                )
+            )
+            downstream_scope.enter_context(
+                patch(
+                    "sentry.seer.endpoints.group_ai_autofix.is_single_run_record",
+                    return_value=False,
                 )
             )
             # Kickoffs are gated on Seer setup (SCM integration + linked repos)

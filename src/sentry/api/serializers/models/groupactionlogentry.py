@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.activity import (
@@ -30,8 +31,10 @@ from sentry.issues.action_log.types import (
     GroupAction,
     GroupActionType,
     GroupActorType,
+    ImpactAssessmentAction,
 )
 from sentry.issues.derived.gate import should_serve_action_log_activity
+from sentry.issues.impact.types import get_impact_level
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
@@ -125,12 +128,16 @@ def get_serialized_activity_items(
     *,
     endpoint: str,
     limit: int = 99,
+    action_filter: Q | None = None,
+    include_first_seen: bool = True,
+    resolve_mentions: bool = False,
 ) -> list[dict[str, Any]] | None:
     """
-    Merge live Activity comments with non-comment log entries, then append one first-seen.
+    Merge live Activity comments with non-comment log entries, optionally appending first-seen.
 
     Each source supplies at most limit candidates. Order by creation time descending,
     comments before actions on ties, and numeric ID descending within each source.
+    action_filter narrows visible non-comment actions before applying the limit.
 
     Returns None when the log can't back the response — either the gate is closed or it's
     open and the log is empty — and the caller should fall back to Activity. Reports the
@@ -160,6 +167,7 @@ def get_serialized_activity_items(
     entries = list(
         GroupActionLogEntry.objects.user_visible()
         .filter(group_id=group.id)
+        .filter(action_filter if action_filter is not None else Q())
         # Appended separately below, regardless of the limit.
         .exclude(type=GroupActionType.FIRST_SEEN)
         .order_by("-date_added", "-id")[:limit]
@@ -184,9 +192,18 @@ def get_serialized_activity_items(
     notes = [item for item in page if isinstance(item, Activity)]
     entries = [item for item in page if isinstance(item, GroupActionLogEntry)]
     serialized: dict[Activity | GroupActionLogEntry, dict[str, Any]] = {
-        note: dict(item) for note, item in zip(notes, serialize_group_notes(group, notes, user))
+        note: dict(item)
+        for note, item in zip(
+            notes, serialize_group_notes(group, notes, user, resolve_mentions=resolve_mentions)
+        )
     }
     serialized.update(zip(entries, serialize(entries, user)))
+
+    record_activity_read(endpoint, ActivityReadResult.GAL)
+
+    serialized_page = [serialized[item] for item in page]
+    if not include_first_seen:
+        return serialized_page
 
     first_seen_entry = (
         oldest_entry if oldest_entry.type == GroupActionType.FIRST_SEEN.value else None
@@ -202,10 +219,7 @@ def get_serialized_activity_items(
             extra={"endpoint": endpoint, "group_id": group.id},
         )
 
-    record_activity_read(endpoint, ActivityReadResult.GAL)
-    return [serialized[item] for item in page] + [
-        dict(serialize_first_seen_entry(group, first_seen_entry))
-    ]
+    return serialized_page + [dict(serialize_first_seen_entry(group, first_seen_entry))]
 
 
 @register(GroupActionLogEntry)
@@ -327,7 +341,18 @@ class GroupActionLogEntrySerializer(Serializer):
             else obj.get_type_display().lower()
         )
 
-        if (
+        if obj.type == GroupActionType.IMPACT_ASSESSMENT.value:
+            action = obj.action
+            if not isinstance(action, ImpactAssessmentAction):
+                raise TypeError("Impact assessment entry has an unexpected action type")
+            data = {
+                "score": action.score,
+                "level": get_impact_level(action.score),
+                "description": action.description,
+                "citations": [citation.dict() for citation in action.citations],
+                "sourceEventId": action.source_event_id,
+            }
+        elif (
             obj.type == GroupActionType.SET_RESOLVED_IN_RELEASE.value
             and obj.data
             and obj.data.get("commit")
