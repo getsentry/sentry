@@ -16,6 +16,7 @@ const accountNotifications = [
   'spikeProtection',
   'reports',
   'brokenMonitors',
+  'inbox',
 ];
 
 export default function AccountNotificationFineTuningController() {
