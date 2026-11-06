@@ -703,6 +703,9 @@ from sentry.service_accounts.endpoints.organization_service_accounts import (
 )
 from sentry.synapse.endpoints.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.synapse.endpoints.project_key_cell_mappings import ProjectKeyCellMappingsEndpoint
+from sentry.telemetry_classifiers.endpoints.organization_prebuilt_telemetry_classifiers import (
+    OrganizationPrebuiltTelemetryClassifiersEndpoint,
+)
 from sentry.telemetry_classifiers.endpoints.organization_telemetry_classifier_details import (
     OrganizationTelemetryClassifierDetailsEndpoint,
 )
@@ -1876,6 +1879,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/classifiers/$",
         OrganizationTelemetryClassifiersEndpoint.as_view(),
         name="sentry-api-0-organization-telemetry-classifiers",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/classifiers/prebuilt/$",
+        OrganizationPrebuiltTelemetryClassifiersEndpoint.as_view(),
+        name="sentry-api-0-organization-prebuilt-telemetry-classifiers",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/classifiers/(?P<classifier_id>[^/]+)/$",

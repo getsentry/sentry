@@ -133,7 +133,7 @@ DEFAULT_AUTHENTICATION = (
 )
 
 
-def _with_endpoint_scope_declaration(
+def _with_endpoint_scope(
     func: Callable[..., Response],
 ) -> Callable[..., Response]:
     @functools.wraps(func)
@@ -145,21 +145,12 @@ def _with_endpoint_scope_declaration(
             method=request.method,
             permission_classes=self.permission_classes,
         ):
-            return func(self, request, *args, **kwargs)
-
-    return wrapper
-
-
-def _with_endpoint_owner_tag(
-    func: Callable[..., Response],
-) -> Callable[..., Response]:
-    # A forked scope (rather than the isolation scope) guarantees the tag is dropped when
-    # dispatch returns, so it can't leak into in-process callers such as tasks or other endpoints.
-    @functools.wraps(func)
-    def wrapper(self: Endpoint, request: Request, *args: Any, **kwargs: Any) -> Response:
-        with sentry_sdk.new_scope() as scope:
-            scope.set_tag("endpoint_owner", self.owner.value)
-            return func(self, request, *args, **kwargs)
+            # A forked scope (rather than the isolation scope) guarantees the tag is dropped when
+            # dispatch returns, so it can't leak into in-process callers such as tasks or other
+            # endpoints.
+            with sentry_sdk.new_scope() as scope:
+                scope.set_tag("endpoint_owner", self.owner.value)
+                return func(self, request, *args, **kwargs)
 
     return wrapper
 
@@ -514,8 +505,7 @@ class Endpoint(APIView):
 
     @csrf_exempt
     @allow_cors_options
-    @_with_endpoint_scope_declaration
-    @_with_endpoint_owner_tag
+    @_with_endpoint_scope
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability

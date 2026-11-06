@@ -433,9 +433,7 @@ DEFAULT_EVENT_DATA = {
     "platform": "python",
 }
 
-default_detector_config_data = {
-    MetricIssue.slug: {"threshold_period": 1, "detection_type": "static"}
-}
+default_detector_config_data = {MetricIssue.slug: {"detection_type": "static"}}
 
 
 def _patch_artifact_manifest(

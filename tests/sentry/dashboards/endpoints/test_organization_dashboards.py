@@ -1088,17 +1088,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
 
-    def test_post_features_required(self) -> None:
-        with self.feature(
-            {"organizations:dashboards-basic": False, "organizations:dashboards-edit": False}
-        ):
-            response = self.do_request(
-                "post",
-                self.url,
-                data={"title": "Dashboard from Post"},
-            )
-            assert response.status_code == 404
-
     def test_post_with_widgets(self) -> None:
         data: dict[str, Any] = {
             "title": "Dashboard from Post",
@@ -3280,13 +3269,7 @@ class OrganizationDashboardsGranularScopesTest(OrganizationDashboardWidgetTestCa
         assert response.status_code == 201, response.content
 
 
-@with_feature(
-    [
-        "organizations:dashboards-basic",
-        "organizations:dashboards-edit",
-        "organizations:explore-interpolation-and-smoothing",
-    ]
-)
+@with_feature("organizations:explore-interpolation-and-smoothing")
 class OrganizationDashboardTransformationsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

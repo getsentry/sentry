@@ -5,7 +5,7 @@ from django.conf import settings
 from django.test import override_settings
 from rest_framework.test import APIClient
 
-from sentry.agent_handoff.codes import consume_handoff
+from sentry.agent_handoff.codes import HandoffFlow, consume_handoff
 from sentry.agent_handoff.endpoints.organization_agent_handoff import HANDOFF_SCOPES
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apisetupcode import ApiSetupCode
@@ -41,13 +41,14 @@ class OrganizationAgentHandoffTest(APITestCase):
             status_code=201,
         )
         url = urlsplit(response.data["guideUrl"])
-        assert url.path == "/agents/"
+        assert url.path == "/agent-handoff/"
         assert not url.query
         assert response.data["prompt"] == (
             f"Follow these instructions to get started with Sentry:\n{response.data['guideUrl']}"
         )
         record = consume_handoff(url.fragment)
         assert record is not None
+        assert record.flow is HandoffFlow.GUIDED_NEXT_STEPS
         assert record.user_id == self.user.id
         assert record.organization_id == self.organization.id
         assert record.application_id == self.application.id
@@ -56,6 +57,32 @@ class OrganizationAgentHandoffTest(APITestCase):
         assert "no-store" in response["Cache-Control"]
         assert "private" in response["Cache-Control"]
         assert response.data["expiresAt"]
+
+    def test_select_guided_next_steps_flow(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, flow="guided_next_steps", status_code=201
+        )
+        handoff = consume_handoff(urlsplit(response.data["guideUrl"]).fragment)
+        assert handoff is not None
+        assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
+
+    def test_select_onboarding_flow(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, flow="onboarding", status_code=201
+        )
+        handoff = consume_handoff(urlsplit(response.data["guideUrl"]).fragment)
+        assert handoff is not None
+        assert handoff.flow is HandoffFlow.ONBOARDING
+
+    def test_unknown_flow(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, flow="unsupported", status_code=400
+        )
+        assert "flow" in response.data
+
+    def test_null_flow(self) -> None:
+        response = self.get_error_response(self.organization.slug, flow=None, status_code=400)
+        assert "flow" in response.data
 
     def test_requires_session(self) -> None:
         self.client.logout()

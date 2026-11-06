@@ -188,10 +188,7 @@ class DetectorValidatorTest(BaseValidatorTest):
                     }
                 ],
             },
-            "config": {
-                "threshold_period": 1,
-                "detection_type": AlertRuleDetectionType.STATIC.value,
-            },
+            "config": {"detection_type": AlertRuleDetectionType.STATIC.value},
         }
 
     # TODO - Refactor into multiple tests - basically where there are comment blocks

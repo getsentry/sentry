@@ -1,4 +1,4 @@
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import merge from 'lodash/merge';
 
 import {toast} from '@sentry/scraps/toast';
@@ -15,6 +15,7 @@ type UpdateUserOptionsVariables = Partial<User['options']>;
 
 export function useMutateUserOptions() {
   const user = useUser();
+  const queryClient = useQueryClient();
   return useMutation<User, RequestError, UpdateUserOptionsVariables>({
     mutationFn: (options: UpdateUserOptionsVariables) => {
       return fetchMutation<User>({
@@ -33,6 +34,13 @@ export function useMutateUserOptions() {
         removeBodyTheme();
       }
       ConfigStore.set('user', merge({}, user, {options}));
+    },
+    onSuccess: () => {
+      // Pages that fetch the user, like account settings, would otherwise keep
+      // showing the old preferences
+      queryClient.invalidateQueries({
+        queryKey: [getApiUrl('/users/$userId/', {path: {userId: 'me'}})],
+      });
     },
     onError: () => {
       toast.error('Failed to save user preference');

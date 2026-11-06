@@ -1,4 +1,5 @@
 import {useLayoutEffect, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -10,9 +11,8 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
 import {SharedEventContent} from './sharedEventContent';
@@ -51,17 +51,13 @@ function SharedGroupDetails() {
     isLoading,
     isError,
     refetch,
-  } = useApiQuery<SharedGroupDetailsResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/shared/issues/$shareId/', {
-        path: {organizationIdOrSlug: orgSlug!, shareId},
-      }),
-    ],
-    {
-      staleTime: 0,
-      enabled: !!orgSlug,
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<SharedGroupDetailsResponse>()(
+      '/organizations/$organizationIdOrSlug/shared/issues/$shareId/',
+      {path: {organizationIdOrSlug: orgSlug!, shareId}, staleTime: 0}
+    ),
+    enabled: !!orgSlug,
+  });
 
   if (isLoading) {
     return <LoadingIndicator />;
