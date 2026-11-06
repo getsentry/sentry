@@ -7,13 +7,25 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models.run import SeerRun
 
 
+class ImpactAssessmentDisabled(PermissionError):
+    pass
+
+
+class ImpactAssessmentEventNotFound(ValueError):
+    pass
+
+
 def assess_impact_for_group(group: Group) -> SeerRun:
     if not features.has("organizations:seer-impact-assessment", organization=group.organization):
-        raise PermissionError("Seer Impact assessment is not enabled for this organization")
+        raise ImpactAssessmentDisabled(
+            "Seer Impact assessment is not enabled for this organization"
+        )
 
     event = group.get_recommended_event() or group.get_latest_event()
     if event is None:
-        raise ValueError(f"Group {group.id} has no event available for Impact assessment")
+        raise ImpactAssessmentEventNotFound(
+            f"Group {group.id} has no event available for Impact assessment"
+        )
 
     source_event_id = event.event_id
     available_citations = [

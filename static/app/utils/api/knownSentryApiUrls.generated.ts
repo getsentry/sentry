@@ -227,6 +227,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/issues/$issueId/external-issues/$externalIssueId/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/first-last-release/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/hashes/'
+  | '/organizations/$organizationIdOrSlug/issues/$issueId/impact/assess/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/notes/'
