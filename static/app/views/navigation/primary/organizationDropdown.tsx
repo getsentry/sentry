@@ -4,8 +4,6 @@ import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
 import {IconBuilding} from '@sentry/icons/building';
 import {IconSettings} from '@sentry/icons/settings';
-import {IconStar} from '@sentry/icons/star';
-import {useMutation} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
@@ -26,10 +24,10 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import type {MenuItemTrailingAction} from '@sentry/scraps/menu';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
-import {toast} from '@sentry/scraps/toast';
 
-import {update} from 'sentry/actionCreators/projects';
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
+import {BookmarkStarIcon} from 'sentry/components/projects/bookmarkStar';
+import {useToggleProjectBookmark} from 'sentry/components/projects/useToggleProjectBookmark';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -40,7 +38,6 @@ import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import {useApi} from 'sentry/utils/useApi';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -95,7 +92,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const canCreateProject = useCanCreateProject();
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
-  const api = useApi({persistInFlight: true});
   // Bookmark state for in-flight toggles, keyed by project ID. Cleared once the
   // request settles: on success ProjectsStore has the new value, on error the
   // project falls back to its previous state.
@@ -103,20 +99,12 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   // Captured when the menu opens, so toggling a bookmark does not reorder the
   // open menu.
   const [bookmarkedSnapshot, setBookmarkedSnapshot] = useState<Set<string>>();
-  const {mutate: toggleBookmark} = useMutation({
-    mutationFn: ({project, isBookmarked}: {isBookmarked: boolean; project: Project}) =>
-      update(api, {
-        orgId: organization.slug,
-        projectId: project.slug,
-        data: {isBookmarked},
-      }),
+  const {mutate: toggleBookmark} = useToggleProjectBookmark({
+    organization,
     onMutate: ({project, isBookmarked}) => {
       setPendingBookmarks(prev => ({...prev, [project.id]: isBookmarked}));
     },
-    onError: (_error, {project}) => {
-      toast.error(t('Unable to toggle bookmark for %s', project.slug));
-    },
-    onSettled: (_data, _error, {project}) => {
+    onSettled: ({project}) => {
       setPendingBookmarks(prev => omit(prev, project.id));
     },
   });
@@ -124,9 +112,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const makeBookmarkAction = (project: Project): MenuItemTrailingAction => {
     const isBookmarked = pendingBookmarks[project.id] ?? project.isBookmarked;
     return {
-      icon: (
-        <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />
-      ),
+      icon: <BookmarkStarIcon isBookmarked={isBookmarked} />,
       label: isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
       busy: project.id in pendingBookmarks,
       onAction: () => toggleBookmark({project, isBookmarked: !isBookmarked}),
