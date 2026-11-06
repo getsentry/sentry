@@ -150,9 +150,11 @@ def handle_replication(
                 ).exclude(**dest_filter).delete()
             existing = destination_model.objects.filter(**dest_filter).first()
             if existing:
+                # `attname` copies foreign key ids, so building the update doesn't load each
+                # related row.
                 update: Mapping[str, Any] = {
-                    field.name: getattr(destination, field.name)
-                    for field in destination_model._meta.get_fields()
+                    field.attname: getattr(destination, field.attname)
+                    for field in destination_model._meta.concrete_fields
                     if field.editable and field.name not in ("id", "date_added")
                 }
                 existing.update(**update)
@@ -274,20 +276,27 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         token: RpcServiceAccountToken,
         cell_name: str,
     ) -> None:
-        try:
-            organization = Organization.objects.get(id=token.organization_id)
-        except Organization.DoesNotExist:
+        # The account replica's org foreign key cascades, so finding it also proves the org
+        # exists. Raising here would block the org's outbox shard until someone intervenes.
+        service_account = ServiceAccountReplica.objects.filter(
+            organization_id=token.organization_id, service_account_id=token.service_account_id
+        ).first()
+        if service_account is None:
+            logger.warning(
+                "service_account_token_replica.missing_service_account",
+                extra={
+                    "token_id": token.id,
+                    "service_account_id": token.service_account_id,
+                    "organization_id": token.organization_id,
+                },
+            )
+            _record_replica_write(OutboxCategory.SERVICE_ACCOUNT_TOKEN_UPDATE, "skipped")
             return
 
-        # The account's outbox is on the same shard and was written first, so its replica
-        # exists. Raising instead of skipping keeps the token's outbox for a retry.
-        service_account = ServiceAccountReplica.objects.get(
-            organization_id=organization.id, service_account_id=token.service_account_id
-        )
         destination = ServiceAccountTokenReplica(
             service_account=service_account,
             token_id=token.id,
-            organization=organization,
+            organization_id=token.organization_id,
             token_hashed=token.token_hashed,
             scope_list=token.scope_list,
             date_expires=token.date_expires,

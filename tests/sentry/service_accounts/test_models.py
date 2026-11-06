@@ -4,13 +4,16 @@ from unittest import mock
 
 import pytest
 from django.core.exceptions import ValidationError
-from django.db import router, transaction
+from django.db import connections, router, transaction
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry import deletions
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.hybridcloud.services.replica import cell_replica_service
+from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.service_accounts.models import (
@@ -23,6 +26,7 @@ from sentry.service_accounts.models import (
     validate_grantable_scopes,
 )
 from sentry.service_accounts.services.service_account import service_account_service
+from sentry.service_accounts.services.service_account.serial import serialize_service_account_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -451,6 +455,29 @@ class ServiceAccountTokenReplicationTest(TestCase):
         replica = self.get_replica()
         assert replica is not None
         assert replica.date_deactivated == self.token.date_deactivated
+
+    def test_missing_account_replica_skips_without_raising(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            ServiceAccountReplica.objects.filter(
+                service_account_id=self.service_account.id
+            ).delete()
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.token.update(name="deploys-2")
+
+        assert self.get_replica() is None
+
+    def test_upsert_does_not_query_organization(self) -> None:
+        token = serialize_service_account_token(self.token)
+        # setUp already replicated the token, so this goes through the update path.
+        with (
+            assume_test_silo_mode(SiloMode.CELL),
+            CaptureQueriesContext(connections[router.db_for_write(Organization)]) as ctx,
+        ):
+            cell_replica_service.upsert_replicated_service_account_token(
+                token=token, cell_name="us"
+            )
+        assert not [q for q in ctx.captured_queries if '"sentry_organization"' in q["sql"]]
 
     def test_delete_removes_replica(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
