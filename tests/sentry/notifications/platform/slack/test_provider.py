@@ -170,6 +170,9 @@ class SlackRendererTest(TestCase):
 
         assert len(blocks) == 50
         assert isinstance(blocks[0], HeaderBlock)
+        # 47 body slots: 46 kept lines plus the omitted-count line for the other 14.
+        assert blocks[46].to_dict()["text"]["text"] == "line 45"
+        assert blocks[47].to_dict()["elements"][0]["text"] == "_…and 14 more_"
         assert isinstance(blocks[-2], ActionsBlock)
         assert blocks[-1].to_dict()["elements"][0]["text"] == "Footer"
 

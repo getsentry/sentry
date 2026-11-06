@@ -95,7 +95,14 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
         # Trim the body, not the header or trailing blocks, so the message stays actionable.
         trailing = (rendered_template.actions, rendered_template.chart, rendered_template.footer)
         max_body_blocks = SLACK_MAX_BLOCKS - 1 - sum(1 for block in trailing if block)
-        body_blocks = body_blocks[:max_body_blocks]
+        if len(body_blocks) > max_body_blocks:
+            # Say how much was cut so a shortened list (e.g. deploy commits) doesn't read as complete.
+            kept = max_body_blocks - 1
+            omitted = len(body_blocks) - kept
+            body_blocks = [
+                *body_blocks[:kept],
+                ContextBlock(elements=[MarkdownTextObject(text=f"_…and {omitted} more_")]),
+            ]
 
         blocks: list[Block] = [subject_block, *body_blocks]
 
