@@ -20,15 +20,16 @@ import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/expl
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
-import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {LogsTabOnboarding} from './logsOnboarding';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {LogsTabContent} from './logsTab';
 
 export default function LogsContent() {
   const organization = useOrganization();

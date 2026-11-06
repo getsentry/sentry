@@ -25,7 +25,7 @@ env:
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     permissions:
       contents: read
@@ -70,6 +70,10 @@ jobs:
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '3'
+      # Arm pull requests and x64 master test against the same Chrome build.
+      # 156.0.8078.47 is what the x64 image shipped when this was pinned.
+      CHROME_FOR_TESTING_VERSION: '156.0.8078.47'
+      CHROME_FOR_TESTING_DIR: /home/runner/.cache/chrome-for-testing
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -123,28 +127,20 @@ jobs:
         with:
           setup-toolchain: 'false'
 
+      - name: Chrome for Testing cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ${{ env.CHROME_FOR_TESTING_DIR }}
+          key: ${{ runner.os }}-${{ runner.arch }}-chrome-for-testing-${{ env.CHROME_FOR_TESTING_VERSION }}
+
+      - name: Install Chrome for Testing
+        timeout-minutes: 15
+        run: .github/workflows/scripts/install-chrome-for-testing.sh
+
       # Chrome's first launch on a fresh runner takes several seconds longer
       # than later ones, which is consistent with a cold disk and font cache.
       # Launch it once here, while webpack builds, so the test workers don't
       # pay that.
-      # Arm runner images have no Google Chrome or chromedriver. Use the Chromium
-      # snap behind wrappers with the names the steps below look for. Wrappers,
-      # not symlinks: snap picks the app from argv[0].
-      - name: Install Chromium (Arm)
-        if: runner.arch == 'ARM64'
-        run: |
-          # The snap store intermittently times out (HTTP 408), so retry.
-          for attempt in 1 2 3 4 5; do
-            sudo snap install chromium && break
-            [ "$attempt" -lt 5 ] || exit 1
-            sleep $((attempt * 10))
-          done
-          printf '#!/bin/sh\nexec /snap/bin/chromium "$@"\n' | sudo tee /usr/local/bin/google-chrome >/dev/null
-          printf '#!/bin/sh\nexec /snap/bin/chromium.chromedriver "$@"\n' | sudo tee /usr/local/bin/chromedriver >/dev/null
-          sudo chmod 755 /usr/local/bin/google-chrome /usr/local/bin/chromedriver
-          google-chrome --version
-          chromedriver --version
-
       - name: Warm up Chrome in the background
         run: |
           if command -v google-chrome && command -v chromedriver; then
@@ -185,10 +181,11 @@ jobs:
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
-          # Skips the Selenium Manager lookup Selenium would run on every launch.
-          if chromedriver=$(command -v chromedriver); then
-            PYTEST_ADDOPTS="$PYTEST_ADDOPTS --chromedriver-path=$chromedriver"
-          fi
+          # Pins the Chrome for Testing build, not the image's Chrome, and skips
+          # the Selenium Manager lookup Selenium would run on every launch.
+          chrome=$(command -v google-chrome)
+          chromedriver=$(command -v chromedriver)
+          PYTEST_ADDOPTS="$PYTEST_ADDOPTS --chrome-path=$chrome --chromedriver-path=$chromedriver"
           timeout -k 30 1200 make run-acceptance || rc=$?
           [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
           exit "${rc:-0}"
@@ -228,7 +225,7 @@ jobs:
     if: always()
     name: Acceptance
     needs: [acceptance, files-changed]
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     steps:
       - name: Check for failures

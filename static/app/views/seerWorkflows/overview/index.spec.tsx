@@ -30,13 +30,14 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
+
 import type {
   AutofixOverviewResponse,
   OverviewPullRequest,
   OverviewRunIssue,
-} from 'sentry/views/seerWorkflows/overview/types';
-import {SCM_WINDOW_SIZE} from 'sentry/views/seerWorkflows/overview/types';
-import {useOverviewSeerDrawer} from 'sentry/views/seerWorkflows/overview/useOverviewSeerDrawer';
+} from './types';
+import {SCM_WINDOW_SIZE} from './types';
+import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
 
 describe('AutofixOverview', () => {
   const organization = OrganizationFixture({

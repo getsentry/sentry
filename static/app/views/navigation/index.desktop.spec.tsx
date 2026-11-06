@@ -17,16 +17,18 @@ import {
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {Navigation} from 'sentry/views/navigation';
-import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
-import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {
+  NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
+  getSettingsLastProjectKey,
+} from './constants';
+import {PrimaryNavigationContextProvider} from './primaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
   'discover',
   'discover-basic',
   'discover-query',
-  'dashboards-basic',
-  'dashboards-edit',
   'dashboards-prebuilt-insights-dashboards',
   'session-replay-ui',
   'ourlogs-enabled',
@@ -472,6 +474,86 @@ describe('desktop navigation', () => {
       }
     );
 
+    it('returns to the last selected project after visiting org settings', async () => {
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {
+            location: {pathname: '/settings/org-slug/projects/project-slug/'},
+            routes: ['/settings/:orgId/', '/settings/:orgId/projects/:projectId/'],
+          },
+        })
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Select a project'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'second-project'}));
+      expect(router.location.pathname).toBe(
+        '/settings/org-slug/projects/second-project/'
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Org'}));
+      expect(router.location.pathname).toBe('/settings/org-slug/');
+      expect(screen.getByRole('link', {name: 'Project'})).toHaveAttribute(
+        'href',
+        '/settings/org-slug/projects/second-project/'
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Project'}));
+      expect(router.location.pathname).toBe(
+        '/settings/org-slug/projects/second-project/'
+      );
+    });
+
+    it('links to the remembered project by ID after it was renamed', async () => {
+      localStorage.setItem(getSettingsLastProjectKey('org-slug'), JSON.stringify('999'));
+      ProjectsStore.loadInitialData([
+        ProjectFixture(),
+        ProjectFixture({id: '999', slug: 'renamed-project'}),
+      ]);
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('link', {name: 'Project'})).toHaveAttribute(
+          'href',
+          '/settings/org-slug/projects/renamed-project/'
+        )
+      );
+    });
+
+    it('falls back to the first project when the remembered one is unavailable', async () => {
+      localStorage.setItem(
+        getSettingsLastProjectKey('org-slug'),
+        JSON.stringify('12345')
+      );
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('link', {name: 'Project'})).toHaveAttribute(
+          'href',
+          '/settings/org-slug/projects/project-slug/'
+        )
+      );
+    });
+
     it('switches from project key details to the new project key list', async () => {
       const {router} = render(
         <PrimaryNavigationContextProvider>
@@ -781,7 +863,7 @@ describe('desktop navigation', () => {
           [`${ORG}/explore/profiles/`, 'Explore', 'Profiles'],
           [`${ORG}/explore/replays/`, 'Explore', 'Replays'],
           [`${ORG}/explore/releases/`, 'Explore', 'Releases'],
-          [`${ORG}/explore/saved-queries/`, 'Explore', 'All Queries'],
+          [`${ORG}/explore/saved-queries/`, 'Explore', 'Saved Queries'],
           // Dashboards
           [`${ORG}/dashboards/`, 'Dashboards', 'All Dashboards'],
           // Insights
@@ -985,6 +1067,28 @@ describe('desktop navigation', () => {
       expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/seer/investigations/'
+      );
+    });
+
+    it('hides Seer with classifiers-ui but without seer-primary-nav', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'classifiers-ui'],
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('links Seer to classifiers when only classifiers is enabled', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'classifiers-ui'],
+        openMembership: false,
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/classifiers/'
       );
     });
 

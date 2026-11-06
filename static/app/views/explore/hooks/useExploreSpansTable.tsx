@@ -5,10 +5,6 @@ import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {EventView, type EventData} from 'sentry/utils/discover/eventView';
 import {
-  useProgressiveQuery,
-  type RPCQueryExtras,
-} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {
   useQueryParamsCursor,
   useQueryParamsExtrapolate,
   useQueryParamsFields,
@@ -16,6 +12,8 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+
+import {useProgressiveQuery, type RPCQueryExtras} from './useProgressiveQuery';
 
 interface UseExploreSpansTableOptions {
   enabled: boolean;
@@ -250,7 +248,6 @@ function useExploreSpansTableImp({
     limit,
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
-    trackResponseAnalytics: false,
     queryExtras,
   });
 

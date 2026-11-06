@@ -5,13 +5,14 @@ import logging
 import secrets
 from collections.abc import Mapping
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import parse_qsl, urlencode
 
 import orjson
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
+from django.utils.crypto import constant_time_compare
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
@@ -124,8 +125,9 @@ class OAuth2Callback(AuthView):
         req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
-            return dict(parse_qsl(body))
-        return orjson.loads(body)
+            return dict(parse_qsl(cast(Any, body)))
+        data = orjson.loads(body)
+        return data
 
     def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         error = request.GET.get("error")
@@ -135,7 +137,8 @@ class OAuth2Callback(AuthView):
         if error:
             return pipeline.error(error)
 
-        if state != pipeline.fetch_state("state"):
+        stored_state = pipeline.fetch_state("state")
+        if not state or not stored_state or not constant_time_compare(state, stored_state):
             return pipeline.error(ERR_INVALID_STATE)
 
         if code is None:

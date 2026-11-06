@@ -208,7 +208,7 @@ class GroupActivityTestCase(TestCase):
 
         assert "firstSeen" not in serialized["data"]["source"]
 
-    def _create_note(self, mentions):
+    def _create_note(self, mentions: list[dict[str, object]]) -> Activity:
         group = self.create_group()
         return Activity.objects.create(
             project_id=group.project_id,

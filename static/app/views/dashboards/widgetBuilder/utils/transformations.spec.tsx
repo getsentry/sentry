@@ -6,9 +6,10 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {explodeFieldString} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {convertBuilderStateToStateQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToStateQueryParams';
-import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+
+import {convertBuilderStateToStateQueryParams} from './convertBuilderStateToStateQueryParams';
+import {convertBuilderStateToWidget} from './convertBuilderStateToWidget';
+import {convertWidgetToQueryParams} from './convertWidgetToBuilderStateParams';
 
 describe('widget transformation persistence', () => {
   it('round trips duplicate axes and distinct pipelines for each filter through the URL', () => {

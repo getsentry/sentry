@@ -7,7 +7,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import * as modal from 'sentry/actionCreators/modal';
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
-import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
+
+import {InviteBanner} from './inviteBanner';
 
 const missingMembers = {
   integration: 'github',

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.test import override_settings
 from django.urls import reverse
@@ -126,7 +126,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             self.create_data_condition(
                 condition_group=group,
                 type=condition_type,
-                comparison=comparison,
+                comparison=cast("str | int | Mapping[str, object]", comparison),
                 condition_result=result,
             )
         detector = self.create_detector(
@@ -654,7 +654,9 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         ]
 
     def test_applies_a_raw_threshold_to_a_percent_monitor(self) -> None:
-        self.set_detector(high=110.0, config={"detection_type": "static", "comparison_delta": 3600})
+        self.set_detector(
+            high=110.0, config={"detection_type": "percent", "comparison_delta": 3600}
+        )
         action_request = self.suggest(
             before={"highThreshold": 110, "resolutionThreshold": 110},
             changes={"highThreshold": 130, "resolutionThreshold": 130},

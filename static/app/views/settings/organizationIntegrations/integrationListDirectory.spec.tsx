@@ -11,7 +11,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import IntegrationListDirectory from 'sentry/views/settings/organizationIntegrations/integrationListDirectory';
+
+import IntegrationListDirectory from './integrationListDirectory';
 
 jest.mock('sentry/utils/analytics');
 

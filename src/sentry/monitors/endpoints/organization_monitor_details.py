@@ -16,6 +16,9 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.response_types import ValidationErrorResponse
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.monitors.models import Monitor
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.validators import MonitorValidator
 from sentry.utils.auth import AuthenticatedHttpRequest
@@ -32,6 +35,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.CRONS
 
     @extend_schema(
@@ -50,7 +54,11 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
         },
     )
     def get(
-        self, request: Request, organization, project, monitor
+        self,
+        request: Request,
+        organization: Organization,
+        project: Project,
+        monitor: Monitor,
     ) -> Response[MonitorSerializerResponse]:
         """
         Retrieves details for a monitor.
@@ -74,7 +82,11 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
         },
     )
     def put(
-        self, request: AuthenticatedHttpRequest, organization, project, monitor
+        self,
+        request: AuthenticatedHttpRequest,
+        organization: Organization,
+        project: Project,
+        monitor: Monitor,
     ) -> Response[MonitorSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update a monitor.
@@ -97,7 +109,9 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, project, monitor) -> Response[None]:
+    def delete(
+        self, request: Request, organization: Organization, project: Project, monitor: Monitor
+    ) -> Response[None]:
         """
         Delete a monitor or monitor environments.
         """

@@ -11,7 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {SourceMapsList} from 'sentry/views/settings/projectSourceMaps/sourceMapsList';
+import {SourceMapsList} from './sourceMapsList';
 
 function renderReleaseBundlesMockRequests({
   orgSlug,

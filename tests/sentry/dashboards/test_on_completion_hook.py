@@ -21,7 +21,7 @@ from sentry.testutils.cases import TestCase
 
 def _make_state(
     status: str = "completed",
-    artifact_data: dict | None = None,
+    artifact_data: dict[str, Any] | None = None,
     previous_blocks: list[MemoryBlock] | None = None,
 ) -> SeerRunState:
     blocks: list[MemoryBlock] = list(previous_blocks or [])
@@ -126,6 +126,23 @@ def test_generated_widget_derives_min_height_from_display_type() -> None:
     )
 
     assert artifact.widgets[0].layout.min_h == 1
+
+
+def test_generated_widget_rejects_unsupported_issue_chart_aggregate() -> None:
+    with pytest.raises(ValidationError, match=r"Unsupported aggregates \['count\(\)'\]"):
+        _make_artifact(widget_type="issue")
+
+
+def test_generated_widget_allows_supported_issue_chart_aggregates() -> None:
+    artifact = _make_artifact(
+        widget_type="issue",
+        queries=[{"aggregates": ["count(new_issues)", "count(resolved_issues)"]}],
+    )
+
+    assert artifact.widgets[0].queries[0].aggregates == [
+        "count(new_issues)",
+        "count(resolved_issues)",
+    ]
 
 
 class TestFormatSerializerErrors(TestCase):

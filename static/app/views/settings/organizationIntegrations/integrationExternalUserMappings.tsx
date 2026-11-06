@@ -3,8 +3,8 @@ import {useQuery, useMutation} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -98,11 +98,11 @@ export function IntegrationExternalUserMappings(props: Props) {
         method: 'DELETE',
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Deletion successful'));
+      toast.success(t('Deletion successful'));
       fetchData();
     },
     onError: () => {
-      addErrorMessage(t('An error occurred'));
+      toast.error(t('An error occurred'));
     },
   });
 

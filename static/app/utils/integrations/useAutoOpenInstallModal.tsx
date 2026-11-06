@@ -7,9 +7,10 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
-import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
 import {integrationRequiresUpgrade} from 'sentry/utils/integrationUtil';
+
+import {getSlackUpgradeModalParams} from './slackUpgradeModalParams';
+import type {AddIntegrationParams} from './useAddIntegration';
 
 interface Props {
   onInstall: AddIntegrationParams['onInstall'];

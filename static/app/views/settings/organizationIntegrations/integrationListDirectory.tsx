@@ -45,10 +45,11 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
-import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
-import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
-import {legacyWebhooksQueryOptions} from 'sentry/views/settings/organizationIntegrations/legacyWebhooksQueryOptions';
-import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
+
+import {CreateIntegrationButton} from './createIntegrationButton';
+import {IntegrationRow} from './integrationRow';
+import {legacyWebhooksQueryOptions} from './legacyWebhooksQueryOptions';
+import {ReinstallAlert} from './reinstallAlert';
 
 const FirstPartyIntegrationAlert = OverrideOrDefault({
   overrideName: 'component:first-party-integration-alert',

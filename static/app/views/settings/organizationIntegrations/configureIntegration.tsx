@@ -635,22 +635,18 @@ function ConfigureIntegration() {
           />
         }
       />
-      {allTabs.length === 0 ? (
-        mainTab
-      ) : (
-        <Fragment>
-          <TabsContainer>
-            <Tabs value={tab} onChange={onTabChange}>
-              <TabList>
-                {allTabs.map(tabTuple => (
-                  <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
-                ))}
-              </TabList>
-            </Tabs>
-          </TabsContainer>
-          <IntegrationTabContent integration={integration} mainTab={mainTab} tab={tab} />
-        </Fragment>
+      {allTabs.length > 1 && (
+        <TabsContainer>
+          <Tabs value={tab} onChange={onTabChange}>
+            <TabList>
+              {allTabs.map(tabTuple => (
+                <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+        </TabsContainer>
       )}
+      <IntegrationTabContent integration={integration} mainTab={mainTab} tab={tab} />
     </Fragment>
   );
 }

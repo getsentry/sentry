@@ -6,8 +6,8 @@ import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_RESET_DELAY_MS,
-} from 'sentry/views/navigation/constants';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+} from './constants';
+import {usePrimaryNavigation} from './primaryNavigationContext';
 
 /**
  * Resets the active nav group when the user moves their mouse away from the

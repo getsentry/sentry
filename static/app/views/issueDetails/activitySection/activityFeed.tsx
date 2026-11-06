@@ -1,14 +1,12 @@
 import type {TimeSince} from 'sentry/components/timeSince';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivityNote} from 'sentry/types/group';
-import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
-import type {DisplayedActivityFeedItem} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
-import {
-  ActivityLineNote,
-  isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
-import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+
+import type {DisplayedActivityFeedItem} from './activityLineItem/activityFeedItem';
+import {CollapsedStatusActivityRow} from './activityLineItem/collapsedStatusActivityRow';
+import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
+import {ActivityLine} from './activityLineItem';
+import {Timeline} from './timeline';
 
 interface ActivityFeedProps {
   group: Group;

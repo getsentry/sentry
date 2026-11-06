@@ -19,8 +19,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
@@ -39,10 +39,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
-import {TeamMembersRow} from 'sentry/views/settings/organizationTeams/teamMembersRow';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
+import {useTeamDetailsOutlet} from './teamDetails';
+import {TeamMembersRow} from './teamMembersRow';
 import {getButtonHelpText} from './utils';
 
 const COLUMNS: TableColumnConfig[] = [
@@ -247,12 +247,10 @@ export default function TeamMembers() {
           };
         }
       );
-      addSuccessMessage(t('Successfully removed member from team.'));
+      toast.success(t('Successfully removed member from team.'));
     },
     onError: () => {
-      addErrorMessage(
-        t('There was an error while trying to remove a member from the team.')
-      );
+      toast.error(t('There was an error while trying to remove a member from the team.'));
     },
   });
 
@@ -276,7 +274,7 @@ export default function TeamMembers() {
       );
     },
     onSuccess: (_data, variables) => {
-      addSuccessMessage(t('Successfully changed role for team member.'));
+      toast.success(t('Successfully changed role for team member.'));
       queryClient.setQueryData(
         getTeamMembersApiOptions({organization, teamId: team.slug, cursor, query})
           .queryKey,
@@ -302,7 +300,7 @@ export default function TeamMembers() {
       );
     },
     onError: () => {
-      addErrorMessage(
+      toast.error(
         t('There was an error while trying to change the roles for a team member.')
       );
     },
@@ -330,10 +328,10 @@ export default function TeamMembers() {
           };
         }
       );
-      addSuccessMessage(t('Successfully added member to team.'));
+      toast.success(t('Successfully added member to team.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to add team member.'));
+      toast.error(t('Unable to add team member.'));
     },
   });
 

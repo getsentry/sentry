@@ -3,9 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
-import type {TraceItemAttributeConfig} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {useSortByFields} from './useSortByFields';
+import type {TraceItemAttributeConfig} from './useTraceItemAttributes';
 
 const spansConfig: TraceItemAttributeConfig = {
   traceItemType: TraceItemDataset.SPANS,

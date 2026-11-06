@@ -7,7 +7,7 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -35,8 +35,9 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
-import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
+
+import {AssociatedReleases} from './associatedReleases';
+import {useDeleteDebugIdBundle} from './useDeleteDebugIdBundle';
 
 type Props = {
   project: Project;

@@ -26,8 +26,9 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {AppProviders} from 'sentry/views/app/appProviders';
-import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
+
+import {AppProviders} from './appProviders';
+import {useGlobalAlerts} from './globalAlerts';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));

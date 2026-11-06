@@ -12,6 +12,7 @@ from django.test import override_settings
 
 from sentry import options
 from sentry.auth.services.auth import AuthService
+from sentry.hybridcloud.rpc.circuit_breaker import RpcCircuitBreaker, RpcCircuitBreakerState
 from sentry.hybridcloud.rpc.service import (
     RpcAuthenticationSetupException,
     RpcCircuitBreakerOpenException,
@@ -39,7 +40,7 @@ from sentry.types.cell import Cell
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
-from sentry.utils.circuit_breaker2 import CircuitBreaker
+from sentry.utils.circuit_breaker2 import CircuitBreaker, CircuitBreakerState
 
 _CELLS = [Cell("north_america", 1, "http://na.sentry.io"), Cell("europe", 2, "http://eu.sentry.io")]
 
@@ -561,3 +562,27 @@ class RpcCircuitBreakerTest(TestCase):
         with override_cells([self.failing_cell]):
             self._fail_calls(self.failing_cell, 3)
         assert not mock_init.called
+
+    def test_state_disabled(self) -> None:
+        assert RpcCircuitBreaker(self.failing_cell.name, {}).state() is None
+
+    @override_options(
+        {
+            "hybridcloud.rpc.circuit-breaker.enabled": True,
+            "hybridcloud.rpc.circuit-breaker.config": _BREAKER_CONFIG,
+        }
+    )
+    def test_state(self) -> None:
+        breaker = RpcCircuitBreaker(self.failing_cell.name, {})
+        assert breaker.state() == RpcCircuitBreakerState(CircuitBreakerState.OK, None, 0, 0)
+
+        breaker.record_response(200, 0.1)
+        breaker.record_failure()
+        assert breaker.state() == RpcCircuitBreakerState(CircuitBreakerState.OK, None, 1, 2)
+
+        breaker.record_failure()
+        state = breaker.state()
+        assert state is not None
+        assert state.state == CircuitBreakerState.BROKEN
+        assert state.seconds_left is not None and 0 < state.seconds_left <= 30
+        assert (state.error_count, state.total_requests) == (None, None)

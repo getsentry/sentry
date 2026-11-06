@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -844,9 +844,12 @@ class RPCBase:
                 if series is not None
                 else output_timestamps
             )
-            values = (
+            values: list[float | None] = (
                 [
-                    process_value(point.data if point.data_present or not has_fill else None)
+                    cast(
+                        "float | None",
+                        process_value(point.data if point.data_present or not has_fill else None),
+                    )
                     for point in series.data_points
                 ]
                 if series is not None

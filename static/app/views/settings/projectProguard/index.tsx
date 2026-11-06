@@ -7,8 +7,8 @@ import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
@@ -86,11 +86,11 @@ export default function ProjectProguard() {
           }
         );
         setLoading(false);
-        addSuccessMessage('Successfully deleted the mapping file');
+        toast.success('Successfully deleted the mapping file');
         fetchData();
       } catch {
         setLoading(false);
-        addErrorMessage('An error occurred while deleting the mapping file');
+        toast.error('An error occurred while deleting the mapping file');
       }
     },
     [api, fetchData, organization.slug, project.slug]

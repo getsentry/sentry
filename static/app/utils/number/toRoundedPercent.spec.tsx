@@ -1,4 +1,4 @@
-import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
+import {toRoundedPercent} from './toRoundedPercent';
 
 describe('toRoundedPercent', () => {
   it('should format a decimal into to percent', () => {

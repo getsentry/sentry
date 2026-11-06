@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Mapping, MutableMapping
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from django.conf import settings as django_settings
 from django.http.request import HttpRequest
@@ -42,6 +42,7 @@ from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.autofix.utils import CodingAgentState
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.utils.imports import import_string
+from sentry.utils.locking.lock import Lock
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +156,7 @@ def _delete_legacy_integrations(organization_id: int, external_id: str) -> None:
         integration.delete()
 
 
-class ClaudeCodeApiKeySerializer(CamelSnakeSerializer):
+class ClaudeCodeApiKeySerializer(CamelSnakeSerializer[dict[str, str]]):
     api_key = CharField(required=True, max_length=255)
 
 
@@ -306,7 +307,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         """Parse and return the integration metadata."""
         return ClaudeCodeIntegrationMetadata.parse_obj(self.model.metadata or {})
 
-    def _vault_metadata_lock(self):
+    def _vault_metadata_lock(self) -> Lock:
         return locks.get(
             f"claude_code:vault:{self.model.id}",
             duration=VAULT_METADATA_LOCK_DURATION_S,
@@ -423,7 +424,10 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         client = self.get_client()
         vault_id = self._resolve_vault(client, request)
 
-        state = client.launch(webhook_url=webhook_url, request=request, vault_id=vault_id)
+        state = cast(
+            "CodingAgentState",
+            client.launch(webhook_url=webhook_url, request=request, vault_id=vault_id),
+        )
         state.integration_id = self.model.id
 
         self._sync_client_ids(client)

@@ -6,12 +6,8 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Grid} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -112,10 +108,10 @@ export default function ProjectDebugSymbols() {
       );
     },
     onMutate: () => {
-      addLoadingMessage('Deleting debug file');
+      toast.loading('Deleting debug file');
     },
     onSuccess: () => {
-      addSuccessMessage('Successfully deleted debug file');
+      toast.success('Successfully deleted debug file');
 
       // invalidate debug files query
       queryClient.invalidateQueries({
@@ -128,7 +124,7 @@ export default function ProjectDebugSymbols() {
       });
     },
     onError: () => {
-      addErrorMessage('Failed to delete debug file');
+      toast.error('Failed to delete debug file');
     },
   });
 

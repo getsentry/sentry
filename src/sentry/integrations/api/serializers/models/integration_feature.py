@@ -40,7 +40,7 @@ class IntegrationFeatureSerializer(Serializer[IntegrationFeatureResponse]):
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         has_target: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> IntegrationFeatureResponse:
         data: IntegrationFeatureResponse = {
             "featureId": obj.feature,

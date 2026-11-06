@@ -15,6 +15,7 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DisallowAgentToken, SentryIsAuthenticated
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.models.files.file import File
 from sentry.relocation.api.endpoints.index import (
     get_autopause_value,
@@ -57,7 +58,7 @@ class RelocationRetryEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("relocations.retry.post.start", extra={"caller": request.user.id})
+        logger.info("relocations.retry.post.start", extra={"caller": acting_user_id(request.user)})
 
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -107,11 +108,12 @@ class RelocationRetryEndpoint(Endpoint):
         if err is not None:
             return err
 
+        creator = require_user(request)
         with atomic_transaction(
             using=(router.db_for_write(Relocation), router.db_for_write(RelocationFile))
         ):
             new_relocation = Relocation.objects.create(
-                creator_id=request.user.id,
+                creator_id=creator.id,
                 owner_id=relocation.owner_id,
                 want_org_slugs=relocation.want_org_slugs,
                 step=Relocation.Step.UPLOADING.value,
@@ -136,7 +138,7 @@ class RelocationRetryEndpoint(Endpoint):
         try:
             analytics.record(
                 RelocationCreatedEvent(
-                    creator_id=request.user.id,
+                    creator_id=creator.id,
                     owner_id=owner.id,
                     uuid=str(new_relocation.uuid),
                 )

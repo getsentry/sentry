@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.models.activity import (
@@ -16,6 +16,7 @@ from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import is_owned_by_acting_user, require_user
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log.read_metrics import (
     ActivityReadResult,
@@ -32,6 +33,8 @@ from sentry.types.activity import ActivityType
 
 @cell_silo_endpoint
 class GroupNotesDetailsEndpoint(GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
@@ -55,7 +58,10 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         try:
             note = Activity.objects.get(
-                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id_int
+                is_owned_by_acting_user(request.user),
+                group=group,
+                type=ActivityType.NOTE.value,
+                id=note_id_int,
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
@@ -63,7 +69,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         try:
             delete_comment(
                 note,
-                user=request.user,
+                user=require_user(request),
                 source=resolve_action_source(request),
             )
         except Activity.DoesNotExist:
@@ -90,7 +96,10 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         try:
             note = Activity.objects.get(
-                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id_int
+                is_owned_by_acting_user(request.user),
+                group=group,
+                type=ActivityType.NOTE.value,
+                id=note_id_int,
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
@@ -106,7 +115,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             try:
                 note = update_comment(
                     note,
-                    user=request.user,
+                    user=require_user(request),
                     data=dict(payload),
                     source=resolve_action_source(request),
                 )
