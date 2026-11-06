@@ -116,6 +116,7 @@ class AuthConfigEndpointTest(APITestCase):
             "pendingMfa": {
                 "mfaRequired": True,
                 "mfaMethods": [{"id": "totp"}],
+                "email": self.user.email,
             },
             "serverHostname": "testserver",
         }
@@ -135,6 +136,7 @@ class AuthConfigEndpointTest(APITestCase):
         assert response.data["pendingMfa"] == {
             "mfaRequired": True,
             "mfaMethods": [{"id": "totp"}],
+            "email": self.user.email,
         }
         assert self.client.session["_pending_2fa"] == pending_2fa
 
@@ -154,6 +156,7 @@ class AuthConfigEndpointTest(APITestCase):
         assert response.data["pendingMfa"] == {
             "mfaRequired": True,
             "mfaMethods": [{"id": "totp"}],
+            "email": self.user.email,
         }
 
     def test_login_banner(self) -> None:

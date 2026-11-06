@@ -129,12 +129,16 @@ class AuthMfaMethodSerializer(Serializer[AuthMfaMethodSerializerResponse]):
 
 @dataclass(frozen=True)
 class AuthMfaRequired:
+    email: str
     methods: tuple[AuthMfaMethod, ...]
 
 
 class AuthMfaRequiredSerializerResponse(TypedDict):
     mfaRequired: bool
     mfaMethods: list[AuthMfaMethodSerializerResponse]
+    # SSO can resolve to a different account than the one the person expects, so
+    # the 2FA prompt needs to say which account it is verifying.
+    email: str
 
 
 class AuthMfaRequiredSerializer(Serializer[AuthMfaRequiredSerializerResponse]):
@@ -148,6 +152,7 @@ class AuthMfaRequiredSerializer(Serializer[AuthMfaRequiredSerializerResponse]):
         return {
             "mfaRequired": True,
             "mfaMethods": serialize(list(obj.methods), user, AuthMfaMethodSerializer()),
+            "email": obj.email,
         }
 
 
@@ -155,7 +160,9 @@ def serialize_auth_mfa_required(
     user: User, method_ids: Sequence[str]
 ) -> AuthMfaRequiredSerializerResponse:
     methods = tuple(AuthMfaMethod(method_id) for method_id in method_ids)
-    return serialize(AuthMfaRequired(methods), user, AuthMfaRequiredSerializer())
+    return serialize(
+        AuthMfaRequired(email=user.email, methods=methods), user, AuthMfaRequiredSerializer()
+    )
 
 
 @dataclass(frozen=True)
