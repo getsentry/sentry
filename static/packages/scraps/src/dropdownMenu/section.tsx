@@ -1,4 +1,5 @@
 import type * as React from 'react';
+import {css, type Theme} from '@emotion/react';
 import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 
@@ -50,10 +51,14 @@ export function DropdownMenuSection({
       ) : (
         heading
       )}
-      {/* Spacers stand in for unmounted items in a virtualized menu. A gap
-          would also be added around them, which the virtualizer does not
-          know about, so its scroll offsets would drift. */}
-      <SectionList gap={rowProps ? '0' : '2xs'} {...groupProps}>
+      <SectionList
+        {...groupProps}
+        css={(theme: Theme) => css`
+          [data-spaced-section-item] {
+            padding-top: ${theme.space['2xs']};
+          }
+        `}
+      >
         {children}
       </SectionList>
     </SectionGroup>

@@ -1242,6 +1242,38 @@ describe('DropdownMenu', () => {
 
       expect(screen.getAllByRole('menuitemradio')).toHaveLength(500);
     });
+
+    it.each([
+      ['virtualized', undefined, ['A 0'], ['A 1']],
+      // Every item mounts, so later sections can be checked too.
+      ['regular', 500, ['A 0', 'B 0'], ['A 1', 'B 1']],
+    ])(
+      'spaces items after the first in a section of a %s menu',
+      async (_, virtualizeThreshold, firstItems, laterItems) => {
+        render(
+          <DropdownMenu
+            triggerLabel="Menu"
+            virtualizeThreshold={virtualizeThreshold}
+            items={sectionedItems}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+        const row = (name: string) =>
+          // oxlint-disable-next-line testing-library/no-node-access -- The padding sits on the row element around the menu item.
+          screen.getByRole('menuitemradio', {name}).closest('li');
+        // jsdom does not apply the section's padding rule over the item's own
+        // `padding`, so check the marker that the rule targets.
+        for (const name of firstItems) {
+          expect(row(name)).not.toHaveAttribute('data-spaced-section-item');
+        }
+        for (const name of laterItems) {
+          expect(row(name)).toHaveAttribute('data-spaced-section-item');
+        }
+      }
+    );
   });
 });
 
