@@ -49,7 +49,7 @@ def transformed_query_widget(name: str) -> dict[str, Any]:
 
 class GetEmbedWidgetsTest(TestCase):
     @with_feature([_TRANSFORMED_QUERY_FLAG, _TRANSFORMATION_EXECUTION_FLAG])
-    def test_generated_query_contract_preserves_axis_pipeline_arrays(self) -> None:
+    def test_generated_query_contract_preserves_axis_transformation_arrays(self) -> None:
         widgets = {
             widget["name"]: widget for widget in get_embed_widgets(self.organization, self.user)
         }
