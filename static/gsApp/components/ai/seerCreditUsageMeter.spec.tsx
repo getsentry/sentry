@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 
@@ -131,6 +131,26 @@ describe('SeerCreditUsageMeter', () => {
     expect(
       screen.queryByText('Credits will reload automatically.')
     ).not.toBeInTheDocument();
+  });
+
+  it('reloads the wallet when the window regains focus', async () => {
+    const {wallet, autoTopUp} = mockWallet(billingOrganization);
+
+    render(<SeerCreditUsageMeter hasEnoughCredits />, {
+      organization: billingOrganization,
+    });
+
+    expect(await screen.findByText('75%')).toBeInTheDocument();
+    expect(wallet).toHaveBeenCalledTimes(1);
+    expect(autoTopUp).toHaveBeenCalledTimes(1);
+
+    // A top-up in another tab.
+    mockWallet(billingOrganization, {balance: 500, percentUsed: 0.5});
+    act(() => {
+      window.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    expect(await screen.findByText('50%')).toBeInTheDocument();
   });
 
   it('rounds the percent and counts purchased credits in the total', async () => {

@@ -32,14 +32,18 @@ export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterPro
     organization.features.includes('token-billed-seer-enabled') &&
     organization.access.includes('org:billing');
 
+  // Credits move outside this page, so recheck on window focus like the chat's
+  // credit check does; the app's query client turns that off by default.
   const {data: wallet} = useQuery({
     ...seerWalletBalanceOptions(organization),
     enabled: isEnabled,
+    refetchOnWindowFocus: true,
     retry: false,
   });
   const {data: autoTopUp} = useQuery({
     ...seerWalletAutoTopUpOptions(organization),
     enabled: isEnabled,
+    refetchOnWindowFocus: true,
     retry: false,
   });
 
