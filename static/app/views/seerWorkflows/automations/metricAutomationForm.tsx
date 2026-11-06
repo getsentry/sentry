@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
-import {keepPreviousData, queryOptions, useQuery} from '@tanstack/react-query';
+import {queryOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -21,7 +21,8 @@ import {toast} from '@sentry/scraps/toast';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
-import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import type {Detector, MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -152,15 +153,29 @@ export function MetricAutomationForm(props: Props) {
   });
   // Fetch connected monitors by ID so they resolve even when they aren't in the
   // picker's current search results
+  const queryClient = useQueryClient();
   const monitorIds = useStore(form.store, state => state.values.monitorIds);
+  const monitorsQueryOptions = detectorListApiOptions(organization, {
+    ids: monitorIds,
+    projects: [-1],
+    limit: 100,
+  });
   const monitorsQuery = useQuery({
-    ...detectorListApiOptions(organization, {
-      ids: monitorIds,
-      projects: [-1],
-      limit: 100,
-    }),
+    ...monitorsQueryOptions,
     enabled: monitorIds.length > 0,
-    placeholderData: keepPreviousData,
+    // Show monitors already fetched by the picker's search or an earlier lookup while
+    // the by-ID fetch runs, so a newly connected monitor appears right away
+    placeholderData: previous => {
+      const known = new Map<string, Detector>();
+      for (const [, data] of queryClient.getQueriesData<ApiResponse<Detector[]>>({
+        queryKey: [monitorsQueryOptions.queryKey[0]],
+      })) {
+        data?.json.forEach(monitor => known.set(monitor.id, monitor));
+      }
+      previous?.json.forEach(monitor => known.set(monitor.id, monitor));
+      const json = monitorIds.flatMap(id => known.get(id) ?? []);
+      return json.length > 0 ? {json, headers: {}} : undefined;
+    },
   });
   // The query is disabled with no monitors connected, so its state only matters otherwise
   const hasMonitorsError = monitorIds.length > 0 && monitorsQuery.isError;
