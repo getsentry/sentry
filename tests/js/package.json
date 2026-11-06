@@ -154,6 +154,7 @@
     "./teamIssuesBreakdown": "./fixtures/teamIssuesBreakdown.ts",
     "./teamReleaseCounts": "./fixtures/teamReleaseCounts.ts",
     "./teamResolutionTime": "./fixtures/teamResolutionTime.ts",
+    "./telemetryClassifier": "./fixtures/telemetryClassifier.ts",
     "./theme": "./fixtures/theme.tsx",
     "./timeSeries": "./fixtures/timeSeries.ts",
     "./tombstones": "./fixtures/tombstones.ts",
