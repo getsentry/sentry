@@ -4,6 +4,7 @@ from typing import Annotated, Any, Literal, TypedDict, Union
 
 from pydantic import BaseModel, Field
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.issues.formatting.formatter import FormattedResponse
 
 
@@ -30,6 +31,10 @@ class AutofixPostResponse(TypedDict):
     run_id: int
     # None for legacy runs predating SeerRun mirroring, which have no mirror row.
     sentry_run_id: str | None
+    feature_id: Annotated[
+        str,
+        ApiDescription('"autofix_single_run" for a single-run Autofix run, otherwise "autofix"'),
+    ]
 
 
 class AutofixHandoffResponse(TypedDict):
