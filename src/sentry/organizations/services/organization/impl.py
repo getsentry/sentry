@@ -626,7 +626,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         model = OrganizationMember.objects.get(id=organization_member.id)
         model.flags = self._deserialize_member_flags(organization_member.flags)  # type: ignore[assignment]  # TODO: make BitField a mypy plugin
         # Member flags aren't replicated to OrganizationMemberMapping, so there's
-        # no need to block on a synchronous flush. The outbox drains asynchronously.
+        # no need to block on a synchronous flush.
         with outbox_context(
             transaction.atomic(router.db_for_write(OrganizationMember)), flush=False
         ):
