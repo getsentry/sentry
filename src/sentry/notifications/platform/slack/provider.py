@@ -59,6 +59,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# chat.postMessage rejects payloads with more blocks than this with `invalid_blocks`.
+SLACK_MAX_BLOCKS = 50
+
 
 @dataclass(frozen=True)
 class SlackProviderThreadingContext(ProviderThreadingContext):
@@ -89,6 +92,10 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         )
         body_blocks: list[Block] = cls._render_body(rendered_template.body)
+        # Trim the body, not the header or trailing blocks, so the message stays actionable.
+        trailing = (rendered_template.actions, rendered_template.chart, rendered_template.footer)
+        max_body_blocks = SLACK_MAX_BLOCKS - 1 - sum(1 for block in trailing if block)
+        body_blocks = body_blocks[:max_body_blocks]
 
         blocks: list[Block] = [subject_block, *body_blocks]
 
