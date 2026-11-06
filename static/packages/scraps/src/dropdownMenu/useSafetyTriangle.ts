@@ -2,7 +2,15 @@ import type * as React from 'react';
 import {useEffect, useState} from 'react';
 
 type Point = {x: number; y: number};
+
 type PendingHover = {enter: () => void; target: HTMLElement};
+
+/**
+ * How long the pointer can rest inside the triangle before the hovered item
+ * takes over. A pointer that is still travelling to the submenu reports a move
+ * every frame, so a few frames without one means it has reached its target.
+ */
+const REST_MS = 50;
 
 export function useSafetyTriangle() {
   const [triangle] = useState(() => {
@@ -10,6 +18,7 @@ export function useSafetyTriangle() {
       null;
     let pending: PendingHover | null = null;
     let timeout: ReturnType<typeof setTimeout> | undefined;
+    let restTimeout: ReturnType<typeof setTimeout> | undefined;
     let abortController: AbortController | undefined;
 
     function cancel() {
@@ -17,6 +26,12 @@ export function useSafetyTriangle() {
       corridor = null;
       pending = null;
       clearTimeout(timeout);
+      clearTimeout(restTimeout);
+    }
+
+    function restartRestTimer() {
+      clearTimeout(restTimeout);
+      restTimeout = setTimeout(release, REST_MS);
     }
 
     function release() {
@@ -45,7 +60,9 @@ export function useSafetyTriangle() {
     function move(event: PointerEvent) {
       if (corridor?.submenu.contains(event.target as Node)) {
         cancel();
-      } else if (!contains({x: event.clientX, y: event.clientY})) {
+      } else if (contains({x: event.clientX, y: event.clientY})) {
+        restartRestTimer();
+      } else {
         release();
       }
     }
@@ -76,6 +93,7 @@ export function useSafetyTriangle() {
         }
         corridor = {origin, edge, submenu};
         timeout = setTimeout(release, 300);
+        restartRestTimer();
         abortController = new AbortController();
         const {signal} = abortController;
         document.addEventListener('pointermove', move, {signal});
