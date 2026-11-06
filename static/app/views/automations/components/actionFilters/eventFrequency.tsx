@@ -1,3 +1,4 @@
+import {getDuration} from '@sentry/scraps/duration';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
@@ -6,7 +7,6 @@ import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge
 import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';

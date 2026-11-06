@@ -12,6 +12,7 @@ import {IconTerminal} from '@sentry/icons/terminal';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
@@ -38,7 +39,6 @@ import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -210,7 +210,7 @@ function Highlights({
             </Text>
             <Flex align="center" gap="md">
               <Text as="div" size="xl">
-                {getDuration(durationInSeconds, 2, true)}
+                {getDuration(durationInSeconds, {precision: 2, style: 'short'})}
               </Text>
               {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
                 <HiglightsDurationComparison status={comparison.status}>

@@ -6,12 +6,13 @@ import type {TooltipComponentFormatterCallback} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import moment from 'moment-timezone';
 
+import {formatDateTime, getFormat} from '@sentry/scraps/dateTime';
+
 import type {BaseChart, BaseChartProps} from 'sentry/components/charts/baseChart';
 import {truncationFormatter} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DataPoint} from 'sentry/types/echarts';
 import {toArray} from 'sentry/utils/array/toArray';
-import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
 export const CHART_TOOLTIP_VIEWPORT_OFFSET = 20;
 
@@ -32,12 +33,12 @@ export function defaultFormatAxisLabel(
   const formatOptions = {local: !utc};
 
   const timeFormat = showTimeInTooltip
-    ? getTimeFormat({seconds: addSecondsToTimeFormat})
+    ? getFormat({seconds: addSecondsToTimeFormat, timeOnly: true})
     : '';
 
   if (!bucketSize) {
     const format = `MMM D, YYYY ${timeFormat} z`.trim();
-    return getFormattedDate(value, format, formatOptions);
+    return formatDateTime(value, {format, utc: !formatOptions.local});
   }
 
   const now = moment();
@@ -52,9 +53,12 @@ export function defaultFormatAxisLabel(
   const formatEndDate = showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : '';
   const formatEnd = `${formatEndDate} ${timeFormat}`.trim();
 
-  const start = getFormattedDate(bucketStart, formatStart, formatOptions);
-  const end = getFormattedDate(bucketEnd, formatEnd, formatOptions);
-  const timezone = getFormattedDate(bucketEnd, 'z', formatOptions);
+  const start = formatDateTime(bucketStart, {
+    format: formatStart,
+    utc: !formatOptions.local,
+  });
+  const end = formatDateTime(bucketEnd, {format: formatEnd, utc: !formatOptions.local});
+  const timezone = formatDateTime(bucketEnd, {format: 'z', utc: !formatOptions.local});
 
   return `${start} — ${end} (${timezone})`;
 }

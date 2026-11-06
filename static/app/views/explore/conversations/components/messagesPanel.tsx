@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {MessageRow} from '@sentry/scraps/chat';
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -17,7 +18,6 @@ import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
@@ -340,7 +340,7 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
       duration={
         duration === undefined || duration <= 0 ? null : (
           <Text size="xs" variant="muted" tabular align="right">
-            {getDuration(duration, 2, true)}
+            {getDuration(duration, {precision: 2, style: 'short'})}
           </Text>
         )
       }
@@ -389,7 +389,7 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
             duration={
               message.duration === undefined || message.duration <= 0 ? null : (
                 <Text size="xs" variant="muted" tabular align="right">
-                  {getDuration(message.duration, 2, true)}
+                  {getDuration(message.duration, {precision: 2, style: 'short'})}
                 </Text>
               )
             }

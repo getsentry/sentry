@@ -1,8 +1,9 @@
+import {getDuration} from '@sentry/scraps/duration';
+
 import type {FormModel} from 'sentry/components/forms/model';
 import {getFormFieldValue} from 'sentry/components/workflowEngine/form/getFormFieldValue';
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';

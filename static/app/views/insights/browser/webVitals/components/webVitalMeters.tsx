@@ -1,5 +1,6 @@
+import {getDuration} from '@sentry/scraps/duration';
+
 import {t} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 
 export const WEB_VITALS_METERS_CONFIG = {
   lcp: {
@@ -24,5 +25,5 @@ export const WEB_VITALS_METERS_CONFIG = {
   },
 };
 export const getFormattedDuration = (value: number) => {
-  return getDuration(value, value < 1 ? 0 : 2, true);
+  return getDuration(value, {precision: value < 1 ? 0 : 2, style: 'short'});
 };

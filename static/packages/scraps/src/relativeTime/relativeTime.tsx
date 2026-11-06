@@ -1,16 +1,14 @@
+import type * as React from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
-import {useTimezone} from '@sentry/scraps/datetime';
+import {DateTime, useTimezone} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {DateTime} from 'sentry/components/dateTime';
-import {defined} from 'sentry/utils/defined';
 
 import {getRelativeDate, type RelaxedDateType, type UnitStyle} from './getRelativeDate';
 
@@ -27,7 +25,7 @@ export const RELATIVE_TIME_MAX_WIDTH = 280;
  */
 const UTC = 'UTC';
 
-interface RelativeTimeProps {
+export interface RelativeTimeProps {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    */
@@ -108,7 +106,7 @@ export function RelativeTime({
 
   return (
     <Fragment>
-      {defined(label) && (
+      {label != null && (
         <Tooltip.Header
           trailingItems={getRelativeDate(date, resolvedSuffix, resolvedPrefix, unitStyle)}
         >

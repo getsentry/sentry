@@ -1,6 +1,8 @@
 import moment from 'moment-timezone';
 import {createStore} from 'reflux';
 
+import {configureDateTime} from '@sentry/scraps/dateTime';
+
 import type {Config} from 'sentry/types/system';
 
 import type {StrictStoreDefinition} from './types';
@@ -56,3 +58,11 @@ const storeConfig: ConfigStoreDefinition = {
 };
 
 export const ConfigStore = createStore(storeConfig);
+
+configureDateTime({
+  getTimezone: () =>
+    ConfigStore.get('user')?.options.timezone ??
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+  getClockDisplay: () => (ConfigStore.get('user')?.options.clock24Hours ? '24' : '12'),
+  subscribe: onChange => ConfigStore.listen(onChange, undefined) as () => void,
+});

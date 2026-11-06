@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {getDuration} from '@sentry/scraps/duration';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,7 +13,6 @@ import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   DisableDetectorAction,
   DuplicateDetectorAction,
@@ -153,7 +153,10 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             </DescriptionList.Details>
             <DescriptionList.Term>{t('Timeout')}</DescriptionList.Term>
             <DescriptionList.Details>
-              {t('After %s', getDuration(dataSource.queryObj.timeoutMs / 1000, 2))}
+              {t(
+                'After %s',
+                getDuration(dataSource.queryObj.timeoutMs / 1000, {precision: 2})
+              )}
             </DescriptionList.Details>
             <DetectorExtraDetails.Environment detector={detector} />
             <DetectorExtraDetails.DateCreated detector={detector} />

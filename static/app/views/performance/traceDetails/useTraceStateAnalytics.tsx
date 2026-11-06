@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
-import {getRelativeDate} from 'sentry/components/timeSince';
+import {getRelativeDate} from '@sentry/scraps/relativeTime';
+
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {useProjects} from 'sentry/utils/useProjects';

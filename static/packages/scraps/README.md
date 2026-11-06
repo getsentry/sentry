@@ -51,6 +51,30 @@ have no fallback to app components.
 Consumers provide Emotion's `ThemeProvider` with `lightTheme` or `darkTheme`.
 The package does not include application providers, global CSS, or fonts.
 
+## Date and duration formatting
+
+Import date presentation, preferences, and formatting from one entry:
+
+```tsx
+import {DateTime, formatDateTime} from '@sentry/scraps/dateTime';
+import {getDuration} from '@sentry/scraps/duration';
+
+formatDateTime(date, {timezone: 'America/New_York', timeOnly: true});
+getDuration(65, {precision: 1, style: 'short'}); // "1.1min"
+<DateTime date={date} timeOnly />;
+```
+
+Without configuration, dates use UTC and a 12-hour clock. Applications can call
+`configureDateTime` before rendering with timezone and clock getters and an
+optional change subscription. Plain formatters read those getters on each call;
+React consumers subscribe to the same source. `DateTimeProvider` overrides
+preferences for a React subtree; pass explicit options to plain formatters when
+formatting for that subtree.
+
+`configureTranslation` from `@sentry/scraps/translation` registers `t`, `tn`,
+and `pgettext` once for formatter localization. Translations resolve at call
+time, so changing the active locale does not leave cached duration labels.
+
 ## Prepare a release
 
 Run the `Release` GitHub workflow and select the `static/packages/scraps` workspace.

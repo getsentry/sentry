@@ -10,6 +10,8 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 
+import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
+
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {createGridOptions} from 'sentry/components/charts/components/grid';
@@ -21,7 +23,6 @@ import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {toArray} from 'sentry/utils/array/toArray';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
 
@@ -167,7 +168,7 @@ const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
             return `
           <div class="tooltip-series">${seriesTooltips.join('')}</div>
             <div class="tooltip-footer">
-              ${t('Date: %s', getFormattedDate(startTimestampMs + (firstValue as any).axisValue, getFormat({year: true, seconds: true, timeZone: true}), {local: false}))}
+              ${t('Date: %s', formatDateTime(startTimestampMs + (firstValue as any).axisValue, {format: getFormat({year: true, seconds: true, timeZone: true}), utc: true}))}
             </div>
             <div class="tooltip-footer" style="border: none;">
               ${t(

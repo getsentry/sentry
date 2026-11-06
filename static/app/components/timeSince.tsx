@@ -12,8 +12,6 @@ import {
 
 import {t} from 'sentry/locale';
 
-export {getRelativeDate};
-
 interface Props extends Omit<
   React.TimeHTMLAttributes<HTMLTimeElement>,
   'color' | 'title'
