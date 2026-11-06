@@ -106,16 +106,14 @@ function TriggerCell({trigger}: {trigger: InvestigationTrigger}) {
     return (
       <Flex align="center" gap="sm" minWidth={0}>
         <UserAvatar user={trigger.user} size={16} />
-        <Text variant="muted" ellipsis>
-          {getActorName(trigger.user)}
-        </Text>
+        <Text ellipsis>{getActorName(trigger.user)}</Text>
       </Flex>
     );
   }
 
   const label = trigger.automation.name ?? getStrategyLabel(trigger.automation.strategy);
   return (
-    <Text variant="muted" ellipsis>
+    <Text ellipsis>
       {automationsEnabled ? (
         <TriggerLink
           to={`${getAutomationDetailPath(organization.slug, trigger.automation.id)}runs/`}
@@ -129,9 +127,10 @@ function TriggerCell({trigger}: {trigger: InvestigationTrigger}) {
   );
 }
 
-// Links to other objects in a list row stay muted, like the Monitors list's issue cells.
+// Links to other objects in a list row use primary text and underline on hover,
+// like the Monitors list's issue cells.
 const TriggerLink = styled(Link)`
-  color: ${p => p.theme.tokens.content.secondary};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:hover,
   &:focus-visible {
