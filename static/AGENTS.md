@@ -121,7 +121,7 @@ For worked examples of all of the above, use the **`design-system`** skill.
 
 Writing or editing frontend tests (`*.spec.tsx`, RTL, `MockApiClient`, routing/network tests) → use the **`react-testing`** skill for the full guide (query priority, no hook mocking, fixtures, async assertions, mocking network requests).
 
-Appearance changes (colors, spacing, typography, CSS min/max sizing, responsive layout, visual variants) belong in colocated `*.snapshots.tsx` visual tests, not RTL style assertions → use the **`generate-snapshot-tests`** skill. The **`react-testing`** skill has the full rule for choosing between RTL and visual snapshots.
+Appearance changes (colors, spacing, sizing, responsive layout) are covered by visual snapshots, not RTL → see the **`react-testing`** skill for the rule and **`generate-snapshot-tests`** for writing them.
 
 ## Sentry SDK Instrumentation
 

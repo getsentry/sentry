@@ -81,7 +81,7 @@ await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 expect(await screen.findByText('Name is required')).toBeInTheDocument();
 ```
 
-For a successful save, assert the saved content or destination. For a rejected request, configure its error response with `MockApiClient` and assert the specific error feedback; if retry is supported, exercise it and verify success. These are behavior checks; keep color and sizing checks in visual snapshots.
+For a successful save, assert the saved content or destination. For a rejected request, configure its error response with `MockApiClient` and assert the specific error feedback; if retry is supported, exercise it and verify success.
 
 ### Avoid mocking hooks, functions, or components
 

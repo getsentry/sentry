@@ -8,7 +8,7 @@ type: workflow-process
 
 Generate a `*.snapshots.tsx` file colocated with a Sentry React component, following the established pattern used by core design system components.
 
-Use visual snapshots for appearance checks instead of RTL assertions on CSS, class names, DOM structure, or mocked styling props. Use `it.snapshot` / `it.snapshot.each`, not Jest DOM snapshots. For CSS min/max sizing or responsive layout, choose container widths that exercise the constraint or container breakpoint (see Responsive layout below). Snapshots render with `renderToString` and no API responses, so snapshot the presentational component that receives data as props rather than a view that fetches it. Keep interactions, validation, accessibility, and numeric input limit behavior in RTL using the **`react-testing`** skill.
+Use the **`react-testing`** skill to decide whether a change needs RTL coverage, a visual snapshot, or both.
 
 ## Step 1: Locate the Component
 
