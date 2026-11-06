@@ -38,6 +38,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.credits import SeerOperation
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -1682,6 +1683,38 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 409, response.data
         assert response.data["detail"] == "Seer can no longer iterate on this pull request"
+        mock_enqueue.assert_not_called()
+
+    @patch(
+        "sentry.seer.autofix.pr_iteration.manual_trigger.can_run_seer_operation",
+        return_value=False,
+    )
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
+    def test_pr_iteration_rejected_when_out_of_credits(
+        self, mock_run_state: MagicMock, mock_enqueue: MagicMock, mock_can_run: MagicMock
+    ) -> None:
+        group = self.create_group()
+        mock_run_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7)},
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "pr_iteration", "run_id": 123, "user_context": "please fix this"},
+            format="json",
+        )
+
+        assert response.status_code == 402, response.data
+        assert response.data == {
+            "detail": "Your organization does not have enough credits to continue your Autofix run."
+        }
+        mock_can_run.assert_called_once_with(group.organization, SeerOperation.AUTOFIX_PR_ITERATION)
         mock_enqueue.assert_not_called()
 
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
