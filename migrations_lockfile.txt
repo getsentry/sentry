@@ -9,7 +9,7 @@ ai_monitoring: 0002_add_date_updated_index
 
 discover: 0005_add_saved_query_non_user_creator
 
-explore: 0020_add_saved_query_non_user_creator
+explore: 0021_add_query_priority_to_explore_saved_query
 
 feedback: 0007_cleanup_failed_safe_deletes
 
