@@ -6,8 +6,8 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';
 import type {EventType} from 'getsentry/components/addEventsCTA';
+import {TrialRequestedStore} from 'getsentry/stores/trialRequestedStore';
 
 export function sendUpgradeRequest({
   organization,
@@ -43,7 +43,7 @@ export function sendTrialRequest({
     data: {},
     handleSuccess: () => {
       // show confirmation through trialStartedSidebarItem
-      TrialRequestedActions.requested();
+      TrialRequestedStore.markRequested();
       handleSuccess?.();
     },
     ...rest,
