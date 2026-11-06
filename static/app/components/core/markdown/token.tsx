@@ -5,6 +5,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {
+  DefaultAnnotation,
   DefaultTag,
   DefaultBlockquote,
   DefaultCodeBlock,
@@ -273,6 +274,15 @@ export function Token({
           raw={token.raw}
           index={token.index}
         />
+      );
+    }
+
+    case 'annotation': {
+      const AnnotationComp = components.Annotation ?? DefaultAnnotation;
+      return (
+        <AnnotationComp Default={DefaultAnnotation} data={token.data}>
+          {token.text}
+        </AnnotationComp>
       );
     }
 

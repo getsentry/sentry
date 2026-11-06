@@ -11,6 +11,8 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {markScrubbedValue} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -74,6 +76,8 @@ export interface ConversationApiSpan {
   'gen_ai.usage.output_tokens.reasoning'?: number;
   'gen_ai.usage.reasoning.output_tokens'?: number;
   'gen_ai.usage.total_tokens'?: number;
+  /** How PII scrubbing changed the span's string attributes, keyed by attribute. */
+  meta?: TraceItemDetailsMeta;
   occurrences?: TraceTree.EAPOccurrence[];
   'span.description'?: string;
   'span.op'?: string;
@@ -146,6 +150,22 @@ interface UseConversationResult {
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
   title: string | null;
+}
+
+/** Marks where PII scrubbing changed the span's values, see `markScrubbedValue`. */
+function markScrubbedSpan(apiSpan: ConversationApiSpan): ConversationApiSpan {
+  const {meta} = apiSpan;
+  if (!meta) {
+    return apiSpan;
+  }
+  const marked: Record<string, unknown> = {...apiSpan};
+  for (const attribute of Object.keys(meta)) {
+    const value = marked[attribute];
+    if (typeof value === 'string') {
+      marked[attribute] = markScrubbedValue(attribute, value, meta, apiSpan.project);
+    }
+  }
+  return marked as unknown as ConversationApiSpan;
 }
 
 /**
@@ -408,7 +428,7 @@ export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
   const nodeMap = new Map<string, AITraceSpanNode>();
 
   const transformedNodes = genAiSpans.map(apiSpan => {
-    const node = createNodeFromApiSpan(apiSpan, nodeMap);
+    const node = createNodeFromApiSpan(markScrubbedSpan(apiSpan), nodeMap);
     nodeMap.set(node.id, node);
     traceMap.set(node.id, apiSpan.trace);
     return node;

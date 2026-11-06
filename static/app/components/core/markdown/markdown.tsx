@@ -16,6 +16,8 @@ export interface MarkdownTableColumn {
 }
 
 export type MarkdownComponents = Partial<{
+  /** Text annotated with `annotate`, along with its data. */
+  Annotation: ComponentType<WithDefault<{children: string; data: string}>>;
   Blockquote: ComponentType<WithDefault<{children: ReactNode}>>;
   CodeBlock: ComponentType<WithDefault<{children: string; lang?: string}>>;
   Emphasis: ComponentType<WithDefault<{children: ReactNode}>>;

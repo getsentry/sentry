@@ -1,5 +1,7 @@
 import type {Theme} from '@emotion/react';
 
+import {truncateAnnotated} from '@sentry/scraps/markdown';
+
 import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
@@ -152,9 +154,8 @@ const MAX_TOOL_INPUT_VALUE_LENGTH = 48;
 const MAX_TOOL_INPUT_PREVIEW_KEYS = 4;
 
 function truncateText(value: string, maxLength: number): string {
-  return value.length > maxLength
-    ? `${value.slice(0, Math.max(0, maxLength - 3))}...`
-    : value;
+  // Scrubbed values are annotated, see `markScrubbedValue`.
+  return truncateAnnotated(value, maxLength);
 }
 
 function previewToolArgumentValue(value: unknown): string {
