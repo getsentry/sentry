@@ -28,7 +28,9 @@ from sentry.taskworker.namespaces import integrations_tasks
     silenced_exceptions=(Integration.DoesNotExist,),
 )
 @track_group_async_operation
-def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
+def sync_status_outbound(
+    group_id: int, external_issue_id: int, is_resolved: bool | None = None
+) -> bool | None:
     groups = Group.objects.filter(
         id=group_id, status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED]
     )
@@ -75,7 +77,9 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
                 )
 
                 installation.sync_status_outbound(
-                    external_issue, group.status == GroupStatus.RESOLVED, group.project_id
+                    external_issue,
+                    group.status == GroupStatus.RESOLVED if is_resolved is None else is_resolved,
+                    group.project_id,
                 )
 
                 analytics.record(
