@@ -848,7 +848,6 @@ def trigger_push_changes(
     seer_run = SeerRun.objects.filter(
         organization_id=group.organization.id, seer_run_state_id=run_id
     ).first()
-    # Open PR always continues a run, so it never uses quota.
     check_autofix_billing(
         group,
         SeerOperation.AUTOFIX_OPEN_PR,
