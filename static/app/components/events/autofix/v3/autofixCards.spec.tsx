@@ -2263,7 +2263,8 @@ describe('ArtifactCard', () => {
         };
       }
 
-      function mockPullRequestFiles() {
+      // `makePR`'s `commit_sha`, so by default the diff includes Seer's last push.
+      function mockPullRequestFiles(headSha = 'abc123') {
         return MockApiClient.addMockResponse({
           url: pullRequestFilesUrl,
           match: [MockApiClient.matchQuery({repo: 'org/repo', number: 42})],
@@ -2277,6 +2278,7 @@ describe('ArtifactCard', () => {
               },
               {path: 'logo.png', patch: null, status: 'added', previousPath: null},
             ],
+            headSha,
           },
         });
       }
@@ -2469,32 +2471,80 @@ describe('ArtifactCard', () => {
           }
         });
 
-        it('checks the diff again for a while after a push', async () => {
-          jest.useFakeTimers();
-          const filesRequest = mockPullRequestFiles();
-          const autofix = makeAutofix(makePR());
-          autofix.runState.updated_at = new Date().toISOString();
-
-          render(
-            <CodeChangesCard groupId="1" autofix={autofix} section={iteratedSection} />,
-            {organization: pinnedOrganization}
+        function cardAt(commitSha: string, updatedAt = '2026-01-01T00:00:00Z') {
+          const autofix = makeAutofix(makePR({commit_sha: commitSha}));
+          autofix.runState.updated_at = updatedAt;
+          return (
+            <CodeChangesCard groupId="1" autofix={autofix} section={iteratedSection} />
           );
+        }
 
-          await screen.findByText('1 file changed in 1 repo');
-          expect(filesRequest).toHaveBeenCalledTimes(1);
+        // The page loads with the old SHA, then sees Seer's push arrive.
+        async function renderThroughPush() {
+          const {rerender} = render(cardAt('older-sha'), {
+            organization: pinnedOrganization,
+          });
+          await act(() => jest.advanceTimersByTimeAsync(0));
+          expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
+
+          rerender(cardAt('abc123'));
+          await act(() => jest.advanceTimersByTimeAsync(0));
+        }
+
+        it('waits for the diff to catch up with the push, then stops checking', async () => {
+          jest.useFakeTimers();
+          const oldDiffRequest = mockPullRequestFiles('older-sha');
+          await renderThroughPush();
+
+          expect(oldDiffRequest).toHaveBeenCalledTimes(2);
           // The request must not carry the SHA, which only keys the cache.
-          expect(filesRequest).toHaveBeenCalledWith(
+          expect(oldDiffRequest).toHaveBeenLastCalledWith(
             expect.anything(),
             expect.objectContaining({query: {repo: 'org/repo', number: 42}})
           );
+          expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+          expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
 
-          for (const calls of [2, 3, 4]) {
-            await act(() => jest.advanceTimersByTimeAsync(10_000));
-            expect(filesRequest).toHaveBeenCalledTimes(calls);
-          }
+          MockApiClient.clearMockResponses();
+          const newDiffRequest = mockPullRequestFiles();
+
+          await act(() => jest.advanceTimersByTimeAsync(2_100));
+          expect(newDiffRequest).toHaveBeenCalledTimes(1);
+          expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
 
           await act(() => jest.advanceTimersByTimeAsync(60_000));
-          expect(filesRequest).toHaveBeenCalledTimes(4);
+          expect(newDiffRequest).toHaveBeenCalledTimes(1);
+        });
+
+        it('shows the diff anyway if it never catches up', async () => {
+          jest.useFakeTimers();
+          const filesRequest = mockPullRequestFiles('older-sha');
+          await renderThroughPush();
+          expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+
+          await act(() => jest.advanceTimersByTimeAsync(35_000));
+          expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
+
+          const calls = filesRequest.mock.calls.length;
+          await act(() => jest.advanceTimersByTimeAsync(60_000));
+          expect(filesRequest).toHaveBeenCalledTimes(calls);
+        });
+
+        it("doesn't wait for a push it didn't see, even when the run updates", async () => {
+          jest.useFakeTimers();
+          const filesRequest = mockPullRequestFiles('someone-elses-sha');
+          const {rerender} = render(cardAt('abc123'), {
+            organization: pinnedOrganization,
+          });
+          await act(() => jest.advanceTimersByTimeAsync(0));
+          expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
+
+          rerender(cardAt('abc123', new Date().toISOString()));
+          await act(() => jest.advanceTimersByTimeAsync(0));
+          expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
+
+          await act(() => jest.advanceTimersByTimeAsync(60_000));
+          expect(filesRequest).toHaveBeenCalledTimes(1);
         });
       });
 

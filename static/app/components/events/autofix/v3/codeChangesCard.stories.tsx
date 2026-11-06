@@ -44,6 +44,7 @@ const PULL_REQUEST_FILES = {
       previousPath: null,
     },
   ],
+  headSha: 'abc1234',
 };
 
 const noop = () => {};

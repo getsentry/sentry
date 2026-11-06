@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {useQueries} from '@tanstack/react-query';
 
 import {DiffLineType} from 'sentry/components/events/autofix/types';
@@ -23,6 +23,8 @@ interface PullRequestFile {
 
 interface PullRequestFilesResponse {
   files: PullRequestFile[];
+  /** The commit the files were read at. Null if the provider doesn't say. */
+  headSha: string | null;
 }
 
 export type PullRequestPatches =
@@ -37,8 +39,10 @@ export type PullRequestPatches =
       status: 'success';
     };
 
-const POST_PUSH_REFETCH_INTERVAL_MS = 10_000;
-const POST_PUSH_REFETCH_WINDOW_MS = 30_000;
+/** How often to check whether the PR's diff has caught up with Seer's push. */
+const DIFF_RECHECK_INTERVAL_MS = 2_000;
+/** How long after seeing the push to keep waiting for that. */
+const DIFF_CATCH_UP_WINDOW_MS = 30_000;
 
 const CHANGE_TYPE_BY_STATUS: Record<string, PullRequestFileChangeType> = {
   added: 'ADDED',
@@ -120,17 +124,40 @@ export function isPushingToPullRequest(
   );
 }
 
-function isRecent(timestamp: string | undefined): boolean {
+/**
+ * Whether the diff is from before a push this page saw, because the provider hasn't caught
+ * up. If the page didn't see the push, a different SHA means someone else pushed, so there's
+ * nothing to wait for.
+ */
+function isBehindPush(
+  data: PullRequestFilesResponse | undefined,
+  state: RepoPRState,
+  pushesSeen: Map<string, number>
+): boolean {
+  const headSha = data?.headSha;
+  const seenAt = defined(state.commit_sha) ? pushesSeen.get(state.commit_sha) : undefined;
   return (
-    defined(timestamp) &&
-    Date.now() - new Date(timestamp).getTime() < POST_PUSH_REFETCH_WINDOW_MS
+    state.pr_creation_status === 'completed' &&
+    defined(seenAt) &&
+    Date.now() - seenAt < DIFF_CATCH_UP_WINDOW_MS &&
+    defined(headSha) &&
+    headSha !== state.commit_sha
   );
 }
 
+// `dataUpdatedAt` makes each recheck recompute `isBehindPush`, even if the diff is unchanged.
 function pickResults(
-  results: Array<{data: PullRequestFilesResponse | undefined; isError: boolean}>
+  results: Array<{
+    data: PullRequestFilesResponse | undefined;
+    dataUpdatedAt: number;
+    isError: boolean;
+  }>
 ) {
-  return results.map(({data, isError}) => ({data, isError}));
+  return results.map(({data, dataUpdatedAt, isError}) => ({
+    data,
+    dataUpdatedAt,
+    isError,
+  }));
 }
 
 /**
@@ -147,6 +174,21 @@ export function usePullRequestPatches({
   runState: ExplorerAutofixState | null | undefined;
 }): Map<string, PullRequestPatches> {
   const repoPRStates = runState?.repo_pr_states;
+
+  // When this page saw each of Seer's pushes, by SHA and on this page's own clock. A SHA that
+  // was already there when the page loaded isn't included.
+  const lastShas = useRef(new Map<string, string | null>());
+  const [pushesSeen, setPushesSeen] = useState(() => new Map<string, number>());
+  useEffect(() => {
+    for (const {repo_name, commit_sha} of Object.values(repoPRStates ?? {})) {
+      const lastSha = lastShas.current.get(repo_name);
+      if (commit_sha && lastSha !== undefined && commit_sha !== lastSha) {
+        setPushesSeen(seen => new Map(seen).set(commit_sha, Date.now()));
+      }
+      lastShas.current.set(repo_name, commit_sha);
+    }
+  }, [repoPRStates]);
+
   const prStates = useMemo(
     () =>
       enabled ? Object.values(repoPRStates ?? {}).filter(state => state.pr_number) : [],
@@ -178,9 +220,12 @@ export function usePullRequestPatches({
         // the cache, so that push refetches. Other pushes show up after reloading the page.
         queryKey: [...options.queryKey, state.commit_sha] as never,
         enabled: !pushing.has(state.repo_name),
-        // GitHub can still return the old diff just after a push, so check again for a bit.
-        refetchInterval: () =>
-          isRecent(runState?.updated_at) ? POST_PUSH_REFETCH_INTERVAL_MS : false,
+        // The provider can still return the old diff just after a push. Check again only
+        // until it catches up.
+        refetchInterval: (query: {state: {data?: {json: PullRequestFilesResponse}}}) =>
+          isBehindPush(query.state.data?.json, state, pushesSeen)
+            ? DIFF_RECHECK_INTERVAL_MS
+            : false,
       };
     }),
     combine: pickResults,
@@ -194,7 +239,7 @@ export function usePullRequestPatches({
         patches.set(state.repo_name, {status: 'pushing'});
       } else if (result?.isError) {
         patches.set(state.repo_name, {status: 'error'});
-      } else if (result?.data) {
+      } else if (result?.data && !isBehindPush(result.data, state, pushesSeen)) {
         patches.set(state.repo_name, {
           status: 'success',
           pushFailed: state.pr_creation_status === 'error',
@@ -208,5 +253,5 @@ export function usePullRequestPatches({
       }
     });
     return patches;
-  }, [prStates, pushing, results]);
+  }, [prStates, pushesSeen, pushing, results]);
 }
