@@ -300,6 +300,22 @@ class GroupNotesDetailsTest(APITestCase):
             "text": f"hi **@{self.user.username}**",
         }
 
+    @patch("sentry.integrations.mixins.issues.IssueBasicIntegration.update_comment")
+    def test_put_ignores_unknown_fields(self, mock_update_comment: MagicMock) -> None:
+        self.login_as(user=self.user)
+
+        with self.tasks():
+            with self.feature("organizations:integrations-issue-sync"):
+                response = self.client.put(
+                    self.url, format="json", data={"text": "updated", "external_id": "456"}
+                )
+        assert response.status_code == 200, response.content
+
+        activity = Activity.objects.get(id=response.data["id"])
+        assert activity.data == {"text": "updated", "external_id": "123"}
+        assert mock_update_comment.call_count == 1
+        assert mock_update_comment.call_args[0][0] == "123"
+
     @action_log_activity_enabled()
     def test_delayed_and_retried_events_cannot_restore_deleted_comment(self) -> None:
         self.login_as(user=self.user)

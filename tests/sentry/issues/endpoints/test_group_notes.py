@@ -474,6 +474,18 @@ class GroupNoteCreateTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["commentId"] != str(activity.id)
 
+    def test_ignores_unknown_fields(self) -> None:
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{self.group.id}/comments/"
+        response = self.client.post(
+            url, format="json", data={"text": "hello world", "external_id": "456"}
+        )
+        assert response.status_code == 201, response.content
+
+        activity = Activity.objects.get(id=response.data["id"])
+        assert activity.data == {"text": "hello world"}
+
     def test_returns_activity_with_gale_source(self) -> None:
         with action_log_activity_enabled():
             self._assert_returns_activity_with_gale_source()
