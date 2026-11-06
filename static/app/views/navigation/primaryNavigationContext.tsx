@@ -7,7 +7,8 @@ import {useMedia} from '@sentry/scraps/useMedia';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+
+import {SecondaryNavigationContextProvider} from './secondaryNavigationContext';
 
 const PRIMARY_NAVIGATION_GROUP_CONFIG = {
   inbox: ['inbox'],

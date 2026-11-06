@@ -9,10 +9,10 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
-    OrganizationIntegrationsLoosePermission,
+    OrganizationIntegrationsPermission,
 )
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -111,8 +111,9 @@ def _get_repo_prefixes(
 @cell_silo_endpoint
 class OrganizationCodeMappingRepoPrefixesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
-    permission_classes = (OrganizationIntegrationsLoosePermission,)
+    permission_classes = (OrganizationIntegrationsPermission,)
 
     @extend_schema(
         operation_id="listRepoCodeMappingPrefixes",

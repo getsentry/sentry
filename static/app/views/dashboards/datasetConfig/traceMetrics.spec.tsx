@@ -8,13 +8,11 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import {
-  formatTraceMetricsFunction,
-  TraceMetricsConfig,
-} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {DisplayType, WidgetType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
+
+import {formatTraceMetricsFunction, TraceMetricsConfig} from './traceMetrics';
 
 const mockUseTraceItemSearchQueryBuilderProps = jest.fn(() => ({
   filterKeys: {},

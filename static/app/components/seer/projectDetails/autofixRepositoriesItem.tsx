@@ -19,8 +19,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {Confirm} from 'sentry/components/confirm';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
-import {overrideHasAllValues} from 'sentry/components/seer/projectDetails/overrideHasAllValues';
-import {overrideHasAnyValue} from 'sentry/components/seer/projectDetails/overrideHasAnyValue';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
@@ -28,6 +26,9 @@ import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';
 import {getMutateSeerProjectRepoOptions} from 'sentry/utils/seer/seerProjectRepos';
 import type {SeerProjectReposResponse} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {overrideHasAllValues} from './overrideHasAllValues';
+import {overrideHasAnyValue} from './overrideHasAnyValue';
 
 interface Props {
   canWrite: boolean;

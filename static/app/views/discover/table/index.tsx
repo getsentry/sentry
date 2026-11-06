@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -19,13 +19,11 @@ import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/t
 import {Measurements} from 'sentry/utils/measurements/measurements';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {withApi} from 'sentry/utils/withApi';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {TableView} from './tableView';
 
 type TableProps = {
-  api: Client;
   confirmedQuery: boolean;
   eventView: EventView;
   location: Location;
@@ -59,7 +57,7 @@ type TableState = {
  * It will pass the data it fetched to `TableView`, where the state of the
  * Table is maintained and controlled
  */
-class Table extends PureComponent<TableProps, TableState> {
+export class Table extends PureComponent<TableProps, TableState> {
   static getDerivedStateFromProps(
     nextProps: Readonly<TableProps>,
     prevState: TableState
@@ -112,6 +110,12 @@ class Table extends PureComponent<TableProps, TableState> {
       this.fetchData();
     }
   }
+
+  componentWillUnmount() {
+    this.api.clear();
+  }
+
+  api = new Client();
 
   didViewChange = (): boolean => {
     const {prevView} = this.state;
@@ -195,8 +199,8 @@ class Table extends PureComponent<TableProps, TableState> {
 
     this.setState({isLoading: true, tableFetchID});
 
-    this.props.api.clear();
-    this.props.api
+    this.api.clear();
+    this.api
       .requestPromise(url, {
         method: 'GET',
         includeAllArgs: true,
@@ -311,8 +315,6 @@ class Table extends PureComponent<TableProps, TableState> {
     );
   }
 }
-
-export default withApi(Table);
 
 const Container = styled('div')`
   min-width: 0;

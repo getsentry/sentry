@@ -5,12 +5,13 @@ import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {FeedbackItemUsername} from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
-import {FeedbackTimestampsTooltip} from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+
+import {FeedbackItemUsername} from './feedbackItemUsername';
+import {FeedbackTimestampsTooltip} from './feedbackTimestampsTooltip';
 
 interface Props {
   eventData: Event | undefined;

@@ -34,6 +34,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -827,6 +828,36 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         values = [row["title"] for row in response.data]
         assert values == ["Dashboard User 1"]
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature(
+        [
+            "organizations:service-accounts",
+            "organizations:dashboards-starred",
+            "organizations:dashboards-prebuilt-insights-dashboards",
+        ]
+    )
+    def test_service_account_owns_no_dashboards(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with patch(
+            "sentry.dashboards.endpoints.organization_dashboards.sentry_sdk.capture_exception"
+        ) as capture_exception:
+            response = self.client.get(
+                self.url,
+                {"filter": "owned", "sort": "mydashboards", "pin": "favorites"},
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+        assert response.status_code == 200, response.content
+        assert response.data == []
+        capture_exception.assert_not_called()
+
     def test_get_shared_dashboards_across_organizations(self) -> None:
         # The test user is a member of just the single org.
         test_user = self.create_user(username="user_1")
@@ -1056,17 +1087,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self.create_user_member_role()
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
-
-    def test_post_features_required(self) -> None:
-        with self.feature(
-            {"organizations:dashboards-basic": False, "organizations:dashboards-edit": False}
-        ):
-            response = self.do_request(
-                "post",
-                self.url,
-                data={"title": "Dashboard from Post"},
-            )
-            assert response.status_code == 404
 
     def test_post_with_widgets(self) -> None:
         data: dict[str, Any] = {
@@ -1940,6 +1960,23 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             DashboardWidgetDisplayTypes.LINE_CHART
         )
         assert widget_data["layout"] is None
+
+    def test_get_with_widget_with_removed_display_type(self) -> None:
+        # 5 was the world_map display type. It was removed from
+        # DashboardWidgetDisplayTypes, but older widgets can still store it.
+        DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            title="Widget 1",
+            display_type=5,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        response = self.do_request("get", self.url, data={"query": "1"})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["widgetDisplay"] == [None]
+        assert response.data[0]["widgetPreview"] == [{"displayType": None, "layout": None}]
 
     def test_post_dashboard_with_widget_filter_requiring_environment(self) -> None:
         mock_project = self.create_project()
@@ -3232,13 +3269,7 @@ class OrganizationDashboardsGranularScopesTest(OrganizationDashboardWidgetTestCa
         assert response.status_code == 201, response.content
 
 
-@with_feature(
-    [
-        "organizations:dashboards-basic",
-        "organizations:dashboards-edit",
-        "organizations:explore-interpolation-and-smoothing",
-    ]
-)
+@with_feature("organizations:explore-interpolation-and-smoothing")
 class OrganizationDashboardTransformationsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

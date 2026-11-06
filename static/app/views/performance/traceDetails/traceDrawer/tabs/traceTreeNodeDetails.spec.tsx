@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {TraceTreeNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {ErrorNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/errorNode';
@@ -12,6 +11,8 @@ import {
   makeParentAutogroup,
   makeTraceError,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
+import {TraceTreeNodeDetails} from './traceTreeNodeDetails';
 
 // Mock every panel that nodeDetails imports, not just the ones under test. Any
 // real panel left in gets loaded by the first test's lazy import, which is too

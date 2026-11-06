@@ -5,14 +5,15 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {
-  AI_AGENTS_TOOLS_DASHBOARD_DESCRIPTION,
-  AI_AGENTS_TOOLS_DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {
+  AI_AGENTS_TOOLS_DASHBOARD_DESCRIPTION,
+  AI_AGENTS_TOOLS_DASHBOARD_TITLE,
+} from './settings';
 
 const TOOL_SPANS_FILTER = getToolSpansFilter();
 

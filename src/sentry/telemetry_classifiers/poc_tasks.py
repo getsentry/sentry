@@ -181,7 +181,7 @@ def _fetch_conversation_rows(
     result = Spans.run_table_query(
         params=SnubaParams(
             start=last_span_time - _CONVERSATION_LOOKBACK,
-            end=last_span_time + timedelta(microseconds=1),
+            end=last_span_time + timedelta(seconds=1),
             projects=[project],
             organization=project.organization,
         ),

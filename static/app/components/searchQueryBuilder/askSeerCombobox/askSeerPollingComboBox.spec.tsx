@@ -6,7 +6,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
@@ -17,6 +16,8 @@ import {
   AsyncSDKIntegrationContextProvider,
   useAsyncSDKIntegrationStore,
 } from 'sentry/views/app/asyncSDKIntegrationProvider';
+
+import {AskSeerPollingComboBox} from './askSeerPollingComboBox';
 
 const defaultProviderProps = {
   enableAISearch: true,

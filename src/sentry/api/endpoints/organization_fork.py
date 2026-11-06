@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.organization import OrganizationStatus
 from sentry.relocation.api.endpoints.index import (
@@ -69,10 +70,11 @@ class OrganizationForkEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("relocations.fork.post.start", extra={"caller": request.user.id})
+        logger.info("relocations.fork.post.start", extra={"caller": acting_user_id(request.user)})
 
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        user = require_user(request)
 
         org_mapping = (
             organization_mapping_service.get(organization_id=organization_id_or_slug)
@@ -151,7 +153,7 @@ class OrganizationForkEndpoint(Endpoint):
         # Identify who will be the owner of the newly forked organization, and ensure that they
         # don't already have relocations in flight.
         owners = organization_mapping_service.get_owners(organization_id=org_mapping.id)
-        owner = owners[0] if len(owners) > 0 else request.user
+        owner = owners[0] if len(owners) > 0 else user
         err = validate_relocation_uniqueness(owner)
         if err is not None:
             return err
@@ -162,7 +164,7 @@ class OrganizationForkEndpoint(Endpoint):
         provenance = Relocation.Provenance.SAAS_TO_SAAS
         with atomic_transaction(using=(router.db_for_write(Relocation))):
             new_relocation = Relocation.objects.create(
-                creator_id=request.user.id,
+                creator_id=user.id,
                 owner_id=owner.id,
                 step=Relocation.Step.UPLOADING.value,
                 scheduled_pause_at_step=get_autopause_value(provenance),
@@ -180,7 +182,7 @@ class OrganizationForkEndpoint(Endpoint):
         try:
             analytics.record(
                 RelocationForkedEvent(
-                    creator_id=request.user.id,
+                    creator_id=user.id,
                     owner_id=owner.id,
                     uuid=str(new_relocation.uuid),
                     from_org_slug=org_mapping.slug,

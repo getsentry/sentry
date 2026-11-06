@@ -6,8 +6,8 @@ import {IconUpload} from '@sentry/icons/upload';
 import * as Sentry from '@sentry/react';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {useConfigureReplayMenuItem} from 'sentry/components/replays/header/configureReplayMenuItem';
 import {t, tct} from 'sentry/locale';
@@ -62,16 +62,14 @@ export function useReplayMenuItems({
           leadingItems: <IconDownload variant="muted" />,
           onAction: () => {
             if (!replay) {
-              addErrorMessage(t('Replay not found'));
+              toast.error(t('Replay not found'));
               return;
             }
             try {
               downloadObjectAsJson(replay.getReplay(), 'replay-record');
             } catch (error) {
               Sentry.captureException(error);
-              addErrorMessage(
-                t('Could not export replay record. Please wait or try again')
-              );
+              toast.error(t('Could not export replay record. Please wait or try again'));
             }
           },
           disabled: !canDownload,
@@ -89,7 +87,7 @@ export function useReplayMenuItems({
           leadingItems: <IconBug variant="muted" />,
           onAction: async () => {
             if (!replay) {
-              addErrorMessage(t('Replay not found'));
+              toast.error(t('Replay not found'));
               return;
             }
             try {
@@ -99,7 +97,7 @@ export function useReplayMenuItems({
               window.location.href = 'sentry-replay-debugger://open';
             } catch (error) {
               Sentry.captureException(error);
-              addErrorMessage(t('Could not open replay debugger. Please try again.'));
+              toast.error(t('Could not open replay debugger. Please try again.'));
             }
           },
           disabled: !canDownload,
@@ -140,14 +138,14 @@ export function useReplayMenuItems({
       leadingItems: <IconDownload variant="muted" />,
       onAction: () => {
         if (!replay) {
-          addErrorMessage(t('Replay not found'));
+          toast.error(t('Replay not found'));
           return;
         }
         try {
           downloadObjectAsJson(replay.getRRWebFrames(), 'rrweb');
         } catch (error) {
           Sentry.captureException(error);
-          addErrorMessage(
+          toast.error(
             t('Could not export replay as rrweb data. Please wait or try again')
           );
         }
