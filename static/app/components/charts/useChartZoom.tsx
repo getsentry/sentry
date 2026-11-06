@@ -10,6 +10,7 @@ import type {
 } from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -207,7 +208,7 @@ function useChartZoomCancel(disabled?: boolean) {
     };
   }, [disabled, handleKeyDown, handleMouseDown, handleMouseUp]);
 
-  return {handleChartReady};
+  return {chartInstance, handleChartReady};
 }
 
 /**
@@ -219,9 +220,40 @@ export function useChartZoom({
   usePageDate,
   saveOnZoom,
 }: UseChartZoomOptions): ZoomRenderProps {
-  const {handleChartReady} = useChartZoomCancel(disabled);
+  const {chartInstance, handleChartReady} = useChartZoomCancel(disabled);
   const location = useLocation();
   const navigate = useNavigate();
+  // The range of the last brush selection ECharts applied to this chart, as
+  // written to the URL.
+  const zoomedRangeRef = useRef<{end: string; start: string} | null>(null);
+
+  const queryStart = decodeScalar(location.query.start);
+  const queryEnd = decodeScalar(location.query.end);
+  const queryStatsPeriod = decodeScalar(location.query.statsPeriod);
+
+  // A brush selection leaves its range on ECharts' internal toolbox dataZoom.
+  // With `notMerge: false` that range survives option updates, so a chart
+  // instance that stays mounted would keep clipping the x-axis to it after the
+  // page moves to a wider range. Reset it whenever the URL range changes to
+  // anything but the brushed range, which the chart already shows. The reset is
+  // silent so `onDataZoom` handlers don't read it as a new zoom.
+  useEffect(() => {
+    const zoomedRange = zoomedRangeRef.current;
+    zoomedRangeRef.current = null;
+    if (
+      zoomedRange &&
+      !queryStatsPeriod &&
+      zoomedRange.start === queryStart &&
+      zoomedRange.end === queryEnd
+    ) {
+      return;
+    }
+
+    chartInstance.current?.dispatchAction(
+      {type: 'dataZoom', start: 0, end: 100},
+      {silent: true}
+    );
+  }, [chartInstance, queryStart, queryEnd, queryStatsPeriod]);
 
   const commitZoomPeriod = useCallback(
     (formattedPeriod: FormattedPeriod) => {
@@ -250,6 +282,20 @@ export function useChartZoom({
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     (evt, chart) => {
+      const range = getZoomRange(evt);
+      const roundedRange = range ? roundZoomRange(range) : null;
+
+      // If the range values are null, ECharts is restoring zoom history.
+      if (!roundedRange) {
+        return;
+      }
+
+      const start = getUtcDateString(roundedRange.startValue);
+      const end = getUtcDateString(roundedRange.endValue);
+
+      // Synced and disabled charts apply the zoom too, so they also record it.
+      zoomedRangeRef.current = {start, end};
+
       if (disabled) {
         return;
       }
@@ -260,21 +306,7 @@ export function useChartZoom({
         return;
       }
 
-      const range = getZoomRange(evt);
-      const roundedRange = range ? roundZoomRange(range) : null;
-
-      // If the range values are null, ECharts is restoring zoom history.
-      if (!roundedRange) {
-        return;
-      }
-
-      const {startValue, endValue} = roundedRange;
-
-      setPeriod({
-        period: null,
-        start: getUtcDateString(startValue),
-        end: getUtcDateString(endValue),
-      });
+      setPeriod({period: null, start, end});
     },
     [disabled, setPeriod]
   );
