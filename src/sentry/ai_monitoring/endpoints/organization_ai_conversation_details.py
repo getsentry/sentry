@@ -178,19 +178,34 @@ AI_CONVERSATION_ATTRIBUTES = [
 
 def _get_meta_columns() -> dict[str, str]:
     """
-    Relay stores how PII scrubbing changed an attribute in a meta attribute named
-    after its stored name. Selects it for every string attribute, so the transcript
-    can mark any scrubbed value.
+    Returns the columns to select for the PII scrubbing meta of the attributes the
+    endpoint returns, mapped to those attributes.
+
+    When Relay scrubs an attribute, it records what it changed in a separate
+    attribute, the meta. For `user.email`, stored as `sentry.user.email`, that's
+    `sentry._meta.fields.attributes.sentry.user.email`, so this maps
+    `tags[sentry._meta.fields.attributes.sentry.user.email,string]` to `user.email`.
     """
     columns = {}
     for attribute in AI_CONVERSATION_ATTRIBUTES:
+        # Virtual columns, like `project`, are derived at query time, so Relay never
+        # scrubs them and they have no meta. Selecting one would only add an empty
+        # column to every query.
         if attribute in SPAN_VIRTUAL_CONTEXTS:
             continue
-        # Undefined attributes are queried as strings under their own name.
+        # Look up the public name, like `user.email`, to get its stored name and type.
         definition = SPAN_ATTRIBUTE_DEFINITIONS.get(attribute)
+        # Only strings can hold replacement texts, so skip numbers and booleans.
         if definition is not None and definition.search_type != "string":
             continue
+        # Undefined attributes are stored as strings under their own name.
         internal_name = definition.internal_name if definition else attribute
+        # The resolver only knows the public names in `SPAN_ATTRIBUTE_DEFINITIONS`, and
+        # meta attributes have none. `tags[<name>,<type>]` selects any attribute by its
+        # stored name instead. EAP stores attributes separately per value type, so the
+        # type says where to read it: meta is a JSON string. The `tags` syntax is a
+        # leftover from querying event tags; it isn't specific to tags.
+        # The column is the key, as result rows come back keyed by the selected column.
         columns[f"tags[{META_ATTRIBUTE_PREFIX}.{internal_name},string]"] = attribute
     return columns
 
@@ -199,19 +214,19 @@ META_COLUMNS = _get_meta_columns()
 
 
 def _move_meta_columns(spans: Sequence[SpanRow]) -> None:
-    """Moves meta columns into a `meta` object shaped like trace item details' one."""
     for span in spans:
         meta: dict[str, Any] = {}
         for column, attribute in META_COLUMNS.items():
+            # Popping also keeps the private meta columns out of the response.
             value = span.pop(column, None)
             if not value:
                 continue
+            # Relay stores the meta as a JSON string; key it by the public name.
             try:
                 meta[attribute] = json.loads(value)
-            except ValueError:
+            except json.JSONDecodeError:
                 continue
-        if meta:
-            span["meta"] = meta
+        span["meta"] = meta
 
 
 class AIConversationModelUsage(TypedDict):

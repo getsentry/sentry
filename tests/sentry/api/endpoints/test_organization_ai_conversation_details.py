@@ -958,21 +958,32 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.tool.call.result.size"] == 4096
         assert "gen_ai.tool.output" not in span
 
-    def test_returns_scrubbing_meta_of_message_attributes(self) -> None:
+    def test_returns_scrubbing_meta(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
-        meta = {"meta": {"value": {"": {"rem": [["@email:replace", "s", 61, 68]], "len": 76}}}}
 
         span = self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now,
             operation_type="ai_client",
             input_messages=[{"role": "user", "content": "Find [email]"}],
+            output_messages=[{"role": "assistant", "content": "Found it"}],
             user_email="[email]",
             store=False,
         )
-        span["data"]["sentry._meta.fields.attributes.gen_ai.input.messages"] = json.dumps(meta)
-        span["data"]["sentry._meta.fields.attributes.sentry.user.email"] = json.dumps(meta)
+
+        def scrubbed(value: str) -> dict[str, Any]:
+            start = value.index("[email]")
+            rem = [["@email:replace", "s", start, start + len("[email]")]]
+            return {"meta": {"value": {"": {"rem": rem, "len": len(value) + 10}}}}
+
+        input_meta = scrubbed(span["data"]["gen_ai.input.messages"])
+        user_meta = scrubbed(span["data"]["sentry.user.email"])
+        prefix = "sentry._meta.fields.attributes"
+        span["data"][f"{prefix}.gen_ai.input.messages"] = json.dumps(input_meta)
+        # Meta is stored under the attribute's stored name.
+        span["data"][f"{prefix}.sentry.user.email"] = json.dumps(user_meta)
+        span["data"][f"{prefix}.gen_ai.output.messages"] = "not json"
         self.store_spans([span])
 
         query = {
@@ -986,33 +997,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert len(response.data["spans"]) == 1
 
         span = response.data["spans"][0]
-        assert span["meta"] == {"gen_ai.input.messages": meta, "user.email": meta}
-        assert [key for key in span if "sentry._meta" in key] == []
-
-    def test_omits_scrubbing_meta_when_nothing_was_scrubbed(self) -> None:
-        now = before_now(days=5).replace(microsecond=0)
-        conversation_id = uuid4().hex
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now,
-            operation_type="ai_client",
-            input_messages=[{"role": "user", "content": "Hello"}],
-        )
-
-        query = {
-            "project": [self.project.id],
-            "start": (now - timedelta(hours=1)).isoformat(),
-            "end": (now + timedelta(hours=1)).isoformat(),
-        }
-
-        response = self.do_request(conversation_id, query)
-        assert response.status_code == 200
-        assert len(response.data["spans"]) == 1
-
-        span = response.data["spans"][0]
-        assert "meta" not in span
-        assert [key for key in span if "sentry._meta" in key] == []
+        assert span["meta"] == {"gen_ai.input.messages": input_meta, "user.email": user_meta}
+        assert [key for key in span if prefix in key] == []
 
     def test_returns_embeddings_attributes(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -1359,7 +1345,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         }
         return self.store_event(error_data, project_id=project.id)
 
-    def test_spans_without_issues_have_empty_arrays(self) -> None:
+    def test_spans_without_issues_or_scrubbing_have_empty_defaults(self) -> None:
         now = before_now(days=10).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
@@ -1381,8 +1367,11 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 1
-        assert response.data["spans"][0]["errors"] == []
-        assert response.data["spans"][0]["occurrences"] == []
+        span = response.data["spans"][0]
+        assert span["errors"] == []
+        assert span["occurrences"] == []
+        assert span["meta"] == {}
+        assert [key for key in span if "sentry._meta" in key] == []
 
     def test_links_error_issue_to_span(self) -> None:
         now = before_now(days=10).replace(microsecond=0)
