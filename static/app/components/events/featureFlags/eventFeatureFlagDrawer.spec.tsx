@@ -50,20 +50,14 @@ describe('FeatureFlagDrawer', () => {
 
     // Inner drawer flags
     const {event} = MOCK_DATA_SECTION_PROPS;
-    const navigation = within(drawerScreen).getByRole('navigation', {
-      name: 'Breadcrumbs',
-    });
-    const currentCrumb = within(navigation).getByText('Feature Flags');
+    const currentCrumb = within(drawerScreen).getByText('Feature Flags');
     expect(currentCrumb).toHaveAttribute('aria-current', 'location');
     await userEvent.hover(currentCrumb);
     expect(
       await screen.findByText(`Event ID: ${getShortEventId(event.id)}`)
     ).toBeInTheDocument();
 
-    // Header & Controls
-    expect(
-      within(drawerScreen).getByText('Feature Flags', {selector: 'h3'})
-    ).toBeInTheDocument();
+    // Controls
     expect(
       within(drawerScreen).getByRole('textbox', {name: 'Search Flags'})
     ).toBeInTheDocument();

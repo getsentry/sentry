@@ -79,9 +79,10 @@ describe('SimilarIssuesDrawer', () => {
       initialRouterConfig,
     });
 
-    expect(
-      await screen.findByRole('heading', {name: 'Similar Issues'})
-    ).toBeInTheDocument();
+    expect(screen.getByText('Similar Issues')).toHaveAttribute(
+      'aria-current',
+      'location'
+    );
 
     expect(
       await screen.findByText('Issues with a similar stack trace')

@@ -105,6 +105,16 @@ describe('ReleasesDrawerDetails', () => {
     expect(await screen.findByText('Details')).toBeInTheDocument();
     // no start/end from url params, so there is no releases crumb to link back to
     expect(screen.queryByRole('link', {name: 'Releases'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Full Details'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/releases/test-release/?project=1')
+    );
+    // the full-details link is an action on the version crumb
+    expect(screen.getByRole('navigation', {name: 'Breadcrumbs'})).toContainElement(
+      screen.getByRole('button', {name: 'View Full Details'})
+    );
+    // single-project releases don't need a project switcher
+    expect(screen.queryByRole('button', {name: 'project-slug'})).not.toBeInTheDocument();
     expect(screen.getByText('General')).toBeInTheDocument();
     expect(screen.getByText('Commits')).toBeInTheDocument();
     expect(screen.getByText('File Changes')).toBeInTheDocument();
@@ -161,19 +171,20 @@ describe('ReleasesDrawerDetails', () => {
         ],
       }),
     });
-    render(<ReleasesDrawerDetails {...defaultProps} projectId="2" />, renderOptions);
+    const {router} = render(
+      <ReleasesDrawerDetails {...defaultProps} projectId="2" />,
+      renderOptions
+    );
 
     expect(await screen.findByText('Details')).toBeInTheDocument();
     expect(screen.getByText('General')).toBeInTheDocument();
     expect(screen.getByText('Commits')).toBeInTheDocument();
     expect(screen.getByText('File Changes')).toBeInTheDocument();
 
-    // assert that the <Link> component goes to the correct url
-    const link = await screen.findByTestId('select-project-1');
-    expect(link).toHaveAttribute(
-      'href',
-      expect.stringContaining('/?rdReleaseProjectId=1')
-    );
+    // The trigger shows the selected project's slug, like the project page filter
+    await userEvent.click(await screen.findByRole('button', {name: 'test-project-2'}));
+    await userEvent.click(screen.getByRole('option', {name: 'test-project'}));
+    expect(router.location.query[ReleasesDrawerFields.RELEASE_PROJECT_ID]).toBe('1');
   });
 
   it('renders error state when release meta fails to load', async () => {
@@ -186,6 +197,9 @@ describe('ReleasesDrawerDetails', () => {
 
     render(<ReleasesDrawerDetails {...defaultProps} />, renderOptions);
     expect(await screen.findByText('Release not found')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'View Full Details'})
+    ).not.toBeInTheDocument();
   });
 
   it('reserves the project avatar slot while release meta loads', async () => {
