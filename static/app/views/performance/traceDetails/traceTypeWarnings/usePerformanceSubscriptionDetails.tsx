@@ -1,5 +1,6 @@
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 // Note: This does not fully represent the actual Subscription type.
@@ -45,27 +46,23 @@ export function usePerformanceSubscriptionDetails({
 }) {
   const organization = useOrganization();
 
-  const {data: subscription, ...rest} = useApiQuery<Subscription>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
+  const subscriptionQuery = useQuery({
+    ...apiOptions.as<Subscription>()('/customers/$organizationIdOrSlug/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: Infinity,
-    }
-  );
+    }),
+  });
 
   const hasExceededPerformanceUsageLimit = subscriptionHasExceededPerformanceUsageLimit(
-    subscription,
+    subscriptionQuery.data,
     traceItemDataset
   );
 
   return {
-    ...rest,
+    isLoading: subscriptionQuery.isLoading,
     data: {
       hasExceededPerformanceUsageLimit,
-      subscription,
+      subscription: subscriptionQuery.data,
     },
   };
 }

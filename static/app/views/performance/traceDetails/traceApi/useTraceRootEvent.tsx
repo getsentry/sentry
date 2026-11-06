@@ -1,9 +1,8 @@
+import {useQuery} from '@tanstack/react-query';
 import type {UseQueryResult} from '@tanstack/react-query';
 
 import type {EventTransaction} from 'sentry/types/event';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useTraceItemDetails,
@@ -25,7 +24,7 @@ type Params = {
 };
 
 export type TraceRootEventQueryResults =
-  | UseApiQueryResult<EventTransaction, RequestError>
+  | UseQueryResult<EventTransaction>
   | UseQueryResult<TraceItemDetailsResponse>;
 
 export function useTraceRootEvent({
@@ -46,30 +45,23 @@ export function useTraceRootEvent({
   const isEAPQueryEnabled = !!(isRepLog || rep?.event?.isEAPEvent);
 
   const projectSlug = rep?.event?.projectSlug;
-  const legacyRootEvent = useApiQuery<EventTransaction>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug!,
-            eventId: rep?.event?.id!,
-          },
-        }
-      ),
+  const legacyRootEvent = useQuery({
+    ...apiOptions.as<EventTransaction>()(
+      '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectSlug!,
+          eventId: rep?.event?.id!,
+        },
         query: {
           referrer: 'trace-details-summary',
         },
-      },
-    ],
-    {
-      // 10 minutes
-      staleTime: 1000 * 60 * 10,
-      enabled: enabledBase && !isEAPQueryEnabled && !!projectSlug && !!rep?.event?.id,
-    }
-  );
+        staleTime: 1000 * 60 * 10,
+      }
+    ),
+    enabled: enabledBase && !isEAPQueryEnabled && !!projectSlug && !!rep?.event?.id,
+  });
 
   const projectId = rep?.event
     ? OurLogKnownFieldKey.PROJECT_ID in rep.event
