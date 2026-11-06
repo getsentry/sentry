@@ -3,10 +3,11 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
-import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
-import {ReplayBulkDeleteAuditLogTable} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogTable';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {replayBulkDeleteAuditLogApiOptions} from './replayBulkDeleteAuditLogApiOptions';
+import {ReplayBulkDeleteAuditLogTable} from './replayBulkDeleteAuditLogTable';
 
 interface Props {
   projectSlug: string;

@@ -1,5 +1,6 @@
-import type {SuggestionSection} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
 import {FieldValueType} from 'sentry/utils/fields';
+
+import type {SuggestionSection} from './types';
 
 const NUMERIC_REGEX = /^-?\d+(\.\d+)?$/;
 const NUMERIC_UNITS = ['k', 'm', 'b'] as const;

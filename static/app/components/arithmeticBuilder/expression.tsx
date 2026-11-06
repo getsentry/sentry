@@ -1,6 +1,6 @@
-import type {Token} from 'sentry/components/arithmeticBuilder/token';
-import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
-import {validateTokens} from 'sentry/components/arithmeticBuilder/validator';
+import type {Token} from './token';
+import {tokenizeExpression} from './tokenizer';
+import {validateTokens} from './validator';
 
 export class Expression {
   readonly text: string;

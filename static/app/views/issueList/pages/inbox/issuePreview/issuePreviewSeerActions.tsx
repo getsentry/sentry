@@ -37,11 +37,12 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   PullRequestButtons,
   useIssuePreviewPullRequests,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewPullRequests';
-import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
+} from './issuePreviewPullRequests';
+import {useIssuePreviewSeer} from './issuePreviewSeer';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 

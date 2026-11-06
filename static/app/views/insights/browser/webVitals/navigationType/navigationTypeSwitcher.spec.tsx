@@ -6,13 +6,14 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
-import {NavigationTypeSwitcher} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeSwitcher';
+import {SpanFields} from 'sentry/views/insights/types';
+
+import {NavigationTypeSwitcher} from './navigationTypeSwitcher';
 import {
   buildNavigationTypeGlobalFilter,
   NAVIGATION_TYPE_BUCKET_ORDER,
   NavigationTypeBucket,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
-import {SpanFields} from 'sentry/views/insights/types';
+} from './settings';
 
 describe('NavigationTypeSwitcher', () => {
   const organization = OrganizationFixture();

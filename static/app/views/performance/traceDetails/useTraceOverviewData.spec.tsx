@@ -5,10 +5,10 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {EAPTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/types';
-import {useTraceRootEvent} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
+import type {EAPTraceMeta} from './traceApi/types';
+import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
+import {TraceTree} from './traceModels/traceTree';
 import {useTraceOverviewData} from './useTraceOverviewData';
 
 const TRACE_SLUG = '00000000000000000000000000000000';

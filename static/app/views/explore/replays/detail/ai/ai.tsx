@@ -19,11 +19,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {ChapterList} from 'sentry/views/explore/replays/detail/ai/chapterList';
-import {useReplaySummaryContext} from 'sentry/views/explore/replays/detail/ai/replaySummaryContext';
-import {ReplaySummaryLoading} from 'sentry/views/explore/replays/detail/ai/replaySummaryLoading';
-import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/explore/replays/detail/ai/utils';
 import {TabItemContainer} from 'sentry/views/explore/replays/detail/tabItemContainer';
+
+import {ChapterList} from './chapterList';
+import {useReplaySummaryContext} from './replaySummaryContext';
+import {ReplaySummaryLoading} from './replaySummaryLoading';
+import {NO_REPLAY_SUMMARY_MESSAGES} from './utils';
 
 const MAX_SEGMENTS_TO_SUMMARIZE = 150;
 

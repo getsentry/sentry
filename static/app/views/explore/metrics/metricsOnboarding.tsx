@@ -44,10 +44,8 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ExploreBodySearch} from 'sentry/views/explore/components/styles';
-import {
-  FilterBarContainer,
-  StyledPageFilterBar,
-} from 'sentry/views/explore/metrics/styles';
+
+import {FilterBarContainer, StyledPageFilterBar} from './styles';
 
 const METRICS_GH_DISCUSSION_LINK =
   'https://github.com/getsentry/sentry/discussions/102275';

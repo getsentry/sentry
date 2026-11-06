@@ -4,13 +4,14 @@ import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
+
+import type {AutomationBuilderState} from './automationBuilderContext';
 import {
   type AutomationFormData,
   getAlertPreviewRequest,
   validateAutomationBuilderState,
-} from 'sentry/views/automations/components/automationFormData';
-import {CONNECTED_MONITORS_ERROR_ID} from 'sentry/views/automations/components/editConnectedMonitors';
+} from './automationFormData';
+import {CONNECTED_MONITORS_ERROR_ID} from './editConnectedMonitors';
 
 describe('validateAutomationBuilderState', () => {
   const state: AutomationBuilderState = {

@@ -5,9 +5,10 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
-import {CheckIndicator} from 'sentry/views/detectors/components/uptime/checkIndicator';
-import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
+
+import {CheckIndicator} from './checkIndicator';
+import {CheckStatus} from './types';
 
 export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boolean}) {
   return (

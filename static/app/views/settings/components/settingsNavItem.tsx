@@ -10,6 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {t} from 'sentry/locale';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 type Props = {
@@ -28,6 +29,7 @@ const LabelHook = OverrideOrDefault({
 
 export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
   const settingsV3 = useSettingsV3();
+  const {scope} = useSettingsScope();
   const badgeElement = badge ? <SettingsNavBadge badge={badge} /> : null;
 
   return (
@@ -45,6 +47,7 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
             leadingItems={settingsV3 ? badgeElement : null}
             trailingItems={settingsV3 ? null : badgeElement}
             analyticsItemName={id ? `settings_${id}` : undefined}
+            analyticsParams={scope ? {settings_scope: scope} : undefined}
           >
             <Text density={settingsV3 ? 'fixed' : undefined} variant="inherit">
               <LabelHook id={id}>{label}</LabelHook>

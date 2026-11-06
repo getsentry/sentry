@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
+import {useLocation} from './useLocation';
 
 describe('useLocation', () => {
   it('returns the current location object', () => {

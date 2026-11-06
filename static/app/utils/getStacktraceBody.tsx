@@ -1,6 +1,7 @@
 import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {Event} from 'sentry/types/event';
-import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
+
+import {stripAnsi} from './ansiEscapeCodes';
 
 type GetStacktraceBodyArgs = {
   /**

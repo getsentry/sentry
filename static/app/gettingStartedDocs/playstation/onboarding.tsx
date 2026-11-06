@@ -16,7 +16,6 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {InstallationMode} from 'sentry/gettingStartedDocs/playstation/utils';
 import {t, tct} from 'sentry/locale';
 import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
 import {
@@ -24,6 +23,8 @@ import {
   AllowListIPAddresses,
 } from 'sentry/views/settings/project/tempest/allowListIPAddresses';
 import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
+
+import {InstallationMode} from './utils';
 
 const isRetailMode = (params: DocsParams) =>
   params.platformOptions?.installationMode === InstallationMode.RETAIL;

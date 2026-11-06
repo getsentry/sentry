@@ -9,7 +9,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Text} from '@sentry/scraps/text';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {AreaChart, type AreaChartProps} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
@@ -27,14 +27,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {AggregateSummaryTable} from 'sentry/views/detectors/components/details/metric/aggregateSummaryTable';
-import {
-  incidentMarklineTooltip,
-  incidentSeriesTooltip,
-} from 'sentry/views/detectors/components/details/metric/chartTooltip';
-import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
-import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
-import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
@@ -49,6 +41,12 @@ import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimesta
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
 import {getOpenPeriodIssuePath} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
+
+import {useDetectorChartAxisBounds} from './utils/useDetectorChartAxisBounds';
+import {useIsMigratedExtrapolation} from './utils/useIsMigratedExtrapolation';
+import {AggregateSummaryTable} from './aggregateSummaryTable';
+import {incidentMarklineTooltip, incidentSeriesTooltip} from './chartTooltip';
+import {getDetectorOpenInDestination} from './getDetectorOpenInDestination';
 
 /**
  * Shift data points from bucket-start to bucket-end timestamps.

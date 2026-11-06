@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import DetectorNew from 'sentry/views/detectors/new';
+
+import DetectorNew from './new';
 
 describe('DetectorNew', () => {
   const organization = OrganizationFixture();

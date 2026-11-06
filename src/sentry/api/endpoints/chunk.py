@@ -3,10 +3,12 @@ import re
 from collections.abc import Iterator
 from gzip import BadGzipFile, GzipFile
 from io import BytesIO
+from tempfile import SpooledTemporaryFile
 from typing import Protocol, TypedDict, cast
 
 import zstandard
 from django.conf import settings
+from django.core.files import File
 from django.core.files.uploadedfile import UploadedFile
 from django.urls import reverse
 from drf_spectacular.utils import extend_schema
@@ -44,6 +46,7 @@ from sentry.utils.http import absolute_uri
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 8
+DECOMPRESS_READ_SIZE = 256 * 1024
 HASH_ALGORITHM = "sha1"
 SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
 API_PREFIX = "/api/0"
@@ -97,30 +100,62 @@ def _read_bounded(reader: _ChunkReader, limit: int) -> bytes:
             raise ChunkTooLarge("Chunk size too large")
 
 
-class GzipChunk(BytesIO):
-    def __init__(self, file: UploadedFile) -> None:
-        reader = GzipFile(fileobj=file, mode="rb")
-        data = _read_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
-        self.size = len(data)
-        self.name = file.name
-        super().__init__(data)
+def _spool_bounded(
+    reader: _ChunkReader, limit: int, name: str | None, max_memory_size: int
+) -> "File[bytes]":
+    """Decompress ``reader`` into a temporary file; raise :class:`ChunkTooLarge` past ``limit``.
+
+    A request holds every chunk until all of them are stored, so decompressed
+    chunks kept in memory would hold up to ``MAX_REQUEST_SIZE`` per request in
+    the worker. A spooled file keeps at most ``max_memory_size`` of each chunk
+    in memory, the same as uncompressed chunks, which Django already writes to
+    temporary files.
+    """
+    spool = SpooledTemporaryFile(max_size=max_memory_size)
+    size = 0
+    try:
+        while True:
+            data = reader.read(min(DECOMPRESS_READ_SIZE, limit + 1 - size))
+            if not data:
+                break
+            size += len(data)
+            if size > limit:
+                raise ChunkTooLarge("Chunk size too large")
+            spool.write(data)
+    except BaseException:
+        spool.close()
+        raise
+    spool.seek(0)
+    chunk = File(spool, name=name)
+    chunk.size = size
+    return chunk
 
 
-class ZstdChunk(BytesIO):
-    def __init__(self, file: UploadedFile) -> None:
-        # `read_across_frames=True` mirrors the behaviour of `GzipFile.read()`
-        # (which reads across concatenated gzip members) and matches the
-        # convention in `src/sentry/models/eventattachment.py`. Without it a
-        # multi-frame zstd payload would silently decode only the first frame
-        # and produce a misleading checksum-mismatch error.
-        reader = zstandard.ZstdDecompressor().stream_reader(file, read_across_frames=True)
-        data = _read_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
-        self.size = len(data)
-        self.name = file.name
-        super().__init__(data)
+def _decompress_bounded(
+    reader: _ChunkReader, name: str | None, spool_max_memory_size: int | None
+) -> "File[bytes]":
+    limit = settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE
+    if spool_max_memory_size is not None:
+        return _spool_bounded(reader, limit, name, spool_max_memory_size)
+    data = _read_bounded(reader, limit)
+    chunk = File(BytesIO(data), name=name)
+    chunk.size = len(data)
+    return chunk
 
 
-ChunkFile = UploadedFile | GzipChunk | ZstdChunk
+def gzip_chunk(file: UploadedFile, spool_max_memory_size: int | None) -> "File[bytes]":
+    reader = GzipFile(fileobj=file, mode="rb")
+    return _decompress_bounded(reader, file.name, spool_max_memory_size)
+
+
+def zstd_chunk(file: UploadedFile, spool_max_memory_size: int | None) -> "File[bytes]":
+    # `read_across_frames=True` mirrors the behaviour of `GzipFile.read()`
+    # (which reads across concatenated gzip members) and matches the
+    # convention in `src/sentry/models/eventattachment.py`. Without it a
+    # multi-frame zstd payload would silently decode only the first frame
+    # and produce a misleading checksum-mismatch error.
+    reader = zstandard.ZstdDecompressor().stream_reader(file, read_across_frames=True)
+    return _decompress_bounded(reader, file.name, spool_max_memory_size)
 
 
 class ChunkUploadPermission(OrganizationReleasePermission):
@@ -334,10 +369,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        files = []
-        checksums = []
-        total_size = 0
-
         # Validate if chunks exceed the maximum chunk limit before attempting to decompress them.
         num_files = len(files_plain) + len(files_gzip_legacy)
 
@@ -350,9 +381,39 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
             return Response(status=status.HTTP_200_OK)
 
+        files: list[File[bytes]] = []
         try:
-            for chunk, name in get_files(request, encoding):
-                chunk_size = cast(int, chunk.size)
+            return self._store_chunks(request, organization, encoding, files, logger)
+        finally:
+            # Decompressed chunks may be spooled to temporary files. Close them as
+            # soon as the request is done instead of waiting for garbage collection.
+            for file in files:
+                file.close()
+
+    def _store_chunks(
+        self,
+        request: Request,
+        organization: Organization,
+        encoding: str,
+        files: "list[File[bytes]]",
+        logger: logging.Logger,
+    ) -> Response[None] | Response[_ChunkUploadErrorResponse]:
+        checksums = []
+        total_size = 0
+        spool_max_memory_size = (
+            options.get("chunk-upload.spool-max-memory-size")
+            if options.get("chunk-upload.spool-decompressed-chunks")
+            else None
+        )
+
+        try:
+            for chunk, name in get_files(request, encoding, spool_max_memory_size):
+                # Track the chunk before validating it, so the caller closes it
+                # even when it is rejected.
+                files.append(chunk)
+                checksums.append(name)
+
+                chunk_size = chunk.size
                 if chunk_size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
                     logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
                     return Response(
@@ -365,9 +426,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                     return Response(
                         {"error": "Request too large"}, status=status.HTTP_400_BAD_REQUEST
                     )
-
-                files.append(chunk)
-                checksums.append(name)
         except ChunkTooLarge:
             logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST)
@@ -390,16 +448,18 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         return Response(status=status.HTTP_200_OK)
 
 
-def get_files(request: Request, encoding: str) -> Iterator[tuple[ChunkFile, str]]:
+def get_files(
+    request: Request, encoding: str, spool_max_memory_size: int | None
+) -> "Iterator[tuple[File[bytes], str]]":
     for chunk in request.FILES.getlist("file"):
         if encoding == "gzip":
-            yield GzipChunk(chunk), cast(str, chunk.name)
+            yield gzip_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)
         elif encoding == "zstd":
-            yield ZstdChunk(chunk), cast(str, chunk.name)
+            yield zstd_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)
         else:
             yield chunk, cast(str, chunk.name)
 
     # Legacy: older clients send gzipped chunks under `file_gzip` with no
     # Content-Encoding header. Prefer `Content-Encoding: gzip` on `file`.
     for chunk in request.FILES.getlist("file_gzip"):
-        yield GzipChunk(chunk), cast(str, chunk.name)
+        yield gzip_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)

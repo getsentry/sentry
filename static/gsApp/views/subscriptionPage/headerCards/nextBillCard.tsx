@@ -1,3 +1,4 @@
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -8,9 +9,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
-import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {PreviewInvoiceItem, Subscription} from 'getsentry/types';
 import {
@@ -43,17 +43,13 @@ export function NextBillCard({
     data: nextBill,
     isLoading,
     isError,
-  } = useApiQuery<NextBillPreview>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/subscription/next-bill/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-      enabled: !!subscription.plan,
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<NextBillPreview>()(
+      '/customers/$organizationIdOrSlug/subscription/next-bill/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    ),
+    enabled: !!subscription.plan,
+  });
 
   // recurring fees, PAYG, and credits are grouped together
   // only additional fees (ie. taxes) are listed individually

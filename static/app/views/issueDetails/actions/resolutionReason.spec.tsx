@@ -9,7 +9,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import {ActivityResolutionReason} from 'sentry/views/issueDetails/actions/resolutionReason';
+
+import {ActivityResolutionReason} from './resolutionReason';
 
 const project = ProjectFixture();
 const actor = UserFixture({name: 'David Cramer'});
