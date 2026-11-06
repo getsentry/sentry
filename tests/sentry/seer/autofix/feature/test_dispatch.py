@@ -348,7 +348,6 @@ class TestTriggerAutofixFeature(TestCase):
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
             patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
         ):
-            mock_quotas.backend.check_seer_quota.return_value = True
             MockClient.return_value.start_feature_run.return_value = fake_run
 
             run = trigger_autofix_feature(
@@ -362,6 +361,8 @@ class TestTriggerAutofixFeature(TestCase):
 
         assert run is fake_run
         mock_check_seer_credits.assert_not_called()
+        mock_quotas.backend.check_seer_quota.assert_not_called()
+        mock_quotas.backend.record_seer_run.assert_not_called()
 
     def test_allows_async_dispatch(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
