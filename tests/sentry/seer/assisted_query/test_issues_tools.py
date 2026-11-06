@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 
@@ -29,7 +30,9 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
     def setUp(self) -> None:
         super().setUp()
-        self.min_ago = before_now(minutes=1)
+        # Tag-key lookups are cached, and the cached query's end time is rounded down
+        # by up to five minutes, so events must be older than that to be counted.
+        self.ten_mins_ago = before_now(minutes=10)
 
     def test_get_issue_filter_keys_success(self) -> None:
         """Test that get_issue_filter_keys returns tags and feature flags"""
@@ -38,7 +41,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={
                 "event_id": "a" * 32,
                 "tags": {"fruit": "apple", "color": "red"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -51,8 +54,8 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 "title": "some problem",
                 "platform": "python",
                 "tags": {"issue_tag": "value"},
-                "timestamp": self.min_ago.isoformat(),
-                "received": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
+                "received": self.ten_mins_ago.isoformat(),
             },
         )
 
@@ -67,7 +70,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                         ]
                     }
                 },
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -106,6 +109,22 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             assert "feature_a" in flag_keys
             assert "feature_b" in flag_keys
 
+    def test_get_issue_filter_keys_reads_tag_keys_from_cache(self) -> None:
+        with patch(
+            "sentry.tagstore.snuba.backend.SnubaTagStorage.get_tag_keys_for_projects",
+            autospec=True,
+            return_value=[],
+        ) as get_tag_keys:
+            get_issue_filter_keys(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                stats_period="7d",
+            )
+
+        # Events, issue platform and feature flags.
+        assert get_tag_keys.call_count == 3
+        assert all(call.kwargs["use_cache"] for call in get_tag_keys.call_args_list)
+
     def test_get_issue_filter_keys_nonexistent_organization(self) -> None:
         """Test that nonexistent organization returns None"""
         result = get_issue_filter_keys(
@@ -121,7 +140,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={
                 "event_id": "d" * 32,
                 "tags": {"fruit": "apple"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -143,7 +162,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={
                 "event_id": "a" * 32,
                 "tags": {"project1_tag": "value1"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -152,7 +171,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={
                 "event_id": "b" * 32,
                 "tags": {"project2_tag": "value2"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=project2.id,
         )

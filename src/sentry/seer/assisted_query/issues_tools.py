@@ -478,7 +478,7 @@ def get_issue_filter_keys(
         base_params["end"] = end
 
     # Get event tags
-    event_params = {**base_params, "dataset": Dataset.Events.value, "useCache": "1"}
+    event_params = {**base_params, "dataset": Dataset.Events.value, "use_cache": "1"}
     event_resp = ApiClient().get(
         auth=api_key,
         user=None,
@@ -488,7 +488,7 @@ def get_issue_filter_keys(
     event_tags = event_resp.data if event_resp.status_code == 200 else []
 
     # Get issue tags (search_issues dataset)
-    issue_params = {**base_params, "dataset": Dataset.IssuePlatform.value, "useCache": "1"}
+    issue_params = {**base_params, "dataset": Dataset.IssuePlatform.value, "use_cache": "1"}
     issue_resp = ApiClient().get(
         auth=api_key,
         user=None,
@@ -514,7 +514,7 @@ def get_issue_filter_keys(
         **base_params,
         "dataset": Dataset.Events.value,
         "useFlagsBackend": "1",
-        "useCache": "1",
+        "use_cache": "1",
     }
     flags_resp = ApiClient().get(
         auth=api_key,

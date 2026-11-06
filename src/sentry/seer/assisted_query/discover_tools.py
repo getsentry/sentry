@@ -119,7 +119,7 @@ def _get_tag_and_feature_flag_keys(
     base_params: dict[str, Any] = {
         "project": project_ids,
         "referrer": Referrer.SEER_RPC,
-        "useCache": "1",
+        "use_cache": "1",
     }
     if stats_period:
         base_params["statsPeriod"] = stats_period

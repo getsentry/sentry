@@ -358,6 +358,28 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             assert mock_snuba_query.call_count == 1
 
     @mock.patch("sentry.utils.snuba.query", return_value={})
+    def test_tags_and_flags_are_cached_separately(self, mock_snuba_query: mock.MagicMock) -> None:
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+        self.create_project(organization=org, teams=[team])
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
+        )
+        params = {"use_cache": "1", "statsPeriod": "14d", "dataset": "events"}
+        response = self.client.get(url, params, format="json")
+        assert response.status_code == 200, response.content
+
+        response = self.client.get(url, {**params, "useFlagsBackend": "1"}, format="json")
+        assert response.status_code == 200, response.content
+        # The flag lookup has to query flags, not reuse the cached tag keys.
+        assert mock_snuba_query.call_count == 2
+        assert mock_snuba_query.call_args.kwargs["groupby"] == ["flags_key"]
+
+    @mock.patch("sentry.utils.snuba.query", return_value={})
     def test_different_statsperiod_caching(self, mock_snuba_query: mock.MagicMock) -> None:
         user = self.create_user()
         org = self.create_organization()

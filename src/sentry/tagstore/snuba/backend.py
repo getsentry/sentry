@@ -621,6 +621,9 @@ class SnubaTagStorage(TagStorage):
         if should_cache:
             filtering_strings = [f"{key}={value}" for key, value in filters.items()]
             filtering_strings.append(f"dataset={dataset.name}")
+            # Tag and feature-flag storage share this method and filters; the key column
+            # keeps a flag lookup from being served cached tag keys, and vice versa.
+            filtering_strings.append(f"key_column={self.key_column}")
             cache_key = f"tagstore.__get_tag_keys:{md5_text(*filtering_strings).hexdigest()}"
             key_hash = hash(cache_key)
 

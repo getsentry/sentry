@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.seer.assisted_query.discover_tools import (
     _ALWAYS_RETURN_EVENT_FIELDS,
     _SPECIAL_FIELD_VALUE_TYPES,
@@ -16,7 +18,9 @@ from sentry.testutils.helpers.datetime import before_now
 class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.min_ago = before_now(minutes=1)
+        # Tag-key lookups are cached, and the cached query's end time is rounded down
+        # by up to five minutes, so events must be older than that to be counted.
+        self.ten_mins_ago = before_now(minutes=10)
 
     def test_get_event_filter_keys_with_feature_flags(self) -> None:
         """Test that get_event_filter_keys returns tags, feature flags, and static fields"""
@@ -25,7 +29,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "tags": {"fruit": "apple", "color": "red"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -41,7 +45,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
                         ]
                     }
                 },
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -73,6 +77,23 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             expected_type = _SPECIAL_FIELD_VALUE_TYPES.get(k, "tag")
             assert result_d[k]["type"] == expected_type
 
+    def test_get_event_filter_keys_reads_tag_keys_from_cache(self) -> None:
+        with patch(
+            "sentry.tagstore.snuba.backend.SnubaTagStorage.get_tag_keys_for_projects",
+            autospec=True,
+            return_value=[],
+        ) as get_tag_keys:
+            get_event_filter_keys(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                include_feature_flags=True,
+                stats_period="7d",
+            )
+
+        # Tags and feature flags.
+        assert get_tag_keys.call_count == 2
+        assert all(call.kwargs["use_cache"] for call in get_tag_keys.call_args_list)
+
     def test_get_event_filter_keys_exclude_feature_flags(self) -> None:
         """Test that get_event_filter_keys excludes feature flags when include_feature_flags is False"""
         # Create an error event with custom tags
@@ -80,7 +101,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "tags": {"fruit": "apple", "color": "red"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -96,7 +117,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
                         ]
                     }
                 },
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -135,7 +156,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "tags": {"project1_tag": "value1"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -144,7 +165,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "tags": {"project2_tag": "value2"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=project2.id,
         )
@@ -166,7 +187,9 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
 class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.min_ago = before_now(minutes=1)
+        # `has:` values come from cached tag-key lookups, whose end time is rounded down
+        # by up to five minutes, so events must be older than that to be counted.
+        self.ten_mins_ago = before_now(minutes=10)
 
     def test_get_static_values_integer_returns_empty(self) -> None:
         assert _get_static_values("issue.id") == []
@@ -178,7 +201,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "tags": {"environment": "production"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -186,7 +209,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "tags": {"environment": "staging"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -194,7 +217,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             data={
                 "event_id": "c" * 32,
                 "tags": {"environment": "production"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -239,7 +262,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
                         ]
                     }
                 },
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -252,7 +275,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
                         ]
                     }
                 },
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -286,7 +309,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "tags": {"custom_tag": "value", "custom2": "value2"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -324,7 +347,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "tags": {"environment": "production"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -332,7 +355,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "tags": {"environment": "production-eu"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -340,7 +363,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             data={
                 "event_id": "c" * 32,
                 "tags": {"environment": "staging"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -348,7 +371,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             data={
                 "event_id": "d" * 32,
                 "tags": {"environment": "development"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -394,7 +417,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "tags": {"region": "us-east"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -402,7 +425,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "tags": {"region": "us-west"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=project2.id,
         )
@@ -443,7 +466,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "tags": {"test_tag": "new_value"},
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": self.ten_mins_ago.isoformat(),
             },
             project_id=self.project.id,
         )
