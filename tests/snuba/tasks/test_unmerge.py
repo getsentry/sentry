@@ -48,7 +48,9 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 class UnmergeTestCase(TestCase, SnubaTestCase):
     @with_feature("organizations:unmerge-recovery")
     def test_unmerge_with_recovery(self) -> None:
-        self.test_unmerge()
+        with patch.object(unmerge, "delay", wraps=unmerge.delay) as delay:
+            self.test_unmerge(operation_id="integration-unmerge")
+        assert delay.call_args_list[0].kwargs["operation_id"] == "integration-unmerge"
 
     @patch("sentry.tasks.unmerge.Group")
     @patch("sentry.tasks.unmerge.current_task")
@@ -192,7 +194,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     @with_feature("projects:similarity-indexing")
-    def test_unmerge(self) -> None:
+    def test_unmerge(self, operation_id=None) -> None:
         # Replace second=0 to ensure all 17 events (now+0s to now+17s)
         # stay within the same hour bucket. Without this, if now is within
         # 17 seconds of an hour boundary, events can cross into the next
@@ -305,8 +307,14 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert similar_items[1][1]["message:message:character-shingles"] < 1.0
 
         with self.tasks():
-            unmerge.delay(
-                project.id, source.id, destination.id, [list(events.keys())[0]], None, batch_size=5
+            start_unmerge(
+                project.id,
+                source.id,
+                destination.id,
+                [list(events.keys())[0]],
+                None,
+                batch_size=5,
+                operation_id=operation_id,
             )
 
         assert (
@@ -668,7 +676,7 @@ class StartUnmergeTest(TestCase):
     def test_delegates_to_unmerge(self) -> None:
         with patch.object(unmerge, "delay") as mock_delay:
             start_unmerge(
-                project_id=1,
+                project_id=self.project.id,
                 source_id=2,
                 destination_id=None,
                 fingerprints=["abc", "def"],
@@ -676,4 +684,6 @@ class StartUnmergeTest(TestCase):
                 batch_size=500,
             )
 
-        mock_delay.assert_called_once_with(1, 2, None, ["abc", "def"], 3, batch_size=500)
+        mock_delay.assert_called_once_with(
+            self.project.id, 2, None, ["abc", "def"], 3, batch_size=500
+        )

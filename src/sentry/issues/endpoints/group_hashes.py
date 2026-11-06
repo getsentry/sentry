@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from functools import partial
 from typing import TypedDict
+from uuid import uuid4
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.types import OpenApiTypes
@@ -8,6 +9,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -37,6 +39,10 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_query
+
+
+class UnmergeTaskKwargs(TypedDict, total=False):
+    operation_id: str
 
 
 class GroupHashesResult(TypedDict):
@@ -159,8 +165,16 @@ class GroupHashesEndpoint(GroupEndpoint):
             tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
         )
 
+        task_kwargs: UnmergeTaskKwargs = {}
+        if features.has("organizations:unmerge-recovery", group.project.organization):
+            task_kwargs["operation_id"] = uuid4().hex
         start_unmerge.delay(
-            group.project_id, group.id, None, grouphashes, request.user.id if request.user else None
+            group.project_id,
+            group.id,
+            None,
+            grouphashes,
+            request.user.id if request.user else None,
+            **task_kwargs,
         )
 
         return Response(status=202)

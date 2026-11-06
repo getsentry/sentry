@@ -6,26 +6,24 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime
 from functools import reduce
+from multiprocessing.context import TimeoutError
 from typing import Any
-from uuid import uuid4
 
 from django.db import OperationalError, router, transaction
 from django.db.models.base import Model
 from redis.exceptions import RedisError
-from taskbroker_client.retry import Retry
+from taskbroker_client.retry import LastAction, Retry
 from taskbroker_client.state import current_task
 
-from sentry import features, similarity, tsdb
+from sentry import similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
 from sentry.issues.action_log import ActionSource, action_context_scope
 from sentry.issues.unmerge_initial import (
+    LEASE_SECONDS,
     InitialUnmergeBusy,
     InitialUnmergeCheckpoint,
     InitialUnmergeNeedsRecovery,
-    checkpoint_key,
-    claim_first_continuation,
-    get_client,
     reserve_hashes,
 )
 from sentry.killswitches import killswitch_matches_context
@@ -498,6 +496,7 @@ def start_unmerge(
     fingerprints: Sequence[str],
     actor_id: int | None,
     batch_size: int = 500,
+    operation_id: str | None = None,
 ) -> None:
     task_state = current_task()
     activation_id = task_state.id if task_state else None
@@ -524,9 +523,22 @@ def start_unmerge(
     )
     metrics.incr("unmerge.started")
 
-    unmerge.delay(
-        project_id, source_id, destination_id, fingerprints, actor_id, batch_size=batch_size
-    )
+    if operation_id:
+        # The request assigned this identity before enqueueing the starter, so retries of either
+        # task keep the same owner even when taskbroker assigns a new activation ID.
+        unmerge.delay(
+            project_id,
+            source_id,
+            destination_id,
+            fingerprints,
+            actor_id,
+            batch_size=batch_size,
+            operation_id=operation_id,
+        )
+    else:
+        unmerge.delay(
+            project_id, source_id, destination_id, fingerprints, actor_id, batch_size=batch_size
+        )
     if activation_id:
         mark_spawned(_START_TASK_KEY, activation_id)
 
@@ -534,13 +546,22 @@ def start_unmerge(
 @instrumented_task(
     name="sentry.tasks.unmerge",
     namespace=issues_merge_tasks,
-    retry=Retry(times=3, delay=60),
+    # A killed worker can leave its 600s lease behind. Allow retries to outlive that lease.
+    retry=Retry(
+        times=LEASE_SECONDS // 60 + 2,
+        delay=60,
+        # Later batches have no checkpoints. Adding recovery must not opt them into timeout
+        # retries, which could replay aggregate mutations. Explicit busy errors still retry.
+        ignore=(TimeoutError,),
+        times_exceeded=LastAction.Deadletter,
+    ),
     processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
     with action_context_scope(ActionSource.SYSTEM):
         initial_checkpoint_id = kwargs.pop("initial_checkpoint_id", None)
+        operation_id = kwargs.pop("operation_id", None)
         args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
         extra = {"source_id": args.source_id, "project_id": args.project_id}
 
@@ -559,31 +580,15 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
 
         logger.info("unmerge.start.task", extra=extra)
         if initial_checkpoint_id:
-            try:
-                admitted = claim_first_continuation(
-                    args.project_id, initial_checkpoint_id, activation_id or uuid4().hex
-                )
-            except RedisError as error:
-                raise InitialUnmergeBusy() from error
-            if not admitted:
-                logger.info("unmerge.initial.duplicate_continuation.skipped", extra=extra)
-                return
+            assert isinstance(args, SuccessiveUnmergeArgs)
+            _run_first_continuation(args, initial_checkpoint_id)
+            return
 
-        if isinstance(args, InitialUnmergeArgs):
-            try:
-                project = Project.objects.get_from_cache(id=args.project_id)
-                tracked = features.has("organizations:unmerge-recovery", project.organization)
-                tracked = tracked or bool(
-                    activation_id
-                    and get_client().exists(checkpoint_key(args.project_id, activation_id))
-                )
-            except RedisError as error:
-                raise InitialUnmergeBusy() from error
-            if tracked:
-                # Rollout changes must not send an already-tracked redelivery down the legacy
-                # path, where it would lose ownership of its locks.
-                _run_initial_unmerge(args, activation_id or uuid4().hex)
-                return
+        if operation_id:
+            assert isinstance(args, InitialUnmergeArgs)
+            # The queued operation identity survives both new-ID retries and rollout changes.
+            _run_initial_unmerge(args, operation_id)
+            return
 
         new_args = _unmerge_batch(args)
         if new_args is None:
@@ -624,7 +629,8 @@ def _unmerge_batch(
         )
         if checkpoint:
             checkpoint.save()
-        truncate_denormalizations(project, source)
+        if not checkpoint:
+            truncate_denormalizations(project, source)
         last_event = None
     else:
         locked_primary_hashes = list(args.locked_primary_hashes)
@@ -640,6 +646,11 @@ def _unmerge_batch(
     )
     events = [event.for_group(source) for event in raw_events]
     logger.info("unmerge.check", extra={**extra, "num_events": len(events)})
+    if checkpoint:
+        # Reading the page is safe to retry. Mark processing before the first SQL mutation,
+        # including clearing the source's existing denormalizations.
+        checkpoint.begin_processing()
+        truncate_denormalizations(project, source)
     if not events:
         if checkpoint:
             checkpoint.begin_finishing()
@@ -652,10 +663,6 @@ def _unmerge_batch(
                 args.replacement.stop_snuba_replacement(eventstream_state)
         return None
 
-    if checkpoint:
-        # Mutation replay is a separate problem from recovering initial lock ownership.
-        # Leave an explicit marker before touching aggregates or creating destinations.
-        checkpoint.begin_processing()
     source_events = []
     destination_events: dict[str, list[GroupEvent]] = {}
     owned_hashes = set(locked_primary_hashes)
@@ -712,25 +719,25 @@ def _unmerge_batch(
     )
 
 
-def _run_initial_unmerge(args: InitialUnmergeArgs, activation_id: str) -> None:
+def _run_initial_unmerge(args: InitialUnmergeArgs, operation_id: str) -> None:
     try:
-        _run_initial_checkpoint(args, activation_id)
+        _run_initial_checkpoint(args, operation_id)
     except (RedisError, OperationalError) as error:
         # Only tracked initial activations opt into these retries. Later batches retain the
         # existing retry behavior; their aggregate mutations are not replay-safe.
         raise InitialUnmergeBusy() from error
 
 
-def _run_initial_checkpoint(args: InitialUnmergeArgs, activation_id: str) -> None:
+def _run_initial_checkpoint(args: InitialUnmergeArgs, operation_id: str) -> None:
     extra = {
-        "activation_id": activation_id,
+        "operation_id": operation_id,
         "project_id": args.project_id,
         "source_id": args.source_id,
     }
     with InitialUnmergeCheckpoint.acquire(
         args.project_id,
         args.source_id,
-        activation_id,
+        operation_id,
         list(args.replacement.primary_hashes_to_lock),
     ) as checkpoint:
         phase = checkpoint.state.phase
@@ -741,9 +748,9 @@ def _run_initial_checkpoint(args: InitialUnmergeArgs, activation_id: str) -> Non
         if phase == "complete":
             checkpoint.release_reservations()
             return
-        if phase == "processing":
+        if phase in ("processing", "needs_recovery"):
             logger.warning("unmerge.initial.needs_recovery", extra={**extra, "phase": phase})
-            raise InitialUnmergeNeedsRecovery("Initial unmerge batch may have mutated data")
+            raise InitialUnmergeNeedsRecovery("Initial unmerge requires manual recovery")
         if phase == "finishing":
             unlock_hashes(args.project_id, checkpoint.owned_hashes())
             checkpoint.complete()
@@ -756,6 +763,16 @@ def _run_initial_checkpoint(args: InitialUnmergeArgs, activation_id: str) -> Non
 
         owned_hashes = checkpoint.lock_hashes()
         if not owned_hashes:
+            if GroupHash.objects.filter(
+                project_id=args.project_id,
+                group_id=args.source_id,
+                hash__in=args.replacement.primary_hashes_to_lock,
+                state=GroupHash.State.LOCKED_IN_MIGRATION,
+            ).exists():
+                checkpoint.state.phase = "needs_recovery"
+                checkpoint.save()
+                checkpoint.release_reservations()
+                raise InitialUnmergeNeedsRecovery("Requested hashes have locks without this owner")
             checkpoint.complete()
             return
         next_args = _unmerge_batch(
@@ -764,7 +781,40 @@ def _run_initial_checkpoint(args: InitialUnmergeArgs, activation_id: str) -> Non
         )
         if next_args is not None:
             checkpoint.continue_with(
-                {**next_args.dump_arguments(), "initial_checkpoint_id": activation_id}
+                {**next_args.dump_arguments(), "initial_checkpoint_id": operation_id}
             )
             unmerge.delay(**checkpoint.continuation_arguments())
         checkpoint.complete()
+
+
+def _run_first_continuation(args: SuccessiveUnmergeArgs, operation_id: str) -> None:
+    # Retried parent handoffs can enqueue several activations for this logical batch. Serialize
+    # them by operation, not activation ID. An interrupted batch must never silently disappear
+    # as a "duplicate", or replay mutations whose results were not checkpointed.
+    try:
+        with InitialUnmergeCheckpoint.acquire(
+            args.project_id,
+            args.source_id,
+            f"{operation_id}:first-child",
+            list(args.locked_primary_hashes),
+        ) as checkpoint:
+            if checkpoint.state.phase == "complete":
+                return
+            if checkpoint.state.phase == "processing":
+                logger.warning(
+                    "unmerge.initial.needs_recovery",
+                    extra={
+                        "operation_id": operation_id,
+                        "project_id": args.project_id,
+                        "source_id": args.source_id,
+                        "phase": "first-continuation",
+                    },
+                )
+                raise InitialUnmergeNeedsRecovery("First continuation may have mutated data")
+            checkpoint.begin_processing()
+            next_args = _unmerge_batch(args)
+            if next_args is not None:
+                unmerge.delay(**next_args.dump_arguments())
+            checkpoint.complete()
+    except (RedisError, OperationalError) as error:
+        raise InitialUnmergeBusy() from error

@@ -1,5 +1,6 @@
 from unittest.mock import patch
 from urllib.parse import urlencode
+from uuid import UUID
 
 from django.test import RequestFactory
 from rest_framework.request import Request
@@ -10,6 +11,24 @@ from sentry.issues.endpoints.group_hashes import GroupHashesEndpoint
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+
+
+class GroupHashesRecoveryTest(APITestCase):
+    def test_request_assigns_operation_id_before_enqueueing(self) -> None:
+        group = self.create_n_groups_with_hashes(1, self.project)[0]
+        group_hash = GroupHash.objects.get(group=group)
+        self.login_as(user=self.user)
+        with (
+            self.feature("organizations:unmerge-recovery"),
+            patch("sentry.issues.endpoints.group_hashes.start_unmerge.delay") as delay,
+        ):
+            response = self.client.put(
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/hashes/",
+                QUERY_STRING=urlencode({"id": group_hash.hash}),
+            )
+        assert response.status_code == 202, response.content
+        delay.assert_called_once()
+        assert UUID(delay.call_args.kwargs["operation_id"]).version == 4
 
 
 class GroupHashesTest(APITestCase, SnubaTestCase):

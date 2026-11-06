@@ -1,20 +1,22 @@
+from multiprocessing.context import TimeoutError
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from django.db import OperationalError
 from redis.exceptions import RedisError
 
 from sentry.issues.unmerge_initial import (
+    LEASE_SECONDS,
     InitialUnmergeBusy,
     InitialUnmergeCheckpoint,
     InitialUnmergeNeedsRecovery,
     InitialUnmergeOwnershipLost,
-    claim_first_continuation,
     get_client,
     hash_owner_key,
 )
 from sentry.models.grouphash import GroupHash, GroupHashQuerySet
-from sentry.tasks.unmerge import lock_hashes, unmerge
+from sentry.tasks.unmerge import lock_hashes, start_unmerge, unmerge
 from sentry.testutils.cases import TestCase
 from sentry.unmerge import (
     InitialUnmergeArgs,
@@ -95,19 +97,85 @@ def test_argument_parsing_page2() -> None:
     assert UnmergeArgsBase.parse_arguments(**args.dump_arguments()) == args
 
 
+def test_retry_policy_outlives_lease_without_replaying_later_batch_timeouts() -> None:
+    assert unmerge.retry is not None
+    state = unmerge.retry.initial_state()
+    assert state.delay_on_retry * (state.max_attempts - 1) > LEASE_SECONDS
+    assert unmerge.retry.should_retry(state, InitialUnmergeBusy()) is True
+    assert unmerge.retry.should_retry(state, TimeoutError()) is False
+    assert unmerge.retry.should_retry(state, InitialUnmergeNeedsRecovery()) is False
+
+
 class InitialUnmergeCheckpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.source = self.create_n_groups_with_hashes(1, self.project)[0]
         self.group_hash = GroupHash.objects.get(group=self.source)
 
-    def acquire(self, activation_id="initial"):
+    def acquire(self, operation_id="initial"):
         return InitialUnmergeCheckpoint.acquire(
-            self.project.id, self.source.id, activation_id, [self.group_hash.hash]
+            self.project.id, self.source.id, operation_id, [self.group_hash.hash]
         )
 
     def invoke_initial(self) -> None:
-        unmerge(self.project.id, self.source.id, None, [self.group_hash.hash], self.user.id)
+        unmerge(
+            self.project.id,
+            self.source.id,
+            None,
+            [self.group_hash.hash],
+            self.user.id,
+            operation_id="initial",
+        )
+
+    def test_retry_with_new_activation_recovers_owned_sql_locks(self) -> None:
+        with (
+            patch("sentry.tasks.unmerge.current_task", return_value=SimpleNamespace(id="first")),
+            patch("sentry.tasks.unmerge.task_run_batch_query", side_effect=OperationalError),
+            pytest.raises(InitialUnmergeBusy),
+        ):
+            self.invoke_initial()
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.LOCKED_IN_MIGRATION
+        with (
+            self.feature({"organizations:unmerge-recovery": False}),
+            patch("sentry.tasks.unmerge.current_task", return_value=SimpleNamespace(id="retry")),
+            patch("sentry.tasks.unmerge.truncate_denormalizations"),
+            patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, [])),
+        ):
+            self.invoke_initial()
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state is None
+        with self.acquire() as checkpoint:
+            assert checkpoint.state.phase == "complete"
+
+    def test_start_preserves_request_identity_across_retries(self) -> None:
+        task = SimpleNamespace(id="start")
+        with (
+            self.feature({"organizations:unmerge-recovery": False}),
+            patch("sentry.tasks.unmerge.current_task", return_value=task),
+            patch.object(unmerge, "delay") as delay,
+            patch("sentry.tasks.unmerge.mark_spawned"),
+        ):
+            start_unmerge(
+                self.project.id,
+                self.source.id,
+                None,
+                [self.group_hash.hash],
+                self.user.id,
+                operation_id="request-operation",
+            )
+            first_operation_id = delay.call_args.kwargs["operation_id"]
+            task.id = "start-retry"
+            start_unmerge(
+                self.project.id,
+                self.source.id,
+                None,
+                [self.group_hash.hash],
+                self.user.id,
+                operation_id="request-operation",
+            )
+        assert delay.call_args.kwargs["operation_id"] == first_operation_id
+        assert first_operation_id == "request-operation"
 
     def assert_redelivery(self, rollout_enabled: bool) -> None:
         task = SimpleNamespace(id="initial")
@@ -200,6 +268,59 @@ class InitialUnmergeCheckpointTest(TestCase):
         self.group_hash.refresh_from_db()
         assert self.group_hash.state == GroupHash.State.LOCKED_IN_MIGRATION
 
+    def test_legacy_lock_acquired_after_initial_read_is_not_claimed(self) -> None:
+        with self.acquire() as checkpoint:
+            original_set = checkpoint.client.set
+
+            def reserve_after_legacy_lock(*args, **kwargs):
+                self.group_hash.update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+                return original_set(*args, **kwargs)
+
+            with patch.object(checkpoint.client, "set", side_effect=reserve_after_legacy_lock):
+                assert checkpoint.lock_hashes() == []
+            checkpoint.complete()
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.LOCKED_IN_MIGRATION
+
+    def test_pending_reservation_cannot_adopt_a_lock_on_retry(self) -> None:
+        get_client().set(
+            hash_owner_key(self.project.id, self.group_hash.hash), "pending:initial", ex=600
+        )
+        self.group_hash.update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+        with self.acquire() as checkpoint:
+            assert checkpoint.lock_hashes() == []
+            checkpoint.complete()
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.LOCKED_IN_MIGRATION
+
+    def test_lost_checkpoint_reports_unowned_locks_instead_of_success(self) -> None:
+        with self.acquire() as checkpoint:
+            checkpoint.lock_hashes()
+            checkpoint.client.delete(
+                checkpoint.key, hash_owner_key(self.project.id, self.group_hash.hash)
+            )
+        with pytest.raises(InitialUnmergeNeedsRecovery, match="without this owner"):
+            self.invoke_initial()
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.LOCKED_IN_MIGRATION
+        with self.acquire() as checkpoint:
+            assert checkpoint.state.phase == "needs_recovery"
+        with pytest.raises(InitialUnmergeNeedsRecovery):
+            self.invoke_initial()
+
+    def test_stale_initializer_cannot_overwrite_an_existing_checkpoint(self) -> None:
+        with self.acquire() as checkpoint:
+            checkpoint.lock_hashes()
+            checkpoint.begin_processing()
+        with (
+            patch.object(get_client(), "get", return_value=None),
+            pytest.raises(InitialUnmergeOwnershipLost),
+            self.acquire(),
+        ):
+            pass
+        with self.acquire() as checkpoint:
+            assert checkpoint.state.phase == "processing"
+
     def test_missing_owner_is_not_interpreted_as_permission_to_resume(self) -> None:
         with self.acquire() as checkpoint:
             checkpoint.lock_hashes()
@@ -265,7 +386,7 @@ class InitialUnmergeCheckpointTest(TestCase):
             checkpoint.continue_with(continuation)
         with (
             self.feature("organizations:unmerge-recovery"),
-            patch("sentry.tasks.unmerge.current_task", return_value=SimpleNamespace(id="initial")),
+            patch("sentry.tasks.unmerge.current_task", return_value=SimpleNamespace(id="retry")),
             patch("sentry.tasks.unmerge.task_run_batch_query") as query,
             patch.object(unmerge, "delay") as delay,
         ):
@@ -275,9 +396,11 @@ class InitialUnmergeCheckpointTest(TestCase):
         with self.acquire() as checkpoint:
             assert checkpoint.state.phase == "complete"
 
-    def test_duplicate_first_continuation_is_not_processed(self) -> None:
-        assert claim_first_continuation(self.project.id, "initial", "first-child") is True
-        assert claim_first_continuation(self.project.id, "initial", "first-child") is True
+    def test_duplicate_completed_first_continuation_is_not_processed(self) -> None:
+        with InitialUnmergeCheckpoint.acquire(
+            self.project.id, self.source.id, "initial:first-child", [self.group_hash.hash]
+        ) as checkpoint:
+            checkpoint.complete()
         with (
             patch(
                 "sentry.tasks.unmerge.current_task",
@@ -287,6 +410,50 @@ class InitialUnmergeCheckpointTest(TestCase):
         ):
             unmerge(**self.continuation())
         query.assert_not_called()
+
+    def test_first_continuation_retry_with_new_activation_reports_unsafe_replay(self) -> None:
+        with (
+            patch("sentry.tasks.unmerge.current_task", return_value=SimpleNamespace(id="child")),
+            patch("sentry.tasks.unmerge.task_run_batch_query", side_effect=KeyboardInterrupt),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            unmerge(**self.continuation())
+        with (
+            patch("sentry.tasks.unmerge.current_task", return_value=SimpleNamespace(id="retry")),
+            patch("sentry.tasks.unmerge.task_run_batch_query") as query,
+            pytest.raises(InitialUnmergeNeedsRecovery),
+        ):
+            unmerge(**self.continuation())
+        query.assert_not_called()
+
+    def test_first_continuation_retry_before_processing_is_not_dropped(self) -> None:
+        with (
+            patch("sentry.tasks.unmerge.current_task", return_value=SimpleNamespace(id="child")),
+            patch.object(InitialUnmergeCheckpoint, "begin_processing", side_effect=RedisError),
+            pytest.raises(InitialUnmergeBusy),
+        ):
+            unmerge(**self.continuation())
+        with (
+            patch("sentry.tasks.unmerge.current_task", return_value=SimpleNamespace(id="retry")),
+            patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, [])) as query,
+        ):
+            unmerge(**self.continuation())
+        query.assert_called_once()
+
+    def test_truncation_failure_is_not_replayed(self) -> None:
+        with (
+            patch("sentry.tasks.unmerge.truncate_denormalizations", side_effect=KeyboardInterrupt),
+            patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, [])),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            self.invoke_initial()
+        with (
+            patch("sentry.tasks.unmerge.current_task", return_value=SimpleNamespace(id="retry")),
+            patch("sentry.tasks.unmerge.truncate_denormalizations") as truncate,
+            pytest.raises(InitialUnmergeNeedsRecovery),
+        ):
+            self.invoke_initial()
+        truncate.assert_not_called()
 
     def test_finishing_redelivery_only_unlocks_and_cleans_up(self) -> None:
         with self.acquire() as checkpoint:
