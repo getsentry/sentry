@@ -1,10 +1,6 @@
 import {IconChat} from '@sentry/icons/chat';
 import queryString from 'query-string';
 
-import {
-  ResourceLink,
-  type ResourceLinkFormatProps,
-} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -12,6 +8,8 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {getAgentNamesFilter} from 'sentry/views/insights/pages/agents/utils/query';
+
+import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
 
 export type ConversationsQueryData = EmbedOutput<'conversationsQuery'>;
 

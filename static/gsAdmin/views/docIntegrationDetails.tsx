@@ -1,22 +1,17 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 
 import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {DocIntegration} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -39,28 +34,39 @@ export function DocIntegrationDetails() {
     path: {docIntegrationIdOrSlug: docIntegrationSlug},
   });
 
-  const {data, isPending, isError, refetch} = useApiQuery<any>([ENDPOINT], {
-    staleTime: 0,
-  });
+  const queryOptions = apiOptions.as<DocIntegration>()(
+    '/doc-integrations/$docIntegrationIdOrSlug/',
+    {path: {docIntegrationIdOrSlug: docIntegrationSlug}, staleTime: 0}
+  );
+
+  const {data, isPending, isError, refetch} = useQuery(queryOptions);
 
   const onUpdateMutation = useMutation({
-    mutationFn: (params: Record<string, any>) => {
+    mutationFn: (params: Record<string, unknown>): Promise<DocIntegration> => {
       return api.requestPromise(ENDPOINT, {
         method: 'PUT',
         data: params,
       });
     },
     onMutate: () => {
-      addLoadingMessage('Saving changes...');
+      toast.loading('Saving changes...');
     },
     onSuccess: updatedData => {
-      addSuccessMessage(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
-      clearIndicators();
-      setApiQueryData(queryClient, [ENDPOINT], updatedData);
+      toast.success(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
+      toast.dismiss();
+      queryClient.setQueryData(queryOptions.queryKey, previous =>
+        updatedData === undefined
+          ? previous
+          : {
+              ...previous,
+              headers: previous?.headers ?? {},
+              json: updatedData,
+            }
+      );
     },
     onError: () => {
-      addErrorMessage('There was an internal error with updating the resource.');
-      clearIndicators();
+      toast.error('There was an internal error with updating the resource.');
+      toast.dismiss();
     },
   });
 
@@ -71,16 +77,16 @@ export function DocIntegrationDetails() {
       });
     },
     onMutate: () => {
-      addLoadingMessage('Deleting doc integration...');
+      toast.loading('Deleting doc integration...');
     },
     onSuccess: () => {
-      addSuccessMessage('Resource has been deleted.');
+      toast.success('Resource has been deleted.');
       navigate('_admin/doc-integrations/');
-      clearIndicators();
+      toast.dismiss();
     },
     onError: () => {
-      addErrorMessage('There was an internal error with deleting the resource.');
-      clearIndicators();
+      toast.error('There was an internal error with deleting the resource.');
+      toast.dismiss();
     },
   });
 
@@ -92,32 +98,31 @@ export function DocIntegrationDetails() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const publishingAction: ActionItem =
-    data.isDraft === true
-      ? {
-          key: 'publish',
-          name: 'Publish App',
-          help: 'Publishes this Doc Integration',
-          skipConfirmModal: true,
-          onAction: () =>
-            onUpdateMutation.mutate({
-              ...data,
-              is_draft: false,
-              features: data?.features?.map(({featureId}: any) => featureId),
-            }),
-        }
-      : {
-          key: 'unpublish',
-          name: 'Unpublish App',
-          help: 'Revert This Doc Integration to Draft Mode',
-          skipConfirmModal: true,
-          onAction: () =>
-            onUpdateMutation.mutate({
-              ...data,
-              is_draft: true,
-              features: data?.features?.map(({featureId}: any) => featureId),
-            }),
-        };
+  const publishingAction: ActionItem = data.isDraft
+    ? {
+        key: 'publish',
+        name: 'Publish App',
+        help: 'Publishes this Doc Integration',
+        skipConfirmModal: true,
+        onAction: () =>
+          onUpdateMutation.mutate({
+            ...data,
+            is_draft: false,
+            features: data?.features?.map(({featureId}) => featureId),
+          }),
+      }
+    : {
+        key: 'unpublish',
+        name: 'Unpublish App',
+        help: 'Revert This Doc Integration to Draft Mode',
+        skipConfirmModal: true,
+        onAction: () =>
+          onUpdateMutation.mutate({
+            ...data,
+            is_draft: true,
+            features: data?.features?.map(({featureId}) => featureId),
+          }),
+      };
 
   const updateDetailsAction = {
     key: 'update-details',
@@ -130,7 +135,11 @@ export function DocIntegrationDetails() {
           {...deps}
           docIntegration={data}
           onSubmit={(docIntegration: DocIntegration) => {
-            setApiQueryData<any>(queryClient, [ENDPOINT], docIntegration);
+            queryClient.setQueryData(queryOptions.queryKey, previous => ({
+              ...previous,
+              headers: previous?.headers ?? {},
+              json: docIntegration,
+            }));
           }}
         />
       ));
@@ -157,8 +166,8 @@ export function DocIntegrationDetails() {
         <DetailLabel title="Name">{data.name}</DetailLabel>
         <DetailLabel title="Slug">{data.slug}</DetailLabel>
         <DetailLabel title="Status">
-          <Tag variant={data.isDraft === true ? 'warning' : 'success'}>
-            {data.isDraft === false ? 'published' : 'draft'}
+          <Tag variant={data.isDraft ? 'warning' : 'success'}>
+            {data.isDraft ? 'draft' : 'published'}
           </Tag>
         </DetailLabel>
         <DetailLabel title="Author">{data.author}</DetailLabel>
@@ -170,7 +179,7 @@ export function DocIntegrationDetails() {
           {data.popularity}
         </DetailLabel>
         <DetailLabel title="Features">
-          {data.features?.map((feature: any) => (
+          {data.features?.map(feature => (
             <div key={feature.featureGate}>
               {
                 <Tag variant="warning">
@@ -181,7 +190,7 @@ export function DocIntegrationDetails() {
           ))}
         </DetailLabel>
         <DetailLabel title="Resources">
-          {data.resources?.map((resource: any) => (
+          {data.resources?.map(resource => (
             <div key={resource.title}>
               {resource.title}:{' '}
               <ExternalLink href={resource.url}>{resource.url}</ExternalLink>

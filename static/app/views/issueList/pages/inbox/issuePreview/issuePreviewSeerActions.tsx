@@ -27,6 +27,8 @@ import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
+  isRootCauseSection,
+  isSingleRunAutofix,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -37,11 +39,12 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   PullRequestButtons,
   useIssuePreviewPullRequests,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewPullRequests';
-import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
+} from './issuePreviewPullRequests';
+import {useIssuePreviewSeer} from './issuePreviewSeer';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
@@ -364,14 +367,19 @@ function SeerActionButton({
     );
   }
 
-  const nextStep = getAutofixNextStep({sections});
+  const nextStep = getAutofixNextStep({sections, runState: autofix.runState});
   if (autofix.isProcessing) {
     let icon = <IconBug data-test-id="autofix-root-cause-icon" />;
     let label = t('Find Root Cause');
+    const isSingleRunFixing =
+      isSingleRunAutofix(autofix.runState) &&
+      sections.some(
+        section => isRootCauseSection(section) && section.status === 'completed'
+      );
     if (nextStep?.action === 'solution') {
       icon = <IconList data-test-id="autofix-plan-icon" />;
       label = t('Make a Plan');
-    } else if (nextStep?.action === 'code_changes') {
+    } else if (nextStep?.action === 'code_changes' || isSingleRunFixing) {
       icon = <IconCode data-test-id="autofix-code-changes-icon" />;
       label = t('Write a Code Fix');
     }

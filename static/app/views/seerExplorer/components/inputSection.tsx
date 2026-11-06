@@ -12,8 +12,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {PRLinksBar} from 'sentry/views/seerExplorer/components/prLinksBar';
 import type {RepoPRState, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+
+import {PRLinksBar} from './prLinksBar';
 
 interface FileApprovalActions {
   currentIndex: number;
@@ -47,6 +48,7 @@ interface InputSectionProps {
   disabledPlaceholder?: string;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
+  isSingleRun?: boolean;
   questionActions?: QuestionActions;
   runId?: SeerExplorerRunId | null;
 }
@@ -67,10 +69,12 @@ export function InputSection({
   fileApprovalActions,
   questionActions,
   runId,
+  isSingleRun,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
-  // With ask-seer-create-pr the agent opens PRs, so show links to them.
-  const agentCreatesPRs = organization?.features.includes('ask-seer-create-pr');
+  // Autofix single runs and ask-seer-create-pr runs open PRs, so show links to them.
+  const agentCreatesPRs =
+    isSingleRun || organization?.features.includes('ask-seer-create-pr');
   // Keyed by run so collapse state resets when switching conversations.
   const prLinksBar = agentCreatesPRs ? (
     <PRLinksBar key={runId ?? undefined} repoPRStates={repoPRStates} />

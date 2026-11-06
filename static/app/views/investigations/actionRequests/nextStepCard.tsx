@@ -4,10 +4,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {
-  ActionRequestCard,
-  isStaleActionRequest,
-} from 'sentry/views/investigations/actionRequests/actionRequestCard';
 import {PlaceholderBar} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
 import {isWritingMetadata} from 'sentry/views/investigations/runState';
 import type {
@@ -15,6 +11,8 @@ import type {
   InvestigationDetail,
   InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
+
+import {ActionRequestCard, isStaleActionRequest} from './actionRequestCard';
 
 type NextStepCardProps = {
   actionRequests: InvestigationActionRequest[] | undefined;

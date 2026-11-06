@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 import {IconOpen} from '@sentry/icons/open';
-import {IconQuestion} from '@sentry/icons/question';
 
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -168,7 +168,7 @@ export function DefaultTitle({
           position="auto-start"
         >
           <a className="in-at real-filename">
-            <IconQuestion size="xs" />
+            <IconInfo size="xs" />
           </a>
         </Tooltip>
       );

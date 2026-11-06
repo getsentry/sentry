@@ -1,6 +1,5 @@
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
@@ -19,6 +18,8 @@ import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathname
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {filterSupportedTasks} from './filterSupportedTasks';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects === undefined

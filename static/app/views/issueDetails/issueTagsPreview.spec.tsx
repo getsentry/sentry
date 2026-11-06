@@ -4,8 +4,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-
+import {GroupDataContextProvider} from './groupDataContext';
 import {IssueTagsPreview} from './issueTagsPreview';
 
 describe('IssueTagsPreview', () => {

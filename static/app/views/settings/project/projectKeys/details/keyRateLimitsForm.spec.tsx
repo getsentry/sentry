@@ -5,7 +5,8 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ProjectKey} from 'sentry/types/project';
-import {KeyRateLimitsForm} from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
+
+import {KeyRateLimitsForm} from './keyRateLimitsForm';
 
 describe('KeyRateLimitsForm', () => {
   const org = OrganizationFixture();

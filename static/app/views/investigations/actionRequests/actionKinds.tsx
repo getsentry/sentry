@@ -1,14 +1,15 @@
 import type {ComponentType, ReactNode} from 'react';
 
-import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
-import {connectTelemetryUI} from 'sentry/views/investigations/actionRequests/connectTelemetry';
-import {updateDetectorUI} from 'sentry/views/investigations/actionRequests/updateDetector';
 import type {ActionRequestError} from 'sentry/views/investigations/api';
 import type {
   InvestigationAction,
   InvestigationActionRequest,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
+
+import type {ApplyCheck} from './applyButton';
+import {connectTelemetryUI} from './connectTelemetry';
+import {updateDetectorUI} from './updateDetector';
 
 type ActionByKind = {[A in InvestigationAction as A['kind']]: A};
 type ActionKind = keyof ActionByKind;
@@ -25,6 +26,7 @@ export type ActionKindApplyProps<A> = KindProps<A> & {
   finishing: boolean;
   message: string | null;
   onApply: () => void;
+  onLinkClick: (link: string) => void;
   onRecheck: () => void;
   rechecking: boolean;
 };

@@ -10,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {
   LocalWidgetLegendSelectionState,
   useLocalWidgetLegendSelectionState,
@@ -33,6 +32,8 @@ import {
 import {getPrebuiltDashboardConfig} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
+
+import {SeerEmbedBlock} from './seerEmbedBlock';
 
 // Keep the embed compact by showing at most a single row of two widgets.
 const MAX_PREVIEW_WIDGETS = 2;

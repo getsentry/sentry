@@ -21,17 +21,18 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
-import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
+
+import {BULK_LIMIT, BULK_LIMIT_STR} from './actions/constants';
 import {
   invalidateIssueQueries,
   performBulkUpdate as performSharedBulkUpdate,
-} from 'sentry/views/issueList/actions/utils';
+} from './actions/utils';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
-} from 'sentry/views/issueList/issueSelectionContext';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+} from './issueSelectionContext';
+import type {IssueUpdateData} from './types';
+import type {IssueSortOptions} from './utils';
 
 interface IssueListBulkCommandPaletteActionsProps {
   groupIds: string[];

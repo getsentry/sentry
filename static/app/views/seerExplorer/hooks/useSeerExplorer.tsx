@@ -3,8 +3,8 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {useTimezone} from '@sentry/scraps/datetime';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -25,7 +25,6 @@ import {
   type ChatPrompt,
 } from 'sentry/views/seerExplorer/chatPrompt';
 import type {LLMContextLocation} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
-import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -38,6 +37,8 @@ import type {
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
+
+import {usePageContextCapture} from './usePageContextCapture';
 
 type SeerExplorerChatResponse = {
   message: Block;
@@ -406,7 +407,7 @@ export const useSeerExplorer = () => {
       });
     },
     onError: () => {
-      addErrorMessage('Failed to interrupt');
+      toast.error('Failed to interrupt');
     },
   });
 
@@ -625,7 +626,7 @@ export const useSeerExplorer = () => {
         currentState.pr_creation_status === 'error' &&
         currentState.pr_creation_error
       ) {
-        addErrorMessage(currentState.pr_creation_error ?? 'Failed to create PR');
+        toast.error(currentState.pr_creation_error ?? 'Failed to create PR');
       }
     }
 
@@ -738,6 +739,7 @@ export const useSeerExplorer = () => {
 
   return {
     sessionData: processedSessionData,
+    featureId: apiData?.feature_id ?? null,
     isPolling,
     isError,
     /** The session itself came back errored with nothing to render. */

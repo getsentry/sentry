@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {BaseBadge} from 'sentry/components/idBadge/baseBadge';
+import {BaseBadge} from './baseBadge';
 
 describe('BadgeBadge', () => {
   it('has a display name', () => {

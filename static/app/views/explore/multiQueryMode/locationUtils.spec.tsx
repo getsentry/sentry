@@ -2,6 +2,8 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+
 import {
   getFieldsForConstructedQuery,
   getSamplesTargetAtIndex,
@@ -9,8 +11,7 @@ import {
   normalizeCompareQueryParts,
   useReadQueriesFromLocation,
   useUpdateQueryAtIndex,
-} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+} from './locationUtils';
 
 describe('getFieldsForConstructedQuery', () => {
   it('uses the measure argument from plain aggregates', () => {

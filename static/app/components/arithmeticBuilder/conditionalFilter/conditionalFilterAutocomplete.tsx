@@ -4,14 +4,15 @@ import {useQuery} from '@tanstack/react-query';
 
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 
-import {
-  formatConditionalFilterClause,
-  getConditionalFilterEditContext,
-} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilter';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {FieldKind} from 'sentry/utils/fields';
+
+import {
+  formatConditionalFilterClause,
+  getConditionalFilterEditContext,
+} from './conditionalFilter';
 
 function useFilterKeyItems(
   attributes: FunctionArgument[]

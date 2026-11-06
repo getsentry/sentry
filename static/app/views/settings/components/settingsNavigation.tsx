@@ -11,6 +11,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -21,12 +22,13 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 import {useSettingsProjectSwitchTemplate} from 'sentry/views/settings/useSettingsProjectSwitchTemplate';
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {SettingsNavigationGroup} from './settingsNavigationGroup';
 
 type Props = NavigationProps & {
   /**
@@ -142,7 +144,8 @@ function SettingsProjectSelector() {
             label: project.slug,
             leadingItems: <ProjectAvatar project={project} size={16} />,
           }))}
-          onChange={selection =>
+          onChange={selection => {
+            trackAnalytics('settings.project_selector.changed', {organization});
             navigate(
               normalizeUrl(
                 switchTo
@@ -153,8 +156,8 @@ function SettingsProjectSelector() {
                     })
                   : `/settings/${organization.slug}/projects/${selection.value}/${subpage ? `${subpage}/` : ''}`
               )
-            )
-          }
+            );
+          }}
         />
       )}
     </Container>

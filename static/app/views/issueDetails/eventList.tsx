@@ -12,7 +12,11 @@ import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestEr
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
-import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
+import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+
+import {ALL_EVENTS_EXCLUDED_TAGS} from './hooks/useEventQuery';
+import {useIssueDetailsEventView} from './hooks/useIssueDetailsDiscoverQuery';
+import {useEventColumns} from './allEventsTable';
 import {
   CURSOR_PARSERS,
   EventListTable,
@@ -21,10 +25,7 @@ import {
   PaginationButton,
   PaginationText,
   Title,
-} from 'sentry/views/issueDetails/eventListTable';
-import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/hooks/useEventQuery';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
-import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+} from './eventListTable';
 
 interface EventListProps {
   group: Group;

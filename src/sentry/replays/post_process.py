@@ -12,47 +12,56 @@ from sentry.apidocs.omissions import sentry_schema_serializer
 
 
 class DeviceResponseType(TypedDict, total=False):
-    name: str | None
-    brand: str | None
-    model: str | None
-    family: str | None
+    name: Annotated[str | None, ApiDescription("Name of the device")]
+    brand: Annotated[str | None, ApiDescription("Brand of the device")]
+    model: Annotated[str | None, ApiDescription("Model of the device")]
+    family: Annotated[str | None, ApiDescription("Family of the device")]
 
 
 class SDKResponseType(TypedDict, total=False):
-    name: str | None
-    version: str | None
+    name: Annotated[str | None, ApiDescription("Name of the SDK that recorded the replay")]
+    version: Annotated[str | None, ApiDescription("Version of the SDK that recorded the replay")]
 
 
 class OSResponseType(TypedDict, total=False):
-    name: str | None
-    version: str | None
+    name: Annotated[str | None, ApiDescription("Name of the operating system")]
+    version: Annotated[str | None, ApiDescription("Version of the operating system")]
 
 
 class BrowserResponseType(TypedDict, total=False):
-    name: str | None
-    version: str | None
+    name: Annotated[str | None, ApiDescription("Name of the browser")]
+    version: Annotated[str | None, ApiDescription("Version of the browser")]
 
 
 class UserGeoResponseType(TypedDict, total=False):
-    city: str | None
-    country_code: str | None
-    region: str | None
-    subdivision: str | None
+    city: Annotated[str | None, ApiDescription("City of the user")]
+    country_code: Annotated[str | None, ApiDescription("Country code of the user")]
+    region: Annotated[str | None, ApiDescription("Region of the user")]
+    subdivision: Annotated[
+        str | None, ApiDescription("Subdivision of the user's country, such as a state or province")
+    ]
 
 
 class UserResponseType(TypedDict, total=False):
-    id: str | None
-    username: str | None
-    email: str | None
-    ip: str | None
-    display_name: str | None
-    geo: UserGeoResponseType
+    id: Annotated[str | None, ApiDescription("ID of the user")]
+    username: Annotated[str | None, ApiDescription("Username of the user")]
+    email: Annotated[str | None, ApiDescription("Email address of the user")]
+    ip: Annotated[str | None, ApiDescription("IP address of the user")]
+    display_name: Annotated[
+        str | None,
+        ApiDescription(
+            "Name to display for the user: the username, email, ID or IP address, whichever is set first"
+        ),
+    ]
+    geo: Annotated[UserGeoResponseType, ApiDescription("Geographic location of the user")]
 
 
 class OTAUpdatesResponseType(TypedDict, total=False):
-    channel: str | None
-    runtime_version: str | None
-    update_id: str | None
+    channel: Annotated[str | None, ApiDescription("Channel of the over-the-air update")]
+    runtime_version: Annotated[
+        str | None, ApiDescription("Runtime version of the over-the-air update")
+    ]
+    update_id: Annotated[str | None, ApiDescription("ID of the over-the-air update")]
 
 
 @sentry_schema_serializer(
@@ -77,7 +86,10 @@ class ReplayDetailsResponse(TypedDict, total=False):
     is_archived: Annotated[bool | None, ApiDescription("Whether the replay is archived")]
     urls: Annotated[list[str] | None, ApiDescription("URLs visited during the replay")]
     segment_names: list[str] | None
-    clicks: list[dict[str, Any]]
+    clicks: Annotated[
+        list[dict[str, Any]],
+        ApiDescription("Clicks recorded during the replay, one object per click"),
+    ]
     count_dead_clicks: Annotated[int | None, ApiDescription("Number of dead clicks")]
     count_rage_clicks: Annotated[int | None, ApiDescription("Number of rage clicks")]
     count_errors: Annotated[int | None, ApiDescription("Number of errors linked to the replay")]

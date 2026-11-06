@@ -7,7 +7,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ModalStore} from 'sentry/stores/modalStore';
+import {closeModal} from '@sentry/scraps/modal';
 
 import {triggerGrantLedgerCreditModal} from 'admin/components/grantLedgerCreditAction';
 
@@ -20,7 +20,7 @@ describe('GrantLedgerCreditAction', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
+    closeModal();
     onSuccess.mockClear();
     MockApiClient.addMockResponse({
       url,

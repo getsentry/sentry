@@ -5,6 +5,7 @@ from drf_spectacular.utils import OpenApiExample
 from sentry.api.helpers.group_index.types import MutateIssueResponse
 from sentry.api.serializers.models.group import GroupDetailsResponse
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnubaResponse
+from sentry.apidocs.formats import absolute_url
 
 SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "annotations": [],
@@ -62,11 +63,18 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     },
     "priority": "medium",
     "priorityLockedAt": None,
-    "owners": {
-        "type": "user",
-        "owner": "1",
-        "date_added": datetime.fromisoformat("2018-11-06T21:19:55Z"),
-    },
+    "owners": [
+        {
+            "type": "ownershipRule",
+            "owner": "user:1",
+            "date_added": datetime.fromisoformat("2018-11-06T21:19:55Z"),
+        },
+        {
+            "type": "suspectCommit",
+            "owner": "team:2",
+            "date_added": datetime.fromisoformat("2018-11-06T21:19:55Z"),
+        },
+    ],
     "platform": "python",
     "lifetime": {
         "count": "150",
@@ -148,7 +156,9 @@ GROUP_DETAILS: GroupDetailsResponse = {
     "shortId": "PUMP-STATION-1",
     "title": "This is an example Python exception",
     "culprit": "raven.scripts.runner in main",
-    "permalink": "https://sentry.io/the-interstellar-jurisdiction/pump-station/issues/1/",
+    "permalink": absolute_url(
+        "https://sentry.io/the-interstellar-jurisdiction/pump-station/issues/1/"
+    ),
     "logger": None,
     "level": "error",
     "status": "unresolved",

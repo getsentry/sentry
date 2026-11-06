@@ -4,25 +4,20 @@ from functools import cached_property
 from unittest import TestCase
 
 import pytest
-import rb
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.locking.backends.redis import (
-    BaseRedisLockBackend,
-    RedisClusterLockBackend,
-    RedisLockBackend,
-)
-from sentry.utils.redis import clusters, redis_clusters
+from sentry.utils.locking.backends.redis import BaseRedisLockBackend, RedisClusterLockBackend
+from sentry.utils.redis import redis_clusters
 
 
 class RedisBackendTestCaseBase:
     backend_class: type[BaseRedisLockBackend]
 
     @property
-    def cluster(self) -> rb.Cluster | RedisCluster[str] | StrictRedis[str]:
+    def cluster(self) -> RedisCluster[str] | StrictRedis[str]:
         raise NotImplementedError
 
     @property
@@ -82,50 +77,12 @@ class RedisBackendTestCaseBase:
         assert self.backend_class(cluster="default").cluster == self.cluster
 
 
-class RedisLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
-    backend_class = RedisLockBackend
-
-    @cached_property
-    def cluster(self) -> rb.Cluster:
-        return clusters.get("default")
-
-
 class RedisClusterLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
     backend_class = RedisClusterLockBackend
 
     @cached_property
     def cluster(self) -> RedisCluster[str] | StrictRedis[str]:
         return redis_clusters.get("default")
-
-
-class SingleHostBackendCompatibilityTestCase(TestCase):
-    # On a single host cluster, both backends must see the same locks, so that
-    # a change from one backend to the other needs no migration backend.
-    def test_blaster_lock_is_visible_to_cluster_backend(self) -> None:
-        key = "compat:blaster-to-cluster"
-        blaster_backend = RedisLockBackend("default")
-        cluster_backend = RedisClusterLockBackend("default")
-
-        blaster_backend.acquire(key, 60)
-        assert cluster_backend.locked(key)
-        with pytest.raises(Exception):
-            cluster_backend.acquire(key, 60)
-
-        blaster_backend.release(key)
-        assert not cluster_backend.locked(key)
-
-    def test_cluster_lock_is_visible_to_blaster_backend(self) -> None:
-        key = "compat:cluster-to-blaster"
-        blaster_backend = RedisLockBackend("default")
-        cluster_backend = RedisClusterLockBackend("default")
-
-        cluster_backend.acquire(key, 60)
-        assert blaster_backend.locked(key)
-        with pytest.raises(Exception):
-            blaster_backend.acquire(key, 60)
-
-        cluster_backend.release(key)
-        assert not blaster_backend.locked(key)
 
 
 class RedisClusterLockBackendConfigurationTestCase(TestCase):
