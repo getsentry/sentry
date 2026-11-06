@@ -334,9 +334,6 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
             "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
             "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
         ),
-        # Platform charge lock in ChargeService.capture_charge.
-        # Remove this entry when REVENG-696 lands
-        ("getsentry.billing.platform.services.charge.service.ChargeService.capture_charge",),
         # INFRENG-925: the test takes the subscription lock to see if it is held, inside the
         # transaction of _apply_legacy_ondemand_max_spend
         (
