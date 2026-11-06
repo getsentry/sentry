@@ -2,11 +2,13 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getOrderedAutofixSections,
   isCodeChangesSection,
@@ -32,6 +34,7 @@ import {PullRequestsCard} from './pullRequestsCard';
 import {RootCauseCard} from './rootCauseCard';
 import {SeerEnableNotifications} from './seerEnableNotifications';
 import {SolutionCard} from './solutionCard';
+import {useToggleSingleRunChat} from './useToggleSingleRunChat';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -55,6 +58,8 @@ export function SeerDrawerContent({
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
   );
+  const singleRun = isSingleRunAutofix(autofix.runState) ? autofix.runState : null;
+  const toggleSingleRunChat = useToggleSingleRunChat(getAutofixRunId(singleRun));
 
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
@@ -81,6 +86,13 @@ export function SeerDrawerContent({
             <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
           </NextStepWrap>
         )}
+      {singleRun && (
+        <NextStepWrap isSticky={stickyNextStep}>
+          <Button variant="primary" icon={<IconSeer />} onClick={toggleSingleRunChat}>
+            {t('Open Autofix')}
+          </Button>
+        </NextStepWrap>
+      )}
       {autofix.codingAgentErrors.map(({id, message}) => (
         <Alert
           key={id}

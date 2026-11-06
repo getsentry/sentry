@@ -26,6 +26,7 @@ import {AutofixResetPrompt} from './autofixResetPrompt';
 import {useAutofixSectionEvidence} from './useAutofixSectionEvidence';
 import {useResetAutofixStep} from './useResetAutofixStep';
 import {useRethinkInChat} from './useRethinkInChat';
+import {useOpenSingleRunChat} from './useToggleSingleRunChat';
 import {artifactToMarkdown} from './utils';
 
 interface RootCauseCardProps {
@@ -41,6 +42,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   }, [section]);
 
   const {copy} = useCopyToClipboard();
+  const openSingleRunChat = useOpenSingleRunChat();
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
@@ -147,7 +149,16 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
             <Button
               variant="primary"
               icon={<IconRefresh />}
-              onClick={() => handleReset()}
+              onClick={async () => {
+                if (!isSingleRunAutofix(autofix.runState)) {
+                  handleReset();
+                  return;
+                }
+                const run = await autofix.startStep('root_cause');
+                if (run.isSingleRun) {
+                  openSingleRunChat(run.runId);
+                }
+              }}
             >
               {t('Re-run')}
             </Button>

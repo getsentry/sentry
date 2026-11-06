@@ -320,6 +320,31 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     });
 
+    it('starts a new single run from Re-run', async () => {
+      const startStepMock = jest.fn().mockResolvedValue({runId: 777, isSingleRun: true});
+      render(
+        <RootCauseCard
+          autofix={{
+            ...mockAutofix,
+            startStep: startStepMock,
+            runState: {
+              run_id: 776,
+              feature_id: 'autofix_single_run',
+              status: 'completed',
+              updated_at: '2026-01-01T00:00:00Z',
+              blocks: [],
+            },
+          }}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [])}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+
+      expect(startStepMock).toHaveBeenCalledWith('root_cause');
+    });
+
     it('renders the cause under the headline', () => {
       const artifact = makeRootCauseArtifact({
         one_line_description: 'Divides by an empty weight',
