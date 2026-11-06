@@ -7,7 +7,7 @@ description: Write and review React/TypeScript tests for Sentry's frontend using
 
 ## Testing Philosophy
 
-- **Test user workflows**: Reach the state under test through clicks, typing, and keyboard navigation. Assert what the user sees or can do afterward, rather than component state, internal calls, or render counts.
+- **Test user workflows**: Set up preconditions with fixtures, props, router state, and `MockApiClient`. Drive the behavior under test with `userEvent` clicks, typing, and keyboard navigation, then assert what the user sees or can do afterward, rather than component state, internal calls, or render counts.
 - **Make assertions specific**: Name tests after the behavior they protect. Assert the expected content, validation message, destination, or submitted value; avoid vague checks such as “renders correctly” or “an error exists.”
 - **Cover relevant failures**: Alongside successful behavior, cover validation failures, rejected requests, or permission restrictions when the changed behavior depends on them. Verify the specific feedback and recovery path where supported.
 - **Choose coverage by what can regress**: Use RTL for user behavior and accessibility; use visual snapshots for appearance. Apply the selection rules below before adding assertions.
@@ -18,7 +18,8 @@ description: Write and review React/TypeScript tests for Sentry's frontend using
 - Use RTL in `*.spec.tsx` for interactions, validation, submitted values, routing, network effects, and accessible names, roles, or states. Assert the observable outcome.
 - Use unit tests for pure calculations or data transformations.
 - Do not add RTL assertions using `toHaveStyle`, `toHaveStyleRule`, computed styles, CSS class names, or DOM structure solely to verify appearance. Do not mock a child component to inspect the styling props passed to it.
-- Cover colors, typography, spacing, alignment, dimensions, responsive layout, and visual variants in colocated `*.snapshots.tsx` files with the repository's `it.snapshot` / `it.snapshot.each` API, not Jest DOM snapshots (`toMatchSnapshot` / `toMatchInlineSnapshot`). Use the **`generate-snapshot-tests`** skill for themes, variants, and container sizes.
+- Cover colors, typography, spacing, alignment, dimensions, responsive layout, and visual variants in colocated `*.snapshots.tsx` files with the repository's `it.snapshot` / `it.snapshot.each` API, not Jest DOM snapshots (`toMatchSnapshot` / `toMatchInlineSnapshot`). Use the **`generate-snapshot-tests`** skill for themes, variants, container sizes, and viewports.
+- Visual snapshots render with `renderToString`, so they have no `document`, effects, or API responses. If the styled element only appears after fetching data or running effects, snapshot the presentational component that renders it with props. If no such component exists, extract one or note in the PR that the change has no automated visual coverage. Do not fall back to appearance assertions in RTL.
 - Distinguish CSS constraints from behavior: `min-width` / `max-width` belong in visual snapshots; an input's numeric limits need RTL coverage of validation or clamping after user input.
 - For mixed changes, snapshot appearance and test behavior separately. For a disabled button, snapshot its appearance and use RTL to verify it cannot trigger an action. Do not duplicate its CSS in RTL.
 - Before finishing, review each new assertion: replace appearance-only RTL checks with visual cases. Do not add an RTL smoke test merely to accompany a styling change.

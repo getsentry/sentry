@@ -121,7 +121,7 @@ For worked examples of all of the above, use the **`design-system`** skill.
 
 Writing or editing frontend tests (`*.spec.tsx`, RTL, `MockApiClient`, routing/network tests) → use the **`react-testing`** skill for the full guide (query priority, no hook mocking, fixtures, async assertions, mocking network requests).
 
-Choose coverage before writing tests: appearance changes (colors, spacing, typography, CSS min/max sizing, responsive layout, visual variants) belong in colocated `*.snapshots.tsx` visual tests → use the **`generate-snapshot-tests`** skill. Do not use RTL style/class/DOM-structure assertions or Jest DOM snapshots to cover appearance. Keep user behavior and accessibility in RTL; numeric input limits and validation are behavior, while CSS min/max dimensions are appearance.
+Appearance changes (colors, spacing, typography, CSS min/max sizing, responsive layout, visual variants) belong in colocated `*.snapshots.tsx` visual tests, not RTL style assertions → use the **`generate-snapshot-tests`** skill. The **`react-testing`** skill has the full rule for choosing between RTL and visual snapshots.
 
 ## Sentry SDK Instrumentation
 

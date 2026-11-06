@@ -8,7 +8,7 @@ type: workflow-process
 
 Generate a `*.snapshots.tsx` file colocated with a Sentry React component, following the established pattern used by core design system components.
 
-Use visual snapshots for appearance checks instead of RTL assertions on CSS, class names, DOM structure, or mocked styling props. Use `it.snapshot` / `it.snapshot.each`, not Jest DOM snapshots. For CSS min/max sizing or responsive layout, choose container sizes that exercise the relevant constraint or breakpoint. Keep interactions, validation, accessibility, and numeric input limit behavior in RTL using the **`react-testing`** skill.
+Use visual snapshots for appearance checks instead of RTL assertions on CSS, class names, DOM structure, or mocked styling props. Use `it.snapshot` / `it.snapshot.each`, not Jest DOM snapshots. For CSS min/max sizing, choose a container width that exercises the constraint. For media-query breakpoints, set `viewport` (see Responsive breakpoints below). Snapshots render with `renderToString` and no API responses, so snapshot the presentational component that receives data as props rather than a view that fetches it. Keep interactions, validation, accessibility, and numeric input limit behavior in RTL using the **`react-testing`** skill.
 
 ## Step 1: Locate the Component
 
@@ -143,6 +143,15 @@ Match container sizing to what makes the component readable:
 | Default                        | `<div style={{padding: 8}}>`             |
 | Width-sensitive (alerts, text) | `<div style={{padding: 8, width: 400}}>` |
 | Narrow (icons, small controls) | `<div style={{padding: 8}}>`             |
+
+### Responsive breakpoints
+
+Container width only exercises min/max sizing and container queries. For layouts that change at a `theme.breakpoints` media query, pass `viewport` in the metadata argument, using a theme breakpoint name such as `'sm'` or `'lg'`, or a pixel width. Snapshot one viewport on each side of the breakpoint:
+
+```tsx
+it.snapshot('stacked', () => <Component {...props} />, {viewport: 'sm'});
+it.snapshot('side-by-side', () => <Component {...props} />, {viewport: 'lg'});
+```
 
 ### Interactive components
 
