@@ -1,8 +1,7 @@
 import {EventType, IncrementalSource, type Replayer} from '@sentry/rrweb';
 
-import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
-
 import {createHiddenPlayer} from './createHiddenPlayer';
+import type {RecordingFrame, ReplayFrame} from './types';
 
 interface Args<Frame extends ReplayFrame | RecordingFrame, CollectionData> {
   frames: Frame[] | undefined;

@@ -11,7 +11,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useOpenSingleRunChat} from 'sentry/components/events/autofix/v3/useToggleSingleRunChat';
+import {useOpenSingleRunChat} from './useToggleSingleRunChat';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 

@@ -5,9 +5,10 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import ProjectBadge from './idBadge/projectBadge';
 
 type ProjectListProps = {
   projectSlugs: string[];

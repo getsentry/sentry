@@ -215,7 +215,8 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         other = SeerWorkflow(
             config_id=self.workflow.config_id, organization_id=self.organization.id
         )
-        other.set_project_selection(SelectedProjects(project_ids=(new_project.id,)))
+        with other.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=(new_project.id,)))
         retry_result = self.workflow.get_or_create_run(
             trigger_key="manual:first", inputs=RunInputs(issue_limit=20)
         )

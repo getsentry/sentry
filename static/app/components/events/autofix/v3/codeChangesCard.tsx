@@ -19,21 +19,6 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
-import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
-import {
-  FeedbackList,
-  usePrIterationFeedback,
-} from 'sentry/components/events/autofix/v3/feedbackList';
-import {
-  PR_ITERATION_PAUSED_TOOLTIP,
-  PrIterationFeedbackForm,
-} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
-import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
-import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
-import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -42,6 +27,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
+
+import {ArtifactCard} from './artifactCard';
+import {ArtifactDetails} from './artifactDetails';
+import {ArtifactLoadingDetails} from './artifactLoadingDetails';
+import {AutofixResetPrompt} from './autofixResetPrompt';
+import {FeedbackList, usePrIterationFeedback} from './feedbackList';
+import {
+  PR_ITERATION_PAUSED_TOOLTIP,
+  PrIterationFeedbackForm,
+} from './prIterationFeedbackForm';
+import {useResetAutofixStep} from './useResetAutofixStep';
+import {useRethinkInChat} from './useRethinkInChat';
+import {artifactToMarkdown} from './utils';
 
 interface CodeChangesCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;

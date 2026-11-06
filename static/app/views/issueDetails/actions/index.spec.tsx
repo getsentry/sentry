@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
+import * as modalActions from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
 import {
@@ -26,7 +27,6 @@ import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/colle
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {ModalStore} from 'sentry/stores/modalStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, IssueCategory, PriorityLevel, type Group} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
@@ -220,7 +220,7 @@ describe('GroupActions', () => {
         organization,
       });
 
-      const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
+      const onReprocessEventFunc = jest.spyOn(modalActions, 'openModal');
 
       await userEvent.click(screen.getByLabelText('More Actions'));
 

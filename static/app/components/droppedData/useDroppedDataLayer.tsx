@@ -1,16 +1,14 @@
 import {useState} from 'react';
 
-import {hasDroppedData} from 'sentry/components/droppedData/buckets';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
-import type {DroppedDataFilterNoteProps} from 'sentry/components/droppedData/droppedDataFilterNote';
-import type {DroppedDataLayerControlProps} from 'sentry/components/droppedData/droppedDataLayerControl';
-import type {DroppedDataProps} from 'sentry/components/droppedData/types';
-import {
-  useDroppedData,
-  type UseDroppedDataParams,
-} from 'sentry/components/droppedData/useDroppedData';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {useDroppedDataDrawer} from './drawer/useDroppedDataDrawer';
+import {hasDroppedData} from './buckets';
+import type {DroppedDataFilterNoteProps} from './droppedDataFilterNote';
+import type {DroppedDataLayerControlProps} from './droppedDataLayerControl';
+import type {DroppedDataProps} from './types';
+import {useDroppedData, type UseDroppedDataParams} from './useDroppedData';
 
 const SUPPORTED_DATASETS = new Set<DiscoverDatasets>([
   DiscoverDatasets.ERRORS,

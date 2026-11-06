@@ -1,7 +1,8 @@
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_SORT} from 'sentry/views/insights/browser/webVitals/types';
-import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
+
+import {useWebVitalsSort} from './useWebVitalsSort';
 
 describe('useWebVitalsSort', () => {
   it('returns the first sortable sort when the URL repeats the sort key', () => {

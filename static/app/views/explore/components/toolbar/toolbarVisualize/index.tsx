@@ -35,7 +35,6 @@ import {
   ToolbarLabel,
   ToolbarVisualizeRow,
 } from 'sentry/views/explore/components/toolbar/styles';
-import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import type {SavedFormula} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
@@ -45,6 +44,8 @@ import {
   getFormulaArgumentParams,
 } from 'sentry/views/explore/utils/formulaAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
+
+import {ExpandableFilterSearchBar} from './expandableFilterSearchBar';
 
 const NO_FORMULAS: SavedFormula[] = [];
 

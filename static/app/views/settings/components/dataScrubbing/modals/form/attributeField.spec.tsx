@@ -6,8 +6,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Tag} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import {AttributeField} from 'sentry/views/settings/components/dataScrubbing/modals/form/attributeField';
 import {AllowedDataScrubbingDatasets} from 'sentry/views/settings/components/dataScrubbing/types';
+
+import {AttributeField} from './attributeField';
 
 const defaultFieldProps = {
   'aria-describedby': 'source-hint',

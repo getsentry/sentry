@@ -21,10 +21,8 @@ import {TraceScheduler} from 'sentry/views/performance/traceDetails/traceRendere
 import {TraceTimeCompression} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
 import {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
 import {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
-import {
-  AutogroupedTraceBar,
-  InvisibleTraceBar,
-} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
+
+import {AutogroupedTraceBar, InvisibleTraceBar} from './traceBar';
 
 function CompressionLayoutEffect({
   children,

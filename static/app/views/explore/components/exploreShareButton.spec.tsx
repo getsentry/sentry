@@ -4,11 +4,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  ExploreShareButton,
-  getExploreShareLink,
-} from 'sentry/views/explore/components/exploreShareButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {ExploreShareButton, getExploreShareLink} from './exploreShareButton';
 
 jest.mock('sentry/utils/analytics');
 

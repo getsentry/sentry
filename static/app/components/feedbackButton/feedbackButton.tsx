@@ -3,9 +3,10 @@ import {IconMegaphone} from '@sentry/icons/megaphone';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
-import {type UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+
+import {type UseFeedbackOptions} from './useFeedbackSDKIntegration';
 
 interface Props extends Omit<ButtonProps, 'children'> {
   children?: ReactNode;

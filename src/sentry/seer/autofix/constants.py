@@ -70,6 +70,7 @@ class AutofixReferrer(enum.StrEnum):
     GITHUB_PR_REVIEW = "github.pr_review"
     GITHUB_CHECK_SUITE = "github.check_suite"
     ADMIN = "admin.seer"
+    ADMIN_AUTOMATED = "admin.seer.automated"
     UNKNOWN = "unknown"
 
 

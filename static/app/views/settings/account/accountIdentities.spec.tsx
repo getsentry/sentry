@@ -6,7 +6,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import AccountIdentities from 'sentry/views/settings/account/accountIdentities';
+import AccountIdentities from './accountIdentities';
 
 const ENDPOINT = '/users/me/user-identities/';
 

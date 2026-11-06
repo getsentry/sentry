@@ -36,9 +36,6 @@ import {
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
-import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
-import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
-import {scaleThresholdsToInterval} from 'sentry/views/dashboards/widgetCard/scaleThresholdsToInterval';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {
   LegendSelection,
@@ -66,7 +63,10 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {canScaleThresholds} from './canScaleThresholds';
 import {WidgetCardConfidenceFooter} from './confidenceFooter';
+import {matchTimeSeriesToTableRowValue} from './matchTimeSeriesToTableRowValue';
+import {scaleThresholdsToInterval} from './scaleThresholdsToInterval';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 interface VisualizationWidgetProps {
