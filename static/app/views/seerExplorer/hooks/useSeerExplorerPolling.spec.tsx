@@ -52,6 +52,8 @@ describe('useSeerExplorerPolling', () => {
   it.each([
     ['timeout', 'timed-out', true],
     ['stalled', 'not-polling', false],
+    // A run that stopped for credits is finished, not timed out, so no Retry shows.
+    ['out_of_credits', 'not-polling', false],
   ] as const)(
     'maps a backend %s reason to %s',
     async (failureReason, expectedPollingState, expectedTimedOut) => {

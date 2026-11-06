@@ -2,16 +2,19 @@ import {Fragment, memo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
+import {AssistantMessage, MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
 import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {OUT_OF_CREDITS_CHAT_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
-import type {
-  Block,
-  PendingUserInput,
-  SeerExplorerRunId,
+import {
+  isSeerErrorBlock,
+  type Block,
+  type PendingUserInput,
+  type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
@@ -141,6 +144,11 @@ interface ResponseGroupProps {
   interactionPending?: boolean;
   /** The conversation's newest todo snapshot, from `findLatestTodos`. */
   latestTodos?: LatestTodos | null;
+  /**
+   * The run stopped here because the organization ran out of Seer credits.
+   * Only set on the conversation's last response.
+   */
+  outOfCredits?: boolean;
   pendingInput?: PendingUserInput | null;
   readOnly?: boolean;
   runId?: SeerExplorerRunId;
@@ -177,6 +185,7 @@ export const ResponseGroup = memo(function ResponseGroup({
   latestTodos,
   getPageReferrer,
   interactionPending,
+  outOfCredits,
   pendingInput,
   readOnly,
   runId,
@@ -189,6 +198,7 @@ export const ResponseGroup = memo(function ResponseGroup({
   const answer = finalAnswer(group);
   const settledAnswer = answer && !answer.loading ? answer : null;
   const active = group.some(block => block.loading);
+  const showOutOfCredits = outOfCredits && !active;
 
   // The reasoning trace is everything except the answer's content: thinking prose (gated on the
   // `showThinking` toggle), any intermediate narration, and the tool calls.
@@ -265,7 +275,8 @@ export const ResponseGroup = memo(function ResponseGroup({
           </MessageRow>
         ) : null}
 
-        {settledAnswer ? (
+        {/* Seer's plain-text error block gives way to a line saying why it stopped. */}
+        {settledAnswer && !(showOutOfCredits && isSeerErrorBlock(settledAnswer)) ? (
           <AssistantBlock
             block={settledAnswer}
             blockIndex={blockIndex + group.length - 1}
@@ -275,10 +286,25 @@ export const ResponseGroup = memo(function ResponseGroup({
             compact={hasTrace}
           />
         ) : null}
+        {showOutOfCredits ? <OutOfCreditsMessage compact={hasTrace} /> : null}
       </motion.div>
     </Container>
   );
 }, areResponseGroupPropsEqual);
+
+/**
+ * Why the run stopped. The out-of-credits alert above the composer offers the
+ * way out, so this has no CTA of its own.
+ */
+function OutOfCreditsMessage({compact}: {compact: boolean}) {
+  return (
+    <MessageRow from="assistant" density={compact ? 'compact' : undefined}>
+      <AssistantMessage>
+        <Text variant="muted">{OUT_OF_CREDITS_CHAT_MESSAGE}</Text>
+      </AssistantMessage>
+    </MessageRow>
+  );
+}
 
 // The response's raw reasoning. When it sits between tool calls it is set apart with extra vertical
 // space (`data-spaced`); leading or trailing reasoning gets none so it stays tight against the

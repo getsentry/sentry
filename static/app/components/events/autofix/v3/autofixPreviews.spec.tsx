@@ -198,6 +198,33 @@ describe('CodeChangesPreview', () => {
   });
 });
 
+describe('a step that stopped for credits', () => {
+  function makeStoppedSection(step: string): AutofixSection {
+    return {
+      step,
+      artifacts: [],
+      blocks: [],
+      status: 'error',
+      failureReason: 'out_of_credits',
+    };
+  }
+
+  it.each([
+    [RootCausePreview, 'root_cause', 'Seer stopped before finishing the root cause'],
+    [SolutionPreview, 'solution', 'Seer stopped before finishing the plan'],
+    [
+      CodeChangesPreview,
+      'code_changes',
+      'Seer stopped before finishing the code changes',
+    ],
+  ])('says so instead of blaming Seer (%#)', (Preview, step, message) => {
+    render(<Preview section={makeStoppedSection(step)} />);
+
+    expect(screen.getByText(new RegExp(message))).toBeInTheDocument();
+    expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
+  });
+});
+
 describe('PullRequestsPreview', () => {
   function makePR(overrides: Partial<RepoPRState> = {}): RepoPRState {
     return {
