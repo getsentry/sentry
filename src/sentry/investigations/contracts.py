@@ -436,7 +436,7 @@ class SteeringIntentSerializer(RelaxedContractSerializer):
     completed = StrictBooleanField(required=False)
 
 
-MAX_LINKED_ISSUES = 50
+MAX_LINKED_ISSUES = 10
 
 
 class LinkedIssueSerializer(RelaxedContractSerializer):

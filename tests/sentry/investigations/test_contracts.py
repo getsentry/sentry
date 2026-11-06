@@ -183,6 +183,10 @@ def test_projection_validates_linked_issues() -> None:
     rejects(OrchestrationProjectionSerializer, projection(linkedIssues=[{"groupId": 7}]))
     rejects(
         OrchestrationProjectionSerializer,
+        projection(linkedIssues=[{**linked, "groupId": n} for n in range(1, 12)]),
+    )
+    rejects(
+        OrchestrationProjectionSerializer,
         projection(linkedIssues=[{**linked, "groupId": "7"}]),
     )
 
