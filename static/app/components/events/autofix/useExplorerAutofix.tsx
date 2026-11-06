@@ -473,7 +473,7 @@ function buildSection(
  * attaching the relevant artifacts (file patches, PR states). At most one
  * section exists per step.
  */
-const SINGLE_RUN_FEATURE_ID = 'autofix_single_run';
+export const SINGLE_RUN_FEATURE_ID = 'autofix_single_run';
 const SINGLE_RUN_ROOT_CAUSE_KEY = 'single_run_root_cause';
 
 export function isSingleRunAutofix(runState: ExplorerAutofixState | null): boolean {
