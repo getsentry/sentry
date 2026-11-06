@@ -3,9 +3,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.agent_handoff.codes import HandoffFlow
-from sentry.agent_handoff.flows import HandoffMode, get_flow_instructions
+from sentry.agent_handoff.codes import HandoffFlow, OnboardingHandoffContext
+from sentry.agent_handoff.flows import HandoffMode, InvalidHandoffContext, get_flow_instructions
 from sentry.agent_handoff.runbook import render_agent_runbook, render_claim_runbook
+from sentry.organizations.services.organization.model import RpcOnboardingReportingCode
 
 
 def render(**overrides: str) -> str:
@@ -122,13 +123,20 @@ def test_runbook_includes_flow_instructions_after_authentication() -> None:
     )
 
 
-@pytest.mark.parametrize("flow", list(HandoffFlow))
-@pytest.mark.parametrize("mode", list(HandoffMode))
-def test_flow_guides_the_user_to_their_next_task(flow: HandoffFlow, mode: HandoffMode) -> None:
+@pytest.mark.parametrize(
+    "flow,mode,expected",
+    [
+        (HandoffFlow.GUIDED_NEXT_STEPS, HandoffMode.CLAIMED, "Now ask the user"),
+        (HandoffFlow.GUIDED_NEXT_STEPS, HandoffMode.PREVIEW, "Now ask the user"),
+        (HandoffFlow.ONBOARDING, HandoffMode.CLAIMED, "Now ask the user"),
+        (HandoffFlow.ONBOARDING, HandoffMode.PREVIEW, "<onboarding-run-code>"),
+    ],
+)
+def test_flow_instructions(flow: HandoffFlow, mode: HandoffMode, expected: str) -> None:
     guide = render(
         flow_instructions=get_flow_instructions(flow, mode=mode, user_id=1, organization_id=2)
     )
-    assert guide.rstrip().endswith("Now ask the user what they would like to do next.")
+    assert expected in guide
 
 
 def test_runbook_has_windows_commands_and_restores_the_environment() -> None:
@@ -182,4 +190,50 @@ def test_flow_handler_receives_rendering_mode_and_context(mode: HandoffMode) -> 
         )
 
     assert instructions == "Flow instructions."
-    handler.assert_called_once_with(mode, 1, 2)
+    handler.assert_called_once_with(mode, 1, 2, None)
+
+
+def test_onboarding_claim_issues_reporting_code() -> None:
+    context = OnboardingHandoffContext(run_id="a" * 32)
+    with patch(
+        "sentry.agent_handoff.flows.organization_service.issue_onboarding_reporting_code",
+        return_value=RpcOnboardingReportingCode(code="a1B2c3D4e5"),
+    ) as issue:
+        guide = get_flow_instructions(
+            HandoffFlow.ONBOARDING,
+            mode=HandoffMode.CLAIMED,
+            user_id=1,
+            organization_id=2,
+            context=context,
+        )
+    issue.assert_called_once_with(organization_id=2, user_id=1, run_id=context.run_id)
+    assert "-f 'runToken=a1B2c3D4e5'" in guide
+    assert "organizations/2/onboarding/agent/status/" in guide
+
+
+def test_onboarding_preview_does_not_issue_reporting_code() -> None:
+    with patch(
+        "sentry.agent_handoff.flows.organization_service.issue_onboarding_reporting_code"
+    ) as issue:
+        guide = get_flow_instructions(
+            HandoffFlow.ONBOARDING, mode=HandoffMode.PREVIEW, user_id=1, organization_id=2
+        )
+    assert "<onboarding-run-code>" in guide
+    issue.assert_not_called()
+
+
+def test_onboarding_claim_rejects_unavailable_run() -> None:
+    with (
+        patch(
+            "sentry.agent_handoff.flows.organization_service.issue_onboarding_reporting_code",
+            return_value=None,
+        ),
+        pytest.raises(InvalidHandoffContext),
+    ):
+        get_flow_instructions(
+            HandoffFlow.ONBOARDING,
+            mode=HandoffMode.CLAIMED,
+            user_id=1,
+            organization_id=2,
+            context=OnboardingHandoffContext(run_id="a" * 32),
+        )

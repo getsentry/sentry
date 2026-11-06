@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 
 from django.utils import timezone
-from pydantic import BaseModel, Extra, StrictInt, StrictStr
+from pydantic import BaseModel, Extra, Field, StrictInt, StrictStr
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import hashlib, redis
@@ -23,6 +23,14 @@ class HandoffFlow(StrEnum):
     ONBOARDING = "onboarding"
 
 
+class OnboardingHandoffContext(BaseModel):
+    run_id: StrictStr = Field(regex=r"^[a-f0-9]{32}$")
+
+    class Config:
+        frozen = True
+        extra = Extra.forbid
+
+
 class AgentHandoff(BaseModel):
     """Authorization context approved by the user for one agent handoff."""
 
@@ -31,6 +39,7 @@ class AgentHandoff(BaseModel):
     organization_id: StrictInt
     application_id: StrictInt
     scope_list: tuple[StrictStr, ...]
+    context: OnboardingHandoffContext | None = None
 
     class Config:
         frozen = True
@@ -59,20 +68,22 @@ def issue_handoff(
     organization_id: int,
     application_id: int,
     scope_list: Sequence[str],
+    context: OnboardingHandoffContext | None = None,
 ) -> IssuedAgentHandoff:
-    context = AgentHandoff(
+    handoff = AgentHandoff(
         flow=flow,
         user_id=user_id,
         organization_id=organization_id,
         application_id=application_id,
         scope_list=tuple(scope_list),
+        context=context,
     )
     code = f"sntryh_{secrets.token_urlsafe(32)}"
     expires_at = timezone.now() + HANDOFF_LIFETIME
     # Keep default handoffs readable by servers during a rolling deploy.
     stored = _get_redis_client().set(
         _handoff_key(code),
-        context.json(exclude_defaults=True),
+        handoff.json(exclude_defaults=True),
         ex=int(HANDOFF_LIFETIME.total_seconds()),
         nx=True,
     )

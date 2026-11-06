@@ -1,3 +1,4 @@
+import re
 from unittest.mock import patch
 from urllib.parse import urlencode
 
@@ -5,6 +6,7 @@ from django.http import HttpResponse
 
 from sentry.agent_handoff.codes import (
     HandoffFlow,
+    OnboardingHandoffContext,
     _get_redis_client,
     _handoff_key,
     consume_handoff,
@@ -14,6 +16,8 @@ from sentry.agent_handoff.flows import HandoffMode
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apisetupcode import ApiSetupCode
+from sentry.onboarding.agentic_progress.model import ProgressUpdate, Stage, StageStatus
+from sentry.onboarding.agentic_progress.service import get_onboarding_progress_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -34,13 +38,14 @@ class AgentHandoffViewTest(TestCase):
             )
         )
 
-    def issue(self) -> str:
+    def issue(self, context: OnboardingHandoffContext | None = None) -> str:
         return issue_handoff(
             flow=HandoffFlow.ONBOARDING,
             user_id=self.user.id,
             organization_id=self.organization.id,
             application_id=self.application.id,
             scope_list=["org:read"],
+            context=context,
         ).code
 
     def claim(self, code: str) -> HttpResponse:
@@ -72,6 +77,40 @@ class AgentHandoffViewTest(TestCase):
         assert self.claim(code).status_code == 410
         assert ApiSetupCode.objects.filter(user_id=self.user.id).count() == 1
 
+    def test_claim_activates_existing_onboarding_run(self) -> None:
+        progress = get_onboarding_progress_service()
+        run, _ = progress.create_or_resume(
+            user_id=self.user.id, organization_id=self.organization.id, client_run_id="browser"
+        )
+        context = OnboardingHandoffContext(run_id=run.run_id)
+        response = self.claim(self.issue(context))
+        assert response.status_code == 200
+        match = re.search(r"runToken=([A-Za-z0-9]{10})", response.content.decode())
+        assert match is not None
+        code = match[1]
+        updated, changed, _ = progress.update(
+            token=code,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            update=ProgressUpdate(stage=Stage.ANALYZE_PROJECT, status=StageStatus.ACTIVE),
+        )
+        assert changed
+        assert updated.run_id == run.run_id
+        retried = self.claim(self.issue(context))
+        assert retried.status_code == 200
+        assert f"runToken={code}" in retried.content.decode()
+
+    def test_foreign_run_prevents_claim_and_setup_code_minting(self) -> None:
+        run, _ = get_onboarding_progress_service().create_or_resume(
+            user_id=self.create_user().id,
+            organization_id=self.organization.id,
+            client_run_id="browser",
+        )
+        response = self.claim(self.issue(OnboardingHandoffContext(run_id=run.run_id)))
+        assert response.status_code == 410
+        assert not ApiSetupCode.objects.exists()
+        assert not ApiAuthorization.objects.exists()
+
     def test_claim_dispatches_flow_with_authorized_handoff_context(self) -> None:
         with patch(
             "sentry.agent_handoff.claims.get_flow_instructions",
@@ -86,6 +125,7 @@ class AgentHandoffViewTest(TestCase):
             mode=HandoffMode.CLAIMED,
             user_id=self.user.id,
             organization_id=self.organization.id,
+            context=None,
         )
 
     def test_organization_scoped_application_retains_selected_organization(self) -> None:
