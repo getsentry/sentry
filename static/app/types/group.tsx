@@ -680,7 +680,7 @@ export enum GroupActivityType {
   TRIGGER_AUTOFIX = 'trigger_autofix',
   UNLINK_EXTERNAL_ISSUE = 'unlink_external_issue',
   UNLINK_PLATFORM_EXTERNAL_ISSUE = 'unlink_platform_external_issue',
-  IMPACT_ASSESSMENT = 'IMPACT_ASSESSMENT',
+  IMPACT_ASSESSMENT = 'impact_assessment',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
