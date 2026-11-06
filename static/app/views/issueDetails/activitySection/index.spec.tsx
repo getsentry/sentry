@@ -2731,8 +2731,8 @@ describe('ActivitySection', () => {
     const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Mentioned in Checkout latency');
     expect(timeline).toHaveTextContent('Its timeouts start with the deploy.');
-    expect(screen.getByText('Hypothesis:')).toBeInTheDocument();
-    expect(screen.getByText('Payment retries exhaust the pool')).toBeInTheDocument();
+    expect(timeline).toHaveTextContent('Payment retries exhaust the pool');
+    expect(screen.getByText('Evidence:')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Checkout latency'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/seer/investigations/42/'
@@ -2768,7 +2768,7 @@ describe('ActivitySection', () => {
 
     const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Mentioned in a deleted investigation');
-    expect(timeline).not.toHaveTextContent('Its timeouts start with the deploy.');
+    expect(timeline).not.toHaveTextContent('Payment retries exhaust the pool');
     expect(screen.queryByRole('link', {name: /investigation/})).not.toBeInTheDocument();
   });
 });

@@ -48,27 +48,20 @@ export function ActivityLineInvestigationLinked({
         />
       }
     >
-      {investigation && (reason || hypothesisStatement) ? (
+      {investigation ? (
         <Container paddingTop="sm">
           <Container width="100%" padding="sm md" border="muted" radius="md">
-            <Stack gap="md">
+            <Stack gap="sm">
+              <Text as="p" density="comfortable">
+                {hypothesisStatement}
+              </Text>
               {reason ? (
-                <Text as="p" density="comfortable">
-                  {reason}
-                </Text>
-              ) : null}
-              {hypothesisStatement ? (
-                <Flex
-                  gap="xs"
-                  wrap="wrap"
-                  borderTop={reason ? 'muted' : undefined}
-                  paddingTop={reason ? 'md' : undefined}
-                >
-                  <Text bold size="xs">
-                    {t('Hypothesis:')}
+                <Flex gap="xs" borderTop="muted" paddingTop="sm">
+                  <Text bold size="xs" variant="muted">
+                    {t('Evidence:')}
                   </Text>
                   <Text size="xs" variant="muted">
-                    {hypothesisStatement}
+                    {reason}
                   </Text>
                 </Flex>
               ) : null}

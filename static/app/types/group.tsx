@@ -1182,12 +1182,18 @@ interface LinkedInvestigation {
 
 export interface GroupActivityInvestigationLinked extends GroupActivityBase {
   data: {
-    hypothesisId: string | null;
-    hypothesisStatement: string | null;
+    hypothesisId: string;
+    /**
+     * The confirmed hypothesis whose evidence named this issue.
+     */
+    hypothesisStatement: string;
     /**
      * Null once the investigation is deleted.
      */
     investigation: LinkedInvestigation | null;
+    /**
+     * Seer's note on the evidence, usually counts and culprits.
+     */
     reason: string | null;
   };
   type: GroupActivityType.INVESTIGATION_LINKED;
