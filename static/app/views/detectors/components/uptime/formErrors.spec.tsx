@@ -2,23 +2,22 @@ import {useEffect} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {makeAndOp, makeStatusCodeOp} from './assertions/testUtils';
 import {
   AssertionFormError,
   createMapFormErrors,
   extractPreviewCheckError,
   mapPreviewCheckErrorToMessage,
   resolveErroredAssertionOp,
-} from 'sentry/views/detectors/components/uptime/formErrors';
+} from './formErrors';
+import {PreviewCheckResultProvider, usePreviewCheckResult} from './previewCheckContext';
 import {
   CompilationErrorType,
   PreviewCheckErrorKind,
   UptimeComparisonType,
   type PreviewCheckError,
   type UptimeOp,
-} from 'sentry/views/detectors/components/uptime/types';
-
-import {makeAndOp, makeStatusCodeOp} from './assertions/testUtils';
-import {PreviewCheckResultProvider, usePreviewCheckResult} from './previewCheckContext';
+} from './types';
 
 function makeContext({
   data = null,

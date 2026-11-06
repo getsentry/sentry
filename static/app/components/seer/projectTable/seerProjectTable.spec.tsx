@@ -9,9 +9,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
-import {SeerProjectTable} from 'sentry/components/seer/projectTable/seerProjectTable';
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {SeerProjectTable} from './seerProjectTable';
 
 // jsdom has no layout, so the virtualizer would render zero rows. Force it to
 // render a row per item so the table body is present.
@@ -103,7 +105,7 @@ describe('SeerProjectTable', () => {
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
     });
-    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const errorSpy = jest.spyOn(toast, 'error');
 
     render(<SeerProjectTable />, {organization});
 
@@ -147,7 +149,7 @@ describe('SeerProjectTable', () => {
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
     });
-    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const errorSpy = jest.spyOn(toast, 'error');
 
     render(<SeerProjectTable />, {organization});
 
@@ -172,7 +174,7 @@ describe('SeerProjectTable', () => {
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
     });
-    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const errorSpy = jest.spyOn(toast, 'error');
 
     render(<SeerProjectTable />, {organization});
 

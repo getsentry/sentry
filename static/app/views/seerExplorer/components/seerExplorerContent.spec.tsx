@@ -18,16 +18,14 @@ import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {
-  INPUT_STORAGE_KEY_PREFIX,
-  SeerExplorerContent,
-} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
+
+import {INPUT_STORAGE_KEY_PREFIX, SeerExplorerContent} from './seerExplorerContent';
 
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 

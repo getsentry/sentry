@@ -31,9 +31,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
-import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
-import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
-import {useIssueIdBreadcrumbItem} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -41,6 +38,10 @@ import {
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {GroupHeaderAssigneeSelector} from './assigneeSelector';
+import {GroupStatusSubtitle} from './groupStatusSubtitle';
+import {useIssueIdBreadcrumbItem} from './issueIdBreadcrumb';
 
 interface GroupHeaderProps {
   event: Event | null;

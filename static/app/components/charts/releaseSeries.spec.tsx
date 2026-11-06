@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
+import {useReleaseSeries} from './releaseSeries';
 
 type Props = Parameters<typeof useReleaseSeries>[0];
 

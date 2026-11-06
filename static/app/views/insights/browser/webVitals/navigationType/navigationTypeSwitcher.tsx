@@ -16,6 +16,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {mergeGlobalFilters} from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
+
 import {
   buildNavigationTypeGlobalFilter,
   getBucketsFromGlobalFilters,
@@ -25,9 +26,9 @@ import {
   NAVIGATION_TYPE_BUCKETS,
   normalizeBuckets,
   type NavigationTypeBucket,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
-import {useNavigationTypeCounts} from 'sentry/views/insights/browser/webVitals/navigationType/useNavigationTypeCounts';
-import {spanFilterQueryFromGlobalFilters} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
+} from './settings';
+import {useNavigationTypeCounts} from './useNavigationTypeCounts';
+import {spanFilterQueryFromGlobalFilters} from './utils';
 
 type Props = {
   globalFilters: GlobalFilter[];

@@ -4,9 +4,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {ProfileHeader} from './profileHeader';
 
 const PROFILE_ID = 'a1f7cc43c19e4343874ab3c8a683518f';
 const SHORT_PROFILE_ID = 'a1f7cc43';

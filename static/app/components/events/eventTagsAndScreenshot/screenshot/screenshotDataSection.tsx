@@ -8,10 +8,6 @@ import {
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
 import {Screenshot} from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
-import {
-  modalCss,
-  ScreenshotModal,
-} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
@@ -23,6 +19,8 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+
+import {modalCss, ScreenshotModal} from './modal';
 
 interface ScreenshotDataSectionProps {
   event: Event;

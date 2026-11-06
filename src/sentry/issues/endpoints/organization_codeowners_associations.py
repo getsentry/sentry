@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
-    OrganizationIntegrationsLoosePermission,
+    OrganizationIntegrationsPermission,
 )
 from sentry.api.validators.project_codeowners import CodeOwnersErrors, build_codeowners_associations
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -34,7 +34,7 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    permission_classes = (OrganizationIntegrationsLoosePermission,)
+    permission_classes = (OrganizationIntegrationsPermission,)
 
     @extend_schema(
         operation_id="listOrganizationCodeownersAssociations",

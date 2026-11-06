@@ -151,7 +151,6 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
-from sentry.utils.cache import cache_key_for_event
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
     CircuitBreakerPassthrough,
@@ -496,6 +495,7 @@ class EventManager:
             "raw": raw,
             "start_time": start_time,
             "unprocessed": unprocessed,
+            "cache_key": cache_key,
         }
 
         # After calling _pull_out_data we get some keys in the job like the platform
@@ -1144,14 +1144,12 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
             unprocessed = job.get("unprocessed")
             unprocessed_source = "inline"
-            if unprocessed is None:
-                # Clean up after `store.enable-inline-payloads` is 1.0 and
-                # `store.disable-processing-store` is `True`
+            # Clean up after `store.enable-inline-payloads` is 1.0 and
+            # `store.disable-processing-store` is `True`
+            cache_key = job.get("cache_key")
+            if unprocessed is None and cache_key:
                 unprocessed_source = "processing_store"
-                unprocessed = event_processing_store.get(
-                    cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
-                    unprocessed=True,
-                )
+                unprocessed = event_processing_store.get(cache_key, unprocessed=True)
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
                 metrics.incr(
@@ -1602,12 +1600,13 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
 
             return GroupInfo(group=group, is_new=True, is_regression=False)
 
-        # On the other hand, if we did in fact end up on the losing end of a race condition, treat
-        # this the same way we would if we'd found a grouphash to begin with (and never landed in
-        # this function at all)
-        else:
-            # TODO: should we be setting tags here, too?
-            return handle_existing_grouphash(job, existing_grouphash, grouphashes)
+    # On the other hand, if we did in fact end up on the losing end of a race condition, treat this
+    # the same way we would if we'd found a grouphash to begin with (and never landed in this
+    # function at all). We do this after the transaction ends, so that the row locks are released
+    # and so that the Redis buffer call in `handle_existing_grouphash` does not run inside the
+    # transaction.
+    # TODO: should we be setting tags here, too?
+    return handle_existing_grouphash(job, existing_grouphash, grouphashes)
 
 
 def _create_group(

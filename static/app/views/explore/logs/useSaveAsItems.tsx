@@ -1,14 +1,9 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -92,16 +87,16 @@ export function useSaveAsItems({
         label: <span>{t('Existing Query')}</span>,
         onAction: async () => {
           try {
-            addLoadingMessage(t('Updating query...'));
+            toast.loading(t('Updating query...'));
             await updateQuery();
-            addSuccessMessage(t('Query updated successfully'));
+            toast.success(t('Query updated successfully'));
             trackAnalytics('logs.save_as', {
               save_type: 'update_query',
               ui_source: 'searchbar',
               organization,
             });
           } catch (error) {
-            addErrorMessage(t('Failed to update query'));
+            toast.error(t('Failed to update query'));
             Sentry.captureException(error);
           }
         },
@@ -235,15 +230,7 @@ export function useSaveAsItems({
 
     return {
       key: 'add-to-dashboard',
-      label: (
-        <Feature
-          overrideName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
-        >
-          {t('Dashboard widget')}
-        </Feature>
-      ),
+      label: t('Dashboard widget'),
       textValue: t('Dashboard widget'),
       children: dashboardsUrls,
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
@@ -269,7 +256,3 @@ export function useSaveAsItems({
     return saveAs;
   }, [organization, saveAsQuery, saveAsAlert, saveAsDashboard]);
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

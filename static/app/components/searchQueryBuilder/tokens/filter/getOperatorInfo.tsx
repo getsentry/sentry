@@ -4,14 +4,6 @@ import styled from '@emotion/styled';
 import {type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
-import {FilterKeyDetailsTooltip} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyDetailsTooltip';
-import {
-  DATE_OP_LABELS,
-  DATE_OPTIONS,
-  getLabelAndOperatorFromToken,
-  getValidOpsForFilter,
-  OP_LABELS,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {isDateToken} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
@@ -22,6 +14,15 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {type FieldDefinition} from 'sentry/utils/fields';
+
+import {FilterKeyDetailsTooltip} from './filterKeyDetailsTooltip';
+import {
+  DATE_OP_LABELS,
+  DATE_OPTIONS,
+  getLabelAndOperatorFromToken,
+  getValidOpsForFilter,
+  OP_LABELS,
+} from './utils';
 
 function getOperatorFromDateToken(token: TokenResult<Token.FILTER>) {
   switch (token.filter) {

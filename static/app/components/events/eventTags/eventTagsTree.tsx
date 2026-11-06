@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {
   buildKeyValueTree,
   getKeyValueTreeColumns,
@@ -15,6 +14,8 @@ import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {EventTagsTreeRow} from './eventTagsTreeRow';
 
 export type TagTreeContent = KeyValueTreeContent<string, EventTagWithMeta>;
 

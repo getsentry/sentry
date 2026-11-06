@@ -1,7 +1,7 @@
 import type * as React from 'react';
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 import {IconLock} from '@sentry/icons/lock';
-import {IconQuestion} from '@sentry/icons/question';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
@@ -38,11 +38,16 @@ const StyledIconWrapper = styled('span')`
   }
 `;
 
-export function InfoTip(props: InfoTooltipProps) {
+export function InfoTip({variant = 'primary', ...props}: InfoTooltipProps) {
   const {t} = useTranslation();
 
   return (
-    <IconWithTooltip {...props} icon={IconQuestion} aria-label={t('More information')} />
+    <IconWithTooltip
+      {...props}
+      variant={variant}
+      icon={IconInfo}
+      aria-label={t('More information')}
+    />
   );
 }
 

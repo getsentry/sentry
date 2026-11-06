@@ -1,14 +1,14 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {RelocationCreate} from 'admin/views/relocationCreate';
 
-jest.mock('sentry/actionCreators/indicator');
-
 describe('Relocation Create', () => {
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     ConfigStore.set('cells', [
       {
         name: 'test',
@@ -40,7 +40,7 @@ describe('Relocation Create', () => {
     const input = screen.getByLabelText('file-upload');
     // Force file to be uploaded and ignore accept attribute
     await userEvent.upload(input, relocationFile, {applyAccept: false});
-    expect(addErrorMessage).toHaveBeenCalledWith('That is not a supported file type.');
+    expect(toast.error).toHaveBeenCalledWith('That is not a supported file type.');
   });
 
   it('rejects large file upload', async () => {
@@ -49,9 +49,7 @@ describe('Relocation Create', () => {
     Object.defineProperty(relocationFile, 'size', {value: 200e6 + 1});
     const input = screen.getByLabelText('file-upload');
     await userEvent.upload(input, relocationFile);
-    expect(addErrorMessage).toHaveBeenCalledWith(
-      'Please upload a file less than 200 MB.'
-    );
+    expect(toast.error).toHaveBeenCalledWith('Please upload a file less than 200 MB.');
   });
 
   it('throws error if owner is missing when form is submitted', async () => {
@@ -62,7 +60,7 @@ describe('Relocation Create', () => {
     await userEvent.upload(fileInput, relocationFile);
     await userEvent.type(orgsInput, 'testorg');
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
-    expect(addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'Requires relocation file, organization slug(s), and owner.'
     );
   });
@@ -75,7 +73,7 @@ describe('Relocation Create', () => {
     await userEvent.upload(fileInput, relocationFile);
     await userEvent.type(ownerInput, 'testowner');
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
-    expect(addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'Requires relocation file, organization slug(s), and owner.'
     );
   });
@@ -87,7 +85,7 @@ describe('Relocation Create', () => {
     await userEvent.type(orgsInput, 'testorg');
     await userEvent.type(ownerInput, 'testowner');
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
-    expect(addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'Requires relocation file, organization slug(s), and owner.'
     );
   });
