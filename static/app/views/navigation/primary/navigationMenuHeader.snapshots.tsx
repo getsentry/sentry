@@ -116,8 +116,28 @@ describe('NavigationMenuHeader', () => {
     {tags: {avatar: 'letter', area: 'core'}}
   );
 
+  // The user menu takes its gradient from the organization's avatar.
   it.snapshot(
-    'user-letter-avatar',
+    'user-with-organization-image-avatar',
+    () => {
+      const avatarUrl = solidImage(SAMPLED_AVATAR_COLORS.yellow);
+      return (
+        <MenuHeaderFrame
+          queryClient={sampledQueryClient(avatarUrl, SAMPLED_AVATAR_COLORS.yellow)}
+        >
+          <NavigationMenuHeader
+            user={UserFixture({name: 'Jane Doe', email: 'jane@example.com'})}
+            organization={uploadedAvatarOrganization(avatarUrl)}
+          />
+        </MenuHeaderFrame>
+      );
+    },
+    {tags: {avatar: 'image', color: 'yellow', area: 'core'}}
+  );
+
+  // Without an organization, the user menu uses the default gradient.
+  it.snapshot(
+    'user-without-organization',
     () => (
       <MenuHeaderFrame queryClient={sampledQueryClient()}>
         <NavigationMenuHeader

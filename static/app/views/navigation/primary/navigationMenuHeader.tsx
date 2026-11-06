@@ -3,7 +3,6 @@ import {css, ThemeProvider, useTheme} from '@emotion/react';
 
 import {
   getOrganizationAvatarProps,
-  getUserAvatarProps,
   OrganizationAvatar,
   UserAvatar,
   type BaseAvatarProps,
@@ -17,22 +16,29 @@ import {t, tn} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 
+// Both headers take their gradient from the organization's avatar, so the
+// org and user menus match. The user menu falls back to the default gradient
+// when there is no organization.
 type NavigationMenuHeaderProps =
   | {organization: OrganizationSummary; projectCount: number; user?: never}
-  | {user: User; organization?: never; projectCount?: never};
+  | {user: User; organization?: OrganizationSummary | null; projectCount?: never};
 
 export function NavigationMenuHeader({
   organization,
   projectCount,
   user,
 }: NavigationMenuHeaderProps) {
-  if (organization) {
+  const gradientAvatarProps = organization
+    ? getOrganizationAvatarProps(organization)
+    : undefined;
+
+  if (!user) {
     return (
       <MenuHeader
         label={t('Organization')}
         title={organization.name || organization.slug}
         subtitle={tn('%s Project', '%s Projects', projectCount)}
-        avatarProps={getOrganizationAvatarProps(organization)}
+        gradientAvatarProps={gradientAvatarProps}
         avatar={<OrganizationHeaderAvatar organization={organization} />}
       />
     );
@@ -47,7 +53,7 @@ export function NavigationMenuHeader({
           : user.name || user.username || user.email
       }
       subtitle={user.email}
-      avatarProps={getUserAvatarProps(user)}
+      gradientAvatarProps={gradientAvatarProps}
       avatar={
         <Flex
           position="relative"
@@ -90,17 +96,17 @@ function MenuHeader({
   title,
   subtitle,
   avatar,
-  avatarProps,
+  gradientAvatarProps,
 }: {
   avatar: ReactNode;
-  avatarProps: BaseAvatarProps;
+  gradientAvatarProps: BaseAvatarProps | undefined;
   label: string;
   subtitle: string;
   title: string;
 }) {
   const currentTheme = useTheme();
   const invertedTheme = useInvertedTheme();
-  const gradient = useAvatarGradient(avatarProps, DEFAULT_GRADIENT);
+  const gradient = useAvatarGradient(gradientAvatarProps, DEFAULT_GRADIENT);
 
   return (
     <ThemeProvider theme={currentTheme.type === 'dark' ? currentTheme : invertedTheme}>
