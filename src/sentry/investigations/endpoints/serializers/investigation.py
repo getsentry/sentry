@@ -158,8 +158,8 @@ class InvestigationSerializerResponse(TypedDict):
     """
     Investigation summary. version is the notebook concurrency token;
     orchestration.notebookRevision tracks agent report updates independently. IDs are strings
-    and dates are ISO-8601 timestamps. trigger is the automation run that started the
-    investigation, else the user who created it, else null.
+    and dates are ISO-8601 timestamps. trigger is the user who created the investigation,
+    else the automation run that started it, else null.
     """
 
     id: str
@@ -222,13 +222,16 @@ class InvestigationSerializer(Serializer):
             )
 
         orchestration_by_investigation = orchestration_summaries_by_investigation(item_list)
-        automation_triggers = automation_triggers_by_investigation(item_list)
+        # Automations reuse an open investigation for the same source and link it too, so a
+        # link only says who started an investigation that no user created.
+        automation_triggers = automation_triggers_by_investigation(
+            [investigation for investigation in item_list if investigation.created_by_id is None]
+        )
 
         creator_ids = {
             investigation.created_by_id
             for investigation in item_list
             if investigation.created_by_id is not None
-            and investigation.id not in automation_triggers
         }
         creators = (
             {
@@ -257,13 +260,10 @@ class InvestigationSerializer(Serializer):
         automation_triggers: Mapping[int, InvestigationAutomationTriggerResponse],
         creators: Mapping[str, UserSerializerResponse],
     ) -> InvestigationTriggerResponse | None:
-        automation_trigger = automation_triggers.get(investigation.id)
-        if automation_trigger is not None:
-            return automation_trigger
         creator = creators.get(str(investigation.created_by_id))
         if creator is not None:
             return {"type": "user", "user": creator}
-        return None
+        return automation_triggers.get(investigation.id)
 
     @override
     def serialize(

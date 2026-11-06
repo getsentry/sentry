@@ -87,6 +87,7 @@ class InvestigationSerializerTest(TestCase):
         assert result["trigger"] is None
 
     def test_attributes_the_automation_run_that_started_it(self) -> None:
+        self.investigation.update(created_by_id=None)
         config = Factories.create_seer_workflow_config(
             self.organization,
             strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
@@ -113,7 +114,16 @@ class InvestigationSerializerTest(TestCase):
             "runId": str(first_run.id),
         }
 
+    def test_keeps_the_user_who_started_it_when_an_automation_reuses_it(self) -> None:
+        self.link_to_automation_run(self.investigation)
+
+        result = serialize(self.investigation, self.user, InvestigationSerializer())
+
+        assert result["trigger"] is not None
+        assert result["trigger"]["type"] == "user"
+
     def test_ignores_runs_from_other_organizations_and_without_a_config(self) -> None:
+        self.investigation.update(created_by_id=None)
         other_organization = self.create_organization()
         other_config = Factories.create_seer_workflow_config(
             other_organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
@@ -128,8 +138,7 @@ class InvestigationSerializerTest(TestCase):
 
         result = serialize(self.investigation, self.user, InvestigationSerializer())
 
-        assert result["trigger"] is not None
-        assert result["trigger"]["type"] == "user"
+        assert result["trigger"] is None
 
     def test_serializes_compact_orchestration_state_without_a_mode(self) -> None:
         heartbeat = timezone.now()
