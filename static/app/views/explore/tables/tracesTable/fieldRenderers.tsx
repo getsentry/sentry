@@ -30,12 +30,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';
-import type {SpanResult} from 'sentry/views/explore/tables/tracesTable/types';
 import type {SpanFields, SpanResponse} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 import type {Field} from './data';
+import type {SpanResult} from './types';
 import {
   getShortenedSdkName,
   getSimilarEventsUrl,

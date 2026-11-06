@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {Dataset, TimePeriod, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
-import {isCrashFreeAlert} from 'sentry/views/detectors/utils/isCrashFreeAlert';
+
+import {isCrashFreeAlert} from './isCrashFreeAlert';
 
 type TimePeriodMap = Omit<Record<TimePeriod, string>, TimePeriod.TWENTY_EIGHT_DAYS>;
 

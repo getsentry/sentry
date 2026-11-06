@@ -14,8 +14,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -79,31 +77,23 @@ function InvoiceDetails() {
     isPending: isBillingDetailsLoading,
     isError: isBillingDetailsError,
     refetch: billingDetailsRefetch,
-  } = useApiQuery<BillingDetails>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/billing-details/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<BillingDetails>()(
+      '/customers/$organizationIdOrSlug/billing-details/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    ),
+    placeholderData: keepPreviousData,
+  });
   const {
     data: invoice,
     isPending: isInvoiceLoading,
     isError: isInvoiceError,
     refetch: invoiceRefetch,
-  } = useApiQuery<Invoice>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/invoices/$invoiceId/', {
-        path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
-      }),
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<Invoice>()('/customers/$organizationIdOrSlug/invoices/$invoiceId/', {
+      path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
       staleTime: Infinity,
-    }
+    })
   );
 
   if (isBillingDetailsError || isInvoiceError) {

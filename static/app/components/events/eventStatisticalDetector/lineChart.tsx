@@ -3,13 +3,14 @@ import {useTheme} from '@emotion/react';
 
 import type {ChartType} from 'sentry/chartcuterie/types';
 import {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
+import type {PageFilterDatetime} from 'sentry/types/core';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+
 import {
   getBreakpointChartOptionsFromData,
   type BreakpointEvidenceData,
   type EventBreakpointChartData,
-} from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
-import type {PageFilterDatetime} from 'sentry/types/core';
-import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+} from './breakpointChartOptions';
 
 interface ChartProps {
   chartType: ChartType;

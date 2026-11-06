@@ -412,8 +412,8 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
     def test_similarity_project_option_region_enabled(self) -> None:
         """
-        Test that project option for similarity grouping is created when the region has new
-        project Seer grouping enabled.
+        Test that project option for similarity grouping is created when new-project Seer grouping
+        is enabled in the region.
         """
         response = self.get_success_response(
             self.organization.slug,
@@ -438,8 +438,8 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
     @override_options({"similarity.new_project_seer_grouping.enabled": False})
     def test_similarity_project_option_region_disabled(self) -> None:
         """
-        Test that project option for similarity grouping is not created when the region has new
-        project Seer grouping disabled.
+        Test that project option for similarity grouping is not created when new-project Seer
+        grouping is disabled in the region.
         """
         response = self.get_success_response(
             self.organization.slug,

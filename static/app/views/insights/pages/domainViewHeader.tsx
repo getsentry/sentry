@@ -3,11 +3,13 @@ import styled from '@emotion/styled';
 import {IconBusiness} from '@sentry/icons/business';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
+import type {
+  BreadcrumbListProps,
+  BreadcrumbTitleItem,
+} from '@sentry/scraps/breadcrumbList';
 import type {TabListItemProps} from '@sentry/scraps/tabs';
 import {TabList} from '@sentry/scraps/tabs';
 
-import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -19,25 +21,26 @@ import {
   useModuleURLBuilder,
   type RoutableModuleNames,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
-import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName} from 'sentry/views/insights/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {useIsLaravelInsightsAvailable} from './platform/laravel/features';
+import {useIsNextJsInsightsAvailable} from './platform/nextjs/features';
+import {OVERVIEW_PAGE_TITLE} from './settings';
+import {useDomainViewFilters} from './useFilters';
 import {
   isModuleConsideredNew,
   isModuleEnabled,
   isModuleInBeta,
   isModuleVisible,
-} from 'sentry/views/insights/pages/utils';
-import {ModuleName} from 'sentry/views/insights/types';
-import {TopBar} from 'sentry/views/navigation/topBar';
+} from './utils';
 
 export type Props = {
   domainBaseUrl: string;
   domainTitle: string;
   modules: ModuleName[];
   selectedModule: ModuleName | undefined;
-  additionalBreadCrumbs?: Crumb[];
+  additionalBreadCrumbs?: BreadcrumbListProps['items'];
   additonalHeaderActions?: React.ReactNode;
   headerTitle?: string | BreadcrumbTitleItem;
   hideDefaultTabs?: boolean;
@@ -67,21 +70,26 @@ export function DomainViewHeader({
   const isAgentMonitoring = view === 'ai-agents';
   const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
 
-  const crumbs: Crumb[] = [
-    {
-      label: domainTitle,
-      to: domainBaseUrl,
-      preservePageFilters: true,
-    },
-    ...additionalBreadCrumbs,
-  ];
-
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
   const globalQuery = {
     ...extractSelectionParameters(location?.query),
   };
+
+  // The domain link is only useful when there is a deeper page below it;
+  // otherwise the domain itself is the current page title.
+  const breadcrumbItems: BreadcrumbListProps['items'] | undefined =
+    additionalBreadCrumbs.length > 0
+      ? [
+          {
+            type: 'link',
+            label: domainTitle,
+            to: {pathname: domainBaseUrl, query: globalQuery},
+          },
+          ...additionalBreadCrumbs,
+        ]
+      : undefined;
 
   const tabList: TabListItemProps[] = [
     {
@@ -122,11 +130,6 @@ export function DomainViewHeader({
   return (
     <Fragment>
       <Layout.Header>
-        {crumbs.length > 1 && (
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
-          </Layout.HeaderContent>
-        )}
         <TopBar.Slot
           name="breadcrumbs"
           title={
@@ -134,6 +137,7 @@ export function DomainViewHeader({
               ? headerTitle
               : {type: 'page-title', label: headerTitle || domainTitle}
           }
+          items={breadcrumbItems}
         />
         {additonalHeaderActions && (
           <TopBar.Slot name="actions">{additonalHeaderActions}</TopBar.Slot>

@@ -7,8 +7,9 @@ import {Button} from '@sentry/scraps/button';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
-import {FoldSection, getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
+
+import {SectionKey, useIssueDetails} from './context';
+import {FoldSection, getFoldSectionKey} from './foldSection';
 
 // Mock dependencies
 jest.mock('sentry/views/issueDetails/context');

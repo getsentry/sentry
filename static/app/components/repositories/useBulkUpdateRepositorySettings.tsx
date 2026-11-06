@@ -1,13 +1,14 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import type {UseMutationOptions} from '@tanstack/react-query';
 
-import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import type {Repository, RepositoryWithSettings} from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {getRepositoryWithSettingsQueryKey} from './useRepositoryWithSettings';
 
 type RepositorySettings =
   | {

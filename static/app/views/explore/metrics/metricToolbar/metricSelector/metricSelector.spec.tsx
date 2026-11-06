@@ -13,8 +13,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+
+import {MetricSelector} from './metricSelector';
 
 const SORTED_METRIC_NAMES = [
   'bar',

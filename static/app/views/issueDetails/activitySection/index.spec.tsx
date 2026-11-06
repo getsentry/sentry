@@ -18,7 +18,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -27,10 +28,11 @@ import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
-import {buildActivityFeedItems} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
+
+import {buildActivityFeedItems} from './activityLineItem/activityFeedItem';
 
 function getCommentEditor(name = 'Add a comment') {
   const editor = screen.getByRole('combobox', {name});
@@ -43,7 +45,6 @@ describe('ActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
   const tenMinutesAgo = () => new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  user.options.prefersIssueDetailsStreamlinedUI = true;
   ConfigStore.set('user', user);
 
   ProjectsStore.loadInitialData([project]);
@@ -187,7 +188,7 @@ describe('ActivitySection', () => {
   });
 
   it('deletes only the referenced comment', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
     const note = ActivityFeedFixture({
       id: '987',
       commentId: '123',
@@ -230,7 +231,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove comment'}));
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment removed');
+    expect(toast.success).toHaveBeenCalledWith('Comment removed');
     expect(onActivityChange).toHaveBeenCalledWith([resolution]);
   });
 
@@ -912,7 +913,7 @@ describe('ActivitySection', () => {
   });
 
   it('renders note and allows for edit', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     const note = ActivityFeedFixture({
       id: '123',
@@ -966,7 +967,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     await waitFor(() => expect(editMock).toHaveBeenCalledTimes(1));
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
+    expect(toast.success).toHaveBeenCalledWith('Comment updated');
     expect(onActivityChange).toHaveBeenCalledWith([
       {...note, data: {text: 'Group Test Updated'}},
       resolution,
@@ -1193,7 +1194,7 @@ describe('ActivitySection', () => {
 
     render(
       <GroupIdProvider groupId={updatedActivityGroup.id}>
-        <ActivityDrawer project={project} />
+        <ActivityDrawer />
       </GroupIdProvider>,
       {
         initialRouterConfig: {
@@ -1273,7 +1274,7 @@ describe('ActivitySection', () => {
 
     render(
       <GroupIdProvider groupId={updatedActivityGroup.id}>
-        <ActivityDrawer project={project} />
+        <ActivityDrawer />
       </GroupIdProvider>,
       {
         initialRouterConfig: {

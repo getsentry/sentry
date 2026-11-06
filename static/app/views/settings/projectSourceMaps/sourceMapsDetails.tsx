@@ -29,9 +29,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {DebugIdBundleDeleteButton} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDeleteButton';
-import {DebugIdBundleDetails} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDetails';
-import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
+
+import {DebugIdBundleDeleteButton} from './debugIdBundleDeleteButton';
+import {DebugIdBundleDetails} from './debugIdBundleDetails';
+import {useDeleteDebugIdBundle} from './useDeleteDebugIdBundle';
 
 enum DebugIdBundleArtifactType {
   INVALID = 0,

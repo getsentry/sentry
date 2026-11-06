@@ -3,8 +3,9 @@ import {IconSort} from '@sentry/icons/sort';
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {type OrderBy} from 'sentry/components/events/featureFlags/utils';
 import {t} from 'sentry/locale';
+
+import {type OrderBy} from './utils';
 
 interface Props {
   orderBy: OrderBy;
@@ -13,16 +14,25 @@ interface Props {
     value: OrderBy;
   }>;
   setOrderBy: (value: React.SetStateAction<OrderBy>) => void;
+  size?: 'xs' | 'sm';
+  variant?: 'secondary' | 'transparent';
 }
 
-export function FeatureFlagSort({orderBy, setOrderBy, orderByOptions}: Props) {
+export function FeatureFlagSort({
+  orderBy,
+  setOrderBy,
+  orderByOptions,
+  size = 'xs',
+  variant,
+}: Props) {
   return (
     <CompositeSelect
       trigger={triggerProps => (
         <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('Sort Flags')}
-          size="xs"
+          size={size}
+          variant={variant}
           icon={<IconSort />}
           tooltipProps={{title: t('Sort Flags')}}
         />

@@ -29,13 +29,14 @@ import {
   LOGS_SORT_BYS_KEY,
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
-import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import * as QueryParamsContext from 'sentry/views/explore/queryParams/context';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {AlwaysPresentLogFields} from './constants';
+import {LOGS_AGGREGATE_FIELD_KEY} from './logsQueryParams';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {LogsTabContent} from './logsTab';
+import {OurLogKnownFieldKey} from './types';
 
 function LogsTabContentHarness({
   datePageFilterProps,
@@ -343,7 +344,7 @@ describe('LogsTabContent', () => {
         },
         organization: OrganizationFixture({
           ...organization,
-          features: [...organization.features, 'dashboards-edit'],
+          features: [...organization.features],
         }),
         additionalWrapper: ProviderWrapper,
       });

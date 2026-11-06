@@ -1,9 +1,6 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
-import type {
-  PreviewCheckError,
-  PreviewCheckResult,
-} from 'sentry/views/detectors/components/uptime/types';
+import type {PreviewCheckError, PreviewCheckResult} from './types';
 
 type PreviewCheckResultState = {
   data: PreviewCheckResult | null;

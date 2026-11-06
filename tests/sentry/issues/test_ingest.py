@@ -278,7 +278,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             name="Test Metric Detector",
             type="metric_issue",
             enabled=True,
-            config={"threshold_period": 1, "detection_type": "static"},
+            config={"detection_type": "static"},
             workflow_condition_group=condition_group,
         )
         _ = AlertRuleDetector.objects.create(

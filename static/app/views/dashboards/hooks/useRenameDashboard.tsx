@@ -2,8 +2,9 @@ import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-quer
 
 import {updateDashboardTitle} from 'sentry/actionCreators/dashboards';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getDashboardRevisionsQueryKey} from 'sentry/views/dashboards/hooks/useDashboardRevisions';
-import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
+
+import {getDashboardRevisionsQueryKey} from './useDashboardRevisions';
+import {getStarredDashboardsQueryKey} from './useGetStarredDashboards';
 
 type RenameDashboardVariables = {
   dashboardId: string;
