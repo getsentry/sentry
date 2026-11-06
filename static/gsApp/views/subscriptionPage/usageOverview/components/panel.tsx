@@ -252,7 +252,7 @@ export function ProductBreakdownPanel({
           {isEnabled && (
             <Fragment>
               {shouldShowSeerPricingChangeAlert && (
-                <Container padding="xl xl 0">
+                <Container padding="xl">
                   <SeerPricingChangeAlert />
                 </Container>
               )}
