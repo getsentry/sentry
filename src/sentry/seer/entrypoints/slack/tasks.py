@@ -14,6 +14,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.notifications.platform.slack.provider import SlackRenderable
+from sentry.seer.credits import SeerOperation, can_run_seer_operation
 from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
@@ -153,6 +154,17 @@ def process_mention_for_slack(
                 thread_ts=thread_ts if thread_ts else "",
                 org_name=organization.name,
             )
+            entrypoint.install.set_thread_status(
+                channel_id=channel_id,
+                thread_ts=thread_ts or ts,
+                status="",
+            )
+            return
+
+        # Check credits before fetching context or starting a run.
+        if not can_run_seer_operation(organization, SeerOperation.AGENT_CHAT_MESSAGE):
+            lifecycle.record_halt(ProcessMentionHaltReason.OUT_OF_SEER_CREDITS)
+            # The webhook set "is thinking..." before queueing this task; clear it.
             entrypoint.install.set_thread_status(
                 channel_id=channel_id,
                 thread_ts=thread_ts or ts,
