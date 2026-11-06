@@ -3918,6 +3918,14 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Use Seer embeddings similarity for every project. Off for self-hosted, which keeps the legacy
+# Redis index.
+register(
+    "similarity.seer_grouping.all_projects",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "delayed_processing.batch_size",
     default=10000,

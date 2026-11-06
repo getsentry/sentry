@@ -17,6 +17,7 @@ from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.variants import BaseVariant
 from sentry.killswitches import killswitch_matches_context
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
@@ -488,6 +489,32 @@ def _is_snipped_context_line(context_line: str) -> bool:
     # is only added in the JS processor. See
     # https://github.com/getsentry/sentry/blob/d077a5bb7e13a5927794b35d9ae667a4f181feb7/src/sentry/lang/javascript/utils.py#L72-L77.
     return context_line.startswith("{snip}") or context_line.endswith("{snip}")
+
+
+def project_uses_seer_similarity(project: Project) -> bool:
+    """
+    Whether a project uses Seer embeddings similarity rather than the legacy MinHash index.
+
+    TODO: once the all-projects option is on for all of SaaS, drop the per-project option and
+    reduce this to that option check.
+    """
+    if options.get("similarity.seer_grouping.all_projects"):
+        return True
+    return bool(project.get_option("sentry:similarity_backfill_completed"))
+
+
+def projects_using_seer_similarity(projects: Sequence[Project]) -> dict[Project, bool]:
+    """
+    Batch form of ``project_uses_seer_similarity``: one option query for all projects.
+    """
+    if not projects:
+        return {}
+    if options.get("similarity.seer_grouping.all_projects"):
+        return {project: True for project in projects}
+    opted_in = ProjectOption.objects.get_value_bulk(
+        projects, "sentry:similarity_backfill_completed"
+    )
+    return {project: bool(opted_in.get(project)) for project in projects}
 
 
 def project_is_seer_eligible(project: Project) -> bool:
