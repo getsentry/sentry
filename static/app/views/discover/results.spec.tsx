@@ -15,8 +15,9 @@ import * as PageFilterPersistence from 'sentry/components/pageFilters/persistenc
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {SavedSearchType} from 'sentry/types/group';
 import {EventView} from 'sentry/utils/discover/eventView';
-import Results from 'sentry/views/discover/results';
-import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/results/data';
+
+import {DEFAULT_EVENT_VIEW, getAllViews} from './results/data';
+import Results from './results';
 
 const FIELDS = [
   {
@@ -1436,7 +1437,7 @@ describe('Results', () => {
   describe('Save as', () => {
     it('groups saving, monitors and dashboards in one dropdown', async () => {
       const organization = OrganizationFixture({
-        features: ['discover-basic', 'discover-query', 'dashboards-edit'],
+        features: ['discover-basic', 'discover-query'],
       });
 
       renderMockRequests();

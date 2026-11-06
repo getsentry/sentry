@@ -5,7 +5,6 @@ import {z} from 'zod';
 import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX, type Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {SORTABLE_SAMPLE_COLUMNS} from 'sentry/views/explore/metrics/types';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -20,6 +19,8 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {SORTABLE_SAMPLE_COLUMNS} from './types';
 
 export type TraceMetric = {
   name: string;

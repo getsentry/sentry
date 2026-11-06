@@ -6,8 +6,8 @@ import habitsSuccessfulCustomer from 'sentry-images/spot/habitsSuccessfulCustome
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {HighlightCornerContainer} from 'sentry/components/highlightCornerModal';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

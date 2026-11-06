@@ -1,19 +1,19 @@
 import {useState} from 'react';
 import {useStripe} from '@stripe/react-stripe-js';
 import type {PaymentIntentResult} from '@stripe/stripe-js';
-import {useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 
 import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import type {PaymentCreateResponse} from 'getsentry/types';
@@ -51,12 +51,31 @@ export function AuthenticateIntentForm({
   errorMessage,
 }: Props) {
   const stripe = useStripe();
-  const api = useApi();
   const queryClient = useQueryClient();
   // Errors are owned by the parent: a failed challenge swaps this form out for
   // the card form, and the explanation has to survive that or the customer is
   // handed a card form with no idea why.
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {mutateAsync: confirmPayment} = useMutation({
+    mutationFn: ({
+      paymentId,
+      paymentIntentId,
+    }: {
+      paymentId: string;
+      paymentIntentId: string;
+    }) =>
+      fetchMutation<{paid: boolean; failureCode?: string | null}>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/payments/$paymentId/confirm/',
+          {
+            path: {organizationIdOrSlug: organization.slug, paymentId},
+          }
+        ),
+        method: 'POST',
+        data: {paymentIntentId},
+      }),
+  });
 
   /**
    * Recover from a failed challenge.
@@ -101,15 +120,10 @@ export function AuthenticateIntentForm({
     }
 
     try {
-      const response = await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/payments/$paymentId/confirm/', {
-          path: {organizationIdOrSlug: organization.slug, paymentId: invoiceGuid},
-        }),
-        {
-          method: 'POST',
-          data: {paymentIntentId: result.paymentIntent.id},
-        }
-      );
+      const response = await confirmPayment({
+        paymentId: invoiceGuid,
+        paymentIntentId: result.paymentIntent.id,
+      });
       if (!response.paid) {
         // Authentication succeeded but the charge did not complete -- an issuer
         // can still decline after 3D Secure. That leaves the intent spent in the
@@ -139,7 +153,7 @@ export function AuthenticateIntentForm({
       organization,
       referrer: decodeScalar(referrer),
     });
-    addSuccessMessage(t('Payment sent successfully.'));
+    toast.success(t('Payment sent successfully.'));
     onSuccess?.();
     setIsSubmitting(false);
   };

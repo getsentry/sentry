@@ -4,9 +4,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {ConversationSpanDetail} from 'sentry/views/explore/conversations/components/conversationSpanDetail';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {makeEAPSpan} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
+import {ConversationSpanDetail} from './conversationSpanDetail';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture({id: '1'});

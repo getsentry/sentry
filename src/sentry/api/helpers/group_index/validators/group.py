@@ -16,7 +16,7 @@ class GroupValidator(serializers.Serializer[Group]):
         help_text="If true, marks the issue as reviewed by the requestor."
     )
     status = serializers.ChoiceField(
-        help_text="Limit mutations to only issues with the given status.",
+        help_text="The new status for the issues.",
         choices=list(zip(STATUS_UPDATE_CHOICES.keys(), STATUS_UPDATE_CHOICES.keys())),
     )
     statusDetails = StatusDetailsValidator(

@@ -16,6 +16,8 @@ from slack_sdk.models.blocks import (
 )
 
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
+from sentry.integrations.slack.message_builder.routing import decode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.slack.renderers.seer import AUTOFIX_CONFIG, SeerSlackRenderer
@@ -270,6 +272,10 @@ class SeerSlackRendererTest(TestCase):
             if isinstance(e, LinkButtonElement) and e.text is not None and "PR" in e.text.text
         ]
         assert len(pr_buttons) == 2
+        routing = [decode_action_id(button.action_id or "") for button in pr_buttons]
+        assert [r.action for r in routing] == [SlackAction.SEER_AUTOFIX_VIEW_PR] * 2
+        assert [r.organization_id for r in routing] == [data.organization_id] * 2
+        assert [r.suffix for r in routing] == ["123", "456"]
 
     def test_render_autofix_update_root_cause_with_handoff_target(self) -> None:
         data = self._create_update(

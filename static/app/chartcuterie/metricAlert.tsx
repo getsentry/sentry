@@ -1,16 +1,16 @@
 import type {Theme} from '@emotion/react';
 import type {LineSeriesOption, YAXisComponentOption} from 'echarts';
 
-import type {MetricChartData} from 'sentry/chartcuterie/metricChartOption';
-import {
-  getMetricAlertChartOption,
-  transformSessionResponseToSeries,
-} from 'sentry/chartcuterie/metricChartOption';
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {createXAxisOptions} from 'sentry/components/charts/components/xAxis';
 import {createAreaSeries} from 'sentry/components/charts/series/areaSeries';
 import type {SessionApiResponse} from 'sentry/types/organization';
 
+import type {MetricChartData} from './metricChartOption';
+import {
+  getMetricAlertChartOption,
+  transformSessionResponseToSeries,
+} from './metricChartOption';
 import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';

@@ -4,7 +4,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationTeamProjects from 'sentry/views/settings/organizationTeams/teamProjects';
+import OrganizationTeamProjects from './teamProjects';
 
 describe('OrganizationTeamProjects', () => {
   let linkedProjectsMock!: jest.Mock;

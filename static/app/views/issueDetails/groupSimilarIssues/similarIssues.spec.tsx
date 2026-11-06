@@ -13,7 +13,8 @@ import {
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
-import {GroupSimilarIssues} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
+
+import {GroupSimilarIssues} from './similarIssues';
 
 jest.mock('sentry/utils/analytics');
 

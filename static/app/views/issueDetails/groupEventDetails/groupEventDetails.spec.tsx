@@ -31,7 +31,6 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
@@ -40,6 +39,8 @@ import {
   makeEAPOccurrence,
   makeEAPSpan,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
+import GroupEventDetails from './groupEventDetails';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
@@ -243,11 +244,6 @@ const mockGroupApis = (
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/prompts-activity/`,
     method: 'PUT',
-  });
-
-  MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/has-mobile-app-events/`,
-    body: null,
   });
 
   MockApiClient.addMockResponse({

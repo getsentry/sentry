@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getUserContextData,
-  type UserContext,
-} from 'sentry/components/events/contexts/knownContext/user';
+
+import {getUserContextData, type UserContext} from './user';
 
 const MOCK_USER_CONTEXT: UserContext = {
   email: 'leander.rodrigues@sentry.io',

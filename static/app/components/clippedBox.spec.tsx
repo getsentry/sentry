@@ -8,7 +8,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ClippedBox} from 'sentry/components/clippedBox';
+import {ClippedBox} from './clippedBox';
 
 function Child({height}: {height: number}) {
   return <div style={{height}} />;

@@ -1,13 +1,11 @@
 import type {Dispatch} from 'react';
 import {createContext, useContext} from 'react';
 
-import type {
-  ArithmeticBuilderAction,
-  FocusOverride,
-} from 'sentry/components/arithmeticBuilder/action';
-import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FieldDefinition} from 'sentry/utils/fields';
+
+import type {ArithmeticBuilderAction, FocusOverride} from './action';
+import type {FunctionArgument} from './types';
 
 interface ArithmeticBuilderContextData {
   aggregations: string[];

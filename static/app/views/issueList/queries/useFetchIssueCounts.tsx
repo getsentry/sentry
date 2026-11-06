@@ -1,8 +1,6 @@
-import {keepPreviousData} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 interface FetchIssueCountsParameters {
   environment: string[];
@@ -14,21 +12,22 @@ interface FetchIssueCountsParameters {
   statsPeriod?: string | null;
 }
 
-const makeFetchIssueCounts = ({
+const fetchIssueCountsOptions = ({
   orgSlug,
   ...requestParams
-}: FetchIssueCountsParameters): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
-    path: {organizationIdOrSlug: orgSlug},
-  }),
-  {
-    query: requestParams,
-  },
-];
+}: FetchIssueCountsParameters) =>
+  apiOptions.as<Record<string, number>>()(
+    '/organizations/$organizationIdOrSlug/issues-count/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      query: requestParams,
+      staleTime: 180000, // 3 minutes
+    }
+  );
 
 export const useFetchIssueCounts = (params: FetchIssueCountsParameters) => {
-  return useApiQuery<Record<string, number>>(makeFetchIssueCounts(params), {
-    staleTime: 180000, // 3 minutes
+  return useQuery({
+    ...fetchIssueCountsOptions(params),
     placeholderData: keepPreviousData,
   });
 };

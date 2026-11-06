@@ -1,6 +1,6 @@
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {useVirtualizedTree} from './useVirtualizedTree';
 
 const n = (d: any) => {
   return {...d, children: []};

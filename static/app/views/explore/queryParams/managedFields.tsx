@@ -1,13 +1,10 @@
 import {defined} from 'sentry/utils/defined';
-import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {
-  isVisualizeFunction,
-  parseVisualize,
-  type Visualize,
-} from 'sentry/views/explore/queryParams/visualize';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
+
+import {isGroupBy, type GroupBy} from './groupBy';
+import type {ReadableQueryParams} from './readableQueryParams';
+import {isVisualizeFunction, parseVisualize, type Visualize} from './visualize';
+import type {WritableQueryParams} from './writableQueryParams';
 
 const NUMERIC_LITERAL = /^-?\d*\.?\d+$/;
 

@@ -126,24 +126,50 @@ def get_access_requests(
 
 
 class _TeamSerializerResponseOptional(TypedDict, total=False):
-    externalTeams: list[ExternalActorResponse]
-    organization: OrganizationSummarySerializerResponse
-    projects: list[ProjectSerializerResponse]
+    externalTeams: Annotated[
+        list[ExternalActorResponse],
+        ApiDescription(
+            "Teams in external providers, such as Slack or GitHub, that are linked to this team"
+        ),
+    ]
+    organization: Annotated[
+        OrganizationSummarySerializerResponse, ApiDescription("Organization the team belongs to")
+    ]
+    projects: Annotated[
+        list[ProjectSerializerResponse], ApiDescription("Projects the team has access to")
+    ]
 
 
 class BaseTeamSerializerResponse(TypedDict):
-    id: str
-    slug: str
-    name: str
+    id: Annotated[str, ApiDescription("Team ID")]
+    slug: Annotated[str, ApiDescription("Team slug, unique within the organization")]
+    name: Annotated[str, ApiDescription("Display name of the team")]
     dateCreated: Annotated[datetime | None, ApiDescription("When the team was created (ISO 8601)")]
     isMember: Annotated[bool, ApiDescription("Whether the requesting user is a member of the team")]
     teamRole: Annotated[str | None, ApiDescription("The requesting user's role in the team")]
-    flags: dict[str, bool]
-    access: list[str]  # scopes granted by teamRole
-    hasAccess: bool
-    isPending: bool
+    flags: Annotated[
+        dict[str, bool],
+        ApiDescription(
+            "Team flags. idp:provisioned is true when the team is managed by an identity provider through SCIM"
+        ),
+    ]
+    access: Annotated[
+        list[str],
+        ApiDescription(
+            "Scopes the requesting user has on the team through their team role. Empty if the user has no access"
+        ),
+    ]
+    hasAccess: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the requesting user can access the team, as a member, through open membership or through an organization role with access to all teams"
+        ),
+    ]
+    isPending: Annotated[
+        bool, ApiDescription("Whether the requesting user has a pending request to join the team")
+    ]
     memberCount: Annotated[int, ApiDescription("Number of members in the team")]
-    avatar: SerializedAvatarFields
+    avatar: Annotated[SerializedAvatarFields, ApiDescription("Team avatar")]
 
 
 # We require a third Team Response TypedDict that inherits like so:
@@ -356,19 +382,22 @@ class TeamWithProjectsSerializer(TeamSerializer):
 
 
 class SCIMTeamMemberListItem(TypedDict):
-    value: str
-    display: str
+    value: Annotated[str, ApiDescription("Organization member ID")]
+    display: Annotated[str, ApiDescription("Email address of the member")]
 
 
 class OrganizationTeamSCIMSerializerRequired(TypedDict):
-    schemas: list[str]
-    id: str
-    displayName: str
-    meta: SCIMMeta
+    schemas: Annotated[list[str], ApiDescription("SCIM schema URIs of the resource")]
+    id: Annotated[str, ApiDescription("Team ID")]
+    displayName: Annotated[str, ApiDescription("Display name of the team")]
+    meta: Annotated[SCIMMeta, ApiDescription("SCIM resource metadata")]
 
 
 class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequired, total=False):
-    members: list[SCIMTeamMemberListItem]
+    members: Annotated[
+        list[SCIMTeamMemberListItem],
+        ApiDescription("Members of the team. Included only when members are requested"),
+    ]
 
 
 @dataclasses.dataclass
