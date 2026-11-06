@@ -19,18 +19,18 @@ class DummyLockBackend(LockBackend):
     path = "tests.sentry.utils.locking.backends.test_migration.DummyLockBackend"
 
     def __init__(self) -> None:
-        self._locks: dict[tuple[str, str | None], int] = {}
+        self._locks: dict[str, int] = {}
 
-    def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
-        if self.locked(key=key, routing_key=routing_key):
-            raise AssertionError(f"Could not acquire ({key}, {routing_key})")
-        self._locks[(key, routing_key)] = duration
+    def acquire(self, key: str, duration: int) -> None:
+        if self.locked(key=key):
+            raise AssertionError(f"Could not acquire {key}")
+        self._locks[key] = duration
 
-    def release(self, key: str, routing_key: str | None = None) -> None:
-        del self._locks[(key, routing_key)]
+    def release(self, key: str) -> None:
+        del self._locks[key]
 
-    def locked(self, key: str, routing_key: str | None = None) -> bool:
-        return (key, routing_key) in self._locks
+    def locked(self, key: str) -> bool:
+        return key in self._locks
 
 
 class TestMigrationLockBackend(TestCase):
@@ -71,7 +71,6 @@ class TestMigrationLockBackend(TestCase):
 
         def selector_plzno_call(
             key: str,
-            routing_key: str | int | None,
             backend_new: LockBackend,
             backend_old: LockBackend,
         ) -> LockBackend:
@@ -115,19 +114,18 @@ class UnavailableLockBackend(LockBackend):
 
     path = "tests.sentry.utils.locking.backends.test_migration.UnavailableLockBackend"
 
-    def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
+    def acquire(self, key: str, duration: int) -> None:
         raise ConnectionError("unavailable")
 
-    def release(self, key: str, routing_key: str | None = None) -> None:
+    def release(self, key: str) -> None:
         raise ConnectionError("unavailable")
 
-    def locked(self, key: str, routing_key: str | None = None) -> bool:
+    def locked(self, key: str) -> bool:
         raise ConnectionError("unavailable")
 
 
 def pick_new(
     key: str,
-    routing_key: str | int | None,
     backend_new: LockBackend,
     backend_old: LockBackend,
 ) -> LockBackend:
@@ -136,7 +134,6 @@ def pick_new(
 
 def pick_old(
     key: str,
-    routing_key: str | int | None,
     backend_new: LockBackend,
     backend_old: LockBackend,
 ) -> LockBackend:
@@ -150,7 +147,6 @@ class SwitchableSelector:
     def __call__(
         self,
         key: str,
-        routing_key: str | int | None,
         backend_new: LockBackend,
         backend_old: LockBackend,
     ) -> LockBackend:
@@ -239,7 +235,7 @@ class TestMigrationLockBackendOnRedis(TestCase):
                 "locks.post-process.migration-rollout-rate": 0.0001,
             }
         ):
-            assert caller._get_backend(self.key, None) is caller.backend_old
+            assert caller._get_backend(self.key) is caller.backend_old
             with pytest.raises(Exception):
                 caller.acquire(self.key, 10)
         assert not caller.backend_old.locked(self.key)
@@ -386,7 +382,7 @@ class TestRolloutSelectors(TestCase):
     keys = [f"key-{i}" for i in range(1000)]
 
     def picks(self, selector: SelectorFncType) -> list[LockBackend]:
-        return [selector(key, None, self.new, self.old) for key in self.keys]
+        return [selector(key, self.new, self.old) for key in self.keys]
 
     def test_rate_zero_and_one(self) -> None:
         with override_options({"locks.post-process.migration-rollout-rate": 0.0}):
