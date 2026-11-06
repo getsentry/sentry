@@ -19,25 +19,28 @@ class LockTestCase(unittest.TestCase):
         lock = Lock(backend, key, duration, routing_key)
 
         lock.acquire()
-        backend.acquire.assert_called_once_with(key, duration, routing_key, lock.token)
-        assert lock.token is not None
+        acquired = lock.token
+        assert acquired is not None
+        backend.acquire.assert_called_once_with(key, duration, routing_key, acquired)
 
         lock.locked()
         backend.locked.assert_called_once_with(key, routing_key)
 
-        token = lock.token
         backend.acquire.side_effect = Exception("Boom!")
         with pytest.raises(UnableToAcquireLock):
             lock.acquire()
-        assert lock.token == token
+        # A direct assert on lock.token would narrow it to str for the rest of
+        # the test, so the later check that release cleared it is unreachable.
+        held = lock.token
+        assert held == acquired
         backend.acquire.side_effect = None
 
         lock.release()
-        backend.release.assert_called_once_with(key, routing_key, token)
+        backend.release.assert_called_once_with(key, routing_key, acquired)
         assert lock.token is None
 
         lock.release()
-        backend.release.assert_called_once_with(key, routing_key, token)
+        backend.release.assert_called_once_with(key, routing_key, acquired)
 
     def test_context_manager_interface(self) -> None:
         backend = mock.Mock(spec=LockBackend)
