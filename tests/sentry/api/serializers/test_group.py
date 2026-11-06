@@ -490,6 +490,18 @@ class GroupSerializerDerivedDataTest(TestCase):
                 "has_open_fix_pr": False,
                 "blocker": IssueBlocker.APPROVE_PLAN.value,
                 "last_completed_autofix_step": IssueAutofixStep.SOLUTION.value,
+                "impact": {
+                    "score": 50,
+                    "level": "moderate",
+                    "description": "Users cannot view monitor details.",
+                    "citations": [
+                        {
+                            "reference": "trace:span-40",
+                            "claim": "The trace contains a user-generated frontend span showing a crash with a 500 status code",
+                            "source": "span",
+                        }
+                    ],
+                },
             },
         )
 
@@ -505,6 +517,18 @@ class GroupSerializerDerivedDataTest(TestCase):
             "hasRootCause": True,
             "lastCompletedAutofixStep": IssueAutofixStep.SOLUTION.value,
             "lastProgressedAt": last_progressed_at,
+            "impact": {
+                "score": 50,
+                "level": "moderate",
+                "description": "Users cannot view monitor details.",
+                "citations": [
+                    {
+                        "reference": "trace:span-40",
+                        "claim": "The trace contains a user-generated frontend span showing a crash with a 500 status code",
+                        "source": "span",
+                    }
+                ],
+            },
         }
 
     def test_derived_data_fix_applied_progress_for_closed_issue(self) -> None:
