@@ -99,6 +99,12 @@ function IntegrationTabs({
     [getTabDisplay]
   );
 
+  // A lone tab is noise, but keep the container so the spacing between the
+  // header and content stays the same.
+  if (tabs.length <= 1) {
+    return <TabsContainer />;
+  }
+
   return (
     <TabsContainer>
       <Tabs value={activeTab} onChange={onTabChange}>
