@@ -19,6 +19,7 @@ import {Redirect} from 'sentry/components/redirect';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {orgHasNewSeerPlan} from 'sentry/utils/seer/orgHasNewSeerPlan';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -29,7 +30,7 @@ export default function SeerAutomationSCMRequired() {
   const organization = useOrganization();
   const {hasFreeAutofixAccess, isLoading: isSetupLoading} = useOrganizationSeerSetup();
 
-  const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
+  const hasNewSeerPlan = orgHasNewSeerPlan(organization);
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
   const isSeerSupportedProvider = useIsSeerSupportedProvider();
 
@@ -77,7 +78,7 @@ export default function SeerAutomationSCMRequired() {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/trial/`)} />;
   }
 
-  if (!hasSeatBasedSeer) {
+  if (!hasNewSeerPlan) {
     return <Outlet />;
   }
 

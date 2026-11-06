@@ -78,4 +78,45 @@ describe('SeerAutomationSCMRequired', () => {
     );
     expect(screen.queryByText('Code Review repositories')).not.toBeInTheDocument();
   });
+
+  it('asks token-billed orgs to connect a repository instead of starting a trial', async () => {
+    const organization = OrganizationFixture({
+      features: ['seer-user-billing-launch', 'token-billed-seer-enabled'],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      body: {
+        hasFreeAutofixAccess: false,
+        billing: {hasAutofixQuota: true, hasScannerQuota: true},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      query: {integrationType: 'source_code_management'},
+      body: [],
+    });
+
+    const {router} = render(<SeerAutomationSCMRequired />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: `/settings/${organization.slug}/seer/projects/`},
+        route: '/settings/:orgId/seer/',
+        children: [
+          {
+            path: 'projects/',
+            handle: {seerSection: 'autofix'},
+            element: <div>Autofix projects</div>,
+          },
+        ],
+      },
+    });
+
+    expect(
+      await screen.findByRole('heading', {name: 'Connect a repository', level: 3})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Autofix projects')).not.toBeInTheDocument();
+    expect(router.location.pathname).toBe(
+      `/settings/${organization.slug}/seer/projects/`
+    );
+  });
 });
