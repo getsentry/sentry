@@ -1,5 +1,5 @@
-import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
-import type {AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {getAutofixNextStep} from './getAutofixNextStep';
+import type {AutofixSection} from './useExplorerAutofix';
 
 describe('getAutofixNextStep', () => {
   const rootCause: AutofixSection = {
