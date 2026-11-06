@@ -29,11 +29,14 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import collections
+import contextlib
 import inspect
 import os
 import typing
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextvars import ContextVar
+from dataclasses import dataclass
 from enum import Enum
 from types import UnionType
 from typing import (
@@ -50,7 +53,7 @@ from typing import (
 from typing import get_type_hints as _get_type_hints
 
 import drf_spectacular
-from drf_spectacular.drainage import get_override
+from drf_spectacular.drainage import get_override, warn
 from drf_spectacular.plumbing import (
     UnableToProceedError,
     build_basic_type,
@@ -133,6 +136,55 @@ def build_array_type(
     if schema is None:
         raise ValueError("Schema cannot be None")
     return drf_build_array_type(schema=schema, min_length=min_length, max_length=max_length)
+
+
+@dataclass(frozen=True)
+class TypeHintPolicy:
+    """How `resolve_type_hint` treats the hints that builds describe differently.
+
+    The defaults are the published build's. The internal build
+    (`sentry.apidocs.internal`) switches them on for its duration.
+    """
+
+    # Describe a TypedDict as a closed object (`additionalProperties: false`), since it
+    # enumerates every key it can carry.
+    closed_typed_dicts: bool = False
+    # Limit the null member of an optional union of several types to null itself.
+    # `{"type": "object", "nullable": true}` alone also accepts any dictionary.
+    null_only_union_member: bool = False
+    # Replace a hint that cannot be resolved with an untyped placeholder, carrying the
+    # hint under `x-sentry-unresolved`, instead of failing the build.
+    unresolvable_placeholder: bool = False
+
+
+_policy: ContextVar[TypeHintPolicy] = ContextVar("type_hint_policy", default=TypeHintPolicy())
+
+
+@contextlib.contextmanager
+def type_hint_policy(policy: TypeHintPolicy) -> Iterator[None]:
+    token = _policy.set(policy)
+    try:
+        yield
+    finally:
+        _policy.reset(token)
+
+
+UNRESOLVED_EXTENSION = "x-sentry-unresolved"
+
+
+def resolve_type_hint_lenient(hint: Any, context: str) -> Any:
+    """`resolve_type_hint`, but a policy may replace an unresolvable hint with a placeholder.
+
+    The placeholder marks exactly where a contract is not expressible yet, such as a
+    plain class used as a response. Without the policy, an unresolvable hint fails the
+    build: in the published spec it is a bug."""
+    try:
+        return resolve_type_hint(hint)
+    except UnableToProceedError:
+        if not _policy.get().unresolvable_placeholder:
+            raise
+        warn(f"could not resolve {hint!r} for {context}; emitting an untyped placeholder")
+        return {UNRESOLVED_EXTENSION: repr(hint)}
 
 
 # The TypedDicts whose fields are being resolved right now, outermost first.
@@ -228,7 +280,12 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
             max_length=len(args),
             min_length=len(args),
         )
-    elif origin is dict or origin is defaultdict or origin is collections.abc.Mapping:
+    elif origin in (
+        dict,
+        defaultdict,
+        collections.abc.Mapping,
+        collections.abc.MutableMapping,
+    ):
         schema = build_basic_type(OpenApiTypes.OBJECT)
         if args and args[1] is not typing.Any and schema is not None:
             schema["additionalProperties"] = _resolve_at(args[1], "additionalProperties")
@@ -266,12 +323,15 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
         # reaches the schema; ApiDescription and required-ness are read from the same
         # hints.
         hints_with_extras = get_type_hints(hint, include_extras=True)
+        closed: dict[str, Any] = (
+            {"additionalProperties": False} if _policy.get().closed_typed_dicts else {}
+        )
         _typed_dicts_in_progress.append(hint)
         try:
             return build_object_type(
                 properties={
                     k: _field_schema(
-                        _resolve_at(v, "properties", k),
+                        _resolve_at_lenient(v, f"{hint.__name__}.{k}", "properties", k),
                         hint,
                         k,
                         _field_description(v),
@@ -285,6 +345,7 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
                     for k in _typed_dict_required_keys(hint, hints_with_extras)
                     if k not in excluded_fields
                 ],
+                **closed,
             )
         finally:
             _typed_dicts_in_progress.pop()
@@ -313,11 +374,18 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
             #   - https://github.com/tfranzel/drf-spectacular/issues/925
             #   - https://github.com/OAI/OpenAPI-Specification/issues/1368.
             if len(args) > 2:
-                schema["anyOf"].append({"type": "object", "nullable": True})
+                null_schema: dict[str, Any] = {"type": "object", "nullable": True}
+                if _policy.get().null_only_union_member:
+                    null_schema["enum"] = [None]
+                schema["anyOf"].append(null_schema)
             else:
                 schema["nullable"] = True
         return schema
-    elif origin is collections.abc.Iterable:
+    elif origin in (
+        collections.abc.Iterable,
+        collections.abc.Collection,
+        collections.abc.MutableSequence,
+    ):
         return build_array_type(_resolve_at(args[0], "items"))
     else:
         raise UnableToProceedError(hint)
@@ -327,6 +395,12 @@ def _resolve_at(hint: Any, *keys: str) -> Any:
     """Resolve a hint nested at `keys` below its parent, for the build's omission check."""
     with descended(*keys):
         return resolve_type_hint(hint)
+
+
+def _resolve_at_lenient(hint: Any, context: str, *keys: str) -> Any:
+    """`_resolve_at` with `resolve_type_hint_lenient`."""
+    with descended(*keys):
+        return resolve_type_hint_lenient(hint, context)
 
 
 def _typed_dict_required_keys(hint: Any, hints_with_extras: dict[str, Any]) -> list[str]:

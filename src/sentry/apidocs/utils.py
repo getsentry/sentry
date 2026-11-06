@@ -29,6 +29,9 @@ class _RawSchema:
     Used by `utils.inline_sentry_response_serializer`
     """
 
+    # Set on each class `inline_sentry_response_serializer` creates.
+    typeSchema: ResponseTypeHint
+
     def __init__(self, t: ResponseTypeHint) -> None:
         self.typeSchema = t
 
