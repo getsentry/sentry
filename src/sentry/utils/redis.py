@@ -322,7 +322,6 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
         ),
         # Platform trial locks in TrialService._create_product_trial and _create_subscription_trial.
         # Remove these entries when REVENG-695 lands:
-        # https://linear.app/getsentry/issue/REVENG-695/delete-the-subscription-to-contract-migration-path
         (
             "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_product_trial",
         ),
@@ -330,15 +329,13 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
             "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_subscription_trial",
         ),
         # Customer model_lock in MissingCustomerRelation.repair.
-        # Remove this entry when REVENG-694 lands:
-        # https://linear.app/getsentry/issue/REVENG-694/delete-the-missingcustomerrelation-repair-task
+        # Remove this entry when REVENG-694 lands
         (
             "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
             "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
         ),
         # Platform charge lock in ChargeService.capture_charge.
-        # Remove this entry when REVENG-696 lands:
-        # https://linear.app/getsentry/issue/REVENG-696/move-the-capture-charge-lock-out-of-the-db-transaction
+        # Remove this entry when REVENG-696 lands
         ("getsentry.billing.platform.services.charge.service.ChargeService.capture_charge",),
         # INFRENG-925: the test takes the subscription lock to see if it is held, inside the
         # transaction of _apply_legacy_ondemand_max_spend
