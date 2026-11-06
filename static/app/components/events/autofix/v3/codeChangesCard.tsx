@@ -10,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
-import type {FilePatch} from 'sentry/components/events/autofix/types';
 import {
   collectPatches,
   getAutofixArtifactFromSection,
@@ -29,6 +28,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
+import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {ArtifactCard} from './artifactCard';
 import {ArtifactDetails} from './artifactDetails';
@@ -52,14 +52,9 @@ interface CodeChangesCardProps {
 
 const MAX_AUTO_EXPANDED_DIFF_LINES = 30;
 
-interface RepoFilePatch {
-  patch: FilePatch;
-  code_url?: string | null;
-}
-
 type RepoChanges =
   | {status: 'pending' | 'pushing'}
-  | {patches: RepoFilePatch[]; pushFailed: boolean; status: 'ready'};
+  | {patches: ExplorerFilePatch[]; pushFailed: boolean; status: 'ready'};
 
 function getFinalExplanation(section: AutofixSection): string | null {
   for (let i = section.blocks.length - 1; i >= 0; i--) {
@@ -129,10 +124,6 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   }, [section]);
 
   const {copy} = useCopyToClipboard();
-  const markdown = useMemo(
-    () => (artifact ? artifactToMarkdown(artifact) : null),
-    [artifact]
-  );
 
   const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
   const hasFailedOnlyPRs =
@@ -199,7 +190,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       } else if (result.status === 'success') {
         changes.set(repo, {
           status: 'ready',
-          patches: result.patches.map(patch => ({patch})),
+          patches: result.patches,
           pushFailed: result.pushFailed,
         });
       }
@@ -207,6 +198,21 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     }
     return changes;
   }, [patchesByRepo, pullRequestPatches]);
+
+  const markdown = useMemo(() => {
+    if (!artifact || !pullRequestPatches.size) {
+      return artifact ? artifactToMarkdown(artifact) : null;
+    }
+    const patches: ExplorerFilePatch[] = [];
+    for (const changes of changesByRepo.values()) {
+      // Don't copy a partial diff while any repo is still loading or pushing.
+      if (changes.status !== 'ready') {
+        return null;
+      }
+      patches.push(...changes.patches);
+    }
+    return artifactToMarkdown(patches);
+  }, [artifact, changesByRepo, pullRequestPatches.size]);
 
   const shouldExpandDiffs = useMemo(() => {
     let lineCount = 0;

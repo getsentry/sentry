@@ -1,12 +1,16 @@
 import {useMemo} from 'react';
 import {useQueries} from '@tanstack/react-query';
 
-import {DiffLineType, type FilePatch} from 'sentry/components/events/autofix/types';
+import {DiffLineType} from 'sentry/components/events/autofix/types';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {PullRequestFileChangeType} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  ExplorerFilePatch,
+  RepoPRState,
+} from 'sentry/views/seerExplorer/types';
 import {parseFilePatch} from 'sentry/views/seerWorkflows/overview/filePatch';
 
 interface PullRequestFile {
@@ -27,7 +31,7 @@ export type PullRequestPatches =
   | {status: 'pending'}
   | {status: 'error'}
   | {
-      patches: FilePatch[];
+      patches: ExplorerFilePatch[];
       /** The last push failed, so the PR is missing Seer's latest edits. */
       pushFailed: boolean;
       status: 'success';
@@ -42,7 +46,7 @@ const CHANGE_TYPE_BY_STATUS: Record<string, PullRequestFileChangeType> = {
   renamed: 'RENAMED',
 };
 
-function toFilePatch(file: PullRequestFile): FilePatch {
+function toFilePatch(file: PullRequestFile, repoName: string): ExplorerFilePatch {
   const patch = parseFilePatch({
     path: file.path,
     patch: file.patch,
@@ -52,10 +56,18 @@ function toFilePatch(file: PullRequestFile): FilePatch {
   });
   const lines = patch.hunks.flatMap(hunk => hunk.lines);
   return {
-    ...patch,
-    source_file: file.previousPath ?? file.path,
-    added: lines.filter(line => line.line_type === DiffLineType.ADDED).length,
-    removed: lines.filter(line => line.line_type === DiffLineType.REMOVED).length,
+    repo_name: repoName,
+    diff: [
+      `--- ${file.status === 'added' ? '/dev/null' : `a/${file.previousPath ?? file.path}`}`,
+      `+++ ${file.status === 'removed' ? '/dev/null' : `b/${file.path}`}`,
+      file.patch,
+    ].join('\n'),
+    patch: {
+      ...patch,
+      source_file: file.previousPath ?? file.path,
+      added: lines.filter(line => line.line_type === DiffLineType.ADDED).length,
+      removed: lines.filter(line => line.line_type === DiffLineType.REMOVED).length,
+    },
   };
 }
 
@@ -188,8 +200,8 @@ export function usePullRequestPatches({
           pushFailed: state.pr_creation_status === 'error',
           // Binary and oversized files come back without a patch, so there is nothing to show.
           patches: result.data.files
-            .map(toFilePatch)
-            .filter(patch => patch.hunks.length > 0),
+            .map(file => toFilePatch(file, state.repo_name))
+            .filter(file => file.patch.hunks.length > 0),
         });
       } else {
         patches.set(state.repo_name, {status: 'pending'});

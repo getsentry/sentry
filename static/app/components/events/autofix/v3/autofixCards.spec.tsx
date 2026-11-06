@@ -720,21 +720,22 @@ describe('ArtifactCard', () => {
       expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
     });
 
-    it('copies markdown when copy button is clicked', async () => {
+    it('copies the original run diff without pinned iterations', async () => {
+      const patch = makePatch('org/repo', 'src/app.py');
+      patch.diff = '--- a/src/app.py\n+++ b/src/app.py\n@@ -1 +1 @@\n-old\n+new';
+
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection('code_changes', 'completed', [
-            [makePatch('org/repo', 'src/app.py')],
-          ])}
+          section={makeSection('code_changes', 'completed', [[patch]])}
         />
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining('Code Changes')
+        `# Code Changes\n\n## Repository: org/repo\n\n\`\`\`diff\n${patch.diff}\n\`\`\``
       );
     });
 
@@ -2286,7 +2287,7 @@ describe('ArtifactCard', () => {
           .map(viewer => viewer.getAttribute('data-path'));
       }
 
-      it("shows the PR's diff after an iteration", async () => {
+      it("copies the displayed PR diff instead of the run's partial patches", async () => {
         mockPullRequestFiles();
 
         render(
@@ -2300,6 +2301,124 @@ describe('ArtifactCard', () => {
 
         expect(await screen.findByText('1 file changed in 1 repo')).toBeInTheDocument();
         expect(renderedPaths()).toEqual(['src/app.py']);
+
+        await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          '# Code Changes\n\n## Repository: org/repo\n\n```diff\n' +
+            '--- a/src/app.py\n+++ b/src/app.py\n@@ -1,2 +1,2 @@\n context\n-old\n+new\n```'
+        );
+      });
+
+      it.each([
+        ['added', null, '/dev/null', 'b/src/app.py', '@@ -0,0 +1 @@\n+new'],
+        ['removed', null, 'a/src/app.py', '/dev/null', '@@ -1 +0,0 @@\n-old'],
+        [
+          'renamed',
+          'src/old.py',
+          'a/src/old.py',
+          'b/src/app.py',
+          '@@ -1 +1 @@\n-old\n+new',
+        ],
+      ])(
+        'copies file headers for %s files',
+        async (status, previousPath, source, target, patch) => {
+          MockApiClient.addMockResponse({
+            url: pullRequestFilesUrl,
+            body: {files: [{path: 'src/app.py', status, previousPath, patch}]},
+          });
+
+          render(
+            <CodeChangesCard
+              groupId="1"
+              autofix={makeAutofix(makePR())}
+              section={iteratedSection}
+            />,
+            {organization: pinnedOrganization}
+          );
+
+          await screen.findByText('1 file changed in 1 repo');
+          await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+          expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+            `# Code Changes\n\n## Repository: org/repo\n\n\`\`\`diff\n--- ${source}\n+++ ${target}\n${patch}\n\`\`\``
+          );
+        }
+      );
+
+      it('copies PR changes alongside displayed run patches from another repo', async () => {
+        mockPullRequestFiles();
+        const patch = makePatch('org/other', 'src/other.py');
+        patch.diff = '--- a/src/other.py\n+++ b/src/other.py\n@@ -1 +1 @@\n-old\n+new';
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR())}
+            section={{
+              ...iteratedSection,
+              artifacts: [[makePatch('org/repo', 'src/iterated.py'), patch]],
+            }}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        await screen.findByText('2 files changed in 2 repos');
+        expect(renderedPaths()).toEqual(['src/app.py', 'src/other.py']);
+        await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          '# Code Changes\n\n## Repository: org/repo\n\n```diff\n' +
+            '--- a/src/app.py\n+++ b/src/app.py\n@@ -1,2 +1,2 @@\n context\n-old\n+new\n```' +
+            `\n\n## Repository: org/other\n\n\`\`\`diff\n${patch.diff}\n\`\`\``
+        );
+      });
+
+      it('disables copy while the PR diff loads', () => {
+        mockPullRequestFiles();
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR())}
+            section={iteratedSection}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(screen.getByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
+      });
+
+      it('copies run patches when the PR diff cannot be fetched', async () => {
+        MockApiClient.addMockResponse({
+          url: pullRequestFilesUrl,
+          statusCode: 500,
+          body: {detail: 'Unable to fetch the PR diff'},
+        });
+        const patch = makePatch('org/repo', 'src/iterated.py');
+        patch.diff =
+          '--- a/src/iterated.py\n+++ b/src/iterated.py\n@@ -1 +1 @@\n-old\n+new';
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR())}
+            section={{...iteratedSection, artifacts: [[patch]]}}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(await screen.findByText('1 file changed in 1 repo')).toBeInTheDocument();
+        expect(renderedPaths()).toEqual(['src/iterated.py']);
+
+        await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          `# Code Changes\n\n## Repository: org/repo\n\n\`\`\`diff\n${patch.diff}\n\`\`\``
+        );
       });
 
       it("shows that it's pushing everywhere while edits wait to be pushed", () => {
@@ -2328,6 +2447,9 @@ describe('ArtifactCard', () => {
           screen.getByText('Pushing the latest changes to the pull request…')
         ).toBeInTheDocument();
         expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+        expect(
+          screen.getAllByRole('button', {name: 'Copy as Markdown'})[0]
+        ).toHaveAttribute('aria-disabled', 'true');
         expect(filesRequest).not.toHaveBeenCalled();
         // Seer hasn't started the push yet, but the button and the feedback already agree.
         expect(
