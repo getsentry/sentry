@@ -267,6 +267,9 @@ def _maybe_reply_to_single_run(
     except SeerApiError as e:
         sentry_sdk.capture_exception(e)
         return Response({"detail": "Failed to start or continue chat session"}, status=500)
+    except ValueError:
+        logger.exception("Error getting agent run state")
+        return Response({"session": None}, status=404)
     return Response({"run_id": resolved.seer_run_state_id, "sentry_run_id": resolved.uuid})
 
 
