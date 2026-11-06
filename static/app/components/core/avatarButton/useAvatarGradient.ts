@@ -8,7 +8,7 @@ type Gradient = readonly [start: string, end: string];
 
 // Keeps the avatar's hue and saturation but never gets brighter than
 // `ceiling`, so text designed against `ceiling` keeps its contrast.
-export function getAvatarGradient(avatarColor: string, ceiling: string): Gradient {
+function getAvatarGradient(avatarColor: string, ceiling: string): Gradient {
   const maxLuminosity = color(ceiling).luminosity();
   let end = color(avatarColor);
   while (end.luminosity() > maxLuminosity && end.lightness() > 0) {
