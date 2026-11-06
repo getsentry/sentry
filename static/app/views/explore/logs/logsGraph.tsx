@@ -353,6 +353,7 @@ function Graph({
               key={chartRemountKey}
               chartInfo={chartInfo}
               droppedData={droppedData.band}
+              isDroppedDataLoading={droppedData.isLoading}
             />
           )
         }
