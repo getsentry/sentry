@@ -883,9 +883,16 @@ class ApiInputViolation:
 
 
 class _InputCtx:
-    """One PUBLIC method's input sources, gathered during the single traversal."""
+    """One top-level function's or method's input sources, gathered during the single traversal."""
 
-    def __init__(self, scope: str, declared_params: set[str], declared_body: set[str]) -> None:
+    def __init__(
+        self,
+        scope: str,
+        declared_params: set[str],
+        declared_body: set[str],
+        is_public: bool = False,
+        class_name: str | None = None,
+    ) -> None:
         self.scope = scope
         self.declared_params = declared_params
         self.declared_body = declared_body
@@ -902,6 +909,10 @@ class _InputCtx:
         self.safe_loop_vars: set[str] = set()
         # (start_end, callee, source) the whole dict passed somewhere
         self.hand_offs: list[tuple[_StartEnd, str, str]] = []
+        # true only for an HTTP method that publish_status marks PUBLIC on a top-level endpoint class
+        self.is_public = is_public
+        # the class a method is defined in (None for a module-level function)
+        self.class_name = class_name
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -974,6 +985,9 @@ class SentryVisitor(ast.NodeVisitor):
         self._class_decorators: list[ast.expr] = []
         self._class_stack: list[str] = []
         self._function_stack: list[str] = []
+        # scope -> ctx for every top-level function and method in the file,
+        # i.e "Endpoint.get" or "build_query"; reported at the end of the module
+        self._functions: dict[str, _InputCtx] = {}
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module == _S030_LEGACY_MODULE and not node.level:
@@ -1120,6 +1134,7 @@ class SentryVisitor(ast.NodeVisitor):
         """Visitor for tracking top level constant variables that hold request fields to iterate over."""
         self._literal_var_constants = _collect_literal_var_constants(tree=node)
         self.generic_visit(node)
+        self._report_public_inputs()
 
     def _new_safe_loop_var(
         self, target: ast.expr, iter_node: ast.expr, curr_method: _InputCtx
@@ -1229,34 +1244,40 @@ class SentryVisitor(ast.NodeVisitor):
             self._class_decorators = outer_decorators
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        if len(self._class_stack) == 1 and self._function_depth == 0:
-            self._check_S021(node)
-            self._check_S022(node)
-        entered = self._enter_input(node)
-        self._function_depth += 1
-        self._function_stack.append(node.name)
-        try:
-            self.generic_visit(node)
-        finally:
-            self._function_stack.pop()
-            self._function_depth -= 1
-            if entered:
-                self._exit_input()
+        self._visit_function(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._visit_function(node)
+
+    def _visit_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         if len(self._class_stack) == 1 and self._function_depth == 0:
             self._check_S021(node)
             self._check_S022(node)
-        entered = self._enter_input(node)
+        ctx = self._new_input_ctx(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
+        pushed = False
         try:
-            self.generic_visit(node)
+            # decorators, defaults and annotations run outside the function body, so they're
+            # visited before its ctx is pushed, so reads and calls in @extend_schema(...) don't count as the function's
+            for decorator in node.decorator_list:
+                self.visit(decorator)
+            self.visit(node.args)
+            if node.returns is not None:
+                self.visit(node.returns)
+            for type_param in node.type_params:
+                self.visit(type_param)
+            if ctx is not None:
+                self._input_stack.append(ctx)
+                pushed = True
+            for statement in node.body:
+                self.visit(statement)
         finally:
             self._function_stack.pop()
             self._function_depth -= 1
-            if entered:
-                self._exit_input()
+            if pushed and ctx is not None:
+                self._input_stack.pop()
+                self._functions[ctx.scope] = ctx
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
         self._function_depth += 1
@@ -1451,23 +1472,45 @@ class SentryVisitor(ast.NodeVisitor):
                 ctx.record_read(node.slice, source, node)
         self.generic_visit(node)
 
-    def _enter_input(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-        """Push an accumulator for a PUBLIC HTTP method on an endpoint class."""
-        if len(self._class_stack) != 1 or self._function_depth != 0:
-            return False
-        if not self._publish_status or node.name not in HTTP_METHODS:
-            return False
-        if self._publish_status.get(node.name.upper()) != "PUBLIC":
-            return False
-        decorators = self._class_decorators + node.decorator_list
-        self._input_stack.append(
-            _InputCtx(
-                f"{self._class_stack[-1]}.{node.name}",
-                _declared_names(decorators, "parameters"),
-                _declared_names(decorators, "request"),
-            )
+    def _new_input_ctx(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> _InputCtx | None:
+        """Build the accumulator for a top-level function or a method of a top-level class, else None.
+
+        Only PUBLIC HTTP methods are reported. The others are stored too, so calls into
+        them can be followed. The caller pushes it onto _input_stack once the decorators
+        and arguments have been visited.
+        """
+        if self._function_depth != 0:
+            return None
+
+        if not self._class_stack:
+            ctx = _InputCtx(node.name, set(), set(), is_public=False)
+            return ctx
+
+        if len(self._class_stack) != 1:
+            return None
+
+        is_public = bool(
+            self._publish_status
+            and node.name in HTTP_METHODS
+            and self._publish_status.get(node.name.upper()) == "PUBLIC"
         )
-        return True
+
+        declared_params: set[str] = set()
+        declared_body: set[str] = set()
+
+        if is_public:
+            decorators = self._class_decorators + node.decorator_list
+            declared_params = _declared_names(decorators, "parameters")
+            declared_body = _declared_names(decorators, "request")
+
+        ctx = _InputCtx(
+            f"{self._class_stack[-1]}.{node.name}",
+            declared_params,
+            declared_body,
+            is_public=is_public,
+            class_name=self._class_stack[-1],
+        )
+        return ctx
 
     def _record_input_call(self, node: ast.Call) -> None:
         """A `.get()` read, or the whole dict handed to something else."""
@@ -1547,29 +1590,32 @@ class SentryVisitor(ast.NodeVisitor):
         if enforced or os.environ.get(INPUT_LINT_ALL_ENV):
             self.errors.append((start_end.line, start_end.column, msg))
 
-    def _exit_input(self) -> None:
-        ctx = self._input_stack.pop()
-        for start_end, name in ctx.query_validators:
-            if name not in ctx.declared_params:
-                msg = S025_query_msg.format(name)
-                self._report_input(
-                    ctx, start_end, msg, "declared", name, "query string", ApiRule.S025
-                )
-        for start_end, name in ctx.body_validators:
-            if name not in ctx.declared_body:
-                msg = S025_body_msg.format(name)
-                self._report_input(
-                    ctx, start_end, msg, "declared", name, "request body", ApiRule.S025
-                )
-        for start_end, key, source in ctx.literal_reads:
-            msg = S026_msg.format(repr(key), source)
-            self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S026)
-        for start_end, key, source in ctx.computed_reads:
-            msg = S027_msg.format(source, key)
-            self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S027)
-        for start_end, callee, source in ctx.hand_offs:
-            msg = S028_msg.format(source, callee)
-            self._report_input(ctx, start_end, msg, "shaped", callee, source, ApiRule.S028)
+    def _report_public_inputs(self) -> None:
+        """Report input reads and hand-offs for each public endpoint method after traversing through the complete file"""
+        for ctx in self._functions.values():
+            if not ctx.is_public:
+                continue
+            for start_end, name in ctx.query_validators:
+                if name not in ctx.declared_params:
+                    msg = S025_query_msg.format(name)
+                    self._report_input(
+                        ctx, start_end, msg, "declared", name, "query string", ApiRule.S025
+                    )
+            for start_end, name in ctx.body_validators:
+                if name not in ctx.declared_body:
+                    msg = S025_body_msg.format(name)
+                    self._report_input(
+                        ctx, start_end, msg, "declared", name, "request body", ApiRule.S025
+                    )
+            for start_end, key, source in ctx.literal_reads:
+                msg = S026_msg.format(repr(key), source)
+                self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S026)
+            for start_end, key, source in ctx.computed_reads:
+                msg = S027_msg.format(source, key)
+                self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S027)
+            for start_end, callee, source in ctx.hand_offs:
+                msg = S028_msg.format(source, callee)
+                self._report_input(ctx, start_end, msg, "shaped", callee, source, ApiRule.S028)
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
