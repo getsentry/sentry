@@ -12,24 +12,16 @@ import type {
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
 import {parseFilePatch} from 'sentry/views/seerWorkflows/overview/filePatch';
-
-interface PullRequestFile {
-  /** Hunks only, without `---`/`+++` headers. Null for binary or very large files. */
-  patch: string | null;
-  path: string;
-  previousPath: string | null;
-  status: string;
-}
-
-interface PullRequestFilesResponse {
-  files: PullRequestFile[];
-}
+import type {
+  PullRequestFileDiff,
+  PullRequestFilesResponse,
+} from 'sentry/views/seerWorkflows/overview/types';
 
 export type PullRequestPatches =
   /** Seer has edits it hasn't pushed yet, so the PR's diff is about to change. */
   | {status: 'pushing'}
   | {status: 'pending'}
-  | {status: 'error'}
+  | {prUrl: string | null; status: 'error'}
   | {
       patches: ExplorerFilePatch[];
       /** The last push failed, so the PR is missing Seer's latest edits. */
@@ -46,7 +38,7 @@ const CHANGE_TYPE_BY_STATUS: Record<string, PullRequestFileChangeType> = {
   renamed: 'RENAMED',
 };
 
-function toFilePatch(file: PullRequestFile, repoName: string): ExplorerFilePatch {
+function toFilePatch(file: PullRequestFileDiff, repoName: string): ExplorerFilePatch {
   const patch = parseFilePatch({
     path: file.path,
     patch: file.patch,
@@ -71,28 +63,21 @@ function toFilePatch(file: PullRequestFile, repoName: string): ExplorerFilePatch
   };
 }
 
-/** A block's value for `key`, on the block (classic tools) or a tool result (Code Mode). */
-function blockValues(block: Block, key: 'file_patches' | 'pr_commit_shas'): unknown[] {
-  const values: unknown[] = [block[key]];
-  for (const result of block.tool_results ?? []) {
-    const structured = result?.structuredContent as Record<string, unknown> | undefined;
-    values.push(structured?.[key]);
-  }
-  return values.filter(Boolean);
-}
-
 /** Whether the run edited `repoName` after its last push there. */
 function hasUnpushedEdits(blocks: Block[], repoName: string): boolean {
   let lastPush = -1;
   let lastEdit = -1;
   blocks.forEach((block, index) => {
-    for (const shas of blockValues(block, 'pr_commit_shas')) {
-      if ((shas as Record<string, string>)[repoName]) {
+    // Classic tools report on the block; Code Mode reports inside tool results.
+    const values = [
+      block,
+      ...(block.tool_results ?? []).map(result => result?.structuredContent),
+    ];
+    for (const value of values) {
+      if (value?.pr_commit_shas?.[repoName]) {
         lastPush = index;
       }
-    }
-    for (const patches of blockValues(block, 'file_patches')) {
-      if ((patches as Array<{repo_name: string}>).some(p => p.repo_name === repoName)) {
+      if (value?.file_patches?.some(patch => patch.repo_name === repoName)) {
         lastEdit = index;
       }
     }
@@ -113,7 +98,7 @@ export function isPushingToPullRequest(
     return true;
   }
   return (
-    runState?.status !== 'processing' &&
+    runState?.status === 'completed' &&
     defined(state.pr_number) &&
     state.pr_creation_status !== 'error' &&
     hasUnpushedEdits(runState?.blocks ?? [], state.repo_name)
@@ -192,8 +177,6 @@ export function usePullRequestPatches({
       const result = results[index];
       if (pushing.has(state.repo_name)) {
         patches.set(state.repo_name, {status: 'pushing'});
-      } else if (result?.isError) {
-        patches.set(state.repo_name, {status: 'error'});
       } else if (result?.data) {
         patches.set(state.repo_name, {
           status: 'success',
@@ -203,6 +186,8 @@ export function usePullRequestPatches({
             .map(file => toFilePatch(file, state.repo_name))
             .filter(file => file.patch.hunks.length > 0),
         });
+      } else if (result?.isError) {
+        patches.set(state.repo_name, {status: 'error', prUrl: state.pr_url});
       } else {
         patches.set(state.repo_name, {status: 'pending'});
       }
