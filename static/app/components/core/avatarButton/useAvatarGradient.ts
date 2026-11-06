@@ -52,18 +52,28 @@ function capLightness(avatarColor: string, ceiling: string): string {
   return toHex(linear.map(c => c * factor) as Rgb);
 }
 
+// Matches the threshold `dominantColor` uses to tell colored pixels from gray.
+const MIN_SATURATION = 0.15;
+
+// Black, white and gray logos sample as a gray, which says nothing about the
+// brand and would turn the header black.
+function isNeutral(hex: string): boolean {
+  const channels = color(hex).rgb().array();
+  return (Math.max(...channels) - Math.min(...channels)) / 255 < MIN_SATURATION;
+}
+
 /**
  * A gradient in the avatar's color, each stop no lighter than the matching
  * stop of `defaultGradient`, so text that reads on the default gradient still
  * reads on this one. Returns `defaultGradient` while the avatar has no usable
- * color, for example while an image avatar is still being sampled.
+ * color: an image avatar still being sampled, or a neutral (gray) logo.
  */
 export function useAvatarGradient(
   avatar: BaseAvatarProps | undefined,
   defaultGradient: Gradient
 ): Gradient {
   const avatarColors = useAvatarColors(avatar);
-  if (avatarColors.type === 'none') {
+  if (avatarColors.type === 'none' || isNeutral(avatarColors.dominant)) {
     return defaultGradient;
   }
   return {
