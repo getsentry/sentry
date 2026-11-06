@@ -5,7 +5,10 @@ from uuid import UUID
 
 from sentry.issues.action_log import ActionSource, publish_action
 from sentry.issues.action_log.types import ImpactAssessmentAction
-from sentry.issues.impact.types import IMPACT_FEATURE_ID, SeerImpactAssessmentResponse
+from sentry.issues.impact.types import (
+    IMPACT_FEATURE_ID,
+    SeerImpactAssessmentResponse,
+)
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group
 from sentry.seer.agent.types import FeatureRunStatus
@@ -45,6 +48,9 @@ def deliver_impact_assessment(
     try:
         assessment = SeerImpactAssessmentResponse.parse_obj(result)
         source_event_id = str(agent_run.extras["source_event_id"])
+        available_references = set(agent_run.extras["available_citation_references"])
+        if any(citation.reference not in available_references for citation in assessment.citations):
+            raise ValueError("Seer returned an unavailable Impact citation")
     except (KeyError, TypeError, ValueError):
         logger.exception("impact.delivery.invalid_result", extra=log_extra)
         return
