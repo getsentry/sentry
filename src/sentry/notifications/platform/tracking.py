@@ -12,6 +12,7 @@ from django.conf import settings
 from sentry import analytics, options
 from sentry.analytics.events.notification_tracking import (
     NotificationTrackingEngagementEvent,
+    NotificationTrackingLinksAddedEvent,
     NotificationTrackingSentEvent,
 )
 from sentry.integrations.types import ExternalProviderEnum
@@ -318,6 +319,40 @@ def record_sent(context: NotificationTrackingContext, *, links: Collection[str] 
     except Exception:
         logger.exception(
             "notifications.tracking.record_sent.failed",
+            extra={"source": context.source, "provider": context.provider},
+        )
+
+
+def record_links_added(context: NotificationTrackingContext, *, links: Collection[str]) -> None:
+    """
+    Record links and buttons that editing an already-sent notification added to it, so they count
+    toward the per-link denominator. Doesn't count another send. Nothing is recorded when `links`
+    is empty.
+    """
+    try:
+        if not is_tracking_enabled(context.source, context.provider):
+            return
+
+        links = sorted(set(links))
+        if not links:
+            return
+        tags = _get_tags(context)
+        for link in links:
+            _incr("notifications.tracking.link_sent", {**tags, "link": link})
+
+        analytics.record(
+            NotificationTrackingLinksAddedEvent(
+                organization_id=context.organization_id,
+                notification_uuid=context.notification_uuid,
+                source=context.source,
+                category=context.category,
+                provider=context.provider,
+                links=links,
+            )
+        )
+    except Exception:
+        logger.exception(
+            "notifications.tracking.record_links_added.failed",
             extra={"source": context.source, "provider": context.provider},
         )
 

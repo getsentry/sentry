@@ -199,12 +199,13 @@ def _send_agent_write_approval(
             extra={"integration_id": integration_id, "organization_id": organization_id},
         )
         return None
-    return send_thread_update(
+    sent = send_thread_update(
         install=SlackIntegration(model=integration, organization_id=organization_id),
         thread=thread,
         data=data,
         ephemeral_user_id=slack_user_id,
     )
+    return sent.message_ts if sent else None
 
 
 MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
@@ -707,12 +708,14 @@ class SlackAgentEntrypoint(
             )
         if next_reply:
             key, data = next_reply
-            message_ts = send_thread_update(install=install, thread=thread, data=data)
-            if message_ts:
-                reply = SlackSeerAgentReply(message_ts=message_ts)
+            sent = send_thread_update(install=install, thread=thread, data=data)
+            if sent:
+                reply = SlackSeerAgentReply(message_ts=sent.message_ts)
                 if isinstance(data, SeerAgentResponse):
                     reply["pr_status_hash"] = _hash_pr_status(data.repo_pr_states)
                     reply["missing_scope_settings_url"] = data.missing_scope_settings_url
+                    reply["notification_uuid"] = data.notification_uuid
+                    reply["links"] = sorted(sent.links)
                 SlackSeerAgentReplyCache.set(run_id=run_id, key=key, reply=reply)
             else:
                 # send_thread_update records why as a halt and doesn't raise, so this refresh isn't
@@ -748,26 +751,34 @@ class SlackAgentEntrypoint(
             status_hash = _hash_pr_status(prs)
             if status_hash == posted["pr_status_hash"]:
                 continue
+            edited_data = SeerAgentResponse(
+                run_id=state.run_id,
+                organization_id=organization_id,
+                summary=answer.message.content or "",
+                repo_pr_states=prs,
+                missing_scope_settings_url=posted.get("missing_scope_settings_url"),
+            )
+            if "notification_uuid" in posted:
+                edited_data = edited_data.copy(
+                    update={"notification_uuid": posted["notification_uuid"]}
+                )
             try:
-                edit_thread_message(
+                links = edit_thread_message(
                     install=install,
                     channel_id=thread["channel_id"],
                     message_ts=posted["message_ts"],
-                    data=SeerAgentResponse(
-                        run_id=state.run_id,
-                        organization_id=organization_id,
-                        summary=answer.message.content or "",
-                        repo_pr_states=prs,
-                        missing_scope_settings_url=posted.get("missing_scope_settings_url"),
-                    ),
+                    data=edited_data,
+                    sent_links=posted.get("links"),
                 )
             except IntegrationError as e:
                 # Keep editing the other answers, then raise so the refresh retries this one.
                 edit_error = edit_error or e
                 continue
-            SlackSeerAgentReplyCache.set(
-                run_id=run_id, key=answer.id, reply={**posted, "pr_status_hash": status_hash}
-            )
+            edited: SlackSeerAgentReply = {**posted, "pr_status_hash": status_hash}
+            if links is not None:
+                edited["notification_uuid"] = edited_data.notification_uuid
+                edited["links"] = sorted(links)
+            SlackSeerAgentReplyCache.set(run_id=run_id, key=answer.id, reply=edited)
         if edit_error:
             raise edit_error
 
@@ -1086,7 +1097,7 @@ class SlackInvestigationEntrypoint(
             if data is None:
                 return True
             try:
-                message_ts = send_thread_update(
+                sent = send_thread_update(
                     install=install,
                     thread=SlackThreadDetails(
                         thread_ts=cache_payload["thread_ts"], channel_id=cache_payload["channel_id"]
@@ -1096,7 +1107,7 @@ class SlackInvestigationEntrypoint(
             except IntegrationError as e:
                 lifecycle.record_halt(halt_reason=e)
                 return False
-            if message_ts is None:
+            if sent is None:
                 lifecycle.record_halt(halt_reason="conclusion_not_sent")
                 return False
             return True
