@@ -41,6 +41,6 @@ The Discover, Explore saved-query, dashboard, and preprod install headers are us
 
 `BreadcrumbList` renders an `<ol>` without a navigation landmark. Preserve any landmark required by callers outside TopBar; do not migrate them solely to lower the importer count.
 
-Drawers and panels use `DrawerBreadcrumbs` from `static/app/components/events/eventDrawer.tsx`. It wraps `BreadcrumbList` and `BreadcrumbList.Current` (no heading) in a `<nav>`. Only parents with a destination become `items`; context without one, such as the event ID, goes in the current item's `labelTooltip`.
+Drawers and panels use `DrawerBreadcrumbs` from `static/app/components/events/eventDrawer.tsx`. It renders an optional parent `BreadcrumbList` and a heading-free `BreadcrumbList.Current` inside a `<nav>`. Only navigable parents become `items`. Supporting context, such as the event ID in event drawers, can go in the current item’s `labelTooltip`.
 
 Settings routes each contribute one parent item through `handle.settingsBreadcrumb`, including full destination templates and selector switching destinations. Pathless routes share common parents. `SettingsBreadcrumbsProvider` collects entries from all matched routes in order and supplies resolved parent items through downward-only context. `BreadcrumbTitle` combines these with the page's title and additional items. Every Settings page still owns its title through `BreadcrumbTitle` or `SettingsPageHeader`; layouts do not register titles or render a fallback.
