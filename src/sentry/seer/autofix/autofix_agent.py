@@ -562,7 +562,11 @@ def trigger_autofix_agent(
         )
 
 
-def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRunState | None:
+def get_autofix_agent_state(
+    organization: Organization,
+    group_id: int,
+    sources: tuple[str, ...] = (FEATURE_ID, SINGLE_RUN_FEATURE_ID),
+) -> SeerRunState | None:
     """
     Get the current state of an agent-based autofix run for a group.
 
@@ -575,9 +579,7 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
         category_key=FEATURE_ID,
         category_value=str(group_id),
     )
-    return client.fetch_latest_run_state(
-        group_id=group_id, sources=(FEATURE_ID, SINGLE_RUN_FEATURE_ID)
-    )
+    return client.fetch_latest_run_state(group_id=group_id, sources=sources)
 
 
 def generate_autofix_handoff_prompt(
