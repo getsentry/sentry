@@ -5,12 +5,11 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from './constants';
 
 /**
- * The three possible states of the secondary navigation sidebar:
- * - 'expanded': Sidebar is always visible (user preference)
- * - 'collapsed': Sidebar is hidden (user preference, persisted)
- * - 'peek': Sidebar is temporarily visible via hover/focus while collapsed
+ * The two possible states of the secondary navigation sidebar, persisted:
+ * - 'expanded': Sidebar is open. Opened by clicking a primary nav item.
+ * - 'collapsed': Sidebar is closed. Closed with the sidebar's close button.
  */
-type SecondaryNavState = 'expanded' | 'collapsed' | 'peek';
+type SecondaryNavState = 'expanded' | 'collapsed';
 
 interface SecondaryNavigationContext {
   setView: (view: SecondaryNavState) => void;
@@ -47,9 +46,7 @@ export function SecondaryNavigationContextProvider(
   const setView = useCallback(
     (nextView: SecondaryNavState) => {
       setViewState(nextView);
-      if (nextView !== 'peek') {
-        setIsCollapsedPersisted(nextView === 'collapsed');
-      }
+      setIsCollapsedPersisted(nextView === 'collapsed');
     },
     [setIsCollapsedPersisted]
   );
@@ -70,8 +67,7 @@ export function SecondaryNavigationContextProvider(
 
 /**
  * Mobile-only secondary navigation context provider. Unlike the desktop
- * provider, state is stored entirely in memory (no localStorage) and only
- * supports 'expanded' | 'collapsed' — mobile has no hover-based 'peek' state.
+ * provider, state is stored entirely in memory (no localStorage).
  *
  * Rendering the mobile navigation tree inside this provider ensures mobile
  * open/close interactions never bleed into the desktop navigation's persisted
@@ -80,15 +76,9 @@ export function SecondaryNavigationContextProvider(
 export function MobileSecondaryNavigationContextProvider(
   props: SecondaryNavigationContextProviderProps
 ) {
-  const [view, setViewState] = useState<'expanded' | 'collapsed'>('expanded');
+  const [view, setView] = useState<SecondaryNavState>('expanded');
 
-  const setView = useCallback((nextView: SecondaryNavState) => {
-    if (nextView !== 'peek') {
-      setViewState(nextView);
-    }
-  }, []);
-
-  const value = useMemo(() => ({view, setView}), [view, setView]);
+  const value = useMemo(() => ({view, setView}), [view]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>

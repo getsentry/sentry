@@ -26,12 +26,18 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
 
 type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
 
+export function hasSecondaryNavigation(group: NavigationGroup): boolean {
+  return group !== 'inbox';
+}
+
 const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
   group: NavigationGroup;
   pattern: RegExp;
   /** Only apply the override when the organization lacks this feature */
   unlessFeature?: string;
 }> = [
+  // The Issues inbox is promoted to its own primary nav item.
+  {group: 'inbox', pattern: /(?:^|\/)issues\/inbox(?:\/|$)/},
   // Seer pages linked from Explore until the Seer primary nav ships.
   {
     group: 'explore',
@@ -49,12 +55,15 @@ interface PrimaryNavigationContext {
   activeGroup: NavigationGroup;
   features: PrimaryNavigationFeatures;
   layout: 'mobile' | 'sidebar';
+  /** The group that owns the current route, ignoring `setActiveGroup` overrides. */
+  routeGroup: NavigationGroup;
   setActiveGroup: (group: NavigationGroup | null) => void;
 }
 
 const PrimaryNavigationContext = createContext<PrimaryNavigationContext>({
   layout: 'sidebar',
   activeGroup: 'issues',
+  routeGroup: 'issues',
   features: {hover: true},
   setActiveGroup: () => {},
 });
@@ -109,6 +118,7 @@ export function PrimaryNavigationContextProvider(
       layout: isMobile ? ('mobile' as const) : ('sidebar' as const),
       features: {hover: hasHover},
       activeGroup: activeGroupOverrideForRoute ?? activeRouteGroup,
+      routeGroup: activeRouteGroup,
       setActiveGroup,
     }),
     [isMobile, hasHover, activeGroupOverrideForRoute, activeRouteGroup, setActiveGroup]

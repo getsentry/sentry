@@ -4,7 +4,6 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useInboxIssueCount} from 'sentry/views/issueList/pages/inbox/useInboxIssueCount';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -12,25 +11,6 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {IssueViews} from './issueViews/issueViews';
-import {IssueCount} from './issueCount';
-
-function InboxCountBadgeImpl() {
-  const {data: count} = useInboxIssueCount();
-
-  // Only mounted when the Inbox link itself is shown, so this is the one
-  // place that knows the live count without firing the request for every
-  // user regardless of Inbox access. Registered as its own node (rather than
-  // writing into the parent section's data) so it doesn't clobber the
-  // section-level useLLMContext call above it.
-  useLLMContext({
-    contextHint: 'The live issue count shown on the Issues nav Inbox link.',
-    inboxCount: count ?? null,
-  });
-
-  return count === undefined ? null : <IssueCount count={count} />;
-}
-
-const InboxCountBadge = registerLLMContext('navigation', InboxCountBadgeImpl);
 
 function IssuesSecondaryNavigationImpl() {
   const settingsV3 = useSettingsV3();
@@ -48,12 +28,10 @@ function IssuesSecondaryNavigationImpl() {
 
   useLLMContext({
     contextHint:
-      'The Issues secondary nav panel — feed/inbox, issue type shortcuts (each ' +
+      'The Issues secondary nav panel — feed, issue type shortcuts (each ' +
       "may carry a beta/new/alpha badge), and the user's starred issue views " +
       '(a nested "issues-starred-views" node holds those, each with its own ' +
-      'live issue count as a further-nested child). When present, a nested ' +
-      '"Inbox" child node reports the live inbox count.',
-    hasInbox: hasIssueInbox,
+      'live issue count as a further-nested child).',
     hasAutofixSection,
     hasAutofixOverview: hasSeerNightShift,
     issueTypes: visibleIssueTypes.map(({key, label, badge}) => ({key, label, badge})),
@@ -76,24 +54,6 @@ function IssuesSecondaryNavigationImpl() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            {hasIssueInbox && (
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/inbox/`}
-                  end
-                  analyticsItemName="issues_inbox"
-                  leadingItems={settingsV3 ? <FeatureBadge type="new" /> : null}
-                  trailingItems={
-                    <Fragment>
-                      <InboxCountBadge />
-                      {settingsV3 ? null : <FeatureBadge type="new" />}
-                    </Fragment>
-                  }
-                >
-                  {t('Inbox')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />

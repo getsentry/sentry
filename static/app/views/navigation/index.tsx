@@ -24,7 +24,6 @@ import {
   useSecondaryNavigation,
 } from './secondaryNavigationContext';
 import {SettingsNavigationTourProvider} from './settingsNavigationTour';
-import {useResetActiveNavigationGroup} from './useResetActiveNavigationGroup';
 import {useTopOffset} from './useTopOffset';
 
 /**
@@ -99,7 +98,6 @@ function NavigationLayout({
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
-  const hoverProps = useResetActiveNavigationGroup();
   const {barTop} = useTopOffset();
 
   return (
@@ -121,7 +119,6 @@ function NavigationLayout({
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
       }}
-      {...hoverProps}
     >
       {children}
     </Flex>
