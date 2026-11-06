@@ -34,6 +34,13 @@ describe('storyRoute', () => {
     ],
     // use* hooks are lowercased like any other name
     ['app/utils/useFoo.stories.tsx', 'product/utils/usefoo'],
+    // gsApp stories nest like product stories under their own category
+    [
+      'gsApp/components/upsellModal/upsellModal.stories.tsx',
+      'gsApp/components/upsellmodal/upsellmodal',
+    ],
+    // gsApp's components/core is not the design system
+    ['gsApp/components/core/foo.stories.tsx', 'gsApp/components/core/foo'],
   ];
 
   for (const [filesystemPath, expected] of cases) {
@@ -178,6 +185,31 @@ describe('syncStoriesPreviewComment', () => {
     });
     assert.equal(calls.create.length, 1);
     assert.equal(calls.create[0].issue_number, 42);
+  });
+
+  it('links a changed gsApp story', async () => {
+    const calls = await run({
+      files: [
+        {
+          filename: 'static/gsApp/components/upsellModal/upsellModal.stories.tsx',
+          status: 'modified',
+        },
+      ],
+    });
+    assert.equal(calls.create.length, 1);
+    assert.match(
+      calls.create[0].body!,
+      /stories\/gsApp\/components\/upsellmodal\/upsellmodal\//
+    );
+  });
+
+  it('does not link gsAdmin stories', async () => {
+    const calls = await run({
+      files: [
+        {filename: 'static/gsAdmin/components/foo.stories.tsx', status: 'modified'},
+      ],
+    });
+    assert.deepEqual(calls, {create: [], update: [], delete: []});
   });
 
   it('escapes markdown brackets in story file labels', async () => {

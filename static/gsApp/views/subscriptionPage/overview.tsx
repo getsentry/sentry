@@ -1,4 +1,5 @@
 import {Fragment, useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -7,8 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
@@ -44,15 +44,11 @@ function Overview({subscription}: Props) {
     refetch: refetchUsage,
     isPending,
     isError,
-  } = useApiQuery<CustomerUsage>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/usage/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<CustomerUsage>()('/customers/$organizationIdOrSlug/usage/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: 60_000,
-    }
+    })
   );
 
   useEffect(() => {

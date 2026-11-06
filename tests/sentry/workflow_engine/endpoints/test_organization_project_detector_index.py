@@ -173,10 +173,7 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
                     },
                 ],
             },
-            "config": {
-                "thresholdPeriod": 1,
-                "detectionType": AlertRuleDetectionType.STATIC.value,
-            },
+            "config": {"detectionType": AlertRuleDetectionType.STATIC.value},
             "workflowIds": [self.connected_workflow.id],
         }
 
@@ -247,7 +244,10 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
 
     def test_invalid_comparison_delta(self) -> None:
         data = {**self.valid_data}
-        data["config"]["comparisonDelta"] = 0
+        data["config"] = {
+            "detectionType": AlertRuleDetectionType.PERCENT.value,
+            "comparisonDelta": 0,
+        }
 
         response = self.get_error_response(
             self.organization.slug,
@@ -281,6 +281,25 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             status_code=201,
         )
         assert response.data["config"]["comparisonDelta"] == 300
+
+    def test_percent_type_without_comparison_delta(self) -> None:
+        data = {
+            **self.valid_data,
+            "config": {"detectionType": AlertRuleDetectionType.PERCENT.value},
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"] == [
+            ErrorDetail(
+                string="`comparisonDelta` is required when `detectionType` is 'percent'.",
+                code="invalid",
+            )
+        ]
 
     def test_invalid_group_type(self) -> None:
         data = {**self.valid_data, "type": "invalid_type"}

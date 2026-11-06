@@ -45,10 +45,7 @@ class TestDetectorSerializer(TestCase):
             "dataSources": None,
             "conditionGroup": None,
             "workflowIds": [],
-            "config": {
-                "thresholdPeriod": 1,
-                "detectionType": "static",
-            },
+            "config": {"detectionType": "static"},
             "owner": None,
             "enabled": detector.enabled,
             "alertRuleId": None,
@@ -172,10 +169,7 @@ class TestDetectorSerializer(TestCase):
                 ],
             },
             "workflowIds": [str(workflow.id)],
-            "config": {
-                "thresholdPeriod": 1,
-                "detectionType": "static",
-            },
+            "config": {"detectionType": "static"},
             "owner": {
                 "email": self.user.email,
                 "id": str(self.user.id),
@@ -214,7 +208,6 @@ class TestDetectorSerializer(TestCase):
             name="Migrated Detector",
             type=MetricIssue.slug,
             config={
-                "threshold_period": 1,
                 "detection_type": "static",
                 "comparison_delta": 3600,
             },
@@ -298,7 +291,7 @@ class TestDetectorSerializer(TestCase):
                         ],
                     },
                     "workflowIds": [],
-                    "config": {"thresholdPeriod": 1, "detectionType": "static"},
+                    "config": {"detectionType": "static"},
                     "owner": None,
                     "enabled": True,
                     "alertRuleId": None,

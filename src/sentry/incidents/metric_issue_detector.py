@@ -240,6 +240,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             self.validate_eap_rule(attrs)
             self._validate_metric_subscription_allowed(attrs)
 
+        if "config" in attrs:
+            self._validate_config(attrs["config"])
+
         return attrs
 
     def _validate_metric_subscription_allowed(self, attrs: dict[str, Any]) -> None:
@@ -272,6 +275,28 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         if extrapolation_mode in [ExtrapolationMode.SERVER_WEIGHTED, ExtrapolationMode.NONE]:
             raise serializers.ValidationError(
                 f"{extrapolation_mode.name.lower()} extrapolation mode is not supported for new detectors. Allowed modes are: client_and_server_weighted, unknown."
+            )
+
+    def _validate_config(self, config: Any) -> None:
+        if not isinstance(config, dict):
+            raise serializers.ValidationError({"config": ["`config` must be an object."]})
+
+        # Ensure that all percent-type detectors have a lookback (`comparison_delta`) value and that
+        # no other detector types do
+        detection_type = config.get("detection_type")
+        has_comparison_delta = config.get("comparison_delta") is not None
+        if detection_type == AlertRuleDetectionType.PERCENT and not has_comparison_delta:
+            raise serializers.ValidationError(
+                {"config": ["`comparisonDelta` is required when `detectionType` is 'percent'."]}
+            )
+        elif has_comparison_delta and detection_type != AlertRuleDetectionType.PERCENT:
+            raise serializers.ValidationError(
+                {
+                    "config": [
+                        "`comparisonDelta` can only be set when `detectionType` is 'percent',"
+                        + f" not '{detection_type}'."
+                    ]
+                }
             )
 
     def _get_resolution_for_window(
