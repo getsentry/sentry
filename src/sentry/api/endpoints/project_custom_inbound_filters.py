@@ -131,8 +131,8 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
     type = serializers.ChoiceField(
         choices=[condition_type.value for condition_type in ConditionType],
         help_text=(
-            "The field the condition matches against. Every `dataType` accepts `release` and "
-            "`ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
+            "The field the condition matches against. Every `dataType` accepts `release`, "
+            "`environment` and `ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
             "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
             "`metric_name`. `span` and `all` accept no other types."
         ),
