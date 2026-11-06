@@ -7,6 +7,7 @@ import {InfoText} from '@sentry/scraps/info';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -93,9 +94,7 @@ export default function OrganizationServiceAccounts() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const projectsById = new Map(projects.map(project => [project.id, project]));
-  // `service_account:*` isn't in the frontend's API_ACCESS_SCOPES yet, so <Access> can't
-  // check it.
-  const canCreate = new Set<string>(organization.access).has('service_account:write');
+  const canCreate = hasEveryAccess(['service_account:write'], {organization});
 
   const {
     data: serviceAccounts,
