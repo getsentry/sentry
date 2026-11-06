@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cursors import Cursor, CursorResult
@@ -151,6 +152,68 @@ class WorkflowGroupsPaginatedTest(TestCase):
                 ),
             ],
         )
+
+    def test_workflow_groups_paginated__without_group(self) -> None:
+        event_id = uuid4().hex
+        history = Factories.create_workflow_fire_history(workflow=self.workflow, event_id=event_id)
+        history.update(date_added=before_now(days=1))
+        notification_uuid = history.notification_uuid
+
+        result = self.assert_expected_results(
+            workflow=self.workflow,
+            start=before_now(days=6),
+            end=before_now(),
+            per_page=2,
+            expected_results=[
+                WorkflowGroupHistory(
+                    self.group,
+                    count=3,
+                    last_triggered=self.base_triggered_date,
+                    detector=self.detector_1,
+                ),
+                WorkflowGroupHistory(
+                    self.group_3,
+                    count=2,
+                    last_triggered=self.base_triggered_date,
+                    detector=self.detector_3,
+                ),
+            ],
+        )
+        assert result.next.has_results
+        result = self.assert_expected_results(
+            workflow=self.workflow,
+            start=before_now(days=6),
+            end=before_now(),
+            cursor=result.next,
+            per_page=2,
+            expected_results=[
+                WorkflowGroupHistory(
+                    self.group_2,
+                    count=1,
+                    last_triggered=self.base_triggered_date,
+                    detector=self.detector_2,
+                ),
+            ],
+        )
+        assert not result.next.has_results
+        history.refresh_from_db()
+        assert history.group is None
+        assert history.event_id == event_id
+        assert history.notification_uuid == notification_uuid
+        assert notification_uuid is not None
+
+    def test_workflow_groups_paginated__only_without_group(self) -> None:
+        workflow = self.create_workflow(organization=self.organization)
+        history = Factories.create_workflow_fire_history(workflow=workflow, group=None)
+        history.update(date_added=before_now(days=1))
+
+        result = self.assert_expected_results(
+            workflow=workflow,
+            start=before_now(days=6),
+            end=before_now(),
+            expected_results=[],
+        )
+        assert not result.next.has_results
 
     def test_workflow_groups_paginated__cursor(self) -> None:
         result = self.assert_expected_results(
