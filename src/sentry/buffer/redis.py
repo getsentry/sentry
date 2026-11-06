@@ -21,7 +21,6 @@ from sentry.utils.imports import import_string
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_redis_cluster,
-    is_instance_standalone_redis,
     validate_dynamic_cluster,
 )
 
@@ -426,41 +425,21 @@ class RedisBuffer(Buffer):
         )
 
         try:
-            keycount = 0
-            if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-                keys: list[str] = self.cluster.zrange(self.pending_key, 0, -1)
-                keycount += len(keys)
+            keys = [force_str(key) for key in self.cluster.zrange(self.pending_key, 0, -1)]
+            keycount = len(keys)
 
-                for key in keys:
-                    model_key = self._extract_model_from_key(key=key)
-                    pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
-                    pending_buffer.append(item=key)
-                    if pending_buffer.full():
-                        process_incr.apply_async(
-                            kwargs={"batch_keys": pending_buffer.flush()},
-                            headers={"sentry-propagate-traces": False},
-                        )
+            for key in keys:
+                model_key = self._extract_model_from_key(key=key)
+                pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
+                pending_buffer.append(item=key)
+                if pending_buffer.full():
+                    process_incr.apply_async(
+                        kwargs={"batch_keys": pending_buffer.flush()},
+                        headers={"sentry-propagate-traces": False},
+                    )
 
-                if keys:
-                    self.cluster.zrem(self.pending_key, *keys)
-
-            elif is_instance_standalone_redis(self.cluster, self.is_redis_cluster):
-                keysb = self.cluster.zrange(self.pending_key, 0, -1)
-                keycount += len(keysb)
-                for keyb in keysb:
-                    key = keyb.decode("utf-8")
-                    model_key = self._extract_model_from_key(key=key)
-                    pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
-                    pending_buffer.append(item=key)
-                    if pending_buffer.full():
-                        process_incr.apply_async(
-                            kwargs={"batch_keys": pending_buffer.flush()},
-                            headers={"sentry-propagate-traces": False},
-                        )
-                if keysb:
-                    self.cluster.zrem(self.pending_key, *keysb)
-            else:
-                raise AssertionError("unreachable")
+            if keys:
+                self.cluster.zrem(self.pending_key, *keys)
 
             # process any non-empty pending buffers
             for pending_buffer_value in pending_buffers_router.pending_buffers():
