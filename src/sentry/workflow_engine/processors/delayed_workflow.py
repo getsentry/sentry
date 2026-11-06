@@ -874,11 +874,7 @@ def fire_actions_for_groups(
                         for history in workflow_fire_histories
                     }
 
-                event_id = (
-                    workflow_event_data.event.event_id
-                    if isinstance(workflow_event_data.event, GroupEvent)
-                    else workflow_event_data.event.id
-                )
+                event_id = workflow_event_data.event_id
                 logger.debug(
                     "workflow_engine.delayed_workflow.triggered_actions",
                     extra={
@@ -886,7 +882,7 @@ def fire_actions_for_groups(
                             {wfh.workflow_id for wfh in workflow_fire_histories}
                         ),
                         "actions": [action.id for action in filtered_actions],
-                        "event_data": workflow_event_data,
+                        "group_id": workflow_event_data.group_id,
                         "event_id": event_id,
                     },
                 )

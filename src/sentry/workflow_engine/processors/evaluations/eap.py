@@ -87,6 +87,8 @@ _eap_producer = FutureTrackingProducer(
 def _workflow_event_attributes(evaluation: WorkflowEvaluation) -> dict[str, object]:
     event_data = evaluation.data["event"]
     event = event_data.event
+    if event_data.group is None:
+        return {}
     group_state: Mapping[str, object] = event_data.group_state or {}
 
     attributes: dict[str, object] = {
@@ -220,6 +222,10 @@ class EAPEmitter(EvaluationEmitter[dict[str, EAPAttributeValue]]):
         for serialized in evaluations:
             # EAP attributes can't be null; nulls are only stored inside JSON attributes.
             attributes = {key: value for key, value in serialized.items() if value is not None}
+            project_id = attributes.get("project_id")
+            if not isinstance(project_id, int):
+                continue
+
             if isinstance(result, ProcessWorkflowsResult):
                 workflow_id = attributes.get("workflow_id")
                 if isinstance(workflow_id, int):
@@ -232,10 +238,6 @@ class EAPEmitter(EvaluationEmitter[dict[str, EAPAttributeValue]]):
                             ).items()
                             if value is not None
                         )
-
-            project_id = attributes.get("project_id")
-            if not isinstance(project_id, int):
-                continue
 
             trace_item = _build_trace_item(
                 organization_id=organization.id,

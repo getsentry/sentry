@@ -1,8 +1,9 @@
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest import mock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from django.core.exceptions import ValidationError
 
@@ -51,6 +52,14 @@ try:
 except AlreadyRegisteredError:
     # Ensure "test" is mocked for tests, but don't fail if already registered here.
     pass
+
+
+@dataclass(frozen=True)
+class OrganizationEvent:
+    """Minimal source contract; concrete investigation payloads are implemented separately."""
+
+    organization_id: int
+    event_id: UUID
 
 
 class MockModel(Model):

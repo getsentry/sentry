@@ -6,13 +6,17 @@ from sentry_sdk import traces
 
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
-from sentry.workflow_engine.models.data_condition import is_slow_condition
+from sentry.workflow_engine.models.data_condition import (
+    Condition,
+    get_condition_handler,
+    is_slow_condition,
+)
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluation,
     DataConditionGroupEvaluation,
 )
-from sentry.workflow_engine.types import ConditionError
+from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
@@ -208,6 +212,19 @@ def process_data_condition_group(
         if data_conditions_for_group is None
         else data_conditions_for_group
     )
+    if isinstance(value, WorkflowEventData) and value.group is None:
+        # Reject the whole group before applying ANY/NONE logic or scheduling slow
+        # conditions: an unsupported condition is not a valid negative match.
+        for condition in all_conditions:
+            handler = get_condition_handler(Condition(condition.type))
+            if handler is None or not handler.supports_group_less:
+                return DataConditionGroupEvaluation(
+                    result=False,
+                    triggered=False,
+                    error=ConditionError(msg="Condition requires an issue group"),
+                    data={"condition_evaluations": [], "logic_type": logic_type},
+                ), []
+
     conditions = split_conditions_by_speed(all_conditions)
 
     if not conditions.fast and conditions.slow:

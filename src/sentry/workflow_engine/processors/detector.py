@@ -131,7 +131,7 @@ def _is_issue_stream_detector_enabled(event_data: WorkflowEventData) -> bool:
     """
     Check if the issue stream detector should be enabled for this event's group type.
     """
-    group_type_id = event_data.group.type
+    group_type_id = event_data.require_group().type
     disabled_type_ids = options.get("workflow_engine.group.type_id.disable_issue_stream_detector")
     if group_type_id not in disabled_type_ids:
         return True
@@ -142,7 +142,7 @@ def _is_issue_stream_detector_enabled(event_data: WorkflowEventData) -> bool:
     if group_type_id != MetricIssue.type_id:
         return False
 
-    organization = event_data.event.project.organization
+    organization = event_data.get_organization()
 
     disable_issue_stream_detector_for_metric_issues = features.has(
         "organizations:workflow-engine-metric-issue-disable-issue-detector-notifications",
@@ -164,6 +164,9 @@ def get_detectors_for_event_data(
 
     We expect a detector to be passed in for Activity updates.
     """
+    if event_data.group is None:
+        return None
+
     # NOTE: Order determines priority: project-scoped first, then fall back to all-projects
     issue_stream_detectors: list[Detector] = []
 
@@ -176,10 +179,13 @@ def get_detectors_for_event_data(
         metrics.incr("workflow_engine.detectors.error", tags={"detector_type": "issue_stream"})
         logger.exception(
             "Issue stream detector not found for event",
-            extra={"project_id": event_data.group.project_id, "group_id": event_data.group.id},
+            extra={
+                "project_id": event_data.group.project_id,
+                "group_id": event_data.group.id,
+            },
         )
 
-    organization_id = event_data.event.project.organization_id
+    organization_id = event_data.get_organization().id
     if in_rollout_group("workflow_engine.all_projects_detectors.rollout-rate", organization_id):
         all_projects_detector = get_all_projects_detector(organization_id)
         if all_projects_detector:
@@ -243,7 +249,7 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
                 raise Detector.DoesNotExist("No detectors found for event")
             return event_detectors.preferred_detector
         elif isinstance(event_data.event, Activity):
-            return _get_detector_for_group(event_data.group)
+            return _get_detector_for_group(event_data.require_group())
         else:
             raise TypeError(f"Cannot determine the detector from {type(event_data.event)}.")
     except Detector.DoesNotExist:
@@ -251,12 +257,8 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
             "Detector not found for event data",
             extra={
                 "type": type(event_data.event),
-                "id": (
-                    event_data.event.event_id
-                    if isinstance(event_data.event, GroupEvent)
-                    else event_data.event.id
-                ),
-                "group_id": event_data.group.id,
+                "id": event_data.event_id,
+                "group_id": event_data.require_group().id,
             },
         )
         raise
