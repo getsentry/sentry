@@ -710,6 +710,14 @@ _CONDITION_MATCHERS: Mapping[
     ConditionType.GEO_COUNTRY_CODE: {
         DataType.ERROR: _field_matcher("event.user.geo.country_code"),
     },
+    # Relay normalizes URL transaction names before it filters, so a pattern sees the
+    # name with high-cardinality segments replaced by `*`, as the health check filter does.
+    ConditionType.TRANSACTION: {
+        DataType.ERROR: _field_matcher("event.transaction"),
+        DataType.LOG: _field_matcher("log.attributes.sentry.segment.name.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.segment.name.value"),
+        DataType.SPAN: _field_matcher("span.attributes.sentry.segment.name.value"),
+    },
 }
 
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}

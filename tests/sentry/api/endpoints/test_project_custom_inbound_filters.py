@@ -380,7 +380,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]},
                 ],
                 "A filter on error data cannot use the log_message condition. "
-                "It accepts error_type, error_message, release, ip_address, geo_country_code.",
+                "It accepts error_type, error_message, release, ip_address, geo_country_code, transaction.",
             ),
             (
                 "log",
@@ -389,7 +389,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]},
                 ],
                 "A filter on log data cannot use the error_type condition. "
-                "It accepts log_message, release, ip_address.",
+                "It accepts log_message, release, ip_address, transaction.",
             ),
             (
                 "span",
@@ -398,7 +398,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "metric_name", "operator": "starts_with", "value": ["counter."]},
                 ],
                 "A filter on span data cannot use the metric_name condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, ip_address, transaction.",
             ),
             (
                 "all",
@@ -407,13 +407,13 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "error_message", "operator": "starts_with", "value": ["TypeError"]},
                 ],
                 "A filter on all data cannot use the error_message condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, ip_address, transaction.",
             ),
             (
                 "all",
                 [{"type": "geo_country_code", "operator": "equals", "value": ["US"]}],
                 "A filter on all data cannot use the geo_country_code condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, ip_address, transaction.",
             ),
         ]
 
@@ -1046,7 +1046,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on error data cannot use the log_message condition. "
-            "It accepts error_type, error_message, release, ip_address, geo_country_code."
+            "It accepts error_type, error_message, release, ip_address, geo_country_code, transaction."
         )
 
     def test_put_to_catch_all(self) -> None:
@@ -1108,7 +1108,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on all data cannot use the error_message condition. "
-            "It accepts release, ip_address."
+            "It accepts release, ip_address, transaction."
         )
         error_filter.refresh_from_db()
         assert error_filter.data_type == "error"

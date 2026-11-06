@@ -315,6 +315,14 @@ RELEASE_FIELDS = [
 ]
 
 
+TRANSACTION_FIELDS = [
+    "event.transaction",
+    "log.attributes.sentry.segment.name.value",
+    "trace_metric.attributes.sentry.segment.name.value",
+    "span.attributes.sentry.segment.name.value",
+]
+
+
 def release_rule_condition(values: list[str]) -> dict[str, object]:
     """The catch-all shape: the release field of every data type, combined with OR."""
     return {
@@ -650,6 +658,34 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 ],
             },
             id="ip_address_combines_with_item_conditions",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "transaction", "operator": "starts_with", "value": ["/manage/health"]}],
+            {"op": "glob", "name": "event.transaction", "value": ["/manage/health*"]},
+            id="transaction_reads_the_event_transaction",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "transaction", "value": ["*/actuator/health/*"]}],
+            {
+                "op": "glob",
+                "name": "span.attributes.sentry.segment.name.value",
+                "value": ["*/actuator/health/*"],
+            },
+            id="transaction_reads_the_span_segment_name",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "transaction", "operator": "contains", "value": ["health"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "glob", "name": name, "value": ["*health*"]}
+                    for name in TRANSACTION_FIELDS
+                ],
+            },
+            id="catch_all_transaction_reads_the_segment_name_of_every_data_type",
         ),
     ],
 )
