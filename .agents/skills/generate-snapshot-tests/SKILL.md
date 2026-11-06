@@ -146,24 +146,14 @@ Match container sizing to what makes the component readable:
 
 ### Responsive layout
 
-Responsive layout uses container responsive props (bare keys such as `{xs: 'column', md: 'row'}`), which resolve against the nearest query container. Render the component inside a `Container` with `containerType="inline-size"` and a fixed width on each side of the breakpoint. SSR does not measure containers, so also provide the matching `ContainerQueryContext` value for props that resolve in JavaScript:
+Responsive layout uses container responsive props (bare keys such as `{xs: 'column', md: 'row'}`). The snapshot harness already makes `body` an `inline-size` query container, so do not wrap the component in another one. The snapshot `viewport` option sets that container's width; snapshot one width on each side of the breakpoint:
 
 ```tsx
-import {Container, ContainerQueryContext} from '@sentry/scraps/layout';
-
-it.snapshot.each([
-  {width: '400px', breakpoint: '2xs'},
-  {width: '800px', breakpoint: 'xl'},
-] as const)('width $width', ({width, breakpoint}) => (
-  <Container containerType="inline-size" width={width}>
-    <ContainerQueryContext value={breakpoint}>
-      <Component {...props} />
-    </ContainerQueryContext>
-  </Container>
-));
+it.snapshot('stacked', () => <Component {...props} />, {viewport: 400});
+it.snapshot('side-by-side', () => <Component {...props} />, {viewport: 800});
 ```
 
-Use the snapshot `viewport` option only for viewport sizing that `@sentry/scraps/prefer-container-responsive-props` allows, such as modal and drawer dimensions. Do not add `viewport` cases for layout that should move to container queries.
+SSR does not measure containers, so props resolved in JavaScript (such as `Stack` `direction` or `useResponsivePropValue`) always see the `zero` breakpoint. Only when the component uses them, wrap it in `ContainerQueryContext` with the breakpoint that matches the width from `theme.container`, as `tagDetailsTable.snapshots.tsx` does.
 
 ### Interactive components
 
