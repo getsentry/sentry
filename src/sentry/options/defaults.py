@@ -813,14 +813,14 @@ register(
 
 register(
     "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
-    default=3600,
+    default=300,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
-    default=601,
+    default=1801,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3915,6 +3915,14 @@ register(
 
 register(
     "similarity.new_project_seer_grouping.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Use Seer embeddings similarity for every project. Off for self-hosted, which keeps the legacy
+# Redis index.
+register(
+    "similarity.seer_grouping.all_projects",
+    type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
