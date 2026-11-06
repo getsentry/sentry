@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
+import {useStore} from 'zustand';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -273,7 +274,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(ConfigStore);
 
   if (isLoading) {
     return <LoadingIndicator />;
