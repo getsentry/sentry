@@ -13,7 +13,9 @@ from sentry.seer.agent.client_models import (
     UsageAccumulator,
 )
 from sentry.seer.agent.client_utils import snapshot_to_markdown
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
+from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -421,6 +423,116 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             ui_tools=None,
             request=ANY,
         )
+
+    def _single_run(self, *, user_id: int, project: Any = None) -> SeerRun:
+        project = project or self.project
+        group = self.create_group(project=project)
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=901, user_id=user_id
+        )
+        self.create_seer_agent_run(
+            run=run, source=SINGLE_RUN_FEATURE_ID, group=group, project=project
+        )
+        return run
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_reply_to_single_run_uses_autofix_continue(
+        self, mock_client_class: MagicMock, mock_continue: MagicMock
+    ) -> None:
+        run = self._single_run(user_id=self.user.id)
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/",
+            {"query": "make a code fix", "insert_index": 4},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"run_id": 901, "sentry_run_id": str(run.uuid)}
+        args, kwargs = mock_continue.call_args
+        assert args[0].run == run
+        assert args[2] == "make a code fix"
+        assert kwargs["can_publish"] is True
+        mock_client_class.return_value.continue_run.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_reply_to_single_run_while_it_is_processing_is_409(
+        self, mock_client_class: MagicMock, mock_continue: MagicMock
+    ) -> None:
+        run = self._single_run(user_id=self.user.id)
+        mock_client_class.return_value.get_run.return_value.status = "processing"
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/", {"query": "make a code fix"}, format="json"
+        )
+
+        assert response.status_code == 409
+        assert response.data["code"] == "run_in_flight"
+        mock_continue.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_reply_to_single_run_with_no_seer_session_is_404(
+        self, mock_client_class: MagicMock, mock_continue: MagicMock
+    ) -> None:
+        run = self._single_run(user_id=self.user.id)
+        mock_client_class.return_value.get_run.side_effect = ValueError("No session")
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/", {"query": "make a code fix"}, format="json"
+        )
+
+        assert response.status_code == 404
+        mock_continue.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_reply_to_single_run_seer_does_not_know_is_404(
+        self, mock_client_class: MagicMock, mock_continue: MagicMock
+    ) -> None:
+        run = self._single_run(user_id=self.user.id)
+        mock_client_class.return_value.get_run.side_effect = SeerApiError("Not found", 404)
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/", {"query": "make a code fix"}, format="json"
+        )
+
+        assert response.status_code == 404
+        mock_continue.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
+    def test_reply_to_single_run_by_non_owner_is_403(self, mock_continue: MagicMock) -> None:
+        run = self._single_run(user_id=self.create_user().id)
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/", {"query": "hi"}, format="json"
+        )
+
+        assert response.status_code == 403
+        mock_continue.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
+    def test_reply_to_single_run_without_project_access_is_403(
+        self, mock_continue: MagicMock
+    ) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member", teams=[])
+        other_project = self.create_project(
+            teams=[self.create_team(organization=self.organization)]
+        )
+        run = self._single_run(user_id=member.id, project=other_project)
+        self.login_as(user=member)
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/", {"query": "make a fix"}, format="json"
+        )
+
+        assert response.status_code == 403
+        mock_continue.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_with_uuid_resolves_to_seer_run_state_id(
