@@ -1,5 +1,6 @@
 import os
 import zipfile
+from datetime import timedelta
 from io import BytesIO
 from unittest.mock import patch
 from uuid import uuid4
@@ -8,6 +9,7 @@ import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.response import Response
 from symbolic.debuginfo import Archive
 
@@ -167,6 +169,42 @@ class DebugFilesTest(DebugFilesTestCases):
         assert response.status_code == 200, response.content
         dsyms = response.data
         assert len(dsyms) == 20
+
+    def test_dsyms_lookup_by_id_renews_files(self) -> None:
+        old = timezone.now() - timedelta(days=60)
+        by_debug_id = self.create_dif_file(
+            debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75", code_id="ae0459704fc7256"
+        )
+        by_code_id = self.create_dif_file(
+            debug_id="a223507a-29b5-0f71-32d4-4901c2228311", code_id="658794f3a75293d1"
+        )
+        ProjectDebugFile.objects.filter(id__in=[by_debug_id.id, by_code_id.id]).update(
+            date_accessed=old
+        )
+
+        for query in ("debug_id=dfb8e43a-f242-3d73-a453-aeb6a777ef75", "code_id=658794f3a75293d1"):
+            response = self.client.get(f"{self.url}?{query}")
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 1
+
+        by_debug_id.refresh_from_db()
+        by_code_id.refresh_from_db()
+        assert by_debug_id.date_accessed > old
+        assert by_code_id.date_accessed > old
+
+    def test_dsyms_search_and_format_filter_do_not_renew(self) -> None:
+        old = timezone.now() - timedelta(days=60)
+        dif = self.create_dif_file(
+            debug_id="a223507a-29b5-0f71-32d4-4901c2228311", code_id="658794f3a75293d1"
+        )
+        ProjectDebugFile.objects.filter(id=dif.id).update(date_accessed=old)
+
+        for query in ("query=658794f3a75293d1", "code_id=658794f3a75293d1&file_formats=pe"):
+            response = self.client.get(f"{self.url}?{query}")
+            assert response.status_code == 200, response.content
+
+        dif.refresh_from_db()
+        assert dif.date_accessed == old
 
     def test_dsyms_debugid_codeid_full_match(self) -> None:
         self._do_test_dsyms_by_debugid_and_codeid(

@@ -13,7 +13,7 @@ import hashlib
 import hmac
 import logging
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, Protocol
 
 import orjson
@@ -139,7 +139,7 @@ class TeapotClient:
         self,
         dump: TeapotAttachment,
         shader_debug_info: Sequence[TeapotAttachment] | None = None,
-        shader_binaries: Sequence[dict[str, str]] | None = None,
+        sources: Sequence[Mapping[str, Any]] | None = None,
     ) -> dict[str, Any]:
         shader_debug_info = shader_debug_info or []
         url = f"{self.base_url}/symbolicate"
@@ -158,17 +158,16 @@ class TeapotClient:
                 for att in shader_debug_info
             ],
         }
-        request_id = self.event_id
-        if shader_binaries:
-            # Second round: a distinct id, or teapot's idempotency cache replays the first response.
-            body["shader_binaries"] = list(shader_binaries)
-            request_id = f"{self.event_id}-2"
+        if sources:
+            # Where teapot looks up the shader binaries the dump references, as for
+            # Symbolicator. Carries the system token; never log the body.
+            body["sources"] = list(sources)
         data = orjson.dumps(body)
         headers = {
             "X-Teapot-Version": "1",
-            "X-Request-Id": request_id,
+            "X-Request-Id": self.event_id,
             "Content-Type": "application/json",
-            "Idempotency-Key": request_id,
+            "Idempotency-Key": self.event_id,
             **_auth_headers(data),
         }
         return self._send(url, headers=headers, data=data)
@@ -232,7 +231,7 @@ def submit_to_teapot(
     event_id: str,
     dump: TeapotAttachment,
     shader_debug_info: Sequence[TeapotAttachment] | None = None,
-    shader_binaries: Sequence[dict[str, str]] | None = None,
+    sources: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     """Best-effort teapot invocation.
 
@@ -241,17 +240,12 @@ def submit_to_teapot(
     trip the circuit breaker. Raises ``TeapotUnavailable`` on a genuine outage
     (network, timeout, 5xx) so the caller can.
 
-    ``shader_binaries`` makes this the second round, with presigned URLs for the
-    shader binaries teapot reported missing.
+    ``sources`` tells teapot where to fetch the shader binaries itself.
     """
 
     try:
         client = TeapotClient(project=project, event_id=event_id)
-        return client.symbolicate(
-            dump,
-            shader_debug_info or [],
-            shader_binaries=shader_binaries,
-        )
+        return client.symbolicate(dump, shader_debug_info or [], sources=sources)
     except TeapotRequestError as e:
         logger.info("teapot.request_error", extra={"event_id": event_id, "error": str(e)})
         return None

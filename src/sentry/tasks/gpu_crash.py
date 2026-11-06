@@ -19,7 +19,7 @@ from sentry import options
 from sentry.ingest.event_payload import load_event_payload
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.gpu import apply_gpu_crash_symbolication
-from sentry.lang.native.shader_difs import resolve_shader_difs
+from sentry.lang.native.sources import get_internal_source
 from sentry.lang.native.teapot import TeapotAttachment, TeapotUnavailable, submit_to_teapot
 from sentry.lang.native.utils import (
     find_all_shader_debug_attachments,
@@ -143,11 +143,15 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
             metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "project_missing"})
             return False
 
-        teapot_dump = cast(TeapotAttachment, dump)
-        teapot_shaders = cast(Sequence[TeapotAttachment], shaders)
         try:
             with metrics.timer("tasks.gpu_crash.teapot"):
-                response = submit_to_teapot(project, event_id, teapot_dump, teapot_shaders)
+                response = submit_to_teapot(
+                    project,
+                    event_id,
+                    cast(TeapotAttachment, dump),
+                    cast(Sequence[TeapotAttachment], shaders),
+                    sources=[get_internal_source(project)],
+                )
         except TeapotUnavailable:
             # A genuine outage — feed the breaker so repeated failures trip it.
             breaker.record_error()
@@ -160,10 +164,6 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
             metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "request_error"})
             return False
         breaker.record_success()
-
-        response = _maybe_resolve_shader_difs(
-            project, event_id, teapot_dump, teapot_shaders, response
-        )
 
         applied = apply_gpu_crash_symbolication(data, response)
         metrics.incr(
@@ -181,50 +181,3 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
         )
         sentry_sdk.capture_exception(e)
         return False
-
-
-def _maybe_resolve_shader_difs(
-    project: Project,
-    event_id: str,
-    dump: TeapotAttachment,
-    shaders: Sequence[TeapotAttachment],
-    response: dict[str, Any],
-) -> dict[str, Any]:
-    """Second teapot round with presigned URLs for the shader DIFs it reported missing.
-    Best-effort: any failure keeps the first response and does not touch the breaker."""
-    if response.get("status") != "partial":
-        return response
-
-    try:
-        difs = resolve_shader_difs(project, response)
-        if not difs:
-            metrics.incr("tasks.gpu_crash.shader_difs", tags={"result": "unresolved"})
-            return response
-        with metrics.timer("tasks.gpu_crash.teapot_shader_difs"):
-            second = submit_to_teapot(
-                project,
-                event_id,
-                dump,
-                shaders,
-                shader_binaries=difs,
-            )
-    except TeapotUnavailable:
-        metrics.incr("tasks.gpu_crash.shader_difs", tags={"result": "unavailable"})
-        return response
-    except Exception as e:
-        metrics.incr("tasks.gpu_crash.shader_difs", tags={"result": "error"})
-        logger.warning(
-            "tasks.gpu_crash.shader_difs_error", extra={"event_id": event_id, "error": repr(e)}
-        )
-        sentry_sdk.capture_exception(e)
-        return response
-
-    if second is None:
-        metrics.incr("tasks.gpu_crash.shader_difs", tags={"result": "request_error"})
-        return response
-
-    metrics.incr(
-        "tasks.gpu_crash.shader_difs",
-        tags={"result": second.get("status") or "unknown"},
-    )
-    return second

@@ -540,6 +540,23 @@ def test_client_sends_presigned_urls(mock_objectstore: mock.Mock) -> None:
     }
 
 
+def test_client_sends_sources_only_when_given(mock_objectstore: mock.Mock) -> None:
+    source = {"type": "sentry", "id": "sentry:project", "url": "http://s/dsyms/", "token": "t"}
+    with (
+        _configured_teapot(),
+        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
+    ):
+        mock_post.return_value = _FakeResponse(200, _completed_response())
+        TeapotClient(_FakeProject(), "abc").symbolicate(_FakeAttachment(stored_id="dump"))
+        TeapotClient(_FakeProject(), "abc").symbolicate(
+            _FakeAttachment(stored_id="dump"), sources=[source]
+        )
+
+    without, with_sources = (orjson.loads(c.kwargs["data"]) for c in mock_post.call_args_list)
+    assert "sources" not in without
+    assert with_sources["sources"] == [source]
+
+
 def test_client_signs_request_when_secret_set(mock_objectstore: mock.Mock) -> None:
     from django.conf import settings
 

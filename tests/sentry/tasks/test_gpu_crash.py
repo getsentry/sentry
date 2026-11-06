@@ -59,6 +59,13 @@ def test_try_symbolicate_happy_path(default_project: Project, circuit_breaker: m
     assert changed is True
     assert teapot.call_count == 1
     assert apply.call_count == 1
+    (source,) = teapot.call_args.kwargs["sources"]
+    assert source["type"] == "sentry"
+    assert (
+        f"/projects/{default_project.organization.slug}/{default_project.slug}/files/dsyms/"
+        in (source["url"])
+    )
+    assert source["token"]
 
     # A successful decode closes the loop on the breaker.
     circuit_breaker.record_success.assert_called_once()
