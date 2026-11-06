@@ -746,3 +746,18 @@ export function stringifyQueryForFeedback(query: QueryTokensProps): string {
   );
   return JSON.stringify(filtered);
 }
+
+/**
+ * Seer's search endpoints explain access denials (AI features turned off,
+ * feature not enabled) in the 403 `detail`. Show that instead of a generic
+ * failure so users can tell an access problem from a Seer error.
+ */
+export function getAskSeerErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof RequestError && error.status === 403) {
+    const detail = error.responseJSON?.detail;
+    if (typeof detail === 'string' && detail) {
+      return detail;
+    }
+  }
+  return fallback;
+}
