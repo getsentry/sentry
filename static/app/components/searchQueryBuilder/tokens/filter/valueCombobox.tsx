@@ -684,7 +684,10 @@ export function getInitialInputValue(
   if (canSelectMultipleValues) {
     return getMultiSelectInputValue(token);
   }
-  if (isNumericFilterToken(token) || isRegexOperator(token.operator)) {
+  if (
+    (isNumericFilterToken(token) && editingCommittedValue) ||
+    isRegexOperator(token.operator)
+  ) {
     return token.value.text;
   }
   if (token.filter === FilterType.HAS && editingCommittedValue) {
@@ -1398,12 +1401,10 @@ export function SearchQueryBuilderValueCombobox({
       ? prettifyTagKey(token.value.text)
       : canSelectMultipleValues
         ? ''
-        : valueType === FieldValueType.CURRENCY
-          ? '$0.00'
-          : formatFilterValue({
-              token: token.value,
-              valueType,
-            });
+        : formatFilterValue({
+            token: token.value,
+            valueType,
+          });
 
   const chips = committedValues.map(({value, index}) => (
     <ValueChip key={`${index}-${value}`}>
