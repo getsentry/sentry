@@ -140,6 +140,17 @@ class MetricTranslationTest(TestCase):
         translated_2 = translate_aggregate_field(translated, reverse=True)
         assert translated_2 == "count_unique(user)"
 
+    def test_equation(self) -> None:
+        aggregate = "equation|count_unique(user) / count()"
+        translated = translate_aggregate_field(aggregate)
+        assert translated == "equation|count_unique(tags[sentry:user]) / count()"
+        assert translate_aggregate_field(translated, reverse=True) == aggregate
+
+    def test_eap_equation(self) -> None:
+        aggregate = "equation|count_if(span.status,equals,internal_error) / count(span.duration)"
+        assert translate_aggregate_field(aggregate, allow_eap=True) == aggregate
+        assert translate_aggregate_field(aggregate, reverse=True, allow_eap=True) == aggregate
+
 
 class TestGetAlertResolution(TestCase):
     def test_simple(self) -> None:

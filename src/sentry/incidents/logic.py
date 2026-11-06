@@ -249,9 +249,18 @@ def translate_aggregate_field(
     allow_mri: bool = False,
     allow_eap: bool = False,
 ) -> str:
+    if is_equation(aggregate):
+        # resolve_field can't parse a whole equation, so translate each function term.
+        _, _, terms = parse_arithmetic(strip_equation(aggregate))
+        for term in terms:
+            aggregate = aggregate.replace(
+                term, translate_aggregate_field(term, reverse, allow_mri, allow_eap)
+            )
+        return aggregate
+
     column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
     if not reverse:
-        if column in TRANSLATABLE_COLUMNS:
+        if isinstance(column, str) and column in TRANSLATABLE_COLUMNS:
             return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])
     else:
         if column is not None:
