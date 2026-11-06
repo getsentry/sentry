@@ -463,7 +463,7 @@ def trigger_autofix_agent(
     """
     outcome = "success"
     try:
-        # check billing quota for triggering a new autofix run
+        # Seat-based orgs are checked for billing quota when triggering a new autofix run.
         # Free cohort orgs bypass quota only when called from agentic triage
         # (allow_free_cohort=True). The API endpoint never sets this flag,
         # so manual triggers still require quota.
@@ -848,7 +848,6 @@ def trigger_push_changes(
     seer_run = SeerRun.objects.filter(
         organization_id=group.organization.id, seer_run_state_id=run_id
     ).first()
-    # Open PR always continues a run, so it never uses quota.
     check_autofix_billing(
         group,
         SeerOperation.AUTOFIX_OPEN_PR,
