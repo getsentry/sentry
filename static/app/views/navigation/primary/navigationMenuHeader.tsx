@@ -8,7 +8,7 @@ import {
   UserAvatar,
   type BaseAvatarProps,
 } from '@sentry/scraps/avatar';
-import {getAvatarGradient, useAvatarColors} from '@sentry/scraps/avatarButton';
+import {useAvatarGradient} from '@sentry/scraps/avatarButton';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {useInvertedTheme} from '@sentry/scraps/theme';
@@ -75,8 +75,7 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
   );
 }
 
-const DEFAULT_GRADIENT_START = '#2c155c';
-const DEFAULT_GRADIENT_END = '#4e168c';
+const DEFAULT_GRADIENT = ['#2c155c', '#4e168c'] as const;
 
 function MenuHeader({
   label,
@@ -93,11 +92,7 @@ function MenuHeader({
 }) {
   const currentTheme = useTheme();
   const invertedTheme = useInvertedTheme();
-  const avatarColors = useAvatarColors(avatarProps);
-  const [gradientStart, gradientEnd] =
-    avatarColors.type === 'none'
-      ? [DEFAULT_GRADIENT_START, DEFAULT_GRADIENT_END]
-      : getAvatarGradient(avatarColors.dominant, DEFAULT_GRADIENT_END);
+  const [gradientStart, gradientEnd] = useAvatarGradient(avatarProps, DEFAULT_GRADIENT);
 
   return (
     <ThemeProvider theme={currentTheme.type === 'dark' ? currentTheme : invertedTheme}>
