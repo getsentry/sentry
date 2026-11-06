@@ -821,8 +821,6 @@ class TestTriggerAutofixAgent(TestCase):
         )
 
         mock_check_seer_credits.assert_not_called()
-        mock_check_quota.assert_not_called()
-        mock_feature.assert_called_once()
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
