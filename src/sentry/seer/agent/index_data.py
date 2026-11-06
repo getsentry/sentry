@@ -360,7 +360,8 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         if not actual_profile_id:
             continue
 
-        is_continuous = profiler_id is not None
+        # Match the id chosen above, which treats an empty profiler id as absent.
+        is_continuous = bool(profiler_id)
 
         profile_data.append(
             {
