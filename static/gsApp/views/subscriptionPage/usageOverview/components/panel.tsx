@@ -216,9 +216,9 @@ export function ProductBreakdownPanel({
 
   const shouldShowUpgradeCta = !potentialProductTrial && !isEnabled;
   const shouldShowSeerPricingChangeAlert =
-    [AddOnCategory.SEER, AddOnCategory.LEGACY_SEER].includes(
-      selectedProduct as AddOnCategory
-    ) && hasPaidSeer(subscription);
+    (selectedProduct === AddOnCategory.SEER ||
+      selectedProduct === AddOnCategory.LEGACY_SEER) &&
+    hasPaidSeer(subscription);
 
   return (
     <Container
