@@ -13,6 +13,7 @@ export type UseAgenticProgressInitOptions = {
   enabled: boolean;
   /** The host retains session updates so retries and remounts reuse the run identity. */
   onSessionChange: (session: AgenticRunSession) => void;
+  origin: 'onboarding' | 'project_creation';
   session: AgenticRunSession | undefined;
 };
 
@@ -26,6 +27,7 @@ const createAgenticRunSession = (): AgenticRunSession => ({
 export function useAgenticProgressInit({
   enabled,
   onSessionChange,
+  origin,
   session,
 }: UseAgenticProgressInitOptions) {
   const organization = useOrganization();
@@ -39,6 +41,7 @@ export function useAgenticProgressInit({
         path: {organizationIdOrSlug: organization.slug},
       }),
       data: {
+        origin,
         clientRunId: nextClientRunId,
         onboardingCode: nextOnboardingCode,
       },
