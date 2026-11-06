@@ -72,6 +72,13 @@ describe('useBrandedArtworkLoading', () => {
     expect(await screen.findByText('Artwork ready')).toBeInTheDocument();
   });
 
+  it('finishes loading when the browser does not support image decoding', async () => {
+    Reflect.deleteProperty(HTMLImageElement.prototype, 'decode');
+    render(<ArtworkLoading />);
+
+    expect(await screen.findByText('Artwork ready')).toBeInTheDocument();
+  });
+
   it('loads only the critter when the side illustration is hidden on mobile', async () => {
     jest.spyOn(window, 'matchMedia').mockImplementation(originalMatchMedia);
     render(<ArtworkLoading />);
