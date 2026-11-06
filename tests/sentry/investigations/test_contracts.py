@@ -181,6 +181,13 @@ def test_projection_validates_linked_issues() -> None:
     assert validator.is_valid(), validator.errors
     assert validator.validated_data["linkedIssues"] == [linked]
     rejects(OrchestrationProjectionSerializer, projection(linkedIssues=[{"groupId": 7}]))
+    by_short_id = {**linked, "groupId": None, "shortId": "CHECKOUT-1A3"}
+    assert OrchestrationProjectionSerializer(data=projection(linkedIssues=[by_short_id])).is_valid()
+    for references in ({"groupId": None}, {"shortId": "CHECKOUT-1A3"}):
+        rejects(
+            OrchestrationProjectionSerializer,
+            projection(linkedIssues=[{**linked, **references}]),
+        )
     rejects(
         OrchestrationProjectionSerializer,
         projection(linkedIssues=[{**linked, "groupId": n} for n in range(1, 12)]),

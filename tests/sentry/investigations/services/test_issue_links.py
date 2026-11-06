@@ -46,6 +46,7 @@ class LinkInvestigationIssuesTest(TestCase):
     def link(self, group: Group, **fields: Any) -> dict[str, Any]:
         return {
             "groupId": group.id,
+            "shortId": None,
             "hypothesisId": "h-1",
             "hypothesisStatement": "Payment retries exhaust the pool",
             "reason": "Its timeouts start with the deploy.",
@@ -71,6 +72,29 @@ class LinkInvestigationIssuesTest(TestCase):
             hypothesis_statement="Payment retries exhaust the pool",
             reason="Its timeouts start with the deploy.",
         )
+
+    def test_links_an_issue_by_short_id_within_the_investigation(self) -> None:
+        other_project_group = self.create_group(
+            project=self.create_project(organization=self.organization)
+        )
+        linked = self.create_group(project=self.project)
+
+        self.complete(
+            [
+                self.link(self.group, groupId=None, shortId=self.group.qualified_short_id),
+                self.link(
+                    other_project_group,
+                    groupId=None,
+                    shortId=other_project_group.qualified_short_id,
+                ),
+                self.link(linked, groupId=None, shortId=f"{self.project.slug}-ZZZZZZ"),
+                self.link(linked),
+            ]
+        )
+
+        assert len(self.entries()) == 1
+        assert self.entries(other_project_group) == []
+        assert len(self.entries(linked)) == 1
 
     def test_a_later_run_does_not_link_the_issue_again(self) -> None:
         self.complete([self.link(self.group)])

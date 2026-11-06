@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from django.db.models import QuerySet
 
@@ -43,6 +44,24 @@ def _linkable_projects(notebook: Notebook) -> QuerySet[Project]:
     return projects
 
 
+def _linked_group(
+    organization_id: int, item: dict[str, Any], project_ids: list[int]
+) -> Group | None:
+    """The linked issue, by group ID or by short ID, if it's in one of these projects."""
+    if item.get("groupId") is not None:
+        return (
+            Group.objects.filter(id=item["groupId"], project_id__in=project_ids)
+            .select_related("project")
+            .first()
+        )
+    try:
+        return Group.objects.by_qualified_short_id(
+            organization_id, item["shortId"], project_ids=project_ids
+        )
+    except Group.DoesNotExist:
+        return None
+
+
 def link_investigation_issues(*, investigation_id: int, generation: int) -> None:
     """Record the issues a completed run linked on each issue's action log."""
     run = (
@@ -61,12 +80,12 @@ def link_investigation_issues(*, investigation_id: int, generation: int) -> None
     notebook = run.investigation
 
     # Seer leaves out the issue the investigation started from, since it already links there.
-    linked = {item["groupId"]: item for item in run.projection.get("linkedIssues", [])}
-    groups = Group.objects.filter(
-        id__in=linked, project__in=_linkable_projects(notebook)
-    ).select_related("project")
-    for group in groups:
-        item = linked[group.id]
+    linked = run.projection.get("linkedIssues", [])
+    project_ids = list(_linkable_projects(notebook).values_list("id", flat=True))
+    for item in linked:
+        group = _linked_group(notebook.organization_id, item, project_ids)
+        if group is None:
+            continue
         publish_action(
             InvestigationLinkedAction(
                 notebook_id=notebook.id,
