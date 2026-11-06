@@ -35,6 +35,7 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.feature.dispatch import continue_single_run
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
+from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun
@@ -240,6 +241,21 @@ def _maybe_reply_to_single_run(
     if not request.access.has_any_project_scope(project, AUTOFIX_RUN_SCOPES):
         raise PermissionDenied("You do not have access to this run.")
     try:
+        if (
+            SeerAgentClient(organization, request.user)
+            .get_run(run_id=resolved.seer_run_state_id)
+            .status
+            == "processing"
+        ):
+            return Response(
+                {
+                    "detail": "This run is still working",
+                    "code": RUN_IN_FLIGHT_CODE,
+                    "run_id": resolved.seer_run_state_id,
+                    "sentry_run_id": resolved.uuid,
+                },
+                status=409,
+            )
         continue_single_run(
             single_run,
             single_run.group,
