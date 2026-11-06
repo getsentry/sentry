@@ -45,9 +45,6 @@ from sentry.models.dashboard import (
 )
 from sentry.models.organization import Organization
 
-EDIT_FEATURE = "organizations:dashboards-edit"
-READ_FEATURE = "organizations:dashboards-basic"
-
 logger = logging.getLogger(__name__)
 
 
@@ -121,13 +118,10 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     )
     def get(
         self, request: Request, organization: Organization, dashboard: Dashboard
-    ) -> Response[DashboardDetailsResponse] | Response[None]:
+    ) -> Response[DashboardDetailsResponse]:
         """
         Return details about an organization's custom dashboard.
         """
-        if not features.has(READ_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
         body: DashboardDetailsResponse = serialize(dashboard, request.user)
         return self.respond(body)
 
@@ -147,9 +141,6 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         """
         Delete an organization's custom dashboard.
         """
-        if not features.has(EDIT_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
         self.check_object_permissions(request, dashboard)
 
         if dashboard.prebuilt_id is not None:
@@ -187,7 +178,6 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         dashboard: Dashboard,
     ) -> (
         Response[DashboardDetailsResponse]
-        | Response[None]
         | Response[DetailResponse]
         | Response[ValidationErrorResponse]
     ):
@@ -197,9 +187,6 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         that have been rearranged, updated queries and fields, specific
         display types, and so on.)
         """
-        if not features.has(EDIT_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
         self.check_object_permissions(request, dashboard)
 
         is_prebuilt = dashboard.prebuilt_id is not None
@@ -275,9 +262,6 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         """
         Update last_visited and increment visits counter
         """
-        if not features.has(EDIT_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
         dashboard.visits = cast(int, F("visits") + 1)
         dashboard.last_visited = timezone.now()
         dashboard.save(update_fields=["visits", "last_visited"])
@@ -323,9 +307,6 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         Toggle favorite status for current user by adding or removing
         current user from dashboard favorites
         """
-        if not features.has(EDIT_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
         if not request.user.is_authenticated:
             return Response(status=401)
 

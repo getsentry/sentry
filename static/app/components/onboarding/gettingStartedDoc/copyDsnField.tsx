@@ -1,16 +1,17 @@
 import styled from '@emotion/styled';
 
-import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+
+import type {ContentBlock} from './contentBlocks/types';
 import {
   docsFlowProjectIdParams,
   docsFlowVariantParams,
   DSN_COPIED_EVENT,
   resolveDocsFlowEvent,
-} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {t, tct} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
+} from './docsFlowAnalytics';
+import type {DocsParams} from './types';
 
 function CopyDsnField({params}: {params: DocsParams<any>}) {
   return (

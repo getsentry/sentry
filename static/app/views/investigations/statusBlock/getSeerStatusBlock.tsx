@@ -3,16 +3,13 @@ import {
   getInvestigationActiveTime,
   isOnlyNextStepPending,
 } from 'sentry/views/investigations/runState';
-import type {SeerStatusBlockVariant} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
-import {
-  isThought,
-  withThoughts,
-  type SeerStatusActivity,
-} from 'sentry/views/investigations/statusBlock/statusActivity';
 import type {
   InvestigationOrchestration,
   InvestigationToolActivity,
 } from 'sentry/views/investigations/types';
+
+import type {SeerStatusBlockVariant} from './seerStatusBlock';
+import {isThought, withThoughts, type SeerStatusActivity} from './statusActivity';
 
 type SeerStatusBlockContent = {
   statusLabel: string;

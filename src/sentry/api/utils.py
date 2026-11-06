@@ -412,14 +412,15 @@ def handle_query_errors() -> Iterator[None]:
         sentry_sdk.set_attribute("query.error_reason", message)
         logger.info("A query error was handled", extra={"query.error_reason": message})
         if isinstance(error, InvalidFunctionArgumentQuery):
-            raise ParseError(
-                detail={
-                    "detail": original_error,
-                    "code": "invalid_function_argument",
-                    "function": error.function,
-                    "argument": error.argument,
-                }
-            )
+            body = {
+                "detail": original_error,
+                "code": "invalid_function_argument",
+                "function": error.function,
+                "argument": error.argument,
+            }
+            if error.hint is not None:
+                body["hint"] = error.hint
+            raise ParseError(detail=body)
         if isinstance(error, SearchQueryParseError):
             raise ParseError(detail={"detail": original_error, "code": "invalid_search_query"})
         raise ParseError(detail=original_error)

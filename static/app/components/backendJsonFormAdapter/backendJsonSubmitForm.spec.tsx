@@ -9,18 +9,21 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {BackendJsonSubmitForm} from './backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from './types';
 
-jest.mock('sentry/actionCreators/indicator');
-
 const org = OrganizationFixture();
 
 describe('BackendJsonSubmitForm', () => {
   const onSubmit = jest.fn().mockResolvedValue({});
+
+  beforeEach(() => {
+    jest.spyOn(toast, 'error');
+  });
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -360,7 +363,7 @@ describe('BackendJsonSubmitForm', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
       await waitFor(() => {
-        expect(addErrorMessage).toHaveBeenCalledWith(expected);
+        expect(toast.error).toHaveBeenCalledWith(expected);
       });
     });
 

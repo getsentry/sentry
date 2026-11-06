@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
+import {ArrayLinks} from './arrayLinks';
 
 describe('ArrayLinks', () => {
   it('renders single item', () => {

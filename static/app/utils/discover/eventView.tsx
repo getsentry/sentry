@@ -18,27 +18,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
-import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
-import {
-  aggregateOutputType,
-  generateFieldAsString,
-  getAggregateAlias,
-  getEquation,
-  isAggregateEquation,
-  isAggregateField,
-  isEquation,
-  isLegalYAxisType,
-} from 'sentry/utils/discover/fields';
-import {
-  CHART_AXIS_OPTIONS,
-  DiscoverDatasets,
-  DISPLAY_MODE_FALLBACK_OPTIONS,
-  DISPLAY_MODE_OPTIONS,
-  DisplayModes,
-  TOP_N,
-  type SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {AggregationKey} from 'sentry/utils/fields';
 import {
@@ -68,7 +47,28 @@ import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transa
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
+import {decodeColumnOrder} from './decodeColumnOrder';
+import type {Column, ColumnType, Field, Sort} from './fields';
+import {
+  aggregateOutputType,
+  generateFieldAsString,
+  getAggregateAlias,
+  getEquation,
+  isAggregateEquation,
+  isAggregateField,
+  isEquation,
+  isLegalYAxisType,
+} from './fields';
 import {getSortField} from './getSortField';
+import {
+  CHART_AXIS_OPTIONS,
+  DiscoverDatasets,
+  DISPLAY_MODE_FALLBACK_OPTIONS,
+  DISPLAY_MODE_OPTIONS,
+  DisplayModes,
+  TOP_N,
+  type SavedQueryDatasets,
+} from './types';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, any> & {

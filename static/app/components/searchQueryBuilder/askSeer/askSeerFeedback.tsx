@@ -3,14 +3,15 @@ import {IconThumb} from '@sentry/icons/thumb';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {AskSeerLabel} from 'sentry/components/searchQueryBuilder/askSeer/components';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AskSeerLabel} from './components';
 
 export function AskSeerFeedback() {
   const organization = useOrganization();
@@ -28,7 +29,7 @@ export function AskSeerFeedback() {
     });
     askSeerNLQueryRef.current = null;
     askSeerSuggestedQueryRef.current = null;
-    addSuccessMessage(t('Thanks for the feedback!'));
+    toast.success(t('Thanks for the feedback!'));
     setDisplayAskSeerFeedback(false);
   };
 

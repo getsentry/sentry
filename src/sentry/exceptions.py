@@ -71,13 +71,17 @@ class InvalidFunctionArgumentQuery(InvalidSearchQuery):
     """A query function rejected one of its arguments.
 
     Carries the function and the argument as written so API clients can tell which
-    expression to fix without parsing the message.
+    expression to fix without parsing the message, plus an optional `hint` that
+    suggests a fix when one is known.
     """
 
-    def __init__(self, message: str, *, function: str, argument: str) -> None:
+    def __init__(
+        self, message: str, *, function: str, argument: str, hint: str | None = None
+    ) -> None:
         super().__init__(message)
         self.function = function
         self.argument = argument
+        self.hint = hint
 
 
 class SearchQueryParseError(InvalidSearchQuery):

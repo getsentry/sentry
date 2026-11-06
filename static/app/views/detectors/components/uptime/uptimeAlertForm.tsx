@@ -36,16 +36,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {
-  UptimeAssertion,
-  UptimeRule,
-} from 'sentry/views/detectors/components/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {createMapFormErrors} from './formErrors';
 import {HTTPSnippet} from './httpSnippet';
 import {PreviewCheckResultProvider, usePreviewCheckResult} from './previewCheckContext';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
+import type {UptimeAssertion, UptimeRule} from './types';
 import {UptimeHeadersField} from './uptimeHeadersField';
 import {useUptimeAssertionFeatures} from './useUptimeAssertionFeatures';
 

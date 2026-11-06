@@ -8,16 +8,16 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -42,7 +42,6 @@ export function SizeCompareSelectionContent({
   headBuildDetails,
 }: SizeCompareSelectionContentProps) {
   const organization = useOrganization();
-  const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
   const [cursor] = useQueryState('cursor', parseAsString.withDefault(''));
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
@@ -89,14 +88,14 @@ export function SizeCompareSelectionContent({
     {baseArtifactId: string; headArtifactId: string}
   >({
     mutationFn: ({headArtifactId, baseArtifactId}) => {
-      return api.requestPromise(
-        getCompareApiUrl({
+      return fetchMutation<void>({
+        url: getCompareApiUrl({
           organizationSlug: organization.slug,
           headArtifactId,
           baseArtifactId,
         }),
-        {method: 'POST'}
-      );
+        method: 'POST',
+      });
     },
     onSuccess: () => {
       navigate(
@@ -109,7 +108,7 @@ export function SizeCompareSelectionContent({
     },
     onError: error => {
       const errorMessage = parseApiError(error);
-      addErrorMessage(
+      toast.error(
         errorMessage === 'Unknown API Error'
           ? t('Failed to trigger comparison. Please try again.')
           : errorMessage
@@ -126,7 +125,7 @@ export function SizeCompareSelectionContent({
         onClearBaseBuild={() => setSelectedBaseBuild(undefined)}
         onTriggerComparison={() => {
           if (!selectedBaseBuild) {
-            addErrorMessage(t('Please select a base build to compare.'));
+            toast.error(t('Please select a base build to compare.'));
             return;
           }
 

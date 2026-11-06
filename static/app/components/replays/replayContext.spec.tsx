@@ -8,13 +8,11 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  Provider as ReplayContextProvider,
-  useReplayContext,
-} from 'sentry/components/replays/replayContext';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {RawReplayError, RecordingFrame} from 'sentry/utils/replays/types';
 import {EventType} from 'sentry/utils/replays/types';
+
+import {Provider as ReplayContextProvider, useReplayContext} from './replayContext';
 
 const mockPause = jest.fn();
 const mockPlay = jest.fn();

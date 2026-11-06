@@ -2,8 +2,6 @@ import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ChartType} from 'sentry/chartcuterie/types';
-import {type BreakpointEvidenceData} from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
-import {LineChart as Chart} from 'sentry/components/events/eventStatisticalDetector/lineChart';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
@@ -12,7 +10,9 @@ import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateT
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
+import {type BreakpointEvidenceData} from './breakpointChartOptions';
 import {RELATIVE_DAYS_WINDOW} from './consts';
+import {LineChart as Chart} from './lineChart';
 
 type EventFunctionBreakpointChartProps = {
   event: Event;

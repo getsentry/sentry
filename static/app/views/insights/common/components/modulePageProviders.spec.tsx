@@ -4,9 +4,10 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {ModuleName} from 'sentry/views/insights/types';
+
+import {ModulePageProviders} from './modulePageProviders';
 
 jest.mock('sentry/views/insights/common/queries/useHasFirstSpan');
 jest.mock('sentry/views/insights/common/utils/useHasDataTrackAnalytics');

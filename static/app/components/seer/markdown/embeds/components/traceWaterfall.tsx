@@ -1,8 +1,9 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {TraceLink} from 'sentry/components/seer/markdown/embeds/components/traceLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+
+import {TraceLink} from './traceLink';
 
 const LazyTraceWaterfallBlock = lazy(() => import('./traceWaterfallBlock'));
 

@@ -2,9 +2,10 @@ import {createContext, useContext, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
-import {isServiceWorkerSupported} from 'sentry/serviceWorker/client/isServiceWorkerSupported';
-import {ServiceWorkerController} from 'sentry/serviceWorker/client/serviceWorkerInterface';
 import {trustedScriptUrl} from 'sentry/utils/trustedTypes';
+
+import {isServiceWorkerSupported} from './isServiceWorkerSupported';
+import {ServiceWorkerController} from './serviceWorkerInterface';
 
 const DEBUG_LOGGING = false;
 

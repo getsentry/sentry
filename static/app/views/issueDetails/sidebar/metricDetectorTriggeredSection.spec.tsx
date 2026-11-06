@@ -17,10 +17,11 @@ import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+
 import {
   MetricDetectorTriggeredSection,
   MetricIssueSeerInvestigationSection,
-} from 'sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection';
+} from './metricDetectorTriggeredSection';
 
 function MetricDetectorTriggeredSectionWithProvider(
   props: ComponentProps<typeof MetricDetectorTriggeredSection>

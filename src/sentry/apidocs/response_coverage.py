@@ -2,9 +2,10 @@
 Ratchet that keeps every field in the public API's success responses described and typed.
 
 `make build-api-docs` writes `tests/apidocs/openapi-spectacular.json`. There, each TypedDict
-field carries its Python source in `FIELD_SOURCE`; the deref step strips that from the
-published schema. `tests/apidocs/test_response_coverage.py` compares what `find_violations`
-reports with the committed baseline. See "Response fields" in `src/sentry/apidocs/README.md`.
+field carries its Python source in `FIELD_SOURCE`, and a recursive TypedDict cut short
+carries `CYCLE`; the deref step strips both from the published schema.
+`tests/apidocs/test_response_coverage.py` compares what `find_violations` reports with the
+committed baseline. See "Response fields" in `src/sentry/apidocs/README.md`.
 
 Prune fixed entries from the baseline with:
 
@@ -21,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 FIELD_SOURCE = "x-sentry-source"
+CYCLE = "x-sentry-cycle"
 
 MISSING_DESCRIPTION = "missing-description"
 UNTYPED = "untyped"
@@ -54,9 +56,17 @@ def _has_text(value: object) -> bool:
 
 
 def _is_untyped(schema: Mapping[str, Any]) -> bool:
-    """`Any` (`{}`), `dict[str, Any]`, and an object without properties are untyped."""
+    """`Any` (`{}`), `dict[str, Any]`, and an object without properties are untyped.
+
+    A recursive TypedDict leaves its fields out where it repeats, so that object is typed.
+    """
     schema = _unwrap(schema)
-    if _ref_name(schema) or "enum" in schema or any(k in schema for k in _COMBINATORS):
+    if (
+        schema.get(CYCLE)
+        or _ref_name(schema)
+        or "enum" in schema
+        or any(k in schema for k in _COMBINATORS)
+    ):
         return False
     kind = schema.get("type")
     if kind is None:
@@ -119,7 +129,7 @@ class _Walker:
                         continue
                     content = response.get("content") or {}
                     schema = content.get("application/json", {}).get("schema")
-                    if schema:
+                    if schema is not None:
                         self._node(schema, f"{method.upper()} {path} {status}")
         while self._pending:
             name = self._pending.pop()

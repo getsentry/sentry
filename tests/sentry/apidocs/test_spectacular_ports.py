@@ -1,6 +1,17 @@
+import re
 from typing import Annotated, NotRequired, ReadOnly, TypedDict
 
+import pytest
+
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import (
+    GIT_REF_MAX_LENGTH,
+    GIT_REF_PATTERN_OPTIONAL_EMPTY,
+    ApiFormat,
+    GitRef,
+    IsoDateTime,
+    Url,
+)
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 
 
@@ -76,3 +87,67 @@ def test_functional_typed_dict_field_description() -> None:
     assert resolve_type_hint(FunctionalResponse)["properties"] == {
         "event.type": {"type": "string", "description": "A key that isn't an identifier"},
     }
+
+
+class FormattedResponse(TypedDict):
+    created: Annotated[IsoDateTime, ApiDescription("A timestamp")]
+    expires: IsoDateTime | None
+    link: Url
+    links: list[Url]
+    ref: GitRef | None
+    custom: Annotated[str, ApiFormat(format="email", max_length=10)]
+    optional: NotRequired[Annotated[Url, ApiDescription("An optional link")]]
+
+
+def test_annotated_field_formats() -> None:
+    assert resolve_type_hint(FormattedResponse)["properties"] == {
+        "created": {"type": "string", "format": "date-time", "description": "A timestamp"},
+        "expires": {"type": "string", "format": "date-time", "nullable": True},
+        "link": {"type": "string", "format": "uri"},
+        "links": {"type": "array", "items": {"type": "string", "format": "uri"}},
+        "ref": {
+            "type": "string",
+            "pattern": GIT_REF_PATTERN_OPTIONAL_EMPTY,
+            "maxLength": GIT_REF_MAX_LENGTH,
+            "nullable": True,
+        },
+        "custom": {"type": "string", "format": "email", "maxLength": 10},
+        "optional": {"type": "string", "format": "uri", "description": "An optional link"},
+    }
+
+
+@pytest.mark.parametrize(
+    "ref",
+    ["", "main", "feature/xyz", "refs/heads/main", "pull/123/merge", "release-1.2.3", "HEAD"],
+)
+def test_git_ref_pattern_accepts(ref: str) -> None:
+    assert re.match(GIT_REF_PATTERN_OPTIONAL_EMPTY, ref)
+
+
+@pytest.mark.parametrize(
+    "ref",
+    [
+        "@",
+        "/main",
+        "main/",
+        "main.",
+        "a//b",
+        "a..b",
+        ".hidden",
+        "a/.b",
+        "a.lock",
+        "a.lock/b",
+        "a@{b",
+        "a b",
+        "a\tb",
+        "a~b",
+        "a^b",
+        "a:b",
+        "a?b",
+        "a*b",
+        "a[b",
+        "a\\b",
+    ],
+)
+def test_git_ref_pattern_rejects(ref: str) -> None:
+    assert not re.match(GIT_REF_PATTERN_OPTIONAL_EMPTY, ref)

@@ -1,11 +1,12 @@
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NotRequired, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.app import env
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -43,43 +44,97 @@ def mask_webhook_header_values(headers: Sequence[str | None]) -> list[str]:
 
 
 class OwnerResponseField(TypedDict):
-    id: int
-    slug: str
+    id: Annotated[int, ApiDescription("ID of the organization that owns the integration")]
+    slug: Annotated[str, ApiDescription("Slug of the organization that owns the integration")]
 
 
 class SentryAppSerializerResponse(TypedDict):
-    allowedOrigins: list[str]
-    avatars: list[SentryAppAvatarSerializerResponse]
+    allowedOrigins: Annotated[list[str], ApiDescription("Allowed origins for CORS")]
+    avatars: Annotated[
+        list[SentryAppAvatarSerializerResponse], ApiDescription("Avatars of the custom integration")
+    ]
     # Webhook subscriptions were originally to whole resources ("issue") but can
     # now also be to individual events ("issue.resolved"). `events` keeps the
     # original resource-level view by consolidating the stored events;
     # `webhookEvents` is the exact stored list.
-    events: set[str]
-    webhookEvents: list[str]
-    featureData: list[str]
-    isAlertable: bool
-    metadata: str
-    name: str
-    schema: str
-    scopes: list[str]
-    slug: str
-    status: str
-    uuid: str
-    verifyInstall: bool
+    events: Annotated[
+        set[str],
+        ApiDescription("Resources the integration's webhooks are subscribed to, such as issue"),
+    ]
+    webhookEvents: Annotated[
+        list[str],
+        ApiDescription("Webhook events the integration is subscribed to, such as issue.resolved"),
+    ]
+    featureData: Annotated[
+        list[str],
+        ApiDescription("Features the integration supports. Empty for internal integrations"),
+    ]
+    isAlertable: Annotated[
+        bool, ApiDescription("Whether the integration can be used in alert rules")
+    ]
+    metadata: Annotated[str, ApiDescription("Metadata of the integration")]
+    name: Annotated[str, ApiDescription("Name of the custom integration")]
+    schema: Annotated[
+        str, ApiDescription("UI components schema used to render the integration's UI elements")
+    ]
+    scopes: Annotated[list[str], ApiDescription("Permission scopes for API access")]
+    slug: Annotated[str, ApiDescription("Slug of the custom integration")]
+    status: Annotated[
+        str, ApiDescription("Status of the integration, such as unpublished, published or internal")
+    ]
+    uuid: Annotated[str, ApiDescription("UUID of the custom integration")]
+    verifyInstall: Annotated[
+        bool, ApiDescription("Whether installations of the integration must be verified")
+    ]
     # Header values are masked unless the viewer is allowed to see secrets.
-    webhookHeaders: list[str]
+    webhookHeaders: Annotated[
+        list[str],
+        ApiDescription(
+            "Custom headers sent with every webhook request, as Header-Name: value pairs. Values are masked"
+        ),
+    ]
 
     # Optional fields
-    isDisabled: NotRequired[bool]
-    author: NotRequired[str | None]
-    overview: NotRequired[str | None]
-    popularity: NotRequired[int | None]
-    redirectUrl: NotRequired[str | None]
-    webhookUrl: NotRequired[str | None]
-    clientSecret: NotRequired[str | None]
-    datePublished: NotRequired[datetime]
-    clientId: NotRequired[str]
-    owner: NotRequired[OwnerResponseField]
+    isDisabled: NotRequired[Annotated[bool, ApiDescription("Whether the integration is disabled")]]
+    author: NotRequired[Annotated[str | None, ApiDescription("Author of the integration")]]
+    overview: NotRequired[Annotated[str | None, ApiDescription("Description of the integration")]]
+    popularity: NotRequired[
+        Annotated[int | None, ApiDescription("Popularity score of the integration")]
+    ]
+    redirectUrl: NotRequired[
+        Annotated[str | None, ApiDescription("URL to redirect to after installation")]
+    ]
+    webhookUrl: NotRequired[Annotated[str | None, ApiDescription("Webhook destination URL")]]
+    clientSecret: NotRequired[
+        Annotated[
+            str | None,
+            ApiDescription(
+                "OAuth client secret. Only shown to authorized users within 5 minutes of creation, and masked otherwise"
+            ),
+        ]
+    ]
+    datePublished: NotRequired[
+        Annotated[
+            datetime,
+            ApiDescription(
+                "When the integration was published (ISO 8601). Only set for published integrations"
+            ),
+        ]
+    ]
+    clientId: NotRequired[
+        Annotated[
+            str,
+            ApiDescription("OAuth client ID. Only included for members of the owner organization"),
+        ]
+    ]
+    owner: NotRequired[
+        Annotated[
+            OwnerResponseField,
+            ApiDescription(
+                "Organization that owns the integration. Only included for members of the owner organization"
+            ),
+        ]
+    ]
 
 
 @register(SentryApp)

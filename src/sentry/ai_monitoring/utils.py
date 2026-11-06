@@ -1,7 +1,7 @@
 import re
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 from urllib.parse import quote, urlencode
 
 from sentry.ai_monitoring.message_normalizer import (
@@ -10,15 +10,16 @@ from sentry.ai_monitoring.message_normalizer import (
     normalize_to_messages,
     stringify_message_content,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.relay.config.ai_model_costs import AIModelCost, AIModelMetadataConfig
 
 
 class ConversationProject(TypedDict):
-    id: int
-    name: str
-    slug: str
+    id: Annotated[int, ApiDescription("ID of the project")]
+    name: Annotated[str, ApiDescription("Name of the project")]
+    slug: Annotated[str, ApiDescription("Slug of the project")]
 
 
 def serialize_conversation_project(project: Project) -> ConversationProject:

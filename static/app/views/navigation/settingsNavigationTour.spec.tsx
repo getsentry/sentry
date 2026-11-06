@@ -7,12 +7,13 @@ import {Button} from '@sentry/scraps/button';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
-import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {NavigationTourProvider} from './navigationTour';
+import {PrimaryNavigationContextProvider} from './primaryNavigationContext';
 import {
   SettingsNavigationTourElement,
   SettingsNavigationTourProvider,
-} from 'sentry/views/navigation/settingsNavigationTour';
+} from './settingsNavigationTour';
 
 function Tour() {
   return (

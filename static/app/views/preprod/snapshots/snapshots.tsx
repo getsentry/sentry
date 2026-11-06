@@ -13,11 +13,11 @@ import {IconGrabbable} from '@sentry/icons/grabbable';
 import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {isModalOpen} from '@sentry/scraps/modal';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {isModalOpen, ModalStore} from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -663,7 +663,7 @@ export default function SnapshotsPage() {
       ) {
         return;
       }
-      if (isModalOpen(ModalStore.getState())) {
+      if (isModalOpen()) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
