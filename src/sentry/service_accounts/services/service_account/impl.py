@@ -46,14 +46,11 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         self, *, organization_id: int, service_account_id: int
     ) -> RpcServiceAccount | None:
         service_account = ServiceAccount.objects.filter(
-            id=service_account_id, organization_id=organization_id
+            id=service_account_id, organization_id=organization_id, is_active=True
         ).first()
         if service_account is None:
             return None
-        project_ids = ServiceAccountProject.objects.filter(
-            service_account=service_account
-        ).values_list("project_id", flat=True)
-        return serialize_service_account(service_account, project_ids)
+        return _serialize_with_projects(service_account)
 
     def create_service_account(
         self,
@@ -64,7 +61,12 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         project_ids: list[int],
         all_projects: bool,
         created_by_id: int | None,
+        idempotency_key: str | None = None,
     ) -> RpcServiceAccount:
+        if idempotency_key is not None:
+            existing = self._get_by_idempotency_key(organization_id, idempotency_key)
+            if existing is not None:
+                return existing
         try:
             service_account = ServiceAccount.create_with_projects(
                 organization_id=organization_id,
@@ -73,6 +75,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
                 project_ids=project_ids,
                 all_projects=all_projects,
                 created_by_id=created_by_id,
+                idempotency_key=idempotency_key,
             )
         except InvalidScopeError as e:
             raise RpcValidationException(
@@ -82,6 +85,11 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
                 method_name="create_service_account",
             ) from e
         except IntegrityError as e:
+            # A concurrent create with the same key won the race.
+            if idempotency_key is not None:
+                existing = self._get_by_idempotency_key(organization_id, idempotency_key)
+                if existing is not None:
+                    return existing
             # TODO: Only catch the name unique constraint.
             raise RpcValidationException(
                 detail=f"A service account named '{name}' already exists.",
@@ -92,6 +100,16 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         return serialize_service_account(
             service_account, set() if all_projects else set(project_ids)
         )
+
+    def _get_by_idempotency_key(
+        self, organization_id: int, idempotency_key: str
+    ) -> RpcServiceAccount | None:
+        service_account = ServiceAccount.objects.filter(
+            organization_id=organization_id, idempotency_key=idempotency_key
+        ).first()
+        if service_account is None:
+            return None
+        return _serialize_with_projects(service_account)
 
     def update_service_account(
         self,
@@ -114,7 +132,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
             service_account = (
                 ServiceAccount.objects.select_for_update()
-                .filter(id=service_account_id, organization_id=organization_id)
+                .filter(id=service_account_id, organization_id=organization_id, is_active=True)
                 .first()
             )
             if service_account is None:
@@ -132,4 +150,11 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
             id=service_account_id, organization_id=organization_id
         ).first()
         if service_account is not None:
-            service_account.delete()
+            service_account.deactivate()
+
+
+def _serialize_with_projects(service_account: ServiceAccount) -> RpcServiceAccount:
+    project_ids = ServiceAccountProject.objects.filter(service_account=service_account).values_list(
+        "project_id", flat=True
+    )
+    return serialize_service_account(service_account, project_ids)

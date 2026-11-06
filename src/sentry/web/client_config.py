@@ -56,6 +56,8 @@ from sentry.utils.settings import (
     should_show_beacon_consent_prompt,
 )
 
+AUTH_LOGIN_URL_NAMES = frozenset({"sentry-login", "sentry-auth-organization"})
+
 
 def _get_support_mail() -> str | None:
     """Returns the most appropriate support email address"""
@@ -425,6 +427,16 @@ class _ClientConfig:
             self.request
             and self.request.resolver_match
             and self.request.resolver_match.url_name == "sentry-organization-accept-invite"
+        ):
+            return False
+
+        # The login pages never consume the preloaded organization data, and
+        # users are often sent there because they lack access to it (e.g. SSO
+        # re-authentication), so the requests would only fail.
+        if (
+            self.request
+            and self.request.resolver_match
+            and self.request.resolver_match.url_name in AUTH_LOGIN_URL_NAMES
         ):
             return False
 
