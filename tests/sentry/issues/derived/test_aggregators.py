@@ -20,7 +20,7 @@ from sentry.issues.action_log.types import (
     ImpactAssessmentAction,
     ReconcileStatusAction,
 )
-from sentry.issues.derived.aggregators import AGGREGATORS, _impact_level
+from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
     BLOCKER,
     FIRST_ASSIGNMENT_ACTION_ID,
@@ -42,6 +42,7 @@ from sentry.issues.derived.framework import (
     aggregator,
     resolve,
 )
+from sentry.issues.impact.types import get_impact_level
 from sentry.issues.progress_state import IssueProgressState
 from sentry.types.group import IssueAutofixStep, IssueBlocker
 
@@ -216,7 +217,7 @@ def test_impact_defaults_to_none() -> None:
     ],
 )
 def test_impact_level(score: float | None, expected: str | None) -> None:
-    assert _impact_level(score) == expected
+    assert get_impact_level(score) == expected
 
 
 def test_impact_assessment_is_projected() -> None:
