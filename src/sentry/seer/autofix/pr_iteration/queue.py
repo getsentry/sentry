@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
+from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
@@ -16,6 +18,11 @@ logger = logging.getLogger(__name__)
 drain_list = load_redis_script("utils/drain_list.lua")
 
 _QUEUE_TTL_SECONDS = 60 * 60 * 24
+# As long as the consume task's processing deadline: the task is gone by then.
+_IN_FLIGHT_TTL_SECONDS = 60
+# Long enough for a poll that read Seer before the drain finished to also read
+# the in-flight copy.
+_IN_FLIGHT_GRACE_SECONDS = 5
 _REDIS_CLUSTER = "default"
 
 
@@ -29,6 +36,10 @@ class QueuedAutofixFeedback(BaseModel):
 
 def _feedback_queue_key(run_id: int) -> str:
     return f"autofix:feedback:{run_id}"
+
+
+def _in_flight_key(run_id: int) -> str:
+    return f"autofix:feedback:inflight:{run_id}"
 
 
 def enqueue_autofix_feedback(
@@ -89,7 +100,9 @@ def enqueue_autofix_feedback(
 
 
 def clear_queued_autofix_feedback(run_id: int) -> None:
-    redis_clusters.get(_REDIS_CLUSTER).delete(_feedback_queue_key(run_id))
+    client = redis_clusters.get(_REDIS_CLUSTER)
+    client.delete(_feedback_queue_key(run_id))
+    client.delete(_in_flight_key(run_id))
 
 
 def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
@@ -105,9 +118,8 @@ def count_queued_autofix_feedback(run_id: int) -> int:
     return redis_clusters.get(_REDIS_CLUSTER).llen(_feedback_queue_key(run_id))
 
 
-def peek_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
+def _read_list(key: str) -> list[QueuedAutofixFeedback]:
     redis = redis_clusters.get(_REDIS_CLUSTER)
-    key = _feedback_queue_key(run_id)
     items: list[QueuedAutofixFeedback] = []
 
     for raw_item in redis.lrange(key, 0, -1):
@@ -117,8 +129,56 @@ def peek_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
     return items
 
 
+def peek_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
+    return _read_list(_feedback_queue_key(run_id))
+
+
+def peek_in_flight_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
+    """Feedback popped by a drain that Seer may not have recorded yet.
+
+    For display only. Nothing consumes this list, so feedback in it can't run twice.
+    """
+    return _read_list(_in_flight_key(run_id))
+
+
+def _hold_in_flight(client: Any, run_id: int, raw_items: Sequence[str]) -> None:
+    key = _in_flight_key(run_id)
+    with client.pipeline() as pipe:
+        pipe.delete(key)
+        if raw_items:
+            pipe.rpush(key, *raw_items)
+            pipe.expire(key, _IN_FLIGHT_TTL_SECONDS)
+        pipe.execute()
+
+
 def pop_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
+    """Drain the queue, keeping a copy for the UI while Seer is told about it.
+
+    Without the copy, feedback is in neither the queue nor a Seer block between
+    this pop and Seer recording the iteration. A poll landing there sees an idle
+    run with nothing queued, so the UI hides the item and slows its polling.
+
+    The copy is written first because the two keys may not share a cluster slot,
+    so one script can't move items between them.
+    """
     client = redis_clusters.get(_REDIS_CLUSTER)
-    raw_items = drain_list([_feedback_queue_key(run_id)], [], client)
+    key = _feedback_queue_key(run_id)
+
+    copied = client.lrange(key, 0, -1)
+    _hold_in_flight(client, run_id, copied)
+    raw_items = drain_list([key], [], client)
+    # Feedback can arrive between the copy and the drain.
+    if raw_items != copied:
+        _hold_in_flight(client, run_id, raw_items)
 
     return [item for item in (_parse_queued_item(raw) for raw in raw_items) if item is not None]
+
+
+def release_in_flight_autofix_feedback(run_id: int) -> None:
+    """Let the in-flight copy expire now that the drain is over.
+
+    Not deleted outright: a poll may have read Seer just before the iteration
+    was recorded and be about to read this. Once a poll can see the iteration,
+    the UI state drops the copy (see ``ui_state``).
+    """
+    redis_clusters.get(_REDIS_CLUSTER).expire(_in_flight_key(run_id), _IN_FLIGHT_GRACE_SECONDS)
