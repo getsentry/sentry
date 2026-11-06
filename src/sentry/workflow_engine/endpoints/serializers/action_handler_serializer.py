@@ -1,46 +1,83 @@
 from collections.abc import Mapping
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Annotated, Any, Literal, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.workflow_engine.types import ActionHandler
 
 
 class SentryAppContext(TypedDict):
-    id: str
-    name: str
-    installationId: str
-    installationUuid: str
-    status: str
-    settings: NotRequired[dict[str, Any]]
-    title: NotRequired[str]
+    id: Annotated[str, ApiDescription("ID of the Sentry app")]
+    name: Annotated[str, ApiDescription("Name of the Sentry app")]
+    installationId: Annotated[str, ApiDescription("ID of the Sentry app installation")]
+    installationUuid: Annotated[str, ApiDescription("UUID of the Sentry app installation")]
+    status: Annotated[str, ApiDescription("Status of the Sentry app")]
+    settings: NotRequired[
+        Annotated[
+            dict[str, Any],
+            ApiDescription(
+                "Settings form for the action, from the app's alert rule action component"
+            ),
+        ]
+    ]
+    title: NotRequired[
+        Annotated[str, ApiDescription("Title of the app's alert rule action component")]
+    ]
 
 
 class AvailableActionService(TypedDict):
-    id: str
-    name: str
+    id: Annotated[str, ApiDescription("ID of the service")]
+    name: Annotated[str, ApiDescription("Name of the service")]
 
 
 class AvailableActionIntegration(TypedDict):
-    id: str
-    name: str
-    services: NotRequired[list[AvailableActionService]]
+    id: Annotated[str, ApiDescription("ID of the integration")]
+    name: Annotated[str, ApiDescription("Name of the integration")]
+    services: NotRequired[
+        Annotated[
+            list[AvailableActionService],
+            ApiDescription("Services available in the integration, such as PagerDuty services"),
+        ]
+    ]
 
 
 class AvailableWebhookService(TypedDict):
-    slug: str
-    name: str
+    slug: Annotated[str, ApiDescription("Slug of the webhook service")]
+    name: Annotated[str, ApiDescription("Name of the webhook service")]
 
 
 class ActionHandlerSerializerResponse(TypedDict):
-    type: str
-    handlerGroup: str
-    configSchema: dict[str, Any]
-    dataSchema: dict[str, Any]
-    sentryApp: NotRequired[SentryAppContext]
-    integrations: NotRequired[list[AvailableActionIntegration]]
-    services: NotRequired[list[AvailableWebhookService]]
-    disabledReason: NotRequired[Literal["plan"]]
+    type: Annotated[str, ApiDescription("Type of the action")]
+    handlerGroup: Annotated[
+        str, ApiDescription("Group the action belongs to, such as notification or ticket_creation")
+    ]
+    configSchema: Annotated[dict[str, Any], ApiDescription("JSON schema of the action's config")]
+    dataSchema: Annotated[dict[str, Any], ApiDescription("JSON schema of the action's data")]
+    sentryApp: NotRequired[
+        Annotated[
+            SentryAppContext,
+            ApiDescription("Sentry app that provides the action. Only set for Sentry app actions"),
+        ]
+    ]
+    integrations: NotRequired[
+        Annotated[
+            list[AvailableActionIntegration], ApiDescription("Integrations the action can use")
+        ]
+    ]
+    services: NotRequired[
+        Annotated[
+            list[AvailableWebhookService], ApiDescription("Webhook services the action can send to")
+        ]
+    ]
+    disabledReason: NotRequired[
+        Annotated[
+            Literal["plan"],
+            ApiDescription(
+                "Why the action can't be used, such as plan. Omitted when it can be used"
+            ),
+        ]
+    ]
 
 
 @register(ActionHandler)

@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
+import {parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -40,8 +40,11 @@ function DashboardsSecondaryNavigationImpl() {
   const hasUserLastVisited = organization.features.includes(
     'dashboards-user-last-visited'
   );
-  const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
-  const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter);
+  const [urlFilter] = useQueryState(
+    'filter',
+    parseAsStringEnum(Object.values(DashboardFilter))
+  );
+  const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter ?? undefined);
   const isOnlyCustom =
     hasPrebuiltDashboards && urlFilter === DashboardFilter.EXCLUDE_PREBUILT;
   const isOnDashboardsList = isPrimaryNavigationLinkActive(

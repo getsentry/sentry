@@ -4,6 +4,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getClassifiersPath, useClassifiersEnabled} from 'sentry/views/classifiers/utils';
 import {
   getInvestigationsPath,
   useInvestigationsEnabled,
@@ -22,8 +23,10 @@ function SeerSecondaryNavigationImpl() {
   const organization = useOrganization();
   const investigationsEnabled = useInvestigationsEnabled();
   const automationsEnabled = useAutomationsEnabled();
+  const classifiersEnabled = useClassifiersEnabled();
   const investigationsPath = getInvestigationsPath(organization.slug);
   const automationsPath = getAutomationsPath(organization.slug);
+  const classifiersPath = getClassifiersPath(organization.slug);
 
   useLLMContext({
     contextHint: 'The Seer secondary nav panel.',
@@ -34,10 +37,13 @@ function SeerSecondaryNavigationImpl() {
       ...(investigationsEnabled
         ? [{label: 'Investigations', badge: 'alpha', to: investigationsPath}]
         : []),
+      ...(classifiersEnabled
+        ? [{label: 'Classifiers', badge: 'alpha', to: classifiersPath}]
+        : []),
     ],
   });
 
-  if (!investigationsEnabled && !automationsEnabled) {
+  if (!investigationsEnabled && !automationsEnabled && !classifiersEnabled) {
     return null;
   }
 
@@ -70,6 +76,18 @@ function SeerSecondaryNavigationImpl() {
                   trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
                 >
                   {t('Investigations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
+            {classifiersEnabled && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={classifiersPath}
+                  analyticsItemName="seer_classifiers"
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
+                >
+                  {t('Classifiers')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             )}

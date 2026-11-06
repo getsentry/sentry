@@ -105,6 +105,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/chunk-upload/'
   | '/organizations/$organizationIdOrSlug/classifiers/'
   | '/organizations/$organizationIdOrSlug/classifiers/$classifierId/'
+  | '/organizations/$organizationIdOrSlug/classifiers/prebuilt/'
   | '/organizations/$organizationIdOrSlug/code-mapping-prefixes/repo/'
   | '/organizations/$organizationIdOrSlug/code-mappings/'
   | '/organizations/$organizationIdOrSlug/code-mappings/$configId/'
