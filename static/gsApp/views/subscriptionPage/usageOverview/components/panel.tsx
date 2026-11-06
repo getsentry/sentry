@@ -15,6 +15,10 @@ import {DataCategory} from 'sentry/types/core';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 
+import {
+  hasPaidSeer,
+  SeerPricingChangeAlert,
+} from 'getsentry/components/ai/seerPricingChangeAlert';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import {
@@ -211,6 +215,10 @@ export function ProductBreakdownPanel({
   }
 
   const shouldShowUpgradeCta = !potentialProductTrial && !isEnabled;
+  const shouldShowSeerPricingChangeAlert =
+    [AddOnCategory.SEER, AddOnCategory.LEGACY_SEER].includes(
+      selectedProduct as AddOnCategory
+    ) && hasPaidSeer(subscription);
 
   return (
     <Container
@@ -243,6 +251,11 @@ export function ProductBreakdownPanel({
           )}
           {isEnabled && (
             <Fragment>
+              {shouldShowSeerPricingChangeAlert && (
+                <Container padding="xl xl 0">
+                  <SeerPricingChangeAlert />
+                </Container>
+              )}
               {breakdownInfo}
               <UsageCharts
                 selectedProduct={selectedProduct}
