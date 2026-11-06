@@ -56,6 +56,7 @@ type ConditionType =
   | 'metric_name'
   | 'log_message'
   | 'release'
+  | 'environment'
   | 'ip_address';
 
 // How a condition compares its values to the field, as the API names it. `glob`
@@ -161,9 +162,9 @@ type ConditionSpec = {
   placeholder: string;
   // Values compare as versions too, so the query builder offers >, >=, < and <=.
   comparable?: boolean;
-  // The data type whose field this condition reads. Absent for `release` and
-  // `ip_address`, which every data type carries, so they stay on offer whatever
-  // the filter targets.
+  // The data type whose field this condition reads. Absent for `release`,
+  // `environment` and `ip_address`, which every data type carries, so they stay
+  // on offer whatever the filter targets.
   dataType?: FilterDataType;
   // Values are addresses and ranges, not text: the field "matches" them or "does
   // not match" them, and the query builder offers no wildcard.
@@ -219,6 +220,17 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
       log: t('Matches the release attribute of the log.'),
       metric: t('Matches the release attribute of the metric.'),
       span: t('Matches the release attribute of the span.'),
+    },
+  },
+  environment: {
+    label: t('Environment'),
+    placeholder: t('Glob pattern, e.g. staging'),
+    description: {
+      all: t('Matches the environment of any data type.'),
+      error: t('Matches the environment of the error.'),
+      log: t('Matches the environment attribute of the log.'),
+      metric: t('Matches the environment attribute of the metric.'),
+      span: t('Matches the environment attribute of the span.'),
     },
   },
   ip_address: {

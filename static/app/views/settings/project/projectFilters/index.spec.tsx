@@ -1369,6 +1369,7 @@ describe('ProjectFilters', () => {
     expect(screen.getByRole('option', {name: 'error_type'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'geo_country_code'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'environment'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'ip_address'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'metric_name'})).not.toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'log_message'})).not.toBeInTheDocument();
@@ -1537,6 +1538,7 @@ describe('ProjectFilters', () => {
       within(dialog).getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
     );
     expect(await screen.findByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'environment'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'ip_address'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'error_message'})).not.toBeInTheDocument();
     expect(
