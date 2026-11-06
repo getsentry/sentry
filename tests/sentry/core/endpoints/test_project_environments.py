@@ -57,6 +57,14 @@ class ProjectEnvironmentsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["name"] == "staging"
 
+        response = self.client.get(url + "?visibility=", format="json")
+        assert response.status_code == 200, response.content
+        assert [env["name"] for env in response.data] == ["production"]
+
+        response = self.client.get(url + "?visibility=invalid-vis", format="json")
+        assert response.status_code == 400, response.content
+        assert response.data["detail"].startswith("Invalid value for 'visibility'")
+
     def test_bulk_put(self) -> None:
         project = self.create_project()
 
