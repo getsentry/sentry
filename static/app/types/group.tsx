@@ -681,6 +681,7 @@ export enum GroupActivityType {
   UNLINK_EXTERNAL_ISSUE = 'unlink_external_issue',
   UNLINK_PLATFORM_EXTERNAL_ISSUE = 'unlink_platform_external_issue',
   IMPACT_ASSESSMENT = 'impact_assessment',
+  INVESTIGATION_LINKED = 'investigation_linked',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -1173,6 +1174,31 @@ export interface GroupActivityImpactAssessment extends GroupActivityBase {
   type: GroupActivityType.IMPACT_ASSESSMENT;
 }
 
+interface LinkedInvestigation {
+  id: string;
+  status: 'active' | 'archived';
+  title: string;
+}
+
+export interface GroupActivityInvestigationLinked extends GroupActivityBase {
+  data: {
+    hypothesisId: string;
+    /**
+     * The confirmed hypothesis whose evidence named this issue.
+     */
+    hypothesisStatement: string;
+    /**
+     * Null once the investigation is deleted.
+     */
+    investigation: LinkedInvestigation | null;
+    /**
+     * Seer's note on the evidence, usually counts and culprits.
+     */
+    reason: string | null;
+  };
+  type: GroupActivityType.INVESTIGATION_LINKED;
+}
+
 export type GroupActivity =
   | GroupActivityUnlinkExternalIssue
   | GroupActivityUnlinkPlatformExternalIssue
@@ -1219,7 +1245,8 @@ export type GroupActivity =
   | GroupActivityPullRequestMerged
   | GroupActivityPullRequestUnlinked
   | GroupActivityTriggerAutofix
-  | GroupActivityImpactAssessment;
+  | GroupActivityImpactAssessment
+  | GroupActivityInvestigationLinked;
 
 export type Activity = GroupActivity;
 

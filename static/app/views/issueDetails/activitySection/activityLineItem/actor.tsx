@@ -45,7 +45,10 @@ export function renderActivityLineActor(item: GroupActivity): React.ReactElement
     );
   }
 
-  if (SEER_ACTIVITY_TYPES.has(item.type)) {
+  if (
+    SEER_ACTIVITY_TYPES.has(item.type) ||
+    item.type === GroupActivityType.INVESTIGATION_LINKED
+  ) {
     return (
       <Tooltip title={t('Seer')} skipWrapper>
         <Flex
