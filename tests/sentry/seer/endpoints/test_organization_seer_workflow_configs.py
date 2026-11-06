@@ -714,11 +714,139 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         self.login_as(member)
 
         response = self.get_success_response(self.organization.slug, workflow.config_id)
+        assert response.data["serviceAccount"]["projectIds"] == [accessible.id]
+
+        with self.feature("organizations:service-accounts"):
+            response = self.get_success_response(
+                self.organization.slug,
+                workflow.config_id,
+                method="put",
+                serviceAccount={"scopes": ["event:read"], "projectIds": [accessible.id]},
+            )
 
         assert response.data["serviceAccount"]["projectIds"] == [accessible.id]
         assert service_account_project_ids(get_service_account(workflow.config_id)) == sorted(
             [accessible.id, hidden.id]
         )
+
+    @with_feature("organizations:service-accounts")
+    def test_put_creates_a_service_account_for_a_config_without_one(self) -> None:
+        config = self.create_config()
+        grant = {"scopes": ["event:read", "project:read"], "projectIds": [self.project.id]}
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug, config.id, method="put", serviceAccount=grant
+            )
+
+        account = get_service_account(config.id)
+        assert response.data["serviceAccount"] == {
+            "serviceAccountId": str(account.id),
+            **grant,
+            "allProjects": False,
+        }
+        assert account.scope_list == ["event:read", "project:read"]
+        assert account.created_by_id == self.user.id
+        assert service_account_project_ids(account) == [self.project.id]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("SERVICE_ACCOUNT_ADD"), target_object=account.id
+            ).exists()
+
+    @with_feature("organizations:service-accounts")
+    def test_put_updates_the_existing_service_account(self) -> None:
+        with outbox_runner():
+            workflow = self.create_metric_workflow()
+        account = get_service_account(workflow.config_id)
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                workflow.config_id,
+                method="put",
+                serviceAccount={"scopes": ["project:read"], "allProjects": True},
+            )
+
+        assert response.data["serviceAccount"] == {
+            "serviceAccountId": str(account.id),
+            "scopes": ["project:read"],
+            "projectIds": [],
+            "allProjects": True,
+        }
+        account = get_service_account(workflow.config_id)
+        assert account.scope_list == ["project:read"]
+        assert account.all_projects
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ServiceAccount.objects.filter(organization_id=self.organization.id).count() == 1
+            assert AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("SERVICE_ACCOUNT_EDIT"), target_object=account.id
+            ).exists()
+        detail = self.get_success_response(self.organization.slug, workflow.config_id)
+        assert detail.data["serviceAccount"] == response.data["serviceAccount"]
+
+    @with_feature("organizations:service-accounts")
+    def test_service_account_with_scopes_the_caller_lacks_changes_nothing(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
+
+        response = self.client.put(
+            f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/{workflow.config_id}/",
+            {"monitorIds": [], "serviceAccount": {"scopes": ["org:write"]}},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 403
+        assert self.connected_monitor_ids(workflow) == {monitor.id}
+        assert get_service_account(workflow.config_id).scope_list == ["event:read"]
+
+    @with_feature("organizations:service-accounts")
+    def test_all_projects_service_account_requires_a_global_role(self) -> None:
+        workflow = self.create_metric_workflow()
+        api_key = self.create_api_key(
+            organization=self.organization, scope_list=["project:read", "event:read"]
+        )
+
+        response = self.client.put(
+            f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/{workflow.config_id}/",
+            {"serviceAccount": {"scopes": ["event:read"], "allProjects": True}},
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+        )
+
+        assert response.status_code == 403
+        assert not get_service_account(workflow.config_id).all_projects
+
+        self.get_success_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            serviceAccount={"scopes": ["event:read"], "allProjects": True},
+        )
+        member, project = self.create_member_with_project(open_membership=False)
+        monitor = self.create_metric_monitor(project)
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            monitorIds=[monitor.id],
+            serviceAccount={"scopes": ["event:read"], "projectIds": [project.id]},
+            status_code=403,
+        )
+        assert get_service_account(workflow.config_id).all_projects
+        assert workflow.get_monitors() == []
+
+        with self.feature({"organizations:service-accounts": False}):
+            self.get_error_response(
+                self.organization.slug,
+                workflow.config_id,
+                method="put",
+                serviceAccount={"scopes": ["event:read"]},
+                status_code=404,
+            )
 
     def test_put_breached_metric_replaces_monitors(self) -> None:
         kept, removed, added = (self.create_metric_monitor(self.create_project()) for _ in range(3))

@@ -74,6 +74,12 @@ class SeerServiceAccountGrant:
     all_projects: bool = False
 
 
+@dataclass(frozen=True)
+class SeerServiceAccountGrantUpdate:
+    service_account: RpcServiceAccount | None
+    created: bool
+
+
 @dataclass(frozen=True, kw_only=True)
 class SeerWorkflow:
     """Apply each change to fresh state under the workflow config's row lock.
@@ -140,12 +146,7 @@ class SeerWorkflow:
         The outbox drains when the transaction commits. If that fails, the config is kept
         without an account and the outbox retries in the background.
         """
-        if not service_account_grant.all_projects:
-            _validate_project_ids(organization_id, set(service_account_grant.project_ids))
-        try:
-            validate_grantable_scopes(service_account_grant.scopes)
-        except InvalidScopeError as e:
-            raise WorkflowUpdateError(" ".join(e.messages)) from e
+        _validate_service_account_grant(organization_id, service_account_grant)
 
         extras = extras or SeerWorkflowConfigExtras()
         try:
@@ -370,6 +371,78 @@ class SeerWorkflow:
             organization_id=self.organization_id, service_account_id=config.service_account_id
         )
 
+    def set_service_account_grant(
+        self, grant: SeerServiceAccountGrant, *, created_by_id: int | None
+    ) -> SeerServiceAccountGrantUpdate:
+        """
+        Replace the scopes and projects of the automation's service account. An automation
+        without a live account gets a new one through the create outbox; the returned
+        account is None if that outbox didn't drain inline. If a concurrent save linked
+        an account first, the grant is applied to that account. Callers must authorize the
+        grant and audit it.
+        """
+        _validate_service_account_grant(self.organization_id, grant)
+        service_account_id = self.get_config().service_account_id
+        if service_account_id is not None:
+            account = self._update_service_account(service_account_id, grant)
+            if account is not None:
+                return SeerServiceAccountGrantUpdate(service_account=account, created=False)
+
+        self._enqueue_service_account_create(
+            grant, replacing=service_account_id, created_by_id=created_by_id
+        )
+        account = self.get_service_account()
+        if account is not None and not _grant_matches(account, grant):
+            account = self._update_service_account(account.id, grant)
+            return SeerServiceAccountGrantUpdate(service_account=account, created=False)
+        return SeerServiceAccountGrantUpdate(service_account=account, created=True)
+
+    def _update_service_account(
+        self, service_account_id: int, grant: SeerServiceAccountGrant
+    ) -> RpcServiceAccount | None:
+        return service_account_service.update_service_account(
+            organization_id=self.organization_id,
+            service_account_id=service_account_id,
+            scope_list=list(grant.scopes),
+            project_ids=[] if grant.all_projects else list(grant.project_ids),
+            all_projects=grant.all_projects,
+        )
+
+    def _enqueue_service_account_create(
+        self,
+        grant: SeerServiceAccountGrant,
+        *,
+        replacing: int | None,
+        created_by_id: int | None,
+    ) -> None:
+        """Unlink a deleted account and save the outbox that creates and links a new one."""
+        database = router.db_for_write(SeerWorkflowConfig)
+        try:
+            with outbox_context(transaction.atomic(database), flush=True):
+                config = self._config_queryset().select_for_update().get()
+                if config.service_account_id != replacing:
+                    return
+                if config.service_account_id is not None:
+                    config.service_account_id = None
+                    config.save(update_fields=["service_account_id"])
+                service_account_create_outbox(
+                    organization_id=self.organization_id,
+                    owner_kind=ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG,
+                    owner_id=config.id,
+                    name=_service_account_name(
+                        config.id, SeerWorkflowConfigExtras.parse_obj(config.extras).name
+                    ),
+                    scope_list=grant.scopes,
+                    project_ids=grant.project_ids,
+                    all_projects=grant.all_projects,
+                    created_by_id=created_by_id,
+                ).save()
+        except (OutboxFlushError, OutboxDatabaseError):
+            logger.exception(
+                "seer.workflow.service_account.flush_failed",
+                extra={"organization_id": self.organization_id, "config_id": self.config_id},
+            )
+
     def resolve_service_account(self) -> ServiceAccountReplica:
         """Resolve authoritative identity against current cell state on every call."""
         config = self.get_config()
@@ -545,6 +618,23 @@ def _validate_project_ids(organization_id: int, project_ids: set[int]) -> None:
     )
     if project_ids != valid_project_ids:
         raise WorkflowUpdateError("Selected projects must exist in the workflow's organization")
+
+
+def _validate_service_account_grant(organization_id: int, grant: SeerServiceAccountGrant) -> None:
+    if not grant.all_projects:
+        _validate_project_ids(organization_id, set(grant.project_ids))
+    try:
+        validate_grantable_scopes(grant.scopes)
+    except InvalidScopeError as e:
+        raise WorkflowUpdateError(" ".join(e.messages)) from e
+
+
+def _grant_matches(account: RpcServiceAccount, grant: SeerServiceAccountGrant) -> bool:
+    return (
+        sorted(account.scope_list) == sorted(grant.scopes)
+        and account.all_projects == grant.all_projects
+        and sorted(account.project_ids) == sorted([] if grant.all_projects else grant.project_ids)
+    )
 
 
 def _service_account_name(config_id: int, automation_name: str | None) -> str:

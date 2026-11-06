@@ -703,6 +703,91 @@ class SeerWorkflowServiceAccountTest(TestCase):
         assert account.scope_list == ["event:read"]
         assert not ServiceAccountReplica.objects.filter(service_account_id=account.id).exists()
 
+    def test_set_service_account_grant_creates_and_then_updates_an_account(self) -> None:
+        SeerWorkflowConfig.objects.filter(id=self.config.id).update(version=4, enabled=True)
+
+        created = self.workflow.set_service_account_grant(
+            SeerServiceAccountGrant(scopes=["event:read"], project_ids=[self.project.id]),
+            created_by_id=self.user.id,
+        )
+
+        assert created.created
+        assert created.service_account is not None
+        account = self.control_service_account(created.service_account.id)
+        assert account.name == f"Seer automation #{self.config.id}"
+        assert account.created_by_id == self.user.id
+        assert created.service_account.project_ids == [self.project.id]
+        self.config.refresh_from_db()
+        assert self.config.service_account_id == account.id
+        assert self.config.version == 4
+        assert self.config.enabled is True
+        assert self.config.filters == {"environments": ["production"]}
+
+        updated = self.workflow.set_service_account_grant(
+            SeerServiceAccountGrant(scopes=["project:read"], all_projects=True),
+            created_by_id=None,
+        )
+
+        assert not updated.created
+        assert updated.service_account is not None
+        assert updated.service_account.id == account.id
+        account = self.control_service_account(account.id)
+        assert account.scope_list == ["project:read"]
+        assert account.all_projects
+
+    def test_set_service_account_grant_rejects_projects_outside_the_org(self) -> None:
+        foreign = SeerServiceAccountGrant(
+            scopes=["event:read"],
+            project_ids=[self.create_project(organization=self.create_organization()).id],
+        )
+
+        with pytest.raises(WorkflowUpdateError, match="must exist in the workflow's organization"):
+            self.workflow.set_service_account_grant(foreign, created_by_id=None)
+
+        assert self.workflow.get_config().service_account_id is None
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.SERVICE_ACCOUNT_CREATE
+        ).exists()
+
+    def test_set_service_account_grant_updates_an_account_linked_concurrently(self) -> None:
+        enqueue = SeerWorkflow._enqueue_service_account_create
+
+        def link_concurrently_then_enqueue(
+            workflow: SeerWorkflow, *args: Any, **kwargs: Any
+        ) -> None:
+            self.link(self.account.id)
+            enqueue(workflow, *args, **kwargs)
+
+        with patch.object(
+            SeerWorkflow,
+            "_enqueue_service_account_create",
+            autospec=True,
+            side_effect=link_concurrently_then_enqueue,
+        ):
+            update = self.workflow.set_service_account_grant(
+                SeerServiceAccountGrant(scopes=["project:read"]), created_by_id=None
+            )
+
+        assert not update.created
+        assert update.service_account is not None
+        assert update.service_account.id == self.account.id
+        assert self.control_service_account(self.account.id).scope_list == ["project:read"]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert list(ServiceAccount.objects.values_list("id", flat=True)) == [self.account.id]
+
+    def test_set_service_account_grant_replaces_an_account_deleted_elsewhere(self) -> None:
+        self.link(self.account.id)
+        service_account_service.delete_service_account(
+            organization_id=self.organization.id, service_account_id=self.account.id
+        )
+
+        update = self.workflow.set_service_account_grant(GRANT, created_by_id=None)
+
+        assert update.created
+        assert update.service_account is not None
+        assert update.service_account.id != self.account.id
+        assert self.workflow.get_config().service_account_id == update.service_account.id
+
     def test_resolution_uses_the_account_id_not_the_replica_id(self) -> None:
         with outbox_runner():
             unrelated = Factories.create_service_account(self.organization, name="unrelated")

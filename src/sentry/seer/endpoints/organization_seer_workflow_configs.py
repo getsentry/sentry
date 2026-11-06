@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from collections.abc import Collection, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
@@ -63,7 +63,9 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
-type ServiceAccountAuditEvent = Literal["SERVICE_ACCOUNT_ADD", "SERVICE_ACCOUNT_REMOVE"]
+type ServiceAccountAuditEvent = Literal[
+    "SERVICE_ACCOUNT_ADD", "SERVICE_ACCOUNT_EDIT", "SERVICE_ACCOUNT_REMOVE"
+]
 
 
 class SeerServiceAccountResponse(TypedDict):
@@ -189,6 +191,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
 
 class WorkflowConfigUpdateSerializer(serializers.Serializer):
     enabled = serializers.BooleanField(required=False)
+    serviceAccount = ServiceAccountGrantSerializer(required=False)
     projectIds = serializers.ListField(
         child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
         required=False,
@@ -208,7 +211,9 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data:
-            raise serializers.ValidationError("Send projectIds, monitorIds, or enabled.")
+            raise serializers.ValidationError(
+                "Send projectIds, monitorIds, serviceAccount, or enabled."
+            )
         if "projectIds" in data and "monitorIds" in data:
             raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
         return data
@@ -494,13 +499,18 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (SeerWorkflowConfigPermission,)
 
     def serialize(
-        self, request: Request, organization: Organization, config: SeerWorkflowConfig
+        self,
+        request: Request,
+        organization: Organization,
+        config: SeerWorkflowConfig,
+        account: RpcServiceAccount | None = None,
     ) -> SeerWorkflowConfigResponse:
         projects = self.get_projects(request, organization, include_all_accessible=True)
         return serialize_workflow_configs(
             [config],
             accessible_project_ids=[p.id for p in projects],
             has_global_access=request.access.has_global_access,
+            accounts=[account] if account else (),
         )["configs"][0]
 
     @extend_schema(
@@ -553,6 +563,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         - ``monitorIds`` replaces the monitors of a metric automation and is rejected
           for other strategies.
         - Enabling or pausing requires access to every project the config covers.
+        - ``serviceAccount`` replaces the scopes and projects of the automation's service
+          account, creating one if the automation doesn't have one. Like ``projectIds``,
+          the account's projects the caller can't access are kept.
 
         Failures past request validation return an empty 400. Returns the updated config
         in the same shape as an item in the list endpoint's ``configs``.
@@ -597,6 +610,17 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             )
             if denied is not None:
                 raise PermissionDenied(detail=denied)
+
+        grant: SeerServiceAccountGrant | None = serializer.validated_data.get("serviceAccount")
+        if grant is not None:
+            check_can_grant_service_account(grant, request, organization, self)
+            grant = _with_no_access_service_account_projects(
+                grant,
+                workflow.get_service_account(),
+                request=request,
+                organization=organization,
+                endpoint=self,
+            )
 
         # Updates are done in one txn. Error cases must raise instead of early return,
         # so the transaction can rollback.
@@ -681,8 +705,23 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 return Response({"detail": str(e)}, status=400)
             return Response(status=400)
 
+        account: RpcServiceAccount | None = None
+        if grant is not None:
+            try:
+                grant_update = workflow.set_service_account_grant(
+                    grant, created_by_id=acting_user_id(request.user)
+                )
+            except WorkflowUpdateError as e:
+                return Response({"detail": str(e)}, status=400)
+            account = grant_update.service_account
+            if account is not None:
+                event: ServiceAccountAuditEvent = (
+                    "SERVICE_ACCOUNT_ADD" if grant_update.created else "SERVICE_ACCOUNT_EDIT"
+                )
+                audit_service_account(self, request, organization, account, event)
+
         config = workflow.get_config()
-        return Response(self.serialize(request, organization, config))
+        return Response(self.serialize(request, organization, config, account))
 
     @extend_schema(
         operation_id="Delete a Seer automation workflow",
@@ -913,6 +952,38 @@ def _require_global_role(request: Request, detail: str) -> None:
     role = request.access.role
     if role is None or not roles.get(role).is_global:
         raise PermissionDenied(detail)
+
+
+def _with_no_access_service_account_projects(
+    grant: SeerServiceAccountGrant,
+    current: RpcServiceAccount | None,
+    *,
+    request: Request,
+    organization: Organization,
+    endpoint: OrganizationEndpoint,
+) -> SeerServiceAccountGrant:
+    """
+    Return the grant plus the current account's projects the caller can't read. Narrowing
+    an all-projects account needs the same global role as granting all projects.
+    """
+    if current is None or grant.all_projects:
+        return grant
+    if current.all_projects:
+        _require_global_role(
+            request,
+            "Only a role with access to all projects can narrow a service account's projects.",
+        )
+        return grant
+    return replace(
+        grant,
+        project_ids=_with_no_access_project_ids(
+            grant.project_ids,
+            current.project_ids,
+            request=request,
+            organization=organization,
+            endpoint=endpoint,
+        ),
+    )
 
 
 def audit_service_account(
