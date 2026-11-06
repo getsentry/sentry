@@ -89,7 +89,9 @@ export function convertWidgetToQueryParams(
     field,
     yAxis,
     ...(widget.queries.some(q =>
-      Object.values(q.transformations ?? {}).some(pipeline => pipeline.length)
+      Object.values(q.transformations ?? {}).some(
+        transformations => transformations.length
+      )
     ) && {
       transformations: parseAsTransformations.serialize(
         widget.queries.map(q => q.transformations ?? {})
