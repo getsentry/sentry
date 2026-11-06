@@ -16,15 +16,16 @@ import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
+import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
+
 import {
   DiffTableChangeAmountCell,
   DiffTableHeader,
   DiffTableWithColumns,
   ITEMS_PER_PAGE,
   type DiffTableSort,
-} from 'sentry/views/preprod/buildComparison/main/diffTable';
-import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
-import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
+} from './diffTable';
 
 const tableHeaders = [
   {key: 'change', label: 'Change', width: '150px'},

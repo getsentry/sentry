@@ -6,15 +6,16 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import {
-  useDetectorResolvedStatsPeriod,
-  useDetectorTimePeriodOptions,
-} from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {
   getTimePeriodLabel,
   MetricDetectorTimePeriod,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+
+import {
+  useDetectorResolvedStatsPeriod,
+  useDetectorTimePeriodOptions,
+} from './utils/useDetectorTimePeriods';
 
 type BaseOption = {label: React.ReactNode; value: string};
 

@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AdminSettings from 'sentry/views/admin/adminSettings';
+import AdminSettings from './adminSettings';
 
 describe('AdminSettings', () => {
   it('saves a setting with a dotted option key', async () => {

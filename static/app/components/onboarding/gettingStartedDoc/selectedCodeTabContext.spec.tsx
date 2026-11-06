@@ -1,13 +1,14 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import type {CodeSnippetTab} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+
+import type {CodeSnippetTab} from './onboardingCodeSnippet';
+import {TabbedCodeSnippet} from './onboardingCodeSnippet';
 import {
   BlockPathProvider,
   StepIndexProvider,
   TabSelectionScope,
-} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+} from './selectedCodeTabContext';
 
 const PACKAGE_MANAGER_TABS: CodeSnippetTab[] = [
   {label: 'npm', value: 'npm', code: 'npm install @sentry/node', language: 'bash'},

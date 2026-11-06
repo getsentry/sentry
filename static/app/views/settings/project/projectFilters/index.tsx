@@ -9,11 +9,12 @@ import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {GroupTombstones} from 'sentry/views/settings/project/projectFilters/groupTombstones';
-import {ProjectFiltersChart} from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
-import {ProjectFiltersSettings} from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {GroupTombstones} from './groupTombstones';
+import {ProjectFiltersChart} from './projectFiltersChart';
+import {ProjectFiltersSettings} from './projectFiltersSettings';
 
 export default function ProjectFilters() {
   const routes = useRoutes();

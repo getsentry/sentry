@@ -1,7 +1,4 @@
-import {
-  COMPONENT_CATEGORY_ORDER,
-  validateComponentCategory,
-} from 'sentry/stories/componentCategories';
+import {COMPONENT_CATEGORY_ORDER, validateComponentCategory} from './componentCategories';
 
 describe('validateComponentCategory', () => {
   it.each(COMPONENT_CATEGORY_ORDER)(

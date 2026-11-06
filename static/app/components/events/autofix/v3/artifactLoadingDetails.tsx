@@ -3,10 +3,11 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {type AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {hasValidContent} from 'sentry/views/seerExplorer/components/chat/shared';
+
+import {ArtifactDetails} from './artifactDetails';
 
 interface ArtifactLoadingDetailsProps {
   blocks: AutofixSection['blocks'];

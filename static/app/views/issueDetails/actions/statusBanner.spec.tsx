@@ -5,7 +5,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
-import {StatusBanner} from 'sentry/views/issueDetails/actions/statusBanner';
+
+import {StatusBanner} from './statusBanner';
 
 const project = ProjectFixture();
 const actor = UserFixture({name: 'David Cramer'});

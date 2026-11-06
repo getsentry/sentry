@@ -441,16 +441,8 @@ class IssueParams:
 
     DEFAULT_QUERY = OpenApiParameter(
         name="query",
-        description="An optional search query for filtering issues. A default query will apply if no view/query is set. For all results use this parameter with an empty string.",
+        description="An optional search query for filtering issues. A default query will apply if no query is set. For all results use this parameter with an empty string.",
         default="is:unresolved",
-        location=OpenApiParameter.QUERY,
-        type=OpenApiTypes.STR,
-        required=False,
-    )
-
-    VIEW_ID = OpenApiParameter(
-        name="viewId",
-        description="The ID of the view to use. If no query is present, the view's query and filters will be applied.",
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
@@ -478,7 +470,7 @@ class IssueParams:
 
     LIMIT = OpenApiParameter(
         name="limit",
-        description="The maximum number of issues to affect. The maximum is 100.",
+        description="The maximum number of issues to return. The maximum is 100.",
         default=100,
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.INT,
