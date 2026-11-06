@@ -598,7 +598,7 @@ def get_dynamic_cluster_from_options(
         raise InvalidConfiguration(
             f"{setting} uses the Redis cluster {cluster_name!r} in redis.clusters. This entry has "
             f"{host_count} hosts and does not set is_redis_cluster. "
-            "Sentry no longer spreads keys across hosts on the client side (redis-blaster), so an "
+            "Sentry no longer spreads keys across hosts on the client side, so an "
             "entry without is_redis_cluster must have exactly one host. Keep one host, or set "
             "is_redis_cluster to True if the hosts are a Redis Cluster."
         )
