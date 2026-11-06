@@ -37,7 +37,11 @@ export default function SavedQueryBlock({data}: {data: SavedQueryData}) {
   // them; the saved-queries table shows the first and so does this. The link
   // still resolves to the compare view, which is what the URL builder does.
   const query = savedQuery.query[0];
-  const yAxes = query.visualize.flatMap(visualize => visualize.yAxes);
+  const yAxes = query.visualize.flatMap(visualize =>
+    visualize.yAxes.map(yAxis =>
+      [yAxis, ...(visualize.transformations ?? [])].join(' · ')
+    )
+  );
 
   return (
     <QueryEmbedCard
@@ -67,8 +71,8 @@ export default function SavedQueryBlock({data}: {data: SavedQueryData}) {
               <Text size="sm" variant="muted">
                 {t('Visualize')}
               </Text>
-              {yAxes.map(yAxis => (
-                <Tag key={yAxis} variant="info">
+              {yAxes.map((yAxis, index) => (
+                <Tag key={`${index}-${yAxis}`} variant="info">
                   {yAxis}
                 </Tag>
               ))}

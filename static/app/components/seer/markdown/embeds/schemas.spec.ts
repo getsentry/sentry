@@ -5,6 +5,48 @@ import {
 } from './schemas';
 
 describe('seerEmbedsToJsonSchemas', () => {
+  it.each(['spansQuery', 'logsQuery', 'metricsQuery'] as const)(
+    'preserves ordered transformations and intervals for %s',
+    name => {
+      const input = {
+        name: 'request.duration',
+        type: 'distribution',
+        mode: 'aggregate',
+        yAxes: ['count()', 'count()'],
+        transformations: [[], ['fill(locf)', 'smooth(sma,3)']],
+        interval: '5m',
+      };
+      expect(SEER_EMBED_SCHEMAS[name].schema.parse(input)).toMatchObject({
+        yAxes: ['count()', 'count()'],
+        transformations: [[], ['fill(locf)', 'smooth(sma,3)']],
+        interval: '5m',
+      });
+    }
+  );
+
+  it('rejects transformations without an axis and invalid bucket intervals', () => {
+    expect(
+      SEER_EMBED_SCHEMAS.spansQuery.schema.safeParse({
+        yAxes: ['count()'],
+        transformations: [[], ['fill(zero)']],
+      }).success
+    ).toBe(false);
+    expect(SEER_EMBED_SCHEMAS.spansQuery.schema.safeParse({interval: '0m'}).success).toBe(
+      false
+    );
+    expect(
+      SEER_EMBED_SCHEMAS.spansQuery.schema.parse({
+        transformations: [['fill(zero)']],
+        interval: '1h',
+      })
+    ).toEqual({
+      query: '',
+      mode: 'samples',
+      transformations: [['fill(zero)']],
+      interval: '1h',
+    });
+  });
+
   it('accepts inputs that the renderer fills with defaults or strips', () => {
     expect(
       SEER_EMBED_SCHEMAS.timestamp.schema.parse({
