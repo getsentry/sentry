@@ -26,9 +26,9 @@ def authenticate_service_account(
     organization.
 
     Only for organizations with ``organizations:service-accounts``. The token carries no
-    scopes, so they're read on every request: from the account itself on control, and from
-    the cell replica elsewhere. On a cell, narrowing, disabling or deleting the account
-    applies once its outbox replicates, not when the token expires.
+    scopes, so they're read on every request: on control from a read replica of the account,
+    elsewhere from the cell replica. Narrowing, disabling or deleting the account applies
+    once that replica catches up, not when the token expires.
     """
     actor = vc.actor
     if (
@@ -41,9 +41,11 @@ def authenticate_service_account(
     service_account: ServiceAccount | ServiceAccountReplica | None
     organization: Organization | RpcOrganization | None
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
-        service_account = ServiceAccount.objects.filter(
-            id=actor.actor_id, organization_id=vc.organization_id, is_active=True
-        ).first()
+        service_account = (
+            ServiceAccount.objects.using_replica()
+            .filter(id=actor.actor_id, organization_id=vc.organization_id, is_active=True)
+            .first()
+        )
         if service_account is None:
             return None
         org_context = organization_service.get_organization_by_id(

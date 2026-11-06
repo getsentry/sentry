@@ -1540,14 +1540,13 @@ def from_service_account_auth(auth: AuthenticatedToken, organization_id: int) ->
     # Bound to the account's own org, like agent tokens.
     if auth.entity_id is None or auth.organization_id != organization_id:
         return DEFAULT
-    # The token doesn't carry `all_projects`, so read it from the account: the source
-    # on control, the replica elsewhere. An account deactivated since authentication
-    # gets no access.
+    # The token doesn't carry `all_projects`, so read it from a replica of the account:
+    # a read replica on control, the cell replica elsewhere. An account deactivated since
+    # authentication gets no access.
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         all_projects = (
-            ServiceAccount.objects.filter(
-                id=auth.entity_id, organization_id=organization_id, is_active=True
-            )
+            ServiceAccount.objects.using_replica()
+            .filter(id=auth.entity_id, organization_id=organization_id, is_active=True)
             .values_list("all_projects", flat=True)
             .first()
         )
