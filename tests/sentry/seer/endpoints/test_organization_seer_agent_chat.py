@@ -16,6 +16,7 @@ from sentry.seer.agent.client_models import (
     UsageAccumulator,
 )
 from sentry.seer.agent.client_utils import snapshot_to_markdown
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
 from sentry.seer.models import SeerApiError
@@ -499,6 +500,25 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 409
         assert response.data["code"] == "run_in_flight"
         mock_continue.assert_not_called()
+
+    @patch(
+        "sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run",
+        side_effect=SeerOutOfCreditsException(),
+    )
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_reply_to_single_run_without_credits_is_402(
+        self, mock_client_class: MagicMock, mock_continue: MagicMock
+    ) -> None:
+        run = self._single_run(user_id=self.user.id)
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/", {"query": "make a code fix"}, format="json"
+        )
+
+        assert response.status_code == 402
+        assert response.data == {
+            "detail": "Your organization does not have enough credits left for you to message Seer."
+        }
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
