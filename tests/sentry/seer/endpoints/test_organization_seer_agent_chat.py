@@ -15,6 +15,7 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.agent.client_utils import snapshot_to_markdown
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
+from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -503,6 +504,21 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     ) -> None:
         run = self._single_run(user_id=self.user.id)
         mock_client_class.return_value.get_run.side_effect = ValueError("No session")
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/", {"query": "make a code fix"}, format="json"
+        )
+
+        assert response.status_code == 404
+        mock_continue.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_reply_to_single_run_seer_does_not_know_is_404(
+        self, mock_client_class: MagicMock, mock_continue: MagicMock
+    ) -> None:
+        run = self._single_run(user_id=self.user.id)
+        mock_client_class.return_value.get_run.side_effect = SeerApiError("Not found", 404)
 
         response = self.client.post(
             f"{self.url}{run.seer_run_state_id}/", {"query": "make a code fix"}, format="json"
