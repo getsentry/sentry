@@ -343,6 +343,17 @@ class ServiceAccountToken(ReplicatedControlModel):
 
     __repr__ = sane_repr("organization_id", "service_account_id", "name")
 
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.services.replica import cell_replica_service
+        from sentry.service_accounts.services.service_account.serial import (
+            serialize_service_account_token,
+        )
+
+        cell_replica_service.upsert_replicated_service_account_token(
+            token=serialize_service_account_token(self),
+            cell_name=cell_name,
+        )
+
 
 @cell_silo_model
 class ServiceAccountTokenReplica(Model):
