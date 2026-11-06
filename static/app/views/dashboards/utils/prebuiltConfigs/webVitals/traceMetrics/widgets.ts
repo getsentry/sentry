@@ -14,6 +14,7 @@ import {
   WEB_VITAL_SCORE_COUNT_FIELDS,
   WEB_VITAL_SCORE_FIELDS,
   webVitalCountField,
+  webVitalMetricName,
   webVitalP75Field,
 } from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
@@ -24,6 +25,12 @@ import {SpanFields} from 'sentry/views/insights/types';
  * Pageloads. TTFB comes from navigation timing, so every pageload reports it.
  */
 export const PAGELOADS_FIELD = webVitalCountField('ttfb');
+
+/**
+ * Interactions. The SDK sends one interaction span per INP measurement, and
+ * Relay extracts one INP metric from each, so the counts match.
+ */
+export const INTERACTIONS_FIELD = webVitalCountField('inp');
 
 const INTERVAL = '5m';
 
@@ -143,6 +150,60 @@ export function webVitalP75Meter({
       },
     ],
     thresholds,
+    layout,
+  };
+}
+
+type SamplesTableOptions = {
+  id: string;
+  layout: PrebuiltWidgetLayout;
+  title: string;
+  vital: WebVitals;
+  extraFields?: string[];
+  tableWidths?: number[];
+};
+
+/**
+ * Lists single web vital metrics. The table query sends no metric params, so
+ * the conditions narrow to the vital's metric the same way Explore's samples
+ * table does.
+ */
+export function webVitalSamplesTable({
+  vital,
+  id,
+  title,
+  extraFields = [],
+  tableWidths,
+  layout,
+}: SamplesTableOptions): PrebuiltWidget {
+  const fields = [
+    'project',
+    'trace',
+    ...extraFields,
+    'value',
+    'profile.id',
+    'replay.id',
+    `score.ratio.${vital}`,
+    'timestamp',
+  ];
+  return {
+    id,
+    title,
+    displayType: DisplayType.TABLE,
+    widgetType: WidgetType.TRACEMETRICS,
+    interval: INTERVAL,
+    tableWidths,
+    queries: [
+      {
+        name: '',
+        conditions: `metric.name:${webVitalMetricName(vital)} metric.type:distribution`,
+        fields,
+        aggregates: [],
+        columns: fields,
+        orderby: '-timestamp',
+        fieldAliases: fields.map(field => (field === 'value' ? vital.toUpperCase() : '')),
+      },
+    ],
     layout,
   };
 }

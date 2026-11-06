@@ -47,7 +47,11 @@ import {
   type SearchBarDataProviderProps,
   type WidgetBuilderSearchBarProps,
 } from './base';
-import {getTableSortOptions, getTimeseriesSortOptions} from './events';
+import {
+  getTableSortOptions,
+  getTimeseriesSortOptions,
+  renderTraceAsLinkable,
+} from './events';
 import {formatTraceMetricsFunction} from './formatTraceMetricsFunction';
 
 // This is a placeholder that currently signals that no metric is selected
@@ -336,6 +340,9 @@ export const TraceMetricsConfig: DatasetConfig<
   useHeatmapQuery: useTraceMetricsHeatmapQuery,
   ...traceMetricsResponseTransforms,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
+    if (field === 'trace') {
+      return renderTraceAsLinkable(widget);
+    }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
   getFieldHeaderMap: widgetQuery => {
