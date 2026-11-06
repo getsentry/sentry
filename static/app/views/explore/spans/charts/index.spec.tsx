@@ -671,14 +671,18 @@ describe('ExploreCharts', () => {
 
     function renderCharts({
       acceptedEvents = [],
+      asyncDelay,
       droppedEvents = [],
       organizationFeatures = features,
       query = '',
+      timeseriesResult = timeseriesResultFixture(),
     }: {
       acceptedEvents?: OutcomeRow[];
+      asyncDelay?: Promise<void>;
       droppedEvents?: OutcomeRow[];
       organizationFeatures?: string[];
       query?: string;
+      timeseriesResult?: SortedTimeSeries;
     }) {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-dropped/',
@@ -687,6 +691,7 @@ describe('ExploreCharts', () => {
           droppedEvents,
           acceptedEvents,
         },
+        asyncDelay,
       });
 
       render(
@@ -695,7 +700,7 @@ describe('ExploreCharts', () => {
             <ExploreCharts
               extrapolate
               query={query}
-              timeseriesResult={timeseriesResultFixture()}
+              timeseriesResult={timeseriesResult}
               visualizes={defaultVisualizes()}
               setVisualizes={() => {}}
               rawSpanCounts={{
@@ -710,6 +715,39 @@ describe('ExploreCharts', () => {
 
       return request;
     }
+
+    it('waits for the dropped data before drawing the chart', async () => {
+      let resolveDroppedData!: () => void;
+      const asyncDelay = new Promise<void>(resolve => {
+        resolveDroppedData = resolve;
+      });
+      renderCharts({
+        asyncDelay,
+        droppedEvents: [OutcomeRowFixture()],
+        timeseriesResult: timeseriesResultFixture({
+          data: {
+            'count(span.duration)': [
+              TimeSeriesFixture({
+                yAxis: 'count(span.duration)',
+                values: [{timestamp: 1729796400000, value: 10}],
+              }),
+            ],
+          },
+        }),
+      });
+
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Chart values')).not.toBeInTheDocument();
+
+      await act(async () => {
+        resolveDroppedData();
+        await asyncDelay;
+      });
+
+      const chartValues = await screen.findByLabelText('Chart values');
+      expect(chartValues).toHaveTextContent('[1729796400000,10]');
+      expect(chartValues).toHaveTextContent('"value":[0,0]');
+    });
 
     it('notes that dropped spans ignore the search while the layer is on', async () => {
       renderCharts({droppedEvents: [OutcomeRowFixture()], query: 'span.op:db'});
