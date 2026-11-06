@@ -4655,11 +4655,6 @@
       "count": 2
     }
   },
-  "views/settings/project/preprod/sizeRulesPanel.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/project/preprod/statusCheckRuleItem.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4696,20 +4691,12 @@
     }
   },
   "views/settings/project/tempest/DevKitSettings.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "views/settings/project/tempest/EmptyState.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/settings/project/tempest/index.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
