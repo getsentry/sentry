@@ -345,6 +345,7 @@ def configure_sdk() -> None:
     from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
+    from sentry_sdk.integrations.unraisablehook import UnraisablehookIntegration
 
     integrations = [
         DjangoAtomicIntegration(),
@@ -363,6 +364,7 @@ def configure_sdk() -> None:
         ),
         RustInfoIntegration(),
         RedisIntegration(),
+        UnraisablehookIntegration(),
     ]
     disabled_integrations = []
 
