@@ -3,13 +3,14 @@ from __future__ import annotations
 import os
 import uuid
 from collections.abc import Generator
-from typing import Any, cast
+from typing import Any, assert_type, cast
 from unittest import TestCase, mock
 
 import pytest
 from django.db import transaction
-from redis.client import Script
+from redis.client import Script, StrictRedis
 from redis.exceptions import ResponseError
+from sentry_redis_tools.clients import RedisCluster
 from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry import options
@@ -315,34 +316,69 @@ class TransactionCheckingRedisTest(SentryTestCase):
         assert f"{__name__}.{outer_caller.__qualname__}" in callers
 
 
-def test_get_dynamic_cluster_from_options_single_host() -> None:
+# The `type` statement evaluates its value only when it is used, so the clients are not subscripted
+# at runtime.
+type _StrClient = RedisCluster[str] | StrictRedis[str]
+type _BytesClient = RedisCluster[bytes] | StrictRedis[bytes]
+
+# `default` is a single host and `cluster` has `is_redis_cluster`. Only the single host path
+# removes `cluster` from the returned config.
+_DYNAMIC_CLUSTER_SHAPES = pytest.mark.parametrize(
+    ("cluster_name", "expected_is_redis_cluster", "expected_config"),
+    [
+        pytest.param("default", False, {"foo": "bar"}, id="single-host"),
+        pytest.param("cluster", True, {"cluster": "cluster", "foo": "bar"}, id="redis-cluster"),
+    ],
+)
+
+
+@_DYNAMIC_CLUSTER_SHAPES
+def test_get_dynamic_cluster_from_options_decode_responses_true(
+    cluster_name: str, expected_is_redis_cluster: bool, expected_config: dict[str, str]
+) -> None:
     is_redis_cluster, client, config = get_dynamic_cluster_from_options(
-        "SETTING", {"cluster": "default", "foo": "bar"}
+        "SETTING", {"cluster": cluster_name, "foo": "bar"}, decode_responses=True
     )
 
-    assert is_redis_cluster is False
-    assert client is redis_clusters.get_binary("default")
-    assert config == {"foo": "bar"}
+    assert_type(client, _StrClient)
+    assert is_redis_cluster is expected_is_redis_cluster
+    assert client is redis_clusters.get(cluster_name)
+    assert config == expected_config
 
 
-def test_get_dynamic_cluster_from_options_redis_cluster() -> None:
+@_DYNAMIC_CLUSTER_SHAPES
+def test_get_dynamic_cluster_from_options_decode_responses_false(
+    cluster_name: str, expected_is_redis_cluster: bool, expected_config: dict[str, str]
+) -> None:
     is_redis_cluster, client, config = get_dynamic_cluster_from_options(
-        "SETTING", {"cluster": "cluster", "foo": "bar"}
+        "SETTING", {"cluster": cluster_name, "foo": "bar"}, decode_responses=False
     )
 
-    assert is_redis_cluster is True
-    assert client is redis_clusters.get("cluster")
-    assert config == {"cluster": "cluster", "foo": "bar"}
+    assert_type(client, _BytesClient)
+    assert is_redis_cluster is expected_is_redis_cluster
+    assert client is redis_clusters.get_binary(cluster_name)
+    assert config == expected_config
 
 
-def test_get_dynamic_cluster_from_options_multi_host_without_is_redis_cluster() -> None:
+def _get_dynamic_cluster(config: dict[str, object], decode_responses: bool) -> None:
+    # Each overload accepts only a literal, so call each one with a literal.
+    if decode_responses:
+        get_dynamic_cluster_from_options("SETTING", config, decode_responses=True)
+    else:
+        get_dynamic_cluster_from_options("SETTING", config, decode_responses=False)
+
+
+@pytest.mark.parametrize("decode_responses", [True, False])
+def test_get_dynamic_cluster_from_options_multi_host_without_is_redis_cluster(
+    decode_responses: bool,
+) -> None:
     clusters_config = {
         **options.get("redis.clusters"),
         "multi-host": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
     }
     with override_options({"redis.clusters": clusters_config}):
         with pytest.raises(InvalidConfiguration) as excinfo:
-            get_dynamic_cluster_from_options("SETTING", {"cluster": "multi-host"})
+            _get_dynamic_cluster({"cluster": "multi-host"}, decode_responses)
 
     message = str(excinfo.value)
     assert "SETTING" in message
@@ -351,14 +387,18 @@ def test_get_dynamic_cluster_from_options_multi_host_without_is_redis_cluster() 
     assert "is_redis_cluster" in message
 
 
-def test_get_dynamic_cluster_from_options_unknown_cluster_raises_key_error() -> None:
+@pytest.mark.parametrize("decode_responses", [True, False])
+def test_get_dynamic_cluster_from_options_unknown_cluster_raises_key_error(
+    decode_responses: bool,
+) -> None:
     with pytest.raises(KeyError):
-        get_dynamic_cluster_from_options("SETTING", {"cluster": "does-not-exist"})
+        _get_dynamic_cluster({"cluster": "does-not-exist"}, decode_responses)
 
 
-def test_get_dynamic_cluster_from_options_hosts_option_invalid() -> None:
+@pytest.mark.parametrize("decode_responses", [True, False])
+def test_get_dynamic_cluster_from_options_hosts_option_invalid(decode_responses: bool) -> None:
     with pytest.raises(InvalidConfiguration):
-        get_dynamic_cluster_from_options("SETTING", {"hosts": {0: {"db": 0}}})
+        _get_dynamic_cluster({"hosts": {0: {"db": 0}}}, decode_responses)
 
 
 @pytest.fixture

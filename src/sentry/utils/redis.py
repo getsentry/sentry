@@ -5,7 +5,7 @@ import inspect
 import logging
 from collections.abc import Generator
 from copy import deepcopy
-from typing import Any, Literal, TypeGuard, TypeVar, cast, overload
+from typing import Any, Literal, TypeVar, cast, overload
 
 from django.utils.functional import SimpleLazyObject
 from redis.client import Script, StrictRedis
@@ -558,15 +558,35 @@ def _add_key_prefix(
 redis_clusters = RedisClusterManager(options.default_manager)
 
 
+@overload
 def get_dynamic_cluster_from_options(
-    setting: str, config: dict[str, Any]
-) -> tuple[bool, RedisCluster[str] | StrictRedis[str] | StrictRedis[bytes], dict[str, Any]]:
+    setting: str, config: dict[str, Any], *, decode_responses: Literal[True]
+) -> tuple[bool, RedisCluster[str] | StrictRedis[str], dict[str, Any]]: ...
+
+
+@overload
+def get_dynamic_cluster_from_options(
+    setting: str, config: dict[str, Any], *, decode_responses: Literal[False]
+) -> tuple[bool, RedisCluster[bytes] | StrictRedis[bytes], dict[str, Any]]: ...
+
+
+def get_dynamic_cluster_from_options(
+    setting: str, config: dict[str, Any], *, decode_responses: bool
+) -> tuple[
+    bool,
+    RedisCluster[str] | StrictRedis[str] | RedisCluster[bytes] | StrictRedis[bytes],
+    dict[str, Any],
+]:
     """
     Returns ``(is_redis_cluster, client, config)`` for the cluster that ``config`` names.
 
-    A cluster with ``is_redis_cluster`` gets a client that returns ``str``. Any other cluster must
-    have one host, and gets a ``StrictRedis`` client that returns ``bytes``, the same as the old
-    redis-blaster client. For these, the ``cluster`` option is removed from the returned config.
+    The caller chooses the response type: the client returns ``str`` for
+    ``decode_responses=True`` and ``bytes`` for ``decode_responses=False``. The type is the same
+    for a cluster with ``is_redis_cluster`` and for a single host. Use ``is_redis_cluster`` only
+    for behavior that is different between the two shapes, not to find the response type.
+
+    A cluster without ``is_redis_cluster`` must have one host. For these, the ``cluster`` option
+    is removed from the returned config.
     """
     if "hosts" in config:
         raise InvalidConfiguration(
@@ -578,7 +598,9 @@ def get_dynamic_cluster_from_options(
         cluster_name
     )
     if cluster_opts is not None and cluster_opts.get("is_redis_cluster"):
-        return True, redis_clusters.get(cluster_name), config
+        if decode_responses:
+            return True, redis_clusters.get(cluster_name), config
+        return True, redis_clusters.get_binary(cluster_name), config
 
     host_count = len(cluster_opts.get("hosts", [])) if cluster_opts is not None else 1
     if host_count != 1:
@@ -594,19 +616,9 @@ def get_dynamic_cluster_from_options(
 
     config = config.copy()
     config.pop("cluster", None)
+    if decode_responses:
+        return False, redis_clusters.get(cluster_name), config
     return False, redis_clusters.get_binary(cluster_name), config
-
-
-def is_instance_redis_cluster(
-    val: RedisCluster[str] | StrictRedis[str] | StrictRedis[bytes], is_redis_cluster: bool
-) -> TypeGuard[RedisCluster[str]]:
-    return is_redis_cluster
-
-
-def is_instance_standalone_redis(
-    val: RedisCluster[str] | StrictRedis[str] | StrictRedis[bytes], is_redis_cluster: bool
-) -> TypeGuard[StrictRedis[bytes]]:
-    return not is_redis_cluster
 
 
 def validate_dynamic_cluster(cluster: RedisCluster[Any] | StrictRedis[Any]) -> None:
