@@ -5,6 +5,7 @@ from sentry import options
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
+from sentry.utils.locking import LockNotOwned
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.services import build_instance_from_options_of_type, resolve_callable
 
@@ -206,6 +207,11 @@ class MigrationLockBackend(LockBackend):
                 errors.append(e)
             else:
                 return
+        # A caller that uses backend.release directly needs the refusal type.
+        # Wrapping it as a generic Exception hides LockNotOwned. A different
+        # child error, such as a connection failure, stays wrapped.
+        if errors and all(isinstance(error, LockNotOwned) for error in errors):
+            raise errors[0]
         raise Exception(f"Could not release key: {key!r}: {errors!r}")
 
     def locked(self, key: str, routing_key: str | None = None) -> bool:

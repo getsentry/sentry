@@ -90,13 +90,21 @@ class Lock:
         """
         Attempt to release the lock.
 
+        A lock that never acquired returns without calling the backend. Sending
+        the process uuid would delete a newer holder's key in this process.
         Any exceptions raised when attempting to release the lock are logged
-        and suppressed.
+        and suppressed. The token stays set when the release raises, so a retry
+        can still delete the key.
         """
+        token = self.token
+        if token is None:
+            return
         try:
-            self.backend.release(self.key, self.routing_key, self.token)
+            self.backend.release(self.key, self.routing_key, token)
         except Exception as error:
             logger.warning("Failed to release %r due to error: %r", self, error, exc_info=True)
+        else:
+            self.token = None
 
     def locked(self) -> bool:
         """

@@ -2,6 +2,10 @@ class LockBackend:
     """
     Interface for providing lock behavior that is used by the
     ``sentry.utils.locking.Lock`` class.
+
+    An override of ``acquire`` or ``release`` must accept ``token``. ``Lock``
+    passes it on every call, and a backend that rejects the argument fails
+    every acquire.
     """
 
     def acquire(

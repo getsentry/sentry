@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking import LockNotOwned, UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.lock import Lock
 
@@ -26,12 +26,18 @@ class LockTestCase(unittest.TestCase):
         backend.locked.assert_called_once_with(key, routing_key)
 
         token = lock.token
-        lock.release()
-        backend.release.assert_called_once_with(key, routing_key, token)
-
         backend.acquire.side_effect = Exception("Boom!")
         with pytest.raises(UnableToAcquireLock):
             lock.acquire()
+        assert lock.token == token
+        backend.acquire.side_effect = None
+
+        lock.release()
+        backend.release.assert_called_once_with(key, routing_key, token)
+        assert lock.token is None
+
+        lock.release()
+        backend.release.assert_called_once_with(key, routing_key, token)
 
     def test_context_manager_interface(self) -> None:
         backend = mock.Mock(spec=LockBackend)
@@ -47,6 +53,24 @@ class LockTestCase(unittest.TestCase):
             assert token is not None
 
         backend.release.assert_called_once_with(key, routing_key, token)
+        assert lock.token is None
+
+    def test_release_without_acquire_does_not_call_backend(self) -> None:
+        backend = mock.Mock(spec=LockBackend)
+        Lock(backend, "lock", 60).release()
+        backend.release.assert_not_called()
+
+    def test_release_swallows_lock_not_owned(self) -> None:
+        backend = mock.Mock(spec=LockBackend)
+        lock = Lock(backend, "lock", 60)
+        lock.token = "holder"
+        backend.release.side_effect = LockNotOwned("NOLOCK No lock at key exists at key: x")
+
+        lock.release()
+
+        backend.release.assert_called_once_with("lock", None, "holder")
+        # The release did not succeed, so a retry still has the token to send.
+        assert lock.token == "holder"
 
     def test_each_acquire_uses_a_fresh_token(self) -> None:
         backend = mock.Mock(spec=LockBackend)

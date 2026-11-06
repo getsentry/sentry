@@ -20,8 +20,9 @@ delete_lock = redis.load_redis_script("utils/locking/delete_lock.lua")
 def _delete_refused(error: ResponseError) -> bool:
     """True when delete_lock.lua refused because this token does not own the key.
 
-    Redis may prefix the script's ``NOLOCK`` / ``LOCKHELD`` reply with ``ERR``.
-    A connection failure has neither prefix, and that token can still delete the key.
+    redis-py 3.4.1 strips a leading ``ERR`` before it builds ``ResponseError``.
+    A message that still has the prefix matches too. A connection failure has
+    neither prefix, and that token can still delete the key.
     """
     message = str(error).removeprefix("ERR ")
     return message.startswith(("NOLOCK", "LOCKHELD"))
@@ -57,13 +58,14 @@ class BaseRedisLockBackend(LockBackend):
         full_key = self.prefix_key(key)
         # ``token`` fences this acquisition. Without it, the process-wide uuid
         # is reused and a stale release can delete a newer hold in this process.
-        value = token or self.uuid
+        # An empty token is a real value and must stay empty.
+        value = self.uuid if token is None else token
         if client.set(full_key, value, ex=duration, nx=True) is not True:
             raise Exception(f"Could not set key: {full_key!r}")
 
     def release(self, key: str, routing_key: str | None = None, token: str | None = None) -> None:
         client = self.get_client(key, routing_key)
-        value = token or self.uuid
+        value = self.uuid if token is None else token
         try:
             delete_lock((self.prefix_key(key),), (value,), client)
         except ResponseError as error:

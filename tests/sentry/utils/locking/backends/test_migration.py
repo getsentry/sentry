@@ -5,6 +5,7 @@ import pytest
 
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.locking import LockNotOwned
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.backends.migration import (
     MigrationLockBackend,
@@ -135,6 +136,65 @@ class TestMigrationLockBackend(TestCase):
         backend.acquire("hello", 10, token="fence")
         backend.release("hello", token="fence")
         assert calls == [("acquire", "fence"), ("release", "fence")]
+
+    def test_backed_off_acquire_releases_with_the_same_token(self) -> None:
+        # The holder is on the old backend, so the acquire on the new one backs off.
+        # That release has to send the token just written, or the key stays until expiry.
+        backend = MigrationLockBackend(
+            backend_new_config={"path": DummyLockBackend.path},
+            backend_old_config={"path": DummyLockBackend.path},
+        )
+        backend.backend_old.acquire("hello", 10)
+        released: list[str | None] = []
+        original_release = backend.backend_new.release
+
+        def capture_release(
+            key: str, routing_key: str | None = None, token: str | None = None
+        ) -> None:
+            released.append(token)
+            original_release(key, routing_key, token)
+
+        backend.backend_new.release = capture_release  # type: ignore[method-assign]
+
+        with pytest.raises(Exception, match="Could not set key"):
+            backend.acquire("hello", 10, token="fence")
+
+        assert released == ["fence"]
+        assert not backend.backend_new.locked("hello")
+
+    def test_release_reraises_lock_not_owned_when_every_child_refuses(self) -> None:
+        backend = MigrationLockBackend(
+            backend_new_config={"path": DummyLockBackend.path},
+            backend_old_config={"path": DummyLockBackend.path},
+        )
+
+        def refuse(key: str, routing_key: str | None = None, token: str | None = None) -> None:
+            raise LockNotOwned("NOLOCK No lock at key exists at key: x")
+
+        backend.backend_new.release = refuse  # type: ignore[method-assign]
+        backend.backend_old.release = refuse  # type: ignore[method-assign]
+
+        with pytest.raises(LockNotOwned, match="^NOLOCK"):
+            backend.release("hello")
+
+    def test_release_wraps_when_a_child_error_is_not_a_refusal(self) -> None:
+        backend = MigrationLockBackend(
+            backend_new_config={"path": DummyLockBackend.path},
+            backend_old_config={"path": DummyLockBackend.path},
+        )
+
+        def refuse(key: str, routing_key: str | None = None, token: str | None = None) -> None:
+            raise LockNotOwned("NOLOCK No lock at key exists at key: x")
+
+        def down(key: str, routing_key: str | None = None, token: str | None = None) -> None:
+            raise ConnectionError("unavailable")
+
+        backend.backend_new.release = refuse  # type: ignore[method-assign]
+        backend.backend_old.release = down  # type: ignore[method-assign]
+
+        with pytest.raises(Exception, match="Could not release key") as excinfo:
+            backend.release("hello")
+        assert not isinstance(excinfo.value, LockNotOwned)
 
 
 # Two real Redis backends, kept apart by their key prefix. Each MigrationLockBackend
