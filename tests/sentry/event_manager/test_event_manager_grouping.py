@@ -328,7 +328,7 @@ class GroupHashCachingTest(TestCase):
         )
 
     def test_handles_new_secondary_grouphash(self) -> None:
-        # This follows the exact same logic as the `test_handles_existing_secondary_grouphash` test
+        # This follows the exact same logic as the `test_handles_existing_secondary_grouphash_*` tests
         # above
         self.run_test(
             grouphash_exists=False,
@@ -365,7 +365,7 @@ class GroupHashCachingTest(TestCase):
 
     def test_handles_new_grouphash_object(self) -> None:
         # This follows the exact same logic as  the
-        # `test_handles_existing_primary_grouphash_without_group` test above
+        # `test_handles_existing_grouphash_object_without_group` test above
         self.run_test(
             grouphash_exists=False,
             grouphash_has_group=False,  # It can't if it doesn't exist yet
