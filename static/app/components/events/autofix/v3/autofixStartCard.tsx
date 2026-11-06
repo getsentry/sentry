@@ -11,9 +11,10 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useOpenSingleRunChat} from './useToggleSingleRunChat';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+
+import {useOpenSingleRunChat} from './useToggleSingleRunChat';
 
 interface AutofixStartCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
