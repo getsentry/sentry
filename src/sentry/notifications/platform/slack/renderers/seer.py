@@ -28,11 +28,9 @@ from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
-    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
     SeerAgentResponse,
     SeerAutofixError,
-    SeerAutofixOutOfCredits,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
     SeerInvestigationConclusion,
@@ -106,7 +104,6 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
         NotificationSource.SEER_AUTOFIX_ERROR,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
-        NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
         NotificationSource.SEER_INVESTIGATION_STARTED,
@@ -134,11 +131,6 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_autofix_error(data)
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data, link_decorator)
-        elif isinstance(data, SeerAutofixOutOfCredits):
-            return SlackRenderable(
-                blocks=[SectionBlock(text=AUTOFIX_OUT_OF_CREDITS_MESSAGE)],
-                text=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
-            )
         elif isinstance(data, SeerAgentError):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
@@ -229,7 +221,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                     project_id=data.project_id,
                 )
             )
-        elif data.has_next_trigger and data.has_credits_for_next_step:
+        elif data.has_next_trigger:
             action_elements.append(
                 cls._render_autofix_button(data=SeerAutofixTrigger.from_update(data))
             )

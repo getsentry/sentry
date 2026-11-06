@@ -1032,7 +1032,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert not self._has_autofix_button(blocks)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("organizations:seer-credit-checks")
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -1047,7 +1047,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         mock_check_seer_credits.assert_called_once()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("organizations:seer-credit-checks")
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch("sentry.seer_credit.backend.check_seer_credits")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     def test_unfurl_skips_seer_credit_check(

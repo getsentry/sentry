@@ -37,10 +37,8 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
 )
-from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.operator import (
-    AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION,
     SEER_EVENT_TO_ACTIVITY_TYPE,
     SeerAgentOperator,
     SeerAutofixOperator,
@@ -263,15 +261,6 @@ class SeerOperatorTest(TestCase):
             "name": self.user.get_display_name(),
             "email": "583231+octocat@users.noreply.github.com",
             "scm_login": "octocat",
-        }
-
-    def test_stopping_point_to_seer_operation_covers_every_stopping_point(self) -> None:
-        assert set(AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION) == set(AutofixStoppingPoint)
-        assert AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION == {
-            AutofixStoppingPoint.ROOT_CAUSE: SeerOperation.AUTOFIX_ROOT_CAUSE,
-            AutofixStoppingPoint.SOLUTION: SeerOperation.AUTOFIX_SOLUTION,
-            AutofixStoppingPoint.CODE_CHANGES: SeerOperation.AUTOFIX_CODE_CHANGES,
-            AutofixStoppingPoint.OPEN_PR: SeerOperation.AUTOFIX_OPEN_PR,
         }
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
@@ -634,7 +623,7 @@ class SeerOperatorTest(TestCase):
     def test_can_trigger_autofix_returns_false_without_quota(self, mock_quota: MagicMock) -> None:
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
-    @with_feature("organizations:seer-credit-checks")
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -654,7 +643,7 @@ class SeerOperatorTest(TestCase):
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
         mock_check_seer_credits.assert_not_called()
 
-    @with_feature("organizations:seer-credit-checks")
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch("sentry.seer_credit.backend.check_seer_credits")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
     def test_can_trigger_autofix_skips_credit_check_without_quota(
