@@ -882,7 +882,7 @@ def fire_actions_for_groups(
                             {wfh.workflow_id for wfh in workflow_fire_histories}
                         ),
                         "actions": [action.id for action in filtered_actions],
-                        "event_data": workflow_event_data,
+                        "group_id": workflow_event_data.group_id,
                         "event_id": event_id,
                     },
                 )

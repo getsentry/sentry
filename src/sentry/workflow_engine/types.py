@@ -10,11 +10,13 @@ from typing import (
     Any,
     ClassVar,
     Generic,
+    Protocol,
     Sequence,
     TypeAlias,
     TypedDict,
     TypeVar,
 )
+from uuid import UUID
 
 from django.db.models import Q
 
@@ -117,10 +119,23 @@ class _WorkflowEventLocalCache(TypedDict, total=False):
     activity_environment: Environment | None
 
 
+class OrganizationWorkflowEvent(Protocol):
+    """Source identity for organization events, independent of issue/project models.
+
+    Concrete payloads and their serialization belong to their event producers.
+    """
+
+    @property
+    def organization_id(self) -> int: ...
+
+    @property
+    def event_id(self) -> UUID: ...
+
+
 @dataclass(frozen=True)
 class WorkflowEventData:
-    event: GroupEvent | Activity
-    group: Group
+    event: GroupEvent | Activity | OrganizationWorkflowEvent
+    group: Group | None = None
     group_state: GroupState | None = None
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
@@ -136,27 +151,59 @@ class WorkflowEventData:
     )
 
     def get_organization(self) -> Organization:
-        if self.organization is not None:
-            if self.organization.id != self.event.project.organization_id:
+        from sentry.models.activity import Activity
+        from sentry.services.eventstore.models import GroupEvent
+
+        if isinstance(self.event, (GroupEvent, Activity)):
+            source_organization_id = self.event.project.organization_id
+            organization = self.organization or self.event.project.organization
+        else:
+            if self.organization is None:
                 raise ValueError(
-                    "Workflow event and organization must belong to the same organization"
+                    "Organization workflow events require explicit organization context"
                 )
-            return self.organization
-        return self.event.project.organization
+            source_organization_id = self.event.organization_id
+            organization = self.organization
+        if source_organization_id != organization.id:
+            raise ValueError("Workflow event and organization must belong to the same organization")
+        if self.group is not None and self.group.project_id != self.project_id:
+            if self.group.project.organization_id != organization.id:
+                raise ValueError("Workflow group and event must belong to the same organization")
+        return organization
 
     @property
     def event_id(self) -> str:
+        from sentry.models.activity import Activity
         from sentry.services.eventstore.models import GroupEvent
 
-        return str(self.event.event_id if isinstance(self.event, GroupEvent) else self.event.id)
+        if isinstance(self.event, GroupEvent):
+            return self.event.event_id
+        if isinstance(self.event, Activity):
+            return str(self.event.id)
+        return self.event.event_id.hex
 
     @property
-    def project_id(self) -> int:
-        return self.event.project_id
+    def project_id(self) -> int | None:
+        from sentry.models.activity import Activity
+        from sentry.services.eventstore.models import GroupEvent
+
+        if isinstance(self.event, (GroupEvent, Activity)):
+            return self.event.project_id
+        return None
 
     @property
-    def group_id(self) -> int:
-        return self.group.id
+    def group_id(self) -> int | None:
+        return self.group.id if self.group is not None else None
+
+    def require_group(self) -> Group:
+        """Guard issue-only operations until their callers support organization events."""
+        if self.group is None:
+            from sentry.workflow_engine.processors.evaluations import (
+                DataConditionEvaluationException,
+            )
+
+            raise DataConditionEvaluationException("This operation requires an issue group")
+        return self.group
 
 
 @dataclass(frozen=True)
@@ -307,6 +354,8 @@ class DataConditionHandler(Generic[T]):
     comparison_json_schema: ClassVar[dict[str, Any]]
     condition_result_schema: ClassVar[dict[str, Any]] = {}
     label_template = ""
+    # Existing conditions assume issue context. Organization conditions explicitly opt in.
+    supports_group_less: ClassVar[bool] = False
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:

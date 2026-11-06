@@ -130,7 +130,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         result = issue_notification_data_factory(invocation)
 
         assert result.source == NotificationSource.ISSUE
-        assert result.group_id == invocation.event_data.group.id
+        assert result.group_id == invocation.event_data.require_group().id
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result.event_id == invocation.event_data.event.event_id
         assert result.notification_uuid == "test-uuid-123"
@@ -321,7 +321,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
-            group=invocation.event_data.group,
+            group=invocation.event_data.require_group(),
             workflow_id=invocation.workflow_id,
             notification_uuid=invocation.notification_uuid,
         )
@@ -338,7 +338,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
-            group=invocation.event_data.group,
+            group=invocation.event_data.require_group(),
             workflow_id=invocation.workflow_id,
             notification_uuid=invocation.notification_uuid,
             notes="important note",
@@ -359,7 +359,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
-            group=invocation.event_data.group,
+            group=invocation.event_data.require_group(),
             workflow_id=invocation.workflow_id,
             notification_uuid=invocation.notification_uuid,
             title="tagged event",
