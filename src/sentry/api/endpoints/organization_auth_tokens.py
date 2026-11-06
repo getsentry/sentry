@@ -17,6 +17,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import (
     SessionNoAuthTokenAuthentication,
     UserAuthTokenAuthentication,
+    ViewerContextAuthentication,
 )
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import (
@@ -72,7 +73,11 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.FOUNDATIONS
-    authentication_classes = (SessionNoAuthTokenAuthentication, UserAuthTokenAuthentication)
+    authentication_classes = (
+        SessionNoAuthTokenAuthentication,
+        UserAuthTokenAuthentication,
+        ViewerContextAuthentication,
+    )
     permission_classes = (OrgAuthTokenPermission, DisallowImpersonatedTokenCreation)
 
     @method_decorator(never_cache)
@@ -150,8 +155,8 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
                 status=400,
             )
 
-        # A token-authenticated caller (an OAuth app token, per OrgAuthTokenPermission) can
-        # only mint a token with a subset of its own scopes.
+        # A token-authenticated caller (an OAuth app token or a service account, per
+        # OrgAuthTokenPermission) can only mint a token with a subset of its own scopes.
         if request.auth is not None:
             missing_scopes = {scope for scope in scopes if not request.auth.has_scope(scope)}
             if missing_scopes:

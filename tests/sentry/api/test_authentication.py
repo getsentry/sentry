@@ -1316,7 +1316,7 @@ class TestViewerContextAuthentication(TestCase):
         assert ViewerContextAuthentication().authenticate(request) is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
-    def test_service_account_in_control_silo_returns_none(self) -> None:
+    def test_service_account_in_control_silo_without_feature_returns_none(self) -> None:
         service_account = self.create_service_account(organization=self.organization)
         context = ViewerContext(
             actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),

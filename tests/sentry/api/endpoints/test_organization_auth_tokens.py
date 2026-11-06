@@ -1,7 +1,10 @@
 from unittest.mock import patch
 
+from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.response import Response
 
 from sentry import audit_log, options
 from sentry.models.apitoken import ApiToken
@@ -12,10 +15,12 @@ from sentry.models.orgauthtoken import (
     OrgAuthToken,
 )
 from sentry.testutils.cases import APITestCase, PermissionTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.types.cell import get_cell_by_name
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token, parse_token
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 @control_silo_test
@@ -537,3 +542,46 @@ class OrganizationAuthTokensOAuthTest(APITestCase):
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {integration_token.token}"},
         )
         assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+
+@control_silo_test(cells=create_test_cells("us"))
+@override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+@with_feature("organizations:service-accounts")
+class OrganizationAuthTokensServiceAccountTest(APITestCase):
+    endpoint = "sentry-api-0-org-auth-tokens"
+
+    def create_token(self, scope_list: list[str]) -> Response:
+        self.service_account = self.create_service_account(
+            organization=self.organization, scope_list=scope_list
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=self.service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        response: Response = self.client.post(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            data={"name": "seer token"},
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+        return response
+
+    def test_create(self) -> None:
+        with self.tasks():
+            response = self.create_token(["org:read", "org:ci", "org:tokens"])
+        assert response.status_code == 201, response.content
+        assert OrgAuthToken.objects.get(id=response.data["id"]).created_by_id is None
+        assert f'Service account "{self.service_account.name}" has created' in mail.outbox[0].body
+
+    def test_create_requires_org_tokens_scope(self) -> None:
+        response = self.create_token(["org:admin", "org:ci"])
+        assert response.status_code == 403, response.content
+        assert not OrgAuthToken.objects.exists()
+
+    def test_create_requires_account_to_hold_minted_scopes(self) -> None:
+        response = self.create_token(["org:read", "org:tokens"])
+        assert response.status_code == 403, response.content
+        assert not OrgAuthToken.objects.exists()

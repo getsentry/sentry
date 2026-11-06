@@ -326,8 +326,9 @@ class OrganizationDetectorPermission(OrganizationPermission):
 
 class OrgAuthTokenPermission(OrganizationPermission):
     """
-    Org auth tokens can be managed from a browser session, or by an OAuth application
-    token (e.g. the Sentry CLI) acting for a member who consented to `org:tokens`.
+    Org auth tokens can be managed from a browser session, by an OAuth application
+    token (e.g. the Sentry CLI) acting for a member who consented to `org:tokens`, or
+    by a service account granted `org:tokens`.
 
     Every other token type is rejected: personal tokens cannot hold token-only scopes
     like `org:tokens`, and org auth / integration tokens must never mint new tokens.
@@ -342,7 +343,9 @@ class OrgAuthTokenPermission(OrganizationPermission):
 
     def has_permission(self, request: Request, view: APIView) -> bool:
         if request.auth is not None:
-            if not self._is_oauth_application_token(request):
+            if not (
+                self._is_oauth_application_token(request) or is_service_account_auth(request.auth)
+            ):
                 return False
             if not request.auth.has_scope("org:tokens"):
                 setattr(request, INSUFFICIENT_SCOPE_ATTR, {"org:tokens"})
