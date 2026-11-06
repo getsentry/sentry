@@ -128,6 +128,7 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         )
 
         assert response.status_code == 200, response.content
+        assert response.data["name"] == "severity_number"
         assert response.data["attributeSource"] == {"source_type": "sentry"}
         assert response.data["datasets"] == ["logs"]
 
@@ -139,6 +140,7 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         )
 
         assert response.status_code == 200, response.content
+        assert response.data["name"] == "organization.id"
         assert response.data["attributeSource"] == {"source_type": "user"}
         assert response.data["datasets"] == ["spans"]
 
@@ -157,6 +159,7 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         response = self.do_request(query={"attributeName": "severity", "attributeType": "string"})
 
         assert response.status_code == 200, response.content
+        assert response.data["name"] == "severity"
         assert response.data["attributeSource"] == {"source_type": "sentry"}
         assert response.data["datasets"] == ["logs"]
 
@@ -182,4 +185,5 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         )
 
         assert response.status_code == 200, response.content
+        assert response.data["name"] == "project"
         assert response.data["context"]["brief"]
