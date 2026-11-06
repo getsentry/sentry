@@ -2,6 +2,15 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 type OutcomeTag = 'intentional' | 'unintentional';
 
+export type DroppedDataSurface =
+  | 'dashboard'
+  | 'discover'
+  | 'explore_logs'
+  | 'explore_metrics'
+  | 'explore_spans'
+  | 'metric_issue'
+  | 'metric_monitor';
+
 export interface OutcomeRow {
   category: string;
   count: number;

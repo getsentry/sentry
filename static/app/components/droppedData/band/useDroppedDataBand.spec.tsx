@@ -251,10 +251,15 @@ describe('useDroppedDataBand', () => {
       };
     }
 
-    function renderShapes(dropped: OutcomeRow[], accepted: OutcomeRow[] = []) {
+    function renderShapes(
+      dropped: OutcomeRow[],
+      accepted: OutcomeRow[] = [],
+      bucketAlignment?: 'start' | 'end'
+    ) {
       const {result} = renderHookWithProviders(() =>
         useDroppedDataBand({
           chartRef,
+          bucketAlignment,
           droppedData: {
             dataset: DiscoverDatasets.SPANS,
             droppedEvents: dropped,
@@ -308,6 +313,18 @@ describe('useDroppedDataBand', () => {
         [0, 30],
         [270, 330],
         [570, TRACK_WIDTH],
+      ]);
+    });
+
+    it('spans each hover target across its bucket when points sit at the bucket end', () => {
+      const spans = renderShapes([bucket(0), bucket(5), bucket(9)], [], 'end').map(
+        shapes => span(shapes.at(-1)!)
+      );
+
+      expect(spans).toEqual([
+        [0, 60],
+        [300, 360],
+        [540, TRACK_WIDTH],
       ]);
     });
 

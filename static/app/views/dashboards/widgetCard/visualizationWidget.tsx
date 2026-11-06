@@ -271,6 +271,7 @@ function VisualizationWidgetContent({
     {
       dataset: droppedDataDataset ?? DiscoverDatasets.SPANS,
       interval: widgetInterval ?? '',
+      surface: 'dashboard',
     },
     {
       enabled:

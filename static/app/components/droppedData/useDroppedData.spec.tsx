@@ -134,6 +134,60 @@ describe('useDroppedData', () => {
     );
   });
 
+  it('requests the chart date range over the page filter date range', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: droppedEventsBody(),
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useDroppedData({
+          dataset: DiscoverDatasets.SPANS,
+          interval: '1h',
+          datetime: {start: '2026-01-01T00:00:00', end: '2026-01-02T00:00:00'},
+        }),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    const {query} = request.mock.calls[0][1];
+    expect(query).toEqual(
+      expect.objectContaining({
+        start: '2026-01-01T00:00:00.000',
+        end: '2026-01-02T00:00:00.000',
+      })
+    );
+    expect(query).not.toHaveProperty('statsPeriod');
+  });
+
+  it('does not wait for page filters when the chart passes its own scope', async () => {
+    PageFiltersStore.reset();
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: droppedEventsBody(),
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useDroppedData({
+          dataset: DiscoverDatasets.SPANS,
+          interval: '1h',
+          datetime: {statsPeriod: '7d'},
+          projects: [2],
+        }),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(request).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-dropped/`,
+      expect.objectContaining({
+        query: expect.objectContaining({statsPeriod: '7d', project: [2]}),
+      })
+    );
+  });
+
   it('does not request dropped events without the feature flag', () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-dropped/`,

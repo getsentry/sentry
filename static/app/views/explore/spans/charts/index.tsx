@@ -300,7 +300,7 @@ function Chart({
   const isAttributeBreakdown = tab === Tab.ATTRIBUTE_BREAKDOWNS;
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const droppedData = useDroppedDataLayer({dataset, interval});
+  const droppedData = useDroppedDataLayer({dataset, interval, surface: 'explore_spans'});
 
   const {
     dismiss: dismissChartSelectionAlert,
