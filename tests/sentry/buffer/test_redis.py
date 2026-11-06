@@ -1,4 +1,3 @@
-import copy
 import datetime
 import pickle
 from collections.abc import Callable, Iterator
@@ -11,7 +10,6 @@ from django.utils import timezone
 from redis import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
-from sentry import options
 from sentry.buffer.base import Buffer, BufferField
 from sentry.buffer.redis import RedisBuffer, _coerce_val, make_key
 from sentry.models.group import Group
@@ -25,27 +23,27 @@ from sentry.utils.services import Delegator
 
 
 def _hgetall_decode_keys(
-    client: "RedisCluster[bytes] | StrictRedis[bytes]", key: str, is_redis_cluster: bool
-) -> dict[Any, Any]:
-    ret: dict[Any, Any] = client.hgetall(key)
-    if not is_redis_cluster:
-        return {k.decode(): v for k, v in ret.items()}
-    else:
-        return ret
+    client: "RedisCluster[bytes] | StrictRedis[bytes]", key: str
+) -> dict[str, bytes]:
+    return {k.decode(): v for k, v in client.hgetall(key).items()}
 
 
 @pytest.mark.django_db
 class TestRedisBuffer:
     @pytest.fixture(params=["cluster", "standalone"])
-    def buffer(
-        self,
-        set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
-        request: pytest.FixtureRequest,
-    ) -> Iterator[RedisBuffer]:
-        value = copy.deepcopy(options.get("redis.clusters"))
-        value["default"]["is_redis_cluster"] = request.param == "cluster"
-        with set_sentry_option("redis.clusters", value):
-            yield RedisBuffer()
+    def buffer(self, request: pytest.FixtureRequest) -> Iterator[RedisBuffer]:
+        # `cluster` is a real Redis Cluster with `is_redis_cluster`, and `default` is a single
+        # host. Use each entry as it is configured: a client is cached by cluster name only, so
+        # a changed entry can get a client of the wrong shape from the cache, or leave one there.
+        if request.param == "cluster":
+            buf = RedisBuffer(cluster="cluster")
+            assert buf.is_redis_cluster
+            # The client deletes only the keys with the key prefix of this worker.
+            buf.cluster.flushdb()
+        else:
+            buf = RedisBuffer()
+            assert not buf.is_redis_cluster
+        yield buf
 
     @pytest.fixture(autouse=True)
     def setup_buffer(self, buffer: RedisBuffer) -> None:
@@ -183,7 +181,7 @@ class TestRedisBuffer:
         filters = cast(dict[str, BufferField], {"pk": 1, "datetime": now})
         key = make_key(model, filters=filters)
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
-        result = _hgetall_decode_keys(client, key, self.buf.is_redis_cluster)
+        result = _hgetall_decode_keys(client, key)
 
         f = result.pop("f")
         load_values: Callable[[Any], Any]
@@ -202,32 +200,20 @@ class TestRedisBuffer:
         assert load_value(result.pop("e+datetime")) == now
         assert load_value(result.pop("e+foo")) == "bar"
 
-        if self.buf.is_redis_cluster:
-            assert result == {"i+times_seen": "1", "m": "unittest.mock.Mock"}
-        else:
-            assert result == {"i+times_seen": b"1", "m": b"unittest.mock.Mock"}
+        assert result == {"i+times_seen": b"1", "m": b"unittest.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
-        if self.buf.is_redis_cluster:
-            assert pending == [key]
-        else:
-            assert pending == [key.encode("utf-8")]
+        assert pending == [key.encode("utf-8")]
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
-        result = _hgetall_decode_keys(client, key, self.buf.is_redis_cluster)
+        result = _hgetall_decode_keys(client, key)
         f = result.pop("f")
         assert load_values(f) == {"pk": 1, "datetime": now}
         assert load_value(result.pop("e+datetime")) == now
         assert load_value(result.pop("e+foo")) == "baz"
-        if self.buf.is_redis_cluster:
-            assert result == {"i+times_seen": "2", "m": "unittest.mock.Mock"}
-        else:
-            assert result == {"i+times_seen": b"2", "m": b"unittest.mock.Mock"}
+        assert result == {"i+times_seen": b"2", "m": b"unittest.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
-        if self.buf.is_redis_cluster:
-            assert pending == [key]
-        else:
-            assert pending == [key.encode("utf-8")]
+        assert pending == [key.encode("utf-8")]
 
     def test_incr_bounds_pending_key(self) -> None:
         """The pending zset gets an expiry, and that expiry outlives the rows."""
