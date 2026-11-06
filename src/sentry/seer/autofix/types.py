@@ -32,8 +32,8 @@ class AutofixPostResponse(TypedDict):
     # None for legacy runs predating SeerRun mirroring, which have no mirror row.
     sentry_run_id: str | None
     feature_id: Annotated[
-        str | None,
-        ApiDescription('"autofix_single_run" for a single-run Autofix run, otherwise null'),
+        str,
+        ApiDescription('"autofix_single_run" for a single-run Autofix run, otherwise "autofix"'),
     ]
 
 
