@@ -14,18 +14,17 @@ class LockTestCase(unittest.TestCase):
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
-        routing_key = None
 
-        lock = Lock(backend, key, duration, routing_key)
+        lock = Lock(backend, key, duration)
 
         lock.acquire()
-        backend.acquire.assert_called_once_with(key, duration, routing_key)
+        backend.acquire.assert_called_once_with(key, duration)
 
         lock.locked()
-        backend.locked.assert_called_once_with(key, routing_key)
+        backend.locked.assert_called_once_with(key)
 
         lock.release()
-        backend.release.assert_called_once_with(key, routing_key)
+        backend.release.assert_called_once_with(key)
 
         backend.acquire.side_effect = Exception("Boom!")
         with pytest.raises(UnableToAcquireLock):
@@ -35,14 +34,13 @@ class LockTestCase(unittest.TestCase):
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
-        routing_key = None
 
-        lock = Lock(backend, key, duration, routing_key)
+        lock = Lock(backend, key, duration)
 
         with lock.acquire():
-            backend.acquire.assert_called_once_with(key, duration, routing_key)
+            backend.acquire.assert_called_once_with(key, duration)
 
-        backend.release.assert_called_once_with(key, routing_key)
+        backend.release.assert_called_once_with(key)
 
     @patch("sentry.utils.locking.lock.random.random", return_value=0.5)
     @patch("sentry.utils.locking.lock.Lock.acquire", side_effect=UnableToAcquireLock)
@@ -50,9 +48,8 @@ class LockTestCase(unittest.TestCase):
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
-        routing_key = None
 
-        lock = Lock(backend, key, duration, routing_key)
+        lock = Lock(backend, key, duration)
 
         class MockTime:
             time: float = 0

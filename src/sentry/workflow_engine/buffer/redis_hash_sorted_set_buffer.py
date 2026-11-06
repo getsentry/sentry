@@ -76,17 +76,15 @@ class RedisHashSortedSetBuffer:
         )
         self.now_fn = now_fn
 
-    def _get_redis_connection(
-        self, key: str | None, transaction: bool = True
-    ) -> ClusterPipeline | Pipeline[str]:
-        """Get a Redis connection pipeline for the given key."""
+    def _get_redis_connection(self, transaction: bool = True) -> ClusterPipeline | Pipeline[str]:
+        """Get a Redis pipeline."""
         return self.cluster.pipeline(transaction=transaction)
 
     def _execute_redis_operation(
         self, key: str, operation_name: str, *args: Any, **kwargs: Any
     ) -> Any:
         """Execute a Redis operation on the given key."""
-        pipe = self._get_redis_connection(key, transaction=False)
+        pipe = self._get_redis_connection(transaction=False)
         operation = getattr(pipe, operation_name)
         operation(key, *args, **kwargs)
         if _NEED_EXPIRE[operation_name]:
@@ -100,7 +98,7 @@ class RedisHashSortedSetBuffer:
     ) -> Any:
         """Execute a Redis operation on multiple keys."""
         assert keys
-        pipe = self._get_redis_connection("UNUSED", transaction=False)
+        pipe = self._get_redis_connection(transaction=False)
         for key in keys:
             operation = getattr(pipe, operation_name)
             operation(key, *args, **kwargs)
@@ -159,7 +157,7 @@ class RedisHashSortedSetBuffer:
     ) -> None:
         """Delete specific fields from a Redis hash."""
         key = make_key(model, filters)
-        pipe = self._get_redis_connection(key, transaction=False)
+        pipe = self._get_redis_connection(transaction=False)
         for field in fields:
             pipe.hdel(key, field)
         pipe.expire(key, self.key_expire)
@@ -201,13 +199,6 @@ class RedisHashSortedSetBuffer:
         if not keys:
             return data_to_timestamps
 
-        if not self.is_redis_cluster:
-            # Slow path for a single Redis host that is not in cluster mode.
-            for key in keys:
-                for member, score in self.get_sorted_set(key, min, max):
-                    data_to_timestamps[int(member)].append(score)
-            return data_to_timestamps
-
         redis_set = self._execute_sharded_redis_operation(
             keys,
             "zrangebyscore",
@@ -238,11 +229,9 @@ class RedisHashSortedSetBuffer:
 
     def delete_keys(self, keys: Sequence[str], min: float, max: float) -> None:
         """Delete values from multiple Redis sorted sets within a score range."""
-        if not self.is_redis_cluster:
-            for key in keys:
-                self.delete_key(key, min, max)
-        else:
-            self._execute_sharded_redis_operation(keys, "zremrangebyscore", min=min, max=max)
+        if not keys:
+            return
+        self._execute_sharded_redis_operation(keys, "zremrangebyscore", min=min, max=max)
 
     # Lua script for conditional sorted set member removal
     _conditional_zrem_script = load_redis_script("alerts/conditional_zrem.lua")

@@ -27,24 +27,24 @@ class BaseRedisLockBackend(LockBackend):
         self.uuid = uuid
         self.cluster = cluster
 
-    def get_client(self, key: str, routing_key: int | str | None = None) -> Any:
+    def get_client(self, key: str) -> Any:
         raise NotImplementedError
 
     def prefix_key(self, key: str) -> str:
         return f"{self.prefix}{key}"
 
-    def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
-        client = self.get_client(key, routing_key)
+    def acquire(self, key: str, duration: int) -> None:
+        client = self.get_client(key)
         full_key = self.prefix_key(key)
         if client.set(full_key, self.uuid, ex=duration, nx=True) is not True:
             raise Exception(f"Could not set key: {full_key!r}")
 
-    def release(self, key: str, routing_key: str | None = None) -> None:
-        client = self.get_client(key, routing_key)
+    def release(self, key: str) -> None:
+        client = self.get_client(key)
         delete_lock((self.prefix_key(key),), (self.uuid,), client)
 
-    def locked(self, key: str, routing_key: str | None = None) -> bool:
-        client = self.get_client(key, routing_key)
+    def locked(self, key: str) -> bool:
+        client = self.get_client(key)
         return client.get(self.prefix_key(key)) is not None
 
 
@@ -77,9 +77,7 @@ class RedisClusterLockBackend(BaseRedisLockBackend):
             cluster = _get_redis_cluster_for_locks(cluster)
         super().__init__(cluster, prefix=prefix, uuid=uuid)
 
-    def get_client(
-        self, key: str, routing_key: int | str | None = None
-    ) -> RedisCluster[str] | StrictRedis[str]:
+    def get_client(self, key: str) -> RedisCluster[str] | StrictRedis[str]:
         return self.cluster
 
 
