@@ -8,12 +8,18 @@ from .views import (
     JiraSentryIssueDetailsView,
 )
 from .webhooks import (
+    JiraForgeInstallationWebhook,
     JiraIssueUpdatedWebhook,
     JiraSentryInstalledWebhook,
     JiraSentryUninstalledWebhook,
 )
 
 urlpatterns = [
+    re_path(
+        r"^forge/installation/$",
+        JiraForgeInstallationWebhook.as_view(),
+        name="sentry-extensions-jira-forge-installation",
+    ),
     re_path(
         r"^ui-hook/$",
         JiraSentryInstallationView.as_view(),
