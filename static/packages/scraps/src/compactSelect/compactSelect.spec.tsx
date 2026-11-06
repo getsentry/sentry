@@ -2078,6 +2078,32 @@ describe('CompactSelect', () => {
       }
     );
 
+    it.each([
+      ['list box', undefined, 'option'],
+      ['grid', 'grid', 'row'],
+    ] as const)(
+      'lets the virtualizer measure the options of a %s',
+      async (_, mode, optionRole) => {
+        render(
+          <CompactSelect
+            mode={mode}
+            menuWidth={300}
+            options={sections}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+
+        // The virtualizer measures the elements that carry their row's index.
+        expect(await screen.findByRole(optionRole, {name: 'A 0'})).toHaveAttribute(
+          'data-index'
+        );
+      }
+    );
+
     it('counts the options inside sections against the threshold', async () => {
       render(
         <CompactSelect
