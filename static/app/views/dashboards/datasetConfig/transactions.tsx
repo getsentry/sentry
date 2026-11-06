@@ -70,7 +70,13 @@ export const TransactionsConfig: DatasetConfig<
   filterYAxisOptions,
   getTableFieldOptions: getEventsTableFieldOptions,
   getTimeseriesSortOptions,
-  getTableSortOptions,
+  getTableSortOptions: (organization, widgetQuery, tags) =>
+    getTableSortOptions(
+      organization,
+      widgetQuery,
+      tags,
+      getEventsTableFieldOptions
+    ),
   getGroupByFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
