@@ -300,6 +300,8 @@ def trigger_autofix_feature(
         args.step.seer_operation,
         args.referrer,
         is_new_run=is_new_run,
+        # Free cohort orgs bypass quota only when called from agentic triage
+        # (allow_free_cohort=True). Not exposed via the API.
         skip_quota_for_free_cohort=args.allow_free_cohort,
     )
 
