@@ -1,9 +1,10 @@
 import shlex
+from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.agent_handoff.codes import AgentHandoff, HandoffFlow
-from sentry.agent_handoff.flows import get_flow_instructions
+from sentry.agent_handoff.codes import HandoffFlow
+from sentry.agent_handoff.flows import HandoffMode, get_flow_instructions
 from sentry.agent_handoff.runbook import render_agent_runbook, render_claim_runbook
 
 
@@ -122,15 +123,11 @@ def test_runbook_includes_flow_instructions_after_authentication() -> None:
 
 
 @pytest.mark.parametrize("flow", list(HandoffFlow))
-def test_flow_guides_the_user_to_their_next_task(flow: HandoffFlow) -> None:
-    handoff = AgentHandoff(
-        flow=flow,
-        user_id=1,
-        organization_id=2,
-        application_id=3,
-        scope_list=("org:read",),
+@pytest.mark.parametrize("mode", list(HandoffMode))
+def test_flow_guides_the_user_to_their_next_task(flow: HandoffFlow, mode: HandoffMode) -> None:
+    guide = render(
+        flow_instructions=get_flow_instructions(flow, mode=mode, user_id=1, organization_id=2)
     )
-    guide = render(flow_instructions=get_flow_instructions(handoff))
     assert guide.rstrip().endswith("Now ask the user what they would like to do next.")
 
 
@@ -174,3 +171,15 @@ def test_claim_runbook_has_a_powershell_form_post() -> None:
 def test_powershell_claim_url_is_a_literal_string() -> None:
     guide = render_claim_runbook(claim_url="https://sentry.example.com/path'with'quotes")
     assert "-Uri 'https://sentry.example.com/path''with''quotes'" in guide
+
+
+@pytest.mark.parametrize("mode", list(HandoffMode))
+def test_flow_handler_receives_rendering_mode_and_context(mode: HandoffMode) -> None:
+    handler = Mock(return_value="Flow instructions.")
+    with patch.dict("sentry.agent_handoff.flows._FLOW_HANDLERS", {HandoffFlow.ONBOARDING: handler}):
+        instructions = get_flow_instructions(
+            HandoffFlow.ONBOARDING, mode=mode, user_id=1, organization_id=2
+        )
+
+    assert instructions == "Flow instructions."
+    handler.assert_called_once_with(mode, 1, 2)
