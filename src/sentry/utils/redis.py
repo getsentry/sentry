@@ -320,21 +320,20 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
             "getsentry.billing.trial.start_trial",
             "getsentry.billing.provision_new_org_for_billing._finalize_channel_subscription",
         ),
-        # INFRENG-813: platform trial locks in TrialService._create_product_trial and
-        # _create_subscription_trial
+        # Platform trial locks in TrialService._create_product_trial and _create_subscription_trial.
+        # Remove these entries when REVENG-695 lands:
         (
             "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_product_trial",
         ),
         (
             "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_subscription_trial",
         ),
-        # INFRENG-814: customer model_lock in MissingCustomerRelation.repair
+        # Customer model_lock in MissingCustomerRelation.repair.
+        # Remove this entry when REVENG-694 lands
         (
             "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
             "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
         ),
-        # INFRENG-804: platform charge lock in ChargeService.capture_charge (needs its own ticket)
-        ("getsentry.billing.platform.services.charge.service.ChargeService.capture_charge",),
         # INFRENG-925: the test takes the subscription lock to see if it is held, inside the
         # transaction of _apply_legacy_ondemand_max_spend
         (
