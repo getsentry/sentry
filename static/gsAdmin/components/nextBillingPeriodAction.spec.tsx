@@ -8,7 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ModalStore} from 'sentry/stores/modalStore';
+import {closeModal} from '@sentry/scraps/modal';
 
 import {triggerEndPeriodEarlyModal} from 'admin/components/nextBillingPeriodAction';
 
@@ -25,7 +25,7 @@ describe('NextBillingPeriodAction', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
+    closeModal();
     jest.clearAllMocks();
   });
 

@@ -22,20 +22,23 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {getAvailableEnvironments} from 'sentry/components/pageFilters/environment/getAvailableEnvironments';
-import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {SettingsEntryPoint} from 'sentry/utils/analytics/settingsAnalyticsEvents';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {ProjectPageFilterTrigger} from './projectPageFilterTrigger';
 
 /**
  * Maximum number of projects that can be selected at a time (due to server limits). This
@@ -193,6 +196,11 @@ export function ProjectPageFilter({
                     tooltipProps={{title: t('Open Project Settings'), delay: 400}}
                     aria-label={t('Open Project Settings')}
                     to={`/settings/${organization.slug}/projects/${project.slug}/`}
+                    analyticsEventKey="settings.entry_point_clicked"
+                    analyticsEventName="Settings: Entry Point Clicked"
+                    analyticsParams={{
+                      entry_point: 'project_page_filter' satisfies SettingsEntryPoint,
+                    }}
                   />
                 </Fragment>
               ) : null}
@@ -379,24 +387,15 @@ export function ProjectPageFilter({
         ? memberProjectIds(projects)
         : urlProjectSelection;
 
-    const listSort = (project: Project) =>
-      bookmarkedSnapshotRef.current
-        ? [
-            !lastSelected.includes(parseInt(project.id, 10)),
-            !bookmarkedSnapshotRef.current.has(project.id),
-            !project.isMember,
-            project.slug,
-          ]
-        : [
-            !lastSelected.includes(parseInt(project.id, 10)),
-            !project.isMember,
-            project.slug,
-          ];
-
+    // sortBy is stable, so selected projects move to the top and keep their
+    // relative order.
     const projectItems = sortBy(
-      [...memberProjectList, ...nonMemberProjectList],
-      // oxlint-disable-next-line react/refs
-      listSort
+      sortProjectsByBookmarkAndMembership(
+        [...memberProjectList, ...nonMemberProjectList],
+        // oxlint-disable-next-line react/refs
+        bookmarkedSnapshotRef.current
+      ),
+      project => !lastSelected.includes(parseInt(project.id, 10))
     ).map(getProjectItem);
 
     return [...specialItems, ...projectItems];

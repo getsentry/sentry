@@ -257,6 +257,7 @@ class BaseIssueAlertHandler(ABC):
                 rule_id__isnull=False,
             ).first()
             if alert_rule_workflow:
+                assert alert_rule_workflow.rule_id is not None
                 if Rule.objects.filter(
                     id=alert_rule_workflow.rule_id,
                     project__organization_id=detector.linked_project.organization_id,

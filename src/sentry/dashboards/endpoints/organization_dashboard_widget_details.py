@@ -1,7 +1,6 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -28,9 +27,6 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
         and has a high chance of success when the dashboard is
         saved.
         """
-        if not features.has("organizations:dashboards-edit", organization, actor=request.user):
-            return Response(status=404)
-
         projects = self.get_projects(request, organization)
         serializer = DashboardWidgetSerializer(
             data=request.data,

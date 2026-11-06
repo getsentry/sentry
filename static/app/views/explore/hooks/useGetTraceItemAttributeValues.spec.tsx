@@ -7,8 +7,9 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
-import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {useGetTraceItemAttributeValues} from './useGetTraceItemAttributeValues';
 
 describe('useGetTraceItemAttributeValues', () => {
   const attributeKey = 'test.attribute';

@@ -4,15 +4,13 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {
-  DisableDetectorAction,
-  EditDetectorAction,
-} from 'sentry/views/detectors/components/details/common/actions';
-import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
-import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
-import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
-import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
-import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
+
+import {DisableDetectorAction, EditDetectorAction} from './common/actions';
+import {DetectorDetailsAssignee} from './common/assignee';
+import {DetectorDetailsAutomations} from './common/automations';
+import {DetectorExtraDetails} from './common/extraDetails';
+import {DetectorDetailsHeader} from './common/header';
+import {DetectorDetailsOpenPeriodIssues} from './common/openPeriodIssues';
 
 type FallbackDetectorDetailsProps = {
   detector: Detector;

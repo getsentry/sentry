@@ -3,9 +3,10 @@ import {useMutation} from '@tanstack/react-query';
 
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
-import type {EmailAuthResult} from 'sentry/views/authV2/authLogin/hooks/useEmailAuth';
 import type {AuthenticatedResult, MfaMethod} from 'sentry/views/authV2/authLogin/types';
+
+import type {AuthOrganization} from './useAuthOrganization';
+import type {EmailAuthResult} from './useEmailAuth';
 
 type DemoAuthResponse =
   | {mfaMethods: MfaMethod[]; mfaRequired: true}

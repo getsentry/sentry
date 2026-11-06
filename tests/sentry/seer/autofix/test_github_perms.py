@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import AbstractContextManager
 from unittest import mock
 
 from sentry.constants import ObjectStatus
@@ -122,7 +123,7 @@ class GetMissingPermissionsByRepoTest(TestCase):
                 metadata={**self.integration.metadata, "last_refresh_at": last_refresh_at}
             )
 
-    def _refresh_to(self, permissions: dict[str, str]):
+    def _refresh_to(self, permissions: dict[str, str]) -> AbstractContextManager[mock.MagicMock]:
         """Stand in for the token mint, which rewrites both permissions and stamp.
 
         A side_effect rather than a return_value: the row has to still be stale

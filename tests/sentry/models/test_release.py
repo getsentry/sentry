@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -41,7 +42,7 @@ from sentry.models.releaseactivity import ReleaseActivity
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
-from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.search.events.filter import parse_semver
@@ -171,7 +172,7 @@ class NextReleaseOrderingTest(TestCase):
         "fake_package@1.0.0.0-beta+exp.sha.5114f85",  # major, minor, patch, revision, pre-release, and build
     ],
 )
-def test_version_is_semver_valid(release_version) -> None:
+def test_version_is_semver_valid(release_version: str) -> None:
     assert Release.is_semver_version(release_version) is True
 
 
@@ -198,7 +199,7 @@ def test_version_is_semver_valid(release_version) -> None:
         "package@1.0.0-alpha.1+1..2",  # Empty build component
     ],
 )
-def test_version_is_semver_invalid(release_version) -> None:
+def test_version_is_semver_invalid(release_version: str) -> None:
     assert Release.is_semver_version(release_version) is False
 
 
@@ -789,6 +790,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": commit.key, "repository": repo.name}])
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -836,6 +838,7 @@ class SetCommitsTestCase(TestCase):
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         commit = Commit.objects.get(organization_id=org.id, key="a" * 40)
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -904,6 +907,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": commit.key, "repository": repo.name}])
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -1160,7 +1164,7 @@ class SetRefsTest(SetRefsTestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
     def test_simple(self, mock_fetch_commit: MagicMock) -> None:
-        refs = [
+        refs: list[dict[str, Any]] = [
             {
                 "repository": "test/repo",
                 "previousCommit": "previous-commit-id",
@@ -1209,7 +1213,7 @@ class SetRefsTest(SetRefsTestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
     def test_handle_commit_ranges(self, mock_fetch_commit: MagicMock) -> None:
-        refs = [
+        refs: list[dict[str, Any]] = [
             {
                 "repository": "test/repo",
                 "previousCommit": None,
@@ -1508,7 +1512,14 @@ class ReleaseFilterBySemverTest(TestCase):
         ):
             Release.objects.filter_by_semver(self.organization.id, parse_semver("1.2.hi", ">"))
 
-    def run_test(self, operator, version, expected_releases, organization_id=None, projects=None):
+    def run_test(
+        self,
+        operator: str,
+        version: str,
+        expected_releases: list[Release],
+        organization_id: int | None = None,
+        projects: list[Project] | None = None,
+    ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         project_ids = [p.id for p in projects] if projects else None
         assert set(
@@ -1599,7 +1610,14 @@ class ReleaseFilterBySemverTest(TestCase):
 
 
 class ReleaseFilterBySemverBuildTest(TestCase):
-    def run_test(self, operator, build, expected_releases, organization_id=None, projects=None):
+    def run_test(
+        self,
+        operator: str,
+        build: str,
+        expected_releases: list[Release],
+        organization_id: int | None = None,
+        projects: list[Project] | None = None,
+    ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         project_ids = [p.id for p in projects] if projects else None
         assert set(
@@ -1641,6 +1659,118 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("exact", "123a*", [release_3])
         self.run_test("exact", "123ab", [])
         self.run_test("exact", "123abc", [release_3])
+
+
+class ReleaseFilterByStageTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.production = self.create_environment(name="production", project=self.project)
+        self.staging = self.create_environment(name="staging", project=self.project)
+        now = timezone.now()
+
+        # Adopted in production, low adoption in staging.
+        self.adopted_in_production = self.create_release(
+            version="adopted-in-production",
+            environments=[self.production, self.staging],
+            adopted=now,
+        )
+        ReleaseProjectEnvironment.objects.filter(
+            release=self.adopted_in_production, environment=self.staging
+        ).update(adopted=None)
+
+        # Adopted in production, replaced in staging.
+        self.replaced_in_staging = self.create_release(
+            version="replaced-in-staging",
+            environments=[self.production, self.staging],
+            adopted=now,
+        )
+        ReleaseProjectEnvironment.objects.filter(
+            release=self.replaced_in_staging, environment=self.staging
+        ).update(unadopted=now)
+
+    def run_test(
+        self,
+        operator: str,
+        stage: str | list[str],
+        environment: str | int,
+        expected_releases: list[Release],
+    ) -> None:
+        assert set(
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                operator,
+                stage,
+                project_ids=[self.project.id],
+                environments=[environment],
+            )
+        ) == set(expected_releases)
+
+    def test_stage_is_scoped_to_environment(self) -> None:
+        self.run_test(
+            "=",
+            ReleaseStages.ADOPTED,
+            "production",
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+        self.run_test("=", ReleaseStages.ADOPTED, "staging", [])
+        self.run_test("=", ReleaseStages.LOW_ADOPTION, "production", [])
+        self.run_test("=", ReleaseStages.LOW_ADOPTION, "staging", [self.adopted_in_production])
+        self.run_test("=", ReleaseStages.REPLACED, "production", [])
+        self.run_test("=", ReleaseStages.REPLACED, "staging", [self.replaced_in_staging])
+
+    def test_negated_stage_is_scoped_to_environment(self) -> None:
+        self.run_test("!=", ReleaseStages.ADOPTED, "production", [])
+        self.run_test(
+            "!=",
+            ReleaseStages.ADOPTED,
+            "staging",
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+
+    def test_multiple_stages_are_scoped_to_environment(self) -> None:
+        self.run_test(
+            "IN",
+            [ReleaseStages.ADOPTED, ReleaseStages.REPLACED],
+            "staging",
+            [self.replaced_in_staging],
+        )
+
+    def test_environment_id(self) -> None:
+        self.run_test(
+            "=",
+            ReleaseStages.ADOPTED,
+            self.production.id,
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+        self.run_test("=", ReleaseStages.ADOPTED, self.staging.id, [])
+        self.run_test(
+            "=", ReleaseStages.LOW_ADOPTION, self.staging.id, [self.adopted_in_production]
+        )
+
+    def test_unknown_environment(self) -> None:
+        self.run_test("=", ReleaseStages.ADOPTED, "does-not-exist", [])
+
+    def test_requires_single_environment(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="Choose a single environment"):
+            Release.objects.filter_by_stage(
+                self.organization.id, "=", ReleaseStages.ADOPTED, environments=None
+            )
+        with pytest.raises(InvalidSearchQuery, match="Choose a single environment"):
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                "=",
+                ReleaseStages.ADOPTED,
+                environments=["production", "staging"],
+            )
+
+    def test_rejects_environment_that_is_not_a_name_or_id(self) -> None:
+        with pytest.raises(TypeError, match="Expected an environment name or id"):
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                "=",
+                ReleaseStages.ADOPTED,
+                environments=[self.production],  # type: ignore[list-item]
+            )
 
 
 class FollowsSemverVersioningSchemeTestCase(TestCase):

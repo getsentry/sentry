@@ -129,8 +129,8 @@ def _bulk_insert_workflow_action_group_statuses(
     exists_checks=True after an IntegrityError.
     """
     # XXX: the query does not currently include batch size limit like bulk_create does
-    values_placeholders = []
-    values_data = []
+    values_placeholders: list[str] = []
+    values_data: list[int | datetime] = []
     for s in missing_statuses:
         values_placeholders.append("(%s, %s, %s, %s, %s)")
         values_data.extend([s.workflow_id, s.action_id, s.group_id, now, now])

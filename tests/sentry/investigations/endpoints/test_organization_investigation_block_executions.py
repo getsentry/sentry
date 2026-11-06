@@ -42,7 +42,7 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
             display={"type": "table"},
         )
         self.url = reverse(
-            "sentry-api-0-organization-investigation-block-executions",
+            "sentry-api-0-organization-notebook-block-executions",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -145,6 +145,7 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         assert first.data["id"] != second.data["id"]
         assert mock_client.return_value.start_run.call_count == 2
         self.block.refresh_from_db()
+        assert self.block.current_execution is not None
         assert str(self.block.current_execution.id) == second.data["id"]
 
     @patch(
@@ -252,7 +253,7 @@ class InvestigationTextExecutionEndpointTest(APITestCase):
             prompt="Explain the most important change.",
         )
         self.url = reverse(
-            "sentry-api-0-organization-investigation-block-executions",
+            "sentry-api-0-organization-notebook-block-executions",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,

@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
 import sumBy from 'lodash/sumBy';
+import {useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -20,8 +21,7 @@ import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useZoomToOpenPeriodRange} from 'sentry/views/detectors/components/details/common/useZoomToOpenPeriodRange';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
@@ -67,12 +67,12 @@ export function MetricDetectorRecentIssues({
   detector,
   intervalSeconds,
 }: MetricDetectorRecentIssuesProps) {
-  const location = useLocation();
+  const [{start, end, statsPeriod}] = useQueryStates(pageFilterParsers);
 
   const dateParams: DateParams = {
-    start: decodeScalar(location.query.start),
-    end: decodeScalar(location.query.end),
-    statsPeriod: decodeScalar(location.query.statsPeriod),
+    start: start || undefined,
+    end: end || undefined,
+    statsPeriod: statsPeriod || undefined,
   };
 
   return (

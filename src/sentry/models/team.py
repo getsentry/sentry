@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, ClassVar
+from collections.abc import Callable, Iterable, Sequence
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.db import models, router, transaction
+from django.db.models import QuerySet
+from django.db.models.base import ModelBase
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -25,16 +26,17 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
     from sentry.models.organization import Organization
-    from sentry.users.models.user import User
-    from sentry.users.services.user import RpcUser
+    from sentry.models.organizationmember import OrganizationMember
+    from sentry.models.project import Project
 
 
 class TeamManager(BaseManager["Team"]):
     def get_for_user(
         self,
         organization: Organization,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
         scope: str | None = None,
         is_team_admin: bool = False,
     ) -> Sequence[Team]:
@@ -78,14 +80,14 @@ class TeamManager(BaseManager["Team"]):
     def post_save(self, *, instance: Team, created: bool, **kwargs: object) -> None:
         self.process_resource_change(instance, **kwargs)
 
-    def post_delete(self, instance: Team, **kwargs):
+    def post_delete(self, instance: Team, **kwargs: object) -> None:
         self.process_resource_change(instance, **kwargs)
 
-    def process_resource_change(self, instance: Team, **kwargs):
+    def process_resource_change(self, instance: Team, **kwargs: object) -> None:
         from sentry.models.project import Project
         from sentry.tasks.codeowners import update_code_owners_schema
 
-        def _spawn_task():
+        def _spawn_task() -> None:
             try:
                 update_code_owners_schema.apply_async(
                     kwargs={
@@ -148,8 +150,20 @@ class Team(ReplicatedCellModel):
     def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
-    def save(self, *args, **kwargs):
-        save_callback = lambda: super(Team, self).save(*args, **kwargs)
+    def save(
+        self,
+        *,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
+        save_callback = lambda: super(Team, self).save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
         if self.slug:
             self._save_team(save_callback)
             return
@@ -174,7 +188,7 @@ class Team(ReplicatedCellModel):
             save_callback()
 
     @property
-    def member_set(self):
+    def member_set(self) -> QuerySet[OrganizationMember]:
         """:returns a QuerySet of all Users that belong to this Team"""
         return self.organization.member_set.filter(
             organizationmemberteam__team=self,
@@ -183,7 +197,7 @@ class Team(ReplicatedCellModel):
             user_is_active=True,
         ).distinct()
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, str | int]:
         return {
             "id": self.id,
             "slug": self.slug,
@@ -191,10 +205,13 @@ class Team(ReplicatedCellModel):
             "status": self.status,
         }
 
-    def get_projects(self):
+    def get_projects(self) -> QuerySet[Project]:
         from sentry.models.project import Project
 
         return Project.objects.get_for_team_ids([self.id])
 
-    def get_member_user_ids(self):
-        return self.member_set.values_list("user_id", flat=True)
+    def get_member_user_ids(self) -> QuerySet[OrganizationMember, int]:
+        return cast(
+            "QuerySet[OrganizationMember, int]",
+            self.member_set.values_list("user_id", flat=True),
+        )

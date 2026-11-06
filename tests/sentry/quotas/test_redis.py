@@ -4,6 +4,7 @@ from functools import cached_property
 from unittest import mock
 
 import pytest
+import rb
 
 from sentry.constants import DataCategory
 from sentry.quotas.base import (
@@ -23,7 +24,7 @@ from sentry.utils.redis import redis_clusters
 
 class RedisQuotaTest(TestCase):
     @cached_property
-    def quota(self):
+    def quota(self) -> RedisQuota:
         return RedisQuota()
 
     def test_redis_quota_serialize(self) -> None:
@@ -270,6 +271,7 @@ class RedisQuotaTest(TestCase):
 
         org_id = self.project.organization.pk
         self.quota.refund(self.project, timestamp=timestamp)
+        assert isinstance(self.quota.cluster, rb.Cluster)
         client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
 
         error_keys = client.keys(f"r:quota:p{{{org_id}}}*:*")
@@ -320,6 +322,7 @@ class RedisQuotaTest(TestCase):
         self.quota.refund(
             self.project, timestamp=timestamp, category=DataCategory.ATTACHMENT, quantity=100
         )
+        assert isinstance(self.quota.cluster, rb.Cluster)
         client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
 
         error_keys = client.keys(f"r:quota:p{{{org_id}}}*:*")

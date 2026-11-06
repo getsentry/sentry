@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {FuseResultMatch} from 'fuse.js/basic';
 
-import {getFuseMatches, highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
+import {getFuseMatches, highlightFuseMatches} from './highlightFuseMatches';
 
 describe('highlightFuseMatches', () => {
   const matchObj: FuseResultMatch = {

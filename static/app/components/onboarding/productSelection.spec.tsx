@@ -2,12 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  platformProductAvailability,
-  ProductSelection,
-} from 'sentry/components/onboarding/productSelection';
 import {ConfigStore} from 'sentry/stores/configStore';
+
+import {ProductSolution} from './gettingStartedDoc/types';
+import {platformProductAvailability, ProductSelection} from './productSelection';
 
 describe('Onboarding Product Selection', () => {
   const organization = OrganizationFixture({

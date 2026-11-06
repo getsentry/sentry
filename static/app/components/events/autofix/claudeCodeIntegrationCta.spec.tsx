@@ -3,9 +3,10 @@ import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ClaudeCodeIntegrationCta} from 'sentry/components/events/autofix/claudeCodeIntegrationCta';
-import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {ClaudeCodeIntegrationCta} from './claudeCodeIntegrationCta';
+import {CodingAgentProvider} from './types';
 
 describe('ClaudeCodeIntegrationCta', () => {
   const project = ProjectFixture();

@@ -1,8 +1,9 @@
+from collections.abc import Mapping
 from datetime import datetime
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.forms import model_to_dict
 from django.utils import timezone
 
@@ -17,6 +18,7 @@ from sentry.models.organizationonboardingtask import (
 )
 from sentry.models.project import Project
 from sentry.onboarding_tasks.base import OnboardingTaskBackend
+from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.utils.platform_categories import SOURCE_MAPS
 
@@ -24,14 +26,18 @@ from sentry.utils.platform_categories import SOURCE_MAPS
 class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboardingTask]):
     Model = OrganizationOnboardingTask
 
-    def fetch_onboarding_tasks(self, organization, user):
+    def fetch_onboarding_tasks(
+        self, organization: Organization, user: User
+    ) -> QuerySet[OrganizationOnboardingTask]:
         return self.Model.objects.filter(
             organization=organization,
             task__in=OnboardingTask.values(),  # we exclude any tasks that might no longer be in the onboarding flow but still linger around in the database
             status__in=OnboardingTaskStatus.values(),  # same here but for status
         )
 
-    def create_or_update_onboarding_task(self, organization, user, task, values):
+    def create_or_update_onboarding_task(
+        self, organization: Organization, user: User, task: int, values: Mapping[str, object]
+    ) -> tuple[OrganizationOnboardingTask, bool]:
         return self.Model.objects.update_or_create(
             organization=organization,
             task=task,
@@ -44,7 +50,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
         organization: Organization,
         task: int,
         date_completed: datetime | None = None,
-        **task_kwargs,
+        **task_kwargs: object,
     ) -> bool:
         # Mark the task as complete
         created = self.Model.objects.record(
@@ -65,7 +71,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
             organization_id=organization.id, task=task
         ).exists()
 
-    def try_mark_onboarding_complete(self, organization_id: int):
+    def try_mark_onboarding_complete(self, organization_id: int) -> None:
         if OrganizationOption.objects.filter(
             organization_id=organization_id, key="onboarding:complete"
         ).exists():
@@ -123,7 +129,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
         from_organization_id: int,
         to_organization_id: int,
         project: Project | None = None,
-    ):
+    ) -> None:
         # get a list of task IDs that already exist in the new organization
         existing_tasks_in_new_org = OrganizationOnboardingTask.objects.filter(
             organization_id=to_organization_id

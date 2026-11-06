@@ -39,18 +39,19 @@ import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
-import {SpansCommandPaletteActions} from 'sentry/views/explore/spans/spansCommandPaletteActions';
-import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {SpansCommandPaletteActions} from './spansCommandPaletteActions';
+import {SpansQueryParamsProvider} from './spansQueryParamsProvider';
+import {SpansTabContent, SpansTabOnboarding} from './spansTab';
 import {
   EXPLORE_SPANS_TOUR_GUIDE_KEY,
   ExploreSpansTourContext,
   ORDERED_EXPLORE_SPANS_TOUR,
   useExploreSpansTourModal,
   type ExploreSpansTour,
-} from 'sentry/views/explore/spans/tour';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {TopBar} from 'sentry/views/navigation/topBar';
+} from './tour';
 
 function useHasCrossEvents() {
   const crossEvents = useQueryParamsCrossEvents();

@@ -4,7 +4,7 @@ import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -14,11 +14,7 @@ import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeB
 import * as chartVisualization from 'sentry/views/explore/components/chart/chartVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
-import {
-  parseVisualize,
-  Visualize,
-  VisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
+import {Visualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {canShareChart} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
@@ -29,13 +25,49 @@ import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSor
 jest.mock('echarts-for-react/lib/core', () => {
   return function Chart({
     option,
+    onEvents,
   }: {
-    option: {series: Array<{data?: Array<[number, number]>}>};
+    onEvents: Record<
+      string,
+      (event: Record<string, unknown>, instance: Record<string, unknown>) => void
+    >;
+    option: {
+      series: Array<{data?: Array<[number, number]>}>;
+      brush?: unknown;
+    };
   }) {
     return (
-      <output aria-label="Chart values">
-        {JSON.stringify(option.series.map(series => series.data))}
-      </output>
+      <div>
+        <output aria-label="Chart values">
+          {JSON.stringify(option.series.map(series => series.data))}
+        </output>
+        <button
+          onClick={() => {
+            const range = [1729796430000, 1729796730000];
+            if (option.brush) {
+              onEvents.brushend?.(
+                {areas: [{coordRange: range, panelId: 'grid--0'}]},
+                {
+                  getModel: () => ({
+                    getComponent: () => ({
+                      axis: {scale: {getExtent: () => [1729796400000, 1729797000000]}},
+                    }),
+                  }),
+                  convertToPixel: () => 100,
+                  getDom: () => document.body,
+                }
+              );
+            } else {
+              onEvents.datazoom?.(
+                {batch: [{startValue: range[0], endValue: range[1]}]},
+                {}
+              );
+            }
+          }}
+        >
+          Select chart range
+        </button>
+      </div>
     );
   };
 });
@@ -51,6 +83,110 @@ function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
 }
 
 describe('ExploreCharts', () => {
+  describe('range selection', () => {
+    const timeseriesResult = timeseriesResultFixture({
+      data: {
+        'count(span.duration)': [
+          TimeSeriesFixture({
+            yAxis: 'count(span.duration)',
+            values: [{timestamp: 1729796400000, value: 10}],
+          }),
+        ],
+      },
+    });
+
+    function SelectableChart() {
+      return (
+        <SpansQueryParamsProvider>
+          <ChartSelectionProvider>
+            <ExploreCharts
+              extrapolate
+              query=""
+              timeseriesResult={timeseriesResult}
+              visualizes={defaultVisualizes()}
+              setVisualizes={() => {}}
+              rawSpanCounts={{
+                total: {count: 100, isLoading: false},
+                normal: {count: 100, isLoading: false},
+              }}
+            />
+          </ChartSelectionProvider>
+        </SpansQueryParamsProvider>
+      );
+    }
+
+    beforeEach(() => {
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    });
+
+    afterEach(() => {
+      PageFiltersStore.reset();
+    });
+
+    it.each<Record<string, string>>([
+      {mode: 'samples'},
+      {mode: 'samples', table: 'trace'},
+      {mode: 'aggregate'},
+      {mode: 'aggregate', table: 'attribute_breakdowns'},
+    ])('zooms directly for %j', async query => {
+      const {router} = render(<SelectableChart />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/explore/traces/', query},
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Select chart range'})
+      );
+
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          start: '2024-10-24T19:00:00',
+          end: '2024-10-24T19:06:00',
+        })
+      );
+      expect(screen.queryByText('Compare Attribute Breakdowns')).not.toBeInTheDocument();
+    });
+
+    it('opens the breakdown menu and restores direct zoom when leaving the tab', async () => {
+      const {router} = render(<SelectableChart />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {mode: 'samples', table: 'attribute_breakdowns'},
+          },
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Select chart range'})
+      );
+
+      expect(await screen.findByText('Compare Attribute Breakdowns')).toBeInTheDocument();
+      expect(screen.getByText('Zoom in')).toBeInTheDocument();
+      expect(router.location.query.start).toBeUndefined();
+      const breakdownChart = screen.getByLabelText('Chart values');
+
+      act(() => {
+        router.navigate(
+          '/organizations/org-slug/explore/traces/?mode=samples&table=trace'
+        );
+      });
+
+      expect(screen.queryByText('Compare Attribute Breakdowns')).not.toBeInTheDocument();
+      expect(breakdownChart).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Select chart range'}));
+
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          start: '2024-10-24T19:00:00',
+          end: '2024-10-24T19:06:00',
+        })
+      );
+    });
+  });
+
   it('plots raw and smoothed values in their respective charts', async () => {
     const result = timeseriesResultFixture({
       data: {
@@ -213,7 +349,9 @@ describe('ExploreCharts', () => {
       const [serialized, setSerialized] = useState<BaseVisualize[]>(initialVisualizes);
       const visualizes = useMemo(
         () =>
-          serialized.flatMap(value => parseVisualize(value, {groupYAxes: canShareChart})),
+          serialized.flatMap(value =>
+            Visualize.fromJSON(value, {groupYAxes: canShareChart})
+          ),
         [serialized]
       );
       const timeseriesResult = useMemo(

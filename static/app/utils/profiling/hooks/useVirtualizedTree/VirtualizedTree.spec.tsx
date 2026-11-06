@@ -1,5 +1,5 @@
-import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
-import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import {VirtualizedTree} from './VirtualizedTree';
+import type {VirtualizedTreeNode} from './VirtualizedTreeNode';
 
 const n = (d: any) => {
   return {...d, children: []};

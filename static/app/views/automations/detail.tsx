@@ -5,8 +5,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -28,24 +28,22 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
-import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import {AutomationHistoryList} from 'sentry/views/automations/components/automationHistoryList';
-import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
-import {ConditionsPanel} from 'sentry/views/automations/components/conditionsPanel';
-import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
-import {ConnectedProjectsList} from 'sentry/views/automations/components/connectedProjectsList';
-import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
-import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
-import {useAutomationEditPermission} from 'sentry/views/automations/hooks/useCanEditAutomation';
-import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
-import {
-  makeAutomationBasePathname,
-  makeAutomationEditPathname,
-} from 'sentry/views/automations/pathnames';
-import {dataConditionGroupToLLMContext} from 'sentry/views/automations/utils/automationLLMContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {AutomationFeedbackButton} from './components/automationFeedbackButton';
+import {AutomationHistoryList} from './components/automationHistoryList';
+import {AutomationStatsChart} from './components/automationStatsChart';
+import {ConditionsPanel} from './components/conditionsPanel';
+import {ConnectedMonitorsList} from './components/connectedMonitorsList';
+import {ConnectedProjectsList} from './components/connectedProjectsList';
+import {DisabledAlert} from './components/disabledAlert';
+import {useAutomationEditPermission} from './hooks/useCanEditAutomation';
+import {getAutomationActionsWarning} from './hooks/utils';
+import {dataConditionGroupToLLMContext} from './utils/automationLLMContext';
+import {useAutomationQuery, useUpdateAutomation} from './hooks';
+import {makeAutomationBasePathname, makeAutomationEditPathname} from './pathnames';
 
 const CONTEXT_HINT =
   'Sentry alert detail page. This alert runs its actions when an issue matches its conditions. ' +
@@ -301,7 +299,7 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
       },
       {
         onSuccess: () => {
-          addSuccessMessage(newEnabled ? t('Alert enabled') : t('Alert disabled'));
+          toast.success(newEnabled ? t('Alert enabled') : t('Alert disabled'));
         },
       }
     );
