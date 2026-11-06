@@ -1,6 +1,7 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider, DiffLineType} from 'sentry/components/events/autofix/types';
 import type {
@@ -11,6 +12,7 @@ import type {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {
+  Block,
   ExplorerCodingAgentState,
   ExplorerFilePatch,
   RepoPRState,
@@ -35,13 +37,16 @@ jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: ({
     defaultExpanded,
     fileUrl,
+    patch,
   }: {
+    patch: {path: string};
     defaultExpanded?: boolean;
     fileUrl?: string;
   }) => (
     <div
       data-expanded={defaultExpanded}
       data-file-url={fileUrl}
+      data-path={patch.path}
       data-test-id="file-diff-viewer"
     />
   ),
@@ -715,21 +720,22 @@ describe('ArtifactCard', () => {
       expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
     });
 
-    it('copies markdown when copy button is clicked', async () => {
+    it('copies the original run diff without pinned iterations', async () => {
+      const patch = makePatch('org/repo', 'src/app.py');
+      patch.diff = '--- a/src/app.py\n+++ b/src/app.py\n@@ -1 +1 @@\n-old\n+new';
+
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection('code_changes', 'completed', [
-            [makePatch('org/repo', 'src/app.py')],
-          ])}
+          section={makeSection('code_changes', 'completed', [[patch]])}
         />
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining('Code Changes')
+        `# Code Changes\n\n## Repository: org/repo\n\n\`\`\`diff\n${patch.diff}\n\`\`\``
       );
     });
 
@@ -2228,6 +2234,289 @@ describe('ArtifactCard', () => {
       expect(
         screen.getByText('Anything else you want to see on your PR?')
       ).toBeInTheDocument();
+    });
+
+    describe('with PR iterations pinned to the PR head', () => {
+      const pinnedOrganization = OrganizationFixture({
+        features: ['autofix-pr-iteration', 'autofix-pr-iteration-pin-to-pr-head'],
+      });
+      const pullRequestFilesUrl = `/organizations/${pinnedOrganization.slug}/repos/pull-request-files/`;
+
+      // The run's patches after a pinned iteration only hold what it changed.
+      const iteratedSection = makeSection(
+        'code_changes',
+        'completed',
+        [[makePatch('org/repo', 'src/iterated.py')]],
+        [makePrIterationBlock(0, {text: 'fix the CI failure'})]
+      );
+
+      function makeAutofix(pr: RepoPRState, blocks: Block[] = []) {
+        return {
+          ...mockAutofix,
+          runState: {
+            run_id: 123,
+            blocks,
+            status: 'completed' as const,
+            updated_at: '2026-01-01T00:00:00Z',
+            repo_pr_states: {[pr.repo_name]: pr},
+          },
+        };
+      }
+
+      function mockPullRequestFiles() {
+        return MockApiClient.addMockResponse({
+          url: pullRequestFilesUrl,
+          match: [MockApiClient.matchQuery({repo: 'org/repo', number: 42})],
+          body: {
+            files: [
+              {
+                path: 'src/app.py',
+                patch: '@@ -1,2 +1,2 @@\n context\n-old\n+new',
+                status: 'modified',
+                previousPath: null,
+              },
+              {path: 'logo.png', patch: null, status: 'added', previousPath: null},
+            ],
+          },
+        });
+      }
+
+      function renderedPaths() {
+        return screen
+          .getAllByTestId('file-diff-viewer')
+          .map(viewer => viewer.getAttribute('data-path'));
+      }
+
+      it("copies the displayed PR diff instead of the run's partial patches", async () => {
+        mockPullRequestFiles();
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR())}
+            section={iteratedSection}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(await screen.findByText('1 file changed in 1 repo')).toBeInTheDocument();
+        expect(renderedPaths()).toEqual(['src/app.py']);
+
+        await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          '# Code Changes\n\n## Repository: org/repo\n\n```diff\n' +
+            '--- a/src/app.py\n+++ b/src/app.py\n@@ -1,2 +1,2 @@\n context\n-old\n+new\n```'
+        );
+      });
+
+      it.each([
+        ['added', null, '/dev/null', 'b/src/app.py', '@@ -0,0 +1 @@\n+new'],
+        ['removed', null, 'a/src/app.py', '/dev/null', '@@ -1 +0,0 @@\n-old'],
+        [
+          'renamed',
+          'src/old.py',
+          'a/src/old.py',
+          'b/src/app.py',
+          '@@ -1 +1 @@\n-old\n+new',
+        ],
+      ])(
+        'copies file headers for %s files',
+        async (status, previousPath, source, target, patch) => {
+          MockApiClient.addMockResponse({
+            url: pullRequestFilesUrl,
+            body: {files: [{path: 'src/app.py', status, previousPath, patch}]},
+          });
+
+          render(
+            <CodeChangesCard
+              groupId="1"
+              autofix={makeAutofix(makePR())}
+              section={iteratedSection}
+            />,
+            {organization: pinnedOrganization}
+          );
+
+          await screen.findByText('1 file changed in 1 repo');
+          await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+          expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+            `# Code Changes\n\n## Repository: org/repo\n\n\`\`\`diff\n--- ${source}\n+++ ${target}\n${patch}\n\`\`\``
+          );
+        }
+      );
+
+      it('copies PR changes alongside displayed run patches from another repo', async () => {
+        mockPullRequestFiles();
+        const patch = makePatch('org/other', 'src/other.py');
+        patch.diff = '--- a/src/other.py\n+++ b/src/other.py\n@@ -1 +1 @@\n-old\n+new';
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR())}
+            section={{
+              ...iteratedSection,
+              artifacts: [[makePatch('org/repo', 'src/iterated.py'), patch]],
+            }}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        await screen.findByText('2 files changed in 2 repos');
+        expect(renderedPaths()).toEqual(['src/app.py', 'src/other.py']);
+        await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          '# Code Changes\n\n## Repository: org/repo\n\n```diff\n' +
+            '--- a/src/app.py\n+++ b/src/app.py\n@@ -1,2 +1,2 @@\n context\n-old\n+new\n```' +
+            `\n\n## Repository: org/other\n\n\`\`\`diff\n${patch.diff}\n\`\`\``
+        );
+      });
+
+      it('disables copy while the PR diff loads', () => {
+        mockPullRequestFiles();
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR())}
+            section={iteratedSection}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(screen.getByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
+      });
+
+      it('copies run patches when the PR diff cannot be fetched', async () => {
+        MockApiClient.addMockResponse({
+          url: pullRequestFilesUrl,
+          statusCode: 500,
+          body: {detail: 'Unable to fetch the PR diff'},
+        });
+        const patch = makePatch('org/repo', 'src/iterated.py');
+        patch.diff =
+          '--- a/src/iterated.py\n+++ b/src/iterated.py\n@@ -1 +1 @@\n-old\n+new';
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR())}
+            section={{...iteratedSection, artifacts: [[patch]]}}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(await screen.findByText('1 file changed in 1 repo')).toBeInTheDocument();
+        expect(renderedPaths()).toEqual(['src/iterated.py']);
+
+        await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          `# Code Changes\n\n## Repository: org/repo\n\n\`\`\`diff\n${patch.diff}\n\`\`\``
+        );
+      });
+
+      it("shows that it's pushing everywhere while edits wait to be pushed", () => {
+        const filesRequest = mockPullRequestFiles();
+        const unpushedEdit: Block = {
+          id: 'edit',
+          message: {role: 'assistant', content: ''},
+          timestamp: '2026-01-01T00:00:01Z',
+          file_patches: [makePatch('org/repo', 'src/iterated.py')],
+        };
+
+        const autofix = makeAutofix(makePR(), [unpushedEdit]);
+
+        render(
+          <Fragment>
+            <CodeChangesCard groupId="1" autofix={autofix} section={iteratedSection} />
+            <PullRequestsCard
+              autofix={autofix}
+              section={makeSection('pull_request', 'completed', [[makePR()]])}
+            />
+          </Fragment>,
+          {organization: pinnedOrganization}
+        );
+
+        expect(
+          screen.getByText('Pushing the latest changes to the pull request…')
+        ).toBeInTheDocument();
+        expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+        expect(
+          screen.getAllByRole('button', {name: 'Copy as Markdown'})[0]
+        ).toHaveAttribute('aria-disabled', 'true');
+        expect(filesRequest).not.toHaveBeenCalled();
+        // Seer hasn't started the push yet, but the button and the feedback already agree.
+        expect(
+          screen.getByRole('button', {name: 'Updating PR in org/repo'})
+        ).toBeDisabled();
+        expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
+        expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+        expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThan(0);
+      });
+
+      describe('after a push', () => {
+        afterEach(() => {
+          try {
+            jest.runOnlyPendingTimers();
+          } finally {
+            jest.useRealTimers();
+          }
+        });
+
+        it('checks the diff again for a while after a push', async () => {
+          jest.useFakeTimers();
+          const filesRequest = mockPullRequestFiles();
+          const autofix = makeAutofix(makePR());
+          autofix.runState.updated_at = new Date().toISOString();
+
+          render(
+            <CodeChangesCard groupId="1" autofix={autofix} section={iteratedSection} />,
+            {organization: pinnedOrganization}
+          );
+
+          await screen.findByText('1 file changed in 1 repo');
+          expect(filesRequest).toHaveBeenCalledTimes(1);
+          // The request must not carry the SHA, which only keys the cache.
+          expect(filesRequest).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({query: {repo: 'org/repo', number: 42}})
+          );
+
+          for (const calls of [2, 3, 4]) {
+            await act(() => jest.advanceTimersByTimeAsync(10_000));
+            expect(filesRequest).toHaveBeenCalledTimes(calls);
+          }
+
+          await act(() => jest.advanceTimersByTimeAsync(60_000));
+          expect(filesRequest).toHaveBeenCalledTimes(4);
+        });
+      });
+
+      it("says the push failed and shows the PR's diff", async () => {
+        mockPullRequestFiles();
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR({pr_creation_status: 'error'}))}
+            section={iteratedSection}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(
+          await screen.findByText(
+            "We couldn't push the latest changes. This is the pull request's diff without them."
+          )
+        ).toBeInTheDocument();
+        expect(renderedPaths()).toEqual(['src/app.py']);
+      });
     });
   });
 

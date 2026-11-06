@@ -1,4 +1,5 @@
-import type {ReactNode} from 'react';
+import {useState, type ReactNode} from 'react';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -14,13 +15,36 @@ import type {User} from 'sentry/types/user';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 import {CodeChangesCard} from './codeChangesCard';
+import {PullRequestsCard} from './pullRequestsCard';
 
 // The Feedback section is gated behind this feature flag; the wrapper below
 // injects it so every example renders it.
 const PR_ITERATION_FEATURE = 'autofix-pr-iteration-manual';
+const PIN_TO_PR_HEAD_FEATURE = 'autofix-pr-iteration-pin-to-pr-head';
+
+// The PR's diff from GitHub. It has a file that the run's own patch doesn't, because a
+// pinned run's patches only hold what that iteration changed.
+const PULL_REQUEST_FILES = {
+  files: [
+    {
+      path: 'src/handlers/user.py',
+      patch:
+        '@@ -10,2 +10,2 @@\n def handler(request):\n-    return user.name\n+    return user.name if user else None',
+      status: 'modified',
+      previousPath: null,
+    },
+    {
+      path: 'tests/test_user.py',
+      patch:
+        '@@ -0,0 +1,2 @@\n+def test_handler_without_user():\n+    assert handler(None) is None',
+      status: 'added',
+      previousPath: null,
+    },
+  ],
+};
 
 const noop = () => {};
 
@@ -385,6 +409,37 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
     );
   });
 
+  story('PR iterations pinned to the PR head', () => {
+    return (
+      <Stack gap="xl">
+        <Text size="sm" variant="muted">
+          When iterations are pinned to the PR's head, the card shows the PR's full diff
+          from GitHub, not only what the run changed. While Seer is pushing, it shows no
+          diff. The Pull Requests button and the feedback icon change at the same time.
+        </Text>
+
+        <StatusExample label="Pushed: the PR's full diff, including a file the run's own patch doesn't have. The button says “View PR”.">
+          <PinnedToPrHeadExample pullRequest={pinnedPullRequest()} />
+        </StatusExample>
+
+        <StatusExample label="Pushing: no diff, a spinner on the feedback, and “Updating PR” on the button.">
+          <PinnedToPrHeadExample
+            pullRequest={pinnedPullRequest({pr_creation_status: 'creating'})}
+          />
+        </StatusExample>
+
+        <StatusExample label="Push failed: a warning and the PR's diff, which is missing Seer's latest edits.">
+          <PinnedToPrHeadExample
+            pullRequest={pinnedPullRequest({
+              pr_creation_status: 'error',
+              pr_creation_error: 'GitHub rejected the push: branch is protected.',
+            })}
+          />
+        </StatusExample>
+      </Stack>
+    );
+  });
+
   story('PR iteration without a code change', () => {
     return (
       <Stack gap="xl">
@@ -587,6 +642,78 @@ function FeatureWrapper({children}: {children: ReactNode}) {
   return (
     <OrganizationContext.Provider value={{...organization, features}}>
       {children}
+    </OrganizationContext.Provider>
+  );
+}
+
+function pinnedPullRequest(overrides: Partial<RepoPRState> = {}): RepoPRState {
+  return {
+    repo_name: 'org/repo',
+    branch_name: 'seer/fix-null-user',
+    commit_sha: 'abc1234',
+    pr_number: 42,
+    pr_id: 42,
+    pr_url: 'https://github.com/org/repo/pull/42',
+    title: 'Guard against a null user',
+    pr_creation_status: 'completed',
+    pr_creation_error: null,
+    ...overrides,
+  };
+}
+
+/**
+ * Answers the PR files request from a fixture, so the story never reaches the API.
+ * Per-query options outrank client defaults, which is why this replaces `queryFn` after
+ * defaulting rather than setting a default.
+ */
+class PullRequestFilesQueryClient extends QueryClient {
+  override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
+    const defaulted = super.defaultQueryOptions(options);
+    const queryFn = () => Promise.resolve({json: PULL_REQUEST_FILES, headers: {}});
+    return {...defaulted, queryFn: queryFn as never};
+  };
+}
+
+function PinnedToPrHeadExample({pullRequest}: {pullRequest: RepoPRState}) {
+  const organization = useOrganization();
+  const user = useUser();
+  const [queryClient] = useState(
+    () => new PullRequestFilesQueryClient({defaultOptions: {queries: {retry: false}}})
+  );
+  const autofix = makeAutofix([], {
+    repo_pr_states: {[pullRequest.repo_name]: pullRequest},
+  });
+  const features = [
+    ...organization.features,
+    PR_ITERATION_FEATURE,
+    PIN_TO_PR_HEAD_FEATURE,
+  ];
+
+  return (
+    <OrganizationContext.Provider value={{...organization, features}}>
+      <QueryClientProvider client={queryClient}>
+        <Stack gap="md">
+          <CodeChangesCard
+            groupId="1"
+            autofix={autofix}
+            section={makeSection('completed', [
+              makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+            ])}
+          />
+          <PullRequestsCard
+            autofix={autofix}
+            section={{
+              step: 'pull_request',
+              status:
+                pullRequest.pr_creation_status === 'creating'
+                  ? 'processing'
+                  : 'completed',
+              blocks: [],
+              artifacts: [[pullRequest]],
+            }}
+          />
+        </Stack>
+      </QueryClientProvider>
     </OrganizationContext.Provider>
   );
 }
