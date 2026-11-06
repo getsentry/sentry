@@ -105,6 +105,10 @@ const ADDITIONAL_COLUMNS: MonitorListAdditionalColumn[] = [
       if (detector.type !== 'monitor_check_in_failure') {
         return null;
       }
+      // dataSources may be null at runtime if the detector has no linked data source
+      if (!detector.dataSources?.[0]) {
+        return <SimpleTable.RowCell alignSelf="start" />;
+      }
       return (
         <SimpleTable.RowCell alignSelf="start">
           <Stack gap="sm" width="100%">
@@ -237,7 +241,11 @@ export default function CronDetectorsList() {
         <CronServiceIncidents timeWindowConfig={timeWindowConfig} />
       ),
       renderVisualization: ({detector}) => {
-        if (!detector) {
+        // dataSources may be null at runtime if the detector has no linked data source
+        if (
+          !detector ||
+          (detector.type === 'monitor_check_in_failure' && !detector.dataSources?.[0])
+        ) {
           return (
             <SimpleTable.RowCell
               column="-3 / -1"

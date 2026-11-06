@@ -197,7 +197,8 @@ function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
 function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
   return (
     <Fragment>
-      {detector.dataSources.map(dataSource => {
+      {/* dataSources may be null at runtime if the detector has no linked data source */}
+      {(detector.dataSources ?? []).map(dataSource => {
         return (
           <Fragment key={dataSource.id}>
             <DetailItem>{middleEllipsis(dataSource.queryObj.url, 40)}</DetailItem>
@@ -214,7 +215,11 @@ function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
 }
 
 function CronDetectorDetails({detector}: {detector: CronDetector}) {
-  const config = detector.dataSources[0].queryObj.config;
+  // dataSources may be null at runtime if the detector has no linked data source
+  const config = detector.dataSources?.[0]?.queryObj.config;
+  if (!config) {
+    return null;
+  }
 
   return <DetailItem>{scheduleAsText(config)}</DetailItem>;
 }

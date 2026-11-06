@@ -104,6 +104,20 @@ describe('CronDetectorsList', () => {
     expect(screen.getByRole('button', {name: 'Manual Setup'})).toBeInTheDocument();
   });
 
+  it('renders cron monitors that have no data sources', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      // The API can return a cron detector without any linked data sources
+      body: [
+        {...CronDetectorFixture({name: 'Orphaned Cron Detector'}), dataSources: null},
+      ],
+    });
+
+    render(<CronDetectorsList />, {organization, initialRouterConfig});
+
+    expect(await screen.findByText('Orphaned Cron Detector')).toBeInTheDocument();
+  });
+
   it('loads cron monitors, renders timeline, displays service incidents, and updates on time selection', async () => {
     // Detectors list returns a single cron monitor
     MockApiClient.addMockResponse({
