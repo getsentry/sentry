@@ -46,7 +46,8 @@ function SpansQueryChart({
     data.transformations
   );
   const hasTransformations =
-    data.transformations?.some(pipeline => pipeline.length) ?? false;
+    data.transformations?.some(axisTransformations => axisTransformations.length) ??
+    false;
   const query = useQueryEmbedEventsStats(
     buildSpansChartQuery(eventView, data, yAxisFields),
     !hasTransformations

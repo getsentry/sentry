@@ -6,7 +6,7 @@ import {
 
 describe('seerEmbedsToJsonSchemas', () => {
   it.each(['spansQuery', 'logsQuery', 'metricsQuery'] as const)(
-    'preserves ordered pipelines and intervals for %s',
+    'preserves ordered transformations and intervals for %s',
     name => {
       const input = {
         name: 'request.duration',
@@ -24,7 +24,7 @@ describe('seerEmbedsToJsonSchemas', () => {
     }
   );
 
-  it('rejects pipelines without an axis and invalid bucket intervals', () => {
+  it('rejects transformations without an axis and invalid bucket intervals', () => {
     expect(
       SEER_EMBED_SCHEMAS.spansQuery.schema.safeParse({
         yAxes: ['count()'],
