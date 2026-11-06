@@ -43,10 +43,13 @@ class OrganizationAgentHandoffTest(APITestCase):
         url = urlsplit(response.data["guideUrl"])
         assert url.path == "/agent-handoff/"
         assert not url.query
+        assert not url.fragment
+        code = response.data["prompt"].split("`")[1]
         assert response.data["prompt"] == (
-            f"Follow these instructions to get started with Sentry:\n{response.data['guideUrl']}"
+            f"Fetch and follow the instructions at {response.data['guideUrl']}. "
+            f"Your secret token is `{code}`."
         )
-        record = consume_handoff(url.fragment)
+        record = consume_handoff(code)
         assert record is not None
         assert record.flow is HandoffFlow.GUIDED_NEXT_STEPS
         assert record.user_id == self.user.id
@@ -62,7 +65,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, flow="guided_next_steps", status_code=201
         )
-        handoff = consume_handoff(urlsplit(response.data["guideUrl"]).fragment)
+        handoff = consume_handoff(response.data["prompt"].split("`")[1])
         assert handoff is not None
         assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
 
@@ -70,7 +73,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, flow="onboarding", status_code=201
         )
-        handoff = consume_handoff(urlsplit(response.data["guideUrl"]).fragment)
+        handoff = consume_handoff(response.data["prompt"].split("`")[1])
         assert handoff is not None
         assert handoff.flow is HandoffFlow.ONBOARDING
 
