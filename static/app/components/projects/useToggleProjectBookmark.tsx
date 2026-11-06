@@ -37,7 +37,10 @@ export function useToggleProjectBookmark({
   const api = useApi({persistInFlight: true});
 
   return useMutation({
-    mutationFn: ({project, isBookmarked}: ToggleProjectBookmarkVariables) =>
+    mutationFn: ({
+      project,
+      isBookmarked,
+    }: ToggleProjectBookmarkVariables): Promise<Project> =>
       update(api, {
         orgId: organization.slug,
         projectId: project.slug,
