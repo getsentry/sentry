@@ -926,17 +926,10 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             store=False,
         )
 
-        def scrubbed(value: str) -> dict[str, Any]:
-            start = value.index("[email]")
-            rem = [["@email:replace", "s", start, start + len("[email]")]]
-            return {"meta": {"value": {"": {"rem": rem, "len": len(value) + 10}}}}
-
-        input_meta = scrubbed(span["data"]["gen_ai.input.messages"])
-        user_meta = scrubbed(span["data"]["sentry.user.email"])
+        meta = {"meta": {"value": {"": {"rem": [["@email:replace", "s", 0, 7]], "len": 20}}}}
         prefix = "sentry._meta.fields.attributes"
-        span["data"][f"{prefix}.gen_ai.input.messages"] = json.dumps(input_meta)
-        # Meta is stored under the attribute's stored name.
-        span["data"][f"{prefix}.sentry.user.email"] = json.dumps(user_meta)
+        span["data"][f"{prefix}.gen_ai.input.messages"] = json.dumps(meta)
+        span["data"][f"{prefix}.sentry.user.email"] = json.dumps(meta)
         span["data"][f"{prefix}.gen_ai.output.messages"] = "not json"
         self.store_spans([span])
 
@@ -951,7 +944,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert len(response.data["spans"]) == 1
 
         span = response.data["spans"][0]
-        assert span["meta"] == {"gen_ai.input.messages": input_meta, "user.email": user_meta}
+        assert span["meta"] == {"gen_ai.input.messages": meta, "user.email": meta}
         assert [key for key in span if prefix in key] == []
 
     def test_returns_embeddings_attributes(self) -> None:

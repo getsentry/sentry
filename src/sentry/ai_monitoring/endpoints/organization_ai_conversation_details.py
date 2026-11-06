@@ -199,7 +199,6 @@ def _move_meta_columns(spans: Sequence[SpanRow]) -> None:
     for span in spans:
         meta: dict[str, Any] = {}
         for column, attribute in META_COLUMNS.items():
-            # Popping also keeps the private meta columns out of the response.
             value = span.pop(column, None)
             if not value:
                 continue
