@@ -116,7 +116,7 @@ function SidebarStory({description, hasEnoughCredits = false}: SidebarStoryProps
 
 export default Storybook.story('AutofixSection', story => {
   story('Out of credits: before a run', () => (
-    <SidebarStory description="No run yet. The muted autofix-start notice sits right above Start Analysis, which stays on screen but disabled (autofix_root_cause)." />
+    <SidebarStory description='No run yet. The muted autofix-start notice takes the place of the "Have Seer..." explainer, right above Start Analysis, which stays on screen but disabled (autofix_root_cause).' />
   ));
 
   story('With credits: before a run', () => (
