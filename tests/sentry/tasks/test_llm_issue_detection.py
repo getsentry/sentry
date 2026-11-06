@@ -3,6 +3,7 @@ from datetime import timedelta
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from django.core.cache import cache
 from django.db.models import F
 from django.test import override_settings
 from urllib3.response import HTTPResponse
@@ -18,6 +19,7 @@ from sentry.tasks.llm_issue_detection.detection import (
     SEER_CHECK_BUDGET_ENDPOINT_PATH,
     START_TIME_DELTA_MINUTES,
     TRANSACTION_BATCH_SIZE,
+    DetectionAlreadyInProgress,
     TraceMetadataWithSpanCount,
 )
 from sentry.tasks.llm_issue_detection.trace_data import (
@@ -217,6 +219,72 @@ class LLMIssueDetectionTest(TestCase):
         occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
         assert occurrence.fingerprint == [f"1-{AIDetectedDBGroupType.type_id}-get-/api"]
         assert occurrence.type == AIDetectedDBGroupType
+
+    @staticmethod
+    def _db_detection(trace_id: str = "trace-retry") -> DetectedIssue:
+        return DetectedIssue(
+            title="Inefficient Database Queries",
+            explanation="Multiple queries in loop",
+            impact="Medium",
+            evidence="5 queries",
+            offender_span_ids=["span_1"],
+            trace_id=trace_id,
+            transaction_name="GET /api",
+            verification_reason="Verified",
+            group_for_fingerprint="N+1 Database Queries",
+        )
+
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    def test_retried_detection_produces_one_occurrence(
+        self, mock_produce_occurrence: MagicMock
+    ) -> None:
+        create_issue_occurrence_from_detection(
+            detected_issue=self._db_detection(), project=self.project
+        )
+        create_issue_occurrence_from_detection(
+            detected_issue=self._db_detection(), project=self.project
+        )
+
+        assert mock_produce_occurrence.call_count == 1
+
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    def test_distinct_detections_each_produce(self, mock_produce_occurrence: MagicMock) -> None:
+        create_issue_occurrence_from_detection(
+            detected_issue=self._db_detection("trace-a"), project=self.project
+        )
+        create_issue_occurrence_from_detection(
+            detected_issue=self._db_detection("trace-b"), project=self.project
+        )
+
+        assert mock_produce_occurrence.call_count == 2
+
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    def test_failed_produce_lets_the_retry_through(
+        self, mock_produce_occurrence: MagicMock
+    ) -> None:
+        mock_produce_occurrence.side_effect = [RuntimeError("kafka unavailable"), None]
+
+        with pytest.raises(RuntimeError):
+            create_issue_occurrence_from_detection(
+                detected_issue=self._db_detection(), project=self.project
+            )
+        create_issue_occurrence_from_detection(
+            detected_issue=self._db_detection(), project=self.project
+        )
+
+        assert mock_produce_occurrence.call_count == 2
+
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    def test_detection_mid_produce_asks_for_a_retry(
+        self, mock_produce_occurrence: MagicMock
+    ) -> None:
+        with patch.object(cache, "add", return_value=False):
+            with pytest.raises(DetectionAlreadyInProgress):
+                create_issue_occurrence_from_detection(
+                    detected_issue=self._db_detection(), project=self.project
+                )
+
+        mock_produce_occurrence.assert_not_called()
 
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
     def test_general_type_skips_occurrence_creation(

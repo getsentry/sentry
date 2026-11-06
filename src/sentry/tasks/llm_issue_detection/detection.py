@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 from datetime import UTC, datetime
 from typing import Any
@@ -8,6 +9,7 @@ from uuid import uuid4
 import orjson
 import sentry_sdk
 from django.conf import settings
+from django.core.cache import cache
 from django.db.models import F
 from pydantic import BaseModel, Field
 from urllib3 import BaseHTTPResponse
@@ -33,7 +35,7 @@ from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
@@ -45,6 +47,18 @@ START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 50
 MAX_LLM_FIELD_LENGTH = 2000
 DEFAULT_TRACES_PER_INVOCATION = 1
+
+# Seer retries ``create_issue_occurrence`` on timeouts and 5xx, so one detection can
+# arrive more than once. A claim keyed on the detection lets only the first copy
+# produce an occurrence; later copies are acknowledged without producing another.
+OCCURRENCE_CLAIM_TIMEOUT_S = 60
+OCCURRENCE_DEDUPE_TIMEOUT_S = 60 * 60 * 24
+_PRODUCING = "producing"
+_PRODUCED = "produced"
+
+
+class DetectionAlreadyInProgress(Exception):
+    """Another request is producing this detection right now; the caller should retry."""
 
 
 seer_issue_detection_connection_pool = connection_from_url(
@@ -158,12 +172,59 @@ def get_group_type_for_title(title: str) -> type[GroupType]:
     return TITLE_TO_GROUP_TYPE.get(title, AIDetectedGeneralGroupType)
 
 
+def _occurrence_dedupe_key(detected_issue: DetectedIssue, project: Project) -> str:
+    payload = orjson.dumps(
+        {"project_id": project.id, "detected_issue": detected_issue.dict()},
+        option=orjson.OPT_SORT_KEYS,
+    )
+    return f"llm-issue-detection:occurrence:{hashlib.sha256(payload).hexdigest()}"
+
+
+def _record_dedupe(result: str) -> None:
+    metrics.incr("llm_issue_detection.occurrence_dedupe", tags={"result": result})
+
+
+def _claim_occurrence(key: str) -> bool:
+    """
+    Returns True when this request should produce the occurrence. Cache failures
+    fail open: a possible duplicate issue is better than a dropped detection.
+    """
+    try:
+        if cache.add(key, _PRODUCING, OCCURRENCE_CLAIM_TIMEOUT_S):
+            return True
+        state = cache.get(key)
+    except Exception:
+        logger.warning("llm_issue_detection.occurrence_dedupe.cache_error", exc_info=True)
+        _record_dedupe("cache_error")
+        return True
+
+    if state == _PRODUCED:
+        _record_dedupe("duplicate")
+        return False
+    # Another copy is mid-produce, or released its claim after our add().
+    _record_dedupe("in_progress")
+    raise DetectionAlreadyInProgress()
+
+
+def _set_occurrence_state(key: str, produced: bool) -> None:
+    try:
+        if produced:
+            cache.set(key, _PRODUCED, OCCURRENCE_DEDUPE_TIMEOUT_S)
+        else:
+            cache.delete(key)
+    except Exception:
+        logger.warning("llm_issue_detection.occurrence_dedupe.cache_error", exc_info=True)
+
+
 def create_issue_occurrence_from_detection(
     detected_issue: DetectedIssue,
     project: Project,
 ) -> None:
     """
     Create and produce an IssueOccurrence from an LLM-detected issue.
+
+    Idempotent per detection: a repeat of a detection already produced for this
+    project is a no-op, so the RPC is safe for Seer to retry.
     """
     group_type = get_group_type_for_title(detected_issue.title)
 
@@ -244,11 +305,20 @@ def create_issue_occurrence_from_detection(
         },
     }
 
-    produce_occurrence_to_kafka(
-        payload_type=PayloadType.OCCURRENCE,
-        occurrence=occurrence,
-        event_data=event_data,
-    )
+    dedupe_key = _occurrence_dedupe_key(detected_issue, project)
+    if not _claim_occurrence(dedupe_key):
+        return
+
+    try:
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=event_data,
+        )
+    except Exception:
+        _set_occurrence_state(dedupe_key, produced=False)
+        raise
+    _set_occurrence_state(dedupe_key, produced=True)
 
 
 def _is_org_eligible(org_id: int) -> bool:
