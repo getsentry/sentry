@@ -1,3 +1,4 @@
+import importlib
 from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -6,6 +7,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.notebooks.agent import (
+    InvestigationAgentCompletionHook,
     _maybe_start_title_generation,
     _parse_completion_metadata,
     sanitize_state,
@@ -95,6 +97,12 @@ def test_completion_metadata_ignores_extra_keys() -> None:
         )
         is not None
     )
+
+
+def test_completion_hook_path_resolves_to_the_hook() -> None:
+    module_name, class_name = InvestigationAgentCompletionHook.get_module_path().rsplit(".", 1)
+    module = importlib.import_module(module_name)
+    assert getattr(module, class_name) is InvestigationAgentCompletionHook
 
 
 class InvestigationAgentTest(TestCase):
