@@ -31,6 +31,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {getReturnPath} from 'sentry/utils/useReturnPath';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {getClassifiersPath, useClassifiersEnabled} from 'sentry/views/classifiers/utils';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
   getInvestigationsPath,
@@ -272,6 +273,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
   const investigationsEnabled = useInvestigationsEnabled();
   const automationsEnabled = useAutomationsEnabled();
+  const classifiersEnabled = useClassifiersEnabled();
   const settingsV3 = useSettingsV3();
 
   const fallbackRef = useRef<HTMLUListElement>(null);
@@ -309,7 +311,9 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 
   const seerPath = automationsEnabled
     ? getAutomationsPath(organization.slug)
-    : getInvestigationsPath(organization.slug);
+    : investigationsEnabled
+      ? getInvestigationsPath(organization.slug)
+      : getClassifiersPath(organization.slug);
 
   const prefix = `organizations/${organization.slug}`;
 
@@ -346,7 +350,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
       </NavigationTourElement>
 
       {organization.features.includes('seer-primary-nav') &&
-        (investigationsEnabled || automationsEnabled) && (
+        (investigationsEnabled || automationsEnabled || classifiersEnabled) && (
           <PrimaryNavigation.ListItem>
             <PrimaryNavigation.Link
               to={seerPath}
