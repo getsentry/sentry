@@ -16,7 +16,7 @@ type DropdownMenuSectionProps = {
    * The row holds the separator and heading above the section's items.
    */
   rowProps?: VirtualRowProps;
-  /** Rendered above the heading, inside the measured row. Virtualized menus only. */
+  /** Rendered above the heading, inside the section's row. */
   separator?: React.ReactNode;
 };
 
@@ -43,19 +43,15 @@ export function DropdownMenuSection({
 
   return (
     <SectionGroup ref={node.value?.ref} {...itemProps}>
-      {rowProps ? (
-        <div {...rowProps}>
-          {separator}
-          {heading}
-        </div>
-      ) : (
-        heading
-      )}
+      <div {...rowProps}>
+        {separator}
+        {heading}
+      </div>
       <SectionList
         {...groupProps}
         css={(theme: Theme) => css`
           [data-spaced-section-item] {
-            padding-top: ${theme.space['2xs']};
+            margin-top: ${theme.space['2xs']};
           }
         `}
       >

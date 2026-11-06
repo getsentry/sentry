@@ -1261,6 +1261,63 @@ describe('DropdownMenu', () => {
       expect(screen.getAllByRole('menuitemradio')).toHaveLength(500);
     });
 
+    it('keeps its items mounted when a search crosses the threshold', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          search={{placeholder: 'Search items'}}
+          items={manyItems}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      const item = screen.getByRole('menuitemradio', {name: 'Item 1'});
+
+      // Leaves Item 1 and Item 10–19 and 100–199, which is under the threshold.
+      await userEvent.type(screen.getByRole('textbox', {name: 'Search items'}), 'Item 1');
+
+      expect(screen.getAllByRole('menuitemradio')).toHaveLength(111);
+      expect(screen.getByRole('menuitemradio', {name: 'Item 1'})).toBe(item);
+    });
+
+    it.each([
+      ['virtualized', undefined],
+      ['regular', Infinity],
+    ])(
+      'measures the separator after a section with the next item in a %s menu',
+      async (_, virtualizeThreshold) => {
+        render(
+          <DropdownMenu
+            triggerLabel="Menu"
+            virtualizeThreshold={virtualizeThreshold}
+            items={[
+              {
+                key: 'section',
+                label: 'Section',
+                children: manyItems.slice(0, 2),
+              },
+              {key: 'after', label: 'After the section'},
+              ...manyItems.slice(2),
+            ]}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+        const item = screen.getByRole('menuitemradio', {name: 'After the section'});
+        // oxlint-disable-next-line testing-library/no-node-access -- The separator and the item share one row element.
+        const row = item.closest('li[role="presentation"]');
+        expect(row).toBeInTheDocument();
+        if (virtualizeThreshold === undefined) {
+          expect(row).toHaveAttribute('data-index');
+        } else {
+          expect(row).not.toHaveAttribute('data-index');
+        }
+      }
+    );
+
     it.each([
       ['virtualized', undefined, ['A 0'], ['A 1']],
       // Every item mounts, so later sections can be checked too.
@@ -1280,10 +1337,10 @@ describe('DropdownMenu', () => {
         await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
 
         const row = (name: string) =>
-          // oxlint-disable-next-line testing-library/no-node-access -- The padding sits on the row element around the menu item.
+          // oxlint-disable-next-line testing-library/no-node-access -- The margin sits on the row element around the menu item.
           screen.getByRole('menuitemradio', {name}).closest('li');
-        // jsdom does not apply the section's padding rule over the item's own
-        // `padding`, so check the marker that the rule targets.
+        // jsdom does not lay out the section's margin rule, so check the marker
+        // that the rule targets.
         for (const name of firstItems) {
           expect(row(name)).not.toHaveAttribute('data-spaced-section-item');
         }

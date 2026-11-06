@@ -299,9 +299,10 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     <ListItem
       ref={mergeRefs(ref, itemRef, rowProps?.ref)}
       data-index={rowProps?.['data-index']}
-      // Items in a section are spaced with padding rather than a gap on the
-      // section's list. Padding is part of the box a virtualized menu measures
-      // for each row, and a gap would also open up around its spacer rows.
+      // Items in a section are spaced with a margin rather than a gap on the
+      // section's list. A virtualized menu counts a row's margins in its
+      // measured size, and a gap would also open up around its spacer rows.
+      // Unlike padding, the margin is not part of the item's hover target.
       // The first item of a section links back to the section as its prevKey.
       data-spaced-section-item={
         (node.parentKey != null && node.prevKey !== node.parentKey) || undefined

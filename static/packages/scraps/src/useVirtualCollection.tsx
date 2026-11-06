@@ -2,7 +2,11 @@ import type * as React from 'react';
 import {useCallback, useEffect, useMemo} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
 import type {Key, Node} from '@react-types/shared';
-import {defaultRangeExtractor, type Range} from '@tanstack/react-virtual';
+import {
+  defaultRangeExtractor,
+  type Range,
+  type Virtualizer,
+} from '@tanstack/react-virtual';
 
 import type {FormSize} from '@sentry/scraps/theme';
 import {useVirtualRows} from '@sentry/scraps/useVirtualRows';
@@ -26,6 +30,36 @@ export function flattenSections<T>(
     node.type === 'section'
       ? [node, ...[...node.childNodes].filter(child => !hiddenKeys?.has(child.key))]
       : [node]
+  );
+}
+
+/**
+ * Measures a row including its vertical margins. Rows can be spaced with a
+ * margin, which stays outside their hover and press target, and the scroll
+ * offsets still account for it.
+ */
+function measureRowWithMargins(
+  element: Element,
+  entry: ResizeObserverEntry | undefined,
+  instance: Virtualizer<HTMLElement, Element>
+): number {
+  // Without a ResizeObserver entry, the virtualizer is re-measuring a row it
+  // has seen before during a render. Return the cached size, which already
+  // includes the margins, like the default measureElement does; adding them
+  // again would grow the row on every render.
+  if (!entry) {
+    const key = instance.options.getItemKey(instance.indexFromElement(element));
+    const cachedSize = instance.itemSizeCache.get(key);
+    if (cachedSize !== undefined) {
+      return cachedSize;
+    }
+  }
+  const height =
+    entry?.borderBoxSize?.[0]?.blockSize ??
+    (element instanceof HTMLElement ? element.offsetHeight : 0);
+  const {marginTop, marginBottom} = getComputedStyle(element);
+  return (
+    Math.round(height) + (parseFloat(marginTop) || 0) + (parseFloat(marginBottom) || 0)
   );
 }
 
@@ -190,6 +224,7 @@ export function useVirtualCollection<T>({
     scrollPaddingStart: listPadding,
     overscan: 1,
     rangeExtractor,
+    measureElement: measureRowWithMargins,
   });
 
   // Keyboard navigation can move focus to a row that is not mounted. Scroll it
