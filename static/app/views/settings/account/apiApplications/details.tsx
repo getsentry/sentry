@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import trimEnd from 'lodash/trimEnd';
 import {z} from 'zod';
 
@@ -25,21 +25,20 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {ApiApplication} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 const PAGE_TITLE = t('Application Details');
 
-function getAppQueryKey(appId: string): ApiQueryKey {
-  return [
-    getApiUrl('/api-applications/$appId/', {
-      path: {appId},
-    }),
-  ];
+function appOptions(appId: string) {
+  return apiOptions.as<ApiApplication>()('/api-applications/$appId/', {
+    path: {appId},
+    staleTime: 0,
+  });
 }
 
 interface RotateClientSecretResponse {
@@ -65,14 +64,7 @@ function ApiApplicationsDetails() {
   const urlPrefix = ConfigStore.get('urlPrefix');
   const oauthBaseUrl = `${trimEnd(urlPrefix, '/')}/oauth`;
 
-  const {
-    data: app,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<ApiApplication>(getAppQueryKey(appId), {
-    staleTime: 0,
-  });
+  const {data: app, isPending, isError, refetch} = useQuery(appOptions(appId));
 
   const {mutate: rotateClientSecret} = useMutation<RotateClientSecretResponse>({
     mutationFn: () => {
@@ -101,7 +93,7 @@ function ApiApplicationsDetails() {
       toast.error(t('Error rotating secret'));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({queryKey: getAppQueryKey(appId)});
+      queryClient.invalidateQueries({queryKey: appOptions(appId).queryKey});
     },
   });
 
@@ -119,7 +111,11 @@ function ApiApplicationsDetails() {
 
   const onSaveError = () => toast.error(t('Unable to save change'));
   const onSaveSuccess = (updated: ApiApplication) => {
-    setApiQueryData<ApiApplication>(queryClient, getAppQueryKey(appId), updated);
+    queryClient.setQueryData(appOptions(appId).queryKey, response => ({
+      ...response,
+      headers: response?.headers ?? {},
+      json: updated,
+    }));
     toast.success(t('Changes applied.'));
   };
 

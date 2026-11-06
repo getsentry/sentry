@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {mutationOptions, useQueryClient} from '@tanstack/react-query';
+import {useQuery, mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
@@ -13,9 +13,9 @@ import {languages} from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 import {StacktraceOrder, type User} from 'sentry/types/user';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
@@ -39,7 +39,6 @@ export type ChangeAvatarUser = Omit<
   >;
 
 const USER_ENDPOINT = getApiUrl('/users/$userId/', {path: {userId: 'me'}});
-const USER_ENDPOINT_QUERY_KEY: ApiQueryKey = [USER_ENDPOINT];
 
 const accountDetailsSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -81,16 +80,16 @@ const DEFAULT_ISSUE_EVENT_OPTIONS = [
   {value: 'oldest', label: t('Oldest')},
 ];
 
+const userOptions = apiOptions.as<User>()('/users/$userId/', {
+  path: {userId: 'me'},
+  staleTime: 0,
+});
+
 function AccountDetails() {
   const settingsV3 = useSettingsV3();
   const title = settingsV3 ? t('General') : t('Account Details');
   const queryClient = useQueryClient();
-  const {
-    data: user,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<User>(USER_ENDPOINT_QUERY_KEY, {staleTime: 0});
+  const {data: user, isPending, isError, refetch} = useQuery(userOptions);
 
   if (isPending) {
     return (
@@ -113,14 +112,17 @@ function AccountDetails() {
     // otherwise it will flick.
     // Use an updater function to merge with existing data because the avatar
     // endpoint returns a partial `User` without `options` and other fields.
-    setApiQueryData<User>(queryClient, USER_ENDPOINT_QUERY_KEY, previousData => {
-      if (!previousData) {
-        return userData as User;
+    queryClient.setQueryData(userOptions.queryKey, response => {
+      if (!response) {
+        return {json: userData as User, headers: {}};
       }
       return {
-        ...previousData,
-        ...userData,
-        options: {...previousData.options, ...userData.options},
+        ...response,
+        json: {
+          ...response.json,
+          ...userData,
+          options: {...response.json.options, ...userData.options},
+        },
       };
     });
   };

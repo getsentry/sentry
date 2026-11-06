@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -9,8 +10,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Authenticator} from 'sentry/types/auth';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 type Props = ModalRenderProps & {
@@ -30,11 +30,11 @@ function RecoveryOptionsModal({
     isError,
     refetch: refetchAuthenticators,
     data: authenticators = [],
-  } = useApiQuery<Authenticator[]>(
-    [getApiUrl('/users/$userId/authenticators/', {path: {userId: 'me'}})],
-    {
+  } = useQuery(
+    apiOptions.as<Authenticator[]>()('/users/$userId/authenticators/', {
+      path: {userId: 'me'},
       staleTime: 5000, // expire after 5 seconds
-    }
+    })
   );
   const [skipSms, setSkipSms] = useState(false);
 
