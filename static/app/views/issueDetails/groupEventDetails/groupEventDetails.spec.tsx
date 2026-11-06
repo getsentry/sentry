@@ -682,7 +682,7 @@ describe('groupEventDetails', () => {
     {
       statusCode: 403,
       detail: undefined,
-      message: 'You do not have permission to load this data.',
+      message: 'You do not have permission to make this request.',
     },
   ])(
     'explains event request errors with status $statusCode',

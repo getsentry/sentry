@@ -121,7 +121,7 @@ describe('Flamegraph', () => {
       'Error loading flamegraph'
     );
     expect(
-      await screen.findByText('The requested data could not be found.')
+      await screen.findByText('The requested resource could not be found.')
     ).toBeInTheDocument();
   });
 

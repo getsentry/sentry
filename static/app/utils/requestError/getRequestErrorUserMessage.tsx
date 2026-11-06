@@ -49,16 +49,18 @@ export function getRequestErrorUserMessage(
   }
 
   switch (err.status) {
+    case 400:
+      return t('The request is malformed.');
     case 429:
       return t(
         'API requests have been temporarily rate-limited. Please wait a few minutes and try again.'
       );
     case 401:
-      return t('Authentication is required to load this data.');
+      return t('Authentication is required to make this request.');
     case 403:
-      return t('You do not have permission to load this data.');
+      return t('You do not have permission to make this request.');
     case 404:
-      return t('The requested data could not be found.');
+      return t('The requested resource could not be found.');
     case 500:
       return t('The server encountered an error while processing this request.');
     case 502:
