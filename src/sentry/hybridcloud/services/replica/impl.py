@@ -150,11 +150,9 @@ def handle_replication(
                 ).exclude(**dest_filter).delete()
             existing = destination_model.objects.filter(**dest_filter).first()
             if existing:
-                # `attname` copies foreign key ids, so building the update doesn't load each
-                # related row.
                 update: Mapping[str, Any] = {
-                    field.attname: getattr(destination, field.attname)
-                    for field in destination_model._meta.concrete_fields
+                    field.name: getattr(destination, field.name)
+                    for field in destination_model._meta.get_fields()
                     if field.editable and field.name not in ("id", "date_added")
                 }
                 existing.update(**update)

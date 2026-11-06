@@ -4,8 +4,7 @@ from unittest import mock
 
 import pytest
 from django.core.exceptions import ValidationError
-from django.db import connections, router, transaction
-from django.test.utils import CaptureQueriesContext
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry import deletions
@@ -13,7 +12,6 @@ from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_ke
 from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.services.replica import cell_replica_service
-from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.service_accounts.models import (
@@ -486,13 +484,6 @@ class ServiceAccountTokenReplicaServiceTest(TestCase):
         self.upsert()
 
         assert self.get_replica() is None
-
-    def test_upsert_does_not_query_organization(self) -> None:
-        self.upsert()
-        # The replica now exists, so this goes through the update path.
-        with CaptureQueriesContext(connections[router.db_for_write(Organization)]) as ctx:
-            self.upsert()
-        assert not [q for q in ctx.captured_queries if '"sentry_organization"' in q["sql"]]
 
     def test_delete_removes_replica(self) -> None:
         self.upsert()
