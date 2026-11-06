@@ -1,6 +1,6 @@
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiExample, OpenApiParameter
+from drf_spectacular.utils import OpenApiParameter
 
 from sentry import constants
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
@@ -923,10 +923,9 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         name="interval",
         location="query",
         required=False,
-        type=str,
-        description="""The duration of each time bucket, such as `15s`, `1m`, or `1h`.
-Uses the same duration-string format as `statsPeriod`. When omitted, the interval is
-selected from the query's time range.""",
+        type=int,
+        description="""The size of the bucket for the timeseries to have, must be a value smaller than the window being
+queried. If the interval is invalid a default interval will be selected instead""",
     )
     GROUP_BY = OpenApiParameter(
         name="groupBy",
@@ -942,12 +941,8 @@ top events are""",
         location="query",
         required=False,
         type=str,
-        many=True,
-        style="form",
-        explode=True,
-        description="""The aggregate fields to create time series for. Repeat `yAxis` for each axis, in
-the desired order. Duplicate aggregate names remain separate axes and can have different
-transformation pipelines. Defaults to `count()` when omitted.
+        description="""The aggregate field to create the timeseries for, defaults to `count()` when
+        not included.
 - `count()` - Total count of events over the period.
 - `avg(field)` - Average value of the field over the period.
 - `pXX(field)` - Percentile value of the field over the period. One of: `p50`, `p75`, `p90`, `p95`, `p99`, `p100`.
@@ -962,53 +957,6 @@ transformation pipelines. Defaults to `count()` when omitted.
 - `performance_score(field)` - Web Vitals performance score for the selected measurement.
 - `opportunity_score(field)` - Web Vitals opportunity score for the selected measurement.
 """,
-    )
-    TRANSFORMATIONS = OpenApiParameter(
-        name="transformations",
-        location=OpenApiParameter.QUERY,
-        required=False,
-        type={
-            "type": "object",
-            "additionalProperties": {
-                "type": "array",
-                "items": {"type": "string"},
-                "maxItems": 2,
-            },
-        },
-        style="deepObject",
-        explode=True,
-        description="""Ordered transformation pipelines keyed by zero-based `yAxis` position.
-Keys must be decimal indices without leading zeros and must identify a requested axis.
-Omit an axis key to leave that axis untransformed. Each pipeline applies independently
-to every group for its axis and uses the requested bucket interval.
-
-Serialize each pipeline as repeated `transformations[index]` parameters, in stage order.
-For example, `transformations[0]=fill(locf)&transformations[0]=smooth(sma,3)` fills gaps
-before smoothing the first axis. Do not JSON-encode or comma-join the array, or add another
-pair of brackets for stage indices. OpenAPI does not define array-valued `deepObject`
-serialization, so clients must implement this repeated-key encoding explicitly.
-
-Each pipeline accepts at most one `fill` and one `smooth` operation, in either order.
-Supported stages are `fill(locf)`, `fill(zero)`, `fill(linear)`, `smooth(sma,window_size)`,
-`smooth(ema,window_size[,smoothing_factor])`, and `smooth(asap[,max_window_size])`.
-Window sizes must be positive integers. EMA's optional smoothing factor is greater than
-zero and at most one; omitting it selects the factor from the window size. ASAP selects
-its window automatically when the maximum is omitted.
-
-Transformations are supported for `spans`, `logs`, and `tracemetrics` when the organization
-has the `explore-interpolation-and-smoothing` feature. The endpoint ignores transformations
-when that feature is disabled or the dataset does not support them. Compare returned
-`filled` and `smoothed` flags to identify derived values; these flags are separate from
-sampling confidence and ingestion completeness.""",
-        examples=[
-            OpenApiExample(
-                "Independent axis pipelines",
-                value={
-                    "0": ["fill(locf)", "smooth(sma,3)"],
-                    "1": ["smooth(asap)"],
-                },
-            )
-        ],
     )
     DISABLE_AGGREGATE_EXTRAPOLATION = OpenApiParameter(
         name="disableAggregateExtrapolation",

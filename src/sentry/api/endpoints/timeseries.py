@@ -53,7 +53,7 @@ class Row(TypedDict):
     smoothed: NotRequired[bool]
     comparisonFilled: NotRequired[bool]
     comparisonSmoothed: NotRequired[bool]
-    sampleCount: NotRequired[float | None]
+    sampleCount: NotRequired[float]
     sampleRate: NotRequired[float | None]
     confidence: NotRequired[Literal["low", "high"] | None]
     incompleteReason: NotRequired[str]
@@ -70,13 +70,13 @@ class SeriesMeta(TypedDict):
 
 class GroupBy(TypedDict):
     key: str
-    value: str | float | bool | None
+    value: str | float | None
 
 
 class TimeSeries(TypedDict):
     values: list[Row]
     yAxis: str
-    groupBy: NotRequired[list[GroupBy] | None]
+    groupBy: NotRequired[list[GroupBy]]
     meta: SeriesMeta
 
 

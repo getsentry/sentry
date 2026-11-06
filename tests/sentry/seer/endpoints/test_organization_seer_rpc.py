@@ -48,6 +48,14 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.status_code == 404
 
     @with_feature("organizations:seer-public-rpc")
+    def test_timeseries_v2_remains_internal(self) -> None:
+        response = self.client.post(
+            self._get_path("execute_timeseries_query_v2"), data={"args": {}}, format="json"
+        )
+
+        assert response.status_code == 404
+
+    @with_feature("organizations:seer-public-rpc")
     def test_org_level_method_get_organization_slug(self) -> None:
         """Test that organization-level methods work and return correct data"""
         path = self._get_path("get_organization_slug")
