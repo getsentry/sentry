@@ -141,11 +141,11 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
         record_cancelled.assert_called_once_with(execution, reason="user_requested")
 
     @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_execution_details."
+        "sentry.notebooks.endpoints.organization_investigation_block_execution_details."
         "interrupt_run"
     )
     @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_execution_details."
+        "sentry.notebooks.endpoints.organization_investigation_block_execution_details."
         "make_agent_update_request"
     )
     def test_integration_token_cannot_resume_or_stop_execution(
