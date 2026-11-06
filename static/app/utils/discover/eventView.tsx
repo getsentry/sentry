@@ -438,7 +438,8 @@ export class EventView {
   }
 
   static getFields(saved: NewQuery | SavedQuery) {
-    return saved.fields.map((field, i) => {
+    // Saved queries from the API may omit `fields` when none were stored
+    return (saved.fields ?? []).map((field, i) => {
       const width = saved.widths?.[i] ? Number(saved.widths[i]) : COL_WIDTH_UNDEFINED;
 
       return {field, width};
