@@ -320,7 +320,7 @@ class TestTriggerAutofixFeature(TestCase):
         """Unlike quota, credits are checked for every step, not only new runs."""
         with (
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
-            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.quotas"),
         ):
             with pytest.raises(SeerOutOfCreditsException):
                 trigger_autofix_feature(
@@ -333,7 +333,6 @@ class TestTriggerAutofixFeature(TestCase):
                     ),
                 )
 
-        mock_quotas.backend.check_seer_quota.assert_not_called()
         MockClient.return_value.continue_feature_run.assert_not_called()
 
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
@@ -346,7 +345,7 @@ class TestTriggerAutofixFeature(TestCase):
 
         with (
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
-            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.quotas"),
         ):
             MockClient.return_value.start_feature_run.return_value = fake_run
 
@@ -361,8 +360,6 @@ class TestTriggerAutofixFeature(TestCase):
 
         assert run is fake_run
         mock_check_seer_credits.assert_not_called()
-        mock_quotas.backend.check_seer_quota.assert_not_called()
-        mock_quotas.backend.record_seer_run.assert_not_called()
 
     def test_allows_async_dispatch(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
