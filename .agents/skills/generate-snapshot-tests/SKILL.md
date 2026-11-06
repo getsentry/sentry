@@ -1,12 +1,14 @@
 ---
 name: generate-snapshot-tests
-description: Generate snapshot test files for Sentry frontend React components. Use when asked to "generate snapshot tests", "add snapshot tests", "create visual snapshots", "write snapshot tests", "add visual regression tests", or "snapshot this component". Accepts an optional component path or name via $ARGUMENTS.
+description: Generate visual snapshot test files for Sentry frontend React components. Use for testing appearance changes such as colors, spacing, typography, CSS min/max sizing, responsive layout, and visual variants, or when asked to "generate snapshot tests", "create visual snapshots", "add visual regression tests", or "snapshot this component". Accepts an optional component path or name via $ARGUMENTS.
 type: workflow-process
 ---
 
 # Generate Snapshot Tests
 
 Generate a `*.snapshots.tsx` file colocated with a Sentry React component, following the established pattern used by core design system components.
+
+Use visual snapshots for appearance checks instead of RTL assertions on CSS, class names, DOM structure, or mocked styling props. Use `it.snapshot` / `it.snapshot.each`, not Jest DOM snapshots. For CSS min/max sizing or responsive layout, choose container sizes that exercise the relevant constraint or breakpoint. Keep interactions, validation, accessibility, and numeric input limit behavior in RTL using the **`react-testing`** skill.
 
 ## Step 1: Locate the Component
 
