@@ -5,8 +5,8 @@ from sentry.new_migrations.monkey.fields import SafeRemoveField
 from sentry.new_migrations.monkey.special import SafeRunSQL
 from sentry.new_migrations.monkey.state import DeletionAction
 
-# 1252 runs by hand, so a deploy can reach a region before its swap has. Code without the
-# dual-write would stop filling the column that becomes release_id, with no error.
+# 1252 runs by hand, so a deploy can reach a region before its swap has. There, new_release_id is
+# still the wide column, and this code would stop filling it with no error.
 REQUIRE_SWAP_SQL = """
 DO $$
 DECLARE
@@ -21,6 +21,7 @@ BEGIN
     FROM pg_attribute
     WHERE attrelid = 'sentry_grouprelease'::regclass AND attname = 'new_release_id';
 
+    -- A rename keeps attnum, so the original release_id having the lower one means no swap yet.
     IF release_id_attnum < new_release_id_attnum THEN
         RAISE EXCEPTION 'sentry_grouprelease is not swapped; run 1252 first';
     END IF;
