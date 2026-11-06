@@ -15,8 +15,9 @@ export const DEFAULT_VIRTUALIZE_THRESHOLD = 150;
 
 /**
  * Whether a flat list of items is long enough to virtualize. Lists with
- * sections are never virtualized: a section renders as one tall row, so
- * windowing over sections would not limit how many items mount.
+ * sections are never virtualized: a section that renders as one tall row would
+ * not limit how many items mount. To window a list with sections, pass each
+ * section's items to `useVirtualCollection` as rows, like DropdownMenu does.
  */
 export function shouldVirtualize<T>(
   items: readonly T[],
@@ -56,7 +57,12 @@ export interface VirtualRow<T> {
 interface UseVirtualCollectionOptions<T> {
   /** Whether to virtualize. When false, every node is returned as a row. */
   enabled: boolean;
-  /** Top-level collection nodes, in render order. */
+  /**
+   * Collection nodes, in render order. A section can be windowed too: pass the
+   * section node followed by its child nodes, and the section's row stays
+   * mounted while any of its children are, so the section's heading and group
+   * element are always there to wrap them.
+   */
   nodes: ReadonlyArray<Node<T>>;
   /**
    * The element that scrolls. Rows and spacers must render inside it.
@@ -118,17 +124,40 @@ export function useVirtualCollection<T>({
     [enabled, focusedKey, nodes]
   );
 
+  // Index of the section row each row belongs to, if that section is in `nodes`.
+  const sectionIndexes = useMemo(() => {
+    const indexByKey = new Map<Key, number>();
+    nodes.forEach((node, index) => {
+      if (node.type === 'section') {
+        indexByKey.set(node.key, index);
+      }
+    });
+    return nodes.map(node =>
+      node.parentKey === null || node.parentKey === undefined
+        ? undefined
+        : indexByKey.get(node.parentKey)
+    );
+  }, [nodes]);
+
   // Keep the focused row mounted when it scrolls out of view. If it unmounted,
   // DOM focus would fall back to the body and keyboard navigation would stop.
+  // Also keep the section row of every mounted row, since the section's
+  // element wraps its children.
   const rangeExtractor = useCallback(
     (range: Range) => {
-      const indexes = defaultRangeExtractor(range);
-      if (focusedIndex === -1 || indexes.includes(focusedIndex)) {
-        return indexes;
+      const indexes = new Set(defaultRangeExtractor(range));
+      if (focusedIndex !== -1) {
+        indexes.add(focusedIndex);
       }
-      return [...indexes, focusedIndex].sort((a, b) => a - b);
+      for (const index of [...indexes]) {
+        const sectionIndex = sectionIndexes[index];
+        if (sectionIndex !== undefined) {
+          indexes.add(sectionIndex);
+        }
+      }
+      return [...indexes].sort((a, b) => a - b);
     },
-    [focusedIndex]
+    [focusedIndex, sectionIndexes]
   );
 
   const {virtualizer, virtualItems, totalSize} = useVirtualRows({

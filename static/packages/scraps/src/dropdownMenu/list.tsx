@@ -36,9 +36,10 @@ import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 import {
-  shouldVirtualize,
+  DEFAULT_VIRTUALIZE_THRESHOLD,
   useVirtualCollection,
   VirtualSpacer,
+  type VirtualRow,
   type VirtualRowProps,
 } from '@sentry/scraps/useVirtualCollection';
 
@@ -94,9 +95,9 @@ export interface DropdownMenuListProps
   };
   size?: MenuItemProps['size'];
   /**
-   * Number of items above which only the items near the viewport are rendered.
-   * Menus with sections are never virtualized. Submenus inherit the threshold
-   * of their parent menu. Pass `Infinity` to never virtualize.
+   * Number of items, counting the items inside sections, above which only the
+   * items near the viewport are rendered. Submenus inherit the threshold of
+   * their parent menu. Pass `Infinity` to never virtualize.
    * @default 150
    */
   virtualizeThreshold?: number;
@@ -183,6 +184,92 @@ function DropdownMenuCollectionItem({
   );
 }
 
+function DropdownMenuSeparator({
+  as = 'li',
+  separatorProps,
+}: {
+  as?: 'div' | 'li';
+  separatorProps?: DropdownMenuCollectionProps['separatorProps'];
+}) {
+  return (
+    <Stack
+      as={as}
+      justify="center"
+      height="8px"
+      padding="0 lg 0 xl"
+      {...separatorProps}
+      role="presentation"
+    >
+      <SectionSeparator />
+    </Stack>
+  );
+}
+
+interface DropdownMenuVirtualRowsProps extends DropdownMenuCollectionProps {
+  rows: Array<VirtualRow<MenuItemProps>>;
+}
+
+/**
+ * Renders the mounted rows of a virtualized menu. Rows are flat, so the items
+ * of each section are put back inside their section. The virtualizer keeps a
+ * section's own row mounted while any of its items are, so items always
+ * follow their section row.
+ */
+function DropdownMenuVirtualRows({
+  rows,
+  collection,
+  ...itemProps
+}: DropdownMenuVirtualRowsProps) {
+  const groups: Array<{
+    items: Array<VirtualRow<MenuItemProps>>;
+    section?: VirtualRow<MenuItemProps>;
+  }> = [];
+  for (const row of rows) {
+    const group = groups.at(-1);
+    if (row.node.type === 'section') {
+      groups.push({section: row, items: []});
+    } else if (group?.section && group.section.node.key === row.node.parentKey) {
+      group.items.push(row);
+    } else {
+      groups.push({items: [row]});
+    }
+  }
+
+  const renderItem = ({node, props, spaceBefore}: VirtualRow<MenuItemProps>) => (
+    <Fragment key={node.key}>
+      <VirtualSpacer height={spaceBefore} />
+      {/* Same rule as DropdownMenuCollection: a separator between a section
+          and the item after it. It is not part of a measured row, but it only
+          mounts next to its item and is a few pixels tall, so the scroll
+          offsets drift very little. */}
+      {collection[collection.indexOf(node) - 1]?.type === 'section' && (
+        <DropdownMenuSeparator separatorProps={itemProps.separatorProps} />
+      )}
+      <DropdownMenuCollectionItem node={node} rowProps={props} {...itemProps} />
+    </Fragment>
+  );
+
+  return groups.map(({section, items}) => {
+    if (!section) {
+      return items.map(renderItem);
+    }
+    return (
+      <Fragment key={section.node.key}>
+        <VirtualSpacer height={section.spaceBefore} />
+        <DropdownMenuSection
+          node={section.node}
+          rowProps={section.props}
+          separator={
+            section.node.key !== collection[0]?.key && <DropdownMenuSeparator as="div" />
+          }
+        >
+          {items.map(renderItem)}
+        </DropdownMenuSection>
+      </Fragment>
+    );
+  });
+}
+
 function DropdownMenuCollection({
   closeOnSelect,
   collection,
@@ -211,18 +298,7 @@ function DropdownMenuCollection({
               size={size}
               state={state}
             />
-            {showSeparator && (
-              <Stack
-                as="li"
-                justify="center"
-                height="8px"
-                padding="0 lg 0 xl"
-                {...separatorProps}
-                role="presentation"
-              >
-                <SectionSeparator />
-              </Stack>
-            )}
+            {showSeparator && <DropdownMenuSeparator separatorProps={separatorProps} />}
           </Fragment>
         );
       })}
@@ -252,21 +328,24 @@ function DropdownMenuList({
   const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
-  const hasLeadingItems = useMemo(
+  // Each section is followed by its items, so a long section is windowed like
+  // any other run of items instead of mounting all at once.
+  const virtualNodes = useMemo(
     () =>
-      stateCollection
-        .flatMap(node => (node.type === 'section' ? [...node.childNodes] : [node]))
-        .some(node => node.value?.leadingItems || node.value?.isSelected !== undefined),
+      stateCollection.flatMap(node =>
+        node.type === 'section' ? [node, ...node.childNodes] : [node]
+      ),
     [stateCollection]
   );
-  const virtualized = useMemo(
-    () =>
-      shouldVirtualize(stateCollection, {
-        threshold: virtualizeThreshold,
-        isSection: node => node.type === 'section',
-      }),
-    [stateCollection, virtualizeThreshold]
+  const items = useMemo(
+    () => virtualNodes.filter(node => node.type !== 'section'),
+    [virtualNodes]
   );
+  const hasLeadingItems = items.some(
+    node => node.value?.leadingItems || node.value?.isSelected !== undefined
+  );
+  const virtualized =
+    items.length > (virtualizeThreshold ?? DEFAULT_VIRTUALIZE_THRESHOLD);
 
   // Implement focus states, keyboard navigation, aria-label,...
   const menuRef = useRef<HTMLUListElement>(null);
@@ -275,7 +354,7 @@ function DropdownMenuList({
   const {separatorProps} = useSeparator({elementType: 'li'});
 
   const virtual = useVirtualCollection({
-    nodes: stateCollection,
+    nodes: virtualNodes,
     enabled: virtualized,
     size: size ?? 'md',
     scrollRef: menuRef,
@@ -476,21 +555,16 @@ function DropdownMenuList({
                   <ReserveLeadingSlot reserve={hasLeadingItems}>
                     {virtualized ? (
                       <Fragment>
-                        {virtual.rows.map(({node, props: rowProps, spaceBefore}) => (
-                          <Fragment key={node.key}>
-                            <VirtualSpacer height={spaceBefore} />
-                            <DropdownMenuCollectionItem
-                              node={node}
-                              rowProps={rowProps}
-                              closeOnSelect={closeOnSelect}
-                              disableTextSelection={disableTextSelection}
-                              onClose={onClose}
-                              separatorProps={separatorProps}
-                              size={size}
-                              state={state}
-                            />
-                          </Fragment>
-                        ))}
+                        <DropdownMenuVirtualRows
+                          rows={virtual.rows}
+                          collection={stateCollection}
+                          closeOnSelect={closeOnSelect}
+                          disableTextSelection={disableTextSelection}
+                          onClose={onClose}
+                          separatorProps={separatorProps}
+                          size={size}
+                          state={state}
+                        />
                         <VirtualSpacer height={virtual.spaceAfter} />
                       </Fragment>
                     ) : (

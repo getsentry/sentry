@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {IconStar} from '@sentry/icons/star';
-import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -1180,21 +1180,67 @@ describe('DropdownMenu', () => {
       expect(screen.getAllByRole('menuitemradio')).toHaveLength(manyItems.length + 1);
     });
 
-    it('does not virtualize menus with sections', async () => {
+    const sectionedItems = ['A', 'B'].map(section => ({
+      key: `section-${section}`,
+      label: `Section ${section}`,
+      children: Array.from({length: 250}, (_, index) => ({
+        key: `${section}-${index}`,
+        label: `${section} ${index}`,
+      })),
+    }));
+
+    it('renders only the items near the viewport in a menu with sections', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={sectionedItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      const sectionA = screen.getByRole('group', {name: 'Section A'});
+      expect(
+        within(sectionA).getByRole('menuitemradio', {name: 'A 0'})
+      ).toBeInTheDocument();
+      expect(screen.getAllByRole('menuitemradio').length).toBeLessThan(500);
+      expect(screen.queryByRole('group', {name: 'Section B'})).not.toBeInTheDocument();
+    });
+
+    it('reaches items in a later section with the keyboard', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={sectionedItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'A 0'})).toHaveFocus()
+      );
+
+      await userEvent.keyboard('{End}');
+
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'B 249'})).toHaveFocus()
+      );
+      // The item renders inside its section, which keeps its heading.
+      expect(
+        within(screen.getByRole('group', {name: 'Section B'})).getByRole(
+          'menuitemradio',
+          {name: 'B 249'}
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('counts the items inside sections against the threshold', async () => {
       render(
         <DropdownMenu
           triggerLabel="Menu"
-          items={[
-            {key: 'section', label: 'Section', children: manyItems.slice(0, 200)},
-            ...manyItems.slice(200),
-          ]}
+          virtualizeThreshold={500}
+          items={sectionedItems}
         />,
         {wrapper: ThemeWrapper}
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
 
-      expect(screen.getAllByRole('menuitemradio')).toHaveLength(manyItems.length);
+      expect(screen.getAllByRole('menuitemradio')).toHaveLength(500);
     });
   });
 });

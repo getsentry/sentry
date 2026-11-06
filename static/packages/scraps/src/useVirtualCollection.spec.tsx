@@ -15,10 +15,18 @@ const nodes = Array.from(
     ({key: `row-${index}`, type: 'item', props: {}}) as Node<Record<PropertyKey, unknown>>
 );
 
-function TestList({enabled, focusedKey}: {enabled: boolean; focusedKey?: string}) {
+function TestList({
+  enabled,
+  focusedKey,
+  items = nodes,
+}: {
+  enabled: boolean;
+  focusedKey?: string;
+  items?: typeof nodes;
+}) {
   const scrollRef = useRef<HTMLUListElement>(null);
   const {rows, spaceAfter} = useVirtualCollection({
-    nodes,
+    nodes: items,
     enabled,
     size: 'md',
     scrollRef,
@@ -109,6 +117,32 @@ describe('useVirtualCollection', () => {
     // list keeps its full height.
     const spanned = sum(spacerHeights()) + keys.length * ROW_HEIGHT;
     expect(spanned).toBe(ROW_COUNT * ROW_HEIGHT);
+  });
+
+  it('keeps the section row of mounted rows mounted', () => {
+    const sectioned = ['a', 'b'].flatMap(section => [
+      {key: `section-${section}`, type: 'section', props: {}},
+      ...Array.from({length: ROW_COUNT / 2}, (_, index) => ({
+        key: `${section}-${index}`,
+        type: 'item',
+        parentKey: `section-${section}`,
+        props: {},
+      })),
+    ]) as typeof nodes;
+    render(<TestList enabled items={sectioned} />);
+
+    const list = screen.getByTestId('list');
+    list.scrollTop = 250 * ROW_HEIGHT;
+    fireEvent.scroll(list);
+
+    const keys = screen.getAllByTestId('row').map(row => row.dataset.key);
+    expect(keys[0]).toBe('section-b');
+    expect(keys).toContain('b-100');
+    expect(keys).not.toContain('b-0');
+    expect(keys).not.toContain('section-a');
+
+    const spanned = sum(spacerHeights()) + keys.length * ROW_HEIGHT;
+    expect(spanned).toBe(sectioned.length * ROW_HEIGHT);
   });
 
   it('renders every row without measurement props when disabled', () => {
