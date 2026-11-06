@@ -62,6 +62,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
+from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 from sentry.tasks.seer.pr_iteration import (
@@ -1633,6 +1634,39 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._call()
 
         assert peek_queued_autofix_feedback(67890) == []
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_queued_feedback_stays_visible_until_seer_has_it(
+        self, mock_fetch: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        self._enqueue_ui_feedback("fix it")
+        feedback = peek_queued_autofix_feedback(67890)[0].feedback
+
+        def queued_texts(state: SeerRunState) -> list[str]:
+            fields = get_pr_iteration_state_fields(self.organization, state, None)
+            return [item["text"] for item in fields["queued_feedback"]]
+
+        seen_during_trigger: list[str] = []
+
+        def poll_during_trigger(**kwargs: Any) -> None:
+            seen_during_trigger.extend(queued_texts(self._state()))
+
+        mock_trigger.side_effect = poll_during_trigger
+
+        self._call()
+
+        assert seen_during_trigger == ["fix it"]
+        # Once Seer has it, it isn't shown a second time.
+        block = MemoryBlock(
+            id="iter0",
+            message=Message(
+                role="assistant", metadata={"feedback": serialize_feedback([feedback])}
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        assert queued_texts(self._state(blocks=[block])) == []
 
     @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

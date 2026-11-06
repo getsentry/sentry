@@ -9,18 +9,47 @@ errors raised here are grouped with the rest of PR iteration.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, blocks_feedback
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     get_blocked_pr_iteration_permissions,
 )
 from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA, pause_reason_from_marker
-from sentry.seer.autofix.pr_iteration.queue import peek_queued_autofix_feedback
+from sentry.seer.autofix.pr_iteration.queue import (
+    QueuedAutofixFeedback,
+    peek_in_flight_autofix_feedback,
+    peek_queued_autofix_feedback,
+)
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
 from sentry.seer.autofix.types import GithubAppPermissionsWarning
 from sentry.seer.models.run import SeerRun
+
+
+def _feedback_key(feedback: Feedback) -> tuple[str, str]:
+    # Paired with the type because ids from different sources can collide.
+    return (feedback.source.type, feedback.feedback_id)
+
+
+def _in_flight_items(
+    state: SeerRunState, queued_items: Sequence[QueuedAutofixFeedback]
+) -> list[QueuedAutofixFeedback]:
+    """Drained feedback that this response would otherwise show nowhere.
+
+    ``state`` was read from Seer before Redis, so a drain can finish between the
+    two reads. Showing the in-flight copy keeps the item on screen; anything
+    already in the queue or a block is skipped so it isn't shown twice.
+    """
+    in_flight = peek_in_flight_autofix_feedback(state.run_id)
+    if not in_flight:
+        return []
+
+    shown = {_feedback_key(item.feedback) for item in queued_items}
+    shown.update(_feedback_key(feedback) for feedback in blocks_feedback(state.blocks))
+    return [item for item in in_flight if _feedback_key(item.feedback) not in shown]
 
 
 def get_pr_iteration_state_fields(
@@ -49,7 +78,9 @@ def get_pr_iteration_state_fields(
         ).dict()
         for repo_name, info in missing_perms.items()
     ]
-    queued_feedback = [item.feedback.dict() for item in queued_items]
+    queued_feedback = [
+        item.feedback.dict() for item in [*_in_flight_items(state, queued_items), *queued_items]
+    ]
     # Off the fetched row, not is_pr_iteration_paused: polled every second.
     paused_marker = get_run_extra(run, PAUSED_EXTRA) if run is not None else None
     pause_reason = pause_reason_from_marker(paused_marker)
