@@ -23,6 +23,7 @@ from typing import (
     overload,
 )
 
+from django.conf import settings
 from django.db import models
 from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
@@ -38,7 +39,7 @@ from symbolic.debuginfo import (
 )
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
-from sentry import features, options
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
@@ -1108,7 +1109,7 @@ def create_files_from_dif_zip(
 class DIFCache:
     @property
     def cache_path(self) -> str:
-        cache_path = options.get("dsym.cache-path")
+        cache_path = settings.SENTRY_DSYM_CACHE_PATH
         return cache_path
 
     def get_project_path(self, project: Project) -> str:
