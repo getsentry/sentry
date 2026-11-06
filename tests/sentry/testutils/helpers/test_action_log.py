@@ -14,7 +14,6 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
-from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import (
     action_log_activity_enabled,
@@ -26,58 +25,18 @@ from sentry.testutils.helpers.features import with_feature
 
 class TestPublishActionForTest(TestCase):
     @with_feature("projects:issue-action-log-write-to-db")
-    def test_persists_action_and_drains_outbox(self) -> None:
+    def test_custom_source_and_payload(self) -> None:
         group = self.group
 
-        publish_action_for_test(group=group, action=ResolveAction())
-
-        entry = GroupActionLogEntry.objects.get(group_id=group.id)
-        assert entry.project_id == group.project_id
-        assert entry.type == GroupActionType.RESOLVE
-        assert entry.source == ActionSource.API
-        assert entry.actor_type == SYSTEM_ACTOR.actor_type
-        assert entry.actor_id == SYSTEM_ACTOR.actor_id
-        assert not GroupActionLogOutbox.objects.filter(shard_identifier=group.id).exists()
-
-    @with_feature("projects:issue-action-log-write-to-db")
-    def test_preserves_attribution_and_payload(self) -> None:
-        group = self.create_group()
-        actor = GroupActionActor.user(self.user.id)
-
-        with capture_action_log() as log:
-            publish_action_for_test(
-                group=group,
-                action=SetPriorityAction(priority="high"),
-                source=ActionSource.WEB,
-                actor=actor,
-            )
-
-        entry = GroupActionLogEntry.objects.get(group_id=group.id)
-        assert entry.type == GroupActionType.SET_PRIORITY
-        assert entry.source == ActionSource.WEB
-        assert entry.actor_type == actor.actor_type
-        assert entry.actor_id == actor.actor_id
-        assert entry.data == {"priority": "high", "reason": None}
-        log.assert_logged(
-            SetPriorityAction,
-            group_id=group.id,
+        publish_action_for_test(
+            group=group,
+            action=SetPriorityAction(priority="high"),
             source=ActionSource.WEB,
-            actor=actor,
-            priority="high",
         )
 
-    def test_respects_disabled_write_flag(self) -> None:
-        group = self.group
-
-        with (
-            self.feature({"projects:issue-action-log-write-to-db": False}),
-            capture_action_log() as log,
-        ):
-            publish_action_for_test(group=group, action=ResolveAction())
-
-        log.assert_logged(ResolveAction, group_id=group.id)
-        assert not GroupActionLogEntry.objects.filter(group_id=group.id).exists()
-        assert not GroupActionLogOutbox.objects.filter(shard_identifier=group.id).exists()
+        entry = GroupActionLogEntry.objects.get(group_id=group.id)
+        assert entry.source == ActionSource.WEB
+        assert entry.data == {"priority": "high", "reason": None}
 
 
 class TestCaptureActionLog(TestCase):

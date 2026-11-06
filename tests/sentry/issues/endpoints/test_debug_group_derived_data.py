@@ -4,7 +4,7 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived.processing import PIPELINE, process_group_log
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.action_log import publish_action_for_test
+from sentry.testutils.helpers.action_log import publish_action_for_test as _publish
 from sentry.testutils.helpers.features import with_feature
 
 
@@ -27,9 +27,9 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
         assert response.data["truncated"] is False
 
     def test_with_stored_and_computed(self) -> None:
-        publish_action_for_test(group=self.group, action=ViewAction())
-        publish_action_for_test(group=self.group, action=ViewAction())
-        publish_action_for_test(group=self.group, action=ResolveAction())
+        _publish(group=self.group, action=ViewAction())
+        _publish(group=self.group, action=ViewAction())
+        _publish(group=self.group, action=ResolveAction())
         process_group_log(self.group.id)
 
         response = self.get_success_response(self.organization.slug, self.group.id, status_code=200)
@@ -44,7 +44,7 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
 
     def test_truncated_when_over_limit(self) -> None:
         for _ in range(3):
-            publish_action_for_test(group=self.group, action=ViewAction())
+            _publish(group=self.group, action=ViewAction())
 
         response = self.get_success_response(
             self.organization.slug, self.group.id, qs_params={"limit": "2"}, status_code=200

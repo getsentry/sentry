@@ -34,7 +34,7 @@ from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.action_log import publish_action_for_test
+from sentry.testutils.helpers.action_log import publish_action_for_test as _publish
 from sentry.testutils.helpers.features import with_feature
 
 SOURCE = ActionSource.API
@@ -62,9 +62,7 @@ def _hide_first_row_read() -> Generator[None]:
 class PromoteToLiveTest(TestCase):
     def test_promote_inserts_when_no_row(self) -> None:
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         GroupDerivedData.objects.filter(group_id=group.id).delete()
 
         gen_time = django_timezone.now()
@@ -96,18 +94,14 @@ class PromoteToLiveTest(TestCase):
 
     def test_promote_updates_existing_row(self) -> None:
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         old = process_group_log(group.id)
         old_id = old.id
         stale = django_timezone.now() - timedelta(minutes=5)
         GroupDerivedData.objects.filter(group_id=group.id).update(date_updated=stale)
 
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         gen_time = django_timezone.now()
         candidate = GroupDerivedData(
@@ -129,12 +123,8 @@ class PromoteToLiveTest(TestCase):
 
     def test_promote_rejected_if_cursor_behind_despite_newer_generation(self) -> None:
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         # Incremental processing advances the cursor past the first entry.
         process_group_log(group.id)
@@ -203,9 +193,7 @@ class PromoteToLiveTest(TestCase):
 
     def test_promote_superseded_by_newer_generation(self) -> None:
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         process_group_log(group.id)
 
         newer_time = django_timezone.now()
@@ -225,9 +213,7 @@ class PromoteToLiveTest(TestCase):
 
     def test_promote_create_race_returns_superseded_when_winner_is_newer(self) -> None:
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         gen_time = django_timezone.now()
         candidate = GroupDerivedData(
@@ -252,12 +238,8 @@ class PromoteToLiveTest(TestCase):
 
     def test_promote_create_race_returns_race_lost_when_winner_same_generation(self) -> None:
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         gen_time = django_timezone.now()
         candidate = GroupDerivedData(
@@ -290,9 +272,7 @@ class PromoteToLiveTest(TestCase):
         cursor. That row would have satisfied the UPDATE guard, so retry.
         """
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         gen_time = django_timezone.now()
         candidate = GroupDerivedData(
@@ -345,9 +325,7 @@ class PromoteToLiveTest(TestCase):
         state must not overwrite a generation's result."""
 
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         # Incremental processing reads the row.
         derived = process_group_log(group.id)
@@ -403,12 +381,8 @@ class PromoteToLiveTest(TestCase):
 
     def test_build_and_promote(self) -> None:
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
-        publish_action_for_test(
-            group=group, action=ResolveAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(self.user.id))
 
         build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
         derived = GroupDerivedData.objects.get(group_id=group.id)
@@ -462,16 +436,12 @@ class PromoteToLiveTest(TestCase):
         group = self.create_group()
         user = self.user
 
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
         old = process_group_log(group.id)
 
         old_id = old.id
 
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
         build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
 
         live = GroupDerivedData.objects.get(group_id=group.id)
@@ -571,9 +541,7 @@ class PromoteToLiveTest(TestCase):
 
     def test_build_and_promote_superseded_returns_cleanly(self) -> None:
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         process_group_log(group.id)
 
         # Stamp generated_at far in the future so our generation is older.
@@ -588,17 +556,13 @@ class PromoteToLiveTest(TestCase):
         group = self.create_group()
 
         # Create initial entry and process it incrementally.
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         process_group_log(group.id)
         live = GroupDerivedData.objects.get(group_id=group.id)
         first_cursor = live.cursor_id
 
         # Add a new entry that only incremental processing has seen.
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         process_group_log(group.id)
         live.refresh_from_db()
         assert live.cursor_id > first_cursor
@@ -612,9 +576,7 @@ class PromoteToLiveTest(TestCase):
 
     def test_build_and_promote_retries_on_race_lost_without_new_entries(self) -> None:
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         # Had RACE_LOST been treated as CURSOR_BEHIND, the caller would give
         # up here: the drain leaves no entries past the cursor.
@@ -640,9 +602,7 @@ class PromoteToLiveTest(TestCase):
         self,
     ) -> None:
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         def missing_then_real(
             candidate: GroupDerivedData, *, known_invalid_log_id: int | None = None
@@ -657,9 +617,7 @@ class PromoteToLiveTest(TestCase):
         """End-to-end ABA test: incremental write computed from pre-generation
         state must not overwrite a generation's result."""
         group = self.create_group()
-        publish_action_for_test(
-            group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-        )
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         # Incremental processing reads the row.
         derived = process_group_log(group.id)
@@ -704,9 +662,7 @@ class PromoteToLiveTest(TestCase):
     def test_build_and_promote_caches_on_timeout_for_resumption(self) -> None:
         group = self.create_group()
         for _ in range(5):
-            publish_action_for_test(
-                group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-            )
+            _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         with patch("sentry.issues.derived.promote._drain_log", return_value=False):
             with pytest.raises(GroupLogTimeout) as exc_info:
@@ -725,9 +681,7 @@ class PromoteToLiveTest(TestCase):
     def test_resumed_generation_advances_cursor_on_repeat_timeout(self) -> None:
         group = self.create_group()
         for _ in range(5):
-            publish_action_for_test(
-                group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
-            )
+            _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
         with pytest.raises(GroupLogTimeout) as exc_info:
             build_and_promote_derived_data(group.id, batch_size=2, time_limit=timedelta(0))
