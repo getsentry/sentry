@@ -10,6 +10,7 @@ from sentry.agent_handoff.codes import (
     consume_handoff,
     issue_handoff,
 )
+from sentry.agent_handoff.flows import HandoffMode
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apisetupcode import ApiSetupCode
@@ -54,7 +55,7 @@ class AgentHandoffViewTest(TestCase):
         response = self.claim(code)
         assert response.status_code == 200
         assert "SENTRY_SETUP_CODE=sntryc_" in response.content.decode()
-        assert "Now ask the user" in response.content.decode()
+        assert "agent-setup/get-started.md" in response.content.decode()
         assert "no-store" in response["Cache-Control"]
         assert response["Referrer-Policy"] == "no-referrer"
         assert response["Content-Type"] == "text/markdown; charset=utf-8"
@@ -80,11 +81,12 @@ class AgentHandoffViewTest(TestCase):
 
         assert response.status_code == 200
         assert response.content.decode().rstrip().endswith("Follow the onboarding guide.")
-        instructions.assert_called_once()
-        handoff = instructions.call_args.args[0]
-        assert handoff.flow is HandoffFlow.ONBOARDING
-        assert handoff.user_id == self.user.id
-        assert handoff.organization_id == self.organization.id
+        instructions.assert_called_once_with(
+            HandoffFlow.ONBOARDING,
+            mode=HandoffMode.CLAIMED,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
 
     def test_organization_scoped_application_retains_selected_organization(self) -> None:
         self.application.update(requires_org_level_access=True, scopes=["org:read"])

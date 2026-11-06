@@ -7,6 +7,7 @@ from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
@@ -43,6 +44,7 @@ class GrantExchanger:
             operation_type=SentryAppInteractionType.AUTHORIZATIONS,
             event_type=SentryAppEventType.GRANT_EXCHANGER,
         ).capture() as lifecycle:
+            token: ApiToken | None = None
             try:
                 lifecycle.add_extras(
                     {
@@ -63,10 +65,11 @@ class GrantExchanger:
                 # an attacker could send two requests to create an access/refresh token pair
                 # at the same time, using the same grant, and get two different tokens.
                 # We take the lock before the transaction opens, so the transaction commits
-                # before another request can take the lock.
+                # before another request can take the lock. The outbox_context is
+                # just to flag that this is an outbox-producing operation.
                 with (
                     lock.acquire(),
-                    transaction.atomic(using=router.db_for_write(ApiToken)),
+                    outbox_context(transaction.atomic(using=router.db_for_write(ApiToken))),
                 ):
                     self._validate()
                     token = self._create_token()
@@ -74,6 +77,22 @@ class GrantExchanger:
                     # Once it's exchanged it's no longer valid and should not be
                     # exchangeable, so we delete it.
                     self._delete_grant()
+            except (OutboxDatabaseError, OutboxFlushError) as e:
+                if token is None:
+                    raise SentryAppSentryError(
+                        message="Failed to exchange given grant",
+                        status_code=500,
+                        webhook_context={"installation_uuid": self.install.uuid},
+                    ) from e
+
+                # Guard against replication fanout failures. The token has been
+                # minted, and its outbox has been committed alongside it,
+                # guaranteeing that it will eventually be valid in all regions.
+                logger.warning(
+                    "grant-exchanger.outbox-flush-failure",
+                    extra={"token_id": token.id, "installation_uuid": self.install.uuid},
+                    exc_info=True,
+                )
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e)
                 raise
