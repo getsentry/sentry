@@ -4,11 +4,11 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, TypedDict
 
 import orjson
+from django.conf import settings
 from django.utils import timezone
 from pydantic import BaseModel, SecretStr
 from requests import RequestException
 
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen, safe_urlread
@@ -77,8 +77,8 @@ class LinearToken(BaseModel):
 
 
 def _request_token(params: dict[str, str]) -> LinearToken:
-    client_id = options.get("linear.client-id")
-    client_secret = options.get("linear.client-secret")
+    client_id = settings.LINEAR_CLIENT_ID
+    client_secret = settings.LINEAR_CLIENT_SECRET
     if not client_id or not client_secret:
         raise IntegrationConfigurationError("Linear OAuth is not configured in Sentry.")
     requested_at = timezone.now()

@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import responses
+from django.test import override_settings
 from responses import matchers
 
 from sentry.constants import ObjectStatus
@@ -30,7 +31,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
@@ -676,16 +676,9 @@ class StartGracePeriodForProviderTest(TestCase):
 
 
 @all_silo_test
+@override_settings(LINEAR_CLIENT_ID="sentry-app-id", LINEAR_CLIENT_SECRET="sentry-app-secret")
 @freeze_time("2025-01-01T05:22:00Z")
 class GetAccessTokenTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.enterContext(
-            override_options(
-                {"linear.client-id": "sentry-app-id", "linear.client-secret": "sentry-app-secret"}
-            )
-        )
-
     def create_linear(self, **metadata: Any) -> Integration:
         return self.create_integration(
             organization=self.organization,

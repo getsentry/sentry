@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
+from django.test import override_settings
 from django.urls import reverse
 from responses import matchers
 
@@ -19,7 +20,6 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 WORKSPACE = {"id": "ws", "name": "Example", "app_user_id": "app-user-id"}
@@ -162,6 +162,7 @@ class LinearIntegrationProviderTest(IntegrationTestCase):
         assert len(responses.calls) == 1
 
 
+@override_settings(LINEAR_CLIENT_ID="sentry-app-id", LINEAR_CLIENT_SECRET="sentry-app-secret")
 @control_silo_test
 @freeze_time("2025-01-01T00:00:00Z")
 class LinearApiPipelineTest(APITestCase):
@@ -169,11 +170,6 @@ class LinearApiPipelineTest(APITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.enterContext(
-            override_options(
-                {"linear.client-id": "sentry-app-id", "linear.client-secret": "sentry-app-secret"}
-            )
-        )
         self.login_as(self.user)
 
     def _initialize_pipeline(self, organization_slug: str | None = None) -> tuple[str, str]:
