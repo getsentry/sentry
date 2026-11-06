@@ -2400,6 +2400,47 @@ describe('ArtifactCard', () => {
     await userEvent.click(codeChanges.getByRole('button', {name: 'Copy as Markdown'}));
     expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(fullPrDiff);
 
+    // Iterations that edit code still show just the diff, not their closing reply.
+    const changedExplanation = 'I added a regression test.';
+    rerender(
+      <PrIterationCards
+        runState={pushedState}
+        section={{
+          ...section,
+          blocks: [iteration, codeModeEdit, makeAssistantBlock(changedExplanation)],
+        }}
+      />
+    );
+    expect(codeChanges.queryByText(changedExplanation)).not.toBeInTheDocument();
+
+    // A later no-edit iteration explains its result above the full, unchanged PR diff.
+    const noEditIteration = makePrIterationBlock(1, {text: 'Check the failing CI job'});
+    const noEditExplanation =
+      'The failed check is unrelated to this PR, so I left the code unchanged.';
+    const reply = {...makeAssistantBlock(noEditExplanation), id: 'no-edit-reply'};
+    const noEditSection = {
+      ...section,
+      blocks: [iteration, codeModeEdit, noEditIteration, reply],
+    };
+    rerender(
+      <PrIterationCards
+        runState={{
+          ...pushedState,
+          blocks: [...pushedState.blocks, noEditIteration, reply],
+        }}
+        section={noEditSection}
+      />
+    );
+    expect(codeChanges.getByText(noEditExplanation)).toBeInTheDocument();
+    expect(
+      codeChanges
+        .getByText(noEditExplanation)
+        .compareDocumentPosition(codeChanges.getByTestId('file-diff-viewer'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(codeChanges.getByText('1 file changed in 1 repo')).toBeInTheDocument();
+    await userEvent.click(codeChanges.getByRole('button', {name: 'Copy as Markdown'}));
+    expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(fullPrDiff);
+
     // A failed refresh must keep the loaded PR diff, not switch to run patches.
     const failedRequest = MockApiClient.addMockResponse({url: filesUrl, statusCode: 500});
     await act(() => queryClient.refetchQueries({queryKey: [filesUrl]}));
@@ -2437,10 +2478,21 @@ describe('ArtifactCard', () => {
       'true'
     );
 
-    // The same fallback remains visible even when the run has no patches at all.
+    // With no run patches, the explanation also survives a failed PR diff request.
     rerender(
-      <PrIterationCards runState={nextState} section={{...section, artifacts: []}} />
+      <PrIterationCards
+        runState={{...nextState, blocks: [...nextState.blocks, noEditIteration, reply]}}
+        section={{...noEditSection, artifacts: []}}
+      />
     );
+    expect(codeChanges.getByText(noEditExplanation)).toBeInTheDocument();
+    expect(
+      codeChanges
+        .getByText(noEditExplanation)
+        .compareDocumentPosition(
+          codeChanges.getByRole('button', {name: 'View diff on GitHub'})
+        )
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(
       codeChanges.getByRole('button', {name: 'View diff on GitHub'})
     ).toBeInTheDocument();

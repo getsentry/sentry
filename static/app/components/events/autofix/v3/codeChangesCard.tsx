@@ -232,6 +232,19 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   }, [changesByRepo]);
 
   const explanation = useMemo(() => getFinalExplanation(section), [section]);
+  const latestIterationHasEdits = useMemo(
+    () =>
+      section.blocks
+        .slice(currentStepStart)
+        .some(
+          block =>
+            block.file_patches?.length ||
+            block.tool_results?.some(
+              result => result?.structuredContent?.file_patches?.length
+            )
+        ),
+    [section.blocks, currentStepStart]
+  );
 
   const summary = useMemo(() => {
     const reposChanged = changesByRepo.size;
@@ -330,6 +343,14 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
           t('How can this code change be improved?'),
           t('Give Seer additional context to improve this code change.')
         )}
+        {hasPinToPrHeadFeature &&
+          isLatestStepPrIteration &&
+          !latestIterationHasEdits &&
+          explanation && (
+            <ArtifactDetails>
+              <SeerMarkdown raw={explanation} />
+            </ArtifactDetails>
+          )}
         {summary && (
           <ArtifactDetails>
             <Text>{summary}</Text>
