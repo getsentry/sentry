@@ -4317,6 +4317,7 @@ class TestSeerActivityFeed(TestCase):
         app = self.create_sentry_app(organization=self.organization)
         note = self.create_group_activity(
             type=ActivityType.NOTE.value,
+            datetime=before_now(minutes=3),
             user_id=self.user.id,
             data={
                 "text": "edited comment",
@@ -4331,6 +4332,7 @@ class TestSeerActivityFeed(TestCase):
         )
         unlink = self.create_group_action_log_entry(
             type=GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+            date_added=note.datetime + timedelta(minutes=1),
             actor_type=GroupActorType.SENTRY_APP,
             actor_id=app.id,
             source="api",
@@ -4342,6 +4344,7 @@ class TestSeerActivityFeed(TestCase):
         )
         trigger = self.create_group_action_log_entry(
             type=GroupActionType.TRIGGER_AUTOFIX,
+            date_added=note.datetime + timedelta(minutes=2),
             actor_type=GroupActorType.USER,
             actor_id=self.user.id,
             source="web",
