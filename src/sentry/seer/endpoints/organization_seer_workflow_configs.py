@@ -25,6 +25,7 @@ from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
+from sentry.cadence.api import ScheduledTriggerType, get_schedules
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -86,6 +87,8 @@ class SeerWorkflowConfigResponse(TypedDict):
     filters: dict[str, Any]
     outputPolicy: dict[str, Any]
     seededDefault: str | None
+    # When the automation next runs on its schedule, or None if it doesn't run on one.
+    nextRunAt: datetime | None
     dateAdded: datetime
     dateUpdated: datetime
     dateLastRun: NotRequired[datetime]
@@ -351,6 +354,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``name`` is the user-supplied name, omitted if unset.
         ``createdBy`` is the ID of the user who created the config, omitted if unset.
         ``updatedBy`` is the ID of the user who last changed it, omitted if unset.
+        ``nextRunAt`` is when the automation next runs on its schedule, or null if it
+        isn't scheduled to run.
         ``dateLastRun`` is the latest visible run's creation time and ``lastRunStatus``
         is its status (null for older runs that predate status tracking). Both are
         omitted if no runs are visible under the runs endpoint's project-scope rules.
@@ -747,6 +752,7 @@ def serialize_workflow_configs(
         has_global_access=has_global_access,
     )
     last_runs_by_config_id = {run.config_id: run for run in last_runs}
+    next_run_times = get_next_run_times(configs)
     return {
         "configs": [
             serialize_workflow_config(
@@ -759,6 +765,7 @@ def serialize_workflow_configs(
                     if config.service_account_id
                     else None
                 ),
+                next_run_at=next_run_times.get(config.id),
             )
             for config in configs
         ]
@@ -805,6 +812,22 @@ def get_config_last_runs(
     ]
 
 
+def get_next_run_times(configs: Sequence[SeerWorkflowConfig]) -> dict[int, datetime | None]:
+    """When each config next runs on its schedule, keyed by config id."""
+    by_organization: defaultdict[int, list[int]] = defaultdict(list)
+    for config in configs:
+        by_organization[config.organization_id].append(config.id)
+    return {
+        config_id: info.next_fire_at
+        for organization_id, config_ids in by_organization.items()
+        for config_id, info in get_schedules(
+            organization_id=organization_id,
+            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
+            target_ids=config_ids,
+        ).items()
+    }
+
+
 def serialize_workflow_config(
     config: SeerWorkflowConfig,
     *,
@@ -812,6 +835,7 @@ def serialize_workflow_config(
     connected_monitors: list[ConnectedMonitor],
     last_run: WorkflowConfigLastRun | None,
     service_account: SeerServiceAccountResponse | None,
+    next_run_at: datetime | None,
 ) -> SeerWorkflowConfigResponse:
     filters = SeerWorkflowFilters.parse_obj(config.filters)
     monitor_ids = [m.monitor_id for m in connected_monitors]
@@ -842,6 +866,7 @@ def serialize_workflow_config(
         ),
         "outputPolicy": config.output_policy,
         "seededDefault": SeerWorkflowConfigExtras.parse_obj(config.extras).seeded_default,
+        "nextRunAt": next_run_at,
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,
     }
