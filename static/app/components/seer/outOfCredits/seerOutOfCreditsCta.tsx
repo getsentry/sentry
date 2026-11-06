@@ -21,11 +21,11 @@ export interface SeerOutOfCreditsCtaProps {
 
 /**
  * Tells the viewer their organization is out of Seer credits and offers the
- * one thing they can do about it: configure auto reload, email their admins, or
+ * one thing they can do about it: configure auto-reload, email their admins, or
  * nothing when the org can't self-serve.
  *
  * getsentry supplies the implementation, since it knows the viewer's billing
- * access, the org's plan and its auto reload settings. Open source has no
+ * access, the org's plan and its auto-reload settings. Open source has no
  * credits and renders nothing.
  */
 export const SeerOutOfCreditsCta = OverrideOrDefault({

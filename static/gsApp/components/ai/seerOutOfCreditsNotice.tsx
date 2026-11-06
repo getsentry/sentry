@@ -15,14 +15,14 @@ import {t} from 'sentry/locale';
 /**
  * What the viewer can do about running out of credits:
  *
- * - `configure`: billing members configure auto reload themselves.
+ * - `configure`: billing members configure auto-reload themselves.
  * - `request`: everyone else emails their admins with "Contact Admin".
  * - `contact`: orgs that can't self-serve buy credits through their account
  *   team, so members get no button and are only told who to ask.
  */
 export type SeerOutOfCreditsEscalation = 'configure' | 'request' | 'contact';
 
-// Billing members, from the Billing Gates designs. Auto reload already on means
+// Billing members, from the Billing Gates designs. Auto-reload already on means
 // the org ran through the top-ups it allows, so the copy says so.
 const BILLING_MESSAGE: Record<SeerOutOfCreditsReason, Record<'off' | 'on', string>> = {
   'agent-chat': {
@@ -70,7 +70,7 @@ const MEMBER_MESSAGE: Record<SeerOutOfCreditsReason, string> = {
 const CONTACT_MESSAGE: Record<SeerOutOfCreditsReason, string> = {
   ...MEMBER_MESSAGE,
   'agent-chat': t(
-    'Your organization does not have enough credits left for you to message Seer. Ask your admin to set up auto reload.'
+    'Your organization does not have enough credits left for you to message Seer. Ask your admin to set up auto-reload.'
   ),
 };
 
@@ -92,11 +92,11 @@ function getSeerOutOfCreditsMessage({
 export interface SeerOutOfCreditsNoticeProps extends SeerOutOfCreditsCtaProps {
   escalation: SeerOutOfCreditsEscalation;
   /**
-   * Auto reload is on, so the org has used up the top-ups it allows.
+   * Auto-reload is on, so the org has used up the top-ups it allows.
    */
   autoReloadEnabled?: boolean;
   /**
-   * Where the auto reload button links when there is no in-place modal.
+   * Where the auto-reload button links when there is no in-place modal.
    */
   configureAutoReloadTo?: LinkProps['to'];
   /**
@@ -109,7 +109,7 @@ export interface SeerOutOfCreditsNoticeProps extends SeerOutOfCreditsCtaProps {
    */
   isRequestingCredits?: boolean;
   /**
-   * Opens the auto reload settings in place. Takes precedence over
+   * Opens the auto-reload settings in place. Takes precedence over
    * `configureAutoReloadTo`.
    */
   onConfigureAutoReload?: () => void;
@@ -134,12 +134,12 @@ export function SeerOutOfCreditsNotice({
         <Text>{getSeerOutOfCreditsMessage({reason, escalation, autoReloadEnabled})}</Text>
         <SeerOutOfCreditsAction
           escalation={escalation}
-          // The designs only ask billing members to turn auto reload on from
+          // The designs only ask billing members to turn auto-reload on from
           // the chat; everywhere else they configure it.
           configureLabel={
             reason === 'agent-chat' && !autoReloadEnabled
               ? t('Turn on auto-reload')
-              : t('Configure auto reload')
+              : t('Configure auto-reload')
           }
           // The chat has room for a full-size button; Autofix's spots are
           // tighter.

@@ -26,7 +26,7 @@ describe('SeerOutOfCreditsCta', () => {
     });
   }
 
-  it('asks billing members to turn on auto reload from the chat', async () => {
+  it('asks billing members to turn on auto-reload from the chat', async () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     act(() =>
       SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
@@ -47,7 +47,7 @@ describe('SeerOutOfCreditsCta', () => {
     expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
   });
 
-  it('tells billing members when auto reload has no top-ups left', async () => {
+  it('tells billing members when auto-reload has no top-ups left', async () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     act(() =>
       SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
@@ -64,7 +64,7 @@ describe('SeerOutOfCreditsCta', () => {
       )
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Configure auto reload'})
+      screen.getByRole('button', {name: 'Configure auto-reload'})
     ).toBeInTheDocument();
   });
 
@@ -88,7 +88,7 @@ describe('SeerOutOfCreditsCta', () => {
 
     expect(await screen.findByText(copy)).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Configure auto reload'})
+      screen.getByRole('button', {name: 'Configure auto-reload'})
     ).toBeInTheDocument();
   });
 
@@ -241,7 +241,7 @@ describe('SeerOutOfCreditsCta', () => {
 
     render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
 
-    expect(screen.getByText(/Ask your admin to set up auto reload/)).toBeInTheDocument();
+    expect(screen.getByText(/Ask your admin to set up auto-reload/)).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });
