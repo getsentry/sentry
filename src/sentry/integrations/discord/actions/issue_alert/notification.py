@@ -10,6 +10,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.additional_attachment_manager import discord_attachment_manager
 from sentry.notifications.platform.shadow.capture import record_legacy_render
 from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.types import RuleFuture
@@ -55,6 +56,12 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             message = DiscordIssuesMessageBuilder(
                 event.group, event=event, tags=tags, rules=rules
             ).build(notification_uuid=notification_uuid)
+            message.setdefault("embeds", []).extend(
+                discord_attachment_manager.get_additional_attachment(
+                    integration, self.project.organization
+                )
+                or []
+            )
             record_legacy_render(NotificationProviderKey.DISCORD, message)
 
             client = DiscordClient()
