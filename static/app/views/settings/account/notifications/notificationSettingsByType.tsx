@@ -35,7 +35,9 @@ import {SUPPORTED_PROVIDERS} from './constants';
 import {
   ACCOUNT_NOTIFICATION_FIELDS,
   NOTIFICATION_SETTING_FIELDS,
+  INBOX_FIELDS,
   QUOTA_FIELDS,
+  type SubSettingField,
 } from './fields';
 import {NotificationSettingsByEntity} from './notificationSettingsByEntity';
 import type {Identity} from './types';
@@ -47,9 +49,17 @@ type Props = {
   notificationType: string; // TODO(steve)? type better
 };
 
-const typeMappedChildren: Record<string, string[]> = {
-  quota: QUOTA_FIELDS.map(field => field.name),
+const typeMappedFields: Record<string, readonly SubSettingField[]> = {
+  quota: QUOTA_FIELDS,
+  inbox: INBOX_FIELDS,
 };
+
+const typeMappedChildren: Record<string, string[]> = Object.fromEntries(
+  Object.entries(typeMappedFields).map(([type, fields]) => [
+    type,
+    fields.map(field => field.name),
+  ])
+);
 
 // Ideally, we could just use SUPPORTED_PROVIDERS here, but 'msteams' is not widely tested.
 const ALLOWED_PROVIDERS = new Set(SUPPORTED_PROVIDERS.filter(p => p.includes('slack')));
@@ -445,8 +455,8 @@ export function NotificationSettingsByType({notificationType}: Props) {
               : t('All Organizations')
           }
         >
-          {notificationType === 'quota' ? (
-            QUOTA_FIELDS.map(field => {
+          {notificationType in typeMappedFields ? (
+            typeMappedFields[notificationType]!.map(field => {
               const schema = z.object({[field.name]: z.string()});
               return (
                 <AutoSaveForm
