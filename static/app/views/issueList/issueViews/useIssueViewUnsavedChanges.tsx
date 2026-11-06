@@ -1,9 +1,10 @@
 import isEqual from 'lodash/isEqual';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
-import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
+
+import {createIssueViewFromUrl} from './createIssueViewFromUrl';
+import {getIssueViewQueryParams} from './getIssueViewQueryParams';
+import {useSelectedGroupSearchView} from './useSelectedGroupSeachView';
 
 export function useIssueViewUnsavedChanges() {
   const {data: view} = useSelectedGroupSearchView();

@@ -7,16 +7,14 @@ import {GroupActivityType, IssueCategory, PriorityLevel} from 'sentry/types/grou
 import type {Commit, PullRequest, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {useUser} from 'sentry/utils/useUser';
-import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+
 import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {
-  ActivityLineNote,
-  isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
-import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+} from './activityLineItem/activityFeedItem';
+import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
+import {ActivityLine} from './activityLineItem';
+import {Timeline} from './timeline';
 
 const user = {
   id: '1',
@@ -259,6 +257,20 @@ const issueActivities = [
     title: '#5678',
     new: false,
   }),
+  activity(GroupActivityType.UNLINK_EXTERNAL_ISSUE, {
+    external_issue_key: 'example/repository#1234',
+    provider: 'github',
+  }),
+  activity(GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE, {
+    display_name: 'example#APP-42',
+    service_type: 'linear',
+    web_url: 'https://linear.app/example/issue/APP-42',
+  }),
+  activity(GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE, {
+    display_name: 'example#APP-43',
+    service_type: 'example',
+    web_url: '',
+  }),
   activity(GroupActivityType.MERGE, {issues: [{id: '2'}, {id: '3'}]}),
   activity(GroupActivityType.UNMERGE_SOURCE, {
     fingerprints: ['one', 'two'],
@@ -322,6 +334,13 @@ const seerActivities = [
   seerActivity(GroupActivityType.SEER_PR_CREATED, {
     pull_requests: [seerPullRequest],
   }),
+  {
+    ...seerActivity(GroupActivityType.SEER_PR_CREATED, {
+      pull_requests: [seerPullRequest],
+    }),
+    id: 'seer-pr-created-by-user',
+    user,
+  },
   seerActivity(GroupActivityType.SEER_PR_READY_FOR_REVIEW, {
     pull_requests: [seerPullRequest],
   }),
@@ -353,9 +372,12 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
   seerActivityAt(GroupActivityType.SEER_CODING_COMPLETED, '2025-01-01T00:30:00Z', {
     run_id: 3,
   }),
-  seerActivityAt(GroupActivityType.SEER_CODING_STARTED, '2025-01-01T00:22:00Z', {
-    run_id: 3,
-  }),
+  {
+    ...seerActivityAt(GroupActivityType.SEER_CODING_STARTED, '2025-01-01T00:22:00Z', {
+      run_id: 3,
+    }),
+    user,
+  },
   seerActivityAt(GroupActivityType.SEER_ITERATION_COMPLETED, '2025-01-01T00:37:00Z', {
     pull_requests: [seerPullRequest],
     run_id: 4,

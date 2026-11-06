@@ -3,10 +3,10 @@ import moment from 'moment-timezone';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import type {SpanResult} from 'sentry/views/explore/tables/tracesTable/types';
 import {getExploreUrl, type GetExploreUrlArgs} from 'sentry/views/explore/utils';
 
 import type {Field} from './data';
+import type {SpanResult} from './types';
 
 export function getStylingSliceName(
   sliceName: string | null,
@@ -46,6 +46,7 @@ interface GetSimilarEventsUrlArgs {
   projectIds: number[];
   queryString: string;
   selection: PageFilters;
+  caseInsensitive?: GetExploreUrlArgs['caseInsensitive'];
   table?: GetExploreUrlArgs['table'];
 }
 
@@ -55,11 +56,13 @@ export function getSimilarEventsUrl({
   organization,
   projectIds,
   selection,
+  caseInsensitive,
 }: GetSimilarEventsUrlArgs) {
   return getExploreUrl({
     organization,
     mode: Mode.SAMPLES,
     query: queryString,
+    caseInsensitive,
     table,
     selection: {
       ...selection,

@@ -24,11 +24,11 @@ claim_function_change_points = redis.load_redis_script(
 class FunctionChangePointQueue:
     ready_key = "sd:fncp:{queue}:ready"
 
-    def __init__(self, client: RedisCluster | StrictRedis | None = None):
+    def __init__(self, client: RedisCluster[str] | StrictRedis[str] | None = None):
         self._client = client
 
     @property
-    def client(self) -> RedisCluster | StrictRedis:
+    def client(self) -> RedisCluster[str] | StrictRedis[str]:
         if self._client is None:
             self._client = RedisDetectorStore.get_redis_client()
         return self._client
@@ -98,22 +98,22 @@ class FunctionChangePointQueue:
             pipeline.execute()
 
 
-class RedisDetectorStore(DetectorStore):
+class RedisDetectorStore(DetectorStore[Mapping[str | bytes, bytes | float | int | str]]):
     def __init__(
         self,
         regression_type: RegressionType,
-        client: RedisCluster | StrictRedis | None = None,
-        ttl=STATE_TTL,
-    ):
+        client: RedisCluster[str] | StrictRedis[str] | None = None,
+        ttl: int = STATE_TTL,
+    ) -> None:
         self.regression_type = regression_type
         self.ttl = ttl
-        self._client: RedisCluster | StrictRedis | None = None
+        self._client: RedisCluster[str] | StrictRedis[str] | None = None
 
     @property
     def client(
         self,
-        client: RedisCluster | StrictRedis | None = None,
-    ) -> RedisCluster | StrictRedis:
+        client: RedisCluster[str] | StrictRedis[str] | None = None,
+    ) -> RedisCluster[str] | StrictRedis[str]:
         if self._client is None:
             self._client = self.get_redis_client() if client is None else client
         return self._client
@@ -151,5 +151,5 @@ class RedisDetectorStore(DetectorStore):
         )
 
     @staticmethod
-    def get_redis_client() -> RedisCluster | StrictRedis:
+    def get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
         return redis.redis_clusters.get(settings.SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER)

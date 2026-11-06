@@ -3,7 +3,8 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import type {GridColumnOrder} from 'sentry/components/tables/dataGrid';
-import {useQueryBasedColumnResize} from 'sentry/components/tables/dataGrid/useQueryBasedColumnResize';
+
+import {useQueryBasedColumnResize} from './useQueryBasedColumnResize';
 
 const columns: Array<GridColumnOrder<string>> = [
   {key: 'name', name: 'Name', width: COL_WIDTH_UNDEFINED},

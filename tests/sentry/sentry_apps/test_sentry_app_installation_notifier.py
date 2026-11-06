@@ -41,6 +41,9 @@ class TestInstallationNotifier(TestCase):
             prevent_token_exchange=True,
         )
         self.rpc_user = user_service.get_user(user_id=self.user.id)
+        grant = self.install.api_grant
+        assert grant is not None
+        self.api_grant = grant
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_task_enqueued(self, safe_urlopen: MagicMock) -> None:
@@ -63,7 +66,7 @@ class TestInstallationNotifier(TestCase):
                     },
                     "organization": {"slug": self.organization.slug, "id": self.organization.id},
                     "uuid": self.install.uuid,
-                    "code": self.install.api_grant.code,
+                    "code": self.api_grant.code,
                     "status": "installed",
                 }
             },
@@ -100,7 +103,7 @@ class TestInstallationNotifier(TestCase):
                     },
                     "organization": {"slug": self.organization.slug, "id": self.organization.id},
                     "uuid": self.install.uuid,
-                    "code": self.install.api_grant.code,
+                    "code": self.api_grant.code,
                     "status": "installed",
                 }
             },

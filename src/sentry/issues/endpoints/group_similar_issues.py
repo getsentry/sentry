@@ -5,12 +5,13 @@ from rest_framework.response import Response
 
 from sentry import similarity
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
+from sentry.seer.similarity.utils import project_uses_seer_similarity
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,8 @@ def _fix_label(label: tuple[str, ...] | str) -> str:
 
 @cell_silo_endpoint
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     """
     This endpoint uses the legacy MinHash similarity system which has been replaced
     by embeddings-based grouping for SaaS.
@@ -39,7 +42,7 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
     )
     def get(self, request: Request, group: Group) -> Response:
         # Any project using embeddings-based grouping will not work with this endpoint
-        if group.project.get_option("sentry:similarity_backfill_completed"):
+        if project_uses_seer_similarity(group.project):
             return Response([])
 
         features = similarity.features

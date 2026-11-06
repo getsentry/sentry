@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from collections.abc import Container
+from collections.abc import Callable, Container
 from typing import TYPE_CHECKING, Any, Generic, Self, overload
 from uuid import uuid4
 
+from django.db import IntegrityError, router, transaction
 from django.db.models import Field, Model
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
 
 from sentry.db.models.fields.types import FieldGetType, FieldSetType
+from sentry.db.postgres.transactions import enforce_constraints
 
 if TYPE_CHECKING:
     from sentry.db.models.base import Model as SentryModel
@@ -38,6 +40,32 @@ def is_model_attr_cached(model: Model, attr: str) -> bool:
         is_selected = attr not in model.get_deferred_fields()
 
     return is_prefetched or is_selected
+
+
+MAX_SLUG_ATTEMPTS = 3
+
+
+def save_with_unique_slug(
+    inst: SentryModel,
+    pick_slug: Callable[[], None],
+    save_callback: Callable[[], object],
+) -> None:
+    """
+    Handles the situation where two concurrent creates pick the same slug; unique constraint fails,
+    and we retry with a newly picked slug.
+    """
+    using = router.db_for_write(type(inst))
+    pick_slug()
+    for attempt in range(MAX_SLUG_ATTEMPTS):
+        try:
+            with enforce_constraints(transaction.atomic(using=using)):
+                save_callback()
+            return
+        except IntegrityError:
+            failed_slug = getattr(inst, "slug")
+            pick_slug()
+            if getattr(inst, "slug") == failed_slug or attempt == MAX_SLUG_ATTEMPTS - 1:
+                raise
 
 
 def unique_db_instance(

@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from click.testing import Result
 from django.conf import settings
 from django.test import override_settings
 
@@ -22,7 +23,8 @@ class ConfigOptionsTest(CliTestCase):
     command = configoptions
 
     @pytest.fixture(autouse=True, scope="class")
-    def register_options(self) -> Generator[None]:
+    @classmethod
+    def register_options(cls) -> Generator[None]:
         options.register("readonly_option", default=10, flags=FLAG_IMMUTABLE)
         options.register("int_option", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("str_option", default="blabla", flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -98,7 +100,7 @@ class ConfigOptionsTest(CliTestCase):
             assert not options.isset("map_option")
             assert not options.isset("list_option")
 
-        def assert_output(rv):
+        def assert_output(rv: Result) -> None:
             assert rv.exit_code == 2, rv.output
 
             # The script produces log lines when DRIFT is detected. This

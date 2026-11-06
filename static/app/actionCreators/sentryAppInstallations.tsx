@@ -1,13 +1,20 @@
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
+export function sentryAppInstallationsApiOptions({orgSlug}: {orgSlug: string}) {
+  return apiOptions.as<SentryAppInstallation[]>()(
+    '/organizations/$organizationIdOrSlug/sentry-app-installations/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      staleTime: Infinity,
+    }
+  );
+}
 
 /**
  * Install a sentry application
@@ -21,7 +28,7 @@ export function installSentryApp(
   orgId: string,
   app: SentryApp
 ): Promise<SentryAppInstallation> {
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
   const promise = client.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
       path: {organizationIdOrSlug: orgId},
@@ -32,8 +39,8 @@ export function installSentryApp(
     }
   );
   promise.then(
-    () => clearIndicators(),
-    () => addErrorMessage(t('Unable to install %s', app.name))
+    () => toast.dismiss(),
+    () => toast.error(t('Unable to install %s', app.name))
   );
   return promise;
 }
@@ -48,7 +55,7 @@ export function uninstallSentryApp(
   client: Client,
   install: SentryAppInstallation
 ): Promise<void> {
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
   const promise = client.requestPromise(`/sentry-app-installations/${install.uuid}/`, {
     method: 'DELETE',
   });
@@ -56,9 +63,9 @@ export function uninstallSentryApp(
     install.app.slug.charAt(0).toUpperCase() + install.app.slug.slice(1);
   promise.then(
     () => {
-      addSuccessMessage(t('%s successfully queued for deletion.', capitalizedAppSlug));
+      toast.success(t('%s successfully queued for deletion.', capitalizedAppSlug));
     },
-    () => clearIndicators()
+    () => toast.dismiss()
   );
   return promise;
 }

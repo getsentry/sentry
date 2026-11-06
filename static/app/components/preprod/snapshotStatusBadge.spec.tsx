@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
+import {SnapshotStatusBadge} from './snapshotStatusBadge';
 
 describe('SnapshotStatusBadge', () => {
   it('shows Failed when a failed comparison is not approved', () => {

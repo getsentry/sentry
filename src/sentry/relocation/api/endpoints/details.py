@@ -9,6 +9,7 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.relocation.models.relocation import Relocation
 
 logger = logging.getLogger("sentry.relocation")
@@ -33,7 +34,7 @@ class RelocationDetailsEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("relocations.details.get.start", extra={"caller": request.user.id})
+        logger.info("relocations.details.get.start", extra={"caller": acting_user_id(request.user)})
 
         try:
             return self.respond(serialize(Relocation.objects.get(uuid=relocation_uuid)))

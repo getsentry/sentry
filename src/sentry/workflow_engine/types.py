@@ -65,6 +65,21 @@ class DetectorException(Exception):
     pass
 
 
+class DetectorType(StrEnum):
+    """Detector implementation identities. Values are persisted and used by the API."""
+
+    ERROR = "error"
+    ISSUE_STREAM = "issue_stream"
+    METRIC_ISSUE = "metric_issue"
+    MONITOR_CHECK_IN_FAILURE = "monitor_check_in_failure"
+    UPTIME_DOMAIN_FAILURE = "uptime_domain_failure"
+    PREPROD_SIZE_ANALYSIS = "preprod_size_analysis"
+    SOURCEMAP_CONFIGURATION = "sourcemap_configuration"
+    PERFORMANCE_SLOW_DB_QUERY = "performance_slow_db_query"
+    PERFORMANCE_LARGE_HTTP_PAYLOAD = "performance_large_http_payload"
+    QUERY_INJECTION_VULNERABILITY = "query_injection_vulnerability"
+
+
 class DetectorPriorityLevel(IntEnum):
     OK = 0
     LOW = PriorityLevel.LOW
@@ -141,6 +156,8 @@ class ConfigTransformer(ABC):
     A ConfigTransformer is used to transform the config between API and internal representations.
     """
 
+    api_schema: dict[str, Any]
+
     @abstractmethod
     def from_api(self, config: dict[str, Any]) -> dict[str, Any]:
         raise NotImplementedError
@@ -153,6 +170,7 @@ class ConfigTransformer(ABC):
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
+    required_features: ClassVar[tuple[FeatureGate, ...]] = ()
 
     class Group(StrEnum):
         NOTIFICATION = "notification"
@@ -160,6 +178,26 @@ class ActionHandler:
         OTHER = "other"
 
     group: ClassVar[Group]
+
+    @classmethod
+    def get_dedup_key(cls, action: Action) -> str:
+        key_parts = [action.type]
+        if action.integration_id:
+            key_parts.append(str(action.integration_id))
+
+        if action.config:
+            config = action.config.copy()
+            config.pop("target_display", None)
+            key_parts.append(str(config))
+
+        if action.data:
+            data = action.data.copy()
+            if "dynamic_form_fields" in data:
+                data = data["dynamic_form_fields"]
+
+            key_parts.append(str(data))
+
+        return ":".join(key_parts)
 
     @classmethod
     def get_config_transformer(cls) -> ConfigTransformer | None:
@@ -304,6 +342,7 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
 
 class DetectorAPIOperation(StrEnum):
     LIST = "list"
+    DISCOVER = "discover"
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -326,7 +365,8 @@ class DetectorSettings:
     api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
-    config_schema: ClassVar[dict[str, Any]] = {}
+    # None preserves legacy detectors whose configuration is validated outside this model.
+    config_schema: ClassVar[dict[str, Any] | None] = {}
     filter: ClassVar[Q | None] = None
 
 

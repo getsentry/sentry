@@ -30,6 +30,7 @@ type ValueComboboxMenuContextValue = {
   onSelectAbsoluteDate: (newDateTimeValue: string) => void;
   showDatePicker: boolean;
   token: TokenResult<Token.FILTER>;
+  valueHint: string | undefined;
   wrapperRef: RefObject<HTMLDivElement | null>;
 };
 

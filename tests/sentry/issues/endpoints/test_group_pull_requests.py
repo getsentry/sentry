@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import Mock, patch
 
 from django.utils import timezone
@@ -109,7 +110,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
             title=title,
             author=self.create_commit_author(project=group.project, user=self.user),
         )
-        updates = {
+        updates: dict[str, Any] = {
             key: value
             for key, value in {
                 "state": state,

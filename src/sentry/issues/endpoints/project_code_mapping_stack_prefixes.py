@@ -10,17 +10,14 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.directory_prefixes import rank_directory_prefixes
 from sentry.issues.auto_source_code_config.stack_filename_sample import sample_in_app_filenames
+from sentry.issues.endpoints.organization_code_mapping_repo_prefixes import PrefixItem
 from sentry.models.project import Project
-
-
-class PrefixItem(TypedDict):
-    path: str
-    fileCount: int
 
 
 class StackPrefixesResponse(TypedDict):
@@ -55,17 +52,23 @@ def _ensure_trailing_sep(root: str) -> str:
 @extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class ProjectCodeMappingStackPrefixesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.ISSUES
-    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
+    owner = ApiOwner.CODING_WORKFLOWS
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
 
     @extend_schema(
         operation_id="listStackCodeMappingPrefixes",
-        summary="List stack trace directory prefixes for code mapping autocomplete",
+        summary="List Stack Trace Directory Prefixes for Code Mapping Autocomplete",
+        description=(
+            "Return ranked directory prefixes from stack traces and existing mappings to help "
+            "configure a code mapping."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         responses={
             200: inline_sentry_response_serializer("StackPrefixesResponse", StackPrefixesResponse),
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            401: RESPONSE_UNAUTHORIZED,
         },
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(self, request: Request, project: Project) -> Response[StackPrefixesResponse]:
         return self.respond({"prefixes": _get_stack_prefixes(project)})

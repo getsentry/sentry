@@ -27,9 +27,11 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.chunk import ChunkTooLarge, _read_bounded
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
+from sentry.apidocs.formats import absolute_url, iso_datetime
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import is_active_staff
 from sentry.constants import DataCategory
 from sentry.issues.action_log.request import resolve_action_source
@@ -209,6 +211,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
@@ -269,9 +272,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             PreprodArtifactApiDeleteEvent(
                 organization_id=organization.id,
                 project_id=artifact.project_id,
-                user_id=(
-                    request.user.id if request.user and request.user.is_authenticated else None
-                ),
+                user_id=acting_user_id(request.user),
                 artifact_id=str(artifact.id),
             )
         )
@@ -280,7 +281,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             "preprod_snapshot.deleted",
             extra={
                 "preprod_artifact_id": artifact.id,
-                "user_id": request.user.id if request.user else None,
+                "user_id": acting_user_id(request.user),
                 "files_deleted": result.files_deleted,
                 "size_metrics_deleted": result.size_metrics_deleted,
                 "artifacts_deleted": result.artifacts_deleted,
@@ -496,9 +497,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             PreprodArtifactApiGetSnapshotDetailsEvent(
                 organization_id=organization.id,
                 project_id=artifact.project_id,
-                user_id=(
-                    request.user.id if request.user and request.user.is_authenticated else None
-                ),
+                user_id=acting_user_id(request.user),
                 artifact_id=str(artifact.id),
                 client=resolve_action_source(request),
             )
@@ -601,7 +600,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                                 name=user.get_display_name(),
                                 email=user.email,
                                 username=user.username,
-                                approved_at=approval.approved_at.isoformat()
+                                approved_at=iso_datetime(approval.approved_at)
                                 if approval.approved_at
                                 else None,
                                 source="sentry",
@@ -619,10 +618,12 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                             id=str(gh_id) if gh_id is not None else None,
                             name=gh.get("login"),
                             username=gh.get("login"),
-                            avatar_url=f"https://avatars.githubusercontent.com/u/{gh_id}"
+                            avatar_url=absolute_url(
+                                f"https://avatars.githubusercontent.com/u/{gh_id}"
+                            )
                             if gh_id is not None
                             else None,
-                            approved_at=approval.approved_at.isoformat()
+                            approved_at=iso_datetime(approval.approved_at)
                             if approval.approved_at
                             else None,
                             source="github",
@@ -704,6 +705,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (ProjectReleasePermission,)
 
     rate_limits = RateLimitConfig(
@@ -1087,7 +1089,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "artifactId": str(artifact.id),
                 "snapshotMetricsId": str(snapshot_metrics.id),
                 "imageCount": snapshot_metrics.image_count,
-                "snapshotUrl": get_preprod_artifact_url(artifact, view_type="snapshots"),
+                "snapshotUrl": absolute_url(
+                    get_preprod_artifact_url(artifact, view_type="snapshots")
+                ),
             },
             status=200,
         )

@@ -1,4 +1,4 @@
-import {PlatformizedQuerySummaryPage} from 'sentry/views/insights/database/views/platformizedSummaryPage';
+import {PlatformizedQuerySummaryPage} from './platformizedSummaryPage';
 
 function PageWithProviders() {
   return <PlatformizedQuerySummaryPage />;

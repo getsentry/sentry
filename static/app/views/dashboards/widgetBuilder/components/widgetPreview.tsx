@@ -2,7 +2,6 @@ import {useState} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -14,7 +13,6 @@ import {
   type DashboardDetails,
   type DashboardFilters,
 } from 'sentry/views/dashboards/types';
-import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
@@ -75,22 +73,6 @@ export function WidgetPreview({
       false,
   };
 
-  const isTimeSeries = usesTimeSeriesData(widget.displayType);
-
-  // the spans dataset doesn't handle timeseries for duplicate yAxes/aggregates
-  // automatically, so we need to dedupe them
-  const widgetWithDedupedYAxes = {
-    ...widget,
-    queries: widget.queries.map(query => {
-      const dedupedAggregates = dedupeArray(query.aggregates);
-
-      return {
-        ...query,
-        aggregates: dedupedAggregates,
-      };
-    }),
-  };
-
   function handleWidgetTableSort(sort: Sort) {
     dispatch({
       payload: [sort],
@@ -131,11 +113,7 @@ export function WidgetPreview({
       forceDescriptionTooltip={shouldForceDescriptionTooltip ? true : undefined}
       shouldResize={state.displayType !== DisplayType.TABLE}
       selection={pageFilters.selection}
-      widget={
-        widget.widgetType === WidgetType.SPANS && isTimeSeries
-          ? widgetWithDedupedYAxes
-          : widget
-      }
+      widget={widget}
       dashboardFilters={dashboardFilters}
       widgetLimitReached={false}
       showContextMenu={false}

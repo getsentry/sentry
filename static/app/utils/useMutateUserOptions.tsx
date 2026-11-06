@@ -1,18 +1,22 @@
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import merge from 'lodash/merge';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
-import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
-import {useUser} from 'sentry/utils/useUser';
+
+import {getApiUrl} from './api/getApiUrl';
+import type {RequestError} from './requestError/requestError';
+import {removeBodyTheme} from './removeBodyTheme';
+import {useApi} from './useApi';
+import {useUser} from './useUser';
 type UpdateUserOptionsVariables = Partial<User['options']>;
 
 export function useMutateUserOptions() {
   const user = useUser();
   const api = useApi({persistInFlight: false});
+  const queryClient = useQueryClient();
   return useMutation<User, RequestError, UpdateUserOptionsVariables>({
     mutationFn: (options: UpdateUserOptionsVariables) => {
       return api.requestPromise('/users/me/', {
@@ -31,8 +35,15 @@ export function useMutateUserOptions() {
       }
       ConfigStore.set('user', merge({}, user, {options}));
     },
+    onSuccess: () => {
+      // Pages that fetch the user, like account settings, would otherwise keep
+      // showing the old preferences
+      queryClient.invalidateQueries({
+        queryKey: [getApiUrl('/users/$userId/', {path: {userId: 'me'}})],
+      });
+    },
     onError: () => {
-      addErrorMessage('Failed to save user preference');
+      toast.error('Failed to save user preference');
     },
   });
 }

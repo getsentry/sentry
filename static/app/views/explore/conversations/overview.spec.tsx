@@ -8,9 +8,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {AI_AGENTS_GETTING_STARTED_DOCS_LINK} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
+import {Referrer} from './utils/referrers';
 import ConversationsOverviewPage from './overview';
 
 const organization = OrganizationFixture({
@@ -179,6 +179,60 @@ describe('ConversationsOverviewPage', () => {
     await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
     await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
     expect(conversationsRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('filters conversations to those with errors', async () => {
+    const allRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({query: ''})],
+    });
+    const errorsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'conversation.errors:>0'})],
+    });
+    const {router} = render(<ConversationsOverviewPage />, {organization});
+
+    const toggle = await screen.findByRole('checkbox', {name: 'Errors only'});
+    expect(toggle).not.toBeChecked();
+    await waitFor(() => expect(allRequest).toHaveBeenCalledTimes(1));
+    expect(errorsRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(toggle);
+    await waitFor(() => expect(errorsRequest).toHaveBeenCalledTimes(1));
+    expect(router.location.query.errorsOnly).toBe('true');
+
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', {name: 'Errors only'})).toBeChecked()
+    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Errors only'}));
+    await waitFor(() => expect(router.location.query.errorsOnly).toBeUndefined());
+
+    // Toggling back and forth within the cache window reuses earlier responses.
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Errors only'}));
+    await waitFor(() => expect(router.location.query.errorsOnly).toBe('true'));
+    expect(allRequest).toHaveBeenCalledTimes(1);
+    expect(errorsRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the errors toggle outside the Conversations tab', async () => {
+    render(<ConversationsOverviewPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/agents/`,
+          query: {table: 'traces'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by trace ID, operation, service, or user'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', {name: 'Errors only'})).not.toBeInTheDocument();
   });
 
   it('tailors the search placeholder to the selected table', async () => {
@@ -374,7 +428,7 @@ describe('ConversationsOverviewPage', () => {
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
   });
 
-  it('only opens a pasted conversation ID after selecting the Conversations tab', async () => {
+  it('does not open a pasted conversation ID on the Traces tab', async () => {
     const {router} = render(<ConversationsOverviewPage />, {organization});
 
     await userEvent.click(await screen.findByRole('tab', {name: 'Traces'}));
@@ -414,13 +468,6 @@ describe('ConversationsOverviewPage', () => {
     await waitFor(() => expect(router.location.query.query).toBe('abcdef12'));
     expect(router.location.pathname).not.toContain('/conversations/abcdef12/');
     expect(conversationsRequest).not.toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
-    await waitFor(() => {
-      expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/explore/agents/conversations/abcdef12/`
-      );
-    });
   });
 
   it('shows conversation onboarding without data tabs when there are no gen AI spans', async () => {

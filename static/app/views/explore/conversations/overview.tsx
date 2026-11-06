@@ -1,4 +1,5 @@
 import {Fragment, type ReactNode, useCallback, useEffect, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -27,24 +28,6 @@ import {
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {AgentsCharts} from 'sentry/views/explore/conversations/components/agentsCharts';
-import {AgentsChartIntervalSelector} from 'sentry/views/explore/conversations/components/agentsChartsControls';
-import {
-  AGENTS_TABLE_TABS,
-  AgentsTable,
-  type AgentsTableTab,
-} from 'sentry/views/explore/conversations/components/agentsTable';
-import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
-import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
-import {
-  CONVERSATION_FIELDS,
-  useConversations,
-  type Conversation,
-} from 'sentry/views/explore/conversations/hooks/useConversations';
-import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
-import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
-import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -53,6 +36,26 @@ import {
   FilterUrlParams,
   TableUrlParams,
 } from 'sentry/views/insights/pages/agents/utils/urlParams';
+
+import {AgentsCharts} from './components/agentsCharts';
+import {AgentsChartIntervalSelector} from './components/agentsChartsControls';
+import {
+  AGENTS_TABLE_TABS,
+  AgentsTable,
+  type AgentsTableTab,
+} from './components/agentsTable';
+import {ConversationMissingMessagesAlert} from './components/conversationMissingMessagesAlert';
+import {ErrorsOnlyToggle} from './components/errorsOnlyToggle';
+import {SaveConversationQueryButton} from './components/saveConversationQueryButton';
+import {useConversationDirectHitRedirect} from './hooks/useConversationDirectHitRedirect';
+import {
+  CONVERSATION_FIELDS,
+  useConversations,
+  type Conversation,
+} from './hooks/useConversations';
+import {useShowConversationOnboarding} from './hooks/useShowConversationOnboarding';
+import {Referrer} from './utils/referrers';
+import {MAX_PICKABLE_DAYS} from './settings';
 
 const CONVERSATION_FIELD_DEFINITIONS: Record<string, FieldDefinition> =
   Object.fromEntries(
@@ -109,6 +112,7 @@ function MissingMessagesAlert({conversations}: {conversations: Conversation[]}) 
 }
 
 function ConversationsOverviewPage() {
+  const theme = useTheme();
   const organization = useOrganization();
   const datePageFilterProps = useDatePageFilterProps({
     maxPickableDays: MAX_PICKABLE_DAYS,
@@ -275,10 +279,11 @@ function ConversationsOverviewPage() {
   const resetParamsOnFilterChange = [TableUrlParams.CURSOR, SPANS_CURSOR_URL_PARAM];
   const showSearch = !isOnboardingLoading && !selectedTabShowsOnboarding;
   const tableSearchBar = showSearch ? (
-    <Flex gap="md" width="100%">
+    <Flex gap="md" width="100%" align="center">
       <Flex flex={1} minWidth="0">
         <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
       </Flex>
+      {isConversationsTab && <ErrorsOnlyToggle />}
       {isConversationsTab && <SaveConversationQueryButton />}
     </Flex>
   ) : null;
@@ -311,7 +316,9 @@ function ConversationsOverviewPage() {
       {...searchQueryBuilderProviderProps}
       placeholder={searchPlaceholder}
     >
-      <ExploreBodySearch>
+      <ExploreBodySearch
+        style={{zIndex: selectedTabShowsOnboarding ? theme.zIndex.header : undefined}}
+      >
         <Layout.Main width="full">
           <Stack gap="md">
             <Flex gap="md" align="center" wrap="wrap">

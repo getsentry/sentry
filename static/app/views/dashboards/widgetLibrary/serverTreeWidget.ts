@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
+
+import type {WidgetTemplate} from './types';
 
 /**
  * Shared widget definitions for Next.js Overview dashboard

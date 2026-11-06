@@ -2,7 +2,9 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedState} from '@tanstack/react-pacer';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
+
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
 import {SearchDropdown} from 'sentry/components/searchBar/searchDropdown';
@@ -15,12 +17,12 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+import {useDomainViewFilters} from './useFilters';
 
 type SearchBarProps = {
   onSearch: (query: string) => void;
@@ -94,7 +96,7 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
       } catch {
         if (!ignore) {
           setTransactions([]);
-          addErrorMessage(t('Unable to fetch transaction suggestions'));
+          toast.error(t('Unable to fetch transaction suggestions'));
         }
       }
     }

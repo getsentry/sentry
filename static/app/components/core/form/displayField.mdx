@@ -2,24 +2,24 @@
 title: DisplayField
 description: Display information alongside form inputs with matching responsive layouts.
 category: forms
-source: '@sentry/scraps/form'
+source: '@sentry/scraps/formPresentation'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/form/displayField.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/formPresentation/displayField.tsx
 ---
 
-import {DisplayField} from '@sentry/scraps/form';
+import {DisplayField} from '@sentry/scraps/formPresentation';
 import {Container} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/form/displayField';
+import documentation from '!!type-loader!@sentry/scraps/formPresentation';
 
 export {documentation};
 
 Use `DisplayField.Row` or `DisplayField.Stack` for information such as creation dates and account metadata shown alongside form inputs. Both render a description list with a term and its details. They work without a form provider and do not register a value, run validation, or manage focus.
 
 ```jsx
-import {DisplayField} from '@sentry/scraps/form';
+import {DisplayField} from '@sentry/scraps/formPresentation';
 
 <DisplayField.Row label="Created">January 1, 2025</DisplayField.Row>;
 ```

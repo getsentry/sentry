@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {
@@ -23,6 +22,8 @@ import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversati
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 
+import type {QueryTokensProps} from './types';
+
 function extractErrorReason(err: Error): string {
   if (err instanceof RequestError) {
     const detail = err.responseJSON?.detail;
@@ -40,7 +41,6 @@ export function trackAiQueryOutcome({
   dataset,
   mode,
   organization,
-  referrer,
   resultCount,
   runId,
   error = false,
@@ -48,7 +48,6 @@ export function trackAiQueryOutcome({
   dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
   mode: Mode | 'samples' | 'aggregate';
   organization: Organization;
-  referrer: string;
   resultCount: number;
   runId: number | string;
   error?: string | boolean | Error;
@@ -65,6 +64,7 @@ export function trackAiQueryOutcome({
         ? extractErrorReason(error)
         : undefined;
 
+  const referrer = `assisted_query.search_bar.${dataset === 'spans' ? 'traces' : dataset}`;
   const conversationUrl = getConversationsUrlForExternalUse('sentry', runId);
   const codeMode = organization.features.includes('seer-assisted-query-codemode');
   const crossEventEnabled = organization.features.includes(

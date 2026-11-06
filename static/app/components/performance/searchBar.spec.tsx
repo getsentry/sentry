@@ -4,9 +4,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import type {SearchBarProps} from 'sentry/components/performance/searchBar';
-import {SearchBar} from 'sentry/components/performance/searchBar';
 import {EventView} from 'sentry/utils/discover/eventView';
+
+import type {SearchBarProps} from './searchBar';
+import {SearchBar} from './searchBar';
 
 describe('SearchBar', () => {
   let eventsMock: any;

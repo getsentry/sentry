@@ -150,19 +150,16 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // The hooks below reset state only when its module is already loaded. Check
 // require.cache to avoid loading the module and its imports into every spec.
-// Close any open modals before each test
 beforeEach(() => {
-  if (require.resolve('sentry/stores/modalStore') in require.cache) {
+  if (require.resolve('@sentry/scraps/modal') in require.cache) {
     jest
-      .requireActual<typeof import('sentry/stores/modalStore')>(
-        'sentry/stores/modalStore'
-      )
-      .ModalStore.closeModal();
+      .requireActual<typeof import('@sentry/scraps/modal')>('@sentry/scraps/modal')
+      .closeModal();
   }
 });
 afterEach(() => {
-  // Toasts are held by sonner, so there are none to dismiss until it is loaded.
-  if (require.resolve('sonner') in require.cache) {
+  // Avoid loading the toast module into tests that do not use it.
+  if (require.resolve('@sentry/scraps/toast') in require.cache) {
     const {toast} =
       jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
     act(() => void toast.dismiss());

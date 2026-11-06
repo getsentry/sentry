@@ -22,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "8bbdecb4ad2f92d58133a93ee009a07b"
+    hash: "f63a7669760e8a0c2dcecbc06dc16f93"
     contributing component: exception
     hint: None
     root_component:
@@ -31,52 +31,18 @@ contributing variants:
           type*
             "EXC_BAD_ACCESS"
           stacktrace*
-            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
-              filename*
-                "main.mm"
-              function*
-                "main"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
-              function*
-                "-[UnityAppController repaint]"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
-              function*
-                "PlayerLoop"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
-              function*
-                "ScriptingInvocation::Invoke"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
-              filename*
-                "il2cppinvokertable.cpp"
-              function*
-                "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame* (marked in-app by built-in stacktrace rule (category:il2cpp path:**/Assets/** +app))
               filename*
                 "enemyspawner.cs"
               function*
                 "EnemySpawner_Update"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame* (marked in-app by built-in stacktrace rule (category:il2cpp path:**/Packages/** +app))
               filename*
                 "combatsystem.cs"
               function*
                 "CombatSystem_ApplyDamage"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
-              filename*
-                "tmp_text.cs"
-              function*
-                "TMP_Text_SetText"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
-              filename*
-                "animation.bindings.cs"
-              function*
-                "Animation_Play"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
-              filename*
-                "il2cppcodegen.cpp"
-              function*
-                "il2cpp_codegen_raise_null_reference_exception"
   system*
-    hash: "bae55c8a9132232871adf6b662a2d6da"
+    hash: "c5c6df56950274d88cb9f400ee61b8b0"
     contributing component: exception
     hint: None
     root_component:
@@ -93,6 +59,11 @@ contributing variants:
                 "main.mm"
               function*
                 "main"
+            frame*
+              filename*
+                "main.mm"
+              function*
+                "-[UnityFramework runUIApplicationMainWithArgc:argv:]"
             frame*
               function*
                 "-[UnityAppController repaint]"

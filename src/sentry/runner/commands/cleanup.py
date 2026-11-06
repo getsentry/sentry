@@ -23,7 +23,7 @@ from sentry_sdk.scope import Scope
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -242,7 +242,7 @@ def task_execution(
             ViewerContext(
                 organization_id=organization_id,
                 project_id=project_id,
-                actor_type=ActorType.SYSTEM,
+                actor=Actor(type=ActorType.SYSTEM),
             )
         )
         if organization_id is not None and project_id is not None
@@ -691,6 +691,7 @@ def delete_api_models(
 ) -> None:
     from sentry.models.apidevicecode import ApiDeviceCode
     from sentry.models.apigrant import ApiGrant
+    from sentry.models.apisetupcode import ApiSetupCode
     from sentry.models.apitoken import ApiToken
 
     for model_tp in (ApiGrant, ApiToken):
@@ -712,14 +713,15 @@ def delete_api_models(
 
             queryset.delete()
 
-    # Device codes have short expiration times (10 minutes), so clean up
+    # Device and setup codes have short expiration times (minutes), so clean up
     # any that have expired immediately without additional TTL buffer.
-    if is_filtered(ApiDeviceCode):
-        debug_output(">> Skipping ApiDeviceCode")
-    else:
-        debug_output("Removing expired values for ApiDeviceCode")
-        models_attempted.add(ApiDeviceCode.__name__.lower())
-        ApiDeviceCode.objects.filter(expires_at__lt=timezone.now()).delete()
+    for code_model in (ApiDeviceCode, ApiSetupCode):
+        if is_filtered(code_model):
+            debug_output(f">> Skipping {code_model.__name__}")
+        else:
+            debug_output(f"Removing expired values for {code_model.__name__}")
+            models_attempted.add(code_model.__name__.lower())
+            code_model.objects.filter(expires_at__lt=timezone.now()).delete()
 
 
 @continue_on_error("specialized_cleanup_exported_data")

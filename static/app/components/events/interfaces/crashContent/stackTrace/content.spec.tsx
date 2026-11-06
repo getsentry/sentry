@@ -8,10 +8,11 @@ import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProje
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+
+import {Content as StackTraceContent} from './content';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture();
@@ -40,6 +41,10 @@ describe('StackTrace', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
 
     const promptResponse = {
       dismissed_ts: undefined,

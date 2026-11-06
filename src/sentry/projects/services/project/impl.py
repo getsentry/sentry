@@ -20,6 +20,7 @@ from sentry.projects.services.project import (
 )
 from sentry.projects.services.project.model import ProjectUpdateArgs
 from sentry.projects.services.project.serial import ProjectUpdateArgsSerializer, serialize_project
+from sentry.seer.similarity.utils import set_default_project_similarity_grouping
 from sentry.signals import project_created
 from sentry.users.services.user import RpcUser
 
@@ -132,6 +133,7 @@ class DatabaseBackedProjectService(ProjectService):
                     project.add_team(team)
 
             set_default_symbol_sources(project)
+            set_default_project_similarity_grouping(project)
 
             project_created.send_robust(
                 project=project,

@@ -42,11 +42,11 @@ class RepairRepositoryWebhookTest(TestCase):
         )
         self.bitbucket_client = MagicMock()
         self.bitbucket_client.get_repo.return_value = {"id": 987}
-        self.integration = MagicMock(
+        self.mock_integration = MagicMock(
             id=self.integration_id,
             provider="bitbucket_server",
         )
-        self.integration.get_installation.return_value.get_client.return_value = (
+        self.mock_integration.get_installation.return_value.get_client.return_value = (
             self.bitbucket_client
         )
 
@@ -60,7 +60,7 @@ class RepairRepositoryWebhookTest(TestCase):
         ).start()
         self.get_integration = patch(
             "sentry.integrations.bitbucket_server.tasks.integration_service.get_integration",
-            return_value=self.integration,
+            return_value=self.mock_integration,
         ).start()
         self.incr = patch("sentry.integrations.bitbucket_server.tasks.metrics.incr").start()
         self.addCleanup(patch.stopall)
@@ -92,7 +92,7 @@ class RepairRepositoryWebhookTest(TestCase):
 
         self.run_task()
 
-        self.integration.get_installation.assert_not_called()
+        self.mock_integration.get_installation.assert_not_called()
         self.assert_outcome("already_repaired")
 
     def test_updates_existing_hook_and_removes_pending_flag(self) -> None:
@@ -172,7 +172,7 @@ class RepairRepositoryWebhookTest(TestCase):
             self.run_task()
 
         token_hex.assert_not_called()
-        self.integration.get_installation.assert_not_called()
+        self.mock_integration.get_installation.assert_not_called()
         self.update_config.assert_not_called()
         self.assert_outcome("missing_webhook")
 

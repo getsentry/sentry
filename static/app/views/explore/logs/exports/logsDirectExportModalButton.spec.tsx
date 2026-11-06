@@ -19,9 +19,10 @@ import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LogsDirectExportModalButton} from 'sentry/views/explore/logs/exports/logsDirectExportModalButton';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {LogsDirectExportModalButton} from './logsDirectExportModalButton';
 
 const mockDownloadFromHref = jest.fn();
 
@@ -172,6 +173,54 @@ describe('LogsDirectExportModalButton', () => {
             query_info: expect.objectContaining({
               sampling: 'HIGHEST_ACCURACY',
             }),
+          }),
+        })
+      );
+    });
+  });
+
+  it('asks the server export to ignore case when the page ignores case', async () => {
+    const exportRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        <LogsDirectExportModalButton
+          error={null}
+          isLoading={false}
+          tableData={tableData}
+          timeseriesIngestDelay={0n}
+        />
+      </LogsQueryParamsProvider>,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {...initialRouterConfig.location.query, caseInsensitive: '1'},
+          },
+        },
+      }
+    );
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
+
+    await waitFor(() => {
+      expect(exportRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            query_info: expect.objectContaining({caseInsensitive: '1'}),
           }),
         })
       );

@@ -6,12 +6,13 @@ from pydantic import BaseModel
 class CursorApiKeyMetadata(BaseModel):
     apiKeyName: str
     createdAt: str
-    userEmail: str
+    # Not returned for service account keys.
+    userEmail: str | None = None
 
 
 class CursorAgentLaunchRequestPrompt(BaseModel):
     text: str
-    images: list[dict] = []
+    images: list[dict[str, object]] = []
 
 
 class CursorAgentSource(BaseModel):

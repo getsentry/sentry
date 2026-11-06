@@ -239,7 +239,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         Tests that we save the newly calculated threshold at the default TTL and return it.
         """
         mock_calculation.return_value = 5
-        threshold = update_threshold(self.project.id, "threshold-key", "date-key")
+        threshold = update_threshold(self.project, "threshold-key", "date-key")
         assert threshold == 5
         redis_client = get_redis_client()
         assert redis_client.get("threshold-key") == "5"

@@ -12,7 +12,7 @@ import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
-import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
+import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
 
 const HOVER_ACTIONS_SLOT_HEIGHT = 28;
 
@@ -24,7 +24,7 @@ export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActio
   const {frame, event, isExpanded} = useStackTraceFrameContext();
   const {project} = useStackTraceContext();
 
-  const storeComponents = useSentryAppComponentsStore({
+  const storeComponents = useSentryAppComponents({
     componentType: 'stacktrace-link',
   });
   const components = useMemo(

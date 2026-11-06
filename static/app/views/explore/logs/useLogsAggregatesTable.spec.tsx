@@ -4,13 +4,14 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+
+import {LOGS_AGGREGATE_FIELD_KEY} from './logsQueryParams';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
 import {
   LOGS_AGGREGATES_TIMESTAMP_FIELD,
   LOGS_AGGREGATES_TRACE_FIELD,
   useLogsAggregatesTable,
-} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+} from './useLogsAggregatesTable';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -61,6 +62,39 @@ describe('useLogsAggregatesTable', () => {
     expect(result.current.isError).toBe(true);
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error?.message).toEqual(expect.any(String));
+  });
+
+  it('sends caseInsensitive as 1 when ignoring case', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [], meta: {dataScanned: 'full', fields: {}}},
+      method: 'GET',
+    });
+
+    renderHookWithProviders(
+      () =>
+        useLogsAggregatesTable({
+          enabled: true,
+          limit: 100,
+        }),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/logs/',
+            query: {caseInsensitive: '1', logsQuery: 'message:Deleted'},
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({caseInsensitive: '1'}),
+      })
+    );
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {

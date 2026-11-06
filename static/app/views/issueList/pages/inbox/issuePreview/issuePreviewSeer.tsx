@@ -2,12 +2,9 @@ import {createContext, useContext, type ReactNode} from 'react';
 
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useAutofixSetupStep} from 'sentry/components/events/autofix/v3/autofixSetupCard';
-import {AutofixStartCardContent} from 'sentry/components/events/autofix/v3/autofixStartCard';
-import {ProgressState, type Group} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
-import {AutofixQuotaContent} from 'sentry/views/issueDetails/sidebar/autofixSection';
-import {IssuePreviewAutofixSummary} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewAutofixSummary';
 
 type IssuePreviewSeerState =
   | 'unavailable'
@@ -77,44 +74,4 @@ export function useIssuePreviewSeer() {
     throw new Error('useIssuePreviewSeer must be used within IssuePreviewSeerProvider');
   }
   return previewSeer;
-}
-
-export function IssuePreviewSeerContent({
-  group,
-  previewSeer,
-  project,
-  excludeSteps,
-}: {
-  group: Group;
-  previewSeer: PreviewSeer;
-  project: Project;
-  excludeSteps?: ReadonlySet<string>;
-}) {
-  const {aiConfig, autofix, state} = previewSeer;
-
-  if (state === 'unavailable' || state === 'loading') {
-    return null;
-  }
-
-  if (
-    group.derivedData?.progress === ProgressState.ASSIGNED &&
-    !autofix.runState &&
-    !autofix.isWaitingForRun
-  ) {
-    if (state === 'configure') {
-      return <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />;
-    }
-    if (state === 'start') {
-      return <AutofixStartCardContent />;
-    }
-  }
-
-  return (
-    <IssuePreviewAutofixSummary
-      autofix={autofix}
-      groupId={group.id}
-      excludeSteps={excludeSteps}
-      readOnly={state === 'configure'}
-    />
-  );
 }

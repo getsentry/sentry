@@ -1,8 +1,8 @@
 import contextvars
 import threading
 import time
-from collections.abc import Mapping
-from typing import NamedTuple
+from collections.abc import Mapping, Sequence
+from typing import Any, NamedTuple, cast
 
 import pymemcache
 from django.core.cache.backends.memcached import PyMemcacheCache  # noqa: S018
@@ -37,8 +37,10 @@ class ReconnectingMemcache(PyMemcacheCache):
     _class: pymemcache.Client
     _options: Mapping[str, str] | None = None
 
-    def __init__(self, server, params) -> None:
-        self._reconnect_age: int = params.get("OPTIONS", {}).pop("reconnect_age", 300)
+    def __init__(self, server: str | Sequence[str], params: dict[str, object]) -> None:
+        self._reconnect_age: int = cast("dict[str, Any]", params.get("OPTIONS", {})).pop(
+            "reconnect_age", 300
+        )
         self._backend_var: contextvars.ContextVar[_BackendState | None] = contextvars.ContextVar(
             f"reconnecting_memcache_{id(self)}", default=None
         )
