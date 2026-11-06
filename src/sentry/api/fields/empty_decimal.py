@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import cast
 
 from rest_framework import serializers
 from rest_framework.fields import empty
@@ -11,11 +10,6 @@ class EmptyDecimalField(serializers.DecimalField):
     doesn't accept an empty string as a value. We rely on this behaviour in some
     cases, so this restores it.
     """
-
-    def to_internal_value(self, data: int | float | str | Decimal) -> Decimal:
-        if data == "":
-            return cast(Decimal, None)
-        return super().to_internal_value(data)
 
     def run_validation(self, data: object = empty) -> Decimal | None:
         if data == "":
