@@ -1339,13 +1339,11 @@ describe('DropdownMenu', () => {
         const row = (name: string) =>
           // oxlint-disable-next-line testing-library/no-node-access -- The margin sits on the row element around the menu item.
           screen.getByRole('menuitemradio', {name}).closest('li');
-        // jsdom does not lay out the section's margin rule, so check the marker
-        // that the rule targets.
         for (const name of firstItems) {
-          expect(row(name)).not.toHaveAttribute('data-spaced-section-item');
+          expect(row(name)).not.toHaveStyle({marginTop: lightTheme.space['2xs']});
         }
         for (const name of laterItems) {
-          expect(row(name)).toHaveAttribute('data-spaced-section-item');
+          expect(row(name)).toHaveStyle({marginTop: lightTheme.space['2xs']});
         }
       }
     );

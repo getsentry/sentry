@@ -1,8 +1,8 @@
 import {Fragment, useRef} from 'react';
 import type {Node} from '@react-types/shared';
-import {fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 
-import {groupVirtualRows, useVirtualCollection} from './useVirtualCollection';
+import {useVirtualCollection, VirtualRows} from './useVirtualCollection';
 
 const ROW_COUNT = 300;
 const ROW_HEIGHT = 36;
@@ -175,30 +175,45 @@ describe('useVirtualCollection', () => {
   });
 });
 
-describe('groupVirtualRows', () => {
-  it('puts the rows of each section under their section row', () => {
-    const row = (key: string, type = 'item', parentKey?: string) => ({
+describe('VirtualRows', () => {
+  it('renders each row inside its section, with spacers for unmounted rows', () => {
+    const row = (key: string, type = 'item', parentKey?: string, spaceBefore = 0) => ({
       node: {key, type, parentKey} as (typeof nodes)[number],
       props: undefined,
-      spaceBefore: 0,
+      spaceBefore,
     });
-    const groups = groupVirtualRows([
-      row('top'),
-      row('section-a', 'section'),
-      row('a-1', 'item', 'section-a'),
-      row('a-2', 'item', 'section-a'),
-      row('after'),
-    ]);
+    render(
+      <ul>
+        <VirtualRows
+          virtual={{
+            rows: [
+              row('top'),
+              row('section-a', 'section', undefined, 10),
+              row('a-1', 'item', 'section-a'),
+              row('a-2', 'item', 'section-a', 20),
+              row('after'),
+            ],
+            spaceAfter: 30,
+          }}
+          renderRow={({node}) => <li data-test-id={node.key} />}
+          renderSection={(section, rows) => (
+            <li data-test-id={section.node.key}>
+              <ul>{rows}</ul>
+            </li>
+          )}
+        />
+      </ul>
+    );
 
-    expect(
-      groups.map(group => ({
-        section: group.section?.node.key,
-        rows: group.rows.map(r => r.node.key),
-      }))
-    ).toEqual([
-      {section: undefined, rows: ['top']},
-      {section: 'section-a', rows: ['a-1', 'a-2']},
-      {section: undefined, rows: ['after']},
-    ]);
+    const section = screen.getByTestId('section-a');
+    expect(within(section).getByTestId('a-1')).toBeInTheDocument();
+    expect(within(section).getByTestId('a-2')).toBeInTheDocument();
+    expect(within(section).queryByTestId('top')).not.toBeInTheDocument();
+    expect(within(section).queryByTestId('after')).not.toBeInTheDocument();
+
+    const spacers = screen
+      .getAllByRole('presentation', {hidden: true})
+      .map(spacer => spacer.style.height);
+    expect(spacers).toEqual(['10px', '20px', '30px']);
   });
 });

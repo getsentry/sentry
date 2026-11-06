@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import {useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
 import type {Key, Node} from '@react-types/shared';
 import {
@@ -20,17 +20,19 @@ export const DEFAULT_VIRTUALIZE_THRESHOLD = 150;
 /**
  * Lists a collection's nodes in the order `useVirtualCollection` expects: each
  * section is followed by its child nodes, so a long section is windowed like
- * any other run of rows instead of mounting all at once.
+ * any other run of rows instead of mounting all at once. Nodes in `hiddenKeys`
+ * are left out, whether they are sections, their children or top-level items.
  */
 export function flattenSections<T>(
   nodes: Iterable<Node<T>>,
   hiddenKeys?: ReadonlySet<Key>
 ): Array<Node<T>> {
-  return [...nodes].flatMap(node =>
-    node.type === 'section'
-      ? [node, ...[...node.childNodes].filter(child => !hiddenKeys?.has(child.key))]
-      : [node]
-  );
+  const isVisible = (node: Node<T>) => !hiddenKeys?.has(node.key);
+  return [...nodes]
+    .filter(isVisible)
+    .flatMap(node =>
+      node.type === 'section' ? [node, ...[...node.childNodes].filter(isVisible)] : [node]
+    );
 }
 
 /**
@@ -129,25 +131,33 @@ interface UseVirtualCollectionOptions<T> {
  * Windows a React Aria collection so only the rows near the viewport mount.
  *
  * It owns layout only, never selection or focus. Callers keep their React Aria
- * state and render rows as usual, with a spacer before each row and after the
- * last one:
+ * state and render the rows with `VirtualRows`, which puts each row in its
+ * section and fills the space of the unmounted rows:
  *
  * ```tsx
+ * const nodes = useMemo(() => flattenSections(state.collection), [state.collection]);
  * const virtual = useVirtualCollection({nodes, enabled, size, scrollRef, focusedKey});
  * <ul ref={scrollRef}>
- *   {virtual.rows.map(({node, props, spaceBefore}) => (
- *     <Fragment key={node.key}>
- *       <VirtualSpacer height={spaceBefore} />
- *       <Option {...props} node={node} />
- *     </Fragment>
- *   ))}
- *   <VirtualSpacer height={virtual.spaceAfter} />
+ *   <VirtualRows
+ *     virtual={virtual}
+ *     renderRow={({node, props}) => <Option {...props} node={node} />}
+ *     renderSection={({node, props}, rows) => (
+ *       <Section rowProps={props} node={node}>{rows}</Section>
+ *     )}
+ *   />
  * </ul>
  * ```
  *
  * Spacers keep the list's own element and padding intact, so a virtualized
  * list has the same DOM structure and styling as a regular one.
  */
+export interface VirtualCollection<T> {
+  /** The rows to render, in order: every node, or the mounted ones when virtualized. */
+  rows: Array<VirtualRow<T>>;
+  /** Height of the unmounted rows after the last mounted one. */
+  spaceAfter: number;
+}
+
 export function useVirtualCollection<T>({
   enabled,
   nodes,
@@ -156,7 +166,7 @@ export function useVirtualCollection<T>({
   focusedKey,
   listPadding = 0,
   widestKey,
-}: UseVirtualCollectionOptions<T>) {
+}: UseVirtualCollectionOptions<T>): VirtualCollection<T> {
   const heights = ROW_HEIGHT_ESTIMATES[size];
 
   const focusedIndex = useMemo(
@@ -273,21 +283,18 @@ export function useVirtualCollection<T>({
   };
 }
 
-export interface VirtualRowGroup<T> {
+interface VirtualRowGroup<T> {
   rows: Array<VirtualRow<T>>;
   /** The section's own row. Undefined for a row that is not in a section. */
   section?: VirtualRow<T>;
 }
 
 /**
- * Puts the rows of each section back under their section, so callers can render
- * them inside the section's group element. `useVirtualCollection` keeps a
- * section's row mounted while any of its rows are, so they always follow it.
- *
- * Render the groups with `flatMap`, so rows outside sections stay siblings and
- * keep their elements when the list reorders.
+ * Puts the rows of each section back under their section. `useVirtualCollection`
+ * keeps a section's row mounted while any of its rows are, so they always
+ * follow it.
  */
-export function groupVirtualRows<T>(
+function groupVirtualRows<T>(
   rows: ReadonlyArray<VirtualRow<T>>
 ): Array<VirtualRowGroup<T>> {
   const groups: Array<VirtualRowGroup<T>> = [];
@@ -308,9 +315,55 @@ export function groupVirtualRows<T>(
  * Stands in for the rows outside the virtualized window. Renders nothing when
  * there is no space to fill.
  */
-export function VirtualSpacer({height}: {height: number}) {
+function VirtualSpacer({height}: {height: number}) {
   if (height <= 0) {
     return null;
   }
   return <li aria-hidden role="presentation" style={{height, flexShrink: 0}} />;
+}
+
+interface VirtualRowsProps<T> {
+  /**
+   * Renders an item row. Spread `props` onto the element that is the row's
+   * height, so the virtualizer can measure it.
+   */
+  renderRow: (row: VirtualRow<T>) => React.ReactNode;
+  /**
+   * Renders a section around its rendered rows. Spread the section's `props`
+   * onto the element above its rows, such as the one holding its header.
+   */
+  renderSection: (section: VirtualRow<T>, rows: React.ReactNode) => React.ReactNode;
+  /** The result of `useVirtualCollection`. */
+  virtual: VirtualCollection<T>;
+}
+
+/**
+ * Renders the rows of `useVirtualCollection`, with each row inside its section
+ * and spacers in place of the unmounted rows. Render it inside the scroll
+ * element. Rows outside sections stay siblings, so they keep their elements
+ * when the list reorders.
+ */
+export function VirtualRows<T>({virtual, renderRow, renderSection}: VirtualRowsProps<T>) {
+  const renderWithSpacer = (row: VirtualRow<T>) => (
+    <Fragment key={row.node.key}>
+      <VirtualSpacer height={row.spaceBefore} />
+      {renderRow(row)}
+    </Fragment>
+  );
+
+  return (
+    <Fragment>
+      {groupVirtualRows(virtual.rows).flatMap(({section, rows}) =>
+        section ? (
+          <Fragment key={section.node.key}>
+            <VirtualSpacer height={section.spaceBefore} />
+            {renderSection(section, rows.map(renderWithSpacer))}
+          </Fragment>
+        ) : (
+          rows.map(renderWithSpacer)
+        )
+      )}
+      <VirtualSpacer height={virtual.spaceAfter} />
+    </Fragment>
+  );
 }

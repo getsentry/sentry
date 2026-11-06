@@ -302,11 +302,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       // Items in a section are spaced with a margin rather than a gap on the
       // section's list. A virtualized menu counts a row's margins in its
       // measured size, and a gap would also open up around its spacer rows.
-      // Unlike padding, the margin is not part of the item's hover target.
-      // The first item of a section links back to the section as its prevKey.
-      data-spaced-section-item={
-        (node.parentKey != null && node.prevKey !== node.parentKey) || undefined
-      }
+      gapAbove={isAfterFirstInSection(node, state.collection)}
       as={renderAs}
       label={itemLabel}
       leadingItems={
@@ -384,4 +380,16 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       {...itemProps}
     />
   );
+}
+
+/** Whether an item is in a section, after the section's first item. */
+function isAfterFirstInSection(
+  node: Node<MenuItemProps>,
+  collection: TreeState<MenuItemProps>['collection']
+): boolean {
+  if (node.parentKey === null || node.parentKey === undefined) {
+    return false;
+  }
+  const [first] = collection.getItem(node.parentKey)?.childNodes ?? [];
+  return first !== undefined && first.key !== node.key;
 }

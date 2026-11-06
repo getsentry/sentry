@@ -1,13 +1,5 @@
 import type * as React from 'react';
-import {
-  Fragment,
-  useCallback,
-  useContext,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {useCallback, useContext, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -40,10 +32,9 @@ import {useOverlay} from '@sentry/scraps/useOverlay';
 import {
   DEFAULT_VIRTUALIZE_THRESHOLD,
   flattenSections,
-  groupVirtualRows,
   useVirtualCollection,
-  VirtualSpacer,
-  type VirtualRow,
+  VirtualRows,
+  type VirtualCollection,
   type VirtualRowProps,
 } from '@sentry/scraps/useVirtualCollection';
 
@@ -191,7 +182,7 @@ function DropdownMenuSeparator({
 }
 
 interface DropdownMenuRowsProps extends DropdownMenuCollectionProps {
-  rows: Array<VirtualRow<MenuItemProps>>;
+  virtual: VirtualCollection<MenuItemProps>;
 }
 
 /**
@@ -204,7 +195,7 @@ interface DropdownMenuRowsProps extends DropdownMenuCollectionProps {
  * after a section, so it is part of the virtualized scroll offsets.
  */
 function DropdownMenuRows({
-  rows,
+  virtual,
   collection,
   separatorProps,
   ...itemProps
@@ -219,29 +210,22 @@ function DropdownMenuRows({
     [collection]
   );
 
-  const renderItem = ({node, props, spaceBefore}: VirtualRow<MenuItemProps>) => (
-    <Fragment key={node.key}>
-      <VirtualSpacer height={spaceBefore} />
-      {itemsAfterSections.has(node.key) ? (
-        <SectionGroup role="presentation" {...props}>
-          <DropdownMenuSeparator separatorProps={separatorProps} />
-          <SectionList>
-            <DropdownMenuCollectionItem node={node} {...itemProps} />
-          </SectionList>
-        </SectionGroup>
-      ) : (
-        <DropdownMenuCollectionItem node={node} rowProps={props} {...itemProps} />
-      )}
-    </Fragment>
-  );
-
-  return groupVirtualRows(rows).flatMap(({section, rows: items}) => {
-    if (!section) {
-      return items.map(renderItem);
-    }
-    return (
-      <Fragment key={section.node.key}>
-        <VirtualSpacer height={section.spaceBefore} />
+  return (
+    <VirtualRows
+      virtual={virtual}
+      renderRow={({node, props}) =>
+        itemsAfterSections.has(node.key) ? (
+          <SectionGroup role="presentation" {...props}>
+            <DropdownMenuSeparator separatorProps={separatorProps} />
+            <SectionList>
+              <DropdownMenuCollectionItem node={node} {...itemProps} />
+            </SectionList>
+          </SectionGroup>
+        ) : (
+          <DropdownMenuCollectionItem node={node} rowProps={props} {...itemProps} />
+        )
+      }
+      renderSection={(section, rows) => (
         <DropdownMenuSection
           node={section.node}
           rowProps={section.props}
@@ -251,11 +235,11 @@ function DropdownMenuRows({
             )
           }
         >
-          {items.map(renderItem)}
+          {rows}
         </DropdownMenuSection>
-      </Fragment>
-    );
-  });
+      )}
+    />
+  );
 }
 
 function DropdownMenuList({
@@ -540,7 +524,7 @@ function DropdownMenuList({
                 >
                   <ReserveLeadingSlot reserve={hasLeadingItems}>
                     <DropdownMenuRows
-                      rows={virtual.rows}
+                      virtual={virtual}
                       collection={stateCollection}
                       closeOnSelect={closeOnSelect}
                       disableTextSelection={disableTextSelection}
@@ -549,7 +533,6 @@ function DropdownMenuList({
                       size={size}
                       state={state}
                     />
-                    <VirtualSpacer height={virtual.spaceAfter} />
                   </ReserveLeadingSlot>
                   {showEmptyMessage && (
                     <Stack

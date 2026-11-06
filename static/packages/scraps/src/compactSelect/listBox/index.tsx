@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
@@ -21,10 +21,8 @@ import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation';
 import {
   flattenSections,
-  groupVirtualRows,
   useVirtualCollection,
-  VirtualSpacer,
-  type VirtualRow,
+  VirtualRows,
 } from '@sentry/scraps/useVirtualCollection';
 
 import {ListBoxDetailsHoverContext, ListBoxOption} from './option';
@@ -279,19 +277,6 @@ export function ListBox<T extends ListItemBase>({
     // oxlint-disable-next-line react/memo-dependencies
   }, [hasEverOverflowed, listItems, scrollContainerRef]);
 
-  const renderOption = ({node, props: rowProps, spaceBefore}: VirtualRow<T>) => (
-    <Fragment key={node.key}>
-      <VirtualSpacer height={spaceBefore} />
-      <ListBoxOption
-        {...rowProps}
-        item={node}
-        listState={listState}
-        size={size}
-        showDetails={showDetails}
-      />
-    </Fragment>
-  );
-
   return (
     <ListBoxDetailsHoverContext value={onDetailsHoverChange}>
       <ReserveLeadingSlot reserve={reserveLeadingSlot}>
@@ -314,27 +299,29 @@ export function ListBox<T extends ListItemBase>({
             ref={mergeRefs(listElementRef, ref)}
           >
             {overlayIsOpen && (
-              <Fragment>
-                {groupVirtualRows(virtual.rows).flatMap(({section, rows}) =>
-                  section ? (
-                    <Fragment key={section.node.key}>
-                      <VirtualSpacer height={section.spaceBefore} />
-                      <ListBoxSection
-                        rowProps={section.props}
-                        item={section.node}
-                        listState={listState}
-                        showSectionHeaders={showSectionHeaders}
-                        showSeparator={section.node.key !== listItems[0]?.key}
-                      >
-                        {rows.map(renderOption)}
-                      </ListBoxSection>
-                    </Fragment>
-                  ) : (
-                    rows.map(renderOption)
-                  )
+              <VirtualRows
+                virtual={virtual}
+                renderRow={({node, props: rowProps}) => (
+                  <ListBoxOption
+                    {...rowProps}
+                    item={node}
+                    listState={listState}
+                    size={size}
+                    showDetails={showDetails}
+                  />
                 )}
-                <VirtualSpacer height={virtual.spaceAfter} />
-              </Fragment>
+                renderSection={(section, rows) => (
+                  <ListBoxSection
+                    rowProps={section.props}
+                    item={section.node}
+                    listState={listState}
+                    showSectionHeaders={showSectionHeaders}
+                    showSeparator={section.node.key !== listItems[0]?.key}
+                  >
+                    {rows}
+                  </ListBoxSection>
+                )}
+              />
             )}
 
             {!searchable && !hasSearch && hiddenOptions.size > 0 && (

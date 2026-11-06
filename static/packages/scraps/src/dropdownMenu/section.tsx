@@ -1,5 +1,4 @@
 import type * as React from 'react';
-import {css, type Theme} from '@emotion/react';
 import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 
@@ -47,16 +46,7 @@ export function DropdownMenuSection({
         {separator}
         {heading}
       </div>
-      <SectionList
-        {...groupProps}
-        css={(theme: Theme) => css`
-          [data-spaced-section-item] {
-            margin-top: ${theme.space['2xs']};
-          }
-        `}
-      >
-        {children}
-      </SectionList>
+      <SectionList {...groupProps}>{children}</SectionList>
     </SectionGroup>
   );
 }
