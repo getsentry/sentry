@@ -542,7 +542,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     "endpoint_name": "organization-events-timeseries",
                 },
             )
-        incremental_loading = features.has(
+        incremental_loading = not transformations and features.has(
             "organizations:explore-incremental-timeseries",
             organization,
             actor=request.user,

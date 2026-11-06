@@ -712,6 +712,84 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             confidence=[any_confidence, None, any_confidence, any_confidence, None, None],
         )
 
+    def test_transformations_with_incremental_cache(self) -> None:
+        self._store_spans_in_buckets([2, 0, 6, 4, 0, 0], self.start)
+        data = {"interval": "30m", "yAxis": "count(span.duration)"}
+        features = {"organizations:explore-incremental-timeseries": True}
+
+        raw_response = self._do_request(data, features=features)
+        assert raw_response.status_code == 200, raw_response.content
+        (raw_timeseries,) = raw_response.data["timeSeries"]
+        assert [point["value"] for point in raw_timeseries["values"]] == [
+            2,
+            0,
+            0,
+            0,
+            6,
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+        ]
+
+        for _ in range(2):
+            response = self._do_request(
+                {**data, "transformations[0]": ["fill(locf)", "smooth(sma,2)"]},
+                features=features,
+            )
+            assert response.status_code == 200, response.content
+            (timeseries,) = response.data["timeSeries"]
+            assert [point["value"] for point in timeseries["values"]] == [
+                2,
+                2,
+                2,
+                2,
+                4,
+                6,
+                5,
+                4,
+                4,
+                4,
+                4,
+                4,
+            ]
+            assert [point["filled"] for point in timeseries["values"]] == [
+                False,
+                True,
+                True,
+                True,
+                False,
+                True,
+                False,
+                True,
+                True,
+                True,
+                True,
+                True,
+            ]
+
+        response = self._do_request(data, features=features)
+        assert response.status_code == 200, response.content
+        (timeseries,) = response.data["timeSeries"]
+        assert [point["value"] for point in timeseries["values"]] == [
+            2,
+            0,
+            0,
+            0,
+            6,
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+        ]
+
     def test_transformations_preserve_authorized_project_filtering(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
