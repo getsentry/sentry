@@ -1,6 +1,7 @@
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {
+  compileSearchRegExp,
   searchFrameFzf,
   searchFrameRegExp,
 } from './flamegraph/flamegraphToolbar/flamegraphSearch';
@@ -46,4 +47,17 @@ describe('regexp', () => {
   it('finds all matches', () => {
     expect(searchFrameRegExp(f('foofoo'), new Map(), 'foo', 'g')).toEqual([0, 3]);
   });
+});
+
+describe('compileSearchRegExp', () => {
+  it('compiles valid patterns', () => {
+    expect(compileSearchRegExp('^foo', 'gi')).toEqual(/^foo/gi);
+  });
+
+  it.each(['^(?.*Sidekiq)', '^(?!*Sidekiq)', '^*Sidekiq)', '^(*Sidekiq)'])(
+    'returns null for invalid pattern %s',
+    pattern => {
+      expect(compileSearchRegExp(pattern, 'gi')).toBeNull();
+    }
+  );
 });
