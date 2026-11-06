@@ -184,7 +184,11 @@ function AutoTopUpModal({
                     <Button
                       key={cents}
                       aria-pressed={isSelected}
-                      onClick={() => setReloadCents(cents)}
+                      onClick={() => {
+                        setReloadCents(cents);
+                        // The API rejects a daily limit that can't cover one reload.
+                        setDailyLimitCents(limit => Math.max(limit, cents));
+                      }}
                     >
                       {isSelected ? <Text variant="accent">{label}</Text> : label}
                     </Button>

@@ -79,6 +79,41 @@ describe('openSeerAutoTopUpModal', () => {
     );
   });
 
+  it('raises the daily limit to cover a larger preset', async () => {
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 15_000}),
+    });
+    openAutoTopUpModal();
+
+    const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
+    expect(dailyLimit).toHaveValue('75');
+
+    await userEvent.click(screen.getByRole('button', {name: '$150'}));
+    expect(dailyLimit).toHaveValue('150');
+
+    await userEvent.click(screen.getByRole('button', {name: '$25'}));
+    expect(dailyLimit).toHaveValue('150');
+
+    await userEvent.click(screen.getByRole('button', {name: '$150'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $150.00 + tax'})
+    );
+
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {
+          enabled: true,
+          thresholdCredits: 500,
+          topUpCredits: 15_000,
+          dailySpendCapCents: 15_000,
+        },
+      })
+    );
+  });
+
   it('saves a custom reload amount and daily limit', async () => {
     const saveMock = MockApiClient.addMockResponse({
       url,
