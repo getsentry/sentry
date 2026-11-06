@@ -18,6 +18,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.auth.principal import acting_user, acting_user_id
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -439,7 +440,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 "organizations:ask-seer-create-pr", organization, actor=request.user
             )
             enable_coding = has_create_pr and organization.get_option(
-                "sentry:enable_seer_coding", False
+                "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
             )
 
             has_code_mode_feature = features.has(
