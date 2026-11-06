@@ -2975,6 +2975,26 @@ class E(Endpoint):
     assert _api_violations(src) == []
 
 
+def test_known_limit_nested_def_reusing_a_parameter_name_reads_the_outer_parameter() -> None:
+    # A nested def gets no ctx of its own, so its reads count as the helper's. Here inner's
+    # `params` is the empty dict it's passed, but the read is still bound to _a's `params`,
+    # which holds the query string. Pinned so it isn't mistaken for a bug.
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._a(request.GET)
+
+    def _a(self, params):
+        def inner(params):
+            return params.get("x")
+
+        return inner({})
+"""
+    assert _summary(_api_violations(src)) == [("S026", 9, "E.get", "query:x")]
+
+
 def _run_s023(src: str) -> list[str]:
     return [e for e in _run(src, filename="src/sentry/apidocs/t.py") if "S023" in e]
 
