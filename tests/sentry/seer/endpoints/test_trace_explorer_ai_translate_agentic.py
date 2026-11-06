@@ -129,13 +129,56 @@ class SearchAgentTranslateEndpointTest(APITestCase):
     def test_translate_missing_parameters(self) -> None:
         response = self.client.post(
             self.url,
-            data={
-                "project_ids": [],
-                "natural_language_query": "",
-            },
+            data={"natural_language_query": ""},
             format="json",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "project_ids" in response.data
         assert "natural_language_query" in response.data
+
+    @patch(
+        "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.send_translate_agentic_request"
+    )
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_translate_empty_project_ids_searches_all_accessible_projects(
+        self, mock_send_request: MagicMock
+    ) -> None:
+        """A member on no teams in an open-membership org searches every project."""
+        mock_send_request.return_value = {"query": "", "status": "ok"}
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member", teams=[])
+        self.login_as(user=member)
+
+        response = self.client.post(
+            self.url,
+            data={"project_ids": [], "natural_language_query": "Find slow transactions"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_send_request.call_args.args[2] == [self.project.id]
+
+    @patch(
+        "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.send_translate_agentic_request"
+    )
+    def test_translate_no_accessible_projects_returns_detail(
+        self, mock_send_request: MagicMock
+    ) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member", teams=[])
+        self.login_as(user=member)
+
+        response = self.client.post(
+            self.url,
+            data={"project_ids": [-1], "natural_language_query": "Find slow transactions"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == {
+            "detail": "You don't have access to any projects in this organization."
+        }
+        mock_send_request.assert_not_called()

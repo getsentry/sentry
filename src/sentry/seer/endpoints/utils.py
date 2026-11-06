@@ -5,14 +5,18 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar
 
 from rest_framework import status
+from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
@@ -23,6 +27,27 @@ class OrganizationTraceExplorerAIPermission(OrganizationPermission):
         "GET": ["org:read"],
         "POST": ["org:read"],
     }
+
+
+def get_search_agent_projects(
+    endpoint: OrganizationEndpoint,
+    request: Request,
+    organization: Organization,
+    project_ids: list[int],
+) -> list[Project]:
+    """Resolve the projects a search agent request may search.
+
+    An empty list means "all projects", like ``[-1]``. The UI sends an empty list for
+    "All Projects" when the user isn't on any project's team, and ``get_projects``
+    would otherwise narrow an empty list to team-member projects, which is empty for
+    that user.
+    """
+    projects = endpoint.get_projects(
+        request, organization, project_ids=set(project_ids) or {ALL_ACCESS_PROJECT_ID}
+    )
+    if not projects:
+        raise ParseError(detail="You don't have access to any projects in this organization.")
+    return projects
 
 
 class ResolvedSeerRun(NamedTuple):

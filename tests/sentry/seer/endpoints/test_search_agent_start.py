@@ -296,3 +296,50 @@ class SearchAgentStartEndpointTest(APITestCase):
 
         assert response.status_code == status.HTTP_200_OK
         assert mock_send_request.call_args.kwargs["referrer"] == SearchAgentReferrer.MCP
+
+    def _login_as_member_without_teams(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member", teams=[])
+        self.login_as(user=member)
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_empty_project_ids_searches_all_accessible_projects(
+        self, mock_send_request: MagicMock
+    ) -> None:
+        """A member on no teams in an open-membership org searches every project."""
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+        self._login_as_member_without_teams()
+
+        response = self._post(project_ids=[])
+
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_send_request.call_args.kwargs["project_ids"] == [self.project.id]
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_all_projects_sentinel_searches_all_accessible_projects(
+        self, mock_send_request: MagicMock
+    ) -> None:
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+        self._login_as_member_without_teams()
+
+        response = self._post(project_ids=[-1])
+
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_send_request.call_args.kwargs["project_ids"] == [self.project.id]
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_no_accessible_projects_returns_detail(self, mock_send_request: MagicMock) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self._login_as_member_without_teams()
+
+        response = self._post(project_ids=[])
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == {
+            "detail": "You don't have access to any projects in this organization."
+        }
+        mock_send_request.assert_not_called()

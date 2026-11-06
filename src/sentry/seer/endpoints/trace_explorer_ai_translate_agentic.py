@@ -17,7 +17,10 @@ from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context
 from sentry.seer.endpoints.search_agent_start import resolve_referrer
-from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission
+from sentry.seer.endpoints.utils import (
+    OrganizationTraceExplorerAIPermission,
+    get_search_agent_projects,
+)
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
@@ -33,8 +36,11 @@ class SearchAgentTranslateSerializer(serializers.Serializer):
     project_ids = serializers.ListField(
         child=serializers.IntegerField(),
         required=True,
-        allow_empty=False,
-        help_text="List of project IDs to search in.",
+        allow_empty=True,
+        help_text=(
+            "List of project IDs to search in. An empty list or [-1] searches every "
+            "project the user can access."
+        ),
     )
     natural_language_query = serializers.CharField(
         required=True,
@@ -136,8 +142,8 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         metric_context = options.get("metric_context")
         code_mode_toggle = bool(options.get("code_mode"))
 
-        projects = self.get_projects(
-            request, organization, project_ids=set(validated_data["project_ids"])
+        projects = get_search_agent_projects(
+            self, request, organization, validated_data["project_ids"]
         )
         project_ids = [project.id for project in projects]
 
