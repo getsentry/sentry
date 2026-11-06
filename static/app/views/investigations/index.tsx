@@ -70,7 +70,7 @@ const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
 
 const TableWrapper = styled('div')`
   table {
-    grid-template-columns: max-content minmax(240px, 1fr) 200px 160px 160px max-content !important;
+    grid-template-columns: max-content minmax(240px, 1fr) 260px 160px 160px max-content !important;
   }
 `;
 
