@@ -5,6 +5,10 @@ import * as Sentry from '@sentry/react';
 import type {DistributedOmit} from 'type-fest';
 
 import {useTranslation} from '@sentry/scraps/translation';
+import {
+  DEFAULT_VIRTUALIZE_THRESHOLD,
+  shouldVirtualize as shouldVirtualizeItems,
+} from '@sentry/scraps/useVirtualCollection';
 
 import {Control, type ControlProps} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
@@ -191,7 +195,7 @@ export function CompactSelect<Value extends SelectKey>({
       duplicate_option_key_signature: duplicateOptionKeySignature,
       has_sections: hasSections,
       option_count: optionCount,
-      virtualize_threshold: virtualizeThreshold ?? 150,
+      virtualize_threshold: virtualizeThreshold ?? DEFAULT_VIRTUALIZE_THRESHOLD,
     });
   }, [allItemsWithKey, componentTitle, virtualizeThreshold]);
 
@@ -274,19 +278,14 @@ export function CompactSelect<Value extends SelectKey>({
 
 function shouldVirtualize<Value extends SelectKey>(
   items: Array<SelectOptionOrSection<Value>>,
-  virtualizeThreshold = 150
+  threshold?: number
 ) {
-  const hasSections = items.some(item => 'options' in item);
-  if (hasSections) {
-    return false;
-  }
-
-  return items.length > virtualizeThreshold;
+  return shouldVirtualizeItems(items, {threshold, isSection: item => 'options' in item});
 }
 
 function trackVirtualizationMetrics<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
-  virtualizeThreshold = 150,
+  virtualizeThreshold = DEFAULT_VIRTUALIZE_THRESHOLD,
   title = 'unknown'
 ) {
   const hasSections = items.some(item => 'options' in item);
@@ -294,7 +293,7 @@ function trackVirtualizationMetrics<Value extends SelectKey>(
     return 'options' in item ? sum + item.options.length : sum + 1;
   }, 0);
 
-  const threshold = virtualizeThreshold ?? 150;
+  const threshold = virtualizeThreshold;
 
   if (optionCount > threshold) {
     Sentry.metrics.count('scraps.compactSelect.virtualize_over_threshold', 1, {

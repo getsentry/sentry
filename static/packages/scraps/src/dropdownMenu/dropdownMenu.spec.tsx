@@ -1000,6 +1000,137 @@ describe('DropdownMenu', () => {
       screen.queryByRole('menuitemradio', {name: 'Item One'})
     ).not.toBeInTheDocument();
   });
+
+  describe('virtualization', () => {
+    // jsdom does not lay out or scroll. Give elements a height so the menu has a
+    // viewport and room to scroll, and make scrollTo move the scroll position
+    // like a browser does.
+    const stubs: Array<[typeof Element.prototype, string, PropertyDescriptor]> = [
+      [HTMLElement.prototype, 'offsetHeight', {get: () => 100}],
+      [Element.prototype, 'clientHeight', {get: () => 100}],
+      [Element.prototype, 'scrollHeight', {get: () => 50_000}],
+      [
+        Element.prototype,
+        'scrollTo',
+        {
+          value(this: Element, options?: ScrollToOptions) {
+            this.scrollTop = options?.top ?? this.scrollTop;
+            this.dispatchEvent(new Event('scroll'));
+          },
+        },
+      ],
+    ];
+    const originals = stubs.map(
+      ([target, name]) =>
+        [target, name, Object.getOwnPropertyDescriptor(target, name)] as const
+    );
+
+    beforeEach(() => {
+      for (const [target, name, descriptor] of stubs) {
+        Object.defineProperty(target, name, {configurable: true, ...descriptor});
+      }
+    });
+
+    afterEach(() => {
+      for (const [target, name, descriptor] of originals) {
+        if (descriptor) {
+          Object.defineProperty(target, name, descriptor);
+        } else {
+          Reflect.deleteProperty(target, name);
+        }
+      }
+    });
+
+    const manyItems = Array.from({length: 500}, (_, index) => ({
+      key: `item-${index}`,
+      label: `Item ${index}`,
+    }));
+
+    it('renders only the items near the viewport in a long menu', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      const rendered = screen.getAllByRole('menuitemradio');
+      expect(rendered.length).toBeGreaterThan(0);
+      expect(rendered.length).toBeLessThan(manyItems.length);
+      expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toBeInTheDocument();
+    });
+
+    it('reaches items outside the window with the keyboard', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toHaveFocus()
+      );
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Item 499'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.keyboard('{End}');
+
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'Item 499'})).toHaveFocus()
+      );
+    });
+
+    it('returns to search from the first item after scrolling away', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          search={{placeholder: 'Search items'}}
+          items={manyItems}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      const search = screen.getByRole('textbox', {name: 'Search items'});
+      await waitFor(() => expect(search).toHaveFocus());
+
+      await userEvent.keyboard('{ArrowDown}');
+      expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toHaveFocus();
+      await userEvent.keyboard('{ArrowUp}');
+      expect(search).toHaveFocus();
+    });
+
+    it('renders every item when the menu is under the threshold', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          virtualizeThreshold={manyItems.length}
+          items={manyItems}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      expect(screen.getAllByRole('menuitemradio')).toHaveLength(manyItems.length);
+    });
+
+    it('does not virtualize menus with sections', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          items={[
+            {key: 'section', label: 'Section', children: manyItems.slice(0, 200)},
+            ...manyItems.slice(200),
+          ]}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      expect(screen.getAllByRole('menuitemradio')).toHaveLength(manyItems.length);
+    });
+  });
 });
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
