@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
+import {useQueryStates} from 'nuqs';
 
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
@@ -10,7 +11,7 @@ import type {
 } from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -22,6 +23,12 @@ import {activateZoomAreaSelect} from './utils';
 // TODO: replace usages of ChartZoom with useChartZoom
 
 type DateTimeUpdate = Parameters<typeof updateDateTime>[0];
+
+const dateRangeParsers = {
+  start: pageFilterParsers.start,
+  end: pageFilterParsers.end,
+  statsPeriod: pageFilterParsers.statsPeriod,
+};
 
 type DataZoomRange = {
   endValue: number;
@@ -227,9 +234,8 @@ export function useChartZoom({
   // written to the URL.
   const zoomedRangeRef = useRef<{end: string; start: string} | null>(null);
 
-  const queryStart = decodeScalar(location.query.start);
-  const queryEnd = decodeScalar(location.query.end);
-  const queryStatsPeriod = decodeScalar(location.query.statsPeriod);
+  const [{start: queryStart, end: queryEnd, statsPeriod: queryStatsPeriod}] =
+    useQueryStates(dateRangeParsers);
 
   // A brush selection leaves its range on ECharts' internal toolbox dataZoom.
   // With `notMerge: false` that range survives option updates, so a chart
