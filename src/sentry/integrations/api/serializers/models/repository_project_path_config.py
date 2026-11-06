@@ -1,5 +1,7 @@
-from typing import TypedDict
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
@@ -11,6 +13,8 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 class RepositoryProjectPathConfigSerializerResponse(TypedDict):
@@ -32,7 +36,12 @@ class RepositoryProjectPathConfigSerializerResponse(TypedDict):
 class RepositoryProjectPathConfigSerializer(
     Serializer[RepositoryProjectPathConfigSerializerResponse]
 ):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[RepositoryProjectPathConfig],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> MutableMapping[Any, Any]:
         if not item_list:
             return {}
 
@@ -84,7 +93,11 @@ class RepositoryProjectPathConfigSerializer(
         }
 
     def serialize(
-        self, obj, attrs, user, **kwargs
+        self,
+        obj: RepositoryProjectPathConfig,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> RepositoryProjectPathConfigSerializerResponse:
         integration = attrs.get("integration")
 

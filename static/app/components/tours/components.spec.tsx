@@ -1,18 +1,13 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  TourAction,
-  TourContextProvider,
-  TourElement,
-  TourGuide,
-} from 'sentry/components/tours/components';
+import {TourAction, TourContextProvider, TourElement, TourGuide} from './components';
 import {
   emptyTourContext,
   ORDERED_TEST_TOUR,
   TestTour,
   TestTourContext,
-} from 'sentry/components/tours/testUtils';
-import {useTourReducer} from 'sentry/components/tours/tourContext';
+} from './testUtils';
+import {useTourReducer} from './tourContext';
 
 jest.mock('sentry/components/tours/tourContext', () => ({
   useTourReducer: jest.fn(),
@@ -150,7 +145,7 @@ describe('Tour Components', () => {
       expect(screen.getByText('1/3')).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Finish tour'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
 
       unmountFirstStep();
       mockUseTourReducer.mockReturnValue({
@@ -180,7 +175,7 @@ describe('Tour Components', () => {
       expect(await screen.findByText('2/3')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Finish tour'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
 
       unmountSecondStep();
       mockUseTourReducer.mockReturnValue({
@@ -210,7 +205,7 @@ describe('Tour Components', () => {
       expect(await screen.findByText('3/3')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Finish tour'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
     });
 
     it('handles registration of the tour steps', () => {

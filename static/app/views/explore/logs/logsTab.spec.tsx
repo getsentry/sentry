@@ -1,9 +1,18 @@
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {initializeLogsTest} from 'sentry-fixture/log';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import * as modal from 'sentry/actionCreators/modal';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -20,13 +29,14 @@ import {
   LOGS_SORT_BYS_KEY,
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
-import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import * as QueryParamsContext from 'sentry/views/explore/queryParams/context';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {AlwaysPresentLogFields} from './constants';
+import {LOGS_AGGREGATE_FIELD_KEY} from './logsQueryParams';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {LogsTabContent} from './logsTab';
+import {OurLogKnownFieldKey} from './types';
 
 function LogsTabContentHarness({
   datePageFilterProps,
@@ -202,6 +212,168 @@ describe('LogsTabContent', () => {
       method: 'GET',
       body: {},
     });
+  });
+
+  it('edits per-series transformations beneath the charts through the log URL', async () => {
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig: {
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              aggregateField: [
+                {groupBy: 'severity'},
+                {yAxes: ['count(message)'], transformations: ['fill(zero)']},
+                {yAxes: ['avg(severity_number)'], transformations: ['smooth(asap,10)']},
+              ].map(field => JSON.stringify(field)),
+            },
+          },
+        },
+        organization: OrganizationFixture({
+          ...organization,
+          features: [...organization.features, 'explore-interpolation-and-smoothing'],
+        }),
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    expect(await screen.findByText('some log message1')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
+    await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
+    await userEvent.click(screen.getByRole('option', {name: '3'}));
+    await waitFor(() =>
+      expect(router.location.query.aggregateField).toEqual([
+        JSON.stringify({groupBy: 'severity'}),
+        JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
+        JSON.stringify({
+          yAxes: ['avg(severity_number)'],
+          transformations: ['smooth(asap,3)'],
+        }),
+      ])
+    );
+
+    await userEvent.click(screen.getAllByRole('button', {name: 'Collapse chart'})[1]!);
+    expect(
+      screen.queryByRole('button', {name: 'Max Window Size'})
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Expand chart'}));
+    expect(screen.getByRole('button', {name: 'Max Window Size'})).toHaveTextContent('3');
+
+    const rows = screen.getAllByRole('group', {name: 'Transformation 1'});
+    await userEvent.click(
+      within(rows[1]!).getByRole('button', {name: 'Remove transformation'})
+    );
+    await userEvent.click(
+      screen.getAllByRole('button', {name: 'Add Transformation'})[1]!
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    await waitFor(() =>
+      expect(router.location.query.aggregateField).toEqual([
+        JSON.stringify({groupBy: 'severity'}),
+        JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
+        JSON.stringify({
+          yAxes: ['avg(severity_number)'],
+          transformations: ['smooth(sma,3)'],
+        }),
+      ])
+    );
+  });
+
+  it('allows query saves when a hidden log series has transformations', async () => {
+    renderGlobalModal({organization, additionalWrapper: ProviderWrapper});
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: {
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            aggregateField: [
+              JSON.stringify({yAxes: ['count(message)']}),
+              JSON.stringify({
+                yAxes: ['avg(severity_number)'],
+                visible: false,
+                transformations: ['fill(locf)'],
+              }),
+            ],
+          },
+        },
+      },
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Dashboard widget'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'New Query'}));
+    expect(
+      await screen.findByPlaceholderText('Enter a name for your new query')
+    ).toBeVisible();
+    expect(await screen.findByText('some log message1')).toBeInTheDocument();
+  });
+
+  it('saves a transformed log chart as a widget while keeping its monitor disabled', async () => {
+    const openAddToDashboard = jest
+      .spyOn(modal, 'openAddToDashboardModal')
+      .mockResolvedValue(undefined);
+
+    try {
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig: {
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              aggregateField: [
+                JSON.stringify({
+                  yAxes: ['count(message)'],
+                  transformations: ['fill(locf)', 'smooth(sma,5)'],
+                }),
+              ],
+            },
+          },
+        },
+        organization: OrganizationFixture({
+          ...organization,
+          features: [...organization.features],
+        }),
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart actions'}));
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Create a Monitor'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
+      );
+
+      expect(openAddToDashboard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widgets: [
+            expect.objectContaining({
+              queries: [
+                expect.objectContaining({
+                  aggregates: ['count(message)'],
+                  transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+                }),
+              ],
+            }),
+          ],
+        })
+      );
+    } finally {
+      openAddToDashboard.mockRestore();
+    }
   });
 
   it('should call APIs as expected', async () => {
@@ -832,6 +1004,63 @@ describe('LogsTabContent', () => {
     ).toBeInTheDocument();
   });
 
+  it('warns that results may be incomplete while auto-refresh is enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        ...eventTableResponseBody,
+        meta: {...eventTableResponseBody.meta, dataScanned: 'partial'},
+      },
+    });
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'timestamp',
+      'message',
+    ];
+    autorefreshEnabledRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['-timestamp'];
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        /we don't scan your full log volume while auto-refresh is on/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not warn that results may be incomplete when auto-refresh finds no logs in a full scan', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}, dataScanned: 'full'},
+      },
+    });
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'timestamp',
+      'message',
+    ];
+    autorefreshEnabledRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['-timestamp'];
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+    await screen.findByText('No logs found');
+
+    expect(screen.queryByText(/may be incomplete/)).not.toBeInTheDocument();
+  });
+
   describe('dropped data layer', () => {
     function mockDroppedData() {
       return MockApiClient.addMockResponse({
@@ -842,7 +1071,7 @@ describe('LogsTabContent', () => {
         ],
         body: {
           meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
-          droppedEvents: [DroppedEventFixture()],
+          droppedEvents: [OutcomeRowFixture()],
           acceptedEvents: [],
         },
       });

@@ -27,7 +27,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
-from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import schedule_update_project_config
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
@@ -39,6 +38,7 @@ from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializer,
     DetectorSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.utils.filters import get_excluded_detector_types
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
@@ -47,11 +47,12 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     should_include_all_projects_detector,
 )
 from sentry.workflow_engine.models import DataSource, Detector
+from sentry.workflow_engine.types import DetectorType
 
 
-def _check_metric_detector_allowed(detector: Detector, organization: Organization) -> None:
+def check_metric_detector_allowed(detector: Detector, organization: Organization) -> None:
     """Raise ResourceDoesNotExist if this is a metric detector the org is not entitled to."""
-    if detector.type != MetricIssue.slug:
+    if detector.type != DetectorType.METRIC_ISSUE:
         return
 
     # Single query: DataSource -> (cast source_id) -> QuerySubscription -> SnubaQuery
@@ -85,6 +86,11 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             detector = (
                 Detector.objects.by_organization(organization.id)
                 .with_type_filters()
+                .exclude(
+                    type__in=get_excluded_detector_types(
+                        request.method, organization, actor=request.user
+                    )
+                )
                 .select_related("project")
                 .get(id=validated_detector_id)
             )
@@ -107,6 +113,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationDetectorPermission,)
 
@@ -132,7 +139,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         """
         Return details on an individual monitor
         """
-        _check_metric_detector_allowed(detector, organization)
+        check_metric_detector_allowed(detector, organization)
 
         serialized_detector = serialize(
             detector,
@@ -164,16 +171,16 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         """
         Update an existing monitor
         """
-        _check_metric_detector_allowed(detector, organization)
+        check_metric_detector_allowed(detector, organization)
 
         if not can_edit_detector(detector, request):
             if not is_system_created_detector(detector):
                 enforce_scope(request, "alerts:write")
             raise PermissionDenied
 
-        group_type = request.data.get("type") or detector.group_type.slug
+        detector_type = request.data.get("type") or detector.type
         validator = get_detector_validator(
-            request, detector.linked_project, group_type, detector, partial=True
+            request, detector.linked_project, detector_type, detector, partial=True
         )
 
         if not validator.is_valid():
@@ -203,7 +210,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         """
         Delete a monitor
         """
-        # Intentionally no _check_metric_detector_allowed gate here:
+        # Intentionally no check_metric_detector_allowed gate here:
         # orgs should be able to delete detectors they can no longer use
         # (e.g. after a plan downgrade).
         if not can_delete_detector(detector, request):
@@ -214,7 +221,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         )
         validator.delete()
 
-        if detector.type == MetricIssue.slug:
+        if detector.type == DetectorType.METRIC_ISSUE:
             schedule_update_project_config(detector)
 
         create_audit_entry(

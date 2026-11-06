@@ -875,7 +875,10 @@ class AssembleDownloadExploreTest(
                 content_type="application/json",
             )
         assert response.status_code == 201, response.content
-        return json.loads(response.content)
+        payload = json.loads(response.content)
+        if not isinstance(payload, dict):
+            raise TypeError("Export create response is not a JSON object")
+        return payload
 
     def _assert_explore_logs_jsonl_export_create_payload(
         self, payload: dict[str, Any]

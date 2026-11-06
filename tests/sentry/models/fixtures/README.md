@@ -1,0 +1,1 @@
+- `index.wasm` is identical to the `symbolic` fixture of the same name as of https://github.com/getsentry/symbolic/commit/089c85d7c30181b7b8e2d554d3179d25c3228957.

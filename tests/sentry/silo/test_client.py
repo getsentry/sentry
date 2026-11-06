@@ -402,7 +402,7 @@ class SiloClientTest(TestCase):
             class BailOut(Exception):
                 pass
 
-            def test_validate_cell_ip_address(ip) -> None:
+            def test_validate_cell_ip_address(ip: str) -> None:
                 assert ip == "172.31.255.255"
                 # We can't use responses library for this unit test as it hooks Session.send. So we assert that the
                 # validate_cell_ip_address function is properly called for the proxy request code path.
@@ -484,7 +484,7 @@ def test_get_cell_ip_addresses_when_single_host_invalid(mock_incr: MagicMock) ->
 
     cell_config = (us1_cell, us2_cell, dead_cell)
 
-    def mock_gethostbyname_for_cells(hostname):
+    def mock_gethostbyname_for_cells(hostname: str) -> str:
         if hostname == us1_cell_address.split("//")[1].split(":")[0]:
             return "172.31.10.1"
         elif hostname == us2_cell_address.split("//")[1].split(":")[0]:

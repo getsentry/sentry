@@ -1,19 +1,24 @@
 import re
+from collections.abc import Sequence
 from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
 from django.core import mail
-from django.core.mail.message import EmailMultiAlternatives
+from django.core.mail.message import EmailMessage, EmailMultiAlternatives
 from django.db.models import F
 from slack_sdk.web import SlackResponse
 
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
 
 pytestmark = [requires_snuba]
 
@@ -35,7 +40,14 @@ GRAVATAR_AVATAR_URL = re.compile(r"https://gravatar\.com/avatar/")
     ),
 )
 class AssignedNotificationAPITest(APITestCase):
-    def validate_email(self, outbox, index, email, txt_msg, html_msg):
+    def validate_email(
+        self,
+        outbox: Sequence[EmailMessage | EmailMultiAlternatives],
+        index: int,
+        email: str,
+        txt_msg: str,
+        html_msg: str,
+    ) -> None:
         msg = outbox[index]
         assert msg.to == [email]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -46,7 +58,15 @@ class AssignedNotificationAPITest(APITestCase):
         assert isinstance(alt0, str)
         assert html_msg in alt0
 
-    def validate_slack_message(self, msg, group, project, user_id, mock_post, index=0):
+    def validate_slack_message(
+        self,
+        msg: str,
+        group: Group,
+        project: Project,
+        user_id: int,
+        mock_post: MagicMock,
+        index: int = 0,
+    ) -> None:
         blocks = orjson.loads(mock_post.call_args_list[index].kwargs["blocks"])
         fallback_text = mock_post.call_args_list[index].kwargs["text"]
         assert fallback_text == msg
@@ -56,7 +76,7 @@ class AssignedNotificationAPITest(APITestCase):
         channel = mock_post.call_args_list[index].kwargs["channel"]
         assert channel == str(user_id)
 
-    def setup_user(self, user, team):
+    def setup_user(self, user: User, team: Team) -> None:
         member = self.create_member(user=user, organization=self.organization, role="member")
         self.create_team_membership(team, member, role="admin")
         self.create_user_option(user=user, key="self_notifications", value="1")
@@ -113,7 +133,7 @@ class AssignedNotificationAPITest(APITestCase):
         assert self.project.slug in blocks[-1]["elements"][0]["text"]
 
     @responses.activate
-    def test_sends_assignment_notification_with_suspect_commits(self, mock_post):
+    def test_sends_assignment_notification_with_suspect_commits(self, mock_post: MagicMock) -> None:
         """
         Test that suspect commits are included in assignment notification emails
         when GroupOwner records exist.
@@ -168,7 +188,9 @@ class AssignedNotificationAPITest(APITestCase):
         assert "abc123d" in html_content  # shortened commit ID
         assert user.get_display_name() in html_content  # commit author
 
-    def test_sends_assignment_notification_without_suspect_commits(self, mock_post):
+    def test_sends_assignment_notification_without_suspect_commits(
+        self, mock_post: MagicMock
+    ) -> None:
         """
         Test that assignment notifications work normally when no suspect commits exist.
         """
@@ -193,7 +215,7 @@ class AssignedNotificationAPITest(APITestCase):
         # But assignment notification should still work
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
 
-    def test_enhanced_privacy_hides_suspect_commits_in_emails(self, mock_post):
+    def test_enhanced_privacy_hides_suspect_commits_in_emails(self, mock_post: MagicMock) -> None:
         user = self.create_user()
         self.setup_user(user, self.team)
         self.login_as(user)
@@ -221,7 +243,7 @@ class AssignedNotificationAPITest(APITestCase):
         # Enable enhanced privacy flag
         self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
         self.organization.refresh_from_db()
-        assert self.organization.flags.enhanced_privacy.is_set is True
+        assert getattr(self.organization.flags, "enhanced_privacy").is_set is True
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
@@ -245,7 +267,9 @@ class AssignedNotificationAPITest(APITestCase):
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
 
     @responses.activate
-    def test_enhanced_privacy_default_shows_suspect_commits_in_emails(self, mock_post):
+    def test_enhanced_privacy_default_shows_suspect_commits_in_emails(
+        self, mock_post: MagicMock
+    ) -> None:
         """
         Test that suspect commits are shown by default in assignment notification emails
         when enhanced privacy is not set.
@@ -275,7 +299,7 @@ class AssignedNotificationAPITest(APITestCase):
             context={"commitId": commit.id},
         )
 
-        assert self.organization.flags.enhanced_privacy.is_set is False
+        assert getattr(self.organization.flags, "enhanced_privacy").is_set is False
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
@@ -299,7 +323,9 @@ class AssignedNotificationAPITest(APITestCase):
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
 
     @responses.activate
-    def test_sends_assignment_notification_with_multiple_suspect_commits(self, mock_post):
+    def test_sends_assignment_notification_with_multiple_suspect_commits(
+        self, mock_post: MagicMock
+    ) -> None:
         """
         Test that when multiple suspect commits exist, the most recent one is displayed in notifications.
         """

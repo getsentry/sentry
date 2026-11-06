@@ -5,9 +5,6 @@ import {vec2, type mat3} from 'gl-matrix';
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {Stack} from '@sentry/scraps/layout';
 
-import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
-import {useCanvasScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasScroll';
-import {useCanvasZoomOrScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasZoomOrScroll';
 import {defined} from 'sentry/utils/defined';
 import {
   CanvasPoolManager,
@@ -23,6 +20,10 @@ import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphR
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {formatTo} from 'sentry/utils/profiling/units/units';
+
+import {useCanvasScroll} from './interactions/useCanvasScroll';
+import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
+import {FlamegraphTooltip} from './flamegraphTooltip';
 
 interface FlamegraphPreviewProps {
   flamegraph: FlamegraphModel;

@@ -3,8 +3,9 @@ import {createParser, parseAsStringLiteral, useQueryState, useQueryStates} from 
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {defined} from 'sentry/utils/defined';
-import {replayDetailFilterParsers} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {replayDetailFilterParsers} from './useFiltersInLocationQuery';
 
 export enum TabKey {
   AI = 'ai',

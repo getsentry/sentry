@@ -8,7 +8,7 @@ import {
   UserAvatar,
   type BaseAvatarProps,
 } from '@sentry/scraps/avatar';
-import {useAvatarColors} from '@sentry/scraps/avatarButton';
+import {useAvatarGradient} from '@sentry/scraps/avatarButton';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {useInvertedTheme} from '@sentry/scraps/theme';
@@ -49,7 +49,8 @@ export function NavigationMenuHeader({
       subtitle={user.email}
       avatarProps={getUserAvatarProps(user)}
       avatar={
-        <Container
+        <Flex
+          position="relative"
           width="32px"
           height="32px"
           radius="full"
@@ -57,7 +58,7 @@ export function NavigationMenuHeader({
           border="muted"
         >
           <UserAvatar user={user} size={30} />
-        </Container>
+        </Flex>
       }
     />
   );
@@ -67,13 +68,22 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
   const lightTheme = useInvertedTheme();
 
   return (
-    <Container width="32px" height="32px" radius="md" overflow="hidden" border="muted">
+    <Flex
+      position="relative"
+      width="32px"
+      height="32px"
+      radius="md"
+      overflow="hidden"
+      border="muted"
+    >
       <ThemeProvider theme={lightTheme}>
         <OrganizationAvatar organization={organization} size={30} />
       </ThemeProvider>
-    </Container>
+    </Flex>
   );
 }
+
+const DEFAULT_GRADIENT = {start: '#2c155c', end: '#4e168c'};
 
 function MenuHeader({
   label,
@@ -90,8 +100,7 @@ function MenuHeader({
 }) {
   const currentTheme = useTheme();
   const invertedTheme = useInvertedTheme();
-  const avatarColors = useAvatarColors(avatarProps);
-  const backgroundColor = avatarColors.type === 'image' ? avatarColors.chonk : undefined;
+  const gradient = useAvatarGradient(avatarProps, DEFAULT_GRADIENT);
 
   return (
     <ThemeProvider theme={currentTheme.type === 'dark' ? currentTheme : invertedTheme}>
@@ -100,17 +109,7 @@ function MenuHeader({
         padding="xs"
         css={theme => css`
           margin: -${theme.space.sm} -${theme.space.lg};
-          background: linear-gradient(90deg, #2c155c, #4e168c);
-          ${
-            backgroundColor &&
-            css`
-              background: linear-gradient(
-                90deg,
-                color-mix(in srgb, ${backgroundColor} 25%, black),
-                color-mix(in srgb, ${backgroundColor} 40%, black)
-              );
-            `
-          }
+          background: linear-gradient(90deg, ${gradient.start}, ${gradient.end});
         `}
       >
         <Stack gap="md" padding="md lg">

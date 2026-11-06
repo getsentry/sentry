@@ -8,29 +8,24 @@ import {
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
 async function findLegacySeerOption() {
-  const legacyOptionText = await screen.findByText(/Includes \$25\/mo in credits/);
-  const legacyOption = legacyOptionText.closest('[role="checkbox"]');
-  expect(legacyOption).toBeInTheDocument();
-  return legacyOption!;
+  await screen.findByText(/Includes \$25\/mo in credits/);
+  return screen.getByTestId('product-option-' + AddOnCategory.LEGACY_SEER);
 }
 
 function querySeerOption() {
-  return screen
-    .queryAllByRole('checkbox', {name: 'Add Seer to plan'})
-    .find(option => option.textContent?.includes('/ active contributor / month'));
+  return screen.queryByTestId('product-option-' + AddOnCategory.SEER);
 }
 
 // XXX(isabella): This tests with both legacy Seer and Seer
 // which wouldn't happen in production but is useful for testing
 describe('ProductSelect', () => {
-  const api = new MockApiClient();
   const organization = OrganizationFixture({features: ['seer-billing']});
   const subscription = SubscriptionFixture({organization});
 
@@ -75,10 +70,9 @@ describe('ProductSelect', () => {
     });
     SubscriptionStore.set(organization.slug, freeSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     expect(await findLegacySeerOption()).toBeInTheDocument();
     expect(screen.getAllByTestId(/product-option-feature/)).toHaveLength(3); // each subcategory + included credits
@@ -100,20 +94,18 @@ describe('ProductSelect', () => {
     };
     SubscriptionStore.set(organization.slug, unavailableSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     expect(await findLegacySeerOption()).toBeInTheDocument();
-    expect(querySeerOption()).toBeUndefined();
+    expect(querySeerOption()).not.toBeInTheDocument();
   });
 
   it('renders with correct monthly price and credits for products', async () => {
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     const seerProduct = await findLegacySeerOption();
     expect(seerProduct).toHaveTextContent('$20/mo');
@@ -127,10 +119,9 @@ describe('ProductSelect', () => {
     });
     SubscriptionStore.set(organization.slug, annualSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     const seerProduct = await findLegacySeerOption();
     expect(seerProduct).toHaveTextContent('$216/yr');
@@ -141,13 +132,12 @@ describe('ProductSelect', () => {
     const seerSubscription = SubscriptionWithLegacySeerFixture({organization});
     SubscriptionStore.set(organization.slug, seerSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     const legacySeerCheckbox = await findLegacySeerOption();
-    expect(legacySeerCheckbox).toBeChecked();
+    expect(within(legacySeerCheckbox).getByRole('checkbox')).toBeChecked();
   });
 
   it('does not render with product selected based on current subscription if plan is trial', async () => {
@@ -155,12 +145,11 @@ describe('ProductSelect', () => {
     trialSubscription.reservedBudgets = [SeerReservedBudgetFixture({id: '2'})];
     SubscriptionStore.set(organization.slug, trialSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     const legacySeerCheckbox = await findLegacySeerOption();
-    expect(legacySeerCheckbox).not.toBeChecked();
+    expect(within(legacySeerCheckbox).getByRole('checkbox')).not.toBeChecked();
   });
 });

@@ -54,6 +54,8 @@ import {
 interface IssueStackTraceBaseProps {
   event: Event;
   group?: Group;
+  /** Use a local initial section state instead of saved collapse preferences. */
+  initialCollapse?: boolean;
   projectSlug?: Project['slug'];
 }
 
@@ -76,7 +78,7 @@ type PersistedDisplayOption = 'raw-stack-trace' | 'minified';
 const NO_PERSIST_KEY = '__no_persist_stacktrace_display__';
 
 export function IssueStackTrace(props: IssueStackTraceProps) {
-  const {event, group, projectSlug} = props;
+  const {event, group, projectSlug, initialCollapse} = props;
   const organization = useOrganization();
   const storageKey = projectSlug
     ? `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`
@@ -126,6 +128,7 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
     >
       {projectSlug && <PersistDisplayOptions setPersistedOptions={setPersistedOptions} />}
       <IssueStackTraceContent
+        initialCollapse={initialCollapse}
         // Reset internal state when switching events
         key={event.id}
         event={event}
@@ -163,6 +166,7 @@ function PersistDisplayOptions({
 }
 
 function IssueStackTraceContent({
+  initialCollapse,
   event,
   values,
   group,
@@ -223,7 +227,13 @@ function IssueStackTraceContent({
 
   if (view === 'raw') {
     return (
-      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
+      <FoldSection
+        sectionKey={sectionKey}
+        title="Stack Trace"
+        actions={sectionActions}
+        initialCollapse={initialCollapse}
+        disableCollapsePersistence={initialCollapse !== undefined}
+      >
         <Stack gap="lg">
           <Panel>
             <RawStackTraceText>
@@ -253,7 +263,13 @@ function IssueStackTraceContent({
     const excMeta = exceptionValuesMeta?.[exc.exceptionIndex];
 
     return (
-      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
+      <FoldSection
+        sectionKey={sectionKey}
+        title="Stack Trace"
+        actions={sectionActions}
+        initialCollapse={initialCollapse}
+        disableCollapsePersistence={initialCollapse !== undefined}
+      >
         <Stack gap="lg">
           <Stack gap="sm">
             {hasExceptionInfo && (
@@ -298,7 +314,13 @@ function IssueStackTraceContent({
   }
 
   return (
-    <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
+    <FoldSection
+      sectionKey={sectionKey}
+      title="Stack Trace"
+      actions={sectionActions}
+      initialCollapse={initialCollapse}
+      disableCollapsePersistence={initialCollapse !== undefined}
+    >
       <Stack gap="lg">
         <Text variant="muted">
           {tn(

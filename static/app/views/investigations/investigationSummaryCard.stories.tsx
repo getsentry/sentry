@@ -4,14 +4,15 @@ import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
-import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
+
+import {InvestigationSummaryCard} from './investigationSummaryCard';
 
 export default Storybook.story('Investigations — Summary Card', story => {
   story('Filled summary', () => (
     <Fragment>
       <p>
         Completed investigations surface a short headline and supporting description above
-        the notebook cells.
+        the notebook blocks.
       </p>
       <InvestigationSummaryCard
         summary="Errors rose across releases"

@@ -1,8 +1,9 @@
 import {z} from 'zod';
 
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+
+import {getTraceNodeAttribute} from './aiTraceNodes';
+import type {AITraceSpanNode} from './types';
 
 const CODE_MODE_TOOLS = new Set([
   'sentry_api_execute',
@@ -30,10 +31,17 @@ const codeModeInputSchema = z
   .pipe(
     z.object({
       code: z.string().refine(code => code.trim().length > 0),
+      // No default: assuming JavaScript would run the JS formatter on other
+      // languages, e.g. flatten Python indentation.
       language: z
         .string()
-        .catch('javascript')
-        .transform(language => LANGUAGE_ALIASES.get(language) ?? language),
+        .optional()
+        .catch(undefined)
+        .transform(language =>
+          language === undefined
+            ? undefined
+            : (LANGUAGE_ALIASES.get(language) ?? language)
+        ),
     })
   );
 

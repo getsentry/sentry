@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
+import {isRecord} from 'sentry/utils/object/isRecord';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {extractAssistantOutput} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
@@ -11,9 +12,10 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
+
+import {AIContentRenderer} from './aiContentRenderer';
 
 interface AIOutputData {
   reasoningText: string | null;
@@ -203,13 +205,7 @@ export function getAIToolOutput(
     }
   }
 
-  if (
-    parsed !== null &&
-    typeof parsed === 'object' &&
-    !Array.isArray(parsed) &&
-    'input' in parsed &&
-    'output' in parsed
-  ) {
+  if (isRecord(parsed) && 'input' in parsed && 'output' in parsed) {
     // Serialize even scalar outputs so false, 0, null, and empty strings remain visible.
     return JSON.stringify(parsed.output);
   }

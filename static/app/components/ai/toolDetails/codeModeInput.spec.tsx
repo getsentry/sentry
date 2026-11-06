@@ -26,3 +26,14 @@ it('shows Python without applying a JavaScript formatter', () => {
     )
   ).toBeInTheDocument();
 });
+
+it('highlights unlabeled code as JavaScript but keeps the source as-is', () => {
+  const code = 'for x in range(3):\n    if x:\n        print(x)';
+  render(<CodeModeInput code={code} />);
+  expect(screen.getByText('code')).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      (_, element) => element?.tagName === 'CODE' && element.textContent === code
+    )
+  ).toHaveClass('language-javascript');
+});

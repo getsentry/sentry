@@ -20,9 +20,11 @@ from sentry.api.bases.organization import (
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
+from sentry.apidocs.formats import iso_datetime
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import is_active_staff
 from sentry.constants import ObjectStatus
 from sentry.issues.action_log.request import resolve_action_source
@@ -186,9 +188,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             PreprodArtifactApiGetLatestBaseSnapshotEvent(
                 organization_id=organization.id,
                 project_id=artifact.project_id,
-                user_id=(
-                    request.user.id if request.user and request.user.is_authenticated else None
-                ),
+                user_id=acting_user_id(request.user),
                 artifact_id=str(artifact.id),
                 app_id=app_id,
                 client=resolve_action_source(request),
@@ -241,7 +241,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             "image_count": snapshot_metrics.image_count,
             "images": images,
             "diff_threshold": manifest_diff_threshold,
-            "date_added": artifact.date_added.isoformat(),
+            "date_added": iso_datetime(artifact.date_added),
         }
 
         cc = artifact.commit_comparison

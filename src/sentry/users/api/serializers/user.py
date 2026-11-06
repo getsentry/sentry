@@ -5,12 +5,13 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.app import env
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -32,34 +33,47 @@ from sentry.utils.serializers import manytoone_to_dict
 
 
 class SerializedAvatarFields(TypedDict, total=False):
-    avatarType: str
-    avatarUuid: str | None
-    avatarUrl: str | None
+    avatarType: Annotated[
+        str, ApiDescription("Avatar type, such as letter_avatar, upload or gravatar")
+    ]
+    avatarUuid: Annotated[str | None, ApiDescription("ID of the uploaded avatar image, or null")]
+    avatarUrl: Annotated[
+        str | None, ApiDescription("URL of the avatar image, or null if none is set")
+    ]
 
 
 class _UserEmails(TypedDict):
-    id: str
-    email: str
-    is_verified: bool
+    id: Annotated[str, ApiDescription("Email ID")]
+    email: Annotated[str, ApiDescription("Email address")]
+    is_verified: Annotated[bool, ApiDescription("Whether the email address is verified")]
 
 
 class _Organization(TypedDict):
-    slug: str
-    name: str
+    slug: Annotated[str, ApiDescription("Organization slug")]
+    name: Annotated[str, ApiDescription("Organization name")]
 
 
 class _Provider(TypedDict):
-    id: str
-    name: str
+    id: Annotated[str, ApiDescription("Auth provider key, such as google or saml2")]
+    name: Annotated[str, ApiDescription("Display name of the auth provider")]
 
 
 class _Identity(TypedDict):
-    id: str
-    name: str
-    organization: _Organization
-    provider: _Provider
-    dateVerified: datetime
-    dateSynced: datetime
+    id: Annotated[str, ApiDescription("SSO identity ID")]
+    name: Annotated[str, ApiDescription("User's identifier at the auth provider")]
+    organization: Annotated[
+        _Organization, ApiDescription("Organization the auth provider belongs to")
+    ]
+    provider: Annotated[_Provider, ApiDescription("Auth provider of the identity")]
+    dateVerified: Annotated[
+        datetime,
+        ApiDescription(
+            "When the identity was last verified by signing in through the auth provider"
+        ),
+    ]
+    dateSynced: Annotated[
+        datetime, ApiDescription("When the identity was last synced from the auth provider")
+    ]
 
 
 class _SerializedStacktraceOrder(int, Enum):
@@ -78,35 +92,79 @@ class _UserOptions(TypedDict):
     prefersIssueDetailsStreamlinedUI: bool | None
 
 
+class _AuthenticatorSerializerResponse(TypedDict):
+    id: Annotated[str, ApiDescription("Authenticator ID")]
+    type: Annotated[str, ApiDescription("Authenticator type, such as totp, sms, u2f or recovery")]
+    name: Annotated[str, ApiDescription("Display name of the authenticator type")]
+    dateCreated: Annotated[datetime, ApiDescription("When the authenticator was added")]
+    dateUsed: Annotated[
+        datetime | None, ApiDescription("When the authenticator was last used, or null")
+    ]
+
+
 class UserSerializerResponseOptional(TypedDict, total=False):
     # NOTE: There is a bug here where trying to move these fields to
     # UserSerializerResponse and using NotRequired. "identities" is marked as
     # required for places where UserSerializerResponse is used as a field (e.g
     # OrganizationMemberResponse).
-    identities: list[_Identity]
-    avatar: SerializedAvatarFields
-    authenticators: list[Any]  # TODO: find out what type this is
-    canReset2fa: bool
+    identities: Annotated[
+        list[_Identity],
+        ApiDescription(
+            "SSO identities of the user. Only included for the requesting user, unless the request has active superuser or staff access"
+        ),
+    ]
+    avatar: Annotated[SerializedAvatarFields, ApiDescription("User avatar")]
+    authenticators: Annotated[
+        list[_AuthenticatorSerializerResponse],
+        ApiDescription(
+            "Two-factor authenticators of the user, without backup methods such as recovery codes"
+        ),
+    ]
+    canReset2fa: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the organization can reset the user's two-factor authentication. True only if the user is a member of exactly one active organization"
+        ),
+    ]
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):
-    id: str
-    name: str
-    username: str
-    email: str
-    avatarUrl: str
-    isActive: bool
-    isSuspended: bool
-    hasPasswordAuth: bool
-    isManaged: bool
-    dateJoined: datetime
-    lastLogin: datetime | None
-    has2fa: bool
-    lastActive: datetime | None
-    isSuperuser: bool
-    isStaff: bool
-    experiments: dict[str, Any]  # TODO
-    emails: list[_UserEmails]
+    id: Annotated[str, ApiDescription("User ID")]
+    name: Annotated[
+        str,
+        ApiDescription(
+            "Display name: the user's name, or their email or username if no name is set"
+        ),
+    ]
+    username: Annotated[str, ApiDescription("Username")]
+    email: Annotated[str, ApiDescription("Primary email address")]
+    avatarUrl: Annotated[str, ApiDescription("Gravatar URL for the primary email address")]
+    isActive: Annotated[bool, ApiDescription("Whether the account is active")]
+    isSuspended: Annotated[
+        bool, ApiDescription("Whether the account is suspended. Suspended users can't sign in")
+    ]
+    hasPasswordAuth: Annotated[bool, ApiDescription("Whether the user has a password set")]
+    isManaged: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the account is managed, which stops the user from changing their username, password and similar details"
+        ),
+    ]
+    dateJoined: Annotated[datetime, ApiDescription("When the account was created")]
+    lastLogin: Annotated[datetime | None, ApiDescription("When the user last signed in, or null")]
+    has2fa: Annotated[
+        bool, ApiDescription("Whether the user has two-factor authentication enabled")
+    ]
+    lastActive: Annotated[datetime | None, ApiDescription("When the user was last active, or null")]
+    isSuperuser: Annotated[bool, ApiDescription("Whether the user is a superuser")]
+    isStaff: Annotated[bool, ApiDescription("Whether the user has staff status")]
+    experiments: Annotated[dict[str, str], ApiDescription("Deprecated. Always an empty object")]
+    emails: Annotated[
+        list[_UserEmails],
+        ApiDescription(
+            "Email addresses of the user. Only included for the requesting user or superusers; empty otherwise"
+        ),
+    ]
 
 
 class UserSerializerResponseSelf(UserSerializerResponse):

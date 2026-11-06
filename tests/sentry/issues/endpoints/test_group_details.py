@@ -107,8 +107,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(data={"release": "1.0"}, project_id=self.project.id)
+        assert event.group is not None
 
         group = event.group
+        assert group is not None
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.qualified_short_id}/"
 
@@ -121,8 +123,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_no_releases(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
 
         group = event.group
+        assert group is not None
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.qualified_short_id}/"
 
@@ -181,8 +185,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         entry = GroupActionLogEntry.objects.get(
             group_id=group.id, type=GroupActionType.COMMENT.value
         )
-        entry_id = str(entry.id)
-        assert response.data["id"] == entry_id
+        assert response.data["id"] == comment_id
         assert int(comment_id) == entry.data["comment_id"]
 
         # Put the comment at the oldest edge of the 99-item mixed feed.
@@ -204,7 +207,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             f"{comments_url}{comment_id}/", format="json", data={"text": "edited"}
         )
         assert response.status_code == 200, response.content
-        assert response.data["id"] == entry_id
+        assert response.data["id"] == comment_id
         assert response.data["commentId"] == comment_id
         assert response.data["data"]["text"] == "edited"
 
@@ -475,7 +478,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
             )
+            assert event.group is not None
             group = event.group
+            assert group is not None
             event.group.update(times_seen=1)
             buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
 
@@ -563,7 +568,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.check.logger")
     @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
@@ -602,7 +606,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             },
         )
 
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.check.logger")
     @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
@@ -641,7 +644,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             },
         )
 
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
     def test_aligned_status_skips(
@@ -662,7 +664,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
         )
 
     @override_options({"issues.derived_data.status_reconciliation.enabled": False})
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
     def test_disabled_reconciliation_does_not_schedule(
         self, mock_apply_async: mock.MagicMock
@@ -674,7 +675,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
         mock_apply_async.assert_not_called()
 
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
     def test_derived_not_expected_correct_does_not_schedule(
         self, mock_apply_async: mock.MagicMock
@@ -687,7 +687,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
         mock_apply_async.assert_not_called()
 
-    @with_feature("projects:issue-status-reconciliation")
     def test_no_derived_data_skips(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
@@ -696,13 +695,8 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
         log.assert_not_logged(ReconcileStatusAction)
 
-    @with_feature(
-        {
-            "projects:issue-status-reconciliation": False,
-            "projects:issue-action-log-write-to-db": False,
-        }
-    )
-    def test_feature_flags_off_skip(self) -> None:
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_feature_flag_off_skips(self) -> None:
         group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
         self.create_group_derived_data(group=group, data={"status": "open"})
 
@@ -711,35 +705,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
         log.assert_not_logged(ReconcileStatusAction)
 
-    @with_feature(
-        {
-            "projects:issue-status-reconciliation": False,
-            "projects:issue-action-log-write-to-db": True,
-        }
-    )
-    @mock.patch("sentry.issues.derived.check.logger")
-    def test_backfilled_project_logs_without_reconciliation_flag(
-        self, mock_logger: mock.MagicMock
-    ) -> None:
-        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
-        self.create_group_derived_data(group=group, data={"status": "closed"})
-
-        self._get(group)
-
-        mock_logger.info.assert_called_once_with(
-            "issues.status_reconciliation.diverged",
-            extra={
-                "group_id": group.id,
-                "project_id": group.project_id,
-                "derived_status": "closed",
-                "actual_status": "open",
-                "source": "read_path",
-            },
-        )
-
     @override_options({"issues.derived_data.read_path_checks.killswitch": True})
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.logger")
     def test_read_path_checks_killswitch(self, mock_logger: mock.MagicMock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
@@ -820,6 +786,7 @@ class GroupUpdateTest(APITestCase):
 
         group_resolution = GroupResolution.objects.filter(group=group).first()
         assert group_resolution is not None
+        assert group_resolution.group is not None
         assert group_resolution.group == group
         assert group_resolution.type == GroupResolution.Type.in_next_release
         assert group_resolution.status == GroupResolution.Status.pending
@@ -835,6 +802,7 @@ class GroupUpdateTest(APITestCase):
         # Using store_event() instead of create_group() produces GroupRelease objects
         # which is considered during the update_groups() call
         event = self.store_event(data={}, project_id=project.id)
+        assert event.group is not None
         group = event.group
         assert group is not None
 
@@ -858,6 +826,7 @@ class GroupUpdateTest(APITestCase):
         # Using store_event() instead of create_group() produces GroupRelease objects
         # which is considered during the update_groups() call
         event = self.store_event(data=data, project_id=project.id)
+        assert event.group is not None
         group = event.group
         assert group is not None
         assert group.status == GroupStatus.UNRESOLVED
@@ -879,6 +848,7 @@ class GroupUpdateTest(APITestCase):
 
         group_resolution = GroupResolution.objects.filter(group=group).first()
         assert group_resolution is not None
+        assert group_resolution.group is not None
         assert group_resolution.group == group
         # For semver projects, we consider resolution based on an expression rather than a specific release,
         # thus, it is considered resolved in the release that has the highest semver
@@ -894,6 +864,7 @@ class GroupUpdateTest(APITestCase):
         # Let's test that none of these releases regress the group
         for release in releases + [old_version]:
             event = self.store_event(data={"release": release.version}, project_id=project.id)
+            assert event.group is not None
             assert event.group == group
             # Refetch from DB to ensure the latest state is fetched
             group = Group.objects.get(id=group.id, project=project.id)
@@ -1207,9 +1178,9 @@ class GroupUpdateTest(APITestCase):
         assert resp.status_code == 204
         assert not Group.objects.filter(id=group.id).exists()
         assert GroupHash.objects.filter(id=group_hash.id).exists()
-        tombstone = GroupTombstone.objects.get(
-            id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id
-        )
+        group_tombstone_id = GroupHash.objects.get(id=group_hash.id).group_tombstone_id
+        assert group_tombstone_id is not None
+        tombstone = GroupTombstone.objects.get(id=group_tombstone_id)
         assert tombstone.message == group.message
         assert tombstone.culprit == group.culprit
         assert tombstone.project == group.project
@@ -1357,3 +1328,27 @@ class GroupDeleteTest(APITestCase):
         assert response.data["firstRelease"] is None
         response = self.client.get(url, {"collapse": ["release"]})
         assert "firstRelease" not in response.data
+
+
+class GroupDetailsCorruptDerivedDataTest(APITestCase):
+    def test_corrupt_derived_status_does_not_break_details_or_reconcile(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        derived = self.create_group_derived_data(group, data={"status": "invalid"})
+        with (
+            capture_action_log() as log,
+            mock.patch("sentry.issues.derived.check.metrics.incr") as incr,
+        ):
+            response = self.client.get(
+                f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/",
+                {"expand": "derivedData"},
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["status"] == "unresolved"
+        assert "derivedData" not in response.data
+        log.assert_not_logged(ReconcileStatusAction)
+        incr.assert_any_call(
+            "issues.status_reconciliation.error", sample_rate=1.0, tags={"source": "read_path"}
+        )
+        derived.refresh_from_db()
+        assert derived.data == {"status": "invalid"}

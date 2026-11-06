@@ -2,24 +2,28 @@ import type {Theme} from '@emotion/react';
 
 import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  getScalarAttributeValue,
+  type TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {SpanFields} from 'sentry/views/insights/types';
+import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+
 import {
   GenAiOperationType,
   getGenAiOperationTypeFromSpanName,
   getIsAiAgentSpan,
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
-} from 'sentry/views/insights/pages/agents/utils/query';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {SpanFields} from 'sentry/views/insights/types';
-import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+} from './query';
+import type {AITraceSpanNode} from './types';
 
 // TODO(aknaus): Remove the special handling for tags once the endpoint returns the correct type
 function getAttributeValue(
   attribute: TraceItemResponseAttribute
 ): string | number | boolean {
   if (!attribute.name.startsWith('tags[')) {
-    return attribute.value;
+    return getScalarAttributeValue(attribute);
   }
   if (attribute.type === 'int') {
     return Number(attribute.value);
@@ -30,7 +34,7 @@ function getAttributeValue(
   if (attribute.type === 'bool') {
     return String(attribute.value) === 'true';
   }
-  return attribute.value;
+  return getScalarAttributeValue(attribute);
 }
 
 export function ensureAttributeObject(

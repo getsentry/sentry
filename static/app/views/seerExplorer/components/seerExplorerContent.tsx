@@ -3,6 +3,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   type ReactNode,
@@ -18,8 +19,8 @@ import type {ComposerValue} from '@sentry/scraps/composer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   AutofixChatProvider,
   type SendMessageOptions,
@@ -44,28 +45,11 @@ import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
-import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import {ChatPromptMessage} from 'sentry/views/seerExplorer/components/chat/chatPrompt';
-import {
-  groupTranscript,
-  ResponseGroup,
-} from 'sentry/views/seerExplorer/components/chat/responseGroup';
-import {findLatestTodos} from 'sentry/views/seerExplorer/components/chat/toolUse';
-import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
-import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
-import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
-import {
-  isReauthEnabled,
-  PendingUserInputDock,
-  PendingUserInputPicker,
-} from 'sentry/views/seerExplorer/components/pendingUserInputDock';
-import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
-import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
-import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
 import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/hooks/useCopySessionDataToClipboard';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {useStartInvestigation} from 'sentry/views/seerExplorer/hooks/useStartInvestigation';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -83,6 +67,21 @@ import {
   useSeerExplorerDeepLink,
   useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
+
+import {ChatPromptMessage} from './chat/chatPrompt';
+import {groupTranscript, ResponseGroup} from './chat/responseGroup';
+import {findLatestTodos} from './chat/toolUse';
+import {BlockComponent} from './chat';
+import {EmptyState} from './emptyState';
+import {useExplorerMenu} from './explorerMenu';
+import {InputSection} from './inputSection';
+import {
+  isReauthEnabled,
+  PendingUserInputDock,
+  PendingUserInputPicker,
+} from './pendingUserInputDock';
+import {SeerExplorerHeader} from './seerExplorerHeader';
+import {UpdateSlackAlert} from './updateSlackAlert';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
 
@@ -210,7 +209,6 @@ export function SeerExplorerContent({
   const composerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
-  const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
   /** A new chat was started and the composer should take focus once it is back. */
   const pendingComposerFocusRef = useRef(false);
 
@@ -232,11 +230,8 @@ export function SeerExplorerContent({
     startNewSession,
     switchToRun,
     respondToUserInput,
-    createPR,
     interruptRun,
     hasSentInterrupt,
-    overrideCtxEngEnable,
-    setOverrideCtxEngEnable,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
     setOverrideCodeModeEnable,
@@ -321,7 +316,7 @@ export function SeerExplorerContent({
 
   const suggestions = useChatSuggestions({
     enabled: isEmptyState && !chatPrompt && !showLoadError && !isPolling && !readOnly,
-    allowStructuredContext: overrideCtxEngEnable,
+    allowStructuredContext: true,
   });
   const handleSuggestionClick = useCallback(
     (suggestion: ChatSuggestion, position: number) => {
@@ -476,10 +471,10 @@ export function SeerExplorerContent({
     try {
       const url = getExplorerUrl(runId);
       await navigator.clipboard.writeText(url);
-      addSuccessMessage('Copied link to current chat');
+      toast.success('Copied link to current chat');
       trackAnalytics('seer.explorer.session_link_copied', {organization});
     } catch {
-      addErrorMessage('Failed to copy link to current chat');
+      toast.error('Failed to copy link to current chat');
     }
   }, [runId, organization]);
 
@@ -524,7 +519,31 @@ export function SeerExplorerContent({
     }
   }, [openFeedbackForm, runId]);
 
+  const startInvestigation = useStartInvestigation();
+
   // - Pop-up menu component --------------------------------------------------
+
+  // The composer only keeps the caret for its own edits, so a command completed
+  // from the menu moves it after the new text once that has rendered.
+  const completedTextRef = useRef<string | null>(null);
+  const completeInput = useCallback(
+    (text: string) => {
+      completedTextRef.current = text;
+      setInputValue({text, mentions: []});
+    },
+    [setInputValue]
+  );
+  useLayoutEffect(() => {
+    const composer = composerRef.current;
+    if (completedTextRef.current !== inputValue.text || !composer) {
+      return;
+    }
+    completedTextRef.current = null;
+    composer.focus();
+    const selection = composer.ownerDocument.defaultView?.getSelection();
+    selection?.selectAllChildren(composer);
+    selection?.collapseToEnd();
+  }, [inputValue.text]);
 
   // Extract repo_pr_states from session
   const repoPRStates = useMemo(
@@ -532,35 +551,25 @@ export function SeerExplorerContent({
     [sessionData?.repo_pr_states]
   );
 
-  // Get PR widget data for menu
-  const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
-    blocks,
-    repoPRStates,
-    onCreatePR: createPR,
-  });
-
   // Menu component
-  const {menu, closeMenu, openPRWidget} = useExplorerMenu({
+  const {menu, closeMenu} = useExplorerMenu({
     clearInput,
+    completeInput,
     inputValue: inputValue.text,
     focusInput,
     composerRef,
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
+      canInvestigate: startInvestigation !== undefined,
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
-      onBashMode: organization?.features.includes('seer-explorer-allow-bash-mode')
-        ? setOverrideBashModeEnabled
-        : undefined,
+      onBashMode: setOverrideBashModeEnabled,
       onCodeMode: organization?.features.includes('seer-explorer-code-mode-tools')
         ? setOverrideCodeModeEnable
         : undefined,
     },
     inputAnchorRef: composerRef,
-    prWidgetAnchorRef: prWidgetButtonRef,
-    prWidgetItems,
-    prWidgetFooter,
   });
 
   const handleBlocksClick = useCallback(() => {
@@ -571,13 +580,33 @@ export function SeerExplorerContent({
   const canSendMessage =
     !readOnly && !showLoadError && !isPolling && !!inputValue.text.trim();
   const handleSend = useCallback(() => {
+    const text = inputValue.text.trim();
+    // `/investigate` runs here whether or not a question follows it; the menu
+    // only completes it. It doesn't wait for Seer to finish responding.
+    const investigateMatch = /^\/investigate(?:\s+(.*))?$/s.exec(text);
+    if (startInvestigation && investigateMatch) {
+      // Keep the question if the investigation doesn't start.
+      void startInvestigation(investigateMatch[1]).then(started => {
+        if (started) {
+          clearInput();
+        }
+      });
+      return;
+    }
     if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.text.trim(), blocks.length);
+    sendMessage(text, blocks.length);
     clearInput();
     userScrolledUpRef.current = false;
-  }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
+  }, [
+    canSendMessage,
+    inputValue,
+    startInvestigation,
+    sendMessage,
+    blocks.length,
+    clearInput,
+  ]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.defaultPrevented || e.nativeEvent.isComposing) {
@@ -744,12 +773,11 @@ export function SeerExplorerContent({
       onChangeSession={switchToRun}
       onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
-      overrideCtxEngEnable={overrideCtxEngEnable}
-      onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
       overrideBashModeEnabled={overrideBashModeEnabled}
       onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
       showThinking={showThinking}
       onShowThinkingToggle={() => setShowThinking(v => !v)}
+      conversationsUrl={conversationsUrl}
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}
@@ -849,7 +877,6 @@ export function SeerExplorerContent({
           </PendingUserInputDock>
         )}
         <InputSection
-          blocks={blocks}
           enabled={!readOnly && !showLoadError}
           disabledPlaceholder={
             showLoadError ? t('Start a new chat to keep talking to Seer') : undefined
@@ -857,14 +884,11 @@ export function SeerExplorerContent({
           inputValue={inputValue}
           canSendMessage={canSendMessage}
           interruptState={interruptState}
-          onCreatePR={createPR}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}
           onInterrupt={interruptRun}
           onKeyDown={handleInputKeyDown}
           onSend={handleSend}
-          onPRWidgetClick={openPRWidget}
-          prWidgetButtonRef={prWidgetButtonRef}
           repoPRStates={repoPRStates}
           runId={runId}
           composerRef={composerRef}

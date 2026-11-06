@@ -13,17 +13,23 @@ from rest_framework.response import Response
 from rest_framework.test import APIClient
 
 from sentry import newsletter
-from sentry.api.endpoints.auth_register import AuthRegisterEndpoint
+from sentry.api.endpoints.auth_register import (
+    INVITE_EMAIL_MISMATCH,
+    INVITE_NO_LONGER_VALID,
+    AuthRegisterEndpoint,
+)
 from sentry.api.validators.auth import RegistrationValidator
 from sentry.auth.authenticators.base import ActivationChallengeResult, ActivationMessageResult
 from sentry.auth.authenticators.sms import SmsInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
@@ -59,6 +65,49 @@ class RegistrationValidatorTest(TestCase):
             "password": "a-secure-password",
             "timezone": "Europe/Vienna",
         }
+
+    def test_email_folds_only_ascii_case(self) -> None:
+        # U+212A would become ASCII "k" under str.lower()
+        validator = RegistrationValidator(
+            data={
+                "email": "\u212aate@Example.com",
+                "name": "New User",
+                "password": "a-secure-password",
+            }
+        )
+
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["email"] == "\u212aate@example.com"
+
+    def test_email_lookalike_of_existing_account_is_rejected(self) -> None:
+        self.create_user("admin@example.com")
+        # U+0131 dotless i upper-cases to ASCII "I"
+        validator = RegistrationValidator(
+            data={
+                "email": "adm\u0131n@example.com",
+                "name": "New User",
+                "password": "a-secure-password",
+            }
+        )
+
+        assert not validator.is_valid()
+        assert validator.errors["email"] == [
+            "An account is already registered with that email address."
+        ]
+
+    def test_kelvin_sign_variant_of_existing_account_is_a_separate_address(self) -> None:
+        self.create_user("kate@example.com")
+        # U+212A lower-cases to ASCII "k" but upper-cases to itself
+        validator = RegistrationValidator(
+            data={
+                "email": "\u212aate@example.com",
+                "name": "New User",
+                "password": "a-secure-password",
+            }
+        )
+
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["email"] == "\u212aate@example.com"
 
     def test_required_fields(self) -> None:
         validator = RegistrationValidator(data={})
@@ -475,6 +524,163 @@ class AuthRegisterEndpointTest(APITestCase):
         assert response.data["email"] == [
             "An account is already registered with that email address."
         ]
+
+
+@control_silo_test
+@override_settings(
+    AUTH_PASSWORD_VALIDATORS=[
+        {
+            "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+            "OPTIONS": {"min_length": 8},
+        }
+    ]
+)
+class AuthRegisterInviteTest(APITestCase):
+    endpoint = "sentry-api-0-auth-register"
+    method = "post"
+    invite_email = "kate@example.com"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(slug="invited-org")
+        self.invite = self.create_member(
+            organization=self.organization,
+            email=self.invite_email,
+            token="abcdef",
+            token_expires_at=timezone.now() + timedelta(hours=24),
+        )
+
+    def open_invite(self) -> None:
+        response = self.client.get(
+            reverse(
+                "sentry-api-0-organization-accept-organization-invite",
+                args=[self.organization.slug, self.invite.id, self.invite.token],
+            )
+        )
+        assert response.status_code == 200
+
+    def register(self, email: str) -> Response:
+        return self.get_response(email=email, name="Kate", password="a-secure-password")
+
+    def assert_invite_session_cleared(self) -> None:
+        for key in (
+            "can_register",
+            "invite_email",
+            "invite_token",
+            "invite_member_id",
+            "invite_organization_id",
+        ):
+            assert key not in self.client.session
+
+    @patch.object(User, "send_confirm_emails")
+    def test_matching_email_creates_verified_user(self, send_confirm_emails: MagicMock) -> None:
+        self.open_invite()
+
+        response = self.register("Kate@Example.com")
+
+        assert response.status_code == 200
+        user = User.objects.get(username=self.invite_email)
+        assert UserEmail.objects.get(user=user, email=self.invite_email).is_verified
+        assert user.has_verified_primary_email()
+        send_confirm_emails.assert_not_called()
+        assert self.client.session["_auth_user_id"] == str(user.id)
+        # Acceptance stays explicit, so the invite is still pending in the session
+        assert self.client.session["invite_member_id"] == self.invite.id
+
+    def test_different_email_is_rejected(self) -> None:
+        self.open_invite()
+
+        response = self.register("someone.else@example.com")
+
+        assert response.status_code == 400
+        assert response.data["email"] == [str(INVITE_EMAIL_MISMATCH)]
+        assert not User.objects.filter(username="someone.else@example.com").exists()
+
+    def test_unicode_lookalike_email_is_rejected(self) -> None:
+        self.open_invite()
+
+        # U+212A lower-cases to ASCII "k"
+        response = self.register("\u212aate@example.com")
+
+        assert response.status_code == 400
+        assert response.data["email"] == [str(INVITE_EMAIL_MISMATCH)]
+        assert not User.objects.filter(username=self.invite_email).exists()
+
+    def test_revoked_invite_is_rejected(self) -> None:
+        self.open_invite()
+        with assume_test_silo_mode(SiloMode.CELL):
+            OrganizationMember.objects.filter(id=self.invite.id).delete()
+
+        response = self.register(self.invite_email)
+
+        assert response.status_code == 403
+        assert response.data == {"detail": str(INVITE_NO_LONGER_VALID)}
+        assert not User.objects.filter(username=self.invite_email).exists()
+        self.assert_invite_session_cleared()
+
+    def test_expired_invite_is_rejected(self) -> None:
+        self.open_invite()
+        with assume_test_silo_mode(SiloMode.CELL):
+            OrganizationMember.objects.filter(id=self.invite.id).update(
+                token_expires_at=timezone.now() - timedelta(minutes=1)
+            )
+
+        response = self.register(self.invite_email)
+
+        assert response.status_code == 403
+        assert not User.objects.filter(username=self.invite_email).exists()
+        self.assert_invite_session_cleared()
+
+    def test_resent_invite_is_rejected(self) -> None:
+        self.open_invite()
+        with assume_test_silo_mode(SiloMode.CELL):
+            member = OrganizationMember.objects.get(id=self.invite.id)
+            member.regenerate_token()
+            member.save()
+
+        response = self.register(self.invite_email)
+
+        assert response.status_code == 403
+        assert not User.objects.filter(username=self.invite_email).exists()
+        self.assert_invite_session_cleared()
+
+    def test_invite_accepted_by_another_user_is_rejected(self) -> None:
+        self.open_invite()
+        other_user = self.create_user("other@example.com")
+        with assume_test_silo_mode(SiloMode.CELL):
+            OrganizationMember.objects.filter(id=self.invite.id).update(
+                user_id=other_user.id, email=None
+            )
+
+        response = self.register(self.invite_email)
+
+        assert response.status_code == 403
+        assert not User.objects.filter(username=self.invite_email).exists()
+        self.assert_invite_session_cleared()
+
+    @patch.object(User, "send_confirm_emails")
+    def test_stale_invite_rejected_once_then_falls_back_to_open_registration(
+        self, send_confirm_emails: MagicMock
+    ) -> None:
+        # if the self-hosted instance has open registration,
+        # trying to join through a stale invite blocks signup once,
+        # then clears invite details from session,
+        # so the user can still signup through open registration.
+        self.open_invite()
+        with assume_test_silo_mode(SiloMode.CELL):
+            OrganizationMember.objects.filter(id=self.invite.id).delete()
+
+        with self.feature("auth:register"), self.options({"auth.allow-registration": True}):
+            response = self.register(self.invite_email)
+            assert response.status_code == 403
+            self.assert_invite_session_cleared()
+
+            response = self.register(self.invite_email)
+
+        assert response.status_code == 200
+        user = User.objects.get(username=self.invite_email)
+        assert not UserEmail.objects.get(user=user, email=self.invite_email).is_verified
+        send_confirm_emails.assert_called_once_with(is_new_user=True)
 
 
 @control_silo_test
@@ -934,7 +1140,9 @@ class AuthLoginEndpointTest(APITestCase):
         "sentry.auth.authenticators.U2fInterface.activate",
         return_value=ActivationChallengeResult(b"challenge"),
     )
-    def test_activate_webauthn_challenge(self, activate, is_available) -> None:
+    def test_activate_webauthn_challenge(
+        self, activate: MagicMock, is_available: MagicMock
+    ) -> None:
         U2fInterface().enroll(self.user)
         login_response = self.get_response(username=self.user.username, password="admin")
 
@@ -964,7 +1172,9 @@ class AuthLoginEndpointTest(APITestCase):
 
     @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_complete_webauthn_login(self, validate_response, is_available) -> None:
+    def test_complete_webauthn_login(
+        self, validate_response: MagicMock, is_available: MagicMock
+    ) -> None:
         U2fInterface().enroll(self.user)
         self.get_response(username=self.user.username, password="admin")
         webauthn_response = {
@@ -995,7 +1205,9 @@ class AuthLoginEndpointTest(APITestCase):
         )
 
     @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    def test_complete_webauthn_login_rejects_malformed_response(self, is_available) -> None:
+    def test_complete_webauthn_login_rejects_malformed_response(
+        self, is_available: MagicMock
+    ) -> None:
         U2fInterface().enroll(self.user)
         self.get_response(username=self.user.username, password="admin")
         session = self.client.session
@@ -1021,7 +1233,9 @@ class AuthLoginEndpointTest(APITestCase):
         assert "_auth_user_id" not in self.client.session
 
     @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    def test_complete_webauthn_login_uses_camel_case_validation_errors(self, is_available) -> None:
+    def test_complete_webauthn_login_uses_camel_case_validation_errors(
+        self, is_available: MagicMock
+    ) -> None:
         U2fInterface().enroll(self.user)
         self.get_response(username=self.user.username, password="admin")
 
@@ -1046,7 +1260,7 @@ class AuthLoginEndpointTest(APITestCase):
         "sentry.auth.authenticators.SmsInterface.activate",
         return_value=ActivationMessageResult("Code sent", expires_in=45),
     )
-    def test_activate_sms_challenge(self, activate, is_available) -> None:
+    def test_activate_sms_challenge(self, activate: MagicMock, is_available: MagicMock) -> None:
         interface = SmsInterface()
         interface.phone_number = "5555551212"
         interface.enroll(self.user)
@@ -1069,7 +1283,7 @@ class AuthLoginEndpointTest(APITestCase):
         return_value=ActivationMessageResult("Unable to send code", type="error"),
     )
     def test_activate_challenge_captures_provider_error(
-        self, activate, is_available, capture_message
+        self, activate: MagicMock, is_available: MagicMock, capture_message: MagicMock
     ) -> None:
         interface = SmsInterface()
         interface.phone_number = "5555551212"
@@ -1093,7 +1307,7 @@ class AuthLoginEndpointTest(APITestCase):
     @patch("sentry.auth.authenticators.SmsInterface.is_available", return_value=True)
     @patch("sentry.auth.authenticators.SmsInterface.activate", return_value=None)
     def test_activate_challenge_captures_unexpected_result(
-        self, activate, is_available, capture_message
+        self, activate: MagicMock, is_available: MagicMock, capture_message: MagicMock
     ) -> None:
         interface = SmsInterface()
         interface.phone_number = "5555551212"
@@ -1120,7 +1334,7 @@ class AuthLoginEndpointTest(APITestCase):
         return_value=ActivationMessageResult("Code sent"),
     )
     def test_activate_challenge_captures_unsupported_result(
-        self, activate, is_available, capture_exception
+        self, activate: MagicMock, is_available: MagicMock, capture_exception: MagicMock
     ) -> None:
         interface = SmsInterface()
         interface.phone_number = "5555551212"
@@ -1172,7 +1386,7 @@ class AuthRecoveryEndpointTest(APITestCase):
 
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": password_hash.hash},
+            data={"userId": str(self.user.id), "token": password_hash.hash},
         )
 
         assert response.status_code == 200
@@ -1185,7 +1399,7 @@ class AuthRecoveryEndpointTest(APITestCase):
     def test_validate_recovery_rejects_invalid_token(self) -> None:
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": "invalid-token"},
+            data={"userId": str(self.user.id), "token": "invalid-token"},
         )
 
         assert response.status_code == 200
@@ -1199,7 +1413,7 @@ class AuthRecoveryEndpointTest(APITestCase):
 
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": password_hash.hash},
+            data={"userId": str(self.user.id), "token": password_hash.hash},
         )
 
         assert response.status_code == 200
@@ -1211,7 +1425,7 @@ class AuthRecoveryEndpointTest(APITestCase):
 
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": password_hash.hash},
+            data={"userId": str(self.user.id), "token": password_hash.hash},
         )
 
         assert response.status_code == 200
@@ -1223,7 +1437,7 @@ class AuthRecoveryEndpointTest(APITestCase):
 
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": password_hash.hash},
+            data={"userId": str(self.user.id), "token": password_hash.hash},
         )
 
         assert response.status_code == 200
@@ -1235,7 +1449,7 @@ class AuthRecoveryEndpointTest(APITestCase):
 
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": password_hash.hash},
+            data={"userId": str(self.user.id), "token": password_hash.hash},
         )
 
         assert response.status_code == 200
@@ -1256,10 +1470,11 @@ class AuthRecoveryEndpointTest(APITestCase):
     def request_recovery(
         self, user: str | None = None, client: APIClient | None = None
     ) -> Response:
-        return (client or self.client).post(
+        response: Response[Any] = (client or self.client).post(
             reverse("sentry-api-0-auth-recovery"),
             data={"user": user or self.user.email},
         )
+        return response
 
     def confirm_recovery(
         self,
@@ -1267,10 +1482,11 @@ class AuthRecoveryEndpointTest(APITestCase):
         password: str = "new-secure-password",
         client: APIClient | None = None,
     ) -> Response:
-        return (client or self.client).post(
+        response: Response[Any] = (client or self.client).post(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": token, "password": password},
+            data={"userId": str(self.user.id), "token": token, "password": password},
         )
+        return response
 
     def test_request_recovery_requires_csrf_token(self) -> None:
         client = APIClient(enforce_csrf_checks=True)

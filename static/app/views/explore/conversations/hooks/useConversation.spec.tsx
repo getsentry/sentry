@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {useConversation, type ConversationStats} from './useConversation';
@@ -166,6 +167,31 @@ describe('useConversation', () => {
     expect(result.current.isLoading).toBe(false);
     expect(result.current.nodes).toHaveLength(100);
   });
+
+  it.each([4096, 0, null, undefined])(
+    'preserves reported tool output size %p',
+    async size => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/agents/conversations/conv-123/`,
+        body: envelope([
+          {
+            ...BASE_SPAN,
+            'gen_ai.operation.type': 'tool',
+            'gen_ai.tool.call.result': 'abc',
+            ...(size !== undefined && {'gen_ai.tool.call.result.size': size}),
+          },
+        ]),
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useConversation({conversationId: 'conv-123'}),
+        {organization}
+      );
+
+      await waitFor(() => expect(result.current.nodes).toHaveLength(1));
+      expect(getToolOutputBytes(result.current.nodes[0]!)).toBe(size ?? 3);
+    }
+  );
 
   it('maps gen_ai.input.messages to node attributes', async () => {
     const inputMessages = JSON.stringify([{role: 'user', content: 'Hello from input'}]);

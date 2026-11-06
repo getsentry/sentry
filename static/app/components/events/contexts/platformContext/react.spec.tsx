@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getReactContextData,
-  type ReactContext,
-} from 'sentry/components/events/contexts/platformContext/react';
+
+import {getReactContextData, type ReactContext} from './react';
 
 const MOCK_REACT_CONTEXT: ReactContext = {
   type: 'default',

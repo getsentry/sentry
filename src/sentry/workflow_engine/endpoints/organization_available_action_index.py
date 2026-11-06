@@ -63,20 +63,22 @@ class AvailableIntegration(TypedDict):
 
 
 @cell_silo_endpoint
+@extend_schema(tags=["Monitors"])
 class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
 
     @extend_schema(
-        operation_id="Fetch Available Actions",
+        operation_id="fetchOrganizationAvailableActions",
+        summary="List Available Alert Actions",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             AVAILABLE_ACTION_TYPE_PARAMETER,
         ],
         responses={
-            201: inline_sentry_response_serializer(
+            200: inline_sentry_response_serializer(
                 "ListAvailableActionResponse", list[ActionHandlerSerializerResponse]
             ),
             400: RESPONSE_BAD_REQUEST,
@@ -140,6 +142,9 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
 
         actions = []
         for action_type, handler in action_handler_registry.registrations.items():
+            # Seer provisions bindings separately; the alert editor cannot configure this action.
+            if action_type == Action.Type.SEER_WORKFLOW:
+                continue
             if requested_action_types and str(action_type) not in requested_action_types:
                 continue
 

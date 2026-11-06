@@ -1,4 +1,4 @@
-import {TraceScheduler} from 'sentry/views/performance/traceDetails/traceRenderers/traceScheduler';
+import {TraceScheduler} from './traceScheduler';
 
 describe('TraceScheduler', () => {
   it('respects priority', () => {

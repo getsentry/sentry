@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
@@ -102,7 +103,7 @@ export function useReleasesSearchBarDataProvider(
         projectIds: projectIdStrings,
         includeTransactions: true,
       }).then(
-        tagValues => tagValues.map(({value}) => value),
+        tagValues => tagValues.map(({value}) => value).filter(defined),
         () => {
           throw new Error('Unable to fetch tag values');
         }

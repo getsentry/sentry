@@ -4,13 +4,14 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {TimeSince} from 'sentry/components/timeSince';
-import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+import {TimeSince} from './timeSince';
+import {Version} from './version';
 
 interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   onSelected: (x: ResolvedStatusDetails) => void;

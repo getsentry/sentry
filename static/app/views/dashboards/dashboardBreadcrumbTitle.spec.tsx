@@ -49,7 +49,6 @@ function renderTitle({
   organization?: Partial<Parameters<typeof OrganizationFixture>[0]>;
 } = {}) {
   const organization = OrganizationFixture({
-    features: ['dashboards-edit'],
     ...organizationOverrides,
   });
   const dashboard = DashboardFixture([], {
@@ -237,7 +236,7 @@ describe('DashboardBreadcrumbTitle rename', () => {
 
   it('does not offer rename without edit access', async () => {
     renderTitle({
-      organization: {access: ['org:read'], features: ['dashboards-edit']},
+      organization: {access: ['org:read']},
       dashboard: {
         createdBy: UserFixture({id: '99', email: 'someone-else@example.com'}),
         permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
@@ -396,7 +395,7 @@ describe('DashboardBreadcrumbTitle menu order', () => {
   // Kept deliberately in step with the dashboards table, so the same dashboard
   // offers its actions in the same order wherever it is acted on.
   it('orders its actions the same way the dashboards table does', async () => {
-    renderTitle({organization: {features: ['dashboards-edit', 'dashboards-import']}});
+    renderTitle({organization: {features: ['dashboards-import']}});
 
     await openActionsMenu();
     await screen.findByRole('menuitemradio', {name: 'Rename'});
@@ -441,7 +440,7 @@ describe('DashboardBreadcrumbTitle duplicate', () => {
 
   it('offers duplicate without edit access, since it writes a new dashboard', async () => {
     renderTitle({
-      organization: {access: ['org:read'], features: ['dashboards-edit']},
+      organization: {access: ['org:read']},
       dashboard: {
         createdBy: UserFixture({id: '99', email: 'someone-else@example.com'}),
         permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
@@ -517,7 +516,7 @@ describe('DashboardBreadcrumbTitle delete', () => {
 
   it('does not offer delete without edit access', async () => {
     renderTitle({
-      organization: {access: ['org:read'], features: ['dashboards-edit']},
+      organization: {access: ['org:read']},
       dashboard: {
         createdBy: UserFixture({id: '99', email: 'someone-else@example.com'}),
         permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},

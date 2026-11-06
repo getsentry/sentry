@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Iterable, MutableMapping, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Protocol, Union, overload
+from typing import TYPE_CHECKING, Any, Literal, Protocol, Union, overload
 
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
@@ -39,10 +39,22 @@ class Actor(RpcModel):
 
         pass
 
+    @overload
+    @classmethod
+    def resolve_many(
+        cls, actors: Sequence["Actor"], filter_none: Literal[True] = True
+    ) -> list["Team | RpcUser"]: ...
+
+    @overload
+    @classmethod
+    def resolve_many(
+        cls, actors: Sequence["Actor"], filter_none: Literal[False]
+    ) -> list["Team | RpcUser | None"]: ...
+
     @classmethod
     def resolve_many(
         cls, actors: Sequence["Actor"], filter_none: bool = True
-    ) -> list["Team | RpcUser | None"]:
+    ) -> Sequence["Team | RpcUser | None"]:
         """
         Resolve a list of actors in a batch to the Team/User the Actor references.
 

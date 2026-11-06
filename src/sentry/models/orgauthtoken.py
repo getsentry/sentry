@@ -29,11 +29,23 @@ if TYPE_CHECKING:
 
 MAX_NAME_LENGTH = 255
 
+DEFAULT_ORG_AUTH_TOKEN_SCOPES: tuple[str, ...] = ("org:ci",)
 
-def validate_scope_list(value):
+# Scopes a newly minted org auth token may be granted. Org auth tokens are not bound to a
+# member and keep working after their creator leaves, so this stays limited to CI scopes.
+ORG_AUTH_TOKEN_ALLOWED_SCOPES = frozenset({"org:ci"})
+
+# org:tokens lets an OAuth token mint org auth tokens. Org auth tokens must never carry it,
+# otherwise a minted token could mint further tokens.
+ORG_AUTH_TOKEN_FORBIDDEN_SCOPES = frozenset({"org:tokens"})
+
+
+def validate_scope_list(value: list[str]) -> None:
     for choice in value:
         if choice not in SENTRY_SCOPES:
             raise ValidationError(f"{choice} is not a valid scope.")
+        if choice in ORG_AUTH_TOKEN_FORBIDDEN_SCOPES:
+            raise ValidationError(f"{choice} cannot be granted to an org auth token.")
 
 
 @control_silo_model
@@ -68,16 +80,16 @@ class OrgAuthToken(ReplicatedControlModel):
     def __str__(self) -> str:
         return force_str(self.token_hashed)
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, object]:
         return {"name": self.name, "scopes": self.get_scopes()}
 
     def get_allowed_origins(self) -> list[str]:
         return []
 
-    def get_scopes(self):
+    def get_scopes(self) -> list[str]:
         return self.scope_list
 
-    def has_scope(self, scope):
+    def has_scope(self, scope: str) -> bool:
         return scope in self.get_scopes()
 
     def is_active(self) -> bool:

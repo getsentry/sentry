@@ -11,15 +11,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
-import {ConversationsBreadcrumbs} from 'sentry/views/explore/conversations/components/conversationsBreadcrumbs';
-import {ConversationSummary} from 'sentry/views/explore/conversations/components/conversationSummary';
+
+import {ConversationsBreadcrumbs} from './components/conversationsBreadcrumbs';
+import {ConversationSummary} from './components/conversationSummary';
 import {
   CONVERSATION_VIEW_TABS,
   ConversationViewContent,
-} from 'sentry/views/explore/conversations/components/conversationView';
-import {ExportTranscriptButton} from 'sentry/views/explore/conversations/components/exportTranscriptButton';
-import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
-import {extractMessagesFromNodes} from 'sentry/views/explore/conversations/utils/conversationMessages';
+} from './components/conversationView';
+import {ExportTranscriptButton} from './components/exportTranscriptButton';
+import {useConversation} from './hooks/useConversation';
+import {extractMessagesFromNodes} from './utils/conversationMessages';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -49,10 +50,13 @@ function ConversationDetailPage() {
     () => ({conversationId, startTimestamp, endTimestamp}),
     [conversationId, startTimestamp, endTimestamp]
   );
-
-  const {stats, nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
+  const {stats, nodes, nodeTraceMap, isLoading, hasNextPage, title} = useConversation({
+    ...conversation,
+    autoFetchAll: false,
+  });
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const isInitialLoading = isLoading && nodes.length === 0;
 
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
@@ -96,7 +100,8 @@ function ConversationDetailPage() {
           conversationId={conversationId}
           title={title}
           project={project}
-          isLoading={isLoading}
+          hasMoreSpans={hasNextPage}
+          isLoading={isInitialLoading}
         />
       </Container>
       <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">

@@ -17,6 +17,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -29,12 +30,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';
-import type {SpanResult} from 'sentry/views/explore/tables/tracesTable/types';
 import type {SpanFields, SpanResponse} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 import type {Field} from './data';
+import type {SpanResult} from './types';
 import {
   getShortenedSdkName,
   getSimilarEventsUrl,
@@ -443,6 +444,7 @@ export function SpanIdRenderer({
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const shortSpanId = getShortEventId(spanId);
 
@@ -470,6 +472,7 @@ export function SpanIdRenderer({
               similarSpans: (
                 <Link
                   to={getSimilarEventsUrl({
+                    caseInsensitive,
                     queryString: search.formatString(),
                     organization,
                     projectIds,
@@ -528,6 +531,7 @@ export function TraceIdRenderer({
 }: TraceIdRendererProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const shortId = getShortEventId(traceId);
 
@@ -557,6 +561,7 @@ export function TraceIdRenderer({
               similarTraces: (
                 <Link
                   to={getSimilarEventsUrl({
+                    caseInsensitive,
                     queryString: search.formatString(),
                     table: 'trace',
                     organization,

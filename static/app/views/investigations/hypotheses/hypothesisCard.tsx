@@ -12,12 +12,11 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {Timeline} from 'sentry/components/timeline';
 import {t, tn} from 'sentry/locale';
-import {HypothesisEvidencePlaceholder} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
-import {
-  getHypothesisCardBorder,
-  HypothesisStatus,
-} from 'sentry/views/investigations/hypotheses/hypothesisStatus';
+import {HypothesisLLMContext} from 'sentry/views/investigations/investigationLLMContext';
 import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
+
+import {HypothesisEvidencePlaceholder} from './hypothesisPlaceholder';
+import {getHypothesisCardBorder, HypothesisStatus} from './hypothesisStatus';
 
 /** States where missing checks mean "not yet"; anything else finished without them. */
 const PENDING_EVIDENCE_STATUSES = new Set<string>(['pending', 'investigating']);
@@ -28,9 +27,9 @@ const MAX_UNCOLLAPSED_STEPS = 2;
 type HypothesisCardProps = {
   hypothesis: InvestigationHypothesis;
   /**
-   * Menu items for the card's overflow menu. The card does not own commands —
-   * the surface rendering it decides which of accept, reject, steer, and retry
-   * apply, and supplies them here. No menu renders when this is empty.
+   * Menu items for the card's overflow menu. The card does not own actions —
+   * the surface rendering it supplies them here, like "Ask Seer". No menu
+   * renders when this is empty.
    */
   actions?: MenuItemProps[];
   /**
@@ -95,6 +94,7 @@ export function HypothesisCard({
       data-primary={isPrimary}
       data-test-id="investigation-hypothesis"
     >
+      <HypothesisLLMContext hypothesis={hypothesis} isConclusion={isPrimary} />
       <Flex justify="between" align="center" gap="sm">
         <Flex align="center" gap="md" wrap="wrap" minWidth={0}>
           <HypothesisNumber size="xs" variant="muted" tabular>

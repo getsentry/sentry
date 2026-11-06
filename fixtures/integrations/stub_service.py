@@ -23,7 +23,7 @@ class StubService:
     service_name: str
 
     @staticmethod
-    def get_stub_json(service_name, name):
+    def get_stub_json(service_name: str, name: str) -> str:
         """
         Get the stubbed data as a JSON string.
 
@@ -36,7 +36,7 @@ class StubService:
             return f.read()
 
     @staticmethod
-    def get_stub_data(service_name, name):
+    def get_stub_data(service_name: str, name: str) -> Any:
         """
         Get the stubbed data as a python object.
 
@@ -53,5 +53,5 @@ class StubService:
             StubService.stub_data_cache[cache_key] = data
         return deepcopy(data)
 
-    def _get_stub_data(self, name):
+    def _get_stub_data(self, name: str) -> Any:
         return StubService.get_stub_data(self.service_name, name)

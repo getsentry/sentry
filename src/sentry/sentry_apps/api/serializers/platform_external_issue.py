@@ -1,9 +1,10 @@
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.cell.model import RpcPlatformExternalIssue
 from sentry.users.models.user import User
@@ -11,11 +12,15 @@ from sentry.users.services.user.model import RpcUser
 
 
 class PlatformExternalIssueSerializerResponse(TypedDict):
-    id: str
-    issueId: str
-    serviceType: str
-    displayName: str
-    webUrl: str
+    id: Annotated[str, ApiDescription("ID of the external issue link")]
+    issueId: Annotated[str, ApiDescription("ID of the Sentry issue")]
+    serviceType: Annotated[
+        str, ApiDescription("Slug of the custom integration that created the external issue")
+    ]
+    displayName: Annotated[
+        str, ApiDescription("Display name of the external issue, such as ABC-123")
+    ]
+    webUrl: Annotated[str, ApiDescription("URL of the external issue")]
 
 
 @register(PlatformExternalIssue)

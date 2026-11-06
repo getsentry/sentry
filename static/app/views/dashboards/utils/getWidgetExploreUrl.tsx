@@ -22,7 +22,6 @@ import {
   eventViewFromWidget,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
-import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -32,6 +31,8 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreMultiQueryUrl, getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {withGlobalFilterFallback} from './withGlobalFilterFallback';
 
 function getTraceItemDatasetFromWidgetType(widgetType?: WidgetType): TraceItemDataset {
   switch (widgetType) {
@@ -95,7 +96,7 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
 /**
  * Returns whether the given widget type supports multiple queries in the Explore view.
  */
-export function widgetTypeSupportsExploreMultiQuery(
+function widgetTypeSupportsExploreMultiQuery(
   widgetType: WidgetType | undefined
 ): boolean {
   const traceItemDataset = getTraceItemDatasetFromWidgetType(widgetType);

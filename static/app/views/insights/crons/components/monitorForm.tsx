@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
@@ -136,13 +136,8 @@ function mapMonitorFormErrors(responseJson?: any) {
 export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: Props) {
   const theme = useTheme();
   const organization = useOrganization();
-  const form = useRef(
-    new FormModel({
-      transformData: transformMonitorFormData,
-    })
-  );
-  // oxlint-disable-next-line react/refs
-  const {onFieldChange} = useFormEagerValidation(form.current);
+  const [form] = useState(() => new FormModel({transformData: transformMonitorFormData}));
+  const {onFieldChange} = useFormEagerValidation(form);
 
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -184,8 +179,7 @@ export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: 
       requireChanges
       apiEndpoint={apiEndpoint}
       apiMethod={apiMethod}
-      // oxlint-disable-next-line react/refs
-      model={form.current}
+      model={form}
       onFieldChange={onFieldChange}
       initialData={
         monitor
@@ -279,12 +273,12 @@ export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: 
           />
           <Observer>
             {() => {
-              const scheduleType = form.current.getValue('config.scheduleType');
+              const scheduleType = form.getValue('config.scheduleType');
 
               const parsedSchedule =
                 scheduleType === 'crontab'
                   ? crontabAsText(
-                      form.current.getValue<string>('config.schedule')?.toString() ?? ''
+                      form.getValue<string>('config.schedule')?.toString() ?? ''
                     )
                   : null;
 
@@ -345,7 +339,7 @@ export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: 
                       label={t('Interval Type')}
                       hideLabel
                       options={getScheduleIntervals(
-                        Number(form.current.getValue('config.schedule.frequency') ?? 1)
+                        Number(form.getValue('config.schedule.frequency') ?? 1)
                       )}
                       defaultValue="day"
                       required

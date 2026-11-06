@@ -44,7 +44,7 @@ class InvalidDeviceRequest(Exception):
     def __init__(self, code: DeviceRequestErrorCode) -> None:
         self.code = code
         self.public_message = {
-            DeviceRequestErrorCode.INVALID_CODE: "Invalid or expired code. Please check the code and try again.",
+            DeviceRequestErrorCode.INVALID_CODE: "Invalid or expired code. Try again.",
             DeviceRequestErrorCode.EXPIRED: "This code has expired. Please request a new code from your device.",
             DeviceRequestErrorCode.RATE_LIMITED: "Too many attempts. Please wait a minute and try again.",
             DeviceRequestErrorCode.INVALID_SESSION: "Your session has expired. Please start over.",

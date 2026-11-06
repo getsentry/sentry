@@ -7,7 +7,8 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+
+import {IssueWidgetQueries} from './issueWidgetQueries';
 
 describe('IssueWidgetQueries', () => {
   const selection = {
@@ -155,14 +156,14 @@ describe('IssueWidgetQueries', () => {
           timeSeries: [
             {
               yAxis: 'count(new_issues)',
-              values: [{timestamp: '1763495560000', value: 10}],
+              values: [{timestamp: 1763495560000, value: 10}],
+              meta: {
+                interval: 10800000,
+                valueType: 'integer',
+                valueUnit: null,
+              },
             },
           ],
-          meta: {
-            interval: 10800000,
-            valueType: 'integer',
-            valueUnit: null,
-          },
         },
       });
     });
@@ -191,8 +192,10 @@ describe('IssueWidgetQueries', () => {
           expect.objectContaining({
             timeseriesResults: [
               expect.objectContaining({
-                data: [{name: '1763495560000', value: 10}],
                 seriesName: 'count(new_issues)',
+                timeSeries: expect.objectContaining({
+                  values: [expect.objectContaining({value: 10})],
+                }),
               }),
             ],
           })

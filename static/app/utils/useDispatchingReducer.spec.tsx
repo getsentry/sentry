@@ -1,7 +1,7 @@
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {makeCombinedReducers} from 'sentry/utils/makeCombinedReducer';
-import {useDispatchingReducer} from 'sentry/utils/useDispatchingReducer';
+import {makeCombinedReducers} from './makeCombinedReducer';
+import {useDispatchingReducer} from './useDispatchingReducer';
 
 describe('useDispatchingReducer', () => {
   beforeEach(() => {

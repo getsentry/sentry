@@ -4,7 +4,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {PrCommentRules} from 'sentry/views/settings/project/preprod/prCommentRules';
+import {PrCommentRules} from './prCommentRules';
 
 describe('PrCommentRules', () => {
   const {organization} = initializeOrg();

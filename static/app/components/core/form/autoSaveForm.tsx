@@ -4,13 +4,13 @@ import type {DeepKeys, DeepValue, FieldApi} from '@tanstack/react-form';
 import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
 import {type z} from 'zod';
 
-import {AutoSaveContextProvider} from '@sentry/scraps/form/autoSaveContext';
 import {useFormErrorMapper} from '@sentry/scraps/form/formErrorContext';
 import {
   setFieldErrors,
   useScrapsForm,
   type BoundFieldComponents,
 } from '@sentry/scraps/form/scrapsForm';
+import {AutoSaveContextProvider} from '@sentry/scraps/formPresentation';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {openConfirmModal} from 'sentry/components/confirm';

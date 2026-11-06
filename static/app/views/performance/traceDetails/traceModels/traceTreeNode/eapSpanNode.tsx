@@ -4,11 +4,7 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import type {Measurement} from 'sentry/types/event';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {isBrowserRequestNode} from 'sentry/views/performance/traceDetails/traceApi/utils';
-import {EAPSpanNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span';
-import {AiSpanDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceEAPSpanRow} from 'sentry/views/performance/traceDetails/traceRow/traceEAPSpanRow';
@@ -42,6 +38,8 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
    */
   opsBreakdown: TraceTree.OpsBreakdown = [];
 
+  private showInitialTransactionSummary: boolean;
+
   constructor(
     parent: BaseNode | null,
     value: TraceTree.EAPSpan,
@@ -56,6 +54,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     this.searchPriority = this.value.is_transaction ? 1 : 2;
     this.isEAPEvent = true;
     this.expanded = !value.is_transaction;
+    this.showInitialTransactionSummary = value.is_transaction;
     this.canAutogroup = !value.is_transaction;
     this.allowNoInstrumentationNodes = !value.is_transaction;
 
@@ -260,13 +259,15 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get directVisibleChildren(): BaseNode[] {
-    if (this.value.is_transaction && !this.expanded) {
-      // For collapsed eap-transactions we render the first nested transaction on each
-      // descendant branch while preserving the actual tree parentage.
+    if (this.showInitialTransactionSummary && !this.expanded) {
       return this.getCollapsedTransactionChildren();
     }
 
     return super.directVisibleChildren;
+  }
+
+  get canCollapse(): boolean {
+    return this.expanded || this.hasDirectVisibleChildren();
   }
 
   private _reparentSSRUnderBrowserRequestSpan(node: BaseNode) {
@@ -283,37 +284,25 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   expand(expanding: boolean, tree: TraceTree): boolean {
     const index = tree.list.indexOf(this);
 
-    if (expanding === this.expanded) {
+    if (
+      expanding === this.expanded &&
+      (expanding || !this.showInitialTransactionSummary)
+    ) {
       return false;
     }
 
-    if (expanding) {
-      if (this.value.is_transaction) {
-        tree.list.splice(index + 1, this.visibleChildren.length);
-      }
+    const visibleChildrenCount = this.visibleChildren.length;
+    this.showInitialTransactionSummary = false;
+    this.expanded = expanding;
 
-      // Flip expanded so that we can collect visible children
-      this.expanded = expanding;
-
-      if (this.value.is_transaction) {
-        const browserRequestSpan = this.children.find(c => isBrowserRequestNode(c));
-        if (browserRequestSpan) {
-          this._reparentSSRUnderBrowserRequestSpan(browserRequestSpan);
-        }
-      }
-
-      // Insert expanded children into the flat list
-      tree.list.splice(index + 1, 0, ...this.visibleChildren);
-    } else {
-      tree.list.splice(index + 1, this.visibleChildren.length);
-
-      this.expanded = expanding;
-
-      // When transaction nodes are collapsed, they still render child transactions
-      if (this.value.is_transaction) {
-        tree.list.splice(index + 1, 0, ...this.visibleChildren);
+    if (expanding && this.value.is_transaction) {
+      const browserRequestSpan = this.children.find(c => isBrowserRequestNode(c));
+      if (browserRequestSpan) {
+        this._reparentSSRUnderBrowserRequestSpan(browserRequestSpan);
       }
     }
+
+    tree.list.splice(index + 1, visibleChildrenCount, ...this.visibleChildren);
 
     this.invalidate();
     this.forEachChild(child => child.invalidate());
@@ -341,15 +330,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     props: TraceRowProps<T>
   ): React.ReactNode {
     return <TraceEAPSpanRow {...props} node={this} />;
-  }
-
-  renderDetails<T extends BaseNode>(
-    props: TraceTreeNodeDetailsProps<T>
-  ): React.ReactNode {
-    if (getIsAiNode(this)) {
-      return <AiSpanDetails node={this} traceId={props.traceId} />;
-    }
-    return <EAPSpanNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

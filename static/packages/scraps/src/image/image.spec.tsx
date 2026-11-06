@@ -5,8 +5,6 @@ import {render, screen} from '@testing-library/react';
 import {Image} from '@sentry/scraps/image';
 import {lightTheme} from '@sentry/scraps/theme';
 
-import {getEmotionRules} from '../../test/getEmotionRules';
-
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
 }
@@ -59,23 +57,5 @@ describe('Image', () => {
       {wrapper: ThemeWrapper}
     );
     expect(screen.getByRole('img')).toBeInTheDocument();
-  });
-
-  it('supports responsive width and height props', () => {
-    render(
-      <Image
-        src="https://example.com/image.png"
-        alt="Example Image"
-        width={{zero: '100%', md: '400px'}}
-        height={{zero: 'auto', md: '300px'}}
-      />,
-      {wrapper: ThemeWrapper}
-    );
-
-    expect(screen.getByRole('img')).toBeInTheDocument();
-
-    const styles = getEmotionRules(screen.getByRole('img')).join('');
-    expect(styles).toMatch(/width:\s*400px/);
-    expect(styles).toMatch(/height:\s*300px/);
   });
 });

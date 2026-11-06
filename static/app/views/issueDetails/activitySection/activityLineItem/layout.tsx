@@ -13,6 +13,7 @@ interface ActivityLineHeadlineProps {
   title: React.ReactNode;
   details?: React.ReactNode;
   source?: string;
+  trailingItems?: React.ReactNode;
 }
 
 export function ActivityLineHeadline({
@@ -20,9 +21,18 @@ export function ActivityLineHeadline({
   details,
   source,
   timestamp,
+  trailingItems,
 }: ActivityLineHeadlineProps) {
   return (
-    <Flex column={2} row={1} minWidth={0} minHeight="22px" align="baseline">
+    <Flex
+      column={2}
+      row={1}
+      minWidth={0}
+      minHeight="22px"
+      align="baseline"
+      justify="between"
+      gap="xs"
+    >
       <ActivityLineSentence>
         <ActivityLineTitleText
           as="span"
@@ -56,6 +66,7 @@ export function ActivityLineHeadline({
           </Flex>
         </Fragment>
       </ActivityLineSentence>
+      {trailingItems}
     </Flex>
   );
 }
@@ -78,8 +89,7 @@ export const ActivityLineRow = styled('div')`
     left: 10.5px;
     top: 11px;
     bottom: calc(-${p => p.theme.space.md} - 11px);
-    border-left: 1px solid
-      ${p => p.theme.tokens.border.transparent.neutral.muted};
+    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 
