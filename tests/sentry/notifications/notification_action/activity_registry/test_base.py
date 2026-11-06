@@ -1,7 +1,10 @@
 from unittest import mock
 
+import pytest
+
 from sentry.notifications.notification_action.activity_registry.base import (
     NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES,
+    get_supported_action_types,
     send_activity_notification,
 )
 from sentry.notifications.notification_action.activity_registry.discord import (
@@ -12,6 +15,8 @@ from sentry.notifications.notification_action.activity_registry.msteams import (
     MSTeamsActivityHandler,
 )
 from sentry.notifications.notification_action.activity_registry.slack import SlackActivityHandler
+from sentry.notifications.notification_action.registry import activity_handler_registry
+from sentry.notifications.notification_action.types import ActivityHandler
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.templates.activity.base import (
     ActivityNotificationData,
@@ -21,6 +26,11 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.types.activity import ActivityType
+from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
+    SEER_WORKFLOW_ACTIVITIES,
+    SUPPORTED_ACTIVITIES,
+)
+from sentry.workflow_engine.models import Action
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -34,6 +44,31 @@ class TestCompatibleActivityTypes:
         ]:
             for activity_type in NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES:
                 assert activity_type in handler.compatible_activity_types
+
+
+class TestGetSupportedActionTypes:
+    @pytest.mark.parametrize("activity_types", [SEER_WORKFLOW_ACTIVITIES, SUPPORTED_ACTIVITIES])
+    def test_excludes_unsupported_handlers(self, activity_types: list[ActivityType]) -> None:
+        assert get_supported_action_types(activity_types) == {
+            Action.Type.SLACK,
+            Action.Type.SLACK_STAGING,
+            Action.Type.MSTEAMS,
+            Action.Type.DISCORD,
+            Action.Type.EMAIL,
+            Action.Type.SENTRY_APP,
+            Action.Type.WEBHOOK,
+        }
+
+    def test_requires_handler_to_support_every_activity_type(self) -> None:
+        class SeerOnlyActivityHandler(ActivityHandler):
+            compatible_activity_types = SEER_WORKFLOW_ACTIVITIES
+
+        with mock.patch.dict(
+            activity_handler_registry.registrations,
+            {Action.Type.JIRA: SeerOnlyActivityHandler},
+        ):
+            assert Action.Type.JIRA in get_supported_action_types(SEER_WORKFLOW_ACTIVITIES)
+            assert Action.Type.JIRA not in get_supported_action_types(SUPPORTED_ACTIVITIES)
 
 
 class TestSendActivityNotification(BaseWorkflowTest):
