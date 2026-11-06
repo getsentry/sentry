@@ -244,6 +244,15 @@ export function MetricAutomationForm(props: Props) {
                         'Search by monitor name. You can connect more than one.'
                       )}
                     >
+                      {/* TODO: The picker flashes while typing monitor names.
+                         Suspected cause, in SelectAsyncField (components/core/form/field/selectAsyncField.tsx):
+                         - Each debounced input is a new query key, and it reads `data: options = []`, so the
+                           options are empty until each new search returns.
+                         - It also shows loading whenever the input differs from the debounced value, so the
+                           loading state appears on every keystroke even before a request starts.
+                         Likely fix: add `placeholderData: keepPreviousData` to the queryOptions below so the
+                         previous results stay visible, and/or only show loading in SelectAsyncField when there
+                         are no options to display. */}
                       <field.SelectAsync
                         multiple
                         clearable
