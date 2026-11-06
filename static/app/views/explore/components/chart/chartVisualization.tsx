@@ -9,6 +9,7 @@ import {Container} from '@sentry/scraps/layout';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartXRangeSelection';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
@@ -118,6 +119,8 @@ export function ChartVisualization({
     chartInfo.timeseriesResult.meta?.ingestion?.completeThrough
   );
 
+  const {start, end, period, utc} = usePageFilters().selection.datetime;
+
   const isLoading = chartInfo.timeseriesResult.isPending;
   const activePlottables = isLoading ? previousPlottables : plottables;
 
@@ -155,6 +158,10 @@ export function ChartVisualization({
   return (
     <StyledTransparentLoadingMask loaded={!isLoading} visible>
       <TimeSeriesWidgetVisualization
+        // A drag-to-zoom stores its range on the ECharts dataZoom models, and
+        // merged option updates keep it. Recreate the chart when the date range
+        // changes, or zooming back out stays clipped to the old zoomed range.
+        key={`${start}-${end}-${period}-${utc}`}
         ref={chartRef}
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}

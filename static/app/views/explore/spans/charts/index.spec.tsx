@@ -148,6 +148,36 @@ describe('ExploreCharts', () => {
       expect(screen.queryByText('Compare Attribute Breakdowns')).not.toBeInTheDocument();
     });
 
+    it('recreates the chart when zooming in and back out', async () => {
+      const {router} = render(<SelectableChart />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {mode: 'samples', statsPeriod: '14d'},
+          },
+        },
+      });
+
+      const initialChart = await screen.findByLabelText('Chart values');
+      await userEvent.click(screen.getByRole('button', {name: 'Select chart range'}));
+
+      expect(router.location.query.start).toBe('2024-10-24T19:00:00');
+      expect(initialChart).not.toBeInTheDocument();
+      const zoomedChart = screen.getByLabelText('Chart values');
+
+      act(() => {
+        PageFiltersStore.updateDateTime({
+          period: '14d',
+          start: null,
+          end: null,
+          utc: null,
+        });
+      });
+
+      expect(zoomedChart).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Chart values')).toBeInTheDocument();
+    });
+
     it('opens the breakdown menu and restores direct zoom when leaving the tab', async () => {
       const {router} = render(<SelectableChart />, {
         initialRouterConfig: {
