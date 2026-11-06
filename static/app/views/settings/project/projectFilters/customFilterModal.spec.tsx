@@ -4,7 +4,8 @@ import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {EntryType} from 'sentry/types/event';
-import {getFilterDraftFromEvent} from 'sentry/views/settings/project/projectFilters/customFilterModal';
+
+import {getFilterDraftFromEvent} from './customFilterModal';
 
 describe('getFilterDraftFromEvent', () => {
   it('fills one literal condition per property the event carries', () => {
