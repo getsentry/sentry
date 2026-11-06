@@ -74,7 +74,9 @@ def seer_activity_handler(
     if activity_type not in SEER_WORKFLOW_ACTIVITIES:
         return
 
-    event_data = WorkflowEventData(event=activity, group=group)
+    event_data = WorkflowEventData(
+        event=activity, group=group, organization=activity.project.organization
+    )
 
     try:
         if detector_id is not None:
@@ -185,7 +187,9 @@ def activity_handler(
     if activity_type not in SUPPORTED_ACTIVITIES:
         return
 
-    event_data = WorkflowEventData(event=activity, group=group)
+    event_data = WorkflowEventData(
+        event=activity, group=group, organization=activity.project.organization
+    )
 
     try:
         if detector_id is not None:
