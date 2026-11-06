@@ -39,6 +39,7 @@ export const NOTIFICATION_SETTINGS_TYPES = [
   'email',
   'spikeProtection',
   'brokenMonitors',
+  'inbox',
 ] as const;
 
 // 'alerts' | 'workflow' ...
@@ -54,4 +55,5 @@ export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, s
   email: 'email',
   spikeProtection: 'spike-protection',
   brokenMonitors: 'broken-monitors',
+  inbox: 'inbox',
 };
