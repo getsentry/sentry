@@ -26,11 +26,22 @@ export type SeerWalletBalance = {
   creditPriceCents?: number;
 };
 
-export type SeerWalletAutoTopUp = {
-  dailySpendCapCents: number;
+export type SeerWalletAutoTopUpSettings = {
+  /**
+   * The most credits auto top-up buys in any 24 hours.
+   */
+  dailyCapCredits: number;
   enabled: boolean;
   thresholdCredits: number;
   topUpCredits: number;
+};
+
+export type SeerWalletAutoTopUp = SeerWalletAutoTopUpSettings & {
+  /**
+   * The auto top-up invoice whose payment retries ran out. Auto top-up is
+   * paused until it's paid.
+   */
+  failedInvoiceGuid: string | null;
 };
 
 export function seerWalletBalanceOptions(organization: Organization) {

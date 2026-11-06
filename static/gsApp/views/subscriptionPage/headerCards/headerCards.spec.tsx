@@ -32,7 +32,8 @@ describe('HeaderCards', () => {
         enabled: false,
         thresholdCredits: 500,
         topUpCredits: 1000,
-        dailySpendCapCents: 7500,
+        dailyCapCredits: 7500,
+        failedInvoiceGuid: null,
       },
     });
   });
