@@ -1,4 +1,4 @@
-from typing import Any, Literal, NotRequired, TypedDict, get_args
+from typing import Any, Literal, NotRequired, TypedDict
 from uuid import UUID
 
 from drf_spectacular.utils import extend_schema
@@ -27,7 +27,6 @@ from sentry.models.organization import Organization
 from sentry.onboarding.agentic_progress.model import (
     MAX_EVENT_NOTE_LENGTH,
     STAGE_INDEX,
-    ConnectionMethod,
     InvalidProgressUpdate,
     OnboardingRun,
     OnboardingRunExpired,
@@ -102,10 +101,6 @@ class AgenticOnboardingRunRequestSerializer(CamelSnakeSerializer[AgenticOnboardi
     origin = serializers.ChoiceField(choices=list(RunOrigin), required=False, default=None)
 
 
-class ConnectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
-    method = serializers.ChoiceField(choices=get_args(ConnectionMethod))
-
-
 class CreateProjectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
     project_slugs = serializers.ListField(child=serializers.SlugField())
 
@@ -115,7 +110,6 @@ class VerificationErrorExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
 
 
 EXTRA_SERIALIZER_BY_STAGE = {
-    Stage.CONNECT_MCP: ConnectExtraSerializer,
     Stage.CREATE_PROJECT: CreateProjectExtraSerializer,
     Stage.RECEIVE_VERIFICATION_ERROR: VerificationErrorExtraSerializer,
 }
