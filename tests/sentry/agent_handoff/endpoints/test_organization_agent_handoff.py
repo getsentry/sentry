@@ -41,7 +41,7 @@ class OrganizationAgentHandoffTest(APITestCase):
             status_code=201,
         )
         url = urlsplit(response.data["guideUrl"])
-        assert url.path == "/agents/"
+        assert url.path == "/agent-handoff/"
         assert not url.query
         assert response.data["prompt"] == (
             f"Follow these instructions to get started with Sentry:\n{response.data['guideUrl']}"

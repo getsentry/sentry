@@ -44,7 +44,7 @@ class AgentHandoffViewTest(TestCase):
 
     def claim(self, code: str) -> HttpResponse:
         return self.client.post(
-            "/agents/",
+            "/agent-handoff/",
             urlencode({"handoff_code": code}),
             content_type="application/x-www-form-urlencoded",
         )
@@ -164,7 +164,7 @@ class AgentHandoffViewTest(TestCase):
 
     def test_preview_is_public_and_preserves_the_code(self) -> None:
         code = self.issue()
-        response = self.client.get(f"/agents/#{code}")
+        response = self.client.get(f"/agent-handoff/#{code}")
         assert response.status_code == 200
         assert "original guide URL" in response.content.decode()
         assert consume_handoff(code) is not None

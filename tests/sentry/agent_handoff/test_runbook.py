@@ -106,10 +106,10 @@ def test_organization_labels_cannot_create_markdown_blocks_or_html() -> None:
 
 
 def test_claim_runbook_explains_explicit_private_code_redemption() -> None:
-    guide = render_claim_runbook(claim_url="https://sentry.example.com/agents/")
+    guide = render_claim_runbook(claim_url="https://sentry.example.com/agent-handoff/")
     assert "original guide URL" in guide
     assert "Fetching this page does not claim it" in guide
-    assert "curl -sS -X POST https://sentry.example.com/agents/" in guide
+    assert "curl -sS -X POST https://sentry.example.com/agent-handoff/" in guide
     assert "--data-urlencode 'handoff_code=HANDOFF_CODE'" in guide
 
 
