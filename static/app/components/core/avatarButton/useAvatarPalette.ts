@@ -11,14 +11,14 @@ interface Gradient {
 
 type Rgb = [number, number, number];
 
+function channelToLinear(channel: number): number {
+  const c = channel / 255;
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+}
+
 function toLinear(hex: string): Rgb {
-  return color(hex)
-    .rgb()
-    .array()
-    .map(channel => {
-      const c = channel / 255;
-      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-    }) as Rgb;
+  const [r = 0, g = 0, b = 0] = color(hex).rgb().array();
+  return [channelToLinear(r), channelToLinear(g), channelToLinear(b)];
 }
 
 function toHex(linear: Rgb): string {
@@ -49,7 +49,8 @@ function capLightness(avatarColor: string, ceiling: string): string {
     return color(avatarColor).hex();
   }
   const factor = (target / lightness) ** 3;
-  return toHex(linear.map(c => c * factor) as Rgb);
+  const [r, g, b] = linear;
+  return toHex([r * factor, g * factor, b * factor]);
 }
 
 // Matches the threshold `dominantColor` uses to tell colored pixels from gray.
