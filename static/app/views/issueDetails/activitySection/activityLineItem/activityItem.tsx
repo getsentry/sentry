@@ -26,6 +26,7 @@ import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
 import {ImpactChip} from './chips/impactChip';
 import {getIntegrationChip} from './chips/integrationChip';
+import {InvestigationChip} from './chips/investigationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
@@ -647,6 +648,17 @@ function getActivityItemContent({
         details: tct('as [impact]', {
           impact: <ImpactChip level={level} score={score} />,
         }),
+      };
+    }
+    case GroupActivityType.INVESTIGATION_LINKED: {
+      const {investigation} = activity.data;
+      return {
+        title: t('Mentioned in'),
+        details: investigation ? (
+          <InvestigationChip investigation={investigation} />
+        ) : (
+          t('a deleted investigation')
+        ),
       };
     }
   }

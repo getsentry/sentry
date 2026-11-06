@@ -12,6 +12,10 @@ import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
 } from './activityLineItem/activityFeedItem';
+import {
+  ActivityLineInvestigationLinked,
+  isInvestigationLinkedActivity,
+} from './activityLineItem/investigationLinked';
 import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
 import {ActivityLine} from './activityLineItem';
 import {Timeline} from './timeline';
@@ -394,6 +398,51 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
   }),
 ]);
 
+const investigation = {id: '42', title: 'Checkout p95 latency spike', status: 'active'};
+
+const investigationLinkActivities = [
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation,
+      hypothesisId: 'h-1',
+      hypothesisStatement: 'Payment client retries exhaust the connection pool',
+      reason:
+        'This timeout error started with the 14:02 deploy and accounts for most slow checkout requests.',
+    }),
+    id: 'investigation-linked',
+  },
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation: {
+        ...investigation,
+        title: 'Checkout p95 latency spike after the payments deploy on the EU cluster',
+      },
+      hypothesisId: null,
+      hypothesisStatement: null,
+      reason: 'The error rate rose with the latency.',
+    }),
+    id: 'investigation-linked-reason-only',
+  },
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation,
+      hypothesisId: null,
+      hypothesisStatement: null,
+      reason: null,
+    }),
+    id: 'investigation-linked-no-details',
+  },
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation: null,
+      hypothesisId: 'h-1',
+      hypothesisStatement: 'Payment client retries exhaust the connection pool',
+      reason: 'The investigation was deleted after it linked this issue.',
+    }),
+    id: 'investigation-linked-deleted',
+  },
+];
+
 export default Storybook.story('Issue Activity', story => {
   story('Resolution', () => <ResolutionExamples />);
   story('Archived', () => <ActivityExamples items={archivedActivities} />);
@@ -405,6 +454,9 @@ export default Storybook.story('Issue Activity', story => {
   story('Sources', () => <ActivityExamples items={sourceActivities} />);
   story('Seer', () => <ActivityExamples items={seerActivities} />);
   story('Collapsed Seer', () => <ActivityFeedExamples items={collapsedSeerActivities} />);
+  story('Investigation links', () => (
+    <ActivityExamples items={investigationLinkActivities} />
+  ));
 });
 
 function ResolutionExamples() {
@@ -471,24 +523,32 @@ function ActivityExamples({items}: {items: GroupActivity[]}) {
 function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
   return (
     <Timeline.Container>
-      {items.map((item, index) =>
-        item.type === 'activity' && isActivityNote(item.activity) ? (
-          <ActivityLineNote
-            key={`${item.activity.id}-${index}`}
-            activity={item.activity}
-            inputVariant="compact"
-            onDelete={async () => {}}
-            onUpdate={async () => {}}
-          />
-        ) : (
-          <ActivityLine
-            key={`${item.activity.id}-${index}`}
-            group={group}
-            item={item}
-            timestampUnitStyle="short"
-          />
-        )
-      )}
+      {items.map((item, index) => {
+        const key = `${item.activity.id}-${index}`;
+        if (item.type === 'activity' && isActivityNote(item.activity)) {
+          return (
+            <ActivityLineNote
+              key={key}
+              activity={item.activity}
+              inputVariant="compact"
+              onDelete={async () => {}}
+              onUpdate={async () => {}}
+            />
+          );
+        }
+        if (item.type === 'activity' && isInvestigationLinkedActivity(item.activity)) {
+          return (
+            <ActivityLineInvestigationLinked
+              key={key}
+              activity={item.activity}
+              timestampUnitStyle="short"
+            />
+          );
+        }
+        return (
+          <ActivityLine key={key} group={group} item={item} timestampUnitStyle="short" />
+        );
+      })}
     </Timeline.Container>
   );
 }
