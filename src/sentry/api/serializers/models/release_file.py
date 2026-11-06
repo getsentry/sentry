@@ -1,11 +1,12 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from collections.abc import Mapping
 from datetime import datetime
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.distribution import Distribution
 from sentry.models.releasefile import ReleaseFile
 from sentry.users.models.user import User
@@ -13,13 +14,18 @@ from sentry.users.services.user.model import RpcUser
 
 
 class ReleaseFileSerializerResponse(TypedDict):
-    id: str | bytes | None
-    name: str
-    dist: str | None
-    headers: dict[str, object]
-    size: int | None
-    sha1: str | None
-    dateCreated: datetime
+    id: Annotated[
+        str | bytes | None,
+        ApiDescription(
+            "ID of the release file. Files that only exist in an artifact bundle get a base64-encoded ID built from the dist and file name"
+        ),
+    ]
+    name: Annotated[str, ApiDescription("Name of the file, usually its URL")]
+    dist: Annotated[str | None, ApiDescription("Name of the distribution the file belongs to")]
+    headers: Annotated[dict[str, object], ApiDescription("HTTP headers stored with the file")]
+    size: Annotated[int | None, ApiDescription("Size of the file in bytes")]
+    sha1: Annotated[str | None, ApiDescription("SHA-1 checksum of the file")]
+    dateCreated: Annotated[datetime, ApiDescription("When the file was uploaded (ISO 8601)")]
 
 
 def encode_release_file_id(obj: ReleaseFile) -> str | bytes | None:

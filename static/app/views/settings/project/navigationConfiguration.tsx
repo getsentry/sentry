@@ -31,28 +31,33 @@ export function getNavigationConfiguration({
       name: t('Project'),
       items: [
         {
+          id: 'project_general',
           path: `${pathPrefix}/`,
           index: true,
           title: settingsV3 ? t('General') : t('General Settings'),
           description: t('Configure general settings for a project'),
         },
         {
+          id: 'project_teams',
           path: `${pathPrefix}/teams/`,
           title: t('Project Teams'),
           description: t('Manage team access for a project'),
         },
         {
+          id: 'project_alerts',
           path: `${pathPrefix}/alerts/`,
           title: t('Alert Settings'),
           keywords: [t('alert'), t('alerts')],
           description: t('Project alert settings'),
         },
         {
+          id: 'project_tags',
           path: `${pathPrefix}/tags/`,
           title: t('Tags & Context'),
           description: t("View and manage a project's tags and context"),
         },
         {
+          id: 'project_attributes',
           path: `${pathPrefix}/attributes/`,
           title: t('Attributes'),
           badge: () => 'alpha',
@@ -61,12 +66,14 @@ export function getNavigationConfiguration({
           show: () => !!organization?.features?.includes('attribute-management'),
         },
         {
+          id: 'project_environments',
           path: `${pathPrefix}/environments/`,
           title: t('Environments'),
           keywords: [t('environment'), t('env'), t('staging'), t('production')],
           description: t('Manage environments in a project'),
         },
         {
+          id: 'project_ownership',
           path: `${pathPrefix}/ownership/`,
           title: t('Ownership Rules'),
           keywords: [
@@ -79,16 +86,19 @@ export function getNavigationConfiguration({
           description: t('Manage ownership rules for a project'),
         },
         {
+          id: 'project_seer',
           path: `${pathPrefix}/seer/`,
           title: t('Seer'),
           show: () => !isSelfHosted,
         },
         {
+          id: 'project_user_feedback',
           path: `${pathPrefix}/user-feedback/`,
           title: t('User Feedback'),
           show: () => !isSelfHostedErrorsOnly,
         },
         {
+          id: 'project_toolbar',
           path: `${pathPrefix}/toolbar/`,
           title: t('Dev Toolbar'),
           badge: () => 'beta',
@@ -100,6 +110,7 @@ export function getNavigationConfiguration({
       name: t('Processing'),
       items: [
         {
+          id: 'project_filters',
           path: `${pathPrefix}/filters/`,
           title: t('Inbound Filters'),
           keywords: [
@@ -115,6 +126,7 @@ export function getNavigationConfiguration({
           ),
         },
         {
+          id: 'project_security_and_privacy',
           path: `${pathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
           description: t(
@@ -122,21 +134,25 @@ export function getNavigationConfiguration({
           ),
         },
         {
+          id: 'project_issue_grouping',
           path: `${pathPrefix}/issue-grouping/`,
           title: t('Issue Grouping'),
           keywords: [t('fingerprinting'), t('fingerprint rules')],
         },
         {
+          id: 'project_debug_symbols',
           path: `${pathPrefix}/debug-symbols/`,
           title: t('Debug Files'),
           keywords: [t('debug file'), t('debug files'), t('symbols'), t('dsyms')],
           badge: debugFilesNeedsReview ? () => 'warning' : undefined,
         },
         {
+          id: 'project_proguard',
           path: `${pathPrefix}/proguard/`,
           title: t('ProGuard'),
         },
         {
+          id: 'project_source_maps',
           path: `${pathPrefix}/source-maps/`,
           title: t('Source Maps'),
           keywords: [
@@ -147,6 +163,7 @@ export function getNavigationConfiguration({
           ],
         },
         {
+          id: 'project_performance',
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),
           show: () =>
@@ -155,6 +172,7 @@ export function getNavigationConfiguration({
         },
 
         {
+          id: 'project_replays',
           path: `${pathPrefix}/replays/`,
           title: t('Replays'),
           keywords: [t('session'), t('session replay'), t('replay')],
@@ -163,6 +181,7 @@ export function getNavigationConfiguration({
             !isSelfHostedErrorsOnly,
         },
         {
+          id: 'project_logs',
           path: `${pathPrefix}/logs/`,
           title: t('Logs'),
           badge: () => 'alpha',
@@ -172,11 +191,13 @@ export function getNavigationConfiguration({
             !isSelfHostedErrorsOnly,
         },
         {
+          id: 'project_playstation',
           path: `${pathPrefix}/playstation/`,
           title: t('PlayStation'),
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
         {
+          id: 'project_mobile_builds',
           path: `${pathPrefix}/mobile-builds/`,
           title: t('Mobile Builds'),
           badge: () => 'new',
@@ -184,6 +205,7 @@ export function getNavigationConfiguration({
           description: t('Size analysis and build distribution configuration.'),
         },
         {
+          id: 'project_snapshots',
           path: `${pathPrefix}/snapshots/`,
           title: t('Snapshots'),
           badge: () => 'beta',
@@ -196,6 +218,7 @@ export function getNavigationConfiguration({
       name: t('SDK Setup'),
       items: [
         {
+          id: 'project_keys',
           path: `${pathPrefix}/keys/`,
           title: t('Client Keys (DSN)'),
           description: t("View and manage the project's client keys (DSN)"),
@@ -216,15 +239,18 @@ export function getNavigationConfiguration({
           ],
         },
         {
+          id: 'project_loader_script',
           path: `${pathPrefix}/loader-script/`,
           title: t('Loader Script'),
           description: t("View and manage the project's Loader Script"),
         },
         {
+          id: 'project_release_tracking',
           path: `${pathPrefix}/release-tracking/`,
           title: t('Releases'),
         },
         {
+          id: 'project_security_headers',
           path: `${pathPrefix}/security-headers/`,
           title: t('Security Headers'),
         },

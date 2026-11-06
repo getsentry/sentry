@@ -46,6 +46,7 @@ import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {NavigationItemClicked} from 'sentry/utils/analytics/navigationAnalyticsEvents';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -273,6 +274,11 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
    */
   activeTo?: To | To[];
   analyticsItemName?: string;
+  /**
+   * Extra parameters sent with `navigation.secondary_item_clicked`. Only used
+   * when `analyticsItemName` is set.
+   */
+  analyticsParams?: Omit<NavigationItemClicked, 'item'>;
   /**
    * When passed, will not show the link as active for descendant paths.
    * Same as the RR6 `NavLink` `end` prop.
@@ -522,6 +528,7 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
 
 function SecondaryNavigationLink({
   analyticsItemName,
+  analyticsParams,
   children,
   to,
   activeTo = to,
@@ -555,6 +562,7 @@ function SecondaryNavigationLink({
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (analyticsItemName) {
         trackAnalytics('navigation.secondary_item_clicked', {
+          ...analyticsParams,
           item: analyticsItemName,
           organization,
         });
