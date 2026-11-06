@@ -15,8 +15,10 @@ import {toast} from '@sentry/scraps/toast';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
 
 import {displayPrice} from 'getsentry/utils/billing';
 import {
@@ -30,6 +32,11 @@ interface AutoTopUpModalOptions {
   autoTopUp: SeerWalletAutoTopUp;
   creditPriceCents: number;
   organization: Organization;
+  /**
+   * The current balance, shown above the settings when the modal is opened
+   * away from the billing page, where the wallet card already shows it.
+   */
+  balance?: number;
 }
 
 type AutoTopUpModalProps = AutoTopUpModalOptions & ModalRenderProps;
@@ -38,7 +45,7 @@ function parseWholeNumber(value: string) {
   return Math.max(0, parseInt(value.replace(/\D/g, ''), 10) || 0);
 }
 
-function AutoTopUpModal({
+export function AutoTopUpModal({
   Header,
   Body,
   Footer,
@@ -46,6 +53,7 @@ function AutoTopUpModal({
   organization,
   autoTopUp,
   creditPriceCents,
+  balance,
 }: AutoTopUpModalProps) {
   const queryClient = useQueryClient();
   // Both entry points ("Turn on auto top-up" and "Edit") expect auto top-up to end up on.
@@ -70,6 +78,8 @@ function AutoTopUpModal({
       queryClient.invalidateQueries({
         queryKey: seerWalletAutoTopUpOptions(organization).queryKey,
       });
+      // Turning on auto top-up can unblock Seer, so let gated buttons recheck.
+      queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
       toast.success(
         data.enabled ? t('Auto top-up turned on') : t('Auto top-up turned off')
       );
@@ -97,6 +107,19 @@ function AutoTopUpModal({
       </Header>
       <Body>
         <Stack gap="xl">
+          {defined(balance) && (
+            <Fragment>
+              <Flex justify="between" align="center" gap="md">
+                <Heading as="h3" size="lg">
+                  {t('Balance')}
+                </Heading>
+                <Text bold variant={balance <= 0 ? 'danger' : undefined}>
+                  {tct('[balance] credits', {balance: balance.toLocaleString()})}
+                </Text>
+              </Flex>
+              <Separator orientation="horizontal" border="primary" />
+            </Fragment>
+          )}
           {error && (
             <Alert variant="danger" showIcon={false}>
               {error}
