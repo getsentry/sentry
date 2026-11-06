@@ -1,6 +1,7 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -72,12 +73,13 @@ export function useDeleteGroupEventAttachment() {
       return {previous};
     },
     onSuccess: () => {
-      addSuccessMessage(t('Attachment deleted'));
+      toast.success(t('Attachment deleted'));
     },
     onError: (error, variables, context) => {
-      addErrorMessage(
-        error?.responseJSON?.detail
-          ? (error.responseJSON.detail as string)
+      const detail = error?.responseJSON?.detail;
+      toast.error(
+        typeof detail === 'string'
+          ? detail
           : t('An error occurred while deleting the attachment')
       );
 

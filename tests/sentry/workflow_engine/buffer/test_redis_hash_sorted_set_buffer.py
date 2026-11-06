@@ -53,7 +53,7 @@ class TestRedisHashSortedSetBuffer:
                             "", {"cluster": "cluster"}, now_fn=mock_time_provider
                         )
                         for _, info in buf.cluster.info("server").items():
-                            assert info["redis_mode"] == "cluster"
+                            assert info["server_mode"] == "cluster"
                         buf.cluster.flushdb()
                         yield buf
                 case "standalone":

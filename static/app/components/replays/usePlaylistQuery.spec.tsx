@@ -1,6 +1,6 @@
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
+import {usePlaylistQuery} from './usePlaylistQuery';
 
 const initialRouterConfig = {
   route: '/mock-pathname/',

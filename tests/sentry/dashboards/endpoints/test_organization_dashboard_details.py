@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.db.models import QuerySet
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.response import Response
 
@@ -18,6 +19,7 @@ from sentry.explore.translation.dashboards_translation import translate_dashboar
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardLastVisited,
     DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -41,6 +43,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
@@ -147,15 +150,22 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.content
         assert response.data["createdBy"] is None
 
+    def test_get_with_widget_with_removed_display_type(self) -> None:
+        # 5 was the world_map display type. It was removed from
+        # DashboardWidgetDisplayTypes, but older widgets can still store it.
+        DashboardWidget.objects.filter(id=self.widget_1.id).update(display_type=5)
+
+        response = self.do_request("get", self.url(self.dashboard.id))
+
+        assert response.status_code == 200, response.content
+        widgets = {widget["id"]: widget for widget in response.data["widgets"]}
+        assert widgets[str(self.widget_1.id)]["displayType"] is None
+        assert widgets[str(self.widget_2.id)]["displayType"] is not None
+
     def test_dashboard_does_not_exist(self) -> None:
         response = self.do_request("get", self.url(1234567890))
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
-
-    def test_features_required(self) -> None:
-        with self.feature({"organizations:dashboards-basic": False}):
-            response = self.do_request("get", self.url(self.dashboard.id))
-            assert response.status_code == 404
 
     def test_dashboard_widget_returns_limit(self) -> None:
         response = self.do_request("get", self.url(self.dashboard.id))
@@ -802,11 +812,6 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204
         assert not Dashboard.objects.filter(id=self.dashboard.id).exists()
 
-    def test_features_required(self) -> None:
-        with self.feature({"organizations:dashboards-edit": False}):
-            response = self.do_request("delete", self.url(self.dashboard.id))
-            assert response.status_code == 404
-
     def test_delete_dashboard_with_edit_permissions_not_granted(self) -> None:
         creator = self.create_user()
         dashboard = Dashboard.objects.create(
@@ -980,13 +985,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(1234567890))
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
-
-    def test_feature_required(self) -> None:
-        with self.feature({"organizations:dashboards-edit": False}):
-            response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
-            )
-            assert response.status_code == 404, response.data
 
     def test_change_dashboard_title(self) -> None:
         with outbox_runner():
@@ -3744,6 +3742,33 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         field_links = DashboardFieldLink.objects.filter(dashboard_widget_query=queries[0])
         assert len(field_links) == 0
 
+    def test_create_widget_with_query_priority(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Query Priority",
+            "queryPriority": "faster",
+            "widgets": [],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["queryPriority"] == "faster"
+
+    def test_update_widget_with_query_priority(self) -> None:
+        dashboard = self.create_dashboard(
+            title="Dashboard with Links",
+            organization=self.organization,
+            query_priority=1,
+        )
+        data: dict[str, Any] = {
+            "title": "Dashboard with Links",
+            "widgets": [],
+            "queryPriority": "normal",
+        }
+
+        response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["queryPriority"] == "normal"
+
     def test_does_not_update_non_table_dashboard_links(self) -> None:
         dashboard = self.create_dashboard(
             title="Dashboard with Links", organization=self.organization
@@ -4936,18 +4961,25 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         assert dashboard.last_visited is not None
         assert dashboard.last_visited > last_visited
 
-    def test_visit_dashboard_no_access(self) -> None:
-        last_visited = self.dashboard.last_visited
-        assert self.dashboard.visits == 1
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature(["organizations:service-accounts", "organizations:dashboards-user-last-visited"])
+    def test_visit_dashboard_as_service_account(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
 
-        with self.feature({"organizations:dashboards-edit": False}):
-            response = self.do_request("post", self.url(self.dashboard.id))
+        response = self.client.post(
+            self.url(self.dashboard.id), HTTP_X_VIEWER_CONTEXT=viewer_context
+        )
 
-        assert response.status_code == 404
-
-        dashboard = Dashboard.objects.get(id=self.dashboard.id)
-        assert dashboard.visits == 1
-        assert dashboard.last_visited == last_visited
+        assert response.status_code == 204, response.content
+        assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
+        assert not DashboardLastVisited.objects.filter(dashboard=self.dashboard).exists()
 
 
 class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):

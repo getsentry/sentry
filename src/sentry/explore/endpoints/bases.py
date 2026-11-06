@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.auth.principal import is_acting_user, owned_by_acting_user
+from sentry.auth.principal import is_acting_user, is_owned_by_acting_user
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryProject
 from sentry.models.organization import Organization
 
@@ -62,6 +62,9 @@ class ExploreSavedFormulaPermission(OrganizationPermission):
         "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
 
+    # saved_query:read and saved_query:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
 
 def filter_to_accessible_explore_queries(
     request: Request, queryset: QuerySet[ExploreSavedQuery]
@@ -97,7 +100,9 @@ def filter_to_accessible_explore_queries(
         explore_saved_query_id=OuterRef("id"),
     )
     queryset = queryset.filter(
-        Exists(has_any_project) | owned_by_acting_user(request.user, "created_by_id") | is_prebuilt
+        Exists(has_any_project)
+        | is_owned_by_acting_user(request.user, "created_by_id")
+        | is_prebuilt
     )
 
     return queryset

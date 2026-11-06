@@ -235,6 +235,25 @@ const security = {
     'src/sentry/new_migrations/**',
   ],
   rules: {
+    lookupMayMatchNullRows: {
+      prompt:
+        'Does the code put a value that is None for some callers or rows into an exact ORM lookup keyword (in filter(), exclude(), get(), get_or_create(), update_or_create() or Q()) without checking for None first? Examples: user_id=request.user.id, which is None for API keys and anonymous callers; user_id=member.user_id, which is None for a pending invite; application=app.application or user=obj.user when that foreign key is nullable; a parameter typed int | None. It does not count when the code checks the value first (if x is None: return), adds an __isnull=False lookup for the same field, passes a literal None, writes x.id if x else None on purpose to match NULL rows, or uses a value that is always set, such as a primary key or a required field.',
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'A lookup keyword takes request.user.id, a member or object user id, a nullable foreign key, or an optional parameter that can be None, with no None check, so None silently matches rows where the column IS NULL.',
+          severity: 'warn',
+          report:
+            "`filter(field=None)` matches rows where the column is NULL. Decide what None means here: no rows (check for None first, or use `owned_by_acting_user()` for the caller's own rows), no filter (leave the lookup out), or NULL rows (pass None or use `__isnull=True`). See src/AGENTS.md, Request Principals.",
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Every lookup value is always set or checked for None first, or matching NULL rows is clearly intended.',
+        },
+      ],
+    },
     comparesSecretWithEquality: {
       // Raised to cut borderline false positives, accepting that some real findings score below it.
       threshold: 0.8,
@@ -643,6 +662,48 @@ const voice = {
   },
 } satisfies Suite;
 
+// Guardrails for the org:ci scope: endpoints reachable by CI org-auth-tokens
+// (e.g. sentry-cli) that expose data beyond what CI automation should read.
+const orgCiGuardrails = {
+  ignores: [
+    '**/tests/**',
+    '**/testutils/**',
+    '**/migrations/**',
+    'src/sentry/new_migrations/**',
+  ],
+  rules: {
+    grantsCiScopeToRepositoryContent: {
+      // Raised to cut borderline false positives, accepting that some real findings score below it.
+      threshold: 0.8,
+      prompt:
+        'Answer in two parts. First: does the code define a read endpoint (a GET handler) that returns source-control or repository content — pull request files, diffs, or patches; file, blob, or tree contents; or commit diffs — and make it reachable by an org:ci token? A caller holds org:ci when the endpoint\'s scope_map lists "org:ci" for GET, or when permission_classes uses a class that grants org:ci on GET: OrganizationIntegrationsLoosePermission, OrganizationCodeMappingsBulkPermission, OrganizationReleasePermission, or ProjectReleasePermission. In a scope_map the scopes listed for a method are alternatives, so including "org:ci" lets any org:ci token call the endpoint. The org:ci scope is for CI automation only — creating releases and uploading suspect-commit data, source maps, and debug files — so it should not read repository contents. Endpoints that only manage releases, deploys, or artifact uploads, and endpoints behind a permission whose GET scope omits org:ci (for example OrganizationIntegrationsPermission or OrganizationPermission), do not count. Second, only if the first part is true: does a comment or docstring on the endpoint explain that org:ci or CI-token access to this data is intentional or expected?',
+      values: [
+        {
+          value: 'EXPECTED',
+          description:
+            'The endpoint is a GET that returns repository or source-control content reachable by an org:ci token, AND a comment or docstring explains that org:ci or CI-token access to this data is intentional or expected.',
+          severity: 'warn',
+          report:
+            'An endpoint in this file exposes repository content to an `org:ci` token, which a comment marks as intentional. Logged as an accepted exception — confirm the justification for that endpoint still holds.',
+        },
+        {
+          value: 'TRUE',
+          description:
+            'The endpoint is a GET that returns repository or source-control content reachable by an org:ci token (its GET scope_map lists "org:ci", or it uses OrganizationIntegrationsLoosePermission, OrganizationCodeMappingsBulkPermission, OrganizationReleasePermission, or ProjectReleasePermission), and no comment or docstring explains that this org:ci access is intentional.',
+          severity: 'warn',
+          report:
+            'The `org:ci` scope is for CI automation (releases and artifact uploads), not for reading repository contents. An endpoint in this file returns source-control data but is reachable by an `org:ci` token, with no comment marking it as intentional. Find the endpoint whose permission grants `org:ci` and either use a permission class whose GET scope omits `org:ci` (for example `OrganizationIntegrationsPermission`), reject `org:ci` tokens explicitly, or add a comment on it explaining why the access is intended.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'The endpoint does not return repository or source-control content, or it is not reachable by an org:ci token — its GET scope_map omits "org:ci" and it uses no permission class that grants org:ci. Release, deploy, and artifact-upload endpoints do not count.',
+        },
+      ],
+    },
+  },
+} satisfies Suite;
+
 export default {
   model: jev,
   files: [
@@ -653,5 +714,5 @@ export default {
     'static/gsApp/**/*.tsx',
   ],
   ignores: ['**/tests/**', '**/testutils/**'],
-  suites: {api, audit, frontend, security, voice},
+  suites: {api, audit, frontend, security, voice, orgCiGuardrails},
 } satisfies Config;

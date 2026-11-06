@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {Card} from 'sentry/components/card';
+import {Card} from './card';
 
 type Props = {
   imgUrl: string;

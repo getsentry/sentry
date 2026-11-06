@@ -88,7 +88,7 @@ class PreprodExamples:
                         "baseSize": 4096,
                         "path": "lib/armeabi-v7a/libnative.so",
                         "itemType": "native_library",
-                        "type": "modified",
+                        "type": "increased",
                         "diffItems": None,
                     }
                 ],

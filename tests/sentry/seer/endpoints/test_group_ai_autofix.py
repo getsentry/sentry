@@ -43,6 +43,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 # Note: Detailed tests for the implementation of functions in seer/autofix.py
 # have been moved to tests/sentry/seer/test_autofix.py
@@ -597,6 +598,76 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             )
         mock_trigger_explorer.assert_not_called()
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_single_run_project_open_pr_requires_event_write(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        group = self.create_group()
+        group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
+
+        with self.feature("organizations:autofix-single-run"):
+            response = self.client.post(
+                self._get_url(group.id),
+                data={},
+                format="json",
+                HTTP_AUTHORIZATION=self._seer_write_bearer(),
+            )
+
+        assert response.status_code == 403, response.data
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="event:write"'
+        )
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_single_run_project_code_changes_is_allowed(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        group = self.create_group()
+        group.project.update_option("sentry:seer_automated_run_stopping_point", "code_changes")
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
+
+        with self.feature("organizations:autofix-single-run"):
+            response = self.client.post(
+                self._get_url(group.id),
+                data={},
+                format="json",
+                HTTP_AUTHORIZATION=self._seer_write_bearer(),
+            )
+
+        assert response.status_code == 202, response.data
+        mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_handoff_project_open_pr_is_not_a_single_run(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        group = self.create_group()
+        group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        group.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        group.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        group.project.update_option("sentry:seer_automation_handoff_integration_id", 456)
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
+
+        with self.feature("organizations:autofix-single-run"):
+            response = self.client.post(
+                self._get_url(group.id),
+                data={},
+                format="json",
+                HTTP_AUTHORIZATION=self._seer_write_bearer(),
+            )
+
+        assert response.status_code == 202, response.data
+
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_seer_write_token_continuing_run_gates_on_stored_stopping_point(
@@ -789,6 +860,39 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data["run_id"] == 777
         mock_trigger_explorer.assert_called_once()
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    @with_feature("organizations:service-accounts")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_service_account_starts_run_without_user(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        group = self.create_group()
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=777
+        )
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["event:write", "org:read", "project:read"],
+            project_ids=[group.project_id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key=AGENT_TOKEN_SECRET,
+        )
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 202, response.data
+        assert mock_trigger_explorer.call_args.kwargs["user"] is None
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_kickoff_returns_sentry_run_id(self, mock_trigger_explorer: MagicMock) -> None:
@@ -1028,7 +1132,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             user_context=None,
             insert_index=None,
             user=ANY,
-            enable_bash_mode=False,
             actor_user_id=None,
         )
 
@@ -1066,7 +1169,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             user_context=None,
             insert_index=3,
             user=ANY,
-            enable_bash_mode=False,
             actor_user_id=self.user.id,
         )
 

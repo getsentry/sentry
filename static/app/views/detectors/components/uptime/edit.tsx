@@ -12,9 +12,10 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {UptimeAlertForm} from 'sentry/views/detectors/components/uptime/uptimeAlertForm';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {useUptimeRule} from 'sentry/views/insights/uptime/utils/useUptimeRule';
+
+import {UptimeAlertForm} from './uptimeAlertForm';
 
 type RouteParams = {
   projectId: string;

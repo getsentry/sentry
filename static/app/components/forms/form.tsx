@@ -6,12 +6,13 @@ import {Observer} from 'mobx-react-lite';
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 
-import {FormContext} from 'sentry/components/forms/formContext';
-import type {FormOptions} from 'sentry/components/forms/model';
-import {fieldIsRequiredMessage, FormModel} from 'sentry/components/forms/model';
-import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+
+import {FormContext} from './formContext';
+import type {FormOptions} from './model';
+import {fieldIsRequiredMessage, FormModel} from './model';
+import type {Data, OnSubmitCallback} from './types';
 
 type RenderProps = {
   model: FormModel;

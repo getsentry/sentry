@@ -458,6 +458,25 @@ class TestSeerRpcMethods(APITestCase):
             "error": "Invalid event type: seer.invalid_event_name",
         }
 
+    @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_rejects_internal_errored_event(
+        self, mock_broadcast: MagicMock, mock_process_autofix_updates: MagicMock
+    ) -> None:
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        group = self.create_group(project=self.project)
+        with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True):
+            result = send_seer_webhook(
+                event_name="errored",
+                organization_id=self.organization.id,
+                payload={"run_id": 123, "group_id": group.id},
+            )
+
+        assert result.dict() == {"success": False, "error": "Invalid event type: seer.errored"}
+        mock_process_autofix_updates.apply_async.assert_not_called()
+        mock_broadcast.assert_not_called()
+
     def test_send_seer_webhook_organization_does_not_exist(self) -> None:
         """Test that send_seer_webhook returns error for non-existent organization"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
@@ -523,6 +542,7 @@ class TestSeerRpcMethods(APITestCase):
             event_type.value.split(".", 1)[1]  # Remove "seer." prefix
             for event_type in SentryAppEventType
             if event_type.value.startswith("seer.")
+            and event_type != SentryAppEventType.SEER_ERRORED
         ]
 
         for event_name in seer_events:
@@ -926,7 +946,7 @@ class TestSeerRpcMethods(APITestCase):
 # each test deterministic instead of iterating all 100+ registered flags.
 _ORG_FEATURES_TEST_SET = {
     "organizations:seer-agent-source-code-search": object(),
-    "organizations:seer-explorer-chat-coding": object(),
+    "organizations:seer-explorer-chat-prompts": object(),
 }
 
 
@@ -951,13 +971,13 @@ class TestGetOrganizationFeatures(APITestCase):
         with self.feature(
             {
                 "organizations:seer-agent-source-code-search": True,
-                "organizations:seer-explorer-chat-coding": True,
+                "organizations:seer-explorer-chat-prompts": True,
             }
         ):
             result = get_organization_features(org_id=self.organization.id)
         # "seer-agent-..." < "seer-explorer-..." alphabetically
         assert result.dict() == {
-            "features": ["seer-agent-source-code-search", "seer-explorer-chat-coding"]
+            "features": ["seer-agent-source-code-search", "seer-explorer-chat-prompts"]
         }
 
     def test_org_not_found_returns_empty(self) -> None:

@@ -16,7 +16,8 @@ import {
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
-import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
+
+import {ConnectedRepositoriesPanel} from './connectedRepositoriesPanel';
 
 mockElementSize();
 

@@ -5,9 +5,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {
   platformEventLinkMap,
@@ -16,7 +16,6 @@ import {
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getSentryAppTemplates} from 'sentry/views/settings/organizationDeveloperSettings/creationTemplates';
-import {ExampleIntegrationButton} from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
 const analyticsView = 'new_integration_modal';
 
@@ -28,10 +27,7 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
   return (
     <Fragment>
       <Header>
-        <Flex justify="between" align="center" width="100%">
-          <h3>{t('Choose Integration Type')}</h3>
-          <ExampleIntegrationButton analyticsView={analyticsView} />
-        </Flex>
+        <h3>{t('Choose Integration Type')}</h3>
       </Header>
       <Body>
         <Alert.Container>

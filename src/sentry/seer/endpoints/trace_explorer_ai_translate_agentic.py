@@ -13,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context
 from sentry.seer.endpoints.search_agent_start import resolve_referrer
@@ -163,7 +164,9 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         user_email = user_org_context.get("user_email")
         timezone = user_org_context.get("user_timezone")
 
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
+        viewer_context = SeerViewerContext(
+            organization_id=organization.id, user_id=acting_user_id(request.user)
+        )
         options["cross_event"] = features.has(
             "organizations:seer-assisted-query-cross-event-explorer",
             organization,

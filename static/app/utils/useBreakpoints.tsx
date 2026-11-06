@@ -4,7 +4,7 @@ import {Debouncer} from '@tanstack/react-pacer';
 
 import type {BreakpointSize} from '@sentry/scraps/theme';
 
-import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
+import {valueIsEqual} from './object/valueIsEqual';
 
 export type Breakpoints = Record<BreakpointSize, string>;
 

@@ -1,121 +1,121 @@
 import {t} from 'sentry/locale';
+
 import {
   DATA_TYPE as AGENT_MODELS_DATA_TYPE,
   DATA_TYPE_PLURAL as AGENT_MODELS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as AGENT_MODELS_MODULE_DOC_LINK,
   MODULE_FEATURES as AGENT_MODELS_MODULE_FEATURES,
   MODULE_TITLE as AGENT_MODELS_MODULE_TITLE,
-} from 'sentry/views/insights/agentModels/settings';
+} from './agentModels/settings';
 import {
   DATA_TYPE as AGENT_TOOLS_DATA_TYPE,
   DATA_TYPE_PLURAL as AGENT_TOOLS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as AGENT_TOOLS_MODULE_DOC_LINK,
   MODULE_FEATURES as AGENT_TOOLS_MODULE_FEATURES,
   MODULE_TITLE as AGENT_TOOLS_MODULE_TITLE,
-} from 'sentry/views/insights/agentTools/settings';
+} from './agentTools/settings';
 import {
   DATA_TYPE as RESOURCE_DATA_TYPE,
   DATA_TYPE_PLURAL as RESOURCE_DATA_TYPE_PLURAL,
   MODULE_FEATURES as RESOURCE_MODULE_FEATURES,
   MODULE_DOC_LINK as RESOURCES_MODULE_DOC_LINK,
   MODULE_TITLE as RESOURCES_MODULE_TITLE,
-} from 'sentry/views/insights/browser/resources/settings';
+} from './browser/resources/settings';
 import {
   MODULE_DOC_LINK as VITALS_MODULE_DOC_LINK,
   MODULE_FEATURES as VITALS_MODULE_FEATURES,
   MODULE_TITLE as VITALS_MODULE_TITLE,
   DATA_TYPE as WEB_VITALS_DATA_TYPE,
   DATA_TYPE_PLURAL as WEB_VITALS_DATA_TYPE_PLURAL,
-} from 'sentry/views/insights/browser/webVitals/settings';
+} from './browser/webVitals/settings';
 import {
   DATA_TYPE as CACHE_DATA_TYPE,
   DATA_TYPE_PLURAL as CACHE_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as CACHE_MODULE_DOC_LINK,
   MODULE_FEATURES as CACHE_MODULE_FEATURES,
   MODULE_TITLE as CACHE_MODULE_TITLE,
-} from 'sentry/views/insights/cache/settings';
-import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+} from './cache/settings';
+import {DataTitles} from './common/views/spans/types';
 import {
   DATA_TYPE as DB_DATA_TYPE,
   DATA_TYPE_PLURAL as DB_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as DB_MODULE_DOC_LINK,
   MODULE_FEATURES as DB_MODULE_FEATURES,
   MODULE_TITLE as DB_MODULE_TITLE,
-} from 'sentry/views/insights/database/settings';
+} from './database/settings';
 import {
   DATA_TYPE as HTTP_DATA_TYPE,
   DATA_TYPE_PLURAL as HTTP_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as HTTP_MODULE_DOC_LINK,
   MODULE_FEATURES as HTTP_MODULE_FEATURES,
   MODULE_TITLE as HTTP_MODULE_TITLE,
-} from 'sentry/views/insights/http/settings';
+} from './http/settings';
 import {
   DATA_TYPE as MCP_PROMPTS_DATA_TYPE,
   DATA_TYPE_PLURAL as MCP_PROMPTS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as MCP_PROMPTS_MODULE_DOC_LINK,
   MODULE_FEATURES as MCP_PROMPTS_MODULE_FEATURES,
   MODULE_TITLE as MCP_PROMPTS_MODULE_TITLE,
-} from 'sentry/views/insights/mcp-prompts/settings';
+} from './mcp-prompts/settings';
 import {
   DATA_TYPE as MCP_RESOURCES_DATA_TYPE,
   DATA_TYPE_PLURAL as MCP_RESOURCES_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as MCP_RESOURCES_MODULE_DOC_LINK,
   MODULE_FEATURES as MCP_RESOURCES_MODULE_FEATURES,
   MODULE_TITLE as MCP_RESOURCES_MODULE_TITLE,
-} from 'sentry/views/insights/mcp-resources/settings';
+} from './mcp-resources/settings';
 import {
   DATA_TYPE as MCP_TOOLS_DATA_TYPE,
   DATA_TYPE_PLURAL as MCP_TOOLS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as MCP_TOOLS_MODULE_DOC_LINK,
   MODULE_FEATURES as MCP_TOOLS_MODULE_FEATURES,
   MODULE_TITLE as MCP_TOOLS_MODULE_TITLE,
-} from 'sentry/views/insights/mcp-tools/settings';
+} from './mcp-tools/settings';
 import {
   DATA_TYPE as APP_STARTS_DATA_TYPE,
   DATA_TYPE_PLURAL as APP_STARTS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as APP_STARTS_MODULE_DOC_LINK,
   MODULE_FEATURES as APP_STARTS_MODULE_FEATURES,
   MODULE_TITLE as APP_STARTS_MODULE_TITLE,
-} from 'sentry/views/insights/mobile/appStarts/settings';
+} from './mobile/appStarts/settings';
 import {
   DATA_TYPE as SCREEN_LOAD_DATA_TYPE,
   DATA_TYPE_PLURAL as SCREEN_LOAD_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as SCREEN_LOADS_MODULE_DOC_LINK,
   MODULE_FEATURES as SCREEN_LOADS_MODULE_FEATURES,
   MODULE_TITLE as SCREEN_LOADS_MODULE_TITLE,
-} from 'sentry/views/insights/mobile/screenload/settings';
+} from './mobile/screenload/settings';
 import {
   DATA_TYPE as SCREEN_RENDERING_DATA_TYPE,
   DATA_TYPE_PLURAL as SCREEN_RENDERING_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as SCREEN_RENDERING_MODULE_DOC_LINK,
   MODULE_FEATURES as SCREEN_RENDERING_MODULE_FEATURES,
   MODULE_TITLE as SCREEN_RENDERING_MODULE_TITLE,
-} from 'sentry/views/insights/mobile/screenRendering/settings';
+} from './mobile/screenRendering/settings';
 import {
   DATA_TYPE as MOBILE_SCREENS_DATA_TYPE,
   DATA_TYPE_PLURAL as MOBILE_SCREENS_DATA_TYPE_PLURAL,
   MODULE_FEATURE as MOBILE_SCREENS_MODULE_FEATURE,
   MODULE_TITLE as MOBILE_SCREENS_MODULE_TITLE,
   MODULE_DOC_LINK as MODULE_SCREENS_DOC_LINK,
-} from 'sentry/views/insights/mobile/screens/settings';
-import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
-import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+} from './mobile/screens/settings';
+import {FRONTEND_LANDING_SUB_PATH} from './pages/frontend/settings';
+import {MOBILE_LANDING_SUB_PATH} from './pages/mobile/settings';
+import type {DomainView} from './pages/useFilters';
 import {
   DATA_TYPE as QUEUE_DATA_TYPE,
   DATA_TYPE_PLURAL as QUEUE_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as QUEUE_MODULE_DOC_LINK,
   MODULE_FEATURES as QUEUE_MODULE_FEATURES,
   MODULE_TITLE as QUEUE_MODULE_TITLE,
-} from 'sentry/views/insights/queues/settings';
+} from './queues/settings';
 import {
   FRONTEND_MODULE_DOC_LINK as FRONTEND_SESSIONS_MODULE_DOC_LINK,
   MOBILE_MODULE_DOC_LINK as MOBILE_SESSIONS_MODULE_DOC_LINK,
   DATA_TYPE as SESSIONS_DATA_TYPE,
   DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
   MODULE_TITLE as SESSIONS_MODULE_TITLE,
-} from 'sentry/views/insights/sessions/settings';
-
+} from './sessions/settings';
 import type {SpanProperty} from './types';
 import {ModuleName} from './types';
 

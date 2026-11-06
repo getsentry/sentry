@@ -94,6 +94,7 @@ class SeerAgenticTriageRunOptions(TypedDict):
     source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
+    single_run: bool
     intelligence_level: IntelligenceLevel
     reasoning_effort: ReasoningEffort
     extra_triage_instructions: str
@@ -106,6 +107,7 @@ class SeerAgenticTriageRunOptionsPartial(TypedDict, total=False):
     source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
+    single_run: bool
     intelligence_level: IntelligenceLevel
     reasoning_effort: ReasoningEffort
     extra_triage_instructions: str
@@ -542,6 +544,7 @@ def _run_option_defaults(data: Mapping[str, Any]) -> SeerAgenticTriageRunOptions
         source=data.get("source", "cron"),
         max_candidates=default_max_candidates() if max_candidates is None else max_candidates,
         dry_run=data.get("dry_run", False),
+        single_run=data.get("single_run", False),
         intelligence_level=data.get("intelligence_level", DEFAULT_INTELLIGENCE_LEVEL),
         reasoning_effort=data.get("reasoning_effort", DEFAULT_REASONING_EFFORT),
         extra_triage_instructions=data.get(

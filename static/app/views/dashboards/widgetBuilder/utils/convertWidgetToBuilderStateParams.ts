@@ -14,11 +14,12 @@ import {
   type WidgetBuilderStateParams,
   type WidgetBuilderStateQueryParams,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+
 import {
   serializeFields,
   serializeLinkedDashboards,
   serializeThresholds,
-} from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
+} from './serialization';
 
 function stringifyFields(
   query: WidgetQuery,

@@ -18,8 +18,9 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import {ReplayDetailsEntityHeader} from 'sentry/views/explore/replays/detail/header/replayDetailsEntityHeader';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
+
+import {ReplayDetailsEntityHeader} from './replayDetailsEntityHeader';
 
 const {organization, project} = initializeOrg({
   organization: OrganizationFixture({}),

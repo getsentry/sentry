@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import JSONField
@@ -24,6 +24,7 @@ from sentry.api.serializers.models.role import (
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.utils import generate_locality_url
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
@@ -106,44 +107,72 @@ logger = logging.getLogger(__name__)
 
 
 class _Status(TypedDict):
-    id: str
-    name: str
+    id: Annotated[
+        str,
+        ApiDescription(
+            "Status ID: active, pending_deletion, deletion_in_progress or relocation_pending_approval"
+        ),
+    ]
+    name: Annotated[str, ApiDescription("Status label, such as active or pending deletion")]
 
 
 class _Links(TypedDict):
-    organizationUrl: str
-    regionUrl: str
+    organizationUrl: Annotated[str, ApiDescription("Base URL of the organization")]
+    regionUrl: Annotated[str, ApiDescription("Base URL of the API for the organization's region")]
 
 
 class OnboardingTasksSerializerResponse(TypedDict):
-    task: str | None  # TODO: literal/enum
-    status: str  # TODO: literal/enum
-    completionSeen: datetime | None
-    dateCompleted: datetime
-    data: object
+    # TODO: literal/enum
+    task: Annotated[str | None, ApiDescription("Onboarding task key, such as create_project")]
+    status: Annotated[str, ApiDescription("Task status: complete or skipped")]  # TODO: literal/enum
+    completionSeen: Annotated[
+        datetime | None, ApiDescription("When the task's completion was marked as seen, or null")
+    ]
+    dateCompleted: Annotated[datetime, ApiDescription("When the task was completed or skipped")]
+    data: Annotated[
+        object, ApiDescription("Extra data recorded for the task, which depends on the task")
+    ]
 
 
 class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
-    features: list[str]  # Only included if include_feature_flags is True
-    extraOptions: dict[str, dict[str, object]]
-    access: list[str]  # Only if access=... is passed
-    onboardingTasks: list[OnboardingTasksSerializerResponse]  # Only if access=... is passed
+    # Only included if include_feature_flags is True
+    features: Annotated[list[str], ApiDescription("Features enabled for the organization")]
+    extraOptions: Annotated[
+        dict[str, dict[str, object]], ApiDescription("Server-wide options that the Sentry UI reads")
+    ]
+    # Only if access=... is passed
+    access: Annotated[
+        list[str], ApiDescription("Scopes the requesting user has in the organization")
+    ]
+    # Only if access=... is passed
+    onboardingTasks: Annotated[
+        list[OnboardingTasksSerializerResponse],
+        ApiDescription("Onboarding tasks the organization has completed or skipped"),
+    ]
 
 
 class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
-    id: str
-    slug: str
-    status: _Status
-    name: str
-    dateCreated: datetime
-    isEarlyAdopter: bool
-    require2FA: bool
-    avatar: SerializedAvatarFields
-    links: _Links
-    hasAuthProvider: bool
-    allowMemberInvite: bool
-    allowMemberProjectCreation: bool
-    allowSuperuserAccess: bool
+    id: Annotated[str, ApiDescription("Organization ID")]
+    slug: Annotated[str, ApiDescription("Organization slug")]
+    status: Annotated[_Status, ApiDescription("Organization status")]
+    name: Annotated[str, ApiDescription("Organization name, or its slug when it has no name")]
+    dateCreated: Annotated[datetime, ApiDescription("When the organization was created (ISO 8601)")]
+    isEarlyAdopter: Annotated[bool, ApiDescription("Whether the organization is an early adopter")]
+    require2FA: Annotated[
+        bool, ApiDescription("Whether members must use two-factor authentication")
+    ]
+    avatar: Annotated[SerializedAvatarFields, ApiDescription("Organization avatar")]
+    links: Annotated[_Links, ApiDescription("Organization and region URLs")]
+    hasAuthProvider: Annotated[
+        bool, ApiDescription("Whether SSO is configured for the organization")
+    ]
+    allowMemberInvite: Annotated[bool, ApiDescription("Whether members can invite other members")]
+    allowMemberProjectCreation: Annotated[
+        bool, ApiDescription("Whether members can create projects")
+    ]
+    allowSuperuserAccess: Annotated[
+        bool, ApiDescription("Whether Sentry superusers can access the organization")
+    ]
 
 
 class BaseOrganizationSerializer(serializers.Serializer):
@@ -224,11 +253,13 @@ class BaseOrganizationSerializer(serializers.Serializer):
 
 
 class TrustedRelaySerializerResponse(TypedDict, total=False):
-    name: str
-    description: str
-    publicKey: str
-    created: datetime
-    lastModified: datetime
+    name: Annotated[str, ApiDescription("Name of the Relay")]
+    description: Annotated[str, ApiDescription("Description of the Relay")]
+    publicKey: Annotated[str, ApiDescription("Public key of the Relay")]
+    created: Annotated[datetime, ApiDescription("When the Relay was added")]
+    lastModified: Annotated[
+        datetime, ApiDescription("When the Relay was added or its name or description last changed")
+    ]
 
 
 def _relay_internal_to_external(d: dict[str, Any]) -> TrustedRelaySerializerResponse:
@@ -621,10 +652,15 @@ class OnboardingTasksSerializer(Serializer[OnboardingTasksSerializerResponse]):
 
 
 class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerResponse, total=False):
-    role: Any  # TODO: replace with enum/literal
-    orgRole: str
-    targetSampleRate: float
-    samplingMode: str
+    # TODO: replace with enum/literal
+    role: Annotated[str, ApiDescription("Deprecated, use orgRole")]
+    orgRole: Annotated[str, ApiDescription("The requesting user's role in the organization")]
+    targetSampleRate: Annotated[
+        float, ApiDescription("Target sample rate for dynamic sampling, from 0 to 1")
+    ]
+    samplingMode: Annotated[
+        str, ApiDescription("Where dynamic sampling target rates are set: organization or project")
+    ]
     planSampleRate: float
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
@@ -639,49 +675,181 @@ class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerRespo
     }
 )
 class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
-    experiments: dict[str, str]
-    isDefault: bool
-    defaultRole: str  # TODO: replace with enum/literal
+    experiments: Annotated[
+        dict[str, str],
+        ApiDescription(
+            "Experiment assignments for the organization, mapping each experiment name to active or control"
+        ),
+    ]
+    isDefault: Annotated[
+        bool,
+        ApiDescription("Whether this is the default organization of a single-organization install"),
+    ]
+    # TODO: replace with enum/literal
+    defaultRole: Annotated[str, ApiDescription("Role that new members get by default")]
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
-    orgRoleList: list[OrganizationRoleSerializerResponse]
-    teamRoleList: list[TeamRoleSerializerResponse]
-    openMembership: bool
-    allowSharedIssues: bool
-    enhancedPrivacy: bool
-    dataScrubber: bool
-    dataScrubberDefaults: bool
-    sensitiveFields: list[str]
-    safeFields: list[str]
-    storeCrashReports: int
-    attachmentsRole: str  # TODO: replace with enum/literal
-    debugFilesRole: str  # TODO: replace with enum/literal
-    eventsMemberAdmin: bool
-    alertsMemberWrite: bool
-    scrubIPAddresses: bool
-    scrapeJavaScript: bool
-    allowJoinRequests: bool
-    relayPiiConfig: str | None
-    relayDsnEndpoint: str | None
-    trustedRelays: list[TrustedRelaySerializerResponse]
-    pendingAccessRequests: int
-    hideAiFeatures: bool
+    orgRoleList: Annotated[
+        list[OrganizationRoleSerializerResponse],
+        ApiDescription("Organization roles available in the organization"),
+    ]
+    teamRoleList: Annotated[
+        list[TeamRoleSerializerResponse], ApiDescription("Team roles available in the organization")
+    ]
+    openMembership: Annotated[bool, ApiDescription("Whether members can freely join any team")]
+    allowSharedIssues: Annotated[
+        bool, ApiDescription("Whether limited details of issues can be shared with anonymous users")
+    ]
+    enhancedPrivacy: Annotated[
+        bool,
+        ApiDescription(
+            "Whether enhanced privacy controls limit personally identifiable information (PII) and source code in things like notifications"
+        ),
+    ]
+    dataScrubber: Annotated[
+        bool, ApiDescription("Whether server-side data scrubbing is required for all projects")
+    ]
+    dataScrubberDefaults: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the default scrubbers apply to all projects, to keep things like passwords and credit cards from being stored"
+        ),
+    ]
+    sensitiveFields: Annotated[
+        list[str],
+        ApiDescription("Additional field names that data scrubbing matches in all projects"),
+    ]
+    safeFields: Annotated[
+        list[str], ApiDescription("Field names that data scrubbers ignore in all projects")
+    ]
+    storeCrashReports: Annotated[
+        int,
+        ApiDescription(
+            "How many native crash reports to store per issue; 0 is disabled and -1 is unlimited"
+        ),
+    ]
+    # TODO: replace with enum/literal
+    attachmentsRole: Annotated[
+        str,
+        ApiDescription(
+            "Role required to download event attachments, such as native crash reports or log files"
+        ),
+    ]
+    # TODO: replace with enum/literal
+    debugFilesRole: Annotated[
+        str,
+        ApiDescription(
+            "Role required to download debug information files, ProGuard mappings and source maps"
+        ),
+    ]
+    eventsMemberAdmin: Annotated[
+        bool, ApiDescription("Whether members can delete events, through the event:admin scope")
+    ]
+    alertsMemberWrite: Annotated[
+        bool,
+        ApiDescription(
+            "Whether members can create, edit and delete alert rules, through the alerts:write scope"
+        ),
+    ]
+    scrubIPAddresses: Annotated[
+        bool,
+        ApiDescription(
+            "Whether IP addresses are kept from being stored for new events in all projects"
+        ),
+    ]
+    scrapeJavaScript: Annotated[
+        bool,
+        ApiDescription("Whether Sentry scrapes missing JavaScript source context when possible"),
+    ]
+    allowJoinRequests: Annotated[
+        bool, ApiDescription("Whether users can request to join the organization")
+    ]
+    relayPiiConfig: Annotated[
+        str | None,
+        ApiDescription(
+            "Advanced data scrubbing rules of the organization as a JSON string, or null"
+        ),
+    ]
+    relayDsnEndpoint: Annotated[
+        str | None, ApiDescription("Relay base URL used when displaying Client Key DSNs, or null")
+    ]
+    trustedRelays: Annotated[
+        list[TrustedRelaySerializerResponse],
+        ApiDescription("Local Relays registered for the organization"),
+    ]
+    pendingAccessRequests: Annotated[
+        int, ApiDescription("Number of pending requests to join teams in the organization")
+    ]
+    hideAiFeatures: Annotated[
+        bool, ApiDescription("Whether AI features are hidden for the organization")
+    ]
     aggregatedDataConsent: bool
     genAIConsent: bool
-    isDynamicallySampled: bool
-    issueAlertsThreadFlag: bool
-    metricAlertsThreadFlag: bool
-    requiresSso: bool
+    isDynamicallySampled: Annotated[
+        bool,
+        ApiDescription(
+            "Whether dynamic sampling keeps less than all events, for the organization or any of its projects"
+        ),
+    ]
+    issueAlertsThreadFlag: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the Slack integration posts replies in threads for issue alert notifications"
+        ),
+    ]
+    metricAlertsThreadFlag: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the Slack integration posts replies in threads for metric alert notifications"
+        ),
+    ]
+    requiresSso: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the requesting user must sign in with SSO to access the organization"
+        ),
+    ]
     rollbackEnabled: bool
     streamlineOnly: bool
-    defaultAutofixAutomationTuning: str
-    defaultSeerScannerAutomation: bool
-    enableSeerCoding: bool
-    defaultCodingAgent: str
-    defaultCodingAgentIntegrationId: str | None
-    defaultAutomatedRunStoppingPoint: str
-    autoEnableCodeReview: bool
-    autoOpenPrs: bool
-    defaultCodeReviewTriggers: list[str]
+    defaultAutofixAutomationTuning: Annotated[
+        str, ApiDescription("Default Autofix automation tuning for new projects")
+    ]
+    defaultSeerScannerAutomation: Annotated[
+        bool,
+        ApiDescription(
+            "Default issue scanner automation for new projects; on seat-based Seer plans, new projects always have it on"
+        ),
+    ]
+    enableSeerCoding: Annotated[
+        bool, ApiDescription("Whether Seer coding is enabled for the organization")
+    ]
+    defaultCodingAgent: Annotated[
+        str,
+        ApiDescription(
+            "Coding agent that automated Autofix runs on new projects hand off to, or seer; applies to seat-based Seer plans"
+        ),
+    ]
+    defaultCodingAgentIntegrationId: Annotated[
+        str | None, ApiDescription("Integration ID of the default coding agent, or null")
+    ]
+    defaultAutomatedRunStoppingPoint: Annotated[
+        str, ApiDescription("Step where automated Autofix runs on new projects stop by default")
+    ]
+    autoEnableCodeReview: Annotated[
+        bool,
+        ApiDescription(
+            "Whether code review is turned on for GitHub repositories when they're added"
+        ),
+    ]
+    autoOpenPrs: Annotated[
+        bool,
+        ApiDescription(
+            "Whether automated Autofix runs on new projects open pull requests by default"
+        ),
+    ]
+    defaultCodeReviewTriggers: Annotated[
+        list[str],
+        ApiDescription("Code review triggers that GitHub repositories get when they're added"),
+    ]
     hasGranularReplayPermissions: bool
     replayAccessMembers: list[int]
 
@@ -961,8 +1129,12 @@ class OrganizationSerializer(OrganizationSummarySerializer):
     }
 )
 class OrganizationWithProjectsAndTeamsSerializerResponse(OrganizationSerializerResponse):
-    teams: list[TeamSerializerResponse]
-    projects: list[OrganizationProjectResponse]
+    teams: Annotated[
+        list[TeamSerializerResponse], ApiDescription("Active teams of the organization")
+    ]
+    projects: Annotated[
+        list[OrganizationProjectResponse], ApiDescription("Active projects of the organization")
+    ]
 
 
 class OrganizationWithProjectsAndTeamsSerializer(OrganizationSerializer):

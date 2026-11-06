@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import orjson
 from django.db import IntegrityError, router, transaction
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
@@ -33,6 +34,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.auth.principal import acting_user_id
 from sentry.constants import (
     PROJECT_SLUG_MAX_LENGTH,
     RESERVED_PROJECT_SLUGS,
@@ -57,6 +59,7 @@ from sentry.lang.native.sources import (
     redact_source_secrets,
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -64,6 +67,7 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.similarity.utils import project_uses_seer_similarity
 from sentry.tasks.seer.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
 
@@ -670,9 +674,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         resolve_age = project.get_option("sentry:resolve_age", None)
         if resolve_age:
-            queryset = queryset.filter(
-                last_seen__gte=timezone.now() - timedelta(hours=int(resolve_age))
+            cutoff = timezone.now() - timedelta(hours=int(resolve_age))
+            recently_reopened = Exists(
+                Activity.objects.get_recent_unresolved_activities(project.id, cutoff).filter(
+                    group_id=OuterRef("id")
+                )
             )
+            queryset = queryset.filter(Q(last_seen__gt=cutoff) | recently_reopened)
 
         return queryset.count()
 
@@ -819,14 +827,21 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if old_slug:
                 ProjectRedirect.record(project, old_slug)
 
-        if result.get("isBookmarked"):
-            try:
-                with transaction.atomic(router.db_for_write(ProjectBookmark)):
-                    ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
-            except IntegrityError:
-                pass
-        elif result.get("isBookmarked") is False:
-            ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
+        # Bookmarks are per user: skipped without one, like token callers always were.
+        bookmark_user_id = acting_user_id(request.user)
+        if bookmark_user_id is not None:
+            if result.get("isBookmarked"):
+                try:
+                    with transaction.atomic(router.db_for_write(ProjectBookmark)):
+                        ProjectBookmark.objects.create(
+                            project_id=project.id, user_id=bookmark_user_id
+                        )
+                except IntegrityError:
+                    pass
+            elif result.get("isBookmarked") is False:
+                ProjectBookmark.objects.filter(
+                    project_id=project.id, user_id=bookmark_user_id
+                ).delete()
 
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
@@ -1423,7 +1438,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if project.get_option("sentry:similarity_backfill_completed"):
+            if project_uses_seer_similarity(project):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)
