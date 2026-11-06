@@ -64,6 +64,7 @@ function getAccountNavigationConfiguration({
       name: t('Account'),
       items: [
         {
+          id: 'account_details',
           path: `${userSettingsPathPrefix}/details/`,
           icon: getSettingsScopeIcon('account'),
           title: settingsV3 ? t('General') : t('Account Details'),
@@ -73,12 +74,14 @@ function getAccountNavigationConfiguration({
           ),
         },
         {
+          id: 'account_security',
           path: `${userSettingsPathPrefix}/security/`,
           icon: <IconLock />,
           title: t('Security'),
           description: t('Change your account password and/or two factor authentication'),
         },
         {
+          id: 'account_notifications',
           path: `${userSettingsPathPrefix}/notifications/`,
           icon: <IconSubscribed />,
           title: t('Notifications'),
@@ -86,6 +89,7 @@ function getAccountNavigationConfiguration({
           description: t('Configure what email notifications to receive'),
         },
         {
+          id: 'account_emails',
           path: `${userSettingsPathPrefix}/emails/`,
           icon: <IconMail />,
           title: t('Email Addresses'),
@@ -94,6 +98,7 @@ function getAccountNavigationConfiguration({
           ),
         },
         {
+          id: 'account_subscriptions',
           path: `${userSettingsPathPrefix}/subscriptions/`,
           title: t('Subscriptions'),
           description: t(
@@ -101,6 +106,7 @@ function getAccountNavigationConfiguration({
           ),
         },
         {
+          id: 'account_authorizations',
           path: `${userSettingsPathPrefix}/authorizations/`,
           title: t('Authorized Apps'),
           description: t(
@@ -108,6 +114,7 @@ function getAccountNavigationConfiguration({
           ),
         },
         {
+          id: 'account_identities',
           path: `${userSettingsPathPrefix}/identities/`,
           title: t('Identities'),
           description: t(
@@ -115,6 +122,7 @@ function getAccountNavigationConfiguration({
           ),
         },
         {
+          id: 'account_close_account',
           path: `${userSettingsPathPrefix}/close-account/`,
           title: t('Close Account'),
           keywords: [t('delete account')],
@@ -229,6 +237,7 @@ function getOrganizationNavigationConfiguration({
           recordAnalytics: true,
         },
         {
+          id: 'feature-flags',
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           icon: <IconFlag />,
           title: t('Feature Flags'),
@@ -377,6 +386,7 @@ function getDeveloperNavigationConfiguration({
 }): NavigationSection[] {
   const accountItems: NavigationItem[] = [
     {
+      id: 'account_api_auth_tokens',
       path: `${userSettingsPathPrefix}/api/auth-tokens/`,
       title: t('Personal Tokens'),
       keywords: [
@@ -396,6 +406,7 @@ function getDeveloperNavigationConfiguration({
       ),
     },
     {
+      id: 'account_api_applications',
       path: `${userSettingsPathPrefix}/api/applications/`,
       title: t('OAuth Applications'),
       description: t('Add and configure OAuth2 applications'),
