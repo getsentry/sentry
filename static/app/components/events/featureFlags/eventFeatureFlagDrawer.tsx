@@ -1,20 +1,15 @@
 import {useState} from 'react';
 import {IconSearch} from '@sentry/icons/search';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {InputGroup} from '@sentry/scraps/input';
-import {Grid} from '@sentry/scraps/layout';
 
 import {
-  CrumbContainer,
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
   EventNavigator,
-  Header,
-  NavigationCrumbs,
   SearchInput,
-  ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {useFocusControl} from 'sentry/components/events/useFocusControl';
 import {
@@ -24,8 +19,6 @@ import {
 } from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,17 +28,13 @@ import {FlagControlOptions, ORDER_BY_OPTIONS, sortedFlags, type OrderBy} from '.
 
 interface FlagDrawerProps {
   event: Event;
-  group: Group;
   hydratedFlags: KeyValueTableDataRowProps[];
   initialOrderBy: OrderBy;
-  project: Project;
   focusControl?: FlagControlOptions;
 }
 
 export function EventFeatureFlagDrawer({
-  group,
   event,
-  project,
   initialOrderBy,
   hydratedFlags,
   focusControl: initialFocusControl,
@@ -59,58 +48,51 @@ export function EventFeatureFlagDrawer({
     f.item.key.includes(search)
   );
 
-  const actions = (
-    <Grid flow="column" align="center" gap="md">
-      <InputGroup>
-        <SearchInput
-          size="xs"
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value.toLowerCase());
-          }}
-          aria-label={t('Search Flags')}
-          {...getFocusProps(FlagControlOptions.SEARCH)}
-        />
-        <InputGroup.TrailingItems disablePointerEvents>
-          <IconSearch size="xs" />
-        </InputGroup.TrailingItems>
-      </InputGroup>
-      <FeatureFlagSort
-        orderByOptions={ORDER_BY_OPTIONS}
-        orderBy={orderBy}
-        setOrderBy={value => {
-          setOrderBy(value);
-          trackAnalytics('flags.sort_flags', {
-            organization,
-            sortMethod: value as string,
-          });
+  const searchInput = (
+    <InputGroup>
+      <SearchInput
+        size="sm"
+        value={search}
+        onChange={e => {
+          setSearch(e.target.value.toLowerCase());
         }}
+        aria-label={t('Search Flags')}
+        placeholder={t('Filter feature flags')}
+        {...getFocusProps(FlagControlOptions.SEARCH)}
       />
-    </Grid>
+      <InputGroup.TrailingItems disablePointerEvents>
+        <IconSearch size="xs" />
+      </InputGroup.TrailingItems>
+    </InputGroup>
+  );
+
+  const actions = (
+    <FeatureFlagSort
+      size="sm"
+      variant="transparent"
+      orderByOptions={ORDER_BY_OPTIONS}
+      orderBy={orderBy}
+      setOrderBy={value => {
+        setOrderBy(value);
+        trackAnalytics('flags.sort_flags', {
+          organization,
+          sortMethod: value as string,
+        });
+      }}
+    />
   );
 
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: getShortEventId(event.id)},
-            {label: t('Feature Flags')},
-          ]}
+      <DrawerHeader>
+        <DrawerBreadcrumbs
+          current={{
+            label: t('Feature Flags'),
+            labelTooltip: t('Event ID: %s', getShortEventId(event.id)),
+          }}
         />
-      </EventDrawerHeader>
-      <EventNavigator>
-        <Header>{t('Feature Flags')}</Header>
-        {actions}
-      </EventNavigator>
+      </DrawerHeader>
+      <EventNavigator leadingItems={searchInput} trailingItems={actions} />
       <EventDrawerBody>
         <KeyValueColumns columnCount={1} maxKeyWidth="70%">
           {() => [

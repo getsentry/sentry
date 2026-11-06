@@ -295,11 +295,6 @@
       "count": 1
     }
   },
-  "components/events/eventDrawer.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
   "components/events/eventMessage.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3083,9 +3078,6 @@
   "views/explore/releases/drawer/releasesDrawerDetails.tsx": {
     "@sentry/prefer-nuqs": {
       "count": 1
-    },
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 2
     }
   },
   "views/explore/releases/drawer/releasesDrawerList.tsx": {
@@ -4532,47 +4524,6 @@
   },
   "views/settings/components/teamSelect/teamSelectForMember.tsx": {
     "@sentry/scraps/no-manual-table": {
-      "count": 1
-    }
-  },
-  "views/settings/dynamicSampling/organizationSampleRateInput.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 7
-    }
-  },
-  "views/settings/dynamicSampling/organizationSampling.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    },
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
-  "views/settings/dynamicSampling/projectsEditTable.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/settings/dynamicSampling/projectsPreviewTable.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/settings/dynamicSampling/projectsTable.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 6
-    },
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
-  "views/settings/dynamicSampling/samplingBreakdown.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 6
-    }
-  },
-  "views/settings/dynamicSampling/samplingModeSwitchModal.tsx": {
-    "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },

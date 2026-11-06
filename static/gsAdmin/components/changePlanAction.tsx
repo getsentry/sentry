@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import classNames from 'classnames';
 
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
@@ -10,8 +11,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -44,17 +44,13 @@ function ChangePlanAction({
     data: configs,
     isPending,
     isError,
-  } = useApiQuery<BillingConfig>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
-        path: {organizationIdOrSlug: orgId},
-      }),
-      {query: {tier: BillingConfigTier.ALL}},
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<BillingConfig>()('/customers/$organizationIdOrSlug/billing-config/', {
+      path: {organizationIdOrSlug: orgId},
+      query: {tier: BillingConfigTier.ALL},
       // TODO(isabella): pass billing config from customerDetails
       staleTime: Infinity,
-    }
+    })
   );
 
   const planList = useMemo(() => configs?.planList ?? [], [configs]);

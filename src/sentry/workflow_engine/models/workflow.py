@@ -124,6 +124,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 name="workflow_engine_workflow_when_condition_group_id_11d9ba05_uniq",
             ),
         ]
+        indexes = [
+            models.Index(fields=["type", "organization"], name="workflow_type_org_idx"),
+        ]
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name, "type": self.type}
