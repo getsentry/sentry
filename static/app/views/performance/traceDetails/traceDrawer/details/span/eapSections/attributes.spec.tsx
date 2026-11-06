@@ -54,35 +54,40 @@ describe('AttributesContent', () => {
   it.each([
     {features: [], search: 'span.op'},
     {features: ['trace-item-details-raw-attribute-names'], search: 'sentry.op'},
-  ])('searches the displayed name $search', async ({features, search}) => {
-    const testOrganization = OrganizationFixture({features});
-    const node = new EapSpanNode(
-      null,
-      makeEAPSpan({event_id: 'span-id', project_id: 1}),
-      {organization: testOrganization}
-    );
-    render(
-      <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-        <AttributesContent
-          node={node}
-          attributes={[
-            {name: 'span.op', rawName: 'sentry.op', type: 'str', value: 'http.server'},
-            {name: 'custom', rawName: 'custom', type: 'str', value: 'other value'},
-          ]}
-          theme={theme}
-          location={location}
-          organization={testOrganization}
-          project={project}
-        />
-      </TraceStateProvider>,
-      {organization: testOrganization}
-    );
+    {features: ['trace-item-details-raw-attribute-names'], search: 'span.op'},
+    {features: ['trace-item-details-raw-attribute-names'], search: ' SPAN.OP '},
+  ])(
+    'searches attribute names for $search with $features',
+    async ({features, search}) => {
+      const testOrganization = OrganizationFixture({features});
+      const node = new EapSpanNode(
+        null,
+        makeEAPSpan({event_id: 'span-id', project_id: 1}),
+        {organization: testOrganization}
+      );
+      render(
+        <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+          <AttributesContent
+            node={node}
+            attributes={[
+              {name: 'span.op', rawName: 'sentry.op', type: 'str', value: 'http.server'},
+              {name: 'custom', rawName: 'custom', type: 'str', value: 'other value'},
+            ]}
+            theme={theme}
+            location={location}
+            organization={testOrganization}
+            project={project}
+          />
+        </TraceStateProvider>,
+        {organization: testOrganization}
+      );
 
-    await userEvent.type(screen.getByRole('textbox'), search);
+      await userEvent.type(screen.getByRole('textbox'), search);
 
-    expect(screen.getByText('http.server')).toBeInTheDocument();
-    expect(screen.queryByText('other value')).not.toBeInTheDocument();
-  });
+      expect(screen.getByText('http.server')).toBeInTheDocument();
+      expect(screen.queryByText('other value')).not.toBeInTheDocument();
+    }
+  );
 
   it.each([false, true])(
     'prioritizes sentry raw names or span aliases (raw names: %s)',

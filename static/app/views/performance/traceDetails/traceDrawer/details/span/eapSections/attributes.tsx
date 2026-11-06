@@ -132,12 +132,12 @@ export function AttributesContent({
 
     const normalizedSearchQuery = searchQuery.toLowerCase().trim();
 
-    const onlyMatchingAttributes = onlyVisibleAttributes.filter(attribute => {
-      const name = useRawAttributeNames
-        ? (attribute.rawName ?? attribute.name)
-        : attribute.name;
-      return name.toLowerCase().trim().includes(normalizedSearchQuery);
-    });
+    const onlyMatchingAttributes = onlyVisibleAttributes.filter(
+      attribute =>
+        attribute.name.toLowerCase().trim().includes(normalizedSearchQuery) ||
+        (useRawAttributeNames &&
+          attribute.rawName?.toLowerCase().trim().includes(normalizedSearchQuery))
+    );
 
     return onlyMatchingAttributes;
   }, [attributes, searchQuery, useRawAttributeNames]);
