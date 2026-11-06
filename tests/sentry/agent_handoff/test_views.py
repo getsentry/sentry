@@ -164,9 +164,9 @@ class AgentHandoffViewTest(TestCase):
 
     def test_preview_is_public_and_preserves_the_code(self) -> None:
         code = self.issue()
-        response = self.client.get(f"/agent-handoff/#{code}")
+        response = self.client.get("/agent-handoff/")
         assert response.status_code == 200
-        assert "original guide URL" in response.content.decode()
+        assert "secret token supplied alongside the instructions URL" in response.content.decode()
         assert consume_handoff(code) is not None
 
     def test_missing_code_is_rejected(self) -> None:
