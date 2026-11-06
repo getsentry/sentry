@@ -950,6 +950,13 @@ describe('logsTableRow', () => {
               type: 'str',
               value: 'custom value',
             },
+            {
+              name: 'tags[aaa.custom,string]',
+              rawName: 'aaa.custom',
+              type: 'str',
+              value: 'first raw value',
+            },
+            {name: 'middle', type: 'str', value: 'fallback value'},
           ],
         },
       });
@@ -970,6 +977,15 @@ describe('logsTableRow', () => {
 
       await userEvent.click(await screen.findByTestId('log-table-row'));
       expect(await screen.findByText('custom value')).toBeInTheDocument();
+      expect(
+        screen
+          .getAllByText(/^(custom value|first raw value|fallback value)$/)
+          .map(element => element.textContent)
+      ).toEqual(
+        features.includes('trace-item-details-raw-attribute-names')
+          ? ['first raw value', 'fallback value', 'custom value']
+          : ['custom value', 'first raw value', 'fallback value']
+      );
       const attributeLabel = within(
         screen.getByTestId('tree-key-sentry.custom')
       ).getByText('custom');

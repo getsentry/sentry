@@ -84,6 +84,63 @@ describe('AttributesContent', () => {
     expect(screen.queryByText('other value')).not.toBeInTheDocument();
   });
 
+  it.each([false, true])(
+    'prioritizes sentry raw names or span aliases (raw names: %s)',
+    useRawAttributeNames => {
+      const testOrganization = OrganizationFixture({
+        features: useRawAttributeNames ? ['trace-item-details-raw-attribute-names'] : [],
+      });
+      const node = new EapSpanNode(
+        null,
+        makeEAPSpan({event_id: 'span-id', project_id: 1}),
+        {organization: testOrganization}
+      );
+      render(
+        <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+          <AttributesContent
+            node={node}
+            attributes={[
+              {
+                name: 'span.op',
+                rawName: 'sentry.op',
+                type: 'str',
+                value: 'operation value',
+              },
+              {
+                name: 'span.duration',
+                rawName: 'sentry.duration_ms',
+                type: 'int',
+                value: 42,
+              },
+              {name: 'middle', type: 'str', value: 'fallback value'},
+              {
+                name: 'tags[aaa.custom,string]',
+                rawName: 'aaa.custom',
+                type: 'str',
+                value: 'custom value',
+              },
+            ]}
+            theme={theme}
+            location={location}
+            organization={testOrganization}
+            project={project}
+          />
+        </TraceStateProvider>,
+        {organization: testOrganization}
+      );
+
+      expect(
+        screen
+          .getAllByText(/^(operation value|42|fallback value|custom value)$/)
+          .map(element => element.textContent)
+      ).toEqual(
+        useRawAttributeNames
+          ? ['42', 'operation value', 'custom value', 'fallback value']
+          : ['42', 'operation value', 'fallback value', 'custom value']
+      );
+    }
+  );
+
   it('falls back to the raw value when the timestamp is not a number', () => {
     renderAttributes([{name: 'precise.start_ts', type: 'str', value: 'not-a-number'}]);
 

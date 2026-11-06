@@ -831,6 +831,9 @@ function LogRowDetails({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
   const projectSlug = project?.slug ?? '';
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
   const getActions = useLogAttributesTreeActions({embedded});
   const [caseInsensitivity] = useCaseInsensitivity();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -854,6 +857,24 @@ function LogRowDetails({
   });
 
   const {data, isPending, isError} = fullLogDataResult;
+  const timestamp = dataRow[OurLogKnownFieldKey.TIMESTAMP];
+  const sortedAttributes = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+    const attributes = toSplicedSorted(
+      data.attributes.filter(
+        attribute => !HiddenLogDetailFields.includes(attribute.name)
+      ),
+      {name: OurLogKnownFieldKey.TIMESTAMP, type: 'str', value: timestamp},
+      (a, b) => a.name.localeCompare(b.name)
+    );
+    return useRawAttributeNames
+      ? attributes.toSorted((a, b) =>
+          (a.rawName ?? a.name).localeCompare(b.rawName ?? b.name)
+        )
+      : attributes;
+  }, [data, timestamp, useRawAttributeNames]);
 
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
@@ -927,17 +948,7 @@ function LogRowDetails({
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
-                  attributes={toSplicedSorted(
-                    data.attributes.filter(
-                      attribute => !HiddenLogDetailFields.includes(attribute.name)
-                    ),
-                    {
-                      name: OurLogKnownFieldKey.TIMESTAMP,
-                      type: 'str',
-                      value: dataRow[OurLogKnownFieldKey.TIMESTAMP],
-                    },
-                    (a, b) => a.name.localeCompare(b.name)
-                  )}
+                  attributes={sortedAttributes}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}
                   config={{attributeDetailsType: 'log'}}

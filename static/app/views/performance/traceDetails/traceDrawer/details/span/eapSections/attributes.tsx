@@ -120,7 +120,7 @@ export function AttributesContent({
     'trace-item-details-raw-attribute-names'
   );
   const sortedAndFilteredAttributes = useMemo(() => {
-    const sortedAttributes = sortAttributes(attributes);
+    const sortedAttributes = sortAttributes(attributes, useRawAttributeNames);
 
     const onlyVisibleAttributes = sortedAttributes.filter(
       attribute => !HIDDEN_ATTRIBUTES.includes(attribute.name)

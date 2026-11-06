@@ -72,7 +72,7 @@ describe('attributesTree', () => {
   });
 
   it.each([false, true])(
-    'orders attributes by raw name only when enabled (raw names: %s)',
+    'preserves caller order with mixed raw names (raw names enabled: %s)',
     useRawAttributeNames => {
       render(
         <AttributesTree
@@ -115,13 +115,37 @@ describe('attributesTree', () => {
         screen
           .getAllByText(/^(operation value|42|fallback value|custom value)$/)
           .map(element => element.textContent)
-      ).toEqual(
-        useRawAttributeNames
-          ? ['custom value', 'fallback value', '42', 'operation value']
-          : ['operation value', '42', 'fallback value', 'custom value']
-      );
+      ).toEqual(['operation value', '42', 'fallback value', 'custom value']);
     }
   );
+
+  it('preserves deliberate order without raw names when the flag is enabled', () => {
+    render(
+      <AttributesTree
+        columnCount={1}
+        attributes={[
+          {name: 'operation', type: 'str', value: 'http.server'},
+          {name: 'duration', type: 'str', value: '200ms'},
+          {name: 'start_timestamp', type: 'str', value: 'start value'},
+          {name: 'end_timestamp', type: 'str', value: 'end value'},
+        ]}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization: OrganizationFixture({
+            features: ['trace-item-details-raw-attribute-names'],
+          }),
+        }}
+      />
+    );
+
+    expect(
+      screen
+        .getAllByText(/^(http.server|200ms|start value|end value)$/)
+        .map(element => element.textContent)
+    ).toEqual(['http.server', '200ms', 'start value', 'end value']);
+  });
 
   it('correctly renders attributes tree', () => {
     const attributes: TraceItemResponseAttribute[] = [

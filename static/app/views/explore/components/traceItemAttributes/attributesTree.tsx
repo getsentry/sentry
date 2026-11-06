@@ -115,14 +115,8 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>({
     'trace-item-details-raw-attribute-names'
   );
   const attributesTree = useMemo(() => {
-    const sortedAttributes = useRawAttributeNames
-      ? attributes.toSorted((a, b) =>
-          (a.rawName ?? a.name).localeCompare(b.rawName ?? b.name)
-        )
-      : attributes;
-
     return buildKeyValueTree(
-      sortedAttributes.flatMap(attribute => {
+      attributes.flatMap(attribute => {
         const shaped = getAttribute(
           attribute,
           useRawAttributeNames,
