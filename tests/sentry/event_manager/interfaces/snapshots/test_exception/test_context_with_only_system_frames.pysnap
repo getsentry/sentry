@@ -18,6 +18,7 @@ get_api_context:
         colNo: null
         context: []
         errors: null
+        fileRevision: null
         filename: foo/baz.py
         function: null
         inApp: false
@@ -53,6 +54,7 @@ get_api_context:
         colNo: null
         context: []
         errors: null
+        fileRevision: null
         filename: foo/baz.py
         function: null
         inApp: false

@@ -29,6 +29,8 @@ class ProjectStacktraceSourceContextEndpoint(ProjectEndpoint):
     `file`: The file path from the stack trace (required)
     `lineNo`: The line number to fetch context around (required)
     `commitId` (optional): The commit_id for the last commit of the release
+    `fileRevision` (optional): The source server revision of the frame's file.
+                               Takes precedence over `commitId`.
     `platform` (optional): The platform of the event
     `sdkName` (optional): The sdk.name associated with the event
     `absPath` (optional): The abs_path field value of the relevant stack frame
