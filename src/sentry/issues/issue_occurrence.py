@@ -47,7 +47,8 @@ class IssueOccurrenceData(TypedDict):
     """
 
 
-class IssueOccurrenceResponse(TypedDict):
+# Per-type responses narrow `type` and `evidenceData`, which a TypedDict subclass can't override.
+class BaseIssueOccurrenceResponse(TypedDict):
     id: str
     projectId: int
     eventId: str
@@ -55,14 +56,19 @@ class IssueOccurrenceResponse(TypedDict):
     issueTitle: str
     subtitle: str
     resourceId: str | None
-    evidenceData: dict[str, Any]
     evidenceDisplay: list[IssueEvidenceData]
-    type: int
     detectionTime: float
     level: str | None
     culprit: str | None
     assignee: str | None
     priority: int | None
+
+
+class IssueOccurrenceResponse(BaseIssueOccurrenceResponse):
+    """An issue occurrence of any type. `evidenceData` keys are camelCase."""
+
+    type: int
+    evidenceData: dict[str, Any]
 
 
 @dataclass(frozen=True)

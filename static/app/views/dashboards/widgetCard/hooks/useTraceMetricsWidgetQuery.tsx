@@ -18,10 +18,7 @@ import type {
   HeatmapWidgetQueryParams,
   WidgetQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  getSeriesRequestData,
-  convertEventStatsRequestDataToEventTimeseriesQueryParams,
-} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {traceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {
@@ -36,16 +33,17 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {
-  combineWidgetJsonQueryResults,
-  combineWidgetQueryResults,
-} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getSeriesConfidenceInformation} from 'sentry/views/dashboards/widgetCard/hooks/utils/getSeriesConfidenceInformation';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from './utils/combineWidgetQueryResults';
+import {getSeriesConfidenceInformation} from './utils/getSeriesConfidenceInformation';
+import {getWidgetStaleTime} from './utils/getStaleTime';
+import {getTimeseriesWidgetQueryOptions} from './utils/getTimeseriesWidgetQueryOptions';
 
 type TraceMetricsTableResponse = EventsTableData;
 
@@ -74,30 +72,26 @@ export function useTraceMetricsSeriesQuery(
   );
 
   const {results: queryResults, data: rawData} = useQueries({
-    queries: filteredWidget.queries.map((_, queryIndex) => {
-      const requestData = getSeriesRequestData(
-        filteredWidget,
-        queryIndex,
-        organization,
-        pageFilters,
-        DiscoverDatasets.TRACEMETRICS,
-        getReferrer(filteredWidget.displayType),
-        widgetInterval
-      );
-
-      // Add sampling mode if provided
-      if (samplingMode) {
-        requestData.sampling = samplingMode;
-      }
-
-      return getTimeseriesWidgetQueryOptions({
+    queries: filteredWidget.queries.map((_, queryIndex) =>
+      getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-      });
-    }),
+        query: getTimeseriesRequestQuery(
+          filteredWidget,
+          queryIndex,
+          pageFilters,
+          DiscoverDatasets.TRACEMETRICS,
+          {
+            organization,
+            referrer: getReferrer(filteredWidget.displayType),
+            widgetInterval,
+            sampling: samplingMode,
+          }
+        ),
+      })
+    ),
     combine: combineWidgetQueryResults,
   });
 
@@ -311,6 +305,7 @@ export function useTraceMetricsHeatmapQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
+    samplingMode,
     widgetInterval = '',
     yBuckets = 0,
   } = params;
@@ -340,6 +335,7 @@ export function useTraceMetricsHeatmapQuery(
     selection: pageFilters,
     query: query?.conditions ?? '',
     interval: widgetInterval,
+    sampling: samplingMode,
     yBuckets,
   });
 

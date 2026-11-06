@@ -4,7 +4,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DisabledText} from 'sentry/views/explore/components/chartContextMenu';

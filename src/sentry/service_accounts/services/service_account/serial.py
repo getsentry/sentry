@@ -15,5 +15,6 @@ def serialize_service_account(
         name=service_account.name,
         scope_list=list(service_account.scope_list or []),
         is_active=service_account.is_active,
+        all_projects=service_account.all_projects,
         project_ids=sorted(project_ids),
     )

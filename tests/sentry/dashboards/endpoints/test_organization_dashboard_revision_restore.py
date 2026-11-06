@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.urls import reverse
 
 from sentry import audit_log
@@ -61,7 +63,7 @@ class OrganizationDashboardRevisionRestoreTestCase(APITestCase):
         )
 
     def _create_revision(
-        self, snapshot: dict | None = None, title: str = "Dashboard 1"
+        self, snapshot: dict[str, Any] | None = None, title: str = "Dashboard 1"
     ) -> DashboardRevision:
         return DashboardRevision.objects.create(
             dashboard=self.dashboard,

@@ -29,13 +29,14 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {CommitsFilesSection} from 'sentry/views/explore/releases/drawer/commitsFilesSection';
-import {DeploysCard} from 'sentry/views/explore/releases/drawer/deploysCard';
-import {GeneralCard} from 'sentry/views/explore/releases/drawer/generalCard';
-import {NewIssues} from 'sentry/views/explore/releases/drawer/newIssues';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {useReleaseMeta} from 'sentry/views/explore/releases/utils/useReleaseMeta';
+
+import {CommitsFilesSection} from './commitsFilesSection';
+import {DeploysCard} from './deploysCard';
+import {GeneralCard} from './generalCard';
+import {NewIssues} from './newIssues';
+import {ReleasesDrawerFields} from './utils';
 
 interface ReleasesDrawerDetailsProps {
   end: Date | null;
@@ -185,13 +186,14 @@ function EnsureSingleProject({
         </Alert>
         <Select
           options={projectOptions}
+          value={null}
           placeholder={t('Select a project')}
           onChange={(option: {value: string} | null) => {
             if (option?.value) {
               onProjectSelect(option.value);
             }
           }}
-          isClearable={false}
+          clearable={false}
         />
       </Stack>
     </EventDrawerBody>

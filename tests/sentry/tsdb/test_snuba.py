@@ -1,4 +1,6 @@
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
+from typing import cast
 
 from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest
@@ -7,12 +9,12 @@ from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.outcomes import Outcome
 
 
-def floor_to_hour_epoch(value):
+def floor_to_hour_epoch(value: datetime) -> int:
     value = value.replace(minute=0, second=0, microsecond=0)
     return int(value.timestamp())
 
 
-def floor_to_10s_epoch(value):
+def floor_to_10s_epoch(value: datetime) -> int:
     seconds = value.second
     floored_second = 10 * (seconds // 10)
 
@@ -452,7 +454,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 # with [project_key.id, str(project_key.id), we are imitating the hack in
                 # project_key_stats.py cause that is what `get_range` will be called with.
                 tsdb_model,
-                [project_key.id, str(project_key.id)],
+                cast("Sequence[int]", [project_key.id, str(project_key.id)]),
                 self.start_time,
                 self.now,
                 granularity,

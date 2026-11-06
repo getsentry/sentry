@@ -14,9 +14,9 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -152,7 +152,7 @@ export function DataScrubFormModal({
             });
             break;
           default:
-            addErrorMessage(parsedError.message);
+            toast.error(parsedError.message);
         }
       }
     },
@@ -288,7 +288,7 @@ export function DataScrubFormModal({
                         options={methodOptions}
                         value={methodField.state.value}
                         onChange={methodField.handleChange}
-                        isSearchable={false}
+                        searchable={false}
                       />
                     </methodField.Layout.Stack>
                   )}
@@ -343,7 +343,7 @@ export function DataScrubFormModal({
                     options={typeOptions}
                     value={typeField.state.value}
                     onChange={typeField.handleChange}
-                    isSearchable={false}
+                    searchable={false}
                   />
                 </typeField.Layout.Stack>
               )}

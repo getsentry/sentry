@@ -1,4 +1,4 @@
-import {constructSelector} from 'sentry/views/explore/replays/selectors/constructSelector';
+import {constructSelector} from './constructSelector';
 
 describe('constructSelector', () => {
   it.each([

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.db.models import OuterRef, Subquery
 
@@ -9,8 +9,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.types.actor import Actor
@@ -22,6 +22,7 @@ from sentry.workflow_engine.models import (
     DetectorGroup,
     DetectorWorkflow,
 )
+from sentry.workflow_engine.types import DetectorType
 
 
 class DetectorSerializerResponseOptional(TypedDict, total=False):
@@ -40,9 +41,9 @@ class DetectorSerializerResponseOptional(TypedDict, total=False):
     }
 )
 class DetectorSerializerResponse(DetectorSerializerResponseOptional):
-    id: str
+    id: Annotated[str, ApiDescription("Monitor ID")]
     projectId: str | None
-    name: str
+    name: Annotated[str, ApiDescription("Monitor name")]
     type: str
     workflowIds: list[str] | None
     dateCreated: datetime
@@ -139,7 +140,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             for detector_id, group_id in latest_group_ids_by_detector_id.items()
         }
 
-        filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
+        filtered_item_list = [item for item in item_list if item.type == DetectorType.ERROR]
         error_detector_project_ids = [item.project_id for item in filtered_item_list]
 
         project_options_list = list(

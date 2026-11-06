@@ -13,7 +13,6 @@ from sentry.issues.comments import create_comment, delete_comment
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -516,43 +515,41 @@ class CommentCommitTest(TestCase):
     def test_counter_snapshots_and_notifications_follow_commit(self) -> None:
         group = self.group
         user = self.user
-        for post_update_enabled in (False, True):
-            with (
-                override_options({"groups.enable-post-update-signal": post_update_enabled}),
-                patch("sentry.issues.attributes.bulk_send_snapshot_values") as snapshot,
-                patch("sentry.issues.attributes._log_group_attributes_changed") as log_change,
-                patch("sentry.tasks.activity.send_activity_notifications.delay") as notification,
-                self.captureOnCommitCallbacks(execute=True),
-            ):
-                with pytest.raises(RuntimeError, match="rollback"):
-                    with transaction.atomic(using=router.db_for_write(Activity)):
-                        create_comment(
-                            group=group,
-                            user=user,
-                            data={"text": "rolled back"},
-                            source="email",
-                            from_email=True,
-                        )
-                        snapshot.assert_not_called()
-                        notification.assert_not_called()
-                        raise RuntimeError("rollback")
-                snapshot.assert_not_called()
-                notification.assert_not_called()
-                log_change.reset_mock()
+        with (
+            patch("sentry.issues.attributes.bulk_send_snapshot_values") as snapshot,
+            patch("sentry.issues.attributes._log_group_attributes_changed") as log_change,
+            patch("sentry.tasks.activity.send_activity_notifications.delay") as notification,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            with pytest.raises(RuntimeError, match="rollback"):
                 with transaction.atomic(using=router.db_for_write(Activity)):
-                    note = create_comment(
+                    create_comment(
                         group=group,
                         user=user,
-                        data={"text": str(post_update_enabled)},
+                        data={"text": "rolled back"},
                         source="email",
                         from_email=True,
                     )
-                    assert note is not None
                     snapshot.assert_not_called()
                     notification.assert_not_called()
-            snapshot.assert_called_once_with([group.id], None)
-            notification.assert_called_once_with(note.id)
-            log_change.assert_called_once_with(Operation.UPDATED, "group", "num_comments")
+                    raise RuntimeError("rollback")
+            snapshot.assert_not_called()
+            notification.assert_not_called()
+            log_change.reset_mock()
+            with transaction.atomic(using=router.db_for_write(Activity)):
+                note = create_comment(
+                    group=group,
+                    user=user,
+                    data={"text": "committed"},
+                    source="email",
+                    from_email=True,
+                )
+                assert note is not None
+                snapshot.assert_not_called()
+                notification.assert_not_called()
+        snapshot.assert_called_once_with([group.id], None)
+        notification.assert_called_once_with(note.id)
+        log_change.assert_called_once_with(Operation.UPDATED, "group", "num_comments")
 
 
 @with_feature({"projects:issue-action-log-write-to-db": False})
@@ -597,7 +594,7 @@ class CommentConcurrencyTest(TransactionTestCase):
                 stale_note = Activity.objects.get(id=note.id)
                 ready.wait()
                 try:
-                    delete_comment(stale_note, user=user, source="api", original_action_id=None)
+                    delete_comment(stale_note, user=user, source="api")
                 except Activity.DoesNotExist:
                     return False
                 return True

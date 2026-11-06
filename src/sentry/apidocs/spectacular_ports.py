@@ -30,11 +30,22 @@
 
 import collections
 import inspect
+import os
 import typing
 from collections import defaultdict
+from collections.abc import Sequence
 from enum import Enum
 from types import UnionType
-from typing import Any, Literal, Union, is_typeddict
+from typing import (
+    Annotated,
+    Any,
+    Literal,
+    NotRequired,
+    ReadOnly,
+    Required,
+    Union,
+    is_typeddict,
+)
 from typing import get_type_hints as _get_type_hints
 
 import drf_spectacular
@@ -49,30 +60,40 @@ from drf_spectacular.plumbing import build_array_type as drf_build_array_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import _SchemaType
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omission_guard import descended, omissions_enabled, record_typed_dict
 from sentry.apidocs.omissions import OMISSION_REASONS_OVERRIDE
+from sentry.apidocs.response_coverage import CYCLE, FIELD_SOURCE
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 # This function is ported from the drf-spectacular library method here:
 # https://github.com/tfranzel/drf-spectacular/blob/03d315ced245db71cef1e45fd05a082b7dedc7aa/drf_spectacular/plumbing.py#L1100
 # with modifications to support our use case:
 #   grabbing description from a TypedDict __doc__
+#   grabbing field descriptions from Annotated[T, ApiDescription(...)]
 #   support for TypedDict required fields
 #   support for excluded fields via @extend_schema_serializer
 
 # TODO:
-#   figure out solution for field descriptions
 #   support deprecated fields via extension
 #   map TypedDicts in schema registry
 
 
-def get_type_hints(hint, **kwargs):
+TypeHint = Any
+
+
+def get_type_hints(
+    hint: TypeHint,
+    globalns: dict[str, TypeHint] | None = None,
+    localns: dict[str, TypeHint] | None = None,
+    include_extras: bool = False,
+) -> dict[str, TypeHint]:
     try:
-        return _get_type_hints(hint, **kwargs)
+        return _get_type_hints(hint, globalns, localns, include_extras)
     except NameError:
         # try to resolve a circular import from TYPE_CHECKING imports
         reload_module_with_type_checking_enabled(hint.__module__)
-        return _get_type_hints(hint, **kwargs)
+        return _get_type_hints(hint, globalns, localns, include_extras)
     except TypeError:
         raise UnableToProceedError(
             f"""Unable to resolve type hints for {hint}.
@@ -82,11 +103,11 @@ def get_type_hints(hint, **kwargs):
         )
 
 
-def _get_type_hint_origin(hint):
+def _get_type_hint_origin(hint: TypeHint) -> tuple[TypeHint, tuple[TypeHint, ...]]:
     return typing.get_origin(hint), typing.get_args(hint)
 
 
-def build_choice_description_list(choices) -> str:
+def build_choice_description_list(choices: Sequence[tuple[object, object]]) -> str:
     """
     Override the default generated description for choicefields if the value and
     label are identical to be (* `value`) instead of (* `value` - `label`).
@@ -102,7 +123,7 @@ drf_spectacular.plumbing.build_choice_description_list = build_choice_descriptio
 
 def build_array_type(
     schema: _SchemaType | None, min_length: int | None = None, max_length: int | None = None
-):
+) -> _SchemaType:
     """
     This function wraps the build_array_type from `drf-spectacular` because it is not type-safe.
     """
@@ -115,20 +136,64 @@ def build_array_type(
 _typed_dicts_in_progress: list[Any] = []
 
 
+def _field_description(hint: TypeHint) -> str | None:
+    """The ApiDescription text on a TypedDict field hint read with `include_extras=True`."""
+    while True:
+        origin, args = _get_type_hint_origin(hint)
+        if origin in (Required, NotRequired, ReadOnly):
+            hint = args[0]
+        elif origin is Annotated:
+            for metadata in reversed(hint.__metadata__):
+                if isinstance(metadata, ApiDescription):
+                    return metadata.text
+            hint = hint.__origin__
+        else:
+            return None
+
+
+def _declaring_typed_dict(typed_dict: Any, field: str) -> Any:
+    """The base TypedDict that declares an inherited field, which is where to edit it."""
+    for base in getattr(typed_dict, "__orig_bases__", ()):
+        base = typing.get_origin(base) or base
+        if is_typeddict(base) and field in base.__annotations__:
+            return _declaring_typed_dict(base, field)
+    return typed_dict
+
+
+def _field_schema(schema: Any, typed_dict: Any, field: str, description: str | None) -> Any:
+    extra: dict[str, str] = {}
+    if description is not None:
+        extra["description"] = description
+    if os.environ.get("OPENAPIGENERATE"):
+        # Read by the response coverage check; the deref step strips it.
+        owner = _declaring_typed_dict(typed_dict, field)
+        extra[FIELD_SOURCE] = f"{owner.__module__}.{owner.__qualname__}.{field}"
+    return {**schema, **extra} if extra else schema
+
+
 def _cycle_placeholder(hint: Any) -> dict[str, Any]:
     """Stand-in for a TypedDict met again while its own fields are being resolved."""
-    return {
+    placeholder: dict[str, Any] = {
         "type": "object",
         "description": f"Same as the {hint.__name__} this is inside. "
         "Its fields are left out here so it doesn't repeat forever.",
     }
+    if os.environ.get("OPENAPIGENERATE"):
+        # Read by the response coverage check; the deref step strips it.
+        placeholder[CYCLE] = True
+    return placeholder
 
 
-def resolve_type_hint(hint) -> Any:
+def resolve_type_hint(hint: TypeHint) -> TypeHint:
     """drf-spectacular library method modified as described above"""
+    if hint is type(None):
+        return {"nullable": True, "enum": [None]}
+
     origin, args = _get_type_hint_origin(hint)
     excluded_fields = get_override(hint, "exclude_fields", [])
 
+    if hint is object:
+        return build_basic_type(OpenApiTypes.ANY)
     if origin is None and is_basic_type(hint, allow_none=False):
         return build_basic_type(hint)
     elif origin is None and inspect.isclass(hint) and issubclass(hint, tuple):
@@ -140,7 +205,7 @@ def resolve_type_hint(hint) -> Any:
         else:
             properties = {k: build_basic_type(OpenApiTypes.ANY) for k in hint._fields}  # type: ignore[attr-defined]
         return build_object_type(properties=properties, required=properties.keys())
-    elif origin is list or hint is list:
+    elif origin is list or hint is list or origin is collections.abc.Sequence:
         return build_array_type(
             _resolve_at(args[0], "items") if args else build_basic_type(OpenApiTypes.ANY)
         )
@@ -150,7 +215,7 @@ def resolve_type_hint(hint) -> Any:
             max_length=len(args),
             min_length=len(args),
         )
-    elif origin is dict or origin is defaultdict:
+    elif origin is dict or origin is defaultdict or origin is collections.abc.Mapping:
         schema = build_basic_type(OpenApiTypes.OBJECT)
         if args and args[1] is not typing.Any and schema is not None:
             schema["additionalProperties"] = _resolve_at(args[1], "additionalProperties")
@@ -162,11 +227,12 @@ def resolve_type_hint(hint) -> Any:
     elif origin is Literal:
         # Literal only works for python >= 3.8 despite typing_extensions, because it
         # behaves slightly different w.r.t. __origin__
-        schema = {"enum": list(args)}
-        if all(type(args[0]) is type(choice) for choice in args):
-            basic_type = build_basic_type(type(args[0]))
+        choices = [choice.value if isinstance(choice, Enum) else choice for choice in args]
+        schema = {"enum": choices}
+        if all(type(choices[0]) is type(choice) for choice in choices):
+            basic_type = build_basic_type(type(choices[0]))
             if basic_type is None:
-                raise ValueError(f"Cannot update schema with None type: {type(args[0])}")
+                raise ValueError(f"Cannot update schema with None type: {type(choices[0])}")
             schema.update(basic_type)
         return schema
     elif inspect.isclass(hint) and issubclass(hint, Enum):
@@ -183,11 +249,19 @@ def resolve_type_hint(hint) -> Any:
             return _cycle_placeholder(hint)
 
         excluded_fields = _typed_dict_exclusions(hint, excluded_fields)
+        # Field types resolve from the stripped hints, as before; the hints with
+        # extras are read only for each field's ApiDescription.
+        hints_with_extras = get_type_hints(hint, include_extras=True)
         _typed_dicts_in_progress.append(hint)
         try:
             return build_object_type(
                 properties={
-                    k: _resolve_at(v, "properties", k)
+                    k: _field_schema(
+                        _resolve_at(v, "properties", k),
+                        hint,
+                        k,
+                        _field_description(hints_with_extras[k]),
+                    )
                     for k, v in get_type_hints(hint).items()
                     if k not in excluded_fields
                 },

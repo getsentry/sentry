@@ -2,11 +2,17 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
+
+import {DatabaseSpanDescription} from './spanDescription';
 
 describe('DatabaseSpanDescription', () => {
   beforeEach(() => {
@@ -42,6 +48,29 @@ describe('DatabaseSpanDescription', () => {
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('SELECT USERS FRO*')).toBeInTheDocument();
+  });
+
+  it('removes isExpanded from the URL without adding a history entry when mounted', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+    });
+
+    const {router} = render(
+      <DatabaseSpanDescription spanId={spanId} preliminaryDescription="SELECT 1" />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/insights/backend/database/',
+            query: {isExpanded: 'true'},
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(router.location.query.isExpanded).toBeUndefined());
+    expect(router.historyAction).toBe('REPLACE');
   });
 
   it('does not look up a span without an id', () => {

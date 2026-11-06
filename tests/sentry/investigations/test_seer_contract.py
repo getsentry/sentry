@@ -10,14 +10,15 @@ import pytest
 from sentry.investigations.contracts import (
     ActionRequestedPayloadSerializer,
     ActionWithdrawnPayloadSerializer,
+    RerunUpdatedPayloadSerializer,
     valid_action_requests,
 )
-from sentry.investigations.models import InvestigationActionRequest
 from sentry.investigations.services.action_requests import (
     sync_snapshot_action_requests,
     upsert_action_request,
     withdraw_action_request,
 )
+from sentry.notebooks.models import NotebookActionRequest
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
@@ -29,6 +30,21 @@ def fixture(name: str) -> Any:
 
 
 ACTION_REQUESTED = sorted(path.stem for path in FIXTURES.glob("action_requested_*.json"))
+RERUN_REJECTION_CODES = (
+    "run_cancelled",
+    "run_failed",
+    "provider_not_connected",
+    "provider_already_used",
+)
+RERUN_FIXTURES = [
+    "command_rerun_after_connection",
+    "rerun_after_connection_started",
+    "rerun_after_connection_held",
+    *(f"rejected_rerun_after_connection_{code}" for code in RERUN_REJECTION_CODES),
+    "duplicate_rerun_after_connection_started",
+    "duplicate_rerun_after_connection_skipped",
+]
+RERUN_UPDATED = sorted(path.stem for path in FIXTURES.glob("rerun_updated_*.json"))
 
 
 def test_every_fixture_is_covered() -> None:
@@ -36,6 +52,12 @@ def test_every_fixture_is_covered() -> None:
         *ACTION_REQUESTED,
         "action_withdrawn",
         "state_snapshot_action_requests",
+        "command_record_action_outcome",
+        "rejected_record_action_outcome",
+        "command_recheck_action_requests",
+        "rejected_recheck_action_requests",
+        *RERUN_FIXTURES,
+        *RERUN_UPDATED,
     }
 
 
@@ -56,6 +78,16 @@ def test_action_withdrawn_payload_is_valid() -> None:
     assert dict(validator.validated_data) == payload
 
 
+@pytest.mark.parametrize("name", RERUN_UPDATED)
+def test_rerun_updated_payloads_are_valid(name: str) -> None:
+    payload = fixture(name)
+    validator = RerunUpdatedPayloadSerializer(data=payload)
+
+    assert validator.is_valid(), validator.errors
+    validated = validator.validated_data
+    assert {**validated, "requestId": str(validated["requestId"])} == payload
+
+
 def test_snapshot_action_requests_are_kept_whole() -> None:
     items = fixture("state_snapshot_action_requests")
 
@@ -65,15 +97,15 @@ def test_snapshot_action_requests_are_kept_whole() -> None:
 class SeerContractRowsTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user
         )
         self.orchestration_run = self.create_investigation_orchestration_run(
             investigation=self.investigation
         )
 
-    def row(self, key: str) -> InvestigationActionRequest:
-        return InvestigationActionRequest.objects.get(investigation=self.investigation, key=key)
+    def row(self, key: str) -> NotebookActionRequest:
+        return NotebookActionRequest.objects.get(notebook=self.investigation, key=key)
 
     def test_action_requested_payloads_become_rows(self) -> None:
         for name in ACTION_REQUESTED:
@@ -81,7 +113,7 @@ class SeerContractRowsTest(TestCase):
             row = upsert_action_request(self.orchestration_run, request)
 
             anchor = request["anchor"]
-            assert (row.key, row.report_revision, row.primary) == (
+            assert (row.key, row.producer_revision, row.primary) == (
                 request["key"],
                 request["reportRevision"],
                 request["primary"],
@@ -116,7 +148,7 @@ class SeerContractRowsTest(TestCase):
 
         states = {
             row.key: (row.state, row.primary)
-            for row in InvestigationActionRequest.objects.filter(investigation=self.investigation)
+            for row in NotebookActionRequest.objects.filter(notebook=self.investigation)
         }
         assert states == {
             **{item["key"]: ("suggested", item["primary"]) for item in items},

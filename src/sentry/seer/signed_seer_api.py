@@ -237,27 +237,6 @@ class OrgProjectKnowledgeIndexRequest(TypedDict):
     projects: list[OrgProjectKnowledgeProjectData]
 
 
-class RemoveRepositoryRequest(TypedDict):
-    organization_id: int
-    repo_provider: str
-    repo_external_id: str
-
-
-class RepoIdentifier(TypedDict):
-    repo_provider: str
-    repo_external_id: str
-
-
-class BulkRemoveRepositoriesRequest(TypedDict):
-    organization_id: int
-    repositories: list[RepoIdentifier]
-
-
-class RemoveHandoffsForIntegrationRequest(TypedDict):
-    organization_id: int
-    integration_id: int
-
-
 class AgentIndexProject(TypedDict):
     org_id: int
     project_id: int
@@ -360,48 +339,6 @@ def make_index_sentry_knowledge_request(
     )
 
 
-def make_remove_repository_request(
-    body: RemoveRepositoryRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/project-preference/remove-repository",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_bulk_remove_repositories_request(
-    body: BulkRemoveRepositoriesRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/project-preference/bulk-remove-repositories",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_remove_handoffs_for_integration_request(
-    body: RemoveHandoffsForIntegrationRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/project-preference/remove-handoffs-for-integration",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
 def make_agent_export_indexes_request(
     body: AgentExportIndexesRequest,
     viewer_context: SeerViewerContext,
@@ -473,12 +410,6 @@ def make_oneshot_request(
     )
 
 
-class SummarizeTraceRequest(TypedDict):
-    trace_id: str
-    only_transaction: bool
-    trace: dict[str, Any]
-
-
 class SummarizeIssueRequest(TypedDict):
     group_id: int
     issue: dict[str, Any]
@@ -529,11 +460,6 @@ class ServiceMapUpdateRequest(TypedDict):
     edges: list[dict[str, Any]]
 
 
-class UnitTestGenerationRequest(TypedDict):
-    repo: dict[str, Any]
-    pr_id: int
-
-
 class SearchAgentStateRequest(TypedDict):
     run_id: int
     organization_id: int
@@ -569,20 +495,6 @@ class CompareDistributionsRequest(TypedDict):
     total_outliers: int
     config: dict[str, Any]
     meta: dict[str, Any]
-
-
-def make_summarize_trace_request(
-    body: SummarizeTraceRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_summarization_default_connection_pool,
-        "/v1/automation/summarize/trace",
-        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
 
 
 def make_summarize_issue_request(
@@ -650,20 +562,6 @@ def make_service_map_update_request(
         seer_autofix_default_connection_pool,
         "/v1/explorer/service-map/update",
         body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_unit_test_generation_request(
-    body: UnitTestGenerationRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/automation/codegen/unit-tests",
-        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
     )

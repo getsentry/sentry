@@ -12,21 +12,11 @@ import type {Primitive} from 'type-fest';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
-import {AskSeerQueryStatusIndicator} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerQueryStatusIndicator';
-import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
-import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
-import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
-import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {
-  generateQueryTokensString,
-  stringifyQueryForFeedback,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {t} from 'sentry/locale';
@@ -34,6 +24,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {AskSeerQueryStatusIndicator} from './askSeerQueryStatusIndicator';
+import {AskSeerSearchHeader} from './askSeerSearchHeader';
+import {AskSeerSearchListBox} from './askSeerSearchListBox';
+import {AskSeerSearchPopover} from './askSeerSearchPopover';
+import {QueryTokens} from './queryTokens';
+import type {QueryTokensProps} from './types';
+import {generateQueryTokensString, stringifyQueryForFeedback} from './utils';
 
 export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T) => void;
@@ -132,7 +130,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
 
       const item = items.find(i => i.key === key);
       if (!item) {
-        addErrorMessage(t('Failed to find AI query to apply'));
+        toast.error(t('Failed to find AI query to apply'));
         return;
       }
 
@@ -201,7 +199,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             if (state.isOpen && state.selectionManager.focusedKey) {
               const item = items.find(i => i.key === state.selectionManager.focusedKey);
               if (!item) {
-                addErrorMessage(t('Failed to find AI query to apply'));
+                toast.error(t('Failed to find AI query to apply'));
                 return;
               }
 

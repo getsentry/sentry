@@ -11,11 +11,12 @@ from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils.metrics import EventLifecycle
-from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import InvestigationOrchestrationStatus
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notebooks.models import Notebook
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.seer import (
@@ -85,6 +86,11 @@ from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
+
+AUTOFIX_RUN_FAILED_MESSAGE = (
+    "Seer ran into a problem and couldn't finish working on this issue. "
+    "You can try again from the issue in Sentry."
+)
 
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
@@ -455,6 +461,26 @@ class SlackAutofixEntrypoint(
         }
 
         match event_type:
+            case SentryAppEventType.SEER_ERRORED:
+                # Posted to the whole thread: the run may have been started by anyone.
+                schedule_all_thread_updates(
+                    threads=cache_payload["threads"],
+                    integration_id=cache_payload["integration_id"],
+                    organization_id=cache_payload["organization_id"],
+                    data=SeerAutofixError(
+                        organization_id=cache_payload["organization_id"],
+                        error_message=AUTOFIX_RUN_FAILED_MESSAGE,
+                    ),
+                )
+                logger.info("seer.entrypoint.slack.autofix_error_scheduled", extra=logging_ctx)
+                metrics.incr(
+                    "seer.entrypoint.slack.autofix_update_scheduled",
+                    tags={
+                        "event_type": str(event_type),
+                        "thread_count": len(cache_payload["threads"]),
+                    },
+                )
+                return
             case SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
                 root_cause = event_payload.get("root_cause", {})
 
@@ -881,7 +907,7 @@ class SlackInvestigationEntrypoint(
             ephemeral_user_id=self.slack_user_id,
         )
 
-    def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
+    def on_trigger_investigation_success(self, *, investigation: Notebook) -> None:
         data = SeerInvestigationStarted(
             organization_id=self.organization.id,
             slack_user_id=self.slack_user_id,

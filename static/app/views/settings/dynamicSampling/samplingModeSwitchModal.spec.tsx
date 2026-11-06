@@ -8,7 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openSamplingModeSwitchModal} from 'sentry/views/settings/dynamicSampling/samplingModeSwitchModal';
+import {openSamplingModeSwitchModal} from './samplingModeSwitchModal';
 
 describe('SamplingModeSwitchModal', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});

@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -198,7 +199,12 @@ def test_distribution() -> None:
     ],
 )
 def test_record_transactions(
-    mocked_record, default_organization, source, txname, tags, expected
+    mocked_record: MagicMock,
+    default_organization: Organization,
+    source: str | None,
+    txname: str | None,
+    tags: list[list[str]],
+    expected: int,
 ) -> None:
     project = Project(id=111, name="project", organization_id=default_organization.id)
     record_transaction_name(
@@ -252,7 +258,7 @@ def test_max_rule_threshold_merge_composite_store(default_project: mock.MagicMoc
 
 
 @django_db_all
-def test_save_rules(default_project) -> None:
+def test_save_rules(default_project: Project) -> None:
     project = default_project
 
     project_rules = get_rules(ClustererNamespace.TRANSACTIONS, project)
@@ -286,8 +292,10 @@ def test_save_rules(default_project) -> None:
 )
 @django_db_all
 @freeze_time("2000-01-01 01:00:00")
-def test_run_clusterer_task(cluster_projects_delay, default_organization) -> None:
-    def _add_mock_data(proj, number):
+def test_run_clusterer_task(
+    cluster_projects_delay: MagicMock, default_organization: Organization
+) -> None:
+    def _add_mock_data(proj: Project, number: int) -> None:
         for i in range(0, number):
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/user/tx-{proj.name}-{i}")
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/org/tx-{proj.name}-{i}")
@@ -366,8 +374,10 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization) -> Non
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay")
 @django_db_all
 @freeze_time("2000-01-01 01:00:00")
-def test_run_clusterer_spawn_cluster_projects(cluster_projects_delay, default_organization) -> None:
-    def _add_mock_data(proj, number):
+def test_run_clusterer_spawn_cluster_projects(
+    cluster_projects_delay: MagicMock, default_organization: Organization
+) -> None:
+    def _add_mock_data(proj: Project, number: int) -> None:
         for i in range(0, number):
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/user/tx-{proj.name}-{i}")
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/org/tx-{proj.name}-{i}")
@@ -388,7 +398,9 @@ def test_run_clusterer_spawn_cluster_projects(cluster_projects_delay, default_or
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
 @django_db_all
-def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default_project) -> None:
+def test_clusterer_only_runs_when_enough_transactions(
+    mock_update_rules: MagicMock, default_project: Project
+) -> None:
     project = default_project
     assert get_rules(ClustererNamespace.TRANSACTIONS, project) == {}
 
@@ -413,7 +425,9 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
 @django_db_all
-def test_clusterer_skips_deleted_projects(mock_update_rules, default_project) -> None:
+def test_clusterer_skips_deleted_projects(
+    mock_update_rules: MagicMock, default_project: Project
+) -> None:
     project = default_project
     assert get_rules(ClustererNamespace.TRANSACTIONS, project) == {}
 
@@ -433,8 +447,8 @@ def test_get_deleted_project() -> None:
 
 
 @django_db_all
-def test_transaction_clusterer_generates_rules(default_project) -> None:
-    def _get_projconfig_tx_rules(project: Project):
+def test_transaction_clusterer_generates_rules(default_project: Project) -> None:
+    def _get_projconfig_tx_rules(project: Project) -> object:
         return get_project_config(project).to_dict()["config"].get("txNameRules")
 
     feature = "organizations:transaction-name-normalize"
@@ -471,7 +485,9 @@ def test_transaction_clusterer_generates_rules(default_project) -> None:
     wraps=cluster_projects,  # call immediately
 )
 @django_db_all
-def test_transaction_clusterer_bumps_rules(_, default_organization) -> None:
+def test_transaction_clusterer_bumps_rules(
+    _: MagicMock, default_organization: Organization
+) -> None:
     project1 = Project(id=123, name="project1", organization_id=default_organization.id)
     project1.save()
 
@@ -521,7 +537,7 @@ def test_transaction_clusterer_bumps_rules(_, default_organization) -> None:
     wraps=cluster_projects,  # call immediately
 )
 @django_db_all
-def test_dont_store_inexisting_rules(_, default_organization) -> None:
+def test_dont_store_inexisting_rules(_: MagicMock, default_organization: Organization) -> None:
     rogue_transaction = {
         "transaction": "/transaction/for/rogue/*/rule",
         "transaction_info": {"source": "sanitized"},
@@ -558,7 +574,7 @@ def test_dont_store_inexisting_rules(_, default_organization) -> None:
 
 
 @django_db_all
-def test_stale_rules_arent_saved(default_project) -> None:
+def test_stale_rules_arent_saved(default_project: Project) -> None:
     assert len(get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project)) == 0
 
     with freeze_time("2000-01-01 01:00:00"):
@@ -662,7 +678,7 @@ def test_update_rule_missing_rule_does_not_create_key(namespace: ClustererNamesp
 
 
 @django_db_all
-def test_stored_invalid_rules_dropped_on_update(default_project) -> None:
+def test_stored_invalid_rules_dropped_on_update(default_project: Project) -> None:
     """
     Validate that invalid rules are removed from storage even if they already
     exist there. Updates before and after the removal don't impact the outcome.

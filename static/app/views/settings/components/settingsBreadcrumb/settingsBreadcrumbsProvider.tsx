@@ -3,6 +3,7 @@ import {useMatches} from 'react-router';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useParams} from 'sentry/utils/useParams';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {SettingsBreadcrumbsContext} from './context';
 import {IntegrationCrumb} from './integrationCrumb';
@@ -14,6 +15,7 @@ import type {SettingsBreadcrumb} from './types';
 export function SettingsBreadcrumbsProvider({children}: {children: React.ReactNode}) {
   const matches = useMatches();
   const params = useParams();
+  const settingsV3 = useSettingsV3();
   const items = matches.flatMap(
     match =>
       (match.handle as {settingsBreadcrumb?: SettingsBreadcrumb} | undefined)
@@ -21,6 +23,14 @@ export function SettingsBreadcrumbsProvider({children}: {children: React.ReactNo
   );
 
   const content = items.reduceRight<React.ReactNode>((child, item, index) => {
+    if (
+      settingsV3 &&
+      item.type === 'link' &&
+      ['/settings/', '/settings/account/'].includes(item.to)
+    ) {
+      return child;
+    }
+
     switch (item.type) {
       case 'link':
         return (
@@ -32,8 +42,11 @@ export function SettingsBreadcrumbsProvider({children}: {children: React.ReactNo
           </SettingsBreadcrumbItemProvider>
         );
       case 'project':
+        if (settingsV3) {
+          return child;
+        }
         return (
-          <ProjectCrumb key={index} to={item.to} switchTo={item.switchTo}>
+          <ProjectCrumb key={index} to={item.to}>
             {child}
           </ProjectCrumb>
         );

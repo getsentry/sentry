@@ -5,15 +5,16 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+
+import {LogsQueryParamsProvider} from './logs/logsQueryParamsProvider';
+import {useSetQueryParamsQuery} from './queryParams/context';
+import {Mode} from './queryParams/mode';
+import {SpansQueryParamsProvider} from './spans/spansQueryParamsProvider';
 import {
   ExploreCaseInsensitivityDefault,
   isCaseIndependent,
   useAlwaysMatchesCaseDetails,
-} from 'sentry/views/explore/caseInsensitivityDefault';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useSetQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+} from './caseInsensitivityDefault';
 
 const organization = OrganizationFixture({features: ['explore-ignore-case-default']});
 

@@ -16,7 +16,6 @@ from sentry.models.repository import Repository
 from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.public_caller import caller_can_access_project
 from sentry.seer.sentry_data_models import EmptyResponse, IssueDetails
-from sentry.seer.utils import filter_repo_by_provider
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +87,12 @@ def get_repo_and_projects(
             "name": name,
         }
     )
-    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+    repo, _resolution = Repository.objects.resolve_active_by_reference(
+        organization_id=organization_id,
+        provider=provider,
+        external_id=external_id,
+        name=f"{owner}/{name}",
+    )
     if repo is None:
         raise Repository.DoesNotExist
     repo_configs = list(

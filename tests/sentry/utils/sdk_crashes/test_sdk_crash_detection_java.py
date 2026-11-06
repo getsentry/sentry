@@ -1,6 +1,7 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import wraps
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -10,6 +11,7 @@ from fixtures.sdk_crash_detection.crash_event_android import (
     get_exception,
     get_frames,
 )
+from sentry.services.eventstore.models import Event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
@@ -20,13 +22,13 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
 )
 
 
-def decorators(func):
+def decorators(func: Callable[..., Any]) -> Any:
     @wraps(func)
     @django_db_all
     @pytest.mark.snuba
     @patch("random.random", return_value=0.1)
     @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         return func(*args, **kwargs)
 
     return wrapper
@@ -96,14 +98,14 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
 )
 @decorators
 def test_sdk_crash_is_reported_with_android_paths(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Callable[..., Event],
+    configs: Sequence[SDKCrashDetectionConfig],
     sdk_frame_module: str,
     system_frame_module: str,
     detected: bool,
-):
+) -> None:
     event = store_event(
         data=get_crash_event(
             sdk_frame_module=sdk_frame_module, system_frame_module=system_frame_module
@@ -221,15 +223,15 @@ def test_sdk_crash_is_reported_with_android_paths(
 )
 @decorators
 def test_sdk_crash_is_reported_for_android_runtime_tracer_crashes(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Callable[..., Event],
+    configs: Sequence[SDKCrashDetectionConfig],
     apex_frame_function: str,
     apex_frame_package: str,
     system_frame_package: str,
     detected: bool,
-):
+) -> None:
     event = store_event(
         data=get_apex_crash_event(
             apex_frame_function=apex_frame_function,
@@ -276,7 +278,10 @@ def test_sdk_crash_is_reported_for_android_runtime_tracer_crashes(
 
 @decorators
 def test_beta_sdk_version_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Callable[..., Event],
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="7.0.1-beta.0")
@@ -294,8 +299,11 @@ def test_beta_sdk_version_detected(
 
 @decorators
 def test_too_low_min_sdk_version_not_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
-):
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Callable[..., Event],
+    configs: Sequence[SDKCrashDetectionConfig],
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="6.9.9")
     event = store_event(data=event_data)
@@ -312,7 +320,10 @@ def test_too_low_min_sdk_version_not_detected(
 
 @decorators
 def test_native_sdk_version_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Callable[..., Event],
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="0.6.0")
@@ -331,8 +342,11 @@ def test_native_sdk_version_detected(
 
 @decorators
 def test_native_sdk_version_too_low_not_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
-):
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Callable[..., Event],
+    configs: Sequence[SDKCrashDetectionConfig],
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="0.5.9")
     set_path(event_data, "sdk", "name", value="sentry.native.android")
@@ -349,7 +363,12 @@ def test_native_sdk_version_too_low_not_detected(
 
 
 @decorators
-def test_anr_detected(mock_sdk_crash_reporter, mock_random, store_event, configs) -> None:
+def test_anr_detected(
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Callable[..., Event],
+    configs: Sequence[SDKCrashDetectionConfig],
+) -> None:
     event_data = get_crash_event(
         exception={
             "values": [
@@ -377,7 +396,12 @@ def test_anr_detected(mock_sdk_crash_reporter, mock_random, store_event, configs
 
 
 @decorators
-def test_appexitinfo_detected(mock_sdk_crash_reporter, mock_random, store_event, configs) -> None:
+def test_appexitinfo_detected(
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Callable[..., Event],
+    configs: Sequence[SDKCrashDetectionConfig],
+) -> None:
     event_data = get_crash_event(
         exception={
             "values": [

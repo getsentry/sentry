@@ -10,14 +10,6 @@ import {
 
 import type {SelectValue} from '@sentry/scraps/select';
 
-import {
-  normalizeRoot,
-  resolveBranch,
-} from 'sentry/components/connectRepository/normalization';
-import type {
-  CodeMappingPrefixesResponse,
-  PathMappingValue,
-} from 'sentry/components/connectRepository/type';
 import type {
   Integration,
   IntegrationRepository,
@@ -33,6 +25,9 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {normalizeRoot, resolveBranch} from './normalization';
+import type {CodeMappingPrefixesResponse, PathMappingValue} from './type';
 
 export type ProjectRepoListItem = {
   externalId: string | null;

@@ -11,25 +11,18 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {UptimeHeadersField} from 'sentry/views/detectors/components/forms/uptime/detect/uptimeHeadersField';
 import {
   UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
+  UPTIME_HTTP_METHOD_OPTIONS,
+  UPTIME_VALID_INTERVALS_SEC,
   useUptimeDetectorFormField,
 } from 'sentry/views/detectors/components/forms/uptime/fields';
 import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
 import {HTTPSnippet} from 'sentry/views/detectors/components/uptime/httpSnippet';
 
-const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
+import {UptimeHeadersField} from './uptimeHeadersField';
+
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
-const MINUTE = 60;
-const VALID_INTERVALS_SEC = [
-  MINUTE * 1,
-  MINUTE * 5,
-  MINUTE * 10,
-  MINUTE * 20,
-  MINUTE * 30,
-  MINUTE * 60,
-];
 
 function methodHasBody(model: FormModel) {
   return !HTTP_METHODS_NO_BODY.includes(model.getValue('method'));
@@ -65,7 +58,7 @@ export function UptimeDetectorFormDetectSection({step}: {step?: number}) {
       <FormSection step={step} title={t('Issue Detection')}>
         <UptimeSectionGrid>
           <SelectField
-            options={VALID_INTERVALS_SEC.map(value => ({
+            options={UPTIME_VALID_INTERVALS_SEC.map(value => ({
               value,
               label: t('Every %s', getDuration(value)),
             }))}
@@ -119,7 +112,7 @@ export function UptimeDetectorFormDetectSection({step}: {step?: number}) {
             name="method"
             label={t('Method')}
             defaultValue="GET"
-            options={HTTP_METHOD_OPTIONS.map(option => ({
+            options={UPTIME_HTTP_METHOD_OPTIONS.map(option => ({
               value: option,
               label: option,
             }))}

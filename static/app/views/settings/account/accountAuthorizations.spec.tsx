@@ -2,7 +2,7 @@ import {ApiApplicationFixture} from 'sentry-fixture/apiApplication';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AccountAuthorizations from 'sentry/views/settings/account/accountAuthorizations';
+import AccountAuthorizations from './accountAuthorizations';
 
 describe('AccountAuthorizations', () => {
   beforeEach(() => {

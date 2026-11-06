@@ -24,11 +24,12 @@ class OrganizationEventsValidateEndpointTest(
 
     def do_request(self, query: Any) -> Response:
         self.login_as(user=self.user)
-        return self.client.get(
+        response: Response[Any] = self.client.get(
             reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug}),
             query,
             format="json",
         )
+        return response
 
     def test_no_projects(self) -> None:
         response = self.do_request({})

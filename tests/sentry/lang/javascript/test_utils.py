@@ -2,33 +2,7 @@ from copy import deepcopy
 from typing import Any
 
 from sentry.lang.javascript.preprocessing import generate_modules
-from sentry.lang.javascript.utils import generate_module, trim_line
-
-LONG_LINE = "The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring."
-
-
-def test_trim_line() -> None:
-    assert trim_line("foo") == "foo"
-    assert (
-        trim_line(LONG_LINE)
-        == "The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}"
-    )
-    assert (
-        trim_line(LONG_LINE, column=10)
-        == "The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}"
-    )
-    assert (
-        trim_line(LONG_LINE, column=66)
-        == "{snip} blic is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives wi {snip}"
-    )
-    assert (
-        trim_line(LONG_LINE, column=190)
-        == "{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring."
-    )
-    assert (
-        trim_line(LONG_LINE, column=9999)
-        == "{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring."
-    )
+from sentry.lang.javascript.utils import generate_module
 
 
 def test_generate_module() -> None:

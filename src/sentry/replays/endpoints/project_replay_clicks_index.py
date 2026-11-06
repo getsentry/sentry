@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from collections.abc import Sequence
-from typing import TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -92,7 +92,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
 
         replay_id = str(uuid.UUID(replay_id))
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> Mapping[str, Any]:
             try:
                 search_filters = parse_search_query(request.query_params.get("query", ""))
             except InvalidSearchQuery as e:
@@ -126,7 +126,7 @@ def query_replay_clicks(
     offset: int,
     search_filters: Sequence[QueryToken],
     organization_id: int,
-):
+) -> Mapping[str, Any]:
     """Query replay clicks.
 
     This query is atypical in that it does not aggregate by replay_id and it is not exposed as a

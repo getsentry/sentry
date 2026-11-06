@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from django.db import models
+from django.db.models.base import ModelBase
 from django.utils import timezone
 
 from sentry.audit_log.services.log import AuditLogEvent
@@ -20,17 +23,20 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.users.services.user.service import user_service
 
+if TYPE_CHECKING:
+    from sentry.users.models.user import User
+
 MAX_ACTOR_LABEL_LENGTH = 64
 
 logger = logging.getLogger(__name__)
 
 
-def is_scim_token_actor(actor):
+def is_scim_token_actor(actor: User) -> bool:
     scim_prefix = "scim-internal-integration-"
     return scim_prefix in actor.get_display_name()
 
 
-def format_scim_token_actor_name(actor):
+def format_scim_token_actor_name(actor: User) -> str:
     scim_regex = re.compile(
         r".*([0-9a-fA-F]{6})\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
     )
@@ -76,13 +82,25 @@ class AuditLogEntry(Model):
 
     __repr__ = sane_repr("organization_id", "type")
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        *,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         # trim label to the max length
         self._apply_actor_label()
         self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH] if self.actor_label else ""
-        super().save(*args, **kwargs)
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
-    def _apply_actor_label(self):
+    def _apply_actor_label(self) -> None:
         if not self.actor_label:
             assert self.actor_id or self.actor_key or self.ip_address
             if self.actor_id:
@@ -153,7 +171,7 @@ class AuditLogEntry(Model):
             actor_key_id=event.actor_key_id,
         )
 
-    def get_actor_name(self):
+    def get_actor_name(self) -> str | None:
         if self.actor:
             # fix display name if needed
             if is_scim_token_actor(self.actor):

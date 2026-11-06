@@ -1,13 +1,11 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {hasDroppedData} from 'sentry/components/droppedData/buckets';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -49,10 +47,7 @@ import {
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
-import {
-  isVisualizeEquation,
-  isVisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
@@ -181,25 +176,13 @@ function Graph({
     normalModeExtrapolated: true,
   });
   const [interval] = useChartInterval();
-  const {droppedEvents, acceptedEvents} = useDroppedData({
-    dataset: DiscoverDatasets.TRACEMETRICS,
-    interval,
-  });
-  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer({
-    dataset: DiscoverDatasets.TRACEMETRICS,
-  });
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);
     const rawSeries = [
       ...new Set(
         visualizes.flatMap(v =>
-          getTimeSeriesForQuery(
-            timeseriesResult.data,
-            v.yAxis,
-            isVisualizeFunction(v) ? v.transformations : []
-          )
+          getTimeSeriesForQuery(timeseriesResult.data, v.yAxis, v.transformations)
         )
       ),
     ];
@@ -278,8 +261,10 @@ function Graph({
         chartInfo.dataScanned
       )
     : null;
-  const canShowDroppedData = showChart && hasDroppedData(droppedEvents, acceptedEvents);
-  const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
+  const droppedData = useDroppedDataLayer(
+    {dataset: DiscoverDatasets.TRACEMETRICS, interval},
+    {enabled: showChart}
+  );
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 
   // ECharts keeps its toolbox zoom window across option merges, so a chart that
@@ -303,12 +288,8 @@ function Graph({
         }
         Actions={
           <Fragment>
-            {canShowDroppedData ? (
-              <DroppedDataLayerControl
-                dataset={DiscoverDatasets.TRACEMETRICS}
-                showDroppedData={isDroppedDataLayerOn}
-                onChange={setIsDroppedDataLayerOn}
-              />
+            {droppedData.layerControl ? (
+              <DroppedDataLayerControl {...droppedData.layerControl} />
             ) : null}
             {actions}
           </Fragment>
@@ -336,40 +317,43 @@ function Graph({
             <ChartVisualization
               key={chartRemountKey}
               chartInfo={chartInfo}
-              droppedData={
-                showDroppedDataBand
-                  ? {
-                      dataset: DiscoverDatasets.TRACEMETRICS,
-                      droppedEvents,
-                      acceptedEvents,
-                      onClick: openDroppedDataDrawer,
-                    }
-                  : undefined
-              }
+              droppedData={droppedData.band}
             />
           ) : undefined
         }
         Footer={
           showChart || footerActions ? (
-            <Flex align="center" justify="between" gap="sm" wrap="wrap">
-              {showChart ? (
-                <ConfidenceFooter
-                  chartInfo={chartInfo}
-                  isLoading={timeseriesResult.isPending || timeseriesResult.isFetching}
-                  hasUserQuery={!!userQuery}
-                  rawMetricCounts={rawMetricCounts}
-                />
-              ) : null}
-              <Flex align="center" gap="md">
-                {showDroppedDataBand ? (
-                  <DroppedDataFilterNote
-                    dataset={DiscoverDatasets.TRACEMETRICS}
-                    hasUserQuery={!!userQuery}
-                  />
-                ) : null}
+            <Container containerType="inline-size">
+              <Flex align="center" justify="between" gap="md">
+                <Flex
+                  flex="1"
+                  minWidth="0"
+                  direction={{zero: 'column', xl: 'row'}}
+                  align={{zero: 'start', xl: 'center'}}
+                  justify="between"
+                  gap={{zero: 'xs', xl: 'md'}}
+                >
+                  {showChart ? (
+                    <ConfidenceFooter
+                      chartInfo={chartInfo}
+                      isLoading={
+                        timeseriesResult.isPending || timeseriesResult.isFetching
+                      }
+                      hasUserQuery={!!userQuery}
+                      rawMetricCounts={rawMetricCounts}
+                    />
+                  ) : null}
+                  {droppedData.filterNote ? (
+                    <DroppedDataFilterNote
+                      {...droppedData.filterNote}
+                      hasUserQuery={!!userQuery}
+                      showIcon={{zero: false, xl: true}}
+                    />
+                  ) : null}
+                </Flex>
                 {footerActions}
               </Flex>
-            </Flex>
+            </Container>
           ) : undefined
         }
         height={height}

@@ -1,12 +1,14 @@
 import os
 import tempfile
 import zipfile
+from collections.abc import Generator
 from io import BytesIO
 from unittest.mock import patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from pytest_django.live_server_helper import LiveServer
 
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.debugfile import ProjectDebugFile
@@ -40,7 +42,7 @@ pytestmark = [requires_symbolicator, requires_kafka]
 @debug_files_test_both_backends
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server, reset_snuba):
+    def initialize(self, live_server: LiveServer, reset_snuba: object) -> Generator[None]:
         self.project.update_option("sentry:builtin_symbol_sources", [])
 
         with (
@@ -50,7 +52,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
             # Run test case
             yield
 
-    def upload_symbols(self):
+    def upload_symbols(self) -> None:
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
@@ -181,6 +183,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
             from sentry.tasks.reprocessing2 import reprocess_group
 
+            assert event.group_id is not None
             with BurstTaskRunner() as burst:
                 reprocess_group.delay(project_id=self.project.id, group_id=event.group_id)
 
@@ -225,7 +228,7 @@ class SymbolicatorLargeCompressedDifIntegrationTest(RelayStoreHelper, Transactio
     }
 
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server, reset_snuba):
+    def initialize(self, live_server: LiveServer, reset_snuba: object) -> Generator[None]:
         self.project.update_option("sentry:builtin_symbol_sources", [])
 
         with (

@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -21,9 +22,10 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+
+import {ReleaseWidgetQueries} from './releaseWidgetQueries';
 
 jest.mock('sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization', () => ({
   TableWidgetVisualization: jest.fn(() => <div />),
@@ -403,6 +405,38 @@ describe('Dashboards > WidgetCard', () => {
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ['Edit Widget', 'Widgets on Sentry Built dashboards cannot be edited.'],
+    ['Duplicate Widget', 'Widgets on Sentry Built dashboards cannot be duplicated.'],
+    ['Delete Widget', 'Widgets on Sentry Built dashboards cannot be deleted.'],
+  ])('explains why %s is disabled on Sentry Built dashboards', async (name, message) => {
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.AREA,
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
+        }}
+        selection={selection}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
+        showContextMenu
+        hasEditAccess={false}
+        isPrebuiltDashboard
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />
+    );
+
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
+    const action = screen.getByRole('menuitemradio', {name});
+    expect(action).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(action);
+    expect(await screen.findByText(message)).toBeInTheDocument();
+  });
+
   it('renders delete widget option', async () => {
     const mock = jest.fn();
     renderWithProviders(
@@ -618,6 +652,44 @@ describe('Dashboards > WidgetCard', () => {
     );
   });
 
+  it('removes only widget viewer params when the viewer modal closes without a dashboard', async () => {
+    const openWidgetViewerModal = jest
+      .spyOn(modal, 'openWidgetViewerModal')
+      .mockResolvedValue();
+    const onNuqsUrlUpdate = jest.fn();
+    const {router} = render(
+      <WidgetCard
+        api={api}
+        widget={multipleQueryWidget}
+        selection={selection}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
+        showContextMenu
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />,
+      {
+        organization,
+        onNuqsUrlUpdate,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboards/new/',
+            query: {project: '1', sort: '-count()', cursor: '0:10:0', viewerStart: 'x'},
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByLabelText('Open Full-Screen View'));
+    act(() => openWidgetViewerModal.mock.calls[0]![0].onClose!());
+
+    await waitFor(() => expect(router.location.query).toEqual({project: '1'}));
+    expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'replace'})})
+    );
+  });
+
   it('does not render description for text display type widgets', async () => {
     renderWithProviders(
       <WidgetCard
@@ -699,6 +771,79 @@ describe('Dashboards > WidgetCard', () => {
       await userEvent.click(await screen.findByLabelText('Widget actions'));
       expect(screen.queryByText('Open in Explore')).not.toBeInTheDocument();
     });
+
+    it('links multi-query metrics widgets to the metrics explorer', async () => {
+      renderWithProviders(
+        <WidgetCard
+          api={api}
+          widget={{
+            ...spansWidget,
+            widgetType: WidgetType.TRACEMETRICS,
+            queries: ['http.status_code:200', 'http.status_code:500'].map(conditions => ({
+              fields: [],
+              aggregates: ['avg(value,duration,d,none)'],
+              columns: [],
+              conditions,
+              name: '',
+              orderby: '',
+            })),
+          }}
+          selection={selection}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onDuplicate={() => {}}
+          showContextMenu
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+        />
+      );
+
+      await userEvent.click(await screen.findByLabelText('Widget actions'));
+      const link = screen.getByRole('menuitemradio', {name: 'Open in Explore'});
+      const url = new URL(link.getAttribute('href')!, 'https://example.com');
+      expect(url.pathname).toBe('/organizations/org-slug/explore/metrics/');
+      expect(
+        url.searchParams.getAll('metric').map(metric => JSON.parse(metric).query)
+      ).toEqual(['http.status_code:200', 'http.status_code:500']);
+    });
+
+    it.each([WidgetType.SPANS, WidgetType.LOGS])(
+      'disables Open in Explore for multi-query %s widgets',
+      async widgetType => {
+        renderWithProviders(
+          <WidgetCard
+            api={api}
+            widget={{
+              ...spansWidget,
+              widgetType,
+              queries: [
+                ...spansWidget.queries,
+                {...spansWidget.queries[0]!, conditions: 'span.op:db'},
+              ],
+            }}
+            selection={selection}
+            onDelete={() => {}}
+            onEdit={() => {}}
+            onDuplicate={() => {}}
+            showContextMenu
+            widgetLimitReached={false}
+            widgetLegendState={widgetLegendState}
+          />,
+          ['visibility-explore-view']
+        );
+
+        await userEvent.click(await screen.findByLabelText('Widget actions'));
+        const action = screen.getByRole('menuitemradio', {name: 'Open in Explore'});
+        expect(action).toHaveAttribute('aria-disabled', 'true');
+        expect(action).not.toHaveAttribute('href');
+        await userEvent.hover(action);
+        expect(
+          await screen.findByText(
+            'Explore does not support multiple queries for this dataset'
+          )
+        ).toBeInTheDocument();
+      }
+    );
 
     it('shows Open in Explore for spans widget with visibility-explore-view', async () => {
       renderWithProviders(

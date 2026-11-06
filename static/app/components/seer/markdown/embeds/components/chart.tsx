@@ -1,7 +1,6 @@
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {
   defineSeerEmbed,
   type EmbedOutput,
@@ -19,6 +18,7 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import type {ChartUnit} from './chartTypes';
+import {SeerEmbedBlock} from './seerEmbedBlock';
 
 type TimeSeriesVisualization = 'line' | 'area' | 'bar';
 

@@ -55,41 +55,8 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
-  HiddenColumnEditorLogFields,
-  HiddenLogSearchFields,
-} from 'sentry/views/explore/logs/constants';
-import {LogsAggregateExportModalButton} from 'sentry/views/explore/logs/exports/logsAggregateExportModalButton';
-import {LogsDirectExportModalButton} from 'sentry/views/explore/logs/exports/logsDirectExportModalButton';
-import {getGroupBysForAggregateMode} from 'sentry/views/explore/logs/getGroupBysForAggregateMode';
-import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
-import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
-import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
-import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
-import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
-import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
-import {
-  LogsGraphContainer,
-  LogsItemContainer,
-  LogsSidebarCollapseButton,
-  LogsTableActionsContainer,
-  StyledPageFilterBar,
-  TableActionsContainer,
-} from 'sentry/views/explore/logs/styles';
-import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
-import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
-import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
-import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
-import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
-import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
-import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
-import {useValidatedLogsTabColumns} from 'sentry/views/explore/logs/useValidatedLogsTabColumns';
-import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
-import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
-import {
   useQueryParamsAggregateSortBys,
   useQueryParamsFields,
-  useQueryParamsHasTransformations,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsSearch,
@@ -108,6 +75,36 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+
+import {LogsAggregateExportModalButton} from './exports/logsAggregateExportModalButton';
+import {LogsDirectExportModalButton} from './exports/logsDirectExportModalButton';
+import {LogsAggregateTable} from './tables/logsAggregateTable';
+import {LogsInfiniteTable} from './tables/logsInfiniteTable';
+import {HiddenColumnEditorLogFields, HiddenLogSearchFields} from './constants';
+import {getGroupBysForAggregateMode} from './getGroupBysForAggregateMode';
+import {AutorefreshToggle} from './logsAutoRefresh';
+import {LogsDownSamplingAlert} from './logsDownsamplingAlert';
+import {LogsGraph} from './logsGraph';
+import {getMaxIngestDelayTimestamp} from './logsIngestDelay';
+import {LogsSidebarProvider} from './logsSidebarContext';
+import {LogsTabSeerComboBox} from './logsTabSeerComboBox';
+import {LogsToolbar} from './logsToolbar';
+import {
+  LogsGraphContainer,
+  LogsItemContainer,
+  LogsSidebarCollapseButton,
+  LogsTableActionsContainer,
+  StyledPageFilterBar,
+  TableActionsContainer,
+} from './styles';
+import {useLogsAggregatesTable} from './useLogsAggregatesTable';
+import {useLogsSearchQueryBuilderProps} from './useLogsSearchQueryBuilderProps';
+import {useLogsTimeseries} from './useLogsTimeseries';
+import {usePersistentLogsPageParameters} from './usePersistentLogsPageParameters';
+import {useSaveAsItems} from './useSaveAsItems';
+import {useValidatedLogsTabColumns} from './useValidatedLogsTabColumns';
+import {useValidateLogsTab} from './useValidateLogsTab';
+import {calculateAverageLogsPerSecond} from './utils';
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
@@ -141,7 +138,6 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
-  const hasTransformations = useQueryParamsHasTransformations();
   const saveAsItems = useSaveAsItems({
     visualizes,
     groupBys,
@@ -234,16 +230,6 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
                           {...triggerProps}
                           variant="primary"
                           aria-label={t('Save as')}
-                          disabled={hasTransformations}
-                          tooltipProps={
-                            hasTransformations
-                              ? {
-                                  title: t(
-                                    'Queries with transformations cannot be saved yet.'
-                                  ),
-                                }
-                              : undefined
-                          }
                         >
                           {t('Save as')}
                         </OverlayTrigger.Button>

@@ -4,8 +4,10 @@ import {useParams} from 'sentry/utils/useParams';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
-import {SettingsNavItem} from 'sentry/views/settings/components/settingsNavItem';
 import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {SettingsNavItem} from './settingsNavItem';
 
 function isItemVisible(item: NavigationItem, props: NavigationGroupProps): boolean {
   if (typeof item.show === 'function') {
@@ -17,6 +19,10 @@ function isItemVisible(item: NavigationItem, props: NavigationGroupProps): boole
 function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
   const {organization, project, name, items} = props;
   const params = useParams();
+  const settingsV3 = useSettingsV3();
+  const hideTitle =
+    settingsV3 &&
+    ['settings-organization', 'settings-account', 'settings-project'].includes(props.id);
 
   const visibleItems = items.filter(item => isItemVisible(item, props));
 
@@ -65,7 +71,7 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
   );
 
   return (
-    <SecondaryNavigation.Section id={props.id} title={name}>
+    <SecondaryNavigation.Section id={props.id} title={hideTitle ? undefined : name}>
       <SecondaryNavigation.List>{navLinks}</SecondaryNavigation.List>
     </SecondaryNavigation.Section>
   );

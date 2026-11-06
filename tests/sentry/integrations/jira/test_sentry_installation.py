@@ -1,10 +1,13 @@
 import re
 from unittest.mock import MagicMock, patch
 
-from jwt import ExpiredSignatureError
+from django.http import HttpResponse
 
 from sentry.integrations.jira.views import SALT, UNABLE_TO_VERIFY_INSTALLATION
-from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectTokenExpiredError,
+    AtlassianConnectValidationError,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
@@ -40,7 +43,7 @@ class JiraSentryInstallationViewTestCase(APITestCase):
 class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):
     @patch(
         "sentry.integrations.jira.views.sentry_installation.get_integration_from_request",
-        side_effect=ExpiredSignatureError(),
+        side_effect=AtlassianConnectTokenExpiredError(),
     )
     def test_expired_signature_error(self, mock_get_integration_from_request: MagicMock) -> None:
         response = self.client.get(self.path)
@@ -65,7 +68,7 @@ class JiraSentryInstallationViewTest(JiraSentryInstallationViewTestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def assert_no_errors(self, response):
+    def assert_no_errors(self, response: HttpResponse) -> None:
         assert REFRESH_REQUIRED not in response.content
         assert UNABLE_TO_VERIFY_INSTALLATION.encode() not in response.content
 

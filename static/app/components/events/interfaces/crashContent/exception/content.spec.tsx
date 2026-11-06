@@ -15,10 +15,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {StackType, StackView} from 'sentry/types/stacktrace';
+
+import {Content} from './content';
 
 describe('Exception Content', () => {
   const organization = OrganizationFixture();
@@ -29,6 +30,10 @@ describe('Exception Content', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
     });
@@ -353,6 +358,10 @@ describe('Exception Content', () => {
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sentry-app-components/',
+        body: [],
+      });
 
       const promptResponse = {
         dismissed_ts: undefined,
@@ -485,6 +494,10 @@ describe('Exception Content', () => {
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sentry-app-components/',
+        body: [],
+      });
 
       const promptResponse = {
         dismissed_ts: undefined,

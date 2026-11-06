@@ -11,16 +11,19 @@ import {onboarding as eveFrameworkOnboarding} from 'sentry/gettingStartedDocs/no
 import {onboarding as flueFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
 import {onboarding as mastraFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
 import {onboarding as piFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-pi-durable/onboarding';
-import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
+  DEPLOYMENT_TARGET_PACKAGE_NAMES,
   DeploymentTarget,
+  getSdkImportSpecifier,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
+
+import {getImport, getInstallCodeBlock} from './utils';
 
 // Bumped to 10.67.0 so the install step also satisfies Workers AI, which
 // auto-instruments the `env.AI` binding only from that version.
@@ -55,6 +58,20 @@ export function getAgentIntegration(params: DocsParams): AgentIntegration {
 export function getDeploymentTarget(params: DocsParams): DeploymentTarget {
   return (params.platformOptions?.deploymentTarget ??
     DeploymentTarget.NODE) as DeploymentTarget;
+}
+
+/**
+ * The Sentry SDK package for the selected runtime. The Node runtime keeps the
+ * platform's own package.
+ */
+function getRuntimePackageName(
+  params: DocsParams,
+  packageName: `@sentry/${string}`
+): `@sentry/${string}` {
+  const deploymentTarget = getDeploymentTarget(params);
+  return deploymentTarget === DeploymentTarget.NODE
+    ? packageName
+    : DEPLOYMENT_TARGET_PACKAGE_NAMES[deploymentTarget];
 }
 
 /**
@@ -752,10 +769,7 @@ export function getInstallStep(
     return piFrameworkOnboarding.install(params);
   }
 
-  const resolvedPackageName =
-    getDeploymentTarget(params) === DeploymentTarget.CLOUDFLARE
-      ? '@sentry/cloudflare'
-      : packageName;
+  const resolvedPackageName = getRuntimePackageName(params, packageName);
   const resolvedMinVersion = getMinRequiredVersion(params, minVersion);
 
   return [
@@ -1202,6 +1216,15 @@ function getAgentConfigureSteps(
   });
 }
 
+/**
+ * Integrations whose setup comes from their framework onboarding.
+ */
+const FRAMEWORK_ONBOARDINGS: Partial<Record<AgentIntegration, OnboardingConfig>> = {
+  [AgentIntegration.EVE]: eveFrameworkOnboarding,
+  [AgentIntegration.MASTRA]: mastraFrameworkOnboarding,
+  [AgentIntegration.PI]: piFrameworkOnboarding,
+};
+
 export const agentMonitoring = ({
   packageName = '@sentry/node',
   configFileName,
@@ -1209,11 +1232,17 @@ export const agentMonitoring = ({
   configFileName?: string;
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
+  sdkImportSpecifier: params =>
+    // Framework integrations install their own SDK package.
+    FRAMEWORK_ONBOARDINGS[getAgentIntegration(params)]?.sdkImportSpecifier?.(params) ??
+    getSdkImportSpecifier(getRuntimePackageName(params, packageName)),
   introduction: params => (
     <SdkUpdateAlert
       projectId={params.project.id}
       minVersion={getMinRequiredVersion(params, MIN_REQUIRED_VERSION)}
-      packageName={packageName}
+      // Projects can send events with their platform's SDK or, once they pick
+      // another runtime, with that runtime's SDK.
+      packageName={[packageName, getRuntimePackageName(params, packageName)]}
     />
   ),
   install: params =>

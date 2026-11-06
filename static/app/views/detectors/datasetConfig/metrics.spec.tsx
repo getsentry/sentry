@@ -1,4 +1,4 @@
-import {DetectorMetricsConfig} from 'sentry/views/detectors/datasetConfig/metrics';
+import {DetectorMetricsConfig} from './metrics';
 
 const EQUATION =
   'sum_if(`user.id:bc`,value,page.view,counter,none) + sum(value,page.view,counter,none)';
