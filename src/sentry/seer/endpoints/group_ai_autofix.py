@@ -165,10 +165,15 @@ def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferre
             return AutofixReferrer.MCP
         return AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
     try:
-        return AutofixReferrer(raw)
+        referrer = AutofixReferrer(raw)
     except ValueError:
         logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
+    # Agentic triage runs skip the credit check, so callers can't claim to be it.
+    if referrer == AutofixReferrer.AGENTIC_TRIAGE:
+        logger.warning("group_ai_autofix.internal_referrer", extra={"referrer": raw})
+        return AutofixReferrer.UNKNOWN
+    return referrer
 
 
 def _record_user_context_length(request_data: Any) -> None:
