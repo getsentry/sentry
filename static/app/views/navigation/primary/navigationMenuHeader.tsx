@@ -49,7 +49,8 @@ export function NavigationMenuHeader({
       subtitle={user.email}
       avatarProps={getUserAvatarProps(user)}
       avatar={
-        <Container
+        <Flex
+          position="relative"
           width="32px"
           height="32px"
           radius="full"
@@ -57,7 +58,7 @@ export function NavigationMenuHeader({
           border="muted"
         >
           <UserAvatar user={user} size={30} />
-        </Container>
+        </Flex>
       }
     />
   );
@@ -67,11 +68,18 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
   const lightTheme = useInvertedTheme();
 
   return (
-    <Container width="32px" height="32px" radius="md" overflow="hidden" border="muted">
+    <Flex
+      position="relative"
+      width="32px"
+      height="32px"
+      radius="md"
+      overflow="hidden"
+      border="muted"
+    >
       <ThemeProvider theme={lightTheme}>
         <OrganizationAvatar organization={organization} size={30} />
       </ThemeProvider>
-    </Container>
+    </Flex>
   );
 }
 

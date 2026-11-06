@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {css, Global} from '@emotion/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
@@ -51,16 +50,6 @@ function MenuHeaderFrame({
 }) {
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Avatars get their positioning from `.avatar` in the app's global stylesheet, which the harness does not load. */}
-      <Global
-        styles={css`
-          .avatar {
-            position: relative;
-            display: inline-block;
-            vertical-align: middle;
-          }
-        `}
-      />
       <Container width="258px" padding="sm lg">
         {children}
       </Container>
