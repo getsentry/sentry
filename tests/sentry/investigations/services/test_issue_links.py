@@ -1,0 +1,133 @@
+from __future__ import annotations
+
+from typing import Any
+
+from sentry.investigations.services.issue_links import link_investigation_issues
+from sentry.issues.action_log.types import ActionSource, InvestigationLinkedAction
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.models.group import Group
+from sentry.notebooks.models import NotebookSourceType, NotebookStatus
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
+
+
+@with_feature(
+    {
+        "organizations:investigations": True,
+        "organizations:investigations-issue-links": True,
+        "projects:issue-action-log-write-to-db": True,
+    }
+)
+class LinkInvestigationIssuesTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+        self.investigation = self.create_notebook(
+            organization=self.organization, created_by=self.user, title="Checkout latency"
+        )
+        self.create_notebook_project(self.investigation, self.project)
+        self.orchestration_run = self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            source={"type": "manual"},
+            projection={},
+        )
+
+    def complete(self, linked_issues: list[Any], *, generation: int = 1) -> None:
+        self.orchestration_run.generation = generation
+        self.orchestration_run.status = "completed"
+        self.orchestration_run.projection = {"linkedIssues": linked_issues}
+        self.orchestration_run.save()
+        with outbox_runner():
+            link_investigation_issues(investigation_id=self.investigation.id, generation=generation)
+
+    def link(self, group: Group, **fields: Any) -> dict[str, Any]:
+        return {
+            "groupId": group.id,
+            "hypothesisId": "h-1",
+            "hypothesisStatement": "Payment retries exhaust the pool",
+            "reason": "Its timeouts start with the deploy.",
+            **fields,
+        }
+
+    def entries(self, group: Group | None = None) -> list[GroupActionLogEntry]:
+        return list(
+            GroupActionLogEntry.objects.filter(
+                group_id=(group or self.group).id, type=InvestigationLinkedAction.get_type()
+            )
+        )
+
+    def test_publishes_a_link_on_the_issue(self) -> None:
+        self.complete([self.link(self.group)])
+
+        [entry] = self.entries()
+        assert entry.source == ActionSource.SEER_INVESTIGATION
+        assert entry.idempotency_key == f"investigation:{self.investigation.id}"
+        assert entry.action == InvestigationLinkedAction(
+            notebook_id=self.investigation.id,
+            hypothesis_id="h-1",
+            hypothesis_statement="Payment retries exhaust the pool",
+            reason="Its timeouts start with the deploy.",
+        )
+
+    def test_a_later_run_does_not_link_the_issue_again(self) -> None:
+        self.complete([self.link(self.group)])
+        self.complete([self.link(self.group, reason="Still relevant.")], generation=2)
+
+        [entry] = self.entries()
+        assert entry.action.dict()["reason"] == "Its timeouts start with the deploy."
+
+    def test_skips_issues_outside_the_investigation(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        other_project_group = self.create_group(project=other_project)
+        other_org_group = self.create_group(
+            project=self.create_project(organization=self.create_organization())
+        )
+
+        self.complete([self.link(other_project_group), self.link(other_org_group)])
+
+        assert self.entries(other_project_group) == []
+        assert self.entries(other_org_group) == []
+
+    def test_skips_the_issue_the_investigation_started_from(self) -> None:
+        self.investigation.source_type = NotebookSourceType.METRIC_OPEN_PERIOD
+        self.investigation.source = {"ref": {"groupId": str(self.group.id), "openPeriodId": "1"}}
+        self.investigation.source_key = "metric-open-period"
+        self.investigation.source_revision = 1
+        self.investigation.save()
+        linked = self.create_group(project=self.project)
+
+        self.complete([self.link(self.group), self.link(linked)])
+
+        assert self.entries() == []
+        assert len(self.entries(linked)) == 1
+
+    def test_drops_invalid_items_and_keeps_the_rest(self) -> None:
+        self.complete([{"groupId": "not-an-id"}, {"reason": "No group"}, self.link(self.group)])
+
+        assert len(self.entries()) == 1
+
+    def test_stale_generation_publishes_nothing(self) -> None:
+        self.orchestration_run.generation = 2
+        self.orchestration_run.status = "completed"
+        self.orchestration_run.projection = {"linkedIssues": [self.link(self.group)]}
+        self.orchestration_run.save()
+
+        with outbox_runner():
+            link_investigation_issues(investigation_id=self.investigation.id, generation=1)
+
+        assert self.entries() == []
+
+    def test_archived_investigation_publishes_nothing(self) -> None:
+        self.investigation.status = NotebookStatus.ARCHIVED
+        self.investigation.save()
+
+        self.complete([self.link(self.group)])
+
+        assert self.entries() == []
+
+    @with_feature({"organizations:investigations-issue-links": False})
+    def test_flag_off_publishes_nothing(self) -> None:
+        self.complete([self.link(self.group)])
+
+        assert self.entries() == []

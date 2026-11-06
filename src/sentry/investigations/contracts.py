@@ -677,6 +677,55 @@ def valid_action_requests(items: list[Any], *, log: bool = False) -> list[Action
     return kept
 
 
+MAX_LINKED_ISSUES = 50
+
+
+class LinkedIssueItem(TypedDict):
+    groupId: int
+    hypothesisId: str | None
+    hypothesisStatement: str | None
+    reason: str | None
+
+
+class LinkedIssueSerializer(RelaxedContractSerializer):
+    """One issue the investigation found relevant, from the projection's `linkedIssues`."""
+
+    groupId = StrictIntegerField(min_value=1, max_value=I64_MAX)
+    hypothesisId = OptionalStrictCharField(128)
+    hypothesisStatement = OptionalStrictCharField(2_000)
+    reason = OptionalStrictCharField(1_000)
+
+
+def valid_linked_issues(items: Any, *, log: bool = False) -> list[LinkedIssueItem]:
+    """The projection's linked issues that Sentry can use, one per group.
+
+    Like action requests, a bad item is dropped rather than failing the whole projection.
+    """
+    if not isinstance(items, list):
+        return []
+    kept: dict[int, LinkedIssueItem] = {}
+    for item in items[:MAX_LINKED_ISSUES]:
+        validator = LinkedIssueSerializer(data=item)
+        if not validator.is_valid():
+            if log:
+                logger.warning(
+                    "investigations.linked_issues.dropped",
+                    extra={"fields": sorted(validator.errors)[:10]},
+                )
+            continue
+        data = validator.validated_data
+        kept.setdefault(
+            data["groupId"],
+            {
+                "groupId": data["groupId"],
+                "hypothesisId": data.get("hypothesisId") or None,
+                "hypothesisStatement": data.get("hypothesisStatement") or None,
+                "reason": data.get("reason") or None,
+            },
+        )
+    return list(kept.values())
+
+
 class ActionRequestedPayloadSerializer(RelaxedContractSerializer):
     request = serializers.JSONField()
 
