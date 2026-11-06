@@ -81,6 +81,13 @@ interface UseVirtualCollectionOptions<T> {
    * CSS padding (px) between the top of the scroll element and the first row.
    */
   listPadding?: number;
+  /**
+   * A row to keep mounted wherever the list is scrolled, such as the one with
+   * the longest label. A list that sizes its width to its content is then as
+   * wide as that row from the start, instead of widening as wider rows scroll
+   * into view.
+   */
+  widestKey?: Key | null;
 }
 
 /**
@@ -113,6 +120,7 @@ export function useVirtualCollection<T>({
   size,
   focusedKey,
   listPadding = 0,
+  widestKey,
 }: UseVirtualCollectionOptions<T>) {
   const heights = ROW_HEIGHT_ESTIMATES[size];
 
@@ -122,6 +130,13 @@ export function useVirtualCollection<T>({
         ? nodes.findIndex(node => node.key === focusedKey)
         : -1,
     [enabled, focusedKey, nodes]
+  );
+  const widestIndex = useMemo(
+    () =>
+      enabled && widestKey !== null && widestKey !== undefined
+        ? nodes.findIndex(node => node.key === widestKey)
+        : -1,
+    [enabled, widestKey, nodes]
   );
 
   // Index of the section row each row belongs to, if that section is in `nodes`.
@@ -141,13 +156,15 @@ export function useVirtualCollection<T>({
 
   // Keep the focused row mounted when it scrolls out of view. If it unmounted,
   // DOM focus would fall back to the body and keyboard navigation would stop.
-  // Also keep the section row of every mounted row, since the section's
-  // element wraps its children.
+  // Also keep the widest row and the section row of every mounted row, since
+  // the section's element wraps its children.
   const rangeExtractor = useCallback(
     (range: Range) => {
       const indexes = new Set(defaultRangeExtractor(range));
-      if (focusedIndex !== -1) {
-        indexes.add(focusedIndex);
+      for (const index of [focusedIndex, widestIndex]) {
+        if (index !== -1) {
+          indexes.add(index);
+        }
       }
       for (const index of [...indexes]) {
         const sectionIndex = sectionIndexes[index];
@@ -157,7 +174,7 @@ export function useVirtualCollection<T>({
       }
       return [...indexes].sort((a, b) => a - b);
     },
-    [focusedIndex, sectionIndexes]
+    [focusedIndex, widestIndex, sectionIndexes]
   );
 
   const {virtualizer, virtualItems, totalSize} = useVirtualRows({

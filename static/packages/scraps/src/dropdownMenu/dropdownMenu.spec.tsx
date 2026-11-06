@@ -1228,6 +1228,24 @@ describe('DropdownMenu', () => {
       ).toBeInTheDocument();
     });
 
+    it('keeps the item with the longest label mounted, so the menu does not widen while scrolling', async () => {
+      const items = manyItems.map(item =>
+        item.key === 'item-400'
+          ? {...item, label: 'A much longer label than the rest'}
+          : item
+      );
+      render(<DropdownMenu triggerLabel="Menu" items={items} />, {wrapper: ThemeWrapper});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Item 399'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'A much longer label than the rest'})
+      ).toBeInTheDocument();
+    });
+
     it('counts the items inside sections against the threshold', async () => {
       render(
         <DropdownMenu
