@@ -16,6 +16,17 @@ SQS_REQUIRED_KEYS = ["queue_url", "region", "access_key", "secret_key"]
 SEGMENT_REQUIRED_KEYS = ["write_key"]
 SPLUNK_REQUIRED_KEYS = ["instance_url", "index", "source", "token"]
 
+# Overrides merge on top of the organization config, so changing where events are sent
+# while inheriting the organization's credentials would hand those credentials to the new
+# destination. Callers without org:write must bring their own credentials along.
+DESTINATION_OVERRIDE_CREDENTIAL_KEYS: dict[str, tuple[frozenset[str], frozenset[str]]] = {
+    DataForwarderProviderSlug.SPLUNK: (frozenset({"instance_url"}), frozenset({"token"})),
+    DataForwarderProviderSlug.SQS: (
+        frozenset({"queue_url", "region", "s3_bucket"}),
+        frozenset({"access_key", "secret_key"}),
+    ),
+}
+
 
 class DataForwarderSerializer(Serializer):
     organization_id = serializers.IntegerField(
@@ -273,6 +284,11 @@ class DataForwarderProjectSerializer(Serializer):
             raise ValidationError("DataForwarder with this ID does not exist")
         return value
 
+    def validate_overrides(self, value: Any) -> dict[str, Any]:
+        if not isinstance(value, dict):
+            raise ValidationError("Overrides must be an object.")
+        return value
+
     def validate(self, attrs: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         project = attrs.get("project")
         data_forwarder = self._validated_data_forwarder
@@ -297,7 +313,36 @@ class DataForwarderProjectSerializer(Serializer):
                 "A DataForwarderProject already exists for this data forwarder and project combination."
             )
 
+        self._validate_destination_overrides(data_forwarder, attrs.get("overrides", {}))
+
         return attrs
+
+    def _validate_destination_overrides(
+        self, data_forwarder: DataForwarder, overrides: Mapping[str, Any]
+    ) -> None:
+        access = self.context.get("access")
+        if access is not None and access.has_scope("org:write"):
+            return
+
+        keys = DESTINATION_OVERRIDE_CREDENTIAL_KEYS.get(data_forwarder.provider)
+        if keys is None:
+            return
+        destination_keys, credential_keys = keys
+
+        overridden_destinations = sorted(destination_keys & overrides.keys())
+        if not overridden_destinations:
+            return
+
+        missing_credentials = sorted(k for k in credential_keys if not overrides.get(k))
+        if missing_credentials:
+            raise ValidationError(
+                {
+                    "overrides": [
+                        f"Overriding {', '.join(overridden_destinations)} requires also "
+                        f"overriding {', '.join(missing_credentials)}."
+                    ]
+                }
+            )
 
     def create(self, validated_data: MutableMapping[str, Any]) -> DataForwarderProject:
         project = validated_data.pop("project")
