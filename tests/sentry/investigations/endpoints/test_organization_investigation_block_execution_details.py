@@ -11,8 +11,10 @@ from sentry.notebooks.services import (
     mark_block_execution_stopping,
 )
 from sentry.seer.models.run import SeerRunType
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 
 FEATURE = "organizations:investigations"
 
@@ -37,7 +39,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
 
     def execution_url(self, execution: NotebookBlockExecution) -> str:
         return reverse(
-            "sentry-api-0-organization-investigation-block-execution-details",
+            "sentry-api-0-organization-notebook-block-execution-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -138,6 +140,45 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
         assert execution.status == NotebookBlockExecutionStatus.CANCELLED
         record_cancelled.assert_called_once_with(execution, reason="user_requested")
 
+    @patch(
+        "sentry.investigations.endpoints.organization_investigation_block_execution_details."
+        "interrupt_run"
+    )
+    @patch(
+        "sentry.investigations.endpoints.organization_investigation_block_execution_details."
+        "make_agent_update_request"
+    )
+    def test_integration_token_cannot_resume_or_stop_execution(
+        self, mock_update: MagicMock, mock_interrupt: MagicMock
+    ) -> None:
+        execution = self.awaiting_input_execution()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            internal_integration = self.create_internal_integration(
+                name="Internal App", organization=self.organization, scopes=["org:read"]
+            )
+            token = self.create_internal_integration_token(
+                user=self.user, internal_integration=internal_integration
+            )
+            self.client.logout()
+
+        response = self.client.patch(
+            self.execution_url(execution),
+            data={"inputId": "clarify-1", "responseData": "the checkout project"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 403
+
+        response = self.client.delete(
+            self.execution_url(execution), HTTP_AUTHORIZATION=f"Bearer {token.token}"
+        )
+        assert response.status_code == 403
+
+        mock_update.assert_not_called()
+        mock_interrupt.assert_not_called()
+        execution.refresh_from_db()
+        assert execution.status == NotebookBlockExecutionStatus.AWAITING_INPUT
+
     def test_resume_does_not_revive_a_finished_execution(self) -> None:
         execution = self.awaiting_input_execution()
         execution.update(status=NotebookBlockExecutionStatus.COMPLETED)
@@ -166,7 +207,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
             input_snapshot={"projectIds": [self.project.id]},
         )
         execution_url = reverse(
-            "sentry-api-0-organization-investigation-block-execution-details",
+            "sentry-api-0-organization-notebook-block-execution-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -175,7 +216,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
             },
         )
         title_url = reverse(
-            "sentry-api-0-organization-investigation-title-generation",
+            "sentry-api-0-organization-notebook-title-generation",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,

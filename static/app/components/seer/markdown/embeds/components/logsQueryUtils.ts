@@ -1,8 +1,3 @@
-import {
-  toAggregateFields,
-  toMode,
-  toPageFilters,
-} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -10,6 +5,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
+
+import {toAggregateFields, toMode, toPageFilters} from './queryEmbedParams';
 
 export type LogsQueryData = EmbedOutput<'logsQuery'>;
 

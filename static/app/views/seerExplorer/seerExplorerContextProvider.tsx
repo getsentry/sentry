@@ -16,34 +16,32 @@ import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {serializeChatPromptContext} from 'sentry/views/seerExplorer/chatPrompt';
-import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
+
+import {ExplorerDrawerContent} from './components/drawer/explorerDrawerContent';
 import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
-} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
-import {SeerExplorerErrorBoundary} from 'sentry/views/seerExplorer/components/seerExplorerErrorBoundary';
-import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+} from './components/drawer/useSeerExplorerDrawer';
+import {SeerExplorerContent} from './components/seerExplorerContent';
+import {SeerExplorerErrorBoundary} from './components/seerExplorerErrorBoundary';
+import {useSeerExplorerPolling} from './hooks/useSeerExplorerPolling';
+import {serializeChatPromptContext} from './chatPrompt';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
-} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {
-  SeerExplorerRunId,
-  SeerExplorerSidebarPosition,
-} from 'sentry/views/seerExplorer/types';
+} from './seerExplorerChatStateContext';
+import type {SeerExplorerRunId, SeerExplorerSidebarPosition} from './types';
 import {
   SeerExplorerContext,
   type SeerExplorerContextValue,
-} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+} from './useSeerExplorerContext';
 import {
   getSeerExplorerAnalyticsBrowserSize,
   usePageReferrer,
   useRemoveSeerExplorerRunIdParam,
   useSeerExplorerDeepLink,
   useSyncSeerExplorerRunIdToUrl,
-} from 'sentry/views/seerExplorer/utils';
+} from './utils';
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const {runId, chatStates} = useSeerExplorerChatState();
@@ -451,15 +449,8 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           ] as const
         ).map(hotkey => ({
           hotkey,
-          callback: event => {
-            // TanStack's physical Slash fallback also matches AZERTY browser zoom.
-            if (event.key === '+' || event.key === '=') {
-              return;
-            }
-            event.preventDefault();
-            toggleSeerExplorer();
-          },
-          options: {ignoreInputs: false, preventDefault: false},
+          callback: toggleSeerExplorer,
+          options: {ignoreInputs: false},
         }))
   );
 

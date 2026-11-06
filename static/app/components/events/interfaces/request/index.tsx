@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import {IconOpen} from '@sentry/icons/open';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -9,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
@@ -28,6 +27,7 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {getTransformedData} from './getTransformedData';
+import {GraphQlRequestBody} from './graphQlRequestBody';
 
 interface RequestProps {
   data: EntryRequest['data'];

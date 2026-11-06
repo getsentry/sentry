@@ -9,7 +9,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectAttributes from 'sentry/views/settings/project/projectAttributes';
+import ProjectAttributes from './projectAttributes';
 
 describe('ProjectAttributes', () => {
   const {organization} = initializeOrg({
@@ -174,6 +174,7 @@ describe('ProjectAttributes', () => {
 
     await waitFor(() => expect(router.location.query.dataset).toBe('logs'));
     expect(router.location.query.cursor).toBeUndefined();
+    expect(router.historyAction).toBe('PUSH');
     expect(request).toHaveBeenLastCalledWith(
       attributesEndpoint,
       expect.objectContaining({query: expect.objectContaining({dataset: 'logs'})})

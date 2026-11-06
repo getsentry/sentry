@@ -4,11 +4,9 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  getSeriesRequestData,
-  getTimeseriesRequestQuery,
-} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+
+import {getSeriesRequestData, getTimeseriesRequestQuery} from './getSeriesRequestData';
 
 describe('utils', () => {
   describe('getSeriesRequestData', () => {

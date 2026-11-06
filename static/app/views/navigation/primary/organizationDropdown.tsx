@@ -26,8 +26,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import type {MenuItemTrailingAction} from '@sentry/scraps/menu';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {update} from 'sentry/actionCreators/projects';
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
@@ -37,8 +37,12 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {sortProjects} from 'sentry/utils/project/sortProjects';
+import {
+  sortProjects,
+  sortProjectsByBookmarkAndMembership,
+} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {useApi} from 'sentry/utils/useApi';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -51,13 +55,20 @@ import {
   useSettingsNavigationTour,
 } from 'sentry/views/navigation/settingsNavigationTour';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {NavigationMenuHeader} from './navigationMenuHeader';
 
+const QUICK_ACCESS_PROJECT_LIMIT = 5;
+
+type OrgMenuProjectSource = 'quick_access' | 'all_projects';
+
 interface OrganizationDropdownProps {
   /**
-   * When true, hides settings, projects, members, teams, and billing links for the current organization.
+   * When true, hides the links into the current organization. Without
+   * settings-v3, these are settings, projects, members, teams, and billing.
+   * With settings-v3, these are settings and project settings.
    */
   hideCurrentOrganizationLinks?: boolean;
 }
@@ -95,6 +106,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   // request settles: on success ProjectsStore has the new value, on error the
   // project falls back to its previous state.
   const [pendingBookmarks, setPendingBookmarks] = useState<Record<string, boolean>>({});
+  // Captured when the menu opens, so toggling a bookmark does not reorder the
+  // open menu.
+  const [bookmarkedSnapshot, setBookmarkedSnapshot] = useState<Set<string>>();
   const {mutate: toggleBookmark} = useMutation({
     mutationFn: ({project, isBookmarked}: {isBookmarked: boolean; project: Project}) =>
       update(api, {
@@ -106,23 +120,47 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       setPendingBookmarks(prev => ({...prev, [project.id]: isBookmarked}));
     },
     onError: (_error, {project}) => {
-      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
+      toast.error(t('Unable to toggle bookmark for %s', project.slug));
     },
     onSettled: (_data, _error, {project}) => {
       setPendingBookmarks(prev => omit(prev, project.id));
     },
   });
 
-  const makeBookmarkAction = (project: Project): MenuItemTrailingAction => {
+  const makeBookmarkAction = (
+    project: Project,
+    source: OrgMenuProjectSource
+  ): MenuItemTrailingAction => {
     const isBookmarked = pendingBookmarks[project.id] ?? project.isBookmarked;
     return {
       icon: (
         <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />
       ),
       label: isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
-      onAction: () => toggleBookmark({project, isBookmarked: !isBookmarked}),
+      onAction: () => {
+        trackAnalytics('settings.org_menu.project_bookmark_toggled', {
+          organization,
+          bookmarked: !isBookmarked,
+          source,
+        });
+        toggleBookmark({project, isBookmarked: !isBookmarked});
+      },
     };
   };
+
+  const makeSettingsProjectMenuItem = (
+    project: Project,
+    source: OrgMenuProjectSource
+  ): MenuItemProps => ({
+    ...makeProjectMenuItem(
+      project,
+      organization,
+      makeBookmarkAction(project, source),
+      source === 'quick_access' ? 'quick-access-project' : 'project'
+    ),
+    onAction: () =>
+      trackAnalytics('settings.org_menu.project_clicked', {organization, source}),
+  });
 
   const avatarProps = getOrganizationAvatarProps(organization);
 
@@ -151,6 +189,12 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   if (settingsV3) {
     const memberProjects = sortProjects(projects.filter(project => project.isMember));
     const otherProjects = sortProjects(projects.filter(project => !project.isMember));
+    // Unbookmarked projects fill the remaining slots, so the list is not empty
+    // when nothing is bookmarked.
+    const quickAccessProjects = sortProjectsByBookmarkAndMembership(
+      projects,
+      bookmarkedSnapshot
+    ).slice(0, QUICK_ACCESS_PROJECT_LIMIT);
 
     return (
       <SettingsNavigationTourElement
@@ -160,7 +204,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         returnFocusRef={triggerRef}
         title={
           hasNoProjects
-            ? t('Project Settings')
+            ? getSettingsScopeTitle('project')
             : t('Quick settings-access for your important Projects')
         }
         description={
@@ -182,6 +226,15 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
             isOpen={isProjectTourActive || isMenuOpen}
             onOpenChange={open => {
               setMenuOpen(open);
+              if (open) {
+                setBookmarkedSnapshot(
+                  new Set(
+                    projects
+                      .filter(project => project.isBookmarked)
+                      .map(project => project.id)
+                  )
+                );
+              }
               if (!open && isProjectTourActive) {
                 settingsTour?.endTour();
               }
@@ -210,6 +263,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     label: t('Settings'),
                     leadingItems: <IconSettings />,
                     to: `/settings/${organization.slug}/`,
+                    onAction: () =>
+                      trackAnalytics('settings.entry_point_clicked', {
+                        organization,
+                        entry_point: 'org_menu',
+                      }),
                     hidden:
                       props.hideCurrentOrganizationLinks ||
                       !organization.access?.includes('org:read'),
@@ -245,20 +303,13 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               },
               {
                 key: 'project-settings',
-                label: t('Project Settings'),
+                label: getSettingsScopeTitle('project'),
                 ref: projectsTourProps.ref,
                 hidden: props.hideCurrentOrganizationLinks,
                 children: [
-                  ...sortProjects(projects.filter(project => project.isBookmarked))
-                    .slice(0, 5)
-                    .map(project =>
-                      makeProjectMenuItem(
-                        project,
-                        organization,
-                        makeBookmarkAction(project),
-                        'starred-project'
-                      )
-                    ),
+                  ...quickAccessProjects.map(project =>
+                    makeSettingsProjectMenuItem(project, 'quick_access')
+                  ),
                   {
                     key: 'view-all-projects',
                     label: t('View All Projects'),
@@ -267,7 +318,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                       title: t('All Projects'),
                       emptyMessage: t('No projects found'),
                       search: {placeholder: t('Search')},
-                      maxHeight: 240,
                       maxWidth: 258,
                     },
                     hidden: projects.length === 0,
@@ -277,11 +327,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                         label: t('My Projects'),
                         hidden: memberProjects.length === 0,
                         children: memberProjects.map(project =>
-                          makeProjectMenuItem(
-                            project,
-                            organization,
-                            makeBookmarkAction(project)
-                          )
+                          makeSettingsProjectMenuItem(project, 'all_projects')
                         ),
                       },
                       {
@@ -289,11 +335,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                         label: t('Other Projects'),
                         hidden: otherProjects.length === 0,
                         children: otherProjects.map(project =>
-                          makeProjectMenuItem(
-                            project,
-                            organization,
-                            makeBookmarkAction(project)
-                          )
+                          makeSettingsProjectMenuItem(project, 'all_projects')
                         ),
                       },
                     ],
@@ -349,6 +391,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     key: 'organization-settings',
                     label: t('Organization Settings'),
                     to: `/settings/${organization.slug}/`,
+                    onAction: () =>
+                      trackAnalytics('settings.entry_point_clicked', {
+                        organization,
+                        entry_point: 'org_menu',
+                      }),
                     hidden: !organization.access?.includes('org:read'),
                   },
                   {

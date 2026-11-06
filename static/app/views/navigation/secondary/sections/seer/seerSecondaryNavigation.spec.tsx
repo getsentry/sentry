@@ -102,6 +102,46 @@ describe('SeerSecondaryNavigation', () => {
     expect(screen.queryByRole('link', {name: /Automations/})).not.toBeInTheDocument();
   });
 
+  it('renders Classifiers with an alpha badge below Investigations', () => {
+    renderNavigation(
+      '/organizations/org-slug/seer/classifiers/',
+      OrganizationFixture({
+        features: ['investigations', 'classifiers-ui'],
+        openMembership: true,
+      })
+    );
+
+    const investigations = screen.getByRole('link', {name: /Investigations/});
+    const classifiers = screen.getByRole('link', {name: /Classifiers/});
+    expect(classifiers).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/classifiers/'
+    );
+    expect(classifiers).toHaveAttribute('aria-current', 'page');
+    expect(within(classifiers).getByLabelText('alpha')).toBeInTheDocument();
+    expect(
+      investigations.compareDocumentPosition(classifiers) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('renders only Classifiers when investigations and automations are unavailable', () => {
+    renderNavigation(
+      '/organizations/org-slug/seer/classifiers/',
+      OrganizationFixture({features: ['classifiers-ui'], openMembership: false})
+    );
+
+    expect(screen.getByRole('link', {name: /Classifiers/})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Investigations/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Automations/})).not.toBeInTheDocument();
+  });
+
+  it('does not render Classifiers without the classifiers-ui flag', () => {
+    renderNavigation('/organizations/org-slug/seer/investigations/');
+
+    expect(screen.queryByRole('link', {name: /Classifiers/})).not.toBeInTheDocument();
+  });
+
   it.each([
     ['investigations is disabled', {features: [], openMembership: true}],
     ['membership is closed', {features: ['investigations'], openMembership: false}],

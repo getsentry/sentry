@@ -78,7 +78,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class CursorApiKeySerializer(CamelSnakeSerializer):
+class CursorApiKeySerializer(CamelSnakeSerializer[dict[str, str]]):
     api_key = CharField(required=True, max_length=255)
 
 
@@ -256,7 +256,7 @@ class CursorAgentIntegration(CodingAgentIntegration):
             )
         metadata.display_name = display_name or None
 
-    def get_client(self):
+    def get_client(self) -> CursorAgentClient:
         return CursorAgentClient(
             api_key=self.api_key,
             webhook_secret=self.webhook_secret,

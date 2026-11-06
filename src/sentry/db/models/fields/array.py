@@ -6,8 +6,11 @@ I am only here for migration compatibility
 from __future__ import annotations
 
 import ast
+from collections.abc import Iterable
+from typing import Any
 
 from django.db import models
+from django.db.backends.base.base import BaseDatabaseWrapper
 
 from sentry.db.models.utils import Creator
 from sentry.utils import json
@@ -15,8 +18,14 @@ from sentry.utils import json
 
 # Adapted from django-pgfields
 # https://github.com/lukesneeringer/django-pgfields/blob/master/django_pg/models/fields/array.py
-class ArrayField(models.Field):
-    def __init__(self, of=models.TextField, **kwargs):
+class ArrayField(models.Field[object, object]):
+    of: models.Field[object, object]
+
+    def __init__(
+        self,
+        of: type[models.Field[object, object]] | models.Field[object, object] = models.TextField,
+        **kwargs: Any,
+    ):
         # Arrays in PostgreSQL are arrays of a particular type.
         # Save the subtype in our field class.
         if isinstance(of, type):
@@ -30,7 +39,9 @@ class ArrayField(models.Field):
 
         super().__init__(**kwargs)
 
-    def contribute_to_class(self, cls: type[models.Model], name: str, private_only: bool = False):
+    def contribute_to_class(
+        self, cls: type[models.Model], name: str, private_only: bool = False
+    ) -> None:
         """
         Add a descriptor for backwards compatibility
         with previous Django behavior.
@@ -38,13 +49,13 @@ class ArrayField(models.Field):
         super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, name, Creator(self))
 
-    def db_type(self, connection) -> str:
+    def db_type(self, connection: BaseDatabaseWrapper) -> str:
         return f"{self.of.db_type(connection)}[]"
 
     def get_internal_type(self) -> str:
         return "TextField"
 
-    def get_prep_value(self, value):
+    def get_prep_value(self, value: Iterable[object]) -> list[object]:
         """Iterate over each item in the array, and run it
         through the `get_prep_value` of this array's type.
         """
@@ -56,7 +67,7 @@ class ArrayField(models.Field):
         # our array.
         return [self.of.get_prep_value(item) for item in value]
 
-    def to_python(self, value):
+    def to_python(self, value: Any) -> list[object]:
         if not value:
             value = []
         if isinstance(value, str):

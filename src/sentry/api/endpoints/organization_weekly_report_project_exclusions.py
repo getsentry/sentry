@@ -9,6 +9,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.auth.principal import require_user
 from sentry.models.organization import Organization
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 
@@ -30,10 +31,10 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUE_DETECTION_BACKEND
 
     def get(self, request: Request, organization: Organization) -> Response:
-        assert request.user and request.user.id
+        user = require_user(request)
 
         queryset = WeeklyReportProjectExclusion.objects.filter(
-            user_id=request.user.id,
+            user_id=user.id,
             project__organization_id=organization.id,
         ).select_related("project")
 
@@ -46,7 +47,7 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
         )
 
     def put(self, request: Request, organization: Organization) -> Response:
-        assert request.user and request.user.id
+        user = require_user(request)
 
         project_ids = request.data.get("projectIds", [])
         if not isinstance(project_ids, list) or not all(
@@ -71,7 +72,7 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
 
         with transaction.atomic(using=router.db_for_write(WeeklyReportProjectExclusion)):
             WeeklyReportProjectExclusion.objects.filter(
-                user_id=request.user.id,
+                user_id=user.id,
                 project__organization_id=organization.id,
             ).delete()
 
@@ -80,7 +81,7 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
                     [
                         WeeklyReportProjectExclusion(
                             project_id=pid,
-                            user_id=request.user.id,
+                            user_id=user.id,
                         )
                         for pid in validated_project_ids
                     ],

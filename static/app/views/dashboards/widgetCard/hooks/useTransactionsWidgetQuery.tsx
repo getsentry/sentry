@@ -28,13 +28,14 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+
 import {
   combineWidgetJsonQueryResults,
   combineWidgetQueryResults,
-} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+} from './utils/combineWidgetQueryResults';
+import {getWidgetStaleTime} from './utils/getStaleTime';
 
 type TransactionsSeriesResponse =
   | EventsStats

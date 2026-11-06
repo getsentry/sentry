@@ -1,7 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
+
+import {areAiFeaturesAllowed} from './areAiFeaturesAllowed';
 
 describe('areAiFeaturesAllowed', () => {
   beforeEach(() => {

@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import uuid
 import zipfile
-from collections.abc import Container, Iterable, Mapping
+from collections.abc import Callable, Container, Iterable, Mapping
 from datetime import datetime
 from typing import (
     IO,
@@ -19,6 +19,8 @@ from typing import (
     Any,
     BinaryIO,
     ClassVar,
+    cast,
+    overload,
 )
 
 from django.db import models
@@ -97,6 +99,15 @@ def _dif_file_extension(file_format: str, file_type: str | None) -> str:
     return ""
 
 
+@overload
+def _normalize_code_id(code_id: None) -> None: ...
+@overload
+def _normalize_code_id(code_id: str) -> str: ...
+def _normalize_code_id(code_id: str | None) -> str | None:
+    normalize = cast("Callable[[str | None], str | None]", normalize_code_id)
+    return normalize(code_id)
+
+
 def wasm_legacy_code_id(code_id: str) -> str | None:
     """For a 32-character debug ID, computes the "legacy" code ID by
     prepending `"10"`.
@@ -109,7 +120,7 @@ def wasm_legacy_code_id(code_id: str) -> str | None:
     if len(code_id) != 32:
         return None
     try:
-        return normalize_code_id(f"10{code_id}")
+        return _normalize_code_id(f"10{code_id}")
     except SymbolicError:
         return None
 
@@ -126,7 +137,7 @@ def wasm_legacy_debug_id(debug_id: str) -> str | None:
     if len(debug_id) != 36:
         return None
     try:
-        return normalize_debug_id(f"10{normalize_code_id(debug_id)[:-2]}")
+        return normalize_debug_id(f"10{_normalize_code_id(debug_id)[:-2]}")
     except SymbolicError:
         return None
 
@@ -269,7 +280,8 @@ class ProjectDebugFile(Model):
             assert self.content_type is not None
             return str(self.content_type)
         if self.file is not None:
-            return self.file.headers.get("Content-Type", "unknown")
+            content_type = self.file.headers.get("Content-Type", "unknown")
+            return content_type
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_file_size(self) -> int:
@@ -277,6 +289,7 @@ class ProjectDebugFile(Model):
             assert self.file_size is not None
             return int(self.file_size)
         if self.file is not None:
+            assert self.file.size is not None
             return self.file.size
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
@@ -1095,7 +1108,8 @@ def create_files_from_dif_zip(
 class DIFCache:
     @property
     def cache_path(self) -> str:
-        return options.get("dsym.cache-path")
+        cache_path = options.get("dsym.cache-path")
+        return cache_path
 
     def get_project_path(self, project: Project) -> str:
         return os.path.join(self.cache_path, str(project.id))

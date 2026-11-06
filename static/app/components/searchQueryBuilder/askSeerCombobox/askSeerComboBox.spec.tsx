@@ -7,15 +7,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
-import type {
-  SeerRawResponse,
-  SeerRawResponseItem,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {
-  buildSeerMutationResult,
-  mapSeerResponseItem,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
@@ -29,6 +20,10 @@ import {
   AsyncSDKIntegrationContextProvider,
   useAsyncSDKIntegrationStore,
 } from 'sentry/views/app/asyncSDKIntegrationProvider';
+
+import {AskSeerComboBox} from './askSeerComboBox';
+import type {SeerRawResponse, SeerRawResponseItem} from './types';
+import {buildSeerMutationResult, mapSeerResponseItem} from './useSeerComboBoxSetup';
 
 const defaultProps = {
   enableAISearch: true,

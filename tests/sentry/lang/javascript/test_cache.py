@@ -13,11 +13,15 @@ class BasicCacheTest(TestCase):
 
         cache.add(url, b"foo\nbar")
         assert url in cache
-        assert cache.get(url)[0] == "foo"
+        view = cache.get(url)
+        assert view is not None
+        assert view[0] == "foo"
 
         cache.alias(url + "x", url)
         assert url + "x" in cache
-        assert cache.get(url + "x")[0] == "foo"
+        view = cache.get(url + "x")
+        assert view is not None
+        assert view[0] == "foo"
 
     def test_encoding_fallback(self) -> None:
         cache = SourceCache()
@@ -25,7 +29,9 @@ class BasicCacheTest(TestCase):
 
         # fall back to utf-8
         cache.add(url, b"foobar", encoding="utf-32")
-        assert cache.get(url)[0] == "foobar"
+        view = cache.get(url)
+        assert view is not None
+        assert view[0] == "foobar"
 
     def test_encoding_support(self) -> None:
         cache = SourceCache()
@@ -33,4 +39,6 @@ class BasicCacheTest(TestCase):
 
         # fall back to utf-8
         cache.add(url, "foobar".encode("utf-32"), encoding="utf-32")
-        assert cache.get(url)[0] == "foobar"
+        view = cache.get(url)
+        assert view is not None
+        assert view[0] == "foobar"

@@ -4,13 +4,14 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {AutofixAgent} from 'sentry/components/seer/projectDetails/autofixAgent';
-import {AutofixRepositoriesList} from 'sentry/components/seer/projectDetails/autofixRepositoriesList';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import {AutofixAgent} from './autofixAgent';
+import {AutofixRepositoriesList} from './autofixRepositoriesList';
 
 export function SeerProjectDetails({project}: {project: DetailedProject}) {
   const organization = useOrganization();

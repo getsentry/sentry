@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from unittest import mock
+from unittest.mock import MagicMock
 
 from sentry.spans.buffer_types import Span
 from sentry.spans.debug_trace_logger import DebugTraceLogger
@@ -24,7 +25,7 @@ def _make_span(
 
 class TestDebugTraceLogger:
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_logs_subsegment_info_with_no_span_keys(self, mock_logger):
+    def test_logs_subsegment_info_with_no_span_keys(self, mock_logger: MagicMock) -> None:
         """Test logging when parent_span_id matches the only span's span_id."""
         mock_client = mock.MagicMock()
 
@@ -57,7 +58,7 @@ class TestDebugTraceLogger:
         mock_client.pipeline.assert_not_called()
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_logs_subsegment_info_with_span_keys(self, mock_logger):
+    def test_logs_subsegment_info_with_span_keys(self, mock_logger: MagicMock) -> None:
         """Test logging with multiple spans where some have different span_ids."""
         mock_client = mock.MagicMock()
         mock_pipeline = mock.MagicMock()
@@ -93,7 +94,7 @@ class TestDebugTraceLogger:
         assert len(extra["subsegment_spans"]) == 3
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_span_key_format(self, mock_logger):
+    def test_span_key_format(self, mock_logger: MagicMock) -> None:
         """Test that span keys are generated in the correct format."""
         mock_client = mock.MagicMock()
         mock_pipeline = mock.MagicMock()
@@ -122,7 +123,9 @@ class TestDebugTraceLogger:
         assert extra["set_sizes"]["span-buf:s:{111:trace222}:B"] == 3
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_subsegment_info_skips_when_trace_not_in_debug_traces(self, mock_logger):
+    def test_subsegment_info_skips_when_trace_not_in_debug_traces(
+        self, mock_logger: MagicMock
+    ) -> None:
         """Test that log_subsegment_info returns early when trace is not in debug_traces."""
         mock_client = mock.MagicMock()
 
@@ -140,7 +143,7 @@ class TestDebugTraceLogger:
         mock_client.pipeline.assert_not_called()
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_flush_info_with_root_span_flag(self, mock_logger):
+    def test_flush_info_with_root_span_flag(self, mock_logger: MagicMock) -> None:
         """Test log_flush_info when HRS flag is set."""
         mock_client = mock.MagicMock()
         mock_client.exists.return_value = 1
@@ -181,7 +184,7 @@ class TestDebugTraceLogger:
         mock_client.zscore.assert_called_once_with(queue_key, segment_key)
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_flush_info_without_root_span_flag(self, mock_logger):
+    def test_flush_info_without_root_span_flag(self, mock_logger: MagicMock) -> None:
         """Test log_flush_info when HRS flag is not set."""
         mock_client = mock.MagicMock()
         mock_client.exists.return_value = 0
@@ -214,7 +217,7 @@ class TestDebugTraceLogger:
         assert extra["ttl_remaining_seconds"] == 60
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_flush_info_skips_when_trace_not_in_debug_traces(self, mock_logger):
+    def test_flush_info_skips_when_trace_not_in_debug_traces(self, mock_logger: MagicMock) -> None:
         """Test that log_flush_info returns early when trace is not in debug_traces."""
         mock_client = mock.MagicMock()
 
@@ -239,7 +242,7 @@ class TestDebugTraceLogger:
         mock_client.zscore.assert_not_called()
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_should_log_trace(self, mock_logger):
+    def test_should_log_trace(self, mock_logger: MagicMock) -> None:
         """Test _should_log_trace helper method."""
         mock_client = mock.MagicMock()
 

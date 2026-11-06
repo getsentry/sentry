@@ -1,5 +1,6 @@
 import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {createSerializer, parseAsString, useQueryStates} from 'nuqs';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -11,7 +12,7 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
@@ -21,19 +22,20 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseCursor} from 'sentry/utils/cursor';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {decodeScalar, decodeSorts, encodeSort} from 'sentry/utils/queryString';
+import {encodeSort} from 'sentry/utils/queryString';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
 import {
   ATTRIBUTE_VALUE_TYPES,
   ATTRIBUTES_STATS_PERIOD,
   type Attribute,
   type AttributeDataset,
-} from 'sentry/views/settings/project/projectAttributesCommon';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+} from './projectAttributesCommon';
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 const ATTRIBUTES_PER_PAGE = 25;
 
@@ -65,15 +67,24 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'description', width: 'minmax(200px, 3fr)'},
 ];
 
-function decodeOption(value: string | undefined, options: Array<{value: string}>) {
+const attributesQueryParsers = {
+  cursor: parseAsString,
+  sort: parseAsSort,
+  dataset: parseAsString,
+  type: parseAsString,
+  search: parseAsString.withDefault(''),
+};
+
+const serializeAttributesQuery = createSerializer(attributesQueryParsers);
+
+function decodeOption(value: string | null, options: Array<{value: string}>) {
   return options.find(option => option.value === value)?.value ?? ALL_OPTION_VALUE;
 }
 
 function ProjectAttributesSettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [attributesQuery, setAttributesQuery] = useQueryStates(attributesQueryParsers);
 
   const typeOptions = [
     {value: ALL_OPTION_VALUE, label: t('All')},
@@ -86,20 +97,20 @@ function ProjectAttributesSettings() {
       .map(type => ({value: type, label: type})),
   ];
 
-  const cursor = decodeScalar(location.query.cursor);
+  const cursor = attributesQuery.cursor || undefined;
+  const sortParam = attributesQuery.sort;
   const sort =
-    decodeSorts(location.query.sort).find(({field}) =>
-      SORT_FIELDS.some(sortField => sortField === field)
-    ) ?? DEFAULT_SORT;
-  const dataset = decodeOption(decodeScalar(location.query.dataset), DATASET_OPTIONS);
-  const type = decodeOption(decodeScalar(location.query.type), typeOptions);
-  const search = decodeScalar(location.query.search, '');
+    sortParam && SORT_FIELDS.some(sortField => sortField === sortParam.field)
+      ? sortParam
+      : DEFAULT_SORT;
+  const dataset = decodeOption(attributesQuery.dataset, DATASET_OPTIONS);
+  const type = decodeOption(attributesQuery.type, typeOptions);
+  const search = attributesQuery.search;
 
-  function updateQuery(query: Record<string, string | undefined>) {
-    navigate({
-      ...location,
-      query: {...location.query, cursor: undefined, ...query},
-    });
+  function updateQuery(
+    query: Partial<Record<'dataset' | 'search' | 'type', string | null>>
+  ) {
+    setAttributesQuery({cursor: null, ...query}, {history: 'push'});
   }
 
   const {data, isPending, isError, refetch} = useQuery({
@@ -158,7 +169,7 @@ function ProjectAttributesSettings() {
           options={DATASET_OPTIONS}
           onChange={option =>
             updateQuery({
-              dataset: option.value === ALL_OPTION_VALUE ? undefined : option.value,
+              dataset: option.value === ALL_OPTION_VALUE ? null : option.value,
             })
           }
         />
@@ -170,7 +181,7 @@ function ProjectAttributesSettings() {
           options={typeOptions}
           onChange={option =>
             updateQuery({
-              type: option.value === ALL_OPTION_VALUE ? undefined : option.value,
+              type: option.value === ALL_OPTION_VALUE ? null : option.value,
             })
           }
         />
@@ -178,7 +189,7 @@ function ProjectAttributesSettings() {
           <SearchBar
             query={search}
             placeholder={t('Search attribute names or descriptions')}
-            onSearch={query => updateQuery({search: query || undefined})}
+            onSearch={query => updateQuery({search: query})}
           />
         </Container>
       </Flex>
@@ -232,12 +243,12 @@ function SortableHeaderCell({
     <SimpleTable.HeaderCell
       sort={sort.field === field ? sort.kind : undefined}
       to={{
-        ...location,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          sort: encodeSort(getNextSort(field, sort, 'asc')),
-        },
+        pathname: location.pathname,
+        search: serializeAttributesQuery(location.search, {
+          cursor: null,
+          sort: getNextSort(field, sort, 'asc'),
+        }),
+        hash: location.hash,
       }}
     >
       {children}

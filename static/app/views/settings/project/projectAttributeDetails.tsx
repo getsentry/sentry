@@ -9,7 +9,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -20,12 +20,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {TraceItemAttributeType} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
 import {
   ATTRIBUTES_STATS_PERIOD,
   isAttributeType,
   type Attribute,
-} from 'sentry/views/settings/project/projectAttributesCommon';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+} from './projectAttributesCommon';
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 function ProjectAttributeDetailsSettings() {
   const {project} = useProjectSettingsOutlet();

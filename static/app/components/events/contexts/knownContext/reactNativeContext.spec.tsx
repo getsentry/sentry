@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getReactNativeContextData,
-  type ReactNativeContext,
-} from 'sentry/components/events/contexts/knownContext/reactNativeContext';
+
+import {getReactNativeContextData, type ReactNativeContext} from './reactNativeContext';
 
 const MOCK_REACT_NATIVE_CONTEXT: ReactNativeContext = {
   expo: false,

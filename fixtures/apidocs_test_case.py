@@ -3,10 +3,13 @@ import os
 
 import orjson
 from django.conf import settings
+from django.http import HttpRequest
 from openapi_core.contrib.django import DjangoOpenAPIRequest, DjangoOpenAPIResponse
 from openapi_core.spec import Spec
 from openapi_core.validation.response.validators import V30ResponseDataValidator
+from rest_framework.response import Response
 
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
@@ -30,7 +33,7 @@ class APIDocsTestCase(APITestCase):
     def cached_schema(self) -> Spec:
         return _load_schema()
 
-    def validate_schema(self, request, response):
+    def validate_schema(self, request: HttpRequest, response: Response) -> None:
         assert 200 <= response.status_code < 300, response.status_code
 
         if isinstance(response.data, list):
@@ -42,9 +45,9 @@ class APIDocsTestCase(APITestCase):
             DjangoOpenAPIResponse(response),  # type: ignore[arg-type]  # Werkzeug 3.1 Headers vs Mapping
         )
 
-    def create_event(self, name, **kwargs):
+    def create_event(self, name: str, **kwargs: object) -> Event:
         # Somewhat sane default data.
-        data = {
+        data: dict[str, object] = {
             "event_id": (name * 32)[:32],
             "fingerprint": ["1"],
             "sdk": {"version": "5.17.0", "name": "sentry.javascript.browser"},

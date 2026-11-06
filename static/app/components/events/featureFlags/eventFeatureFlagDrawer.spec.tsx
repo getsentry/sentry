@@ -2,14 +2,16 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
+import {getShortEventId} from 'sentry/utils/events';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+
+import {EventFeatureFlagSection} from './eventFeatureFlagSection';
 import {
   MOCK_DATA_SECTION_PROPS,
   MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG,
   MOCK_FLAGS,
-} from 'sentry/components/events/featureFlags/testUtils';
-import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+} from './testUtils';
 
 async function openFlagDrawer() {
   mockElementSize({width: 0, height: 30});
@@ -47,17 +49,15 @@ describe('FeatureFlagDrawer', () => {
     ).toBeInTheDocument();
 
     // Inner drawer flags
-    const {event, group} = MOCK_DATA_SECTION_PROPS;
-    expect(within(drawerScreen).getByText(group.shortId)).toBeInTheDocument();
-    expect(within(drawerScreen).getByText(event.id.slice(0, 8))).toBeInTheDocument();
+    const {event} = MOCK_DATA_SECTION_PROPS;
+    const currentCrumb = within(drawerScreen).getByText('Feature Flags');
+    expect(currentCrumb).toHaveAttribute('aria-current', 'location');
+    await userEvent.hover(currentCrumb);
     expect(
-      within(drawerScreen).getByText('Feature Flags', {selector: 'span'})
+      await screen.findByText(`Event ID: ${getShortEventId(event.id)}`)
     ).toBeInTheDocument();
 
-    // Header & Controls
-    expect(
-      within(drawerScreen).getByText('Feature Flags', {selector: 'h3'})
-    ).toBeInTheDocument();
+    // Controls
     expect(
       within(drawerScreen).getByRole('textbox', {name: 'Search Flags'})
     ).toBeInTheDocument();
