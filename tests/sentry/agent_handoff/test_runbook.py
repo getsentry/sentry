@@ -1,10 +1,27 @@
 import shlex
+from collections.abc import Generator
+from unittest import mock
 
 import pytest
 
 from sentry.agent_handoff.codes import AgentHandoff, HandoffFlow
 from sentry.agent_handoff.flows import get_flow_instructions
+from sentry.agent_handoff.installer import PinnedInstaller, installer_command
 from sentry.agent_handoff.runbook import render_agent_runbook, render_claim_runbook
+
+INSTALLER = PinnedInstaller(
+    url="https://github.com/getsentry/toolkit/releases/download/cli@0.48.0/install",
+    version="0.48.0",
+    sha256="a" * 64,
+)
+
+
+@pytest.fixture(autouse=True)
+def pinned() -> Generator[mock.MagicMock]:
+    with mock.patch(
+        "sentry.agent_handoff.runbook.pinned_installer", return_value=None
+    ) as pinned_installer:
+        yield pinned_installer
 
 
 def render(**overrides: str) -> str:
@@ -111,6 +128,19 @@ def test_claim_runbook_explains_explicit_private_code_redemption() -> None:
     assert "Fetching this page does not claim it" in guide
     assert "curl -sS -X POST https://sentry.example.com/agent-handoff/" in guide
     assert "--data-urlencode 'handoff_code=HANDOFF_CODE'" in guide
+
+
+def test_runbook_verifies_and_pins_installer_to_latest_release(pinned: mock.MagicMock) -> None:
+    pinned.return_value = INSTALLER
+    environment = (
+        "SENTRY_HOST=https://sentry.example.com SENTRY_URL=https://sentry.example.com "
+        "SENTRY_CLIENT_ID=example-client-id SENTRY_SETUP_CODE=sntryc_example-setup-code"
+    )
+
+    guide = render()
+
+    assert installer_command(environment, INSTALLER) in guide
+    assert "do not run the installer any other way" in guide
 
 
 def test_runbook_includes_flow_instructions_after_authentication() -> None:
