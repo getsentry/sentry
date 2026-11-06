@@ -4,13 +4,13 @@ import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 import moment from 'moment-timezone';
 
-import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 
+import {DATE_TIME_KEYS, URL_PARAM} from './constants';
 import type {PageFiltersState} from './types';
 
 type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';

@@ -14,9 +14,10 @@ import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
-import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
-import {groupUserFeedbackApiOptions} from 'sentry/views/issueDetails/groupUserFeedbackApiOptions';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {useGroupId} from './groupIdContext';
+import {groupUserFeedbackApiOptions} from './groupUserFeedbackApiOptions';
+import {useGroup} from './useGroup';
 
 function GroupUserFeedback() {
   const organization = useOrganization();

@@ -15,7 +15,6 @@ import {Button} from '@sentry/scraps/button';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -23,6 +22,8 @@ import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/si
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+
+import {useDroppedDataDrawer} from './useDroppedDataDrawer';
 
 jest.mock('sentry/utils/analytics');
 

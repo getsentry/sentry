@@ -4,7 +4,7 @@ import {
   ChangedFilesSection,
   type RepoFileGroup,
   useExpandedKeys,
-} from 'sentry/views/seerWorkflows/overview/changedFilesSection';
+} from './changedFilesSection';
 
 function groupFixture(fileCount: number): RepoFileGroup {
   return {

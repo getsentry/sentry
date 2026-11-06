@@ -38,22 +38,6 @@ import {
 import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {
-  InvestigationNotebookBlock,
-  isBlockWorking,
-  shouldDisplayInvestigationBlock,
-} from 'sentry/views/investigations/detail/block';
-import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
-import {
-  ACTIVITY_ELEMENT_ID,
-  getInvestigationOutline,
-  HYPOTHESES_ELEMENT_ID,
-  InvestigationOutline,
-  SUMMARY_ELEMENT_ID,
-} from 'sentry/views/investigations/detail/outline';
-import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
-import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
-import type {InvestigationTitle} from 'sentry/views/investigations/detail/useInvestigationTitle';
-import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
@@ -74,6 +58,23 @@ import type {
   InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import {
+  InvestigationNotebookBlock,
+  isBlockWorking,
+  shouldDisplayInvestigationBlock,
+} from './block';
+import {InvestigationBlockPlaceholder} from './blockPlaceholder';
+import {
+  ACTIVITY_ELEMENT_ID,
+  getInvestigationOutline,
+  HYPOTHESES_ELEMENT_ID,
+  InvestigationOutline,
+  SUMMARY_ELEMENT_ID,
+} from './outline';
+import {InvestigationViewers} from './presence';
+import {InvestigationRunTimer} from './runTimer';
+import type {InvestigationTitle} from './useInvestigationTitle';
 
 const STATUS_TAG_VARIANT = {
   running: 'info',
@@ -213,6 +214,7 @@ export function InvestigationPageContent({
   title: InvestigationTitle;
 }) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const composerRef = useRef<HTMLDivElement>(null);
   const activityRef = useRef<HTMLElement>(null);
   const {data: comments} = useInvestigationComments(investigation.id, {
@@ -242,6 +244,21 @@ export function InvestigationPageContent({
   if (recheckRunWait.waiting && isRunLive(orchestration)) {
     recheckRunWait.stop();
   }
+  // A run waiting on a person stops this page polling, and answering it only
+  // moves the projection. Once the run is past the wait, re-read the
+  // investigation so the notebook polls again while Seer writes it.
+  const runLeftAwaitingInput =
+    investigation.orchestration?.status === 'awaiting_input' &&
+    orchestration !== undefined &&
+    orchestration.status !== 'awaiting_input';
+  useEffect(() => {
+    if (runLeftAwaitingInput) {
+      void queryClient.invalidateQueries({
+        queryKey: getInvestigationDetailQueryOptions(organization.slug, investigation.id)
+          .queryKey,
+      });
+    }
+  }, [investigation.id, organization.slug, queryClient, runLeftAwaitingInput]);
   const actionRequestsStale = useRefetchStaleActionRequests(
     investigation.id,
     orchestration,
@@ -304,6 +321,21 @@ export function InvestigationPageContent({
             hypothesis: getHypothesisLLMContext(
               hypothesis,
               hypothesis.id === orchestration?.report.primaryHypothesisId
+            ),
+          },
+        })
+    : undefined;
+  const askSeerAboutHypotheses = askSeer
+    ? (hypotheses: InvestigationHypothesis[]) =>
+        askSeer({
+          prompt: t('What would you like to know about these hypotheses?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            hypotheses: hypotheses.map(hypothesis =>
+              getHypothesisLLMContext(
+                hypothesis,
+                hypothesis.id === orchestration?.report.primaryHypothesisId
+              )
             ),
           },
         })
@@ -483,6 +515,7 @@ export function InvestigationPageContent({
                         phase={investigation.orchestration.phase}
                         status={investigation.orchestration.status}
                         onAskSeer={askSeerAboutHypothesis}
+                        onAskSeerAboutHypotheses={askSeerAboutHypotheses}
                       />
                     ) : null}
                     <AnchoredActionRequests

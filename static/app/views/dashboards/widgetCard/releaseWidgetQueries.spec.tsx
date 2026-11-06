@@ -14,7 +14,8 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+
+import {ReleaseWidgetQueries} from './releaseWidgetQueries';
 
 // Matches a widget time series that plots the same points as the legacy series
 function matchesLegacySeries({seriesName, data}: Series) {

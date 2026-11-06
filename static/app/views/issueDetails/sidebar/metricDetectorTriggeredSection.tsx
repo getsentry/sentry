@@ -17,9 +17,9 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -708,7 +708,7 @@ function SeerInvestigationSection({
       );
       navigate(getInvestigationPath(organization.slug, launchedInvestigation.id));
     },
-    onError: () => addErrorMessage(t('Unable to launch investigation.')),
+    onError: () => toast.error(t('Unable to launch investigation.')),
   });
 
   const investigationPath =

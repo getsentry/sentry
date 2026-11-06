@@ -370,7 +370,7 @@ GROUP_EVENT: GroupEventDetailsResponse = {
             "url": None,
             "environment": "prod",
             "dateStarted": None,
-            "dateFinished": "2020-06-17T19:20:55.641748Z",
+            "dateFinished": datetime.fromisoformat("2020-06-17T19:20:55.641748Z"),
             "id": "6883490",
         },
         "deployCount": 1,

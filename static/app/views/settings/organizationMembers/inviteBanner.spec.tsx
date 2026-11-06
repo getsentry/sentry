@@ -6,7 +6,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
-import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
+
+import {InviteBanner} from './inviteBanner';
 
 const missingMembers = {
   integration: 'github',

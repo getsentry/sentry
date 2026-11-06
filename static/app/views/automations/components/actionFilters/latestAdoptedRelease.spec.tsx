@@ -5,9 +5,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import {LatestAdoptedReleaseNode} from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {DataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+import {LatestAdoptedReleaseNode} from './latestAdoptedRelease';
 
 describe('LatestAdoptedReleaseNode', () => {
   const organization = OrganizationFixture();

@@ -5,11 +5,9 @@ import type {
   YAXisComponentOption,
 } from 'echarts';
 
-import {
-  DROPPED_DATA_SERIES_ID,
-  type useDroppedDataBand,
-} from 'sentry/components/droppedData/band/useDroppedDataBand';
 import type {EChartClickHandler} from 'sentry/types/echarts';
+
+import {DROPPED_DATA_SERIES_ID, type useDroppedDataBand} from './useDroppedDataBand';
 
 type DroppedDataBand = ReturnType<typeof useDroppedDataBand>;
 

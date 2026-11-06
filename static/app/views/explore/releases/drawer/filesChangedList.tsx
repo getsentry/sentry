@@ -22,8 +22,9 @@ import {
   getFilesByRepository,
   getReposToRender,
 } from 'sentry/views/explore/releases/detail/utils';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {releaseCommitFilesApiOptions} from 'sentry/views/explore/releases/utils/releaseCommitFilesApiOptions';
+
+import {ReleasesDrawerFields} from './utils';
 
 interface FilesChangedProps {
   release: string;

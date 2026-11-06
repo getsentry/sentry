@@ -7,11 +7,12 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {makeCloseButton, ModalBody, ModalFooter} from '@sentry/scraps/modal';
 
-import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import {ContextPickerModalContainer as ContextPickerModal} from './contextPickerModal';
 
 describe('ContextPickerModal', () => {
   let project!: Project;

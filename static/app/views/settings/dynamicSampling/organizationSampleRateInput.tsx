@@ -8,8 +8,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
-import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+
+import {useHasDynamicSamplingWriteAccess} from './utils/access';
+import {PercentInput} from './percentInput';
 
 interface Props {
   help: React.ReactNode;

@@ -23,7 +23,13 @@ from sentry.api.utils import (
     to_valid_int_id_list,
 )
 from sentry.db.models.fields.bounded import BoundedBigAutoField
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidFunctionArgumentQuery,
+    InvalidParams,
+    InvalidSearchQuery,
+    SearchQueryParseError,
+)
 from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -212,6 +218,45 @@ class HandleQueryErrorsTest(APITestCase):
                     raise ex
             except Exception as e:
                 assert isinstance(e, (FooBarError, APIException))
+
+    def test_handle_invalid_function_argument(self) -> None:
+        with pytest.raises(ParseError) as excinfo:
+            with handle_query_errors():
+                raise InvalidFunctionArgumentQuery(
+                    "foo is invalid for parameter 1 in p75.", function="p75", argument="foo"
+                )
+        assert excinfo.value.detail == {
+            "detail": "foo is invalid for parameter 1 in p75.",
+            "code": "invalid_function_argument",
+            "function": "p75",
+            "argument": "foo",
+        }
+
+    def test_handle_invalid_function_argument_with_hint(self) -> None:
+        with pytest.raises(ParseError) as excinfo:
+            with handle_query_errors():
+                raise InvalidFunctionArgumentQuery(
+                    "foo is invalid for parameter 1 in p75.",
+                    function="p75",
+                    argument="foo",
+                    hint="Use bar instead of foo.",
+                )
+        assert excinfo.value.detail == {
+            "detail": "foo is invalid for parameter 1 in p75.",
+            "code": "invalid_function_argument",
+            "function": "p75",
+            "argument": "foo",
+            "hint": "Use bar instead of foo.",
+        }
+
+    def test_handle_search_query_parse_error(self) -> None:
+        with pytest.raises(ParseError) as excinfo:
+            with handle_query_errors():
+                raise SearchQueryParseError("Empty string after 'user.email:'")
+        assert excinfo.value.detail == {
+            "detail": "Empty string after 'user.email:'",
+            "code": "invalid_search_query",
+        }
 
     def test_handle_postgres_timeout(self) -> None:
         class TimeoutError(OperationalError):

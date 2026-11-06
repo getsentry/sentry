@@ -18,13 +18,20 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import DataWidgetViewerModal from 'sentry/components/modals/dataWidgetViewerModal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardQueryPriority,
+  Widget,
+  WidgetQuery,
+} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
+
+import DataWidgetViewerModal from './dataWidgetViewerModal';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
@@ -52,10 +59,12 @@ async function renderModal({
   initialData: {organization, initialRouterConfig},
   widget,
   dashboardFilters,
+  queryPriority,
 }: {
   initialData: InitialData;
   widget: any;
   dashboardFilters?: DashboardFilters;
+  queryPriority?: DashboardQueryPriority;
 }) {
   const routerLocation = initialRouterConfig.location;
   const routerConfig: RouterConfig = {
@@ -86,6 +95,7 @@ async function renderModal({
       widget={widget}
       onEdit={() => {}}
       dashboardFilters={dashboardFilters}
+      queryPriority={queryPriority}
       widgetLegendState={widgetLegendState}
     />,
     {
@@ -156,6 +166,67 @@ describe('Modals -> DataWidgetViewerModal', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
+  });
+
+  it('uses a saved faster priority when the url does not set one', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    const lowPriorityMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            values: [
+              {timestamp: 1646100000000, value: 1},
+              {timestamp: 1646120000000, value: 1},
+            ],
+          }),
+        ],
+      },
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query?.sampling === 'LOW_PRIORITY';
+        },
+      ],
+    });
+    const widget = WidgetFixture({
+      title: 'Spans Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    });
+
+    await renderModal({
+      initialData: {
+        ...initialData,
+        organization: OrganizationFixture({
+          features: ['discover-query', 'low-priority-queries'],
+        }),
+      },
+      widget,
+      queryPriority: 'faster',
+    });
+
+    await waitFor(() => {
+      expect(lowPriorityMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-timeseries/',
+        expect.objectContaining({
+          query: expect.objectContaining({sampling: 'LOW_PRIORITY'}),
+        })
+      );
+    });
   });
 
   describe('Errors Widgets', () => {

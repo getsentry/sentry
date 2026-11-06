@@ -5,7 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
-import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+
+import type {ProjectionSamplePeriod} from './utils/useProjectSampleCounts';
 
 interface Props {
   onChange: (period: ProjectionSamplePeriod) => void;

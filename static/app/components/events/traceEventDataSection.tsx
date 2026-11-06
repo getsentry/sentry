@@ -10,8 +10,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
-import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {t} from 'sentry/locale';
 import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -23,6 +21,9 @@ import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {displayRawContent} from './interfaces/crashContent/stackTrace/rawContent';
+import {useStacktraceContext} from './interfaces/stackTraceContext';
 
 const sortByOptions = {
   'recent-first': t('Newest'),

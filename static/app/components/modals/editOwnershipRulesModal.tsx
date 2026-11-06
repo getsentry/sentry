@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
 
-import type {
-  EditOwnershipRulesModalOptions,
-  ModalRenderProps,
-} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
+import type {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {EditOwnershipRules} from 'sentry/views/settings/project/projectOwnership/editRulesModal';
 

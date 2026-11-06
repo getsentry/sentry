@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
@@ -12,7 +11,6 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
@@ -54,7 +52,6 @@ import {
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
-import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
@@ -87,6 +84,8 @@ import {visualizesToWidgetTransformations} from 'sentry/views/explore/utils/visu
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+
+import {ConfidenceFooter} from './confidenceFooter';
 
 interface LogsGraphProps {
   rawLogCounts: RawCounts;
@@ -434,8 +433,6 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
         ? projects[0]
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-
     return [
       getSaveAsAlertMenuItem({
         disabled: hasTransformations,
@@ -461,20 +458,8 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
       {
         key: 'add-to-dashboard',
         textValue: t('Add to Dashboard'),
-        label: (
-          <Feature
-            overrideName="feature-disabled:dashboards-edit"
-            features="organizations:dashboards-edit"
-            renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-          >
-            {t('Add to Dashboard')}
-          </Feature>
-        ),
-        disabled: disableAddToDashboard,
+        label: t('Add to Dashboard'),
         onAction: () => {
-          if (disableAddToDashboard) {
-            return;
-          }
           trackAnalytics('logs.save_as', {
             save_type: 'dashboard',
             ui_source: 'chart',
@@ -558,7 +543,3 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
     />
   );
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

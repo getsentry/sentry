@@ -1,4 +1,4 @@
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {useListItemCheckboxContext} from './useListItemCheckboxState';
 
 interface Props {
   children: React.ReactNode;

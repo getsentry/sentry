@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -16,13 +16,11 @@ import {
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -32,7 +30,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import type {
-  SeerAgentResponse,
+  SeerServiceAccountResponse,
   SeerWorkflowConfigResponse,
 } from 'sentry/views/seerWorkflows/types';
 import {
@@ -40,7 +38,9 @@ import {
   getAutomationsPath,
 } from 'sentry/views/seerWorkflows/utils';
 
-const agentProjectsSchema = z.discriminatedUnion('mode', [
+import {useCreateConfig, useUpdateConfig} from './hooks/configs';
+
+const serviceAccountProjectsSchema = z.discriminatedUnion('mode', [
   z.object({mode: z.literal('monitors')}),
   z.object({mode: z.literal('selected'), projectIds: z.array(z.string())}),
   z.object({mode: z.literal('all')}),
@@ -50,11 +50,11 @@ const schema = z.object({
   name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
   enabled: z.boolean(),
   monitorIds: z.array(z.string()),
-  agentProjects: agentProjectsSchema,
+  serviceAccountProjects: serviceAccountProjectsSchema,
   scopes: z.array(z.string()).min(1, t('Select at least one permission scope.')),
 });
 
-const DEFAULT_AGENT_SCOPES = [
+const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
   'event:read',
   'member:read',
   'org:read',
@@ -67,9 +67,8 @@ type Props = {mode: 'create'} | {config: SeerWorkflowConfigResponse; mode: 'edit
 export function MetricAutomationForm(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const {projects} = useProjects();
-  const agent = props.mode === 'edit' ? props.config.agent : null;
+  const serviceAccount = props.mode === 'edit' ? props.config.serviceAccount : null;
   const grantableScopes = new Set<string>(organization.access);
   const availableScopes = organization.access.filter(
     scope =>
@@ -90,54 +89,40 @@ export function MetricAutomationForm(props: Props) {
     monitorsQuery.data?.filter(monitor => monitor.type === 'metric_issue') ?? [];
   const getProjectSlug = (projectId: string) =>
     projects.find(project => project.id === projectId)?.slug ?? projectId;
-  const configsUrl = getApiUrl(
-    '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-    {path: {organizationIdOrSlug: organization.slug}}
-  );
-  const mutation = useMutation({
-    mutationFn: (value: z.infer<typeof schema>) =>
-      fetchMutation<SeerWorkflowConfigResponse>({
-        url:
-          props.mode === 'create'
-            ? configsUrl
-            : getApiUrl(
-                '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
-                {
-                  path: {
-                    organizationIdOrSlug: organization.slug,
-                    configId: props.config.id,
-                  },
-                }
-              ),
-        method: props.mode === 'create' ? 'POST' : 'PUT',
-        data: {
-          ...(props.mode === 'create' && {
-            strategy: 'breached_metric_investigation',
-            name: value.name,
-          }),
-          enabled: value.enabled,
-          monitorIds: value.monitorIds.map(Number),
-          agent: {
-            scopes: value.scopes,
-            projectIds: resolveAgentProjects(
-              value.agentProjects,
-              value.monitorIds,
-              monitors
-            ).map(Number),
-            allProjects: value.agentProjects.mode === 'all',
-          },
-        },
-      }),
-    onSuccess: async config => {
-      await queryClient.invalidateQueries({queryKey: [configsUrl]});
-      addSuccessMessage(
-        props.mode === 'create' ? t('Automation created.') : t('Automation saved.')
-      );
-      if (props.mode === 'create') {
-        navigate(getAutomationDetailPath(organization.slug, config.id));
-      }
-    },
+  const createConfig = useCreateConfig();
+  // Only called in edit mode, where the config ID is known
+  const updateConfig = useUpdateConfig({
+    configId: props.mode === 'edit' ? props.config.id : '',
   });
+  const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
+  const saveConfig = async (value: z.infer<typeof schema>) => {
+    const fields = {
+      enabled: value.enabled,
+      monitorIds: value.monitorIds.map(Number),
+      serviceAccount: {
+        scopes: value.scopes,
+        projectIds: resolveServiceAccountProjects(
+          value.serviceAccountProjects,
+          value.monitorIds,
+          monitors
+        ).map(Number),
+        allProjects: value.serviceAccountProjects.mode === 'all',
+      },
+    };
+    if (props.mode === 'create') {
+      const config = await createConfig.mutateAsync({
+        ...fields,
+        strategy: 'breached_metric_investigation',
+        name: value.name,
+      });
+      toast.success(t('Automation created.'));
+      navigate(getAutomationDetailPath(organization.slug, config.id));
+      return config;
+    }
+    const config = await updateConfig.mutateAsync(fields);
+    toast.success(t('Automation saved.'));
+    return config;
+  };
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
@@ -147,21 +132,24 @@ export function MetricAutomationForm(props: Props) {
           ? t('Breached Metric Investigation')
           : (props.config.name ?? t('Breached metrics')),
       monitorIds: props.mode === 'create' ? [] : props.config.monitorIds.map(String),
-      agentProjects: getAgentProjectSelection(agent),
+      serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
       scopes:
-        agent?.scopes ?? DEFAULT_AGENT_SCOPES.filter(scope => grantableScopes.has(scope)),
+        serviceAccount?.scopes ??
+        DEFAULT_SERVICE_ACCOUNT_SCOPES.filter(scope => grantableScopes.has(scope)),
     },
     validators: {onDynamic: schema},
     onSubmit: async ({value, formApi}) => {
       try {
-        const config = await mutation.mutateAsync(schema.parse(value));
+        const config = await saveConfig(schema.parse(value));
         if (props.mode === 'edit') {
           formApi.reset({
             name: value.name,
             enabled: config.enabled,
             monitorIds: config.monitorIds.map(String),
-            agentProjects: getAgentProjectSelection(config.agent),
-            scopes: config.agent?.scopes ?? value.scopes,
+            serviceAccountProjects: getServiceAccountProjectSelection(
+              config.serviceAccount
+            ),
+            scopes: config.serviceAccount?.scopes ?? value.scopes,
           });
         }
       } catch (error) {
@@ -176,16 +164,13 @@ export function MetricAutomationForm(props: Props) {
     <Container maxWidth="960px" width="100%" containerType="inline-size">
       <form.AppForm form={form}>
         <Stack gap="lg">
-          {mutation.isError && (
+          {mutationError && (
             <Alert variant="danger">
-              {getRequestErrorUserMessage(
-                mutation.error,
-                t('Unable to save automation.')
-              )}
+              {getRequestErrorUserMessage(mutationError, t('Unable to save automation.'))}
             </Alert>
           )}
-          <form.FieldGroup title={t('Details')}>
-            {props.mode === 'create' ? (
+          <form.FieldGroup title={t('Description')}>
+            {props.mode === 'create' && (
               <form.AppField name="name">
                 {field => (
                   <field.Layout.Stack label={t('Name')} required>
@@ -198,18 +183,14 @@ export function MetricAutomationForm(props: Props) {
                   </field.Layout.Stack>
                 )}
               </form.AppField>
-            ) : (
-              <DisplayField.Row label={t('Name')}>
-                <Text>{props.config.name ?? t('Breached metrics')}</Text>
-              </DisplayField.Row>
             )}
-            <DisplayField.Stack label={t('Description')}>
+            <Container padding="lg xl">
               <Text variant="muted">
                 {t(
                   'Investigate metric breaches using related errors, traces, and recent changes to find likely causes.'
                 )}
               </Text>
-            </DisplayField.Stack>
+            </Container>
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Trigger')}>
@@ -302,21 +283,21 @@ export function MetricAutomationForm(props: Props) {
             </form.AppField>
           </form.FieldGroup>
 
-          <form.FieldGroup title={t('Agent Capabilities')}>
+          <form.FieldGroup title={t('Service account capabilities')}>
             <Stack gap="lg">
               <Text variant="muted">
                 {t(
-                  'Choose what the agent can access during an investigation. These permissions are saved on its service account.'
+                  "Choose what this automation's service account can access during an investigation."
                 )}
               </Text>
               <form.Subscribe selector={state => state.values.monitorIds}>
                 {monitorIds => (
-                  <form.AppField name="agentProjects">
+                  <form.AppField name="serviceAccountProjects">
                     {field => (
                       <field.Layout.Stack
-                        label={t('Agent projects')}
+                        label={t('Service account projects')}
                         hintText={t(
-                          'Start with monitor projects, then add other projects the agent may need to investigate.'
+                          'Start with monitor projects, then add other projects the service account may need to investigate.'
                         )}
                       >
                         <Stack gap="md">
@@ -325,7 +306,7 @@ export function MetricAutomationForm(props: Props) {
                             clearable
                             searchable
                             disabled={field.state.value.mode === 'all'}
-                            value={resolveAgentProjects(
+                            value={resolveServiceAccountProjects(
                               field.state.value,
                               monitorIds,
                               monitors
@@ -371,7 +352,7 @@ export function MetricAutomationForm(props: Props) {
                   <field.Layout.Stack
                     label={t('Permission scopes')}
                     hintText={t(
-                      'Starts with read access for investigations. Add write permissions only for actions you want the agent to perform.'
+                      'Starts with read access for investigations. Add write permissions only for actions you want the service account to perform.'
                     )}
                     required
                   >
@@ -533,19 +514,19 @@ function MonitorProjectsSummary({
   );
 }
 
-function getAgentProjectSelection(
-  agent: SeerAgentResponse | null
-): z.infer<typeof agentProjectsSchema> {
-  if (!agent) {
+function getServiceAccountProjectSelection(
+  serviceAccount: SeerServiceAccountResponse | null
+): z.infer<typeof serviceAccountProjectsSchema> {
+  if (!serviceAccount) {
     return {mode: 'monitors'};
   }
-  return agent.allProjects
+  return serviceAccount.allProjects
     ? {mode: 'all'}
-    : {mode: 'selected', projectIds: agent.projectIds.map(String)};
+    : {mode: 'selected', projectIds: serviceAccount.projectIds.map(String)};
 }
 
-function resolveAgentProjects(
-  selection: z.infer<typeof agentProjectsSchema>,
+function resolveServiceAccountProjects(
+  selection: z.infer<typeof serviceAccountProjectsSchema>,
   monitorIds: string[],
   monitors: MetricDetector[]
 ): string[] {
