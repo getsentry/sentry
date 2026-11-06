@@ -2,8 +2,9 @@ import {Fragment, useEffect, useMemo} from 'react';
 import {IconCode} from '@sentry/icons/code';
 import {IconRefresh} from '@sentry/icons/refresh';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -19,6 +20,7 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -27,6 +29,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
+import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {ArtifactCard} from './artifactCard';
 import {ArtifactDetails} from './artifactDetails';
@@ -37,6 +40,7 @@ import {
   PR_ITERATION_PAUSED_TOOLTIP,
   PrIterationFeedbackForm,
 } from './prIterationFeedbackForm';
+import {usePullRequestPatches} from './usePullRequestPatches';
 import {useResetAutofixStep} from './useResetAutofixStep';
 import {useRethinkInChat} from './useRethinkInChat';
 import {artifactToMarkdown} from './utils';
@@ -48,6 +52,11 @@ interface CodeChangesCardProps {
 }
 
 const MAX_AUTO_EXPANDED_DIFF_LINES = 30;
+
+type RepoChanges =
+  | {status: 'pending' | 'pushing'}
+  | {prUrl: string | null; status: 'error'}
+  | {patches: ExplorerFilePatch[]; pushFailed: boolean; status: 'ready'};
 
 function getFinalExplanation(section: AutofixSection): string | null {
   for (let i = section.blocks.length - 1; i >= 0; i--) {
@@ -73,6 +82,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     organization.features.includes('autofix-pr-iteration-manual');
   const hasManualPrIterationFeature = organization.features.includes(
     'autofix-pr-iteration-manual'
+  );
+  const hasPinToPrHeadFeature = organization.features.includes(
+    'autofix-pr-iteration-pin-to-pr-head'
   );
 
   const isIterating =
@@ -114,10 +126,6 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   }, [section]);
 
   const {copy} = useCopyToClipboard();
-  const markdown = useMemo(
-    () => (artifact ? artifactToMarkdown(artifact) : null),
-    [artifact]
-  );
 
   const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
   const hasFailedOnlyPRs =
@@ -160,11 +168,61 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
+  // A pinned iteration measures its edits from the PR's head, so the run's patches
+  // only hold what the iterations changed. Show each PR's diff on the provider instead.
+  const pullRequestPatches = usePullRequestPatches({
+    enabled:
+      hasPinToPrHeadFeature &&
+      section.status === 'completed' &&
+      section.blocks.some(isPrIterationBlock),
+    organizationSlug: organization.slug,
+    runState: autofix.runState,
+  });
+
+  const changesByRepo = useMemo(() => {
+    const changes = new Map<string, RepoChanges>(
+      Array.from(patchesByRepo, ([repo, patches]) => [
+        repo,
+        {status: 'ready', patches, pushFailed: false},
+      ])
+    );
+    for (const [repo, result] of pullRequestPatches) {
+      if (result.status === 'success') {
+        changes.set(repo, {
+          status: 'ready',
+          patches: result.patches,
+          pushFailed: result.pushFailed,
+        });
+      } else {
+        changes.set(repo, result);
+      }
+    }
+    return changes;
+  }, [patchesByRepo, pullRequestPatches]);
+
+  const markdown = useMemo(() => {
+    if (!pullRequestPatches.size) {
+      return artifact ? artifactToMarkdown(artifact) : null;
+    }
+    const patches: ExplorerFilePatch[] = [];
+    for (const changes of changesByRepo.values()) {
+      // Only copy when every repo's displayed diff is available.
+      if (changes.status !== 'ready') {
+        return null;
+      }
+      patches.push(...changes.patches);
+    }
+    return artifactToMarkdown(patches);
+  }, [artifact, changesByRepo, pullRequestPatches.size]);
+
   const shouldExpandDiffs = useMemo(() => {
     let lineCount = 0;
 
-    for (const patches of patchesByRepo.values()) {
-      for (const patch of patches) {
+    for (const changes of changesByRepo.values()) {
+      if (changes.status !== 'ready') {
+        continue;
+      }
+      for (const patch of changes.patches) {
         for (const hunk of patch.patch.hunks) {
           lineCount += hunk.lines.length;
         }
@@ -172,17 +230,34 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     }
 
     return lineCount <= MAX_AUTO_EXPANDED_DIFF_LINES;
-  }, [patchesByRepo]);
+  }, [changesByRepo]);
 
   const explanation = useMemo(() => getFinalExplanation(section), [section]);
+  const latestIterationHasEdits = useMemo(
+    () =>
+      section.blocks
+        .slice(currentStepStart)
+        .some(
+          block =>
+            block.file_patches?.length ||
+            block.tool_results?.some(
+              result => result?.structuredContent?.file_patches?.length
+            )
+        ),
+    [section.blocks, currentStepStart]
+  );
 
   const summary = useMemo(() => {
-    const reposChanged = patchesByRepo.size;
+    const reposChanged = changesByRepo.size;
 
     const filesChanged = new Set<string>();
 
-    for (const [repo, patchesForRepo] of patchesByRepo.entries()) {
-      for (const patch of patchesForRepo) {
+    for (const [repo, changes] of changesByRepo.entries()) {
+      // The counts would be wrong until every PR's diff has loaded.
+      if (changes.status !== 'ready') {
+        return null;
+      }
+      for (const patch of changes.patches) {
         filesChanged.add(`${repo}:${patch.patch.path}`);
       }
     }
@@ -196,7 +271,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     }
 
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
-  }, [patchesByRepo]);
+  }, [changesByRepo]);
 
   const showPrIterationForm = hasPRs && hasManualPrIterationFeature;
 
@@ -262,32 +337,68 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
         />
       </Fragment>
     );
-  } else if (section.status === 'completed' && artifact && patchesByRepo.size) {
+  } else if (section.status === 'completed' && changesByRepo.size) {
     content = (
       <Fragment>
         {resetPrompt(
           t('How can this code change be improved?'),
           t('Give Seer additional context to improve this code change.')
         )}
-        <ArtifactDetails>
-          <Text>{summary}</Text>
-        </ArtifactDetails>
-        {Array.from(patchesByRepo.entries(), ([repo, patches]) => (
+        {hasPinToPrHeadFeature &&
+          isLatestStepPrIteration &&
+          !latestIterationHasEdits &&
+          explanation && (
+            <ArtifactDetails>
+              <SeerMarkdown raw={explanation} />
+            </ArtifactDetails>
+          )}
+        {summary && (
+          <ArtifactDetails>
+            <Text>{summary}</Text>
+          </ArtifactDetails>
+        )}
+        {Array.from(changesByRepo.entries(), ([repo, changes]) => (
           <ArtifactDetails key={repo}>
             <Flex gap="lg">
               <Text bold>{t('Repository:')}</Text>
               <Text>{repo}</Text>
             </Flex>
-            {patches.map((patch, index) => (
-              <FileDiffViewer
-                key={index}
-                patch={patch.patch}
-                fileUrl={patch.code_url}
-                showBorder
-                collapsible
-                defaultExpanded={shouldExpandDiffs}
-              />
-            ))}
+            {changes.status === 'pushing' && (
+              <Text variant="muted">
+                {t('Pushing the latest changes to the pull request…')}
+              </Text>
+            )}
+            {changes.status === 'pending' && <Placeholder height="4rem" />}
+            {changes.status === 'error' && (
+              <Alert variant="warning">
+                <Stack gap="md" align="start">
+                  {t("We couldn't load the pull request's changes.")}
+                  {changes.prUrl && (
+                    <LinkButton external href={`${changes.prUrl}/files`} size="xs">
+                      {t('View diff on GitHub')}
+                    </LinkButton>
+                  )}
+                </Stack>
+              </Alert>
+            )}
+            {changes.status === 'ready' && changes.pushFailed && (
+              <Alert variant="warning">
+                {t(
+                  "We couldn't push the latest changes. This is the pull request's diff without them."
+                )}
+              </Alert>
+            )}
+            {changes.status === 'ready' &&
+              changes.patches.map((patch, index) => (
+                <FileDiffViewer
+                  key={index}
+                  patch={patch.patch}
+                  fileUrl={patch.code_url}
+                  showBorder
+                  collapsible
+                  defaultExpanded={shouldExpandDiffs}
+                />
+              ))}
           </ArtifactDetails>
         ))}
       </Fragment>
