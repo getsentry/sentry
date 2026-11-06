@@ -204,8 +204,8 @@ def _get_meta_columns() -> dict[str, str]:
         internal_name = definition.internal_name if definition else attribute
         # The resolver only knows the public names in `SPAN_ATTRIBUTE_DEFINITIONS`, and
         # meta attributes have none. `tags[<name>,<type>]` selects any attribute by its
-        # stored name instead. EAP stores attributes separately per value type, so the
-        # type says where to read it: meta is a JSON string. The `tags` syntax is a
+        # stored name instead. EAP stores attributes separately per value type, so
+        # the type tells it where to read: meta is a JSON string. The `tags` syntax is a
         # leftover from querying event tags; it isn't specific to tags.
         # The column is the key, as result rows come back keyed by the selected column.
         columns[f"tags[{META_ATTRIBUTE_PREFIX}.{internal_name},string]"] = attribute
