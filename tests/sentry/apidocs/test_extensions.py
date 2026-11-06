@@ -7,13 +7,16 @@ from typing import Annotated, Any, Literal, NotRequired, ReadOnly, Required, Typ
 import pytest
 from django.http import HttpRequest
 from drf_spectacular.openapi import AutoSchema
+from drf_spectacular.settings import patched_settings
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from jsonschema.exceptions import ValidationError
 from openapi_schema_validator import OAS30Validator
 from rest_framework import serializers
 
 from sentry.api.base import Endpoint
+from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from sentry.api.serializers import Serializer
+from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.extensions import (
     RestrictedJsonFieldExtension,
     SentryInlineResponseSerializerExtension,
@@ -34,6 +37,105 @@ from sentry.notebooks.endpoints.organization_investigation_block_details import 
 from sentry.notebooks.endpoints.schema import InvestigationSchema
 from sentry.notebooks.endpoints.validators.block import BlockExecutionResumeValidator
 from tests.sentry.apidocs import generate_schema
+
+
+@pytest.fixture
+def events_timeseries_schema() -> dict[str, Any]:
+    with patched_settings(
+        {"POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"]}
+    ):
+        return generate_schema(
+            "api/0/organizations/<organization_id_or_slug>/events-timeseries/",
+            view=OrganizationEventsTimeseriesEndpoint,
+        )
+
+
+def test_events_timeseries_query_contract(events_timeseries_schema: dict[str, Any]) -> None:
+    operation = events_timeseries_schema["paths"][
+        "/api/0/organizations/{organization_id_or_slug}/events-timeseries/"
+    ]["get"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+
+    assert parameters["interval"]["schema"]["type"] == "string"
+    assert parameters["yAxis"]["schema"] == {"type": "array", "items": {"type": "string"}}
+    assert parameters["yAxis"]["style"] == "form"
+    assert parameters["yAxis"]["explode"] is True
+    transformations = parameters["transformations"]
+    assert transformations.get("required", False) is False
+    assert transformations["style"] == "deepObject"
+    assert transformations["explode"] is True
+    assert transformations["schema"] == {
+        "type": "object",
+        "additionalProperties": {
+            "type": "array",
+            "items": {"type": "string"},
+            "maxItems": 2,
+        },
+    }
+    OAS30Validator(transformations["schema"]).validate(
+        {"0": ["fill(locf)", "smooth(sma,3)"], "12": ["smooth(asap)"]}
+    )
+
+
+def test_events_timeseries_response_contract(events_timeseries_schema: dict[str, Any]) -> None:
+    response = events_timeseries_schema["components"]["schemas"][
+        "OrganizationEventsTimeseriesResponse"
+    ]
+    validator = OAS30Validator(response)
+    validator.validate({"timeSeries": []})
+    for example in DiscoverAndPerformanceExamples.QUERY_TIMESERIES:
+        validator.validate(example.value)
+    validator.validate(
+        {
+            "timeSeries": [
+                {
+                    "yAxis": "count()",
+                    "groupBy": [{"key": "flag", "value": True}],
+                    "meta": {"valueType": "number", "valueUnit": None, "interval": 60000},
+                    "values": [
+                        {
+                            "timestamp": 0,
+                            "value": None,
+                            "incomplete": False,
+                            "comparisonValue": None,
+                            "filled": False,
+                            "smoothed": False,
+                            "comparisonFilled": True,
+                            "comparisonSmoothed": True,
+                            "sampleCount": None,
+                            "sampleRate": None,
+                            "confidence": None,
+                        },
+                        {"timestamp": 60000, "value": 0, "incomplete": False},
+                    ],
+                },
+                {
+                    "yAxis": "count()",
+                    "groupBy": None,
+                    "meta": {
+                        "valueType": "number",
+                        "valueUnit": None,
+                        "interval": 60000,
+                        "isOther": True,
+                    },
+                    "values": [],
+                },
+            ]
+        }
+    )
+    series = response["properties"]["timeSeries"]["items"]
+    point = series["properties"]["values"]["items"]
+    assert "groupBy" not in series["required"]
+    assert "sampleCount" not in point["required"]
+    assert point["properties"]["sampleCount"]["nullable"] is True
+    assert point["properties"]["value"]["nullable"] is True
+    for flag in ("filled", "smoothed", "comparisonFilled", "comparisonSmoothed"):
+        assert point["properties"][flag]["type"] == "boolean"
+        assert flag not in point["required"]
+    assert "comparisonValue" not in point["required"]
+    assert "value" in point["required"]
+    with pytest.raises(ValidationError):
+        validator.validate({"timeSeries": [{"yAxis": "count()", "values": []}]})
 
 
 def test_null_only_response_field() -> None:
