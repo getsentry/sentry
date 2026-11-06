@@ -143,8 +143,8 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
 
         thread = NotificationThread.objects.get()
         assert thread.object_type == NotificationThreadObjectType.GROUP
-        assert thread.object_id == self.event_data.group.id
-        assert thread.key_data["group_id"] == self.event_data.group.id
+        assert thread.object_id == self.event_data.require_group().id
+        assert thread.key_data["group_id"] == self.event_data.require_group().id
         assert thread.integration_id == self.integration.id
 
     @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")

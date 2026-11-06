@@ -81,7 +81,7 @@ class WorkflowEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     evaluation_phase: EvaluationPhase
     evaluation_type: EvaluationType
     filter_evaluations: Sequence[DataConditionGroupEvaluationArtifact]
-    group_id: GroupId
+    group_id: GroupId | None
     outcome: WorkflowEvaluationOutcome
     project_id: int | None
     trigger_evaluation: DataConditionGroupEvaluationArtifact
@@ -111,8 +111,8 @@ class WorkflowEvaluation(
     - `triggered`: bool - Whether the workflow's trigger (WHEN) conditions passed.
     """
 
-    detector_id: int
-    detector_type: str
+    detector_id: int | None
+    detector_type: str | None
     workflow_id: WorkflowId
 
     @property
@@ -182,9 +182,9 @@ class ProcessWorkflowsResult(WorkflowEvaluationBatch):
     detector_type: str | None = None
     evaluations: dict[WorkflowId, WorkflowEvaluation]
     event_id: str | None
-    group_id: int
+    group_id: int | None
     outcome: WorkflowEvaluationOutcome
-    project_id: int
+    project_id: int | None
 
     def has_triggered_actions(self) -> bool:
         return any(

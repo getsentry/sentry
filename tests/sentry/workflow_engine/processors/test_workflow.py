@@ -1,6 +1,9 @@
+from dataclasses import replace
 from datetime import timedelta
 from unittest.mock import MagicMock, Mock, patch
+from uuid import uuid4
 
+import pytest
 from django.utils import timezone
 
 from sentry.eventstream.base import GroupState
@@ -14,6 +17,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
@@ -33,6 +37,7 @@ from sentry.workflow_engine.processors.workflow import (
     EvaluationStats,
     enqueue_workflows,
     evaluate_workflow_triggers,
+    evaluate_workflows,
     evaluate_workflows_action_filters,
     get_environment_by_event,
     process_workflows,
@@ -40,7 +45,7 @@ from sentry.workflow_engine.processors.workflow import (
 from sentry.workflow_engine.tasks.workflows import process_workflows_event
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
-from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, OrganizationEvent
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 ERR = ConditionError(msg="test")
@@ -183,6 +188,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
             has_escalated=False,
         )
         mock_fire_actions.assert_called_once()
+        history = WorkflowFireHistory.objects.get(workflow=self.error_workflow)
+        assert mock_fire_actions.call_args.kwargs["workflow_uuid_map"] == {
+            self.error_workflow.id: str(history.notification_uuid)
+        }
 
     @with_feature("projects:servicehooks")
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
@@ -1370,3 +1379,136 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                 )
             },
         )
+
+
+class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
+    def setUp(self) -> None:
+        self.source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid4())
+        self.event_data = WorkflowEventData(event=self.source, organization=self.organization)
+        self.workflow = self.create_workflow()
+        self.action_group, self.action = self.create_workflow_action(self.workflow)
+
+    def test_evaluates_without_issue_context(self) -> None:
+        from sentry.workflow_engine.processors.contexts.workflow_event_context import (
+            WorkflowEventContext,
+        )
+        from sentry.workflow_engine.processors.evaluations.eap import EAPEmitter
+        from sentry.workflow_engine.processors.evaluations.logging import LoggingEmitter
+
+        previous_context = WorkflowEventContext.get()
+        with (
+            patch(
+                "sentry.workflow_engine.processors.workflow.get_detectors_for_event_data"
+            ) as lookup,
+            patch(
+                "sentry.workflow_engine.processors.workflow._get_environment_by_group"
+            ) as environment,
+        ):
+            evaluation = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+        lookup.assert_not_called()
+        environment.assert_not_called()
+        assert WorkflowEventContext.get() is previous_context
+        assert evaluation.action_groups == {self.action_group}
+        assert evaluation.delayed_items == {}
+        assert evaluation.result.outcome == WorkflowEvaluationOutcome.COMPLETED
+        result = evaluation.with_actions([self.action], {self.action.id: self.workflow.id})
+        artifact = result.evaluation_artifacts()[0]
+        assert artifact.event_id == self.source.event_id.hex
+        assert artifact.group_id is None
+        assert artifact.project_id is None
+        assert artifact.detector_id is None
+        assert artifact.detector_type is None
+        assert artifact.triggered_action_ids == [self.action.id]
+        assert artifact.error is None
+        # Logging must remain usable without a project; EAP requires a real project.
+        with (
+            self.options({"workflow_engine.evaluation_log_sample_rate": 1.0}),
+            patch("sentry.workflow_engine.processors.evaluations.logging.logger.info") as log,
+        ):
+            LoggingEmitter().send(self.organization, result)
+        assert log.call_args.kwargs["extra"]["organization_id"] == self.organization.id
+        assert log.call_args.kwargs["extra"]["event_id"] == self.source.event_id.hex
+        with patch(
+            "sentry.workflow_engine.processors.evaluations.eap._produce_trace_item"
+        ) as produce:
+            EAPEmitter().send(self.organization, result)
+        produce.assert_not_called()
+
+    def test_excludes_other_organizations_and_unknown_environments(self) -> None:
+        foreign = self.create_workflow(organization=self.create_organization())
+        environment_workflow = self.create_workflow(environment=self.create_environment())
+        disabled = self.create_workflow(enabled=False)
+        with self.options({"workflow_engine.filter_cross_org_workflows": False}):
+            evaluation = evaluate_workflows(
+                {self.workflow, foreign, environment_workflow, disabled},
+                self.event_data,
+                FROZEN_TIME,
+            )
+        assert evaluation.result.evaluated_workflow_ids() == {self.workflow.id}
+        assert evaluation.action_groups == {self.action_group}
+
+    def test_rejects_issue_only_trigger_in_none_group(self) -> None:
+        condition_group = self.create_data_condition_group(logic_type=DataConditionGroup.Type.NONE)
+        self.create_data_condition(
+            condition_group=condition_group,
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+            comparison=PriorityLevel.HIGH,
+            condition_result=True,
+        )
+        self.workflow.update(when_condition_group=condition_group)
+        evaluation = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+        assert evaluation.action_groups == set()
+        assert (
+            evaluation.result.evaluations[self.workflow.id].outcome
+            == WorkflowEvaluationOutcome.ERROR
+        )
+
+    def test_rejects_issue_only_slow_conditions(self) -> None:
+        condition_group = self.create_data_condition_group(logic_type=DataConditionGroup.Type.ANY)
+        self.create_data_condition(
+            condition_group=condition_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+        self.workflow.update(when_condition_group=condition_group)
+        evaluation = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+        assert evaluation.action_groups == set()
+        assert evaluation.delayed_items == {}
+        assert (
+            evaluation.result.evaluations[self.workflow.id].outcome
+            == WorkflowEvaluationOutcome.ERROR
+        )
+
+    def test_rejects_issue_only_action_filter(self) -> None:
+        self.action_group.update(logic_type=DataConditionGroup.Type.NONE)
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+            comparison=PriorityLevel.HIGH,
+            condition_result=True,
+        )
+        evaluation = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+        assert evaluation.action_groups == set()
+        assert (
+            evaluation.result.evaluations[self.workflow.id].outcome
+            == WorkflowEvaluationOutcome.ERROR
+        )
+
+    def test_requires_matching_explicit_organization(self) -> None:
+        from sentry.workflow_engine.processors.contexts.workflow_event_context import (
+            WorkflowEventContext,
+        )
+
+        previous_context = WorkflowEventContext.get()
+        with pytest.raises(ValueError, match="explicit organization"):
+            evaluate_workflows(
+                {self.workflow}, replace(self.event_data, organization=None), FROZEN_TIME
+            )
+        with pytest.raises(ValueError, match="same organization"):
+            evaluate_workflows(
+                {self.workflow},
+                replace(self.event_data, organization=self.create_organization()),
+                FROZEN_TIME,
+            )
+        assert WorkflowEventContext.get() is previous_context

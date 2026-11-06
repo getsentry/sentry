@@ -35,7 +35,7 @@ class SeerWorkflowActionHandler(ActionHandler):
         state = invocation.event_data.group_state
         if not isinstance(event, GroupEvent) or state is None or not state["is_new"]:
             return
-        group = invocation.event_data.group
+        group = invocation.event_data.require_group()
         extra: dict[str, object] = {
             "organization_id": group.project.organization_id,
             "group_id": group.id,
