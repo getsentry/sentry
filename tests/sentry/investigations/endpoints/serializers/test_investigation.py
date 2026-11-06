@@ -16,6 +16,9 @@ from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializerResponse,
     InvestigationSerializer,
 )
+from sentry.investigations.endpoints.serializers.investigation import (
+    InvestigationUserTriggerResponse,
+)
 from sentry.investigations.models import (
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationRerun,
@@ -28,7 +31,9 @@ from sentry.notebooks.models import (
     NotebookBlockExecutionStatus,
     NotebookStatus,
 )
+from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
 
@@ -43,6 +48,11 @@ class InvestigationSerializerTest(TestCase):
     def test_serializes_the_list_representation(self) -> None:
         result = serialize(self.investigation, self.user, InvestigationSerializer())
 
+        assert result["trigger"] is not None
+        assert result["trigger"]["type"] == "user"
+        user_trigger = cast(InvestigationUserTriggerResponse, result["trigger"])
+        assert user_trigger["user"]["id"] == str(self.user.id)
+        assert user_trigger["user"]["email"] == self.user.email
         assert result == {
             "id": str(self.investigation.id),
             "title": "Latency spike",
@@ -59,6 +69,7 @@ class InvestigationSerializerTest(TestCase):
             "isFavorited": False,
             "titleGeneration": {"status": None},
             "orchestration": None,
+            "trigger": user_trigger,
         }
 
     def test_serializes_account_and_missing_creators(self) -> None:
@@ -71,9 +82,63 @@ class InvestigationSerializerTest(TestCase):
         assert result["creator"] == {"type": "service_account", "id": str(account.id)}
 
         self.investigation.update(created_by_service_account_id=None)
-        assert (
-            serialize(self.investigation, self.user, InvestigationSerializer())["creator"] is None
+        result = serialize(self.investigation, self.user, InvestigationSerializer())
+        assert result["creator"] is None
+        assert result["trigger"] is None
+
+    def test_attributes_the_automation_run_that_started_it(self) -> None:
+        self.investigation.update(created_by_id=None)
+        config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            extras={"name": "Checkout latency"},
         )
+        first_run = Factories.create_seer_workflow_run(self.organization, workflow_config=config)
+        later_run = Factories.create_seer_workflow_run(self.organization, workflow_config=config)
+        Factories.create_seer_workflow_output_link(
+            Factories.create_seer_workflow_run_execution(first_run), notebook=self.investigation
+        )
+        Factories.create_seer_workflow_output_link(
+            Factories.create_seer_workflow_run_execution(later_run), notebook=self.investigation
+        )
+
+        result = serialize(self.investigation, self.user, InvestigationSerializer())
+
+        assert result["trigger"] == {
+            "type": "automation",
+            "automation": {
+                "id": str(config.id),
+                "name": "Checkout latency",
+                "strategy": SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            },
+            "runId": str(first_run.id),
+        }
+
+    def test_keeps_the_user_who_started_it_when_an_automation_reuses_it(self) -> None:
+        self.link_to_automation_run(self.investigation)
+
+        result = serialize(self.investigation, self.user, InvestigationSerializer())
+
+        assert result["trigger"] is not None
+        assert result["trigger"]["type"] == "user"
+
+    def test_ignores_runs_from_other_organizations_and_without_a_config(self) -> None:
+        self.investigation.update(created_by_id=None)
+        other_organization = self.create_organization()
+        other_config = Factories.create_seer_workflow_config(
+            other_organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        for run in (
+            Factories.create_seer_workflow_run(other_organization, workflow_config=other_config),
+            Factories.create_seer_workflow_run(self.organization),
+        ):
+            Factories.create_seer_workflow_output_link(
+                Factories.create_seer_workflow_run_execution(run), notebook=self.investigation
+            )
+
+        result = serialize(self.investigation, self.user, InvestigationSerializer())
+
+        assert result["trigger"] is None
 
     def test_serializes_compact_orchestration_state_without_a_mode(self) -> None:
         heartbeat = timezone.now()
@@ -126,6 +191,7 @@ class InvestigationSerializerTest(TestCase):
             self.create_notebook_block(notebook=investigation, position=0)
             self.create_notebook_favorite(notebook=investigation, user=self.user)
             self.create_investigation_orchestration_run(investigation=investigation)
+            self.link_to_automation_run(investigation)
 
         first_batch = list(Notebook.objects.filter(organization=self.organization))
         serialize(
@@ -147,6 +213,7 @@ class InvestigationSerializerTest(TestCase):
             self.create_notebook_block(notebook=investigation, position=0)
             self.create_notebook_favorite(notebook=investigation, user=self.user)
             self.create_investigation_orchestration_run(investigation=investigation)
+            self.link_to_automation_run(investigation)
 
         second_batch = list(Notebook.objects.filter(organization=self.organization))
         with CaptureQueriesContext(connection) as second_queries:
@@ -163,6 +230,18 @@ class InvestigationSerializerTest(TestCase):
         assert counts == [0] + [1] * (len(second_batch) - 1)
         assert (
             sum(result["orchestration"] is not None for result in results) == len(second_batch) - 1
+        )
+        assert sorted(result["trigger"]["type"] for result in results) == ["automation"] * (
+            len(second_batch) - 1
+        ) + ["user"]
+
+    def link_to_automation_run(self, investigation: Notebook) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        run = Factories.create_seer_workflow_run(self.organization, workflow_config=config)
+        Factories.create_seer_workflow_output_link(
+            Factories.create_seer_workflow_run_execution(run), notebook=investigation
         )
 
 
