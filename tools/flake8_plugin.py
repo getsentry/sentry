@@ -530,6 +530,7 @@ _CONTAINER_OPS = frozenset(
         "extend",
         "update",
         "dumps",
+        "isinstance",
     )
 )
 _COPY_METHODS = frozenset(("copy", "dict"))
@@ -894,6 +895,41 @@ def _start_and_end(node: ast.expr) -> _StartEnd:
 
 
 @dataclass(frozen=True)
+class _FunctionParams:
+    """A function's parameter names, split by how a call can fill them."""
+
+    # filled by position in order (posonlyargs + args)
+    positional: list[str]
+    # filled by name (args + kwonlyargs) since positional-only params can't be passed by name
+    keyword: list[str]
+
+    def has(self, name: str) -> bool:
+        return name in self.positional or name in self.keyword
+
+
+def _function_params(node: ast.FunctionDef | ast.AsyncFunctionDef) -> _FunctionParams:
+    """A function's parameters. *args and **kwargs are left out, since a payload passed into them
+    can't be tied to a parameter name."""
+    positional: list[str] = []
+    keyword: list[str] = []
+    for arg in node.args.posonlyargs:
+        positional.append(arg.arg)
+    for arg in node.args.args:
+        positional.append(arg.arg)
+        keyword.append(arg.arg)
+    for arg in node.args.kwonlyargs:
+        keyword.append(arg.arg)
+    return _FunctionParams(positional, keyword)
+
+
+def _is_staticmethod(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    for decorator in node.decorator_list:
+        if isinstance(decorator, ast.Name) and decorator.id == "staticmethod":
+            return True
+    return False
+
+
+@dataclass(frozen=True)
 class _HelperCall:
     """One call a function makes to a possible helper"""
 
@@ -909,6 +945,42 @@ class _HelperCall:
 # Short source names used in violation keys, so a query and a body read of the
 # same name stay separate violations.
 _SOURCE_PREFIX = {"query string": "query", "request body": "body"}
+
+
+def _append_once(items: list[Any], item: Any) -> None:
+    """Append unless already there, since a helper merged twice with different bindings repeats its real reads."""
+    if item not in items:
+        items.append(item)
+
+
+# Sources recorded for a function's own parameters, such as "param:params" or "param:req.GET".
+# They never reach a report: the merge resolves them with _resolve_source, or drops them.
+_PARAM_PREFIX = "param:"
+
+
+def _resolve_source(source: str, bindings: dict[str, str], for_binding: bool = False) -> str | None:
+    """Turn a recorded source into a real one, using what this call bound each parameter to.
+
+    Real sources come back unchanged. A placeholder whose parameter didn't receive request
+    input gives None. A whole request ("request") is only kept `for_binding`, so it can pass
+    down to the next helper (a read or hand-off of the whole request is silent as before)
+    """
+    if not source.startswith(_PARAM_PREFIX):
+        return source
+    param, _, attr = source[len(_PARAM_PREFIX) :].partition(".")
+    bound = bindings.get(param)
+    if bound is None:
+        return None
+    if attr == "":
+        if bound == "request" and not for_binding:
+            return None
+        return bound
+    # `.GET` / `.data` read off the parameter which only means something on the whole request
+    if bound != "request":
+        return None
+    if attr == "data":
+        return "request body"
+    return "query string"
 
 
 @dataclass(frozen=True)
@@ -968,6 +1040,15 @@ class _InputCtx:
         self.is_public = is_public
         # the class a method is defined in (None for a module-level function)
         self.class_name = class_name
+        # this function's parameter names (used to match call arguments to parameters)
+        self.params = _FunctionParams([], [])
+        # a @staticmethod has no self to skip when a self.X() call's arguments are matched
+        self.is_static = False
+        # local name -> placeholder, for aliases of a parameter such as `q = params` or `q = req.GET`
+        self.param_locals: dict[str, str] = {}
+        # (start_end, serializer, placeholder) for a serializer built from a parameter,
+        # sorted into query or body validators once the merge knows what the parameter received
+        self.param_validators: list[tuple[_StartEnd, str, str]] = []
         # the calls this function makes to possible helpers
         self.calls: list[_HelperCall] = []
 
@@ -986,11 +1067,35 @@ class _InputCtx:
         return self._is(node, frozenset(("data",)), self.body_locals)
 
     def source_of(self, node: ast.expr) -> str | None:
-        """ "query string" / "request body" for an input source, else None."""
+        """ "query string" / "request body" for an input source, a placeholder for one of this
+        function's parameters, else None. Real sources are checked first."""
         if self.is_query(node):
             return "query string"
         if self.is_body(node):
             return "request body"
+        return self.param_source_of(node)
+
+    def param_source_of(self, node: ast.expr) -> str | None:
+        """A placeholder when `node` is one of this function's parameters, or .GET / .data on one.
+
+        `params` -> "param:params", `req.GET` -> "param:req.GET", `req.data` -> "param:req.data".
+        What the parameter actually holds is only known per call, so the merge resolves it.
+        """
+        node = _unwrap_copy(node)
+        if isinstance(node, ast.Name):
+            if node.id in self.param_locals:
+                return self.param_locals[node.id]
+            if node.id not in ("self", "cls") and self.params.has(node.id):
+                return f"{_PARAM_PREFIX}{node.id}"
+            return None
+        if isinstance(node, ast.Attribute) and (node.attr in _QUERY_ATTRS or node.attr == "data"):
+            whole = self.param_source_of(node.value)
+            # .GET / .data only make sense on a whole parameter, not on `req.GET.data`
+            if whole is None or "." in whole:
+                return None
+            if node.attr == "data":
+                return f"{whole}.data"
+            return f"{whole}.GET"
         return None
 
     def record_read(self, key: ast.expr, source: str, node: ast.expr) -> None:
@@ -1392,6 +1497,11 @@ class SentryVisitor(ast.NodeVisitor):
                     ctx.query_locals.add(target.id)
                 elif ctx.is_body(node.value):
                     ctx.body_locals.add(target.id)
+                else:
+                    # `q = params`, `r = req` or `q = req.GET` alias one of the function's parameters
+                    placeholder = ctx.param_source_of(node.value)
+                    if placeholder is not None:
+                        ctx.param_locals[target.id] = placeholder
         if (
             _is_tests_path(self.filename)
             and self._function_depth == 0
@@ -1576,6 +1686,7 @@ class SentryVisitor(ast.NodeVisitor):
 
         if not self._class_stack:
             ctx = _InputCtx(node.name, set(), set(), is_public=False)
+            ctx.params = _function_params(node)
             return ctx
 
         if len(self._class_stack) != 1:
@@ -1602,6 +1713,8 @@ class SentryVisitor(ast.NodeVisitor):
             is_public=is_public,
             class_name=self._class_stack[-1],
         )
+        ctx.params = _function_params(node)
+        ctx.is_static = _is_staticmethod(node)
         return ctx
 
     def _record_input_call(self, node: ast.Call) -> None:
@@ -1624,19 +1737,23 @@ class SentryVisitor(ast.NodeVisitor):
             kw.arg == "data" for kw in node.keywords
         ):
             return
-        # The date helpers read a fixed set of keys, so they are only a handoff
-        # when the endpoint does not document all of them.
-        if _name_of(func) in _DATE_RANGE_HELPERS and _DATE_RANGE_PARAMS.issubset(
-            ctx.declared_params
-        ):
+        name = _name_of(func).rsplit(".", 1)[-1]
+        if name in _CONTAINER_OPS:
             return
+        # The first real source, as before, plus one hand-off for every parameter placeholder.
+        # A placeholder only becomes an S028 if the merge finds the parameter received a payload,
+        # so `serialize(organization, request.GET)` still reports the query string, and in a helper
+        # `serialize(params, request.GET)` keeps both. The date-range exemption is checked at report time.
+        recorded_real = False
         for argument in [*node.args, *(keyword.value for keyword in node.keywords)]:
             source = ctx.source_of(argument)
-            if source is not None:
-                name = _name_of(func).rsplit(".", 1)[-1]
-                if name not in _CONTAINER_OPS:
-                    ctx.hand_offs.append((_start_and_end(node), name, source))
-                return
+            if source is None:
+                continue
+            if source.startswith(_PARAM_PREFIX):
+                ctx.hand_offs.append((_start_and_end(node), name, source))
+            elif not recorded_real:
+                ctx.hand_offs.append((_start_and_end(node), name, source))
+                recorded_real = True
 
     def _record_validator(self, node: ast.Call) -> None:
         """A serializer built from the query string or the request body."""
@@ -1653,6 +1770,10 @@ class SentryVisitor(ast.NodeVisitor):
                 ctx.query_validators.append((_start_and_end(node), name))
             elif ctx.is_body(keyword.value):
                 ctx.body_validators.append((_start_and_end(node), name))
+            else:
+                placeholder = ctx.param_source_of(keyword.value)
+                if placeholder is not None:
+                    ctx.param_validators.append((_start_and_end(node), name, placeholder))
 
     def _report_input(
         self,
@@ -1708,6 +1829,12 @@ class SentryVisitor(ast.NodeVisitor):
                 msg = S027_msg.format(source, key)
                 self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S027)
             for start_end, callee, source in ctx.hand_offs:
+                # The date helpers read a fixed set of keys, so they are only a hand-off
+                # when the endpoint does not document all of them.
+                if callee in _DATE_RANGE_HELPERS and _DATE_RANGE_PARAMS.issubset(
+                    ctx.declared_params
+                ):
+                    continue
                 msg = S028_msg.format(source, callee)
                 self._report_input(ctx, start_end, msg, "shaped", callee, source, ApiRule.S028)
 
@@ -1881,22 +2008,70 @@ class SentryVisitor(ast.NodeVisitor):
             class_name=http_ctx.class_name,
         )
 
-        self._merge_ctx_into(new_ctx=new_ctx, ctx=http_ctx, seen={http_ctx.scope})
+        # the HTTP method's own reads are already real sources, so it starts with no bindings
+        self._merge_ctx_into(
+            new_ctx=new_ctx,
+            ctx=http_ctx,
+            seen={(http_ctx.scope, frozenset())},
+            bindings={},
+        )
 
         return new_ctx
 
-    def _merge_ctx_into(self, new_ctx: _InputCtx, ctx: _InputCtx, seen: set[str]) -> None:
+    def _bind_call(
+        self, call: _HelperCall, target: _InputCtx, caller_bindings: dict[str, str]
+    ) -> tuple[dict[str, str], bool]:
+        """What each of `target`'s parameters received from `call`, in real terms
+        ("request" / "query string" / "request body"), and whether every payload found a named parameter.
+
+        A payload that lands past the positional parameters, on a keyword the def doesn't have, or in
+        *args / **kwargs can't be tied to a name, so the call isn't fully bound and its S028 stays.
+        """
+        positional = target.params.positional
+        # self.X() and super().X() fill self (or cls) themselves, unless the target is a @staticmethod
+        if call.kind != Kind.NORMAL_FUNCTION and not target.is_static:
+            positional = positional[1:]
+
+        bindings: dict[str, str] = {}
+        all_bound = True
+        for where, what in call.passes:
+            # what the caller passed, resolved with the caller's own bindings
+            real = _resolve_source(what, caller_bindings, for_binding=True)
+            # not request input for this caller, i.e organization
+            if real is None:
+                continue
+            if isinstance(where, int):
+                if where >= len(positional):
+                    all_bound = False
+                    continue
+                bindings[positional[where]] = real
+            else:
+                if where not in target.params.keyword:
+                    all_bound = False
+                    continue
+                bindings[where] = real
+        return bindings, all_bound
+
+    def _merge_ctx_into(
+        self,
+        new_ctx: _InputCtx,
+        ctx: _InputCtx,
+        seen: set[tuple[str, frozenset[tuple[str, str]]]],
+        bindings: dict[str, str],
+    ) -> None:
         """Copies `ctx`'s facts (i.e. `literal_reads`, `hand_offs`, `computed_reads`) into `new_ctx`, then do the same for each same-file helper
         `ctx` calls.
-        `seen` holds the scopes already copied into `new_ctx` for this HTTP method, starting with its own.
+        `seen` holds (scope, bindings) already copied into `new_ctx` for this HTTP method, starting with its own, so the same
+        helper called with different inputs is still followed.
+        `bindings` is what each of `ctx`'s parameters received, used to turn its placeholders into real sources.
         """
         assert new_ctx.class_name is not None  # satisfying mypy
 
-        # positions of calls whose helper was followed, so their S028 hand-off is dropped
+        # positions of calls whose helper was followed with every payload so their S028 hand-off is dropped
         followed: set[_StartEnd] = set()
 
-        # helper ctxs to merge next
-        to_visit: list[_InputCtx] = []
+        # (helper ctx, what its parameters received) to merge next
+        to_visit: list[tuple[_InputCtx, dict[str, str]]] = []
 
         # loop over all the helper calls this function makes
         for call in ctx.calls:
@@ -1914,28 +2089,55 @@ class SentryVisitor(ast.NodeVisitor):
             if not isinstance(helper_ctx, _InputCtx):
                 continue
 
-            followed.add(call.at)
-            to_visit.append(helper_ctx)
+            helper_bindings, all_bound = self._bind_call(call, helper_ctx, bindings)
+            # a payload that couldn't be tied to a parameter keeps its S028
+            if all_bound:
+                followed.add(call.at)
 
-        new_ctx.query_validators += ctx.query_validators
-        new_ctx.body_validators += ctx.body_validators
-        new_ctx.literal_reads += ctx.literal_reads
-        new_ctx.computed_reads += ctx.computed_reads
+            to_visit.append((helper_ctx, helper_bindings))
+
+        # copy the facts over, turning placeholders into real sources and dropping the ones that don't resolve
+        for start_end, name in ctx.query_validators:
+            _append_once(new_ctx.query_validators, (start_end, name))
+        for start_end, name in ctx.body_validators:
+            _append_once(new_ctx.body_validators, (start_end, name))
+        for start_end, name, placeholder in ctx.param_validators:
+            real = _resolve_source(placeholder, bindings)
+            if real == "query string":
+                _append_once(new_ctx.query_validators, (start_end, name))
+            elif real == "request body":
+                _append_once(new_ctx.body_validators, (start_end, name))
+        for start_end, key, source in ctx.literal_reads:
+            real = _resolve_source(source, bindings)
+            if real is not None:
+                _append_once(new_ctx.literal_reads, (start_end, key, real))
+        for start_end, key, source in ctx.computed_reads:
+            real = _resolve_source(source, bindings)
+            if real is not None:
+                _append_once(new_ctx.computed_reads, (start_end, key, real))
         # a loop over X().fields reads a fixed set of keys when the public method declares X
         for start_end, key, source, serializer in ctx.field_reads:
             if serializer in new_ctx.declared_params or serializer in new_ctx.declared_body:
                 continue
-            new_ctx.computed_reads.append((start_end, key, source))
+            real = _resolve_source(source, bindings)
+            if real is not None:
+                _append_once(new_ctx.computed_reads, (start_end, key, real))
         for start_end, callee, source in ctx.hand_offs:
-            if start_end not in followed:
-                new_ctx.hand_offs.append((start_end, callee, source))
+            if start_end in followed:
+                continue
+            real = _resolve_source(source, bindings)
+            if real is not None:
+                _append_once(new_ctx.hand_offs, (start_end, callee, real))
 
-        for helper_ctx in to_visit:
-            if helper_ctx.scope in seen:
+        for helper_ctx, helper_bindings in to_visit:
+            seen_key = (helper_ctx.scope, frozenset(helper_bindings.items()))
+            if seen_key in seen:
                 continue
 
-            seen.add(helper_ctx.scope)
-            self._merge_ctx_into(new_ctx=new_ctx, ctx=helper_ctx, seen=seen)
+            seen.add(seen_key)
+            self._merge_ctx_into(
+                new_ctx=new_ctx, ctx=helper_ctx, seen=seen, bindings=helper_bindings
+            )
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
