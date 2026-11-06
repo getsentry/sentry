@@ -275,11 +275,6 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
             "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
             "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
         ),
-        # INFRENG-925: the test takes the subscription lock to see if it is held, inside the
-        # transaction of _apply_legacy_ondemand_max_spend
-        (
-            "tests.getsentry.utils.billing.test_billing.UpgradeOnDemandMaxSpendTest.test_reenable_runs_outside_subscription_lock.<locals>.record",
-        ),
     }
 )
 
