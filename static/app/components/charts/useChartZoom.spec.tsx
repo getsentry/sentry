@@ -179,4 +179,44 @@ describe('useChartZoom', () => {
     expect(router.location.query.start).toBeUndefined();
     expect(router.location.query.end).toBeUndefined();
   });
+
+  it('keeps the zoom window while loading and clears it once new data is drawn', () => {
+    let zoomWindow = {start: 5.5, end: 5.8};
+    const chart = {
+      dispatchAction: jest.fn(),
+      getDom: () => document.createElement('div'),
+      getOption: () => ({dataZoom: [zoomWindow]}),
+      isDisposed: () => false,
+    } as any;
+    const dayData = [{name: 'day'}];
+    const {result, rerender} = renderHookWithProviders<
+      ReturnType<typeof useChartZoom>,
+      UseChartZoomProps
+    >((props: UseChartZoomProps) => useChartZoom(props), {
+      initialProps: {usePageDate: true, resetZoomOn: dayData},
+      initialRouterConfig: {
+        location: {pathname: '/explore/traces/', query: {statsPeriod: '24h'}},
+      },
+    });
+
+    act(() => result.current.onChartReady(chart));
+    act(() => result.current.onDataZoom(dataZoomPayload(), chart));
+
+    // The previous data is still shown while the zoomed range loads.
+    rerender({usePageDate: true, resetZoomOn: dayData});
+    expect(chart.dispatchAction).not.toHaveBeenCalled();
+
+    // New data for another range is clipped by the old window.
+    zoomWindow = {start: 0, end: 8.5};
+    rerender({usePageDate: true, resetZoomOn: [{name: 'hour'}]});
+    expect(chart.dispatchAction).toHaveBeenCalledTimes(1);
+    expect(chart.dispatchAction).toHaveBeenCalledWith(
+      {type: 'dataZoom', start: 0, end: 100},
+      {silent: true}
+    );
+
+    zoomWindow = {start: 0, end: 100};
+    rerender({usePageDate: true, resetZoomOn: [{name: 'week'}]});
+    expect(chart.dispatchAction).toHaveBeenCalledTimes(1);
+  });
 });

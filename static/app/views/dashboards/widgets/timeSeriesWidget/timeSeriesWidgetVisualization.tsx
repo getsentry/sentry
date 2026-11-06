@@ -237,6 +237,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     ...chartZoomProps
   } = useChartZoom({
     disabled: props.disableZoom,
+    resetZoomOn: props.plottables,
     saveOnZoom: true,
   });
 

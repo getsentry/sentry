@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
 
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
@@ -82,6 +82,11 @@ function getZoomRange(evt: Parameters<EChartDataZoomHandler>[0]): DataZoomRange 
   return hasZoomValues(zoomEvent) ? zoomEvent : null;
 }
 
+function isZoomedIn(chart: ECharts): boolean {
+  const dataZoom = chart.getOption().dataZoom as DataZoomComponentOption[] | undefined;
+  return dataZoom?.some(({start = 0, end = 100}) => start > 0 || end < 100) ?? false;
+}
+
 function roundZoomRange({startValue, endValue}: DataZoomRange): DataZoomRange {
   const roundedEndValue = Math.ceil(endValue / 60_000) * 60_000;
   let roundedStartValue = Math.floor(startValue / 60_000) * 60_000;
@@ -112,6 +117,12 @@ interface UseChartZoomOptions {
    * inside dataZoom model for synced charts.
    */
   disabled?: boolean;
+  /**
+   * When this changes, a zoomed chart zooms back out to its full x range. Pass
+   * the chart's data so a chart that stays mounted while a new range loads
+   * keeps the drag-zoom preview until the new data is drawn.
+   */
+  resetZoomOn?: unknown;
   /**
    * Use either `saveOnZoom` or `usePageDate` not both
    * Will persist zoom state to page filters
@@ -207,7 +218,7 @@ function useChartZoomCancel(disabled?: boolean) {
     };
   }, [disabled, handleKeyDown, handleMouseDown, handleMouseUp]);
 
-  return {handleChartReady};
+  return {chartInstance, handleChartReady};
 }
 
 /**
@@ -216,12 +227,29 @@ function useChartZoomCancel(disabled?: boolean) {
  */
 export function useChartZoom({
   disabled,
+  resetZoomOn,
   usePageDate,
   saveOnZoom,
 }: UseChartZoomOptions): ZoomRenderProps {
-  const {handleChartReady} = useChartZoomCancel(disabled);
+  const {chartInstance, handleChartReady} = useChartZoomCancel(disabled);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // ECharts merges option updates into the existing dataZoom components, so a
+  // drag-zoom window outlives the data it was drawn on. Keep it while the
+  // zoomed range loads, then clear it once new data is drawn. A layout effect
+  // so the stale window is never painted, and silent so the reset doesn't
+  // reach `onDataZoom` handlers. The reset re-renders the whole chart, so skip
+  // it when the chart already shows its full range.
+  useLayoutEffect(() => {
+    const chart = chartInstance.current;
+    if (!chart || chart.isDisposed() || !isZoomedIn(chart)) {
+      return;
+    }
+
+    chart.dispatchAction({type: 'dataZoom', start: 0, end: 100}, {silent: true});
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
+  }, [chartInstance, resetZoomOn]);
 
   const commitZoomPeriod = useCallback(
     (formattedPeriod: FormattedPeriod) => {
