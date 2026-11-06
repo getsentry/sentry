@@ -730,6 +730,35 @@ describe('getOrderedAutofixSections', () => {
       expect(sections.map(s => s.status)).toEqual(['error']);
     });
 
+    it('shows an error on the root cause when the run failed after finding it', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun(
+          [
+            makeBlock({message: {metadata: {step: 'single_run'}}}),
+            makeBlock({artifacts: [rootCause('H', 'C')]}),
+          ],
+          {status: 'error'}
+        )
+      );
+
+      expect(sections.map(s => s.status)).toEqual(['error']);
+    });
+
+    it('shows an error on code changes when the run failed after editing', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun(
+          [
+            makeBlock({message: {metadata: {step: 'single_run'}}}),
+            makeBlock({artifacts: [rootCause('H', 'C')]}),
+            makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py')]}),
+          ],
+          {status: 'error'}
+        )
+      );
+
+      expect(sections.map(s => s.status)).toEqual(['completed', 'error']);
+    });
+
     it('keeps code changes completed once a PR exists', () => {
       const sections = getOrderedAutofixSections(
         makeSingleRun(
