@@ -55,7 +55,7 @@ class AgentHandoffViewTest(TestCase):
         response = self.claim(code)
         assert response.status_code == 200
         assert "SENTRY_SETUP_CODE=sntryc_" in response.content.decode()
-        assert "Now ask the user" in response.content.decode()
+        assert "agent-setup/get-started.md" in response.content.decode()
         assert "no-store" in response["Cache-Control"]
         assert response["Referrer-Policy"] == "no-referrer"
         assert response["Content-Type"] == "text/markdown; charset=utf-8"
