@@ -1501,8 +1501,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert OrganizationMember.objects.filter(id=member.id).exists()
         member.refresh_from_db()
         self.assert_org_member_mapping(org_member=member)
-
-        assert resp is not None
+        assert (
+            self.mock_post.call_args.kwargs["text"]
+            == "Member invitation for hello@sentry.io has already been approved."
+        )
 
     def test_invitation_removed(self) -> None:
         other_user = self.create_user()
@@ -1521,7 +1523,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
         assert resp.status_code == 200, resp.content
-        assert resp is not None
+        assert (
+            self.mock_post.call_args.kwargs["text"]
+            == "Member invitation for hello@sentry.io no longer exists."
+        )
 
     def test_invitation_already_accepted(self) -> None:
         other_user = self.create_user()
@@ -1539,7 +1544,32 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
         assert resp.status_code == 200, resp.content
-        assert resp is not None
+        assert (
+            self.mock_post.call_args.kwargs["text"]
+            == "Member invitation for hello@sentry.io has already been approved."
+        )
+
+    def test_invitation_already_approved_in_inaccessible_organization(self) -> None:
+        other_user = self.create_user()
+        another_org = self.create_organization()
+        member = OrganizationMember.objects.create(
+            organization=another_org,
+            email="hello@sentry.io",
+            role="member",
+            inviter_id=other_user.id,
+            invite_status=InviteStatus.APPROVED.value,
+        )
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
+
+        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+
+        assert resp.status_code == 200, resp.content
+        assert (
+            self.mock_post.call_args.kwargs["text"]
+            == "Member invitation for hello@sentry.io no longer exists."
+        )
 
     def test_invitation_validation_error(self) -> None:
         with unguarded_write(using=router.db_for_write(OrganizationMember)):
