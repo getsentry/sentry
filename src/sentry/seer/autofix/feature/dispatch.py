@@ -287,11 +287,12 @@ def trigger_autofix_feature(
     # Avoid a circular import through the legacy Autofix dispatcher.
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
+    is_new_run = args.existing_run_id is None
     uses_quota = check_autofix_billing(
         group,
         args.step.seer_operation,
         args.referrer,
-        is_new_run=args.existing_run_id is None,
+        is_new_run=is_new_run,
         skip_quota_for_free_cohort=args.allow_free_cohort,
     )
 
@@ -383,7 +384,7 @@ def trigger_autofix_feature(
         extras["stopping_point"] = stopping_point.value
 
     user_org_context = collect_user_org_context(args.user, group.organization)
-    if args.existing_run_id is None:
+    if is_new_run:
         run = client.start_feature_run(
             feature_id=SINGLE_RUN_FEATURE_ID if single_run else FEATURE_ID,
             payload=payload.dict(),
