@@ -168,10 +168,11 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
           });
         }
       } catch (error) {
+        const startErr = error instanceof Error ? error : new Error(String(error));
         inFlightQueryRef.current = null;
         setWaitingForResponse(false);
-        setStartError(error as Error);
-        options.onError?.(error as Error);
+        setStartError(startErr);
+        options.onError?.(startErr);
       }
     },
     [api, orgSlug, options, queryClient, codeModeToggle]
