@@ -144,19 +144,21 @@ function RadioOptionField({name, option}: OptionFieldProps) {
           hintText={definition.help}
           required={required}
         >
-          <field.Radio.Group
+          <field.RadioGroup
             value={field.state.value}
             onChange={field.handleChange}
             disabled={disabled}
           >
-            <Stack gap="sm">
-              {definition.choices?.map(([value, label]) => (
-                <field.Radio.Item key={value} value={value}>
-                  {label}
-                </field.Radio.Item>
-              ))}
-            </Stack>
-          </field.Radio.Group>
+            {({Item}) => (
+              <Stack gap="sm">
+                {definition.choices?.map(([value, label]) => (
+                  <Item key={value} value={value}>
+                    {label}
+                  </Item>
+                ))}
+              </Stack>
+            )}
+          </field.RadioGroup>
         </field.Layout.Row>
       )}
     </AutoSaveForm>

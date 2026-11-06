@@ -143,20 +143,20 @@ export function ExploreExportModal({
           {showFormatRadio && (
             <form.AppField name="format">
               {field => (
-                <field.Radio.Group
+                <field.RadioGroup
                   value={
                     columnsValue === ModalColumnValue.ALL ? 'jsonl' : field.state.value
                   }
-                  onChange={value =>
-                    field.handleChange(value as ExportModalFormValues['format'])
-                  }
+                  onChange={field.handleChange}
                   disabled={columnsValue === ModalColumnValue.ALL}
                 >
-                  <field.Layout.Stack label={t('Format')} align="start">
-                    <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
-                    <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
-                  </field.Layout.Stack>
-                </field.Radio.Group>
+                  {({Item}) => (
+                    <field.Layout.Stack label={t('Format')} align="start">
+                      <Item value="csv">{t('CSV')}</Item>
+                      <Item value="jsonl">{t('JSONL')}</Item>
+                    </field.Layout.Stack>
+                  )}
+                </field.RadioGroup>
               )}
             </form.AppField>
           )}

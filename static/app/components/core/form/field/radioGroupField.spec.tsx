@@ -1,12 +1,19 @@
+import {expectTypeOf} from 'expect-type';
 import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
+const testSchema = z.object({
+  priority: z.enum(['low', 'medium', 'high']),
+});
+
+type Priority = z.infer<typeof testSchema>['priority'];
+
 interface TestFormProps {
   label: string;
-  defaultValue?: string;
+  defaultValue?: Priority;
   disabled?: boolean | string;
   hintText?: string;
   required?: boolean;
@@ -30,32 +37,30 @@ function TestForm({
     <form.AppForm form={form}>
       <form.AppField name="priority">
         {field => (
-          <field.Radio.Group
+          <field.RadioGroup
             value={field.state.value}
             onChange={field.handleChange}
             disabled={disabled}
           >
-            <field.Layout.Row label={label} hintText={hintText} required={required}>
-              <field.Radio.Item value="low">Low</field.Radio.Item>
-              <field.Radio.Item value="medium">Medium</field.Radio.Item>
-              <field.Radio.Item value="high" description="Urgent issues">
-                High
-              </field.Radio.Item>
-            </field.Layout.Row>
-          </field.Radio.Group>
+            {({Item}) => (
+              <field.Layout.Row label={label} hintText={hintText} required={required}>
+                <Item value="low">Low</Item>
+                <Item value="medium">Medium</Item>
+                <Item value="high" description="Urgent issues">
+                  High
+                </Item>
+              </field.Layout.Row>
+            )}
+          </field.RadioGroup>
         )}
       </form.AppField>
     </form.AppForm>
   );
 }
 
-const testSchema = z.object({
-  priority: z.string(),
-});
-
 interface AutoSaveTestFormProps {
   mutationFn: (data: {priority: string}) => Promise<{priority: string}>;
-  initialValue?: string;
+  initialValue?: Priority;
   label?: string;
   onError?: (error: Error) => void;
 }
@@ -74,19 +79,161 @@ function AutoSaveTestForm({
       mutationOptions={{mutationFn, onError}}
     >
       {field => (
-        <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-          <field.Layout.Row label={label}>
-            <field.Radio.Item value="low">Low</field.Radio.Item>
-            <field.Radio.Item value="medium">Medium</field.Radio.Item>
-            <field.Radio.Item value="high">High</field.Radio.Item>
-          </field.Layout.Row>
-        </field.Radio.Group>
+        <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+          {({Item}) => (
+            <field.Layout.Row label={label}>
+              <Item value="low">Low</Item>
+              <Item value="medium">Medium</Item>
+              <Item value="high">High</Item>
+            </field.Layout.Row>
+          )}
+        </field.RadioGroup>
       )}
     </AutoSaveForm>
   );
 }
 
-describe('RadioField', () => {
+describe('RadioGroupField types', () => {
+  it('infers the field union for onChange and Item without an explicit type argument', () => {
+    function TypeTest({value}: {value: Priority}) {
+      const form = useScrapsForm({defaultValues: {priority: value}});
+
+      return (
+        <form.AppField name="priority">
+          {field => (
+            <field.RadioGroup
+              value={field.state.value}
+              onChange={next => {
+                expectTypeOf(next).toEqualTypeOf<Priority>();
+                field.handleChange(next);
+              }}
+            >
+              {({Item}) => {
+                expectTypeOf<
+                  React.ComponentProps<typeof Item>['value']
+                >().toEqualTypeOf<Priority>();
+                return <Item value="high">High</Item>;
+              }}
+            </field.RadioGroup>
+          )}
+        </form.AppField>
+      );
+    }
+    void TypeTest;
+  });
+
+  it('infers the schema union for auto-save fields', () => {
+    function TypeTest() {
+      return (
+        <AutoSaveForm
+          name="priority"
+          schema={testSchema}
+          initialValue="low"
+          mutationOptions={{
+            mutationFn: (data: z.infer<typeof testSchema>) => Promise.resolve(data),
+          }}
+        >
+          {field => (
+            <field.RadioGroup
+              value={field.state.value}
+              onChange={next => {
+                expectTypeOf(next).toEqualTypeOf<Priority>();
+                field.handleChange(next);
+              }}
+            >
+              {({Item}) => {
+                expectTypeOf<
+                  React.ComponentProps<typeof Item>['value']
+                >().toEqualTypeOf<Priority>();
+                return (
+                  // @ts-expect-error Item values must belong to the schema's union.
+                  <Item value="urgent">Urgent</Item>
+                );
+              }}
+            </field.RadioGroup>
+          )}
+        </AutoSaveForm>
+      );
+    }
+    void TypeTest;
+  });
+
+  it('rejects item values outside the field union even with a wider onChange', () => {
+    function TypeTest({value}: {value: Priority}) {
+      const form = useScrapsForm({defaultValues: {priority: value}});
+
+      return (
+        <form.AppField name="priority">
+          {field => (
+            <field.RadioGroup value={field.state.value} onChange={(_value: string) => {}}>
+              {({Item}) => {
+                expectTypeOf<
+                  React.ComponentProps<typeof Item>['value']
+                >().toEqualTypeOf<Priority>();
+                return (
+                  // @ts-expect-error Item values must belong to the field's union.
+                  <Item value="urgent">Urgent</Item>
+                );
+              }}
+            </field.RadioGroup>
+          )}
+        </form.AppField>
+      );
+    }
+    void TypeTest;
+  });
+
+  it('rejects an onChange callback that only accepts part of the field union', () => {
+    function TypeTest({value}: {value: Priority}) {
+      const form = useScrapsForm({defaultValues: {priority: value}});
+
+      return (
+        <form.AppField name="priority">
+          {field => (
+            <field.RadioGroup
+              value={field.state.value}
+              // @ts-expect-error The callback must accept every value in the field's union.
+              onChange={(_value: 'low') => {}}
+            >
+              {({Item}) => <Item value="high">High</Item>}
+            </field.RadioGroup>
+          )}
+        </form.AppField>
+      );
+    }
+    void TypeTest;
+  });
+
+  it('supports fields with unrestricted string values', () => {
+    function TypeTest() {
+      const form = useScrapsForm({defaultValues: {priority: ''}});
+
+      return (
+        <form.AppField name="priority">
+          {field => (
+            <field.RadioGroup
+              value={field.state.value}
+              onChange={next => {
+                expectTypeOf(next).toEqualTypeOf<string>();
+                field.handleChange(next);
+              }}
+            >
+              {({Item}) => {
+                expectTypeOf<
+                  React.ComponentProps<typeof Item>['value']
+                >().toEqualTypeOf<string>();
+                return <Item value="custom">Custom</Item>;
+              }}
+            </field.RadioGroup>
+          )}
+        </form.AppField>
+      );
+    }
+    void TypeTest;
+  });
+});
+
+describe('RadioGroupField', () => {
   it('renders with options', () => {
     render(<TestForm label="Priority" />);
 
@@ -114,6 +261,7 @@ describe('RadioField', () => {
 
     expect(radios[0]).not.toBeChecked();
     expect(radios[2]!).toBeChecked();
+    expect(radios[2]!).toHaveFocus();
   });
 
   it('renders options with descriptions', () => {
@@ -129,7 +277,7 @@ describe('RadioField', () => {
   });
 });
 
-describe('RadioField disabled', () => {
+describe('RadioGroupField disabled', () => {
   it('is disabled when disabled prop is true', () => {
     render(<TestForm label="Priority" disabled />);
 
@@ -159,7 +307,7 @@ describe('RadioField disabled', () => {
   });
 });
 
-describe('RadioField auto-save', () => {
+describe('RadioGroupField auto-save', () => {
   it('shows spinner when auto-save is pending', async () => {
     const mutationFn = jest.fn(() => new Promise<{priority: string}>(() => {}));
 
@@ -215,7 +363,7 @@ describe('RadioField auto-save', () => {
   });
 });
 
-describe('RadioField a11y', () => {
+describe('RadioGroupField a11y', () => {
   it('has container with group role', () => {
     render(<TestForm label="Priority" />);
 
