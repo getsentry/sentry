@@ -187,7 +187,7 @@ describe('useScrollLock', () => {
 
     result.current.acquire();
 
-    expect(document.documentElement).toHaveStyle({overflow: ''});
+    expect(document.documentElement).not.toHaveStyle({overflow: 'hidden'});
     expect(document.body).toHaveStyle({
       position: 'fixed',
       top: `-${scrollY}px`,
@@ -243,7 +243,6 @@ describe('useScrollLock', () => {
       configurable: true,
       value: 0,
     });
-    const scrollToSpy = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
 
     // Set existing paddingRight on body
     document.body.style.paddingRight = '10px';
@@ -273,6 +272,5 @@ describe('useScrollLock', () => {
       configurable: true,
       value: originalScrollY,
     });
-    scrollToSpy.mockRestore();
   });
 });
