@@ -3,6 +3,7 @@ from typing import TypedDict
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,7 +13,6 @@ from sentry.agent_handoff.codes import HandoffFlow
 from sentry.agent_handoff.endpoints.organization_agent_handoff import (
     HANDOFF_SCOPES,
     AgentHandoffPermission,
-    AgentHandoffRequestSerializer,
 )
 from sentry.agent_handoff.flows import HandoffMode, get_flow_instructions
 from sentry.agent_handoff.runbook import render_agent_runbook
@@ -22,12 +22,21 @@ from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import require_user
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
+
+
+class AgentHandoffPreviewRequest(TypedDict):
+    flow: str
+
+
+class AgentHandoffPreviewRequestSerializer(CamelSnakeSerializer[AgentHandoffPreviewRequest]):
+    flow = serializers.ChoiceField(choices=list(HandoffFlow), default=HandoffFlow.GUIDED_NEXT_STEPS)
 
 
 class AgentHandoffPreviewResponse(TypedDict):
@@ -52,7 +61,7 @@ class OrganizationAgentHandoffPreviewEndpoint(ControlSiloOrganizationEndpoint):
 
     @extend_schema(
         operation_id="Preview private agent handoff instructions",
-        parameters=[AgentHandoffRequestSerializer],
+        parameters=[AgentHandoffPreviewRequestSerializer],
         responses={
             200: inline_sentry_response_serializer(
                 "AgentHandoffPreview", AgentHandoffPreviewResponse
@@ -69,7 +78,7 @@ class OrganizationAgentHandoffPreviewEndpoint(ControlSiloOrganizationEndpoint):
         if organization_context.member is None:
             return Response({"detail": "Organization membership is required."}, status=403)
 
-        serializer = AgentHandoffRequestSerializer(data=request.query_params.dict())
+        serializer = AgentHandoffPreviewRequestSerializer(data=request.query_params.dict())
         serializer.is_valid(raise_exception=True)
         flow = HandoffFlow(serializer.validated_data["flow"])
         application = get_handoff_application(HANDOFF_SCOPES)

@@ -1,5 +1,5 @@
 import logging
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -10,7 +10,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.agent_handoff.applications import get_handoff_application
-from sentry.agent_handoff.codes import HandoffFlow, issue_handoff
+from sentry.agent_handoff.codes import HandoffFlow, OnboardingHandoffContext, issue_handoff
+from sentry.agent_handoff.flows import InvalidHandoffContext, validate_flow_context
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
@@ -48,12 +49,37 @@ HANDOFF_SCOPES = (
 )
 
 
+class OnboardingHandoffContextRequest(TypedDict):
+    run_id: str
+
+
+class OnboardingHandoffContextSerializer(CamelSnakeSerializer[OnboardingHandoffContextRequest]):
+    run_id = serializers.RegexField(r"^[a-f0-9]{32}$")
+
+
 class AgentHandoffRequest(TypedDict):
     flow: str
+    context: OnboardingHandoffContextRequest | None
 
 
 class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
     flow = serializers.ChoiceField(choices=list(HandoffFlow), default=HandoffFlow.GUIDED_NEXT_STEPS)
+
+    # DRF reserves Serializer.context for rendering metadata.
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        return {
+            **super().get_fields(),
+            "context": OnboardingHandoffContextSerializer(required=False, default=None),
+        }
+
+    def validate(self, attrs: AgentHandoffRequest) -> AgentHandoffRequest:
+        if attrs["flow"] == HandoffFlow.ONBOARDING and attrs["context"] is None:
+            raise serializers.ValidationError({"context": "An onboarding run is required."})
+        if attrs["flow"] != HandoffFlow.ONBOARDING and attrs["context"] is not None:
+            raise serializers.ValidationError(
+                {"context": "Context is not supported for this flow."}
+            )
+        return attrs
 
 
 class AgentHandoffResponse(TypedDict):
@@ -115,8 +141,21 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         if application is None:
             return Response({"detail": "Agent onboarding is not configured."}, status=503)
 
+        values = serializer.validated_data
+        flow = HandoffFlow(values["flow"])
+        context = (
+            OnboardingHandoffContext(**values["context"]) if values["context"] is not None else None
+        )
+        try:
+            validate_flow_context(
+                flow, context=context, user_id=user.id, organization_id=organization.id
+            )
+        except InvalidHandoffContext:
+            return Response({"detail": "Onboarding run is unavailable."}, status=404)
+
         issued = issue_handoff(
-            flow=HandoffFlow(serializer.validated_data["flow"]),
+            flow=flow,
+            context=context,
             user_id=user.id,
             organization_id=organization.id,
             application_id=application.id,
