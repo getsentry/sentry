@@ -142,27 +142,6 @@ class OrganizationFeaturesResponse(BaseModel):
     features: list[str]
 
 
-class GitHubEnterpriseConfigSuccessResponse(BaseModel):
-    success: Literal[True] = True
-    base_url: str
-    verify_ssl: bool
-    encrypted_access_token: str
-    permissions: dict[str, Any]
-
-
-class GitHubEnterpriseConfigErrorResponse(BaseModel):
-    success: Literal[False] = False
-
-
-class SendSeerWebhookSuccessResponse(BaseModel):
-    success: Literal[True] = True
-
-
-class SendSeerWebhookErrorResponse(BaseModel):
-    success: Literal[False] = False
-    error: str
-
-
 class NotifySeerPrCreatedSuccessResponse(BaseModel):
     """`notify_seer_pr_created` success: `{"success": true}`. The `success` literal
     is the discriminator against the error shape below."""
@@ -749,28 +728,6 @@ class IssuesStatsResponse(BaseModel):
     def __eq__(self, other: object) -> bool:
         if isinstance(other, list):
             return list(self.__root__) == other
-        return super().__eq__(other)
-
-    def __hash__(self) -> int:
-        return id(self)
-
-
-class CallCustomToolResponse(BaseModel):
-    """`call_custom_tool` returns the bare string the tool's `execute()` produced.
-    Wraps in a `__root__` passthrough so the wire stays a JSON string."""
-
-    __root__: str
-
-    def dict(self, **kwargs: Any) -> Any:
-        # Unwrap so the dispatcher serializes the bare string the pre-typed
-        # registry emitted, not `{"__root__": "..."}`.
-        return self.__root__
-
-    def __eq__(self, other: object) -> bool:
-        # Match the legacy wire shape (bare str) so callers comparing against
-        # `result == "literal"` keep working without an explicit `.dict()`.
-        if isinstance(other, str):
-            return self.__root__ == other
         return super().__eq__(other)
 
     def __hash__(self) -> int:

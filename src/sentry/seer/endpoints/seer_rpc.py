@@ -37,13 +37,11 @@ from sentry.constants import ObjectStatus
 from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
-from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.investigations.endpoints.validators import InvestigationOrchestrationEventValidator
 from sentry.investigations.services.orchestration_events import deliver_orchestration_event
-from sentry.models.group import Group
-from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
@@ -51,7 +49,6 @@ from sentry.pr_metrics.judge import update_pr_metrics
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.seer.agent.context_engine_utils import get_instrumentation_types
-from sentry.seer.agent.custom_tool_utils import call_custom_tool
 from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
 from sentry.seer.agent.index_data import (
     rpc_get_issues_for_transaction,
@@ -107,11 +104,6 @@ from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.utils import read_preference_from_sentry_db
 from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
-from sentry.seer.entrypoints.operator import (
-    SeerAutofixOperator,
-    process_autofix_updates,
-    record_seer_activity,
-)
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
@@ -123,8 +115,6 @@ from sentry.seer.sentry_data_models import (
     CommitAuthorResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
-    GitHubEnterpriseConfigErrorResponse,
-    GitHubEnterpriseConfigSuccessResponse,
     HasRepoCodeMappingsResponse,
     InvestigationEventDeliveryResponse,
     MonitoringProviderConnectionsResponse,
@@ -135,14 +125,9 @@ from sentry.seer.sentry_data_models import (
     ReferencedFixStatementsResponse,
     RefreshMonitoringProviderTokenErrorResponse,
     RefreshMonitoringProviderTokenSuccessResponse,
-    SendSeerWebhookErrorResponse,
-    SendSeerWebhookSuccessResponse,
     SpanAttribute,
     SpanAttributesResponse,
 )
-from sentry.seer.utils import encrypt_access_token_for_seer
-from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
-from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
@@ -580,135 +565,6 @@ def get_attributes_for_span(
     return SpanAttributesResponse(attributes=[SpanAttribute(**a) for a in attributes])
 
 
-def get_github_enterprise_integration_config(
-    *, organization_id: int, integration_id: int
-) -> GitHubEnterpriseConfigSuccessResponse | GitHubEnterpriseConfigErrorResponse:
-    if not settings.SEER_GHE_ENCRYPT_KEY:
-        logger.error("Cannot encrypt access token without SEER_GHE_ENCRYPT_KEY")
-        return GitHubEnterpriseConfigErrorResponse()
-
-    integration = integration_service.get_integration(
-        integration_id=integration_id,
-        provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-        organization_id=organization_id,
-        status=ObjectStatus.ACTIVE,
-    )
-    if integration is None:
-        logger.error("Integration %s does not exist", integration_id)
-        return GitHubEnterpriseConfigErrorResponse()
-
-    installation = integration.get_installation(organization_id=organization_id)
-    assert isinstance(installation, GitHubEnterpriseIntegration)
-
-    integration = integration_service.refresh_github_access_token(
-        integration_id=integration.id,
-        organization_id=organization_id,
-    )
-
-    assert integration is not None, "Integration should have existed given previous checks"
-
-    access_token = integration.metadata["access_token"]
-    permissions = integration.metadata["permissions"]
-
-    if not access_token:
-        logger.error("No access token found for integration %s", integration.id)
-        return GitHubEnterpriseConfigErrorResponse()
-
-    encrypted_access_token = encrypt_access_token_for_seer(access_token)
-    if not encrypted_access_token:
-        return GitHubEnterpriseConfigErrorResponse()
-
-    return GitHubEnterpriseConfigSuccessResponse(
-        base_url=f"https://{installation.model.metadata['domain_name'].split('/')[0]}/api/v3",
-        verify_ssl=installation.model.metadata["installation"]["verify_ssl"],
-        encrypted_access_token=encrypted_access_token,
-        permissions=permissions,
-    )
-
-
-def send_seer_webhook(
-    *, event_name: str, organization_id: int, payload: dict[str, Any]
-) -> SendSeerWebhookSuccessResponse | SendSeerWebhookErrorResponse:
-    """
-    Handles receipt (in Sentry, from Seer) of a seer webhook event for an organization.
-
-    Previously, this just broadcast webhooks to the relevant Sentry Apps.
-    Now, it allows other Sentry features to leverage this signal.
-
-    Args:
-        event_name: The sub-name of seer event (e.g., "root_cause_started")
-        organization_id: The ID of the organization to send the webhook for
-        payload: The webhook payload data
-
-    Returns:
-        dict: Status of the webhook sending operation
-    """
-    # Validate event_name by constructing the full event type and checking if it's valid
-    event_type = f"seer.{event_name}"
-    try:
-        sentry_app_event_type = SentryAppEventType(event_type)
-    except ValueError:
-        logger.exception(
-            "seer.webhook_invalid_event_type",
-            extra={"event_type": event_type},
-        )
-        return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
-    # Internal only: Sentry raises it itself from the autofix completion hook, and it must not
-    # reach Sentry Apps until its payload is settled.
-    if sentry_app_event_type in INTERNAL_SEER_EVENT_TYPES:
-        logger.warning("seer.webhook_internal_event_type", extra={"event_type": event_type})
-        return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
-
-    # Handle organization lookup safely
-    try:
-        organization = Organization.objects.get(
-            id=organization_id, status=OrganizationStatus.ACTIVE
-        )
-    except Organization.DoesNotExist:
-        logger.warning(
-            "seer.webhook_organization_not_found_or_not_active",
-            extra={"organization_id": organization_id},
-        )
-        return SendSeerWebhookErrorResponse(error="Organization not found or not active")
-
-    if SeerAutofixOperator.has_access(organization=organization):
-        activity_already_recorded = False
-        group_id = payload.get("group_id")
-        if group_id:
-            try:
-                group = Group.objects.get(
-                    id=group_id,
-                    project__organization_id=organization_id,
-                )
-            except Group.DoesNotExist:
-                pass
-            else:
-                record_seer_activity(
-                    group=group,
-                    event_type=sentry_app_event_type,
-                    event_payload=payload,
-                )
-                activity_already_recorded = True
-
-        process_autofix_updates.apply_async(
-            kwargs={
-                "event_type": sentry_app_event_type,
-                "event_payload": payload,
-                "organization_id": organization_id,
-                "activity_already_recorded": activity_already_recorded,
-            }
-        )
-
-    broadcast_webhooks_for_organization.delay(
-        resource_name="seer",
-        event_name=event_name,
-        organization_id=organization_id,
-        payload=payload,
-    )
-
-    return SendSeerWebhookSuccessResponse()
-
-
 def has_repo_code_mappings(
     *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
 ) -> HasRepoCodeMappingsResponse:
@@ -900,7 +756,6 @@ def refresh_monitoring_provider_token(
 # the handler as `"name": seer_rpc(handler)`.
 seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serialized
     # Common to Seer features
-    "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
     "get_organization_projects": seer_rpc(get_organization_projects),
     "get_organization_features": seer_rpc(get_organization_features),
     "deliver_investigation_event": seer_rpc(deliver_investigation_event),
@@ -911,7 +766,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "find_referenced_fix_statements": seer_rpc(find_referenced_fix_statements),
     "get_error_event_details": seer_rpc(get_error_event_details),
     "get_profile_details": seer_rpc(get_profile_details),
-    "send_seer_webhook": seer_rpc(send_seer_webhook),
     "get_attributes_for_span": seer_rpc(get_attributes_for_span),
     "get_project_preferences": seer_rpc(get_project_preferences),
     #
@@ -951,7 +805,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "execute_trace_table_query": seer_rpc(execute_trace_table_query),
     "execute_issues_query": seer_rpc(execute_issues_query),
     "get_repository_definition": seer_rpc(get_repository_definition),
-    "call_custom_tool": seer_rpc(call_custom_tool),
     "call_on_completion_hook": seer_rpc(call_on_completion_hook),
     "deliver_feature_result": seer_rpc(deliver_feature_result),
     "get_log_attributes_for_trace": seer_rpc(get_log_attributes_for_trace),

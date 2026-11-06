@@ -1737,7 +1737,6 @@
     "tests/sentry/seer/agent/test_client_utils.py": 5.8,
     "tests/sentry/seer/agent/test_coding_agent_handoff.py": 2.5,
     "tests/sentry/seer/agent/test_context_engine_utils.py": 5.2,
-    "tests/sentry/seer/agent/test_custom_tool_utils.py": 0.8,
     "tests/sentry/seer/agent/test_embed_widgets.py": 1.0,
     "tests/sentry/seer/agent/test_index_data.py": 15.8,
     "tests/sentry/seer/agent/test_monitoring_providers.py": 13.7,
