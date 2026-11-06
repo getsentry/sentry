@@ -598,22 +598,18 @@ def get_invalid_owner_details(bad_owners: Sequence[Owner], project_id: int) -> l
 def remove_deleted_owners_from_schema(
     rules: list[OwnershipRule], owners_id: dict[str, int]
 ) -> None:
-    valid_rules = rules
-
+    valid_rules: list[OwnershipRule] = []
     for rule in rules:
+        # an ownerless rule is a CODEOWNERS exclusion, not a rule whose owners were all deleted
         if not rule["owners"]:
+            valid_rules.append(rule)
             continue
-        valid_owners = rule["owners"]
-        for rule_owner in rule["owners"]:
-            if rule_owner["identifier"] not in owners_id.keys():
-                valid_owners.remove(rule_owner)
-                if not valid_owners:
-                    valid_rules.remove(rule)
-                    break
+        rule["owners"] = [o for o in rule["owners"] if o["identifier"] in owners_id]
+        if rule["owners"]:
+            valid_rules.append(rule)
 
-        rule["owners"] = valid_owners
-
-    rules = valid_rules
+    # mutate in place: the caller keeps using schema["rules"] after this returns
+    rules[:] = valid_rules
 
 
 def add_owner_ids_to_schema(rules: list[OwnershipRule], owners_id: dict[str, int]) -> None:

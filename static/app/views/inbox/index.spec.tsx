@@ -8,6 +8,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import Inbox from 'sentry/views/inbox';
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
 
+import type {InboxSubject} from './types';
+
 const INBOX_ROUTES = [
   '/organizations/:orgId/inbox/',
   '/organizations/:orgId/inbox/issue/:id/',
@@ -68,10 +70,29 @@ describe('Inbox', () => {
     unreadEventCount: 0,
   });
 
+  let markReadRequest: jest.Mock;
+
+  async function expectMarkedRead(subject: InboxSubject) {
+    await waitFor(() => expect(markReadRequest).toHaveBeenCalledTimes(1));
+    expect(markReadRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/inbox/',
+      expect.objectContaining({
+        method: 'PUT',
+        query: {subject_type: [subject.subjectType], subject_id: subject.subjectId},
+        data: {isRead: true},
+      })
+    );
+  }
+
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/inbox/',
       body: [issueItem, notebookItem, readNotebookItem],
+    });
+    markReadRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      method: 'PUT',
+      body: {updatedCount: 1},
     });
   });
 
@@ -162,6 +183,7 @@ describe('Inbox', () => {
       '/organizations/org-slug/inbox/notebook/1000210/'
     );
     expect(item).toHaveAttribute('aria-current', 'true');
+    await expectMarkedRead(notebookItem);
   });
 
   it('previews the selected item', async () => {
@@ -239,6 +261,7 @@ describe('Inbox', () => {
     expect(
       screen.getByRole('link', {name: /TypeError: Cannot read properties/})
     ).toHaveAttribute('aria-current', 'true');
+    await expectMarkedRead(issueItem);
   });
 
   it('previews the issue in the url when it is not in the loaded items', async () => {
@@ -256,6 +279,76 @@ describe('Inbox', () => {
     expect(
       screen.getByRole('link', {name: /TypeError: Cannot read properties/})
     ).not.toHaveAttribute('aria-current');
+    await expectMarkedRead({subjectType: 'issue', subjectId: '9999'});
+  });
+
+  it('marks an item outside the loaded page and filters as read', async () => {
+    mockIssuePreviewRequests(issueItem.subjectId);
+    const listRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      body: [notebookItem],
+      headers: {
+        Link: `<http://localhost/?cursor=${encodeURIComponent(NEXT_CURSOR)}>; rel="next"; results="true"; cursor="${NEXT_CURSOR}"`,
+      },
+    });
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      match: [MockApiClient.matchQuery({cursor: NEXT_CURSOR})],
+      body: [issueItem],
+    });
+
+    render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/org-slug/inbox/issue/${issueItem.subjectId}/`,
+          query: {subjectType: 'notebook'},
+        },
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    expect(await screen.findByRole('heading', {name: 'TypeError'})).toBeInTheDocument();
+    await expectMarkedRead(issueItem);
+    expect(listRequest).toHaveBeenCalledTimes(1);
+    expect(nextPageRequest).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Show more'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: /TypeError: Cannot read properties/})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not mark an item that is already read', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/notebooks/1000209/',
+      body: InvestigationDetailFixture({id: '1000209'}),
+    });
+
+    render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/inbox/notebook/1000209/'},
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    expect(
+      await screen.findByRole('link', {name: /Checkout latency regression/})
+    ).toHaveAttribute('aria-current', 'true');
+    expect(markReadRequest).not.toHaveBeenCalled();
+  });
+
+  it('does not mark items as read without viewing them', async () => {
+    render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/inbox/'},
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    expect(await screen.findByText('No item selected')).toBeInTheDocument();
+    expect(markReadRequest).not.toHaveBeenCalled();
   });
 
   it('selects items with checkboxes without opening them', async () => {
@@ -388,6 +481,54 @@ describe('Inbox', () => {
         await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
       ).toBeInTheDocument();
       expect(router.location.query).toEqual({});
+    });
+
+    it('marks a viewed item as read in lists for other filters', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [MockApiClient.matchQuery({subject_type: ['notebook']})],
+        body: [notebookItem, readNotebookItem],
+      });
+
+      render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Subject'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigation'}));
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('link', {name: /TypeError: Cannot read properties/})
+        ).not.toBeInTheDocument()
+      );
+
+      await userEvent.click(
+        screen.getByRole('link', {name: /OperationalError: could not connect to server/})
+      );
+      await expectMarkedRead(notebookItem);
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        body: [issueItem, {...notebookItem, isUnread: false}, readNotebookItem],
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Remove Subject filter'}));
+
+      // The cached unfiltered list is shown before it is refetched
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(1);
+      expect(markReadRequest).toHaveBeenCalledTimes(1);
     });
 
     it('shows an empty state when no items match the filters', async () => {

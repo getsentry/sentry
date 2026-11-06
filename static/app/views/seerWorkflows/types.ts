@@ -66,7 +66,7 @@ export type WorkflowDisplayStatus =
   | 'running'
   | 'partial';
 
-export type SeerAgentResponse = {
+export type SeerServiceAccountResponse = {
   allProjects: boolean;
   projectIds: number[];
   scopes: string[];
@@ -74,10 +74,6 @@ export type SeerAgentResponse = {
 };
 
 export type SeerWorkflowConfigResponse = {
-  /**
-   * Null when the automation has no agent
-   */
-  agent: SeerAgentResponse | null;
   dateAdded: string;
   dateUpdated: string;
   enabled: boolean;
@@ -95,6 +91,7 @@ export type SeerWorkflowConfigResponse = {
   projects: number[];
   schedule: string;
   seededDefault: string | null;
+  serviceAccount: SeerServiceAccountResponse | null;
   strategy: string;
   version: number;
   /**
@@ -117,9 +114,9 @@ export type SeerWorkflowConfigResponse = {
 };
 
 /**
- * Agent settings sent when creating or updating a workflow config
+ * Service account settings sent when creating or updating a workflow config
  */
-type SeerAgentRequest = {
+type SeerServiceAccountRequest = {
   allProjects: boolean;
   projectIds: number[];
   scopes: string[];
@@ -129,7 +126,7 @@ type SeerAgentRequest = {
  * Body of a POST to create a workflow config
  */
 export type SeerWorkflowConfigCreateRequest = {
-  agent: SeerAgentRequest;
+  serviceAccount: SeerServiceAccountRequest;
   strategy: WorkflowStrategy;
   enabled?: boolean;
   /**
@@ -152,13 +149,13 @@ export type SeerWorkflowConfigCreateRequest = {
  * Body of a PUT to a workflow config. Send at most one of projectIds or monitorIds
  */
 export type SeerWorkflowConfigUpdateRequest = {
-  agent?: SeerAgentRequest;
   enabled?: boolean;
   monitorIds?: number[];
   /**
    * [-1] for all projects, otherwise selected project IDs
    */
   projectIds?: number[];
+  serviceAccount?: SeerServiceAccountRequest;
 };
 
 export type SeerWorkflowConfigsResponse = {

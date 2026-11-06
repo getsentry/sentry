@@ -18,6 +18,7 @@ from sentry.service_accounts.models import (
     ServiceAccountProject,
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
+    ServiceAccountToken,
     validate_grantable_scopes,
 )
 from sentry.service_accounts.services.service_account import service_account_service
@@ -335,3 +336,37 @@ class ServiceAccountReplicationTest(TestCase):
 
         assert self.get_replica() is None
         assert self.get_replica_project_ids() == set()
+
+
+@control_silo_test
+class ServiceAccountTokenTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.service_account = ServiceAccount.objects.create(
+            organization_id=self.organization.id,
+            name="ci",
+            scope_list=["org:read", "project:read"],
+        )
+
+    def build_token(self, **kwargs: object) -> ServiceAccountToken:
+        return ServiceAccountToken(
+            service_account=self.service_account,
+            organization_id=self.organization.id,
+            name="deploys",
+            token_hashed="hashed-token",
+            token_last_characters="abcd",
+            **kwargs,
+        )
+
+    def test_scope_list_rejects_non_grantable_scope(self) -> None:
+        token = self.build_token(scope_list=["project:read", "openid"])
+        with pytest.raises(ValidationError) as excinfo:
+            token.full_clean()
+        assert "scope_list" in excinfo.value.message_dict
+
+    def test_repr_omits_token_hash(self) -> None:
+        token = self.build_token(scope_list=["project:read"])
+        token.save()
+
+        assert "hashed-token" not in repr(token)

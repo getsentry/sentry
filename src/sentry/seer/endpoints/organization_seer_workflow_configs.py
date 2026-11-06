@@ -81,7 +81,7 @@ class SeerWorkflowConfigResponse(TypedDict):
     version: int
     projects: list[int]
     monitorIds: list[int]
-    agent: SeerServiceAccountResponse | None
+    serviceAccount: SeerServiceAccountResponse | None
     environments: list[str]
     filters: dict[str, Any]
     outputPolicy: dict[str, Any]
@@ -126,7 +126,9 @@ class ServiceAccountGrantSerializer(serializers.Serializer):
     def validate(self, data: dict[str, Any]) -> SeerServiceAccountGrant:
         if data["allProjects"] and data["projectIds"]:
             raise serializers.ValidationError(
-                {"projectIds": "An agent with access to all projects can't also list projects."}
+                {
+                    "projectIds": "A service account with access to all projects can't also list projects."
+                }
             )
         return SeerServiceAccountGrant(
             scopes=sorted(set(data["scopes"])),
@@ -151,9 +153,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
         allow_empty=True,
     )
     name = serializers.CharField(default=None, allow_null=True, max_length=64)
-    # TODO(telkins): Rename the agent request and response fields and the grant error
-    # messages to service account, with a matching frontend change.
-    agent = ServiceAccountGrantSerializer()
+    serviceAccount = ServiceAccountGrantSerializer()
     # Metric automations only; their projects come from the connected monitors.
     monitorIds = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
@@ -394,16 +394,16 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         """Create a Seer automation workflow.
 
-        ``strategy`` and ``agent`` are required. ``enabled`` defaults to false, ``schedule`` to
-        daily, and ``environments`` to all. ``name`` is optional. Omitting
+        ``strategy`` and ``serviceAccount`` are required. ``enabled`` defaults to false,
+        ``schedule`` to daily, and ``environments`` to all. ``name`` is optional. Omitting
         ``projectIds`` selects no projects. Use ``[-1]`` for all projects.
 
         Metric automations (``breached_metric_investigation``) take ``monitorIds``
         instead of ``projectIds``; their projects come from the connected monitors, and
         the caller needs read access to each monitor's project.
 
-        ``agent`` sets the scopes and projects investigations run with, on a service
-        account created for the automation.
+        ``serviceAccount`` sets the scopes and projects investigations run with, on a
+        service account created for the automation.
 
         The number of automations per organization is capped, and creation is rate
         limited. Failures past request validation, such as reaching the cap, return an
@@ -434,7 +434,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         if denied is not None:
             raise PermissionDenied(detail=denied)
 
-        grant: SeerServiceAccountGrant = data["agent"]
+        grant: SeerServiceAccountGrant = data["serviceAccount"]
         check_can_grant_service_account(grant, request, organization, self)
         extras = SeerWorkflowConfigExtras(
             name=data.get("name"),
@@ -830,7 +830,7 @@ def serialize_workflow_config(
         "version": config.version,
         "projects": project_ids,
         "monitorIds": monitor_ids,
-        "agent": service_account,
+        "serviceAccount": service_account,
         "environments": filters.environments,
         "filters": convert_dict_key_case(
             {
@@ -895,10 +895,11 @@ def check_can_grant_service_account(
     # No service_account:write check: the automation owns the account, and requiring it
     # would stop Members from creating automations.
     if set(grant.scopes) - request.access.scopes:
-        raise PermissionDenied("You can't give an agent scopes you don't have.")
+        raise PermissionDenied("You can't give a service account scopes you don't have.")
     if grant.all_projects:
         _require_global_role(
-            request, "Only a role with access to all projects can give an agent all projects."
+            request,
+            "Only a role with access to all projects can give a service account all projects.",
         )
     else:
         denied = _check_project_access(

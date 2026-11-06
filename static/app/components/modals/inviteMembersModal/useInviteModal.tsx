@@ -1,12 +1,13 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {InviteRow, InviteStatus, NormalizedInvite} from './types';
 
@@ -51,7 +52,6 @@ function useLogInviteModalOpened({
 }
 
 export function useInviteModal({organization, initialData, source}: Props) {
-  const api = useApi();
   const willInvite = canInvite(organization);
 
   /**
@@ -107,6 +107,21 @@ export function useInviteModal({organization, initialData, source}: Props) {
     });
   }, [organization]);
 
+  const {mutateAsync: createInvite} = useMutation({
+    mutationFn: (data: {email: string; role: string; teams: string[]}) =>
+      fetchMutation({
+        url: willInvite
+          ? getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+              path: {organizationIdOrSlug: organization.slug},
+            })
+          : getApiUrl('/organizations/$organizationIdOrSlug/invite-requests/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
+        method: 'POST',
+        data,
+      }),
+  });
+
   const sendInvite = useCallback(
     async (invite: NormalizedInvite) => {
       const data = {
@@ -123,12 +138,8 @@ export function useInviteModal({organization, initialData, source}: Props) {
         },
       }));
 
-      const endpoint = willInvite
-        ? `/organizations/${organization.slug}/members/`
-        : `/organizations/${organization.slug}/invite-requests/`;
-
       try {
-        await api.requestPromise(endpoint, {method: 'POST', data});
+        await createInvite(data);
       } catch (err: any) {
         const errorResponse = err.responseJSON;
 
@@ -161,7 +172,7 @@ export function useInviteModal({organization, initialData, source}: Props) {
         inviteStatus: {...prev.inviteStatus, [invite.email]: {sent: true}},
       }));
     },
-    [api, organization, willInvite]
+    [createInvite]
   );
 
   const removeSentInvites = useCallback(() => {

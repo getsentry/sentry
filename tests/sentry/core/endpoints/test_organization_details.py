@@ -711,6 +711,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         illegal_slug = list(RESERVED_ORGANIZATION_SLUGS)[0]
         self.get_error_response(self.organization.slug, slug=illegal_slug, status_code=400)
 
+    def test_agent_handoff_slug_is_reserved(self) -> None:
+        self.get_error_response(self.organization.slug, slug="agent-handoff", status_code=400)
+
     def test_valid_slugs(self) -> None:
         valid_slugs = ["santry", "downtown-canada", "1234-foo"]
         for slug in valid_slugs:
