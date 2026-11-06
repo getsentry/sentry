@@ -160,14 +160,6 @@ def continue_single_run(
 ) -> SeerRun:
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
-    # A reply always continues a run, so it never uses quota.
-    check_autofix_billing(
-        group,
-        SeerOperation.AUTOFIX_SINGLE_RUN_REPLY,
-        agent_run.run.referrer,
-        is_new_run=False,
-    )
-
     enable_coding = _org_allows_coding(group)
     open_pr = enable_coding and can_publish
     payload = AutofixSingleRunFeaturePayload(

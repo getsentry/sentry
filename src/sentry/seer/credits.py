@@ -19,7 +19,6 @@ class SeerOperation(StrEnum):
     AUTOFIX_CODE_CHANGES = "autofix_code_changes"
     AUTOFIX_OPEN_PR = "autofix_open_pr"
     AUTOFIX_PR_ITERATION = "autofix_pr_iteration"
-    AUTOFIX_SINGLE_RUN_REPLY = "autofix_single_run_reply"
 
 
 class SeerFeature(StrEnum):
@@ -56,9 +55,6 @@ SEER_OPERATIONS: dict[SeerOperation, SeerOperationConfig] = {
         SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
     ),
     SeerOperation.AUTOFIX_PR_ITERATION: SeerOperationConfig(
-        SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
-    ),
-    SeerOperation.AUTOFIX_SINGLE_RUN_REPLY: SeerOperationConfig(
         SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
     ),
 }
