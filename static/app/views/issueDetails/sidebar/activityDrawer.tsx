@@ -1,25 +1,21 @@
 import {useSearchParams} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  CrumbContainer,
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
   EventDrawerHeader,
   EventNavigator,
   Header,
-  NavigationCrumbs,
-  ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tn} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
@@ -28,13 +24,9 @@ import {issueCommentsQueryOptions} from 'sentry/views/issueDetails/activitySecti
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
-interface ActivityDrawerProps {
-  project: Project;
-}
-
 const GROUP_ACTIVITY_LIMIT = 100;
 
-export function ActivityDrawer({project}: ActivityDrawerProps) {
+export function ActivityDrawer() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get('filter') ?? 'all';
   const organization = useOrganization();
@@ -69,18 +61,10 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: t('Activity')},
-          ]}
+        <DrawerBreadcrumbs
+          current={{
+            label: t('Activity'),
+          }}
         />
       </EventDrawerHeader>
       <EventNavigator>

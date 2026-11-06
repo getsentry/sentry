@@ -297,7 +297,7 @@
   },
   "components/events/eventDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 3
+      "count": 2
     }
   },
   "components/events/eventMessage.tsx": {

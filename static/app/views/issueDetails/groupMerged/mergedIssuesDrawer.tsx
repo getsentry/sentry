@@ -1,14 +1,10 @@
-import {ProjectAvatar} from '@sentry/scraps/avatar';
-
 import {
-  CrumbContainer,
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
   EventDrawerHeader,
   EventNavigator,
   Header,
-  NavigationCrumbs,
-  ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -19,18 +15,10 @@ export function MergedIssuesDrawer({group, project}: {group: Group; project: Pro
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: t('Merged Issues')},
-          ]}
+        <DrawerBreadcrumbs
+          current={{
+            label: t('Merged Issues'),
+          }}
         />
       </EventDrawerHeader>
       <EventNavigator>

@@ -2,6 +2,8 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -10,15 +12,16 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
   EventDrawerHeader,
   EventNavigator,
   Header,
-  NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseMeta} from 'sentry/types/release';
@@ -254,27 +257,23 @@ export function ReleasesDrawerDetails({
     [location, navigate]
   );
 
-  const crumbs = [
-    {
-      label:
-        start && end ? (
-          <Link
-            to={{
+  const crumbs: BreadcrumbListProps['items'] =
+    start && end
+      ? [
+          {
+            type: 'link',
+            label: t('Releases'),
+            to: {
               query: {
                 ...locationQueryWithoutRelease,
                 [ReleasesDrawerFields.START]: start.toISOString(),
                 [ReleasesDrawerFields.END]: end.toISOString(),
               },
-            }}
-          >
-            {t('Releases')}
-          </Link>
-        ) : (
-          t('Releases')
-        ),
-    },
-    {label: formatVersion(release)},
-  ];
+            },
+          },
+        ]
+      : [];
+  const displayVersion = formatVersion(release);
 
   const showContent =
     project &&
@@ -294,7 +293,24 @@ export function ReleasesDrawerDetails({
     <EventDrawerContainer>
       <EventDrawerHeader>
         <ErrorBoundary mini>
-          <NavigationCrumbs crumbs={crumbs} />
+          <DrawerBreadcrumbs
+            items={crumbs}
+            current={{
+              label: displayVersion,
+              labelTooltip: displayVersion === release ? undefined : release,
+              // Reserve the avatar's slot while the release's project resolves,
+              // so the version label doesn't shift when it appears.
+              leadingGraphic: project ? (
+                <ProjectAvatar project={project} size={16} />
+              ) : isLoadingMeta ? (
+                <Placeholder
+                  width="16px"
+                  height="16px"
+                  testId="release-project-placeholder"
+                />
+              ) : undefined,
+            }}
+          />
         </ErrorBoundary>
       </EventDrawerHeader>
 

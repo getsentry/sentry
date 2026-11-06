@@ -7,12 +7,12 @@ import {
   type ChartId,
 } from 'sentry/components/charts/chartWidgetLoader';
 import {
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
   EventDrawerHeader,
   EventNavigator,
   Header,
-  NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import {t, tn} from 'sentry/locale';
@@ -164,12 +164,6 @@ export function ReleasesDrawerList({
 
   const title = tn('%s Release', '%s Releases', releases?.length ?? 0);
 
-  const crumbs = [
-    {
-      label: t('Releases'),
-    },
-  ];
-
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     evt => {
       let {startValue, endValue} = (evt as any).batch[0] as {
@@ -201,7 +195,7 @@ export function ReleasesDrawerList({
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
-        <NavigationCrumbs crumbs={crumbs} />
+        <DrawerBreadcrumbs current={{label: t('Releases')}} />
       </EventDrawerHeader>
       <EventNavigator>
         <Header>{title}</Header>

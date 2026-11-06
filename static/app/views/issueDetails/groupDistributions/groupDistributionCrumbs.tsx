@@ -1,14 +1,7 @@
-import {ProjectAvatar} from '@sentry/scraps/avatar';
+import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 
-import type {Crumb} from 'sentry/components/breadcrumbs';
-import {
-  CrumbContainer,
-  NavigationCrumbs,
-  ShortId,
-} from 'sentry/components/events/eventDrawer';
+import {DrawerBreadcrumbs} from 'sentry/components/events/eventDrawer';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -17,50 +10,30 @@ import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRou
 import {DrawerTab} from './types';
 
 interface Props {
-  group: Group;
-  project: Project;
   tab: DrawerTab;
 }
 
-export function GroupDistributionCrumbs({group, project, tab}: Props) {
+export function GroupDistributionCrumbs({tab}: Props) {
   const location = useLocation();
   const {tagKey} = useParams<{tagKey: string}>();
-
   const {baseUrl} = useGroupDetailsRoute();
-  const crumbs: Crumb[] = [
+
+  const listLabel = tab === DrawerTab.TAGS ? t('All Tags') : t('All Feature Flags');
+
+  if (!tagKey) {
+    return <DrawerBreadcrumbs current={{label: listLabel}} />;
+  }
+
+  const items: BreadcrumbListProps['items'] = [
     {
-      label: (
-        <CrumbContainer>
-          <ProjectAvatar project={project} />
-          <ShortId>{group.shortId}</ShortId>
-        </CrumbContainer>
-      ),
+      type: 'link',
+      label: listLabel,
+      to: {
+        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
+        query: {...location.query, tab},
+      },
     },
   ];
-  if (tab === DrawerTab.TAGS) {
-    crumbs.push({
-      label: t('All Tags'),
-      to: tagKey
-        ? {
-            pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-            query: {...location.query, tab: DrawerTab.TAGS},
-          }
-        : undefined,
-    });
-  } else if (tab === DrawerTab.FEATURE_FLAGS) {
-    crumbs.push({
-      label: t('All Feature Flags'),
-      to: tagKey
-        ? {
-            pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-            query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
-          }
-        : undefined,
-    });
-  }
-  if (tagKey) {
-    crumbs.push({label: tagKey});
-  }
 
-  return <NavigationCrumbs crumbs={crumbs} />;
+  return <DrawerBreadcrumbs items={items} current={{label: tagKey}} />;
 }

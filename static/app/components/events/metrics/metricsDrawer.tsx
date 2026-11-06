@@ -1,21 +1,15 @@
 import {useRef} from 'react';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
-
 import {
-  CrumbContainer,
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
   EventDrawerHeader,
   EventNavigator,
-  NavigationCrumbs,
-  ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {
@@ -25,11 +19,9 @@ import {
 
 interface MetricsIssueDrawerProps {
   event: Event;
-  group: Group;
-  project: Project;
 }
 
-export function MetricsDrawer({event, project, group}: MetricsIssueDrawerProps) {
+export function MetricsDrawer({event}: MetricsIssueDrawerProps) {
   const setMetricsQuery = useSetQueryParamsQuery();
   const metricsSearch = useQueryParamsSearch();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,19 +29,11 @@ export function MetricsDrawer({event, project, group}: MetricsIssueDrawerProps) 
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: getShortEventId(event.id)},
-            {label: t('Application Metrics')},
-          ]}
+        <DrawerBreadcrumbs
+          current={{
+            label: t('Application Metrics'),
+            labelTooltip: t('Event ID: %s', getShortEventId(event.id)),
+          }}
         />
       </EventDrawerHeader>
       <EventNavigator style={{gap: '0px'}}>

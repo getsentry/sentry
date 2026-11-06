@@ -6,7 +6,6 @@ import {IconSearch} from '@sentry/icons/search';
 import {IconSort} from '@sentry/icons/sort';
 import {IconTimer} from '@sentry/icons/timer';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
@@ -14,15 +13,13 @@ import {Grid, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
-  CrumbContainer,
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
   EventDrawerHeader,
   EventNavigator,
   Header,
-  NavigationCrumbs,
   SearchInput,
-  ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {
   applyBreadcrumbSearch,
@@ -33,8 +30,6 @@ import {
 import {useFocusControl} from 'sentry/components/events/useFocusControl';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -59,16 +54,12 @@ export const enum BreadcrumbControlOptions {
 interface BreadcrumbsDrawerProps {
   breadcrumbs: EnhancedCrumb[];
   event: Event;
-  group: Group;
-  project: Project;
   focusControl?: BreadcrumbControlOptions;
 }
 
 export function BreadcrumbsDrawer({
   breadcrumbs,
   event,
-  project,
-  group,
   focusControl: initialFocusControl,
 }: BreadcrumbsDrawerProps) {
   const organization = useOrganization();
@@ -212,19 +203,11 @@ export function BreadcrumbsDrawer({
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: getShortEventId(event.id)},
-            {label: t('Breadcrumbs')},
-          ]}
+        <DrawerBreadcrumbs
+          current={{
+            label: t('Breadcrumbs'),
+            labelTooltip: t('Event ID: %s', getShortEventId(event.id)),
+          }}
         />
       </EventDrawerHeader>
       <EventNavigator>
