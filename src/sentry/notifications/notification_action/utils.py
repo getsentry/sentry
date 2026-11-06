@@ -61,7 +61,7 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
 
         try:
             return execute_via_activity_type_registry(invocation=invocation)
-        except Exception:
+        except (NoRegistrationExistsError, ActivityHandlerValidationError):
             logger.exception(
                 "Error executing via activity type registry",
                 extra={
