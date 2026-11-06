@@ -22,6 +22,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
@@ -56,6 +57,7 @@ from sentry.seer.sentry_data_models import (
     ExecuteTimeseriesQueryErrorResponse,
     ExecuteTimeseriesQuerySuccessResponse,
     IssueDetailsResponse,
+    RepositoryDefinitionResponse,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
@@ -3080,6 +3082,59 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is None
+
+    def _finds(self, organization: Organization, repo_full_name: str) -> bool:
+        return isinstance(
+            get_repository_definition(
+                organization_id=organization.id, repo_full_name=repo_full_name
+            ),
+            RepositoryDefinitionResponse,
+        )
+
+    def _add_gitlab_repo(self, organization: Organization, **repo_params: Any) -> None:
+        Repository.objects.create(
+            organization_id=organization.id,
+            name="My Group / Sub / App",
+            url="https://gitlab.com/my-group/sub/app",
+            provider="integrations:gitlab",
+            external_id="1",
+            config={"path": "my-group/sub/app"},
+            **repo_params,
+        )
+
+    @with_feature("organizations:seer-cursor-origin-support")
+    def test_finds_a_repo_by_its_name_or_url_path(self) -> None:
+        for provider, name, url, path in (
+            ("github", "acme/app", "https://github.com/acme/app", "acme/app"),
+            ("github_enterprise", "acme/app", "https://ghe.example.com/acme/app", "acme/app"),
+            ("gitlab", "My Group / App", "https://gitlab.com/my-group/app", "my-group/app"),
+            ("cursor_origin", "acme/app", "https://cursor.com/codebase/acme/app", "acme/app"),
+        ):
+            organization = self.create_organization()
+            Repository.objects.create(
+                organization_id=organization.id,
+                name=name,
+                url=url,
+                provider=f"integrations:{provider}",
+                external_id="1",
+                config={"path": path},
+            )
+            with self.subTest(provider=provider):
+                assert self._finds(organization, name)
+                assert self._finds(organization, path)
+                assert self._finds(organization, path.upper())
+                assert not self._finds(organization, f"{path}-2")
+
+    def test_does_not_find_a_repo_whose_url_only_ends_the_same(self) -> None:
+        self._add_gitlab_repo(self.organization)
+
+        assert not self._finds(self.organization, "sub/app")
+
+    def test_does_not_find_another_organizations_or_an_inactive_repo(self) -> None:
+        self._add_gitlab_repo(self.create_organization())
+        self._add_gitlab_repo(self.organization, status=ObjectStatus.DISABLED)
+
+        assert not self._finds(self.organization, "my-group/sub/app")
 
     def test_get_repository_definition_not_found(self) -> None:
         """Test that nonexistent repository returns None"""
