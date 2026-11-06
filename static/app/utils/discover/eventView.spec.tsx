@@ -318,6 +318,18 @@ describe('EventView.fromLocation()', () => {
 });
 
 describe('EventView.fromSavedQuery()', () => {
+  it('handles saved queries without fields', () => {
+    const saved = {
+      id: '42',
+      name: 'best query',
+      version: 2,
+      projects: [],
+    } as unknown as SavedQuery;
+
+    const eventView = EventView.fromSavedQuery(saved);
+    expect(eventView.fields).toEqual([]);
+  });
+
   it('maps basic properties of saved query', () => {
     const saved: SavedQuery = {
       id: '42',

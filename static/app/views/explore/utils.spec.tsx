@@ -803,6 +803,16 @@ describe('getYAxisDiscoverSavedQuery', () => {
       {yAxes: ['count_unique(release)']},
     ]);
   });
+
+  it('falls back to count() when the API response omits fields', () => {
+    const {fields: _fields, ...withoutFields} = DiscoverSavedQueryFixture();
+    const savedQuery = {
+      ...withoutFields,
+      queryType: SavedQueryType.DISCOVER,
+    } as DiscoverSavedQuery;
+
+    expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([{yAxes: ['count()']}]);
+  });
 });
 
 describe('getSavedQueryTraceItemUrl', () => {
@@ -884,6 +894,16 @@ describe('getSavedQueryTraceItemUrl', () => {
     ]);
 
     expect(getCompareCaseInsensitiveParams(savedQuery)).toEqual([false, '1']);
+  });
+
+  it('builds a url for a discover query when the API response omits fields', () => {
+    const {fields: _fields, ...withoutFields} = DiscoverSavedQueryFixture();
+    const savedQuery = {
+      ...withoutFields,
+      queryType: SavedQueryType.DISCOVER,
+    } as DiscoverSavedQuery;
+
+    expect(() => getSavedQueryTraceItemUrl({savedQuery, organization})).not.toThrow();
   });
 
   function conversationsSavedQuery(overrides: Partial<ReadableSavedQuery> = {}) {
