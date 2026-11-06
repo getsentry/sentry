@@ -25,6 +25,7 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
@@ -106,6 +107,7 @@ from sentry.seer.sentry_data_models import (
     ProfileFlamegraphSuccessResponse,
     ProjectMembersResponse,
     ReplayMetadataResponse,
+    RepositoryDefinitionFailure,
     RepositoryDefinitionResponse,
     TeamMembersResponse,
     TraceItemEventsResponse,
@@ -949,12 +951,28 @@ def _find_repository(
     return None
 
 
+def _repository_lookup_failure(
+    organization_id: int, supported_providers: list[str]
+) -> RepositoryDefinitionFailure | None:
+    """Why a lookup found nothing, when it's known."""
+    integrations = integration_service.get_integrations(
+        organization_id=organization_id,
+        providers=supported_providers,
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+    )
+    if not integrations:
+        return RepositoryDefinitionFailure(failure_reason="no_scm_integration")
+    return None
+
+
 def get_repository_definition(
     *,
     organization_id: int,
     repo_full_name: str,
     external_id: str | None = None,
-) -> RepositoryDefinitionResponse | None:
+    report_failure_reason: bool = False,
+) -> RepositoryDefinitionResponse | RepositoryDefinitionFailure | None:
     """
     Look up a repository that the org has access to.
     Returns full RepoDefinition if found and accessible via code mappings, None otherwise.
@@ -968,6 +986,9 @@ def get_repository_definition(
         repo_full_name: Full repository name in format "owner/repo-name" (e.g., "getsentry/seer")
         external_id: Optional external repository ID (e.g., GitHub repo ID). Stable across renames.
                      If provided, this is used for lookup instead of name.
+        report_failure_reason: When nothing is found, say why in the response when it's known,
+                     instead of returning None. Opt-in because callers that don't ask would read
+                     that response as a repository.
 
     Returns:
         dict with RepoDefinition fields if found, None otherwise. Includes external_id
@@ -996,9 +1017,8 @@ def get_repository_definition(
                 "seer.rpc.invalid_repo_name_format",
                 extra={"repo_full_name": repo_full_name},
             )
-            return None
-
-        repo = _find_repository(organization_id, repo_full_name, supported_providers)
+        else:
+            repo = _find_repository(organization_id, repo_full_name, supported_providers)
 
     if not repo:
         logger.info(
@@ -1009,6 +1029,8 @@ def get_repository_definition(
                 "external_id": external_id,
             },
         )
+        if report_failure_reason:
+            return _repository_lookup_failure(organization_id, supported_providers)
         return None
 
     # Use the actual repo name from the database, not the requested name.
