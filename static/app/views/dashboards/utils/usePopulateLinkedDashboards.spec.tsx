@@ -2,11 +2,11 @@ import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
-import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {PrebuiltDashboardId} from './prebuiltConfigs';
 import {
   getLinkedDashboardPrebuiltIds,
   replacePlaceholderLinkedDashboardIds,
-} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
+} from './usePopulateLinkedDashboards';
 
 describe('getLinkedDashboardPrebuiltIds', () => {
   it('returns empty array when widget has no linked dashboards', () => {

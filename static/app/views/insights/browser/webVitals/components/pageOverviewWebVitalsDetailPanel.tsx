@@ -34,9 +34,6 @@ import {
   parseAsScalar,
   parseAsSingleScalar,
 } from 'sentry/views/explore/queryParams/parsers';
-import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
-import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
-import {WebVitalDetailHeader} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
@@ -57,6 +54,10 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
+
+import {WebVitalStatusLineChart} from './charts/webVitalStatusLineChart';
+import {PerformanceBadge} from './performanceBadge';
+import {WebVitalDetailHeader} from './webVitalDescription';
 
 type Column = GridColumnHeader;
 

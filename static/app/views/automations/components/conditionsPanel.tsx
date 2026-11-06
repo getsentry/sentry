@@ -15,11 +15,12 @@ import type {
   DataCondition,
   DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
-import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
-import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
+
+import {FILTER_MATCH_OPTIONS} from './actionFilters/constants';
+import {TRIGGER_MATCH_OPTIONS} from './triggers/constants';
+import {actionNodesMap} from './actionNodes';
+import {dataConditionNodesMap} from './dataConditionNodes';
 
 type ConditionsPanelProps = {
   actionFilters: DataConditionGroup[];

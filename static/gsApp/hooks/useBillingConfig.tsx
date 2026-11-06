@@ -1,6 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {BillingConfigTier} from 'getsentry/constants';
 import type {BillingConfig} from 'getsentry/types';
@@ -10,13 +11,11 @@ interface UseBillingConfigProps {
 }
 
 export function useBillingConfig({organization}: UseBillingConfigProps) {
-  return useApiQuery<BillingConfig>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {tier: BillingConfigTier.UPSELL}},
-    ],
-    {staleTime: Infinity}
+  return useQuery(
+    apiOptions.as<BillingConfig>()('/customers/$organizationIdOrSlug/billing-config/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {tier: BillingConfigTier.UPSELL},
+      staleTime: Infinity,
+    })
   );
 }

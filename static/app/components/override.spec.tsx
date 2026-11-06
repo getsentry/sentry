@@ -2,8 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Override} from 'sentry/components/override';
 import {getOverride, registerOverride} from 'sentry/overrideRegistry';
+
+import {Override} from './override';
 
 function OverrideWrapper(props: any) {
   return (

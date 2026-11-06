@@ -2,10 +2,7 @@ import type {ComponentProps} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  AIOutputSection,
-  getAIToolOutput,
-} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {AIOutputSection, getAIToolOutput} from './aiOutput';
 
 function makeAiNodeWithAttributes(
   attributes: Record<string, unknown>

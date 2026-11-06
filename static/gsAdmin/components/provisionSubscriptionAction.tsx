@@ -5,11 +5,11 @@ import upperFirst from 'lodash/upperFirst';
 
 import {Input} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';

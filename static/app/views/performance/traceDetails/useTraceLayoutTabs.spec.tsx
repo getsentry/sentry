@@ -3,14 +3,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {EAPTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/types';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import type {EAPTraceMeta} from './traceApi/types';
+import {TraceTree} from './traceModels/traceTree';
 import {
   getInitialTab,
   TraceLayoutTabKeys,
   useTraceLayoutTabs,
-} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
-import type {TraceOverviewData} from 'sentry/views/performance/traceDetails/useTraceOverviewData';
+} from './useTraceLayoutTabs';
+import type {TraceOverviewData} from './useTraceOverviewData';
 
 const sections = {
   hasAiSpans: false,

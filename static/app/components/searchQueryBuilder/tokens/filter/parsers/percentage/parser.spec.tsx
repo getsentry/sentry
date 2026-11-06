@@ -1,4 +1,4 @@
-import {parseFilterValuePercentage} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/percentage/parser';
+import {parseFilterValuePercentage} from './parser';
 
 describe('parseFilterValuePercentage', () => {
   it('parses percentage values', () => {

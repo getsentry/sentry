@@ -8,8 +8,8 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -109,7 +109,7 @@ export function SizeCompareSelectionContent({
     },
     onError: error => {
       const errorMessage = parseApiError(error);
-      addErrorMessage(
+      toast.error(
         errorMessage === 'Unknown API Error'
           ? t('Failed to trigger comparison. Please try again.')
           : errorMessage
@@ -126,7 +126,7 @@ export function SizeCompareSelectionContent({
         onClearBaseBuild={() => setSelectedBaseBuild(undefined)}
         onTriggerComparison={() => {
           if (!selectedBaseBuild) {
-            addErrorMessage(t('Please select a base build to compare.'));
+            toast.error(t('Please select a base build to compare.'));
             return;
           }
 

@@ -7,7 +7,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import {SendWeeklyEmailAction} from 'admin/components/sendWeeklyEmailAction';
@@ -36,7 +36,7 @@ describe('SendWeeklyEmailAction', () => {
   });
 
   it('shows a success message after the modal closes when the request succeeds', async () => {
-    const successMessage = jest.spyOn(indicators, 'addSuccessMessage');
+    const successMessage = jest.spyOn(toast, 'success');
     const sendMock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -90,7 +90,7 @@ describe('SendWeeklyEmailAction', () => {
 
   it('shows a membership error after the modal closes when the request returns 404', async () => {
     MockApiClient.asyncDelay = 1;
-    const errorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    const errorMessage = jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -112,7 +112,7 @@ describe('SendWeeklyEmailAction', () => {
 
   it('shows the response text after the modal closes when the request fails with another status', async () => {
     MockApiClient.asyncDelay = 1;
-    const errorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    const errorMessage = jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -131,7 +131,7 @@ describe('SendWeeklyEmailAction', () => {
   });
 
   it('shows a validation error without sending when the delivery email is missing', async () => {
-    const errorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    const errorMessage = jest.spyOn(toast, 'error');
     const sendMock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',

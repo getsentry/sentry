@@ -24,11 +24,9 @@ import GSBanner from 'getsentry/components/gsBanner';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 jest.mock('getsentry/actionCreators/modal');
-const mockGuideStore = {state: {} as GuideStoreState};
+const mockGuideState = {} as GuideStoreState;
 jest.mock('sentry/stores/guideStore', () => ({
-  get GuideStore() {
-    return mockGuideStore;
-  },
+  GuideStore: {getState: () => mockGuideState},
 }));
 
 function setUpTests() {
@@ -259,7 +257,7 @@ describe('GSBanner', () => {
   });
 
   it('loads pendo', async () => {
-    mockGuideStore.state.currentGuide = null;
+    mockGuideState.currentGuide = null;
     const organization = OrganizationFixture({
       slug: 'forced-trial',
       orgRole: 'admin',
@@ -325,7 +323,7 @@ describe('GSBanner', () => {
   });
 
   it('delays pendo guides if other guides are active', async () => {
-    mockGuideStore.state.currentGuide = {} as Guide;
+    mockGuideState.currentGuide = {} as Guide;
     const organization = OrganizationFixture();
     SubscriptionStore.set(
       organization.slug,

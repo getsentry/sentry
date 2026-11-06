@@ -1,11 +1,12 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict, cast
+from typing import Annotated, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.principal import has_user
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import (
@@ -26,38 +27,79 @@ DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 
 
 class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
-    environment: list[str]
-    query: str
-    fields: list[str]
-    widths: list[str]
-    conditions: list[str]
-    aggregations: list[str]
-    range: str
-    start: str
-    end: str
-    orderby: str
-    limit: str
-    yAxis: list[str]
-    display: str
-    topEvents: int
-    interval: str
-    exploreQuery: dict[str, object] | None
-    lastVisited: datetime | None
-    starred: bool
-    position: int | None
+    environment: Annotated[
+        list[str], ApiDescription("Names of the environments the query filters by")
+    ]
+    query: Annotated[str, ApiDescription("Search query that filters the results")]
+    fields: Annotated[
+        list[str], ApiDescription("Fields, functions or equations the query requests")
+    ]
+    widths: Annotated[
+        list[str], ApiDescription("Rendered column widths, in the same order as the query's fields")
+    ]
+    conditions: Annotated[
+        list[str], ApiDescription("Filter conditions, each as a [column, operator, value] triple")
+    ]
+    aggregations: Annotated[
+        list[str],
+        ApiDescription("Aggregate functions to apply, each as a [function, column, alias] triple"),
+    ]
+    range: Annotated[str, ApiDescription("Saved relative time range, such as 14d")]
+    start: Annotated[str, ApiDescription("Saved start time (ISO 8601)")]
+    end: Annotated[str, ApiDescription("Saved end time (ISO 8601)")]
+    orderby: Annotated[str, ApiDescription("How the query results are ordered")]
+    limit: Annotated[str, ApiDescription("Maximum number of rows to return")]
+    yAxis: Annotated[list[str], ApiDescription("Aggregate functions plotted on the chart")]
+    display: Annotated[
+        str, ApiDescription("Chart type for the saved query, such as default, top5, daily or bar")
+    ]
+    topEvents: Annotated[int, ApiDescription("Number of top events' time series to show")]
+    interval: Annotated[str, ApiDescription("Resolution of the time series")]
+    exploreQuery: Annotated[
+        dict[str, object] | None,
+        ApiDescription("Explore query this saved query was migrated to. Null when there's none"),
+    ]
+    lastVisited: Annotated[
+        datetime | None, ApiDescription("When the requesting user last viewed the query (ISO 8601)")
+    ]
+    starred: Annotated[bool, ApiDescription("Whether the requesting user starred the query")]
+    position: Annotated[
+        int | None,
+        ApiDescription(
+            "Position of the query in the requesting user's starred list. Null when it isn't starred"
+        ),
+    ]
 
 
 class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
-    id: str
-    name: str
-    projects: list[int]
-    version: int
-    queryDataset: str
-    datasetSource: str
-    expired: bool
-    dateCreated: datetime
-    dateUpdated: datetime
-    createdBy: UserSerializerResponse | None
+    id: Annotated[str, ApiDescription("ID of the saved query")]
+    name: Annotated[str, ApiDescription("Name of the saved query")]
+    projects: Annotated[
+        list[int],
+        ApiDescription("IDs of the projects the query filters by. [-1] means all projects"),
+    ]
+    version: Annotated[
+        int,
+        ApiDescription(
+            "Schema version of the saved query: 1 for the legacy shape, 2 for the current one"
+        ),
+    ]
+    queryDataset: Annotated[
+        str, ApiDescription("Dataset the query runs on, such as error-events or transaction-like")
+    ]
+    datasetSource: Annotated[
+        str, ApiDescription("How the dataset was chosen: unknown, inferred, user or forced")
+    ]
+    expired: Annotated[
+        bool, ApiDescription("Whether the saved time range is outside data retention")
+    ]
+    dateCreated: Annotated[datetime, ApiDescription("When the saved query was created (ISO 8601)")]
+    dateUpdated: Annotated[
+        datetime, ApiDescription("When the saved query was last updated (ISO 8601)")
+    ]
+    createdBy: Annotated[
+        UserSerializerResponse | None, ApiDescription("User who created the saved query")
+    ]
 
 
 @register(DiscoverSavedQuery)

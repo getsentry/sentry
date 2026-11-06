@@ -1,13 +1,14 @@
+import type {
+  ExplorerCodingAgentState,
+  RepoPRState,
+} from 'sentry/views/seerExplorer/types';
+
 import {
   getCodingAgentResultLink,
   getRepoPullRequestLink,
   hasCreatedPullRequests,
   isCreatedPullRequestState,
-} from 'sentry/components/events/autofix/pullRequests';
-import type {
-  ExplorerCodingAgentState,
-  RepoPRState,
-} from 'sentry/views/seerExplorer/types';
+} from './pullRequests';
 
 type CodingAgentResult = NonNullable<ExplorerCodingAgentState['results']>[number];
 

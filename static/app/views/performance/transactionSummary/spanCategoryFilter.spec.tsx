@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
+import {SpanCategoryFilter} from './spanCategoryFilter';
 
 describe('SpanCategoryFilter', () => {
   const organization = OrganizationFixture();

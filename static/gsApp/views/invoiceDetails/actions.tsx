@@ -3,12 +3,8 @@ import {Fragment, useEffect} from 'react';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -45,7 +41,7 @@ export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Pr
     });
 
     try {
-      addLoadingMessage(t('Sending Email\u2026'));
+      toast.loading(t('Sending Email\u2026'));
       await api.requestPromise(
         `/customers/${invoice.customer.slug}/invoices/${invoice.id}/`,
         {
@@ -53,10 +49,10 @@ export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Pr
           data,
         }
       );
-      addSuccessMessage(t('Email sent successfully.'));
+      toast.success(t('Email sent successfully.'));
       form.reset();
     } catch (e) {
-      addErrorMessage(t('Could not send email.'));
+      toast.error(t('Could not send email.'));
     }
   }
 

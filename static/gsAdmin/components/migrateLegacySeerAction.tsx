@@ -2,11 +2,8 @@ import {Fragment, useEffect, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -48,25 +45,25 @@ export function MigrateLegacySeerAction({
         data: payload,
       }),
     onSuccess: () => {
-      addSuccessMessage('Legacy Seer migration complete.');
+      toast.success('Legacy Seer migration complete.');
     },
     onError: error => {
       if (
         error instanceof RequestError &&
         typeof error.responseJSON?.detail === 'string'
       ) {
-        addErrorMessage(error.responseJSON.detail);
+        toast.error(error.responseJSON.detail);
       } else if (error instanceof RequestError && error.responseText) {
-        addErrorMessage(error.responseText);
+        toast.error(error.responseText);
       } else {
-        addErrorMessage('Migration failed.');
+        toast.error('Migration failed.');
       }
     },
   });
 
   useEffect(() => {
     setConfirmCallback(() => {
-      addLoadingMessage('Running legacy Seer migration\u2026');
+      toast.loading('Running legacy Seer migration\u2026');
       mutate({applyImmediately, addSeerTrial});
     });
   }, [setConfirmCallback, mutate, applyImmediately, addSeerTrial]);

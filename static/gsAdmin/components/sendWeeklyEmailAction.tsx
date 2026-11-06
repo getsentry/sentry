@@ -1,11 +1,8 @@
 import {useEffect, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -41,14 +38,14 @@ export function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
         data: payload,
       }),
     onSuccess: () => {
-      addSuccessMessage('Email queued');
+      toast.success('Email queued');
     },
     onError: error => {
       if (error instanceof RequestError) {
         if (error.status === 404) {
-          addErrorMessage('User is not a member of the organization!');
+          toast.error('User is not a member of the organization!');
         } else {
-          addErrorMessage(error.responseText || error.name);
+          toast.error(error.responseText || error.name);
         }
       }
     },
@@ -57,11 +54,11 @@ export function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
   useEffect(() => {
     setConfirmCallback(() => {
       if (!dryRun && !deliveryEmail) {
-        addErrorMessage('Delivery email address is required when dry run is disabled');
+        toast.error('Delivery email address is required when dry run is disabled');
         return;
       }
 
-      addLoadingMessage('Sending Email');
+      toast.loading('Sending Email');
       mutate({targetEmail, deliveryEmail, dryRun});
     });
   }, [setConfirmCallback, mutate, targetEmail, deliveryEmail, dryRun]);
