@@ -13,3 +13,65 @@ it('preserves the finite exceptional layouts with an explicit display timezone',
     '13:02:03.004'
   );
 });
+
+it.each([
+  [1, '1st'],
+  [2, '2nd'],
+  [3, '3rd'],
+  [11, '11th'],
+  [12, '12th'],
+  [13, '13th'],
+  [21, '21st'],
+  [22, '22nd'],
+  [23, '23rd'],
+  [31, '31st'],
+])('preserves English ordinal day %s', (day, expected) => {
+  expect(
+    formatChartDateTime(Date.UTC(2026, 0, day), 'ordinalDate', {timezone: 'UTC'})
+  ).toBe(`Jan ${expected}`);
+});
+
+it('uses explicit hour cycles at midnight and truncates fractional milliseconds', () => {
+  expect(formatChartDateTime(12.75, 'replayTime', {timezone: 'UTC', clock: '24'})).toBe(
+    '00:00:00.012'
+  );
+  expect(
+    formatChartDateTime(new Date(12), 'replayTime', {timezone: 'UTC', clock: '12'})
+  ).toBe('12:00:00.012');
+});
+
+it('uses Intl short zone labels for seasonal and fractional offsets', () => {
+  const date = '2026-07-01T00:00:00Z';
+  expect(formatChartDateTime(date, 'timezone', {timezone: 'Europe/London'})).toBe(
+    'GMT+1'
+  );
+  expect(formatChartDateTime(date, 'timezone', {timezone: 'Asia/Kathmandu'})).toBe(
+    'GMT+5:45'
+  );
+});
+
+it('fails closed for invalid timestamps and non-instant input shapes', () => {
+  for (const input of [
+    '2026-01-01',
+    '2026-01-01T00:00:00',
+    Infinity,
+    new Date(NaN),
+    {},
+    null,
+  ]) {
+    expect(
+      Reflect.apply(formatChartDateTime, undefined, [input, 'year', {timezone: 'UTC'}])
+    ).toBe('Invalid date');
+  }
+});
+
+it.each([
+  ['0000-01-01T00:00:00Z', '0000'],
+  ['-000001-01-01T00:00:00Z', '-0001'],
+  ['0099-01-01T00:00:00Z', '0099'],
+])('preserves the signed ISO year of %s', (date, year) => {
+  expect(formatChartDateTime(date, 'year', {timezone: 'UTC'})).toBe(year);
+  expect(formatChartDateTime(date, 'ordinalDateWithYear', {timezone: 'UTC'})).toBe(
+    `Jan 1st ${year}`
+  );
+});
