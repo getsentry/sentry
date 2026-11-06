@@ -1,3 +1,4 @@
+import type * as React from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {
   createFormHook,
@@ -10,16 +11,16 @@ import {
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {BaseField} from '@sentry/scraps/form/field/baseField';
 import {CheckboxField} from '@sentry/scraps/form/field/checkboxField';
-import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
+import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {
-  FieldMeta,
-  FieldLayout,
   FormElementContext,
   fieldContext,
   formContext,
   useFormContext,
   useIsInsideFormElement,
-} from '@sentry/scraps/formPresentation';
+} from '@sentry/scraps/form/formContext';
+import {FieldLayout} from '@sentry/scraps/form/layout';
+import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 
 import {CompactSelectField} from './field/compactSelectField';
 import {InputField} from './field/inputField';

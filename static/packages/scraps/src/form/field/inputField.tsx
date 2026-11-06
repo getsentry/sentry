@@ -1,3 +1,5 @@
+import type * as React from 'react';
+
 import {type InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
 

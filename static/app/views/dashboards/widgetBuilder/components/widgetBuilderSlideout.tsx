@@ -13,6 +13,7 @@ import isEqual from 'lodash/isEqual';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -21,7 +22,6 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Heading} from '@sentry/scraps/text';
 import {useMedia} from '@sentry/scraps/useMedia';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';

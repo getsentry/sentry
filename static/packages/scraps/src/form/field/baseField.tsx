@@ -1,18 +1,14 @@
+import type * as React from 'react';
 import {useEffect, useRef, type Ref} from 'react';
 import {mergeRefs} from '@react-aria/utils';
 
-import {
-  useAutoSaveContext,
-  useFieldContext,
-  Checkmark,
-  Spinner,
-  useFieldId,
-  useHintTextId,
-  FieldMeta,
-} from '@sentry/scraps/formPresentation';
+import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/fieldIds';
+import {FieldMeta} from '@sentry/scraps/form/field/meta';
+import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {Checkmark, Spinner} from '@sentry/scraps/form/icons';
 import {Flex} from '@sentry/scraps/layout';
-
-import {useLocation} from 'sentry/utils/useLocation';
+import {useOverlayContext} from '@sentry/scraps/overlayContext';
 
 export type BaseFieldProps<T extends HTMLElement> = {
   disabled?: boolean | string;
@@ -46,11 +42,11 @@ export const useAutoSaveIndicator = () => {
 };
 
 function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | null>) {
-  const location = useLocation();
+  const locationHash = useOverlayContext().location?.hash ?? '';
   useEffect(() => {
     let hash: string;
     try {
-      hash = decodeURIComponent(location.hash.slice(1));
+      hash = decodeURIComponent(locationHash.slice(1));
     } catch {
       return;
     }
@@ -60,7 +56,7 @@ function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | n
     ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
     ref.current?.focus({focusVisible: true});
     animateRowHighlight(fieldName, ref.current);
-  }, [fieldName, ref, location.hash]);
+  }, [fieldName, ref, locationHash]);
 }
 
 function useFocusRestore(ref: React.RefObject<HTMLElement | null>) {

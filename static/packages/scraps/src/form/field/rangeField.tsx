@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import type {DistributedOmit} from 'type-fest';
 
-import {useAutoSaveContext, useLabelId} from '@sentry/scraps/formPresentation';
+import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {useLabelId} from '@sentry/scraps/form/field/fieldIds';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
 

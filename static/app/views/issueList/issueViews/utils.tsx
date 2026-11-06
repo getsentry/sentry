@@ -1,4 +1,5 @@
-import {openConfirmModal} from 'sentry/components/confirm';
+import {openConfirmModal} from '@sentry/scraps/confirm';
+
 import {t} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
