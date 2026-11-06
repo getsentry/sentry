@@ -23,6 +23,11 @@ interface AvatarButtonProps extends Omit<
   'aria-label': string;
   /** Omit to render an empty/unassigned placeholder. */
   avatar?: BaseAvatarProps;
+  /**
+   * Avatar to take the button's border color from, when it should match
+   * something other than the avatar it shows. Defaults to `avatar`.
+   */
+  colorAvatar?: BaseAvatarProps;
   /** Circular (e.g. users) vs squircle (e.g. teams) shape. Defaults to `avatar.round`. */
   round?: boolean;
   size?: AvatarButtonSize;
@@ -30,6 +35,7 @@ interface AvatarButtonProps extends Omit<
 
 export function AvatarButton({
   avatar,
+  colorAvatar,
   round: explicitRound,
   size: explicitSize,
   ...props
@@ -49,7 +55,11 @@ export function AvatarButton({
           : undefined,
   });
 
+  // `colors` drives the layout of the avatar shown (padding); `chonk` is the
+  // border color, which can come from `colorAvatar` instead.
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
+  const chonkColors = useAvatarColors(isSuggested ? undefined : (colorAvatar ?? avatar));
+  const chonk = chonkColors.type === 'none' ? undefined : chonkColors.chonk;
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
@@ -71,17 +81,14 @@ export function AvatarButton({
   }
 
   if (avatarDefinition.type === 'letter') {
-    const avatarChonk = colors.type === 'letter' ? colors.chonk : undefined;
-
     return (
-      <StyledAvatarButton {...props} size={size} round={round} chonk={avatarChonk}>
+      <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
         <AvatarContainer
           size={size}
           round={round}
           padded={false}
           borderColor={
-            avatarChonk ??
-            (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
+            chonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
           }
           borderStyle={isSuggested ? 'dashed' : 'solid'}
         >
@@ -93,8 +100,6 @@ export function AvatarButton({
       </StyledAvatarButton>
     );
   }
-
-  const chonk = colors.type === 'image' ? colors.chonk : undefined;
 
   return (
     <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>

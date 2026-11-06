@@ -4,7 +4,7 @@ import {IconSettings} from '@sentry/icons/settings';
 import {IconSliders} from '@sentry/icons/sliders';
 import {IconUpload} from '@sentry/icons/upload';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
+import {getOrganizationAvatarProps, UserAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -97,6 +97,10 @@ export function UserDropdown() {
             {...triggerProps}
             aria-label={user.email}
             avatar={avatarProps}
+            // Match the menu header, which takes its color from the organization.
+            colorAvatar={
+              organization ? getOrganizationAvatarProps(organization) : undefined
+            }
             analyticsEventKey="navigation.primary_item_clicked"
             analyticsEventName="Navigation: Primary Item Clicked"
             analyticsParams={{item: 'account'}}
