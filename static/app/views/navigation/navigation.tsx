@@ -18,6 +18,8 @@ import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import {getInboxPath, getOrganizationHomePath} from 'sentry/utils/organizationHomePath';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -99,7 +101,7 @@ function NavigationImpl() {
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
           {isSettingsNavigation && organization ? (
-            <SettingsNavigationBackButton organizationSlug={organization.slug} />
+            <SettingsNavigationBackButton organization={organization} />
           ) : organization ? (
             <OrganizationDropdown />
           ) : (
@@ -149,9 +151,9 @@ function NavigationImpl() {
 export const Navigation = registerLLMContext('navigation', NavigationImpl);
 
 export function SettingsNavigationBackButton({
-  organizationSlug,
+  organization,
 }: {
-  organizationSlug: string;
+  organization: Organization;
 }) {
   const {setActiveGroup} = usePrimaryNavigation();
   return (
@@ -161,8 +163,8 @@ export function SettingsNavigationBackButton({
       aria-label={t('Back to app')}
       tooltipProps={{title: t('Back to app')}}
       to={getReturnPath(
-        getSettingsReturnPathKey(organizationSlug),
-        `/organizations/${organizationSlug}/issues/`
+        getSettingsReturnPathKey(organization.slug),
+        getOrganizationHomePath(organization)
       )}
       onClick={() => setActiveGroup(null)}
     />
@@ -257,14 +259,7 @@ export function PrimaryNavigationItems() {
     : getInvestigationsPath(organization.slug);
 
   const prefix = `organizations/${organization.slug}`;
-
-  // The Issues inbox takes the slot when both inboxes are enabled, so the
-  // primary nav never shows two Inbox items.
-  const inboxPath = organization.features.includes('issue-inbox')
-    ? `/${prefix}/issues/inbox/`
-    : organization.features.includes('universal-inbox')
-      ? `/${prefix}/inbox/`
-      : null;
+  const inboxPath = getInboxPath(organization);
 
   return (
     <Fragment>

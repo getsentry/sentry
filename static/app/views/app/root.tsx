@@ -2,8 +2,11 @@ import {useEffect} from 'react';
 
 import {DEFAULT_APP_ROUTE} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {getOrganizationHomePath} from 'sentry/utils/organizationHomePath';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 /**
@@ -14,23 +17,27 @@ import {useNavigate} from 'sentry/utils/useNavigate';
  * or a deploy preview), so we must replicate the functionality and redirect
  * the user to the proper organization.
  *
- * TODO: There might be an edge case where user does not have `lastOrganization` set,
- * in which case we should load their list of organizations and make a decision
+ * The home page depends on the organization's features, so this waits for the
+ * organization to load before redirecting.
  */
 function AppRoot() {
   const {lastOrganization} = useLegacyStore(ConfigStore);
+  const {organization, error} = useLegacyStore(OrganizationStore);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!lastOrganization) {
+    if (organization) {
+      navigate(normalizeUrl(getOrganizationHomePath(organization)), {replace: true});
       return;
     }
 
-    const orgSlug = lastOrganization;
-    const url = replaceRouterParams(DEFAULT_APP_ROUTE, {orgSlug});
-
-    navigate(url, {replace: true});
-  }, [lastOrganization, navigate]);
+    // Without organization details, fall back to the issue list so the error
+    // surfaces there instead of on a blank page.
+    if (error && lastOrganization) {
+      const url = replaceRouterParams(DEFAULT_APP_ROUTE, {orgSlug: lastOrganization});
+      navigate(url, {replace: true});
+    }
+  }, [organization, error, lastOrganization, navigate]);
 
   return null;
 }
