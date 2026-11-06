@@ -16,6 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getEndOfDay,
   getStartOfPeriodAgo,
+  getUtcToSystem,
   isValidTime,
   setDateToTime,
 } from 'sentry/utils/dates';
@@ -195,7 +196,7 @@ class BaseDateRange extends Component<Props, State> {
     // (or really, Jan 2 @ 00:00:00 - 1 second), while the start time is at 00:00
     let minDate = getStartOfPeriodAgo('days', (maxPickableDays ?? MAX_PICKABLE_DAYS) - 1);
 
-    let maxDate = new Date();
+    let maxDate = utc ? getUtcToSystem(new Date()) : new Date();
 
     // if the start and end date are the same, it means the user can still select another date,
     // at this point we want to apply the maxDateRange
