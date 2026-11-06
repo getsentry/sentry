@@ -362,12 +362,11 @@ def build_activity_notification_data(
             }
         )
 
-    if activity.user_id:
-        user = user_service.get_user(user_id=activity.user_id)
-        if user:
-            action_data["activity_user_name"] = get_activity_user_name(
-                user=user, organization_id=organization.id
-            )
+    user = user_service.get_user(user_id=activity.user_id) if activity.user_id else None
+    if user:
+        action_data["activity_user_name"] = get_activity_user_name(
+            user=user, organization_id=organization.id
+        )
 
     match activity.type:
         case ActivityType.SET_RESOLVED_IN_COMMIT.value:
@@ -404,21 +403,11 @@ def build_activity_notification_data(
             if assignee_email:
                 assignee_url = f"mailto:{assignee_email}"
 
-            # Check if this is an automated assignment from a Sentry App
-            if activity.user_id:
-                user = user_service.get_user(user_id=activity.user_id)
-                if user and user.is_sentry_app:
-                    return AssignedNotificationData(
-                        **action_data,
-                        assignee_label=assignee_label,
-                        assignee_url=assignee_url,
-                        is_automated=True,
-                    )
-
             return AssignedNotificationData(
                 **action_data,
                 assignee_label=assignee_label,
                 assignee_url=assignee_url,
+                is_automated=bool(user and user.is_sentry_app),
             )
         case _:
             return ActivityNotificationData(**action_data)
