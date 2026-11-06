@@ -527,6 +527,9 @@ function getSingleRunSections(
           : 'completed',
     });
   }
+  if (runState.status === 'error') {
+    sections[sections.length - 1]!.status = 'error';
+  }
   return sections;
 }
 
