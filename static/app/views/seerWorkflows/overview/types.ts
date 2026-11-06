@@ -164,8 +164,11 @@ export interface OverviewPullRequest {
 }
 
 export interface PullRequestFileDiff {
+  /** Hunks only, without `---`/`+++` headers. Null for binary or very large files. */
   patch: string | null;
   path: string;
+  previousPath: string | null;
+  status: string;
 }
 
 export interface PullRequestFilesResponse {

@@ -168,7 +168,9 @@ export interface ToolResult {
     agentWriteApproval?: AgentWriteApproval;
     artifacts?: Artifact[];
     calls?: CallRecord[];
+    file_patches?: ExplorerFilePatch[] | null;
     links?: ToolLink[];
+    pr_commit_shas?: Record<string, string> | null;
     todos?: TodoItem[];
   } | null;
 }

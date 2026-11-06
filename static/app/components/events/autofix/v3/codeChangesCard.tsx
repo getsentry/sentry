@@ -4,7 +4,7 @@ import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -54,6 +54,7 @@ const MAX_AUTO_EXPANDED_DIFF_LINES = 30;
 
 type RepoChanges =
   | {status: 'pending' | 'pushing'}
+  | {prUrl: string | null; status: 'error'}
   | {patches: ExplorerFilePatch[]; pushFailed: boolean; status: 'ready'};
 
 function getFinalExplanation(section: AutofixSection): string | null {
@@ -185,27 +186,26 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       ])
     );
     for (const [repo, result] of pullRequestPatches) {
-      if (result.status === 'pending' || result.status === 'pushing') {
-        changes.set(repo, {status: result.status});
-      } else if (result.status === 'success') {
+      if (result.status === 'success') {
         changes.set(repo, {
           status: 'ready',
           patches: result.patches,
           pushFailed: result.pushFailed,
         });
+      } else {
+        changes.set(repo, result);
       }
-      // Otherwise keep the run's patches, which beat showing nothing.
     }
     return changes;
   }, [patchesByRepo, pullRequestPatches]);
 
   const markdown = useMemo(() => {
-    if (!artifact || !pullRequestPatches.size) {
+    if (!pullRequestPatches.size) {
       return artifact ? artifactToMarkdown(artifact) : null;
     }
     const patches: ExplorerFilePatch[] = [];
     for (const changes of changesByRepo.values()) {
-      // Don't copy a partial diff while any repo is still loading or pushing.
+      // Only copy when every repo's displayed diff is available.
       if (changes.status !== 'ready') {
         return null;
       }
@@ -323,7 +323,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
         />
       </Fragment>
     );
-  } else if (section.status === 'completed' && artifact && patchesByRepo.size) {
+  } else if (section.status === 'completed' && changesByRepo.size) {
     content = (
       <Fragment>
         {resetPrompt(
@@ -347,6 +347,18 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
               </Text>
             )}
             {changes.status === 'pending' && <Placeholder height="4rem" />}
+            {changes.status === 'error' && (
+              <Alert variant="warning">
+                <Stack gap="md" align="start">
+                  {t("We couldn't load the pull request's changes.")}
+                  {changes.prUrl && (
+                    <LinkButton external href={`${changes.prUrl}/files`} size="xs">
+                      {t('View diff on GitHub')}
+                    </LinkButton>
+                  )}
+                </Stack>
+              </Alert>
+            )}
             {changes.status === 'ready' && changes.pushFailed && (
               <Alert variant="warning">
                 {t(

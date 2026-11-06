@@ -1,11 +1,22 @@
+import {Fragment} from 'react';
+import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider, DiffLineType} from 'sentry/components/events/autofix/types';
 import type {
   AutofixArtifact,
   AutofixSection,
+  ExplorerAutofixState,
   RootCauseArtifact,
   SolutionArtifact,
   useExplorerAutofix,
@@ -144,6 +155,29 @@ const mockAutofix: ReturnType<typeof useExplorerAutofix> = {
   dismissCodingAgentError: jest.fn(),
   warnings: [],
 };
+
+function PrIterationCards({
+  runState,
+  section,
+}: {
+  runState: ExplorerAutofixState;
+  section: AutofixSection;
+}) {
+  const autofix = {...mockAutofix, runState};
+  return (
+    <Fragment>
+      <section aria-label="Code Changes card">
+        <CodeChangesCard groupId="1" autofix={autofix} section={section} />
+      </section>
+      <PullRequestsCard
+        autofix={autofix}
+        section={makeSection('pull_request', 'completed', [
+          Object.values(runState.repo_pr_states ?? {}),
+        ])}
+      />
+    </Fragment>
+  );
+}
 
 const mockAutofixWithRunState: ReturnType<typeof useExplorerAutofix> = {
   ...mockAutofix,
@@ -2229,6 +2263,191 @@ describe('ArtifactCard', () => {
         screen.getByText('Anything else you want to see on your PR?')
       ).toBeInTheDocument();
     });
+  });
+
+  it('keeps pinned PR cards in sync through pushes, iteration errors and diff fetch failures', async () => {
+    const organization = OrganizationFixture({
+      features: ['autofix-pr-iteration-manual', 'autofix-pr-iteration-pin-to-pr-head'],
+    });
+    const filesUrl = '/organizations/' + organization.slug + '/repos/pull-request-files/';
+    const iteration = makePrIterationBlock(0, {text: 'Please add a regression test'});
+    const partialPatch = {
+      ...makePatch('org/repo', 'src/iteration-only.py'),
+      diff: 'partial iteration diff',
+    };
+    const section = makeSection(
+      'code_changes',
+      'completed',
+      [[partialPatch]],
+      [iteration]
+    );
+    const edit = {...makeAssistantBlock(null), file_patches: [partialPatch]};
+    const runState: ExplorerAutofixState = {
+      run_id: 123,
+      blocks: [iteration, edit],
+      status: 'completed',
+      updated_at: '2026-01-01T00:00:00Z',
+      repo_pr_states: {'org/repo': makePR()},
+    };
+    const filesRequest = MockApiClient.addMockResponse({
+      url: filesUrl,
+      body: {
+        files: [
+          {
+            path: 'src/full-pr.py',
+            patch: '@@ -1 +1 @@\n-old\n+new',
+            status: 'modified',
+            previousPath: null,
+          },
+        ],
+      },
+    });
+    const queryClient = makeTestQueryClient();
+    const {rerender} = render(
+      <PrIterationCards runState={runState} section={section} />,
+      {
+        organization,
+        additionalWrapper: ({children}) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      }
+    );
+    const codeChanges = within(screen.getByRole('region', {name: 'Code Changes card'}));
+
+    // Finished edits wait for a push without exposing the old diff.
+    expect(
+      codeChanges.getByText('Pushing the latest changes to the pull request…')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Updating PR in org/repo'})).toBeDisabled();
+    expect(codeChanges.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+    expect(codeChanges.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+    expect(codeChanges.getByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(filesRequest).not.toHaveBeenCalled();
+
+    // A failure before the push starts must stop claiming the PR is updating.
+    rerender(
+      <PrIterationCards
+        runState={{...runState, status: 'error'}}
+        section={{...section, status: 'error'}}
+      />
+    );
+    expect(codeChanges.getByRole('img', {name: 'Feedback failed'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Updating PR in org/repo'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View org/repo#42'})).toHaveAttribute(
+      'href',
+      'https://github.com/org/repo/pull/42'
+    );
+
+    // The retry reports edits and its eventual push through Code Mode tool results.
+    const codeModeEdit = {
+      ...makeAssistantBlock(null),
+      id: 'retry-edit',
+      tool_results: [
+        null,
+        {
+          content: '',
+          tool_call_function: 'execute',
+          tool_call_id: 'edit',
+          structuredContent: {file_patches: [partialPatch]},
+        },
+      ],
+    };
+    rerender(
+      <PrIterationCards
+        runState={{...runState, blocks: [iteration, codeModeEdit]}}
+        section={section}
+      />
+    );
+    expect(
+      codeChanges.getByText('Pushing the latest changes to the pull request…')
+    ).toBeInTheDocument();
+    expect(filesRequest).not.toHaveBeenCalled();
+
+    const pushedState: ExplorerAutofixState = {
+      ...runState,
+      blocks: [
+        iteration,
+        codeModeEdit,
+        {
+          ...makeAssistantBlock(null),
+          id: 'retry-push',
+          tool_results: [
+            {
+              content: '',
+              tool_call_function: 'execute',
+              tool_call_id: 'push',
+              structuredContent: {pr_commit_shas: {'org/repo': 'abc123'}},
+            },
+          ],
+        },
+      ],
+    };
+    rerender(<PrIterationCards runState={pushedState} section={section} />);
+    expect(await codeChanges.findByText('1 file changed in 1 repo')).toBeInTheDocument();
+    expect(codeChanges.getByTestId('file-diff-viewer')).toBeInTheDocument();
+    expect(codeChanges.getByTestId('feedback-processed')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Updating PR in org/repo'})
+    ).not.toBeInTheDocument();
+    const fullPrDiff = expect.stringContaining(
+      '--- a/src/full-pr.py\n+++ b/src/full-pr.py\n@@ -1 +1 @@\n-old\n+new'
+    );
+    await userEvent.click(codeChanges.getByRole('button', {name: 'Copy as Markdown'}));
+    expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(fullPrDiff);
+
+    // A failed refresh must keep the loaded PR diff, not switch to run patches.
+    const failedRequest = MockApiClient.addMockResponse({url: filesUrl, statusCode: 500});
+    await act(() => queryClient.refetchQueries({queryKey: [filesUrl]}));
+    expect(failedRequest).toHaveBeenCalledTimes(1);
+    expect(codeChanges.getByText('1 file changed in 1 repo')).toBeInTheDocument();
+    expect(
+      codeChanges.queryByText("We couldn't load the pull request's changes.")
+    ).not.toBeInTheDocument();
+    await userEvent.click(codeChanges.getByRole('button', {name: 'Copy as Markdown'}));
+    expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(fullPrDiff);
+
+    // A new push has no cached diff. If its first fetch fails, link to GitHub.
+    const nextState: ExplorerAutofixState = {
+      ...pushedState,
+      repo_pr_states: {'org/repo': makePR({commit_sha: 'next-commit'})},
+      blocks: [
+        ...pushedState.blocks,
+        {
+          ...makeAssistantBlock(null),
+          id: 'next-push',
+          pr_commit_shas: {'org/repo': 'next-commit'},
+        },
+      ],
+    };
+    rerender(<PrIterationCards runState={nextState} section={section} />);
+    expect(
+      await codeChanges.findByText("We couldn't load the pull request's changes.")
+    ).toBeInTheDocument();
+    expect(
+      codeChanges.getByRole('button', {name: 'View diff on GitHub'})
+    ).toHaveAttribute('href', 'https://github.com/org/repo/pull/42/files');
+    expect(codeChanges.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+    expect(codeChanges.getByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+
+    // The same fallback remains visible even when the run has no patches at all.
+    rerender(
+      <PrIterationCards runState={nextState} section={{...section, artifacts: []}} />
+    );
+    expect(
+      codeChanges.getByRole('button', {name: 'View diff on GitHub'})
+    ).toBeInTheDocument();
+    expect(codeChanges.getByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   describe('PullRequestsCard', () => {
