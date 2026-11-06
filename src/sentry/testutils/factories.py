@@ -280,6 +280,7 @@ from sentry.workflow_engine.models import (
     IncidentGroupOpenPeriod,
     Workflow,
     WorkflowDataConditionGroup,
+    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -2956,6 +2957,21 @@ class Factories:
             config = {}
         return Workflow.objects.create(
             organization=organization, name=name, config=config, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_workflow_fire_history(
+        workflow: Workflow,
+        group: Group | None = None,
+        event_id: str | None = None,
+        **kwargs: Any,
+    ) -> WorkflowFireHistory:
+        return WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=group,
+            event_id=event_id if event_id is not None else uuid4().hex,
+            **kwargs,
         )
 
     @staticmethod

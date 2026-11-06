@@ -266,7 +266,7 @@ external action completed.
 
 ### `WorkflowFireHistory`
 
-[`WorkflowFireHistory`](../models/workflow_fire_history.py) stores a Workflow, issue
+[`WorkflowFireHistory`](../models/workflow_fire_history.py) stores a Workflow, optional issue
 group, event ID, notification UUID, and optional detector. It has no action or delivery
 outcome field. Rows are created before inactive-action filtering and event-level
 deduplication, so they record pre-dispatch intent rather than a scheduled or successfully

@@ -1,4 +1,5 @@
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.endpoints.serializers.timeseries_value_serializer import (
@@ -89,3 +90,24 @@ class WorkflowHourlyStatsTest(TestCase):
         )
 
         assert [result.count for result in results] == [3, 2, 0, 0]
+
+    def test_workflow_hourly_stats__without_group(self) -> None:
+        history = Factories.create_workflow_fire_history(workflow=self.workflow)
+        history.update(date_added=before_now(hours=1))
+
+        results = fetch_workflow_hourly_stats(
+            self.workflow, before_now(hours=6), before_now(), project_ids=[self.project.id]
+        )
+
+        assert [result.count for result in results] == [0, 0, 3, 2, 1, 0]
+
+    def test_workflow_hourly_stats__only_without_group(self) -> None:
+        workflow = self.create_workflow(organization=self.organization)
+        history = Factories.create_workflow_fire_history(workflow=workflow, group=None)
+        history.update(date_added=before_now(hours=1))
+
+        results = fetch_workflow_hourly_stats(
+            workflow, before_now(hours=3), before_now(), project_ids=[self.project.id]
+        )
+
+        assert [result.count for result in results] == [0, 0, 0]
