@@ -46,6 +46,11 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
   submitQuery: (query: string) => void;
   additionalFeedbackTags?: Record<string, Primitive>;
   className?: string;
+  /**
+   * Whether Seer finished answering the last submitted query. Used to tell
+   * "Seer returned nothing" apart from "nothing has been asked yet".
+   */
+  hasResponse?: boolean;
   onReset?: () => void;
   unsupportedReason?: string | null;
 }
@@ -55,6 +60,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   className,
   emptyTitle,
   errorTitle,
+  hasResponse = false,
   isError,
   isPending,
   loadingContent,
@@ -63,7 +69,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   queries,
   searchQuery,
   submitQuery,
-  unsupportedReason,
+  unsupportedReason: unsupportedReasonProp,
   additionalFeedbackTags,
   ...props
 }: BaseAskSeerComboBoxProps<T>) {
@@ -300,6 +306,12 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   };
 
   const hasResults = queries.length > 0;
+  const isNoResults = hasResponse && !isPending && !isError && !hasResults;
+  const unsupportedReason =
+    unsupportedReasonProp ||
+    (isNoResults
+      ? t("Seer couldn't turn that into a search. Try rephrasing your question.")
+      : null);
   const isDisplayingResults = !isPending && !isError && hasResults;
   const isUnsupported = Boolean(unsupportedReason) && !hasResults;
   const hasQueryStatus = isPending || isError || hasResults || isUnsupported;
@@ -314,7 +326,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     return null;
   }
 
-  const showFooter = isDisplayingResults || isError;
+  const showFooter = isDisplayingResults || isError || isUnsupported;
 
   return (
     <Wrapper className={className} ref={containerRef} isDropdownOpen={state.isOpen}>
