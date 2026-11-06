@@ -2241,7 +2241,6 @@ tests/sentry/snuba/metrics/test_metrics_layer/test_metrics_enhanced_performance.
 tests/sentry/snuba/metrics/test_metrics_layer/test_release_health.py
 tests/sentry/snuba/metrics/test_metrics_query_layer/__init__.py
 tests/sentry/snuba/metrics/test_metrics_query_layer/test_metrics_query_layer.py
-tests/sentry/snuba/metrics/test_mqb_query_transformer.py
 tests/sentry/snuba/metrics/test_naming_layer.py
 tests/sentry/snuba/metrics/test_query.py
 tests/sentry/snuba/metrics/test_query_builder.py
