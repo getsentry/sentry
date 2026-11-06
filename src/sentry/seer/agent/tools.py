@@ -25,7 +25,7 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
-from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
@@ -932,6 +932,23 @@ def rpc_get_profile_flamegraph(
     )
 
 
+def _name_segments(name: str) -> list[str]:
+    return [segment.strip().casefold() for segment in name.split("/") if segment.strip()]
+
+
+def _is_under_account(repo_segments: list[str], integration: RpcIntegration) -> bool:
+    """Whether a repository name starts with the integration's account, by the account's name or
+    its URL path. GitLab needs both: its repository names can start with the group's display name
+    ("My Group / Sub") or its path ("my-group/sub")."""
+    domain_name = integration.metadata.get("domain_name", "")
+    url_path = domain_name.removeprefix("https://").partition("/")[2]
+    for account_name in (integration.name, url_path):
+        account = _name_segments(account_name)
+        if 0 < len(account) < len(repo_segments) and repo_segments[: len(account)] == account:
+            return True
+    return False
+
+
 def _find_repository(
     organization_id: int, repo_full_name: str, providers: list[str]
 ) -> Repository | None:
@@ -952,7 +969,7 @@ def _find_repository(
 
 
 def _repository_lookup_failure(
-    organization_id: int, supported_providers: list[str]
+    organization_id: int, repo_full_name: str, supported_providers: list[str]
 ) -> RepositoryDefinitionFailure | None:
     """Why a lookup found nothing, when it's known."""
     integrations = integration_service.get_integrations(
@@ -964,7 +981,20 @@ def _repository_lookup_failure(
     )
     if not integrations:
         return RepositoryDefinitionFailure(failure_reason="no_scm_integration")
-    return None
+
+    repo_segments = _name_segments(repo_full_name)
+    # A name with no owner can't be under any account, so there's nothing to say about it.
+    if len(repo_segments) < 2:
+        return None
+    under_connected_account = any(
+        _is_under_account(repo_segments, integration) for integration in integrations
+    )
+    return RepositoryDefinitionFailure(
+        failure_reason=(
+            "repo_not_in_sentry" if under_connected_account else "scm_account_not_connected"
+        ),
+        connected_accounts=[integration.name for integration in integrations],
+    )
 
 
 def get_repository_definition(
@@ -988,8 +1018,10 @@ def get_repository_definition(
         external_id: Optional external repository ID (e.g., GitHub repo ID). Stable across renames.
                      If provided, this is used for lookup instead of name.
         report_failure_reason: When nothing is found, say why in the response when it's known,
-                     instead of returning None. Opt-in because callers that don't ask would read
-                     that response as a repository.
+                     instead of returning None: no source control connected, the repository's
+                     account isn't connected, or its account is connected but the repository isn't
+                     in Sentry. Opt-in because callers that don't ask would read that response as a
+                     repository.
 
     Returns:
         dict with RepoDefinition fields if found, None otherwise. Includes external_id
@@ -1031,7 +1063,7 @@ def get_repository_definition(
             },
         )
         if report_failure_reason:
-            return _repository_lookup_failure(organization_id, supported_providers)
+            return _repository_lookup_failure(organization_id, repo_full_name, supported_providers)
         return None
 
     # Use the actual repo name from the database, not the requested name.

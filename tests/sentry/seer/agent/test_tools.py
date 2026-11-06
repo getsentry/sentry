@@ -3049,6 +3049,16 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         assert result.event_id == event2.event_id
 
 
+# Each provider Seer reads code from: its integration's name and domain, and the path its
+# repository names start with.
+SEER_SCM_ACCOUNTS = [
+    ("github", "acme-labs", "github.com/acme-labs", "acme-labs"),
+    ("github_enterprise", "acme-labs", "ghe.example.com/acme-labs", "acme-labs"),
+    ("gitlab", "My Group / Sub", "gitlab.com/my-group/sub", "my-group/sub"),
+    ("cursor_origin", "acme-labs", "https://cursor.com/codebase/acme-labs", "acme-labs"),
+]
+
+
 class TestGetRepositoryDefinition(APITransactionTestCase):
     def test_get_repository_definition_success(self) -> None:
         """Test successful repository lookup"""
@@ -3144,12 +3154,15 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             report_failure_reason=True,
         )
 
-    def _connect(self, organization: Organization, provider: str) -> None:
+    def _connect(
+        self, organization: Organization, provider: str, name: str = "", domain_name: str = ""
+    ) -> None:
         self.create_integration(
             organization=organization,
             provider=provider,
             external_id=f"{provider}:{organization.id}",
-            name=provider,
+            name=name,
+            metadata={"domain_name": domain_name},
         )
 
     @with_feature("organizations:seer-cursor-origin-support")
@@ -3188,12 +3201,52 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
     @with_feature("organizations:seer-cursor-origin-support")
-    def test_no_failure_reason_when_source_control_is_connected(self) -> None:
-        for provider in ("github", "github_enterprise", "gitlab", "cursor_origin"):
+    def test_failure_for_each_provider(self) -> None:
+        for provider, name, domain_name, path in SEER_SCM_ACCOUNTS:
             organization = self.create_organization()
-            self._connect(organization, provider)
+            self._connect(organization, provider, name, domain_name)
+            not_connected = RepositoryDefinitionFailure(
+                failure_reason="scm_account_not_connected", connected_accounts=[name]
+            )
+            not_in_sentry = RepositoryDefinitionFailure(
+                failure_reason="repo_not_in_sentry", connected_accounts=[name]
+            )
             with self.subTest(provider=provider):
-                assert self._lookup(organization, "acme-labs/app") is None
+                assert self._lookup(organization, "other-org/app") == not_connected
+                # One that only starts the same isn't that account.
+                assert self._lookup(organization, f"{path}-2/app") == not_connected
+                assert self._lookup(organization, f"{path}/app") == not_in_sentry
+                assert self._lookup(organization, f"{path.upper()}/app") == not_in_sentry
+                # A name with no owner can't be under any account.
+                assert self._lookup(organization, "invalid-format") is None
+
+    def test_failure_for_gitlab_group_names(self) -> None:
+        self._connect(self.organization, "gitlab", "My Group / Sub", "gitlab.com/my-group/sub")
+
+        for repo_name in ("My Group / Sub / App", "my-group/sub/nested/app"):
+            result = self._lookup(self.organization, repo_name)
+            assert result.failure_reason == "repo_not_in_sentry"
+        for repo_name in ("my-group/other/app", "my-group/app"):
+            result = self._lookup(self.organization, repo_name)
+            assert result.failure_reason == "scm_account_not_connected"
+
+    def test_failure_when_the_account_has_no_url(self) -> None:
+        self._connect(self.organization, "github", "acme-labs")
+
+        result = self._lookup(self.organization, "other-org/app")
+        assert result.failure_reason == "scm_account_not_connected"
+
+    @with_feature("organizations:seer-cursor-origin-support")
+    def test_failure_checks_every_connected_account(self) -> None:
+        for provider, name, domain_name, _ in SEER_SCM_ACCOUNTS:
+            self._connect(self.organization, provider, name, domain_name)
+
+        result = self._lookup(self.organization, "my-group/sub/app")
+        assert result.failure_reason == "repo_not_in_sentry"
+        assert set(result.connected_accounts) == {"acme-labs", "My Group / Sub"}
+
+        result = self._lookup(self.organization, "other-org/app")
+        assert result.failure_reason == "scm_account_not_connected"
 
     def test_get_repository_definition_not_found(self) -> None:
         """Test that nonexistent repository returns None"""
