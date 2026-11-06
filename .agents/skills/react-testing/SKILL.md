@@ -15,14 +15,10 @@ description: Write and review React/TypeScript tests for Sentry's frontend using
 
 ## Choose RTL or Visual Snapshots Before Writing Tests
 
-| What needs coverage                                                                                                               | Test type                                                                             |
-| --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Colors, typography, spacing, alignment, dimensions (including CSS min/max width or height), responsive layout, or visual variants | Colocated `*.snapshots.tsx` visual tests; use the **`generate-snapshot-tests`** skill |
-| Clicking, typing, keyboard navigation, validation, submitted values, routing, network effects, or accessible names/roles/states   | RTL in `*.spec.tsx`; assert the observable outcome                                    |
-| Pure calculations or data transformations, such as computing numeric minimum/maximum values                                       | Unit tests for the function                                                           |
-
+- Use RTL in `*.spec.tsx` for interactions, validation, submitted values, routing, network effects, and accessible names, roles, or states. Assert the observable outcome.
+- Use unit tests for pure calculations or data transformations.
 - Do not add RTL assertions using `toHaveStyle`, `toHaveStyleRule`, computed styles, CSS class names, or DOM structure solely to verify appearance. Do not mock a child component to inspect the styling props passed to it.
-- Cover visual changes with the repository's `it.snapshot` / `it.snapshot.each` API, not Jest DOM snapshots (`toMatchSnapshot` / `toMatchInlineSnapshot`). Follow the snapshot skill for themes, variants, and container sizes.
+- Cover colors, typography, spacing, alignment, dimensions, responsive layout, and visual variants in colocated `*.snapshots.tsx` files with the repository's `it.snapshot` / `it.snapshot.each` API, not Jest DOM snapshots (`toMatchSnapshot` / `toMatchInlineSnapshot`). Use the **`generate-snapshot-tests`** skill for themes, variants, and container sizes.
 - Distinguish CSS constraints from behavior: `min-width` / `max-width` belong in visual snapshots; an input's numeric limits need RTL coverage of validation or clamping after user input.
 - For mixed changes, snapshot appearance and test behavior separately. For a disabled button, snapshot its appearance and use RTL to verify it cannot trigger an action. Do not duplicate its CSS in RTL.
 - Before finishing, review each new assertion: replace appearance-only RTL checks with visual cases. Do not add an RTL smoke test merely to accompany a styling change.
