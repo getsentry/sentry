@@ -1,3 +1,6 @@
+from sentry.backup.dependencies import ImportKind, NormalizedModelName, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
 from sentry.testutils.cases import TestCase
 
@@ -310,3 +313,27 @@ class DashboardRevisionTest(TestCase):
         oldest = DashboardRevision.objects.filter(title="Revision 0").first()
         assert oldest is None
         assert new_revision.id in surviving_ids
+
+
+class DashboardRelocationTest(TestCase):
+    def test_normalize_before_relocation_import_drops_org_auth_token_creator(self) -> None:
+        dashboard = self.create_dashboard(organization=self.organization)
+        dashboard.created_by_id = None
+        dashboard.created_by_org_auth_token_id = 1234
+        old_pk = dashboard.id
+
+        pk_map = PrimaryKeyMap()
+        pk_map.insert(
+            model_name=NormalizedModelName("sentry.organization"),
+            old=self.organization.id,
+            new=self.organization.id,
+            kind=ImportKind.Inserted,
+        )
+
+        assert (
+            dashboard.normalize_before_relocation_import(
+                pk_map, ImportScope.Organization, ImportFlags()
+            )
+            == old_pk
+        )
+        assert dashboard.created_by_org_auth_token_id is None
