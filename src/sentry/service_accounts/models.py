@@ -321,7 +321,7 @@ class ServiceAccountToken(Model):
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
     name = models.CharField(max_length=MAX_NAME_LENGTH)
     token_hashed = models.TextField(unique=True)
-    token_last_characters = models.CharField(max_length=4, null=True)
+    token_last_characters = models.CharField(max_length=4)
     # Fixed at creation. Effective access is this intersected with the account's current
     # scopes, so narrowing the account narrows the token, but widening it doesn't.
     scope_list = ArrayField(

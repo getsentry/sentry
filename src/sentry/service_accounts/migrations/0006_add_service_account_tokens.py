@@ -51,7 +51,7 @@ class Migration(CheckedMigration):
                 ),
                 ("name", models.CharField(max_length=64)),
                 ("token_hashed", models.TextField(unique=True)),
-                ("token_last_characters", models.CharField(max_length=4, null=True)),
+                ("token_last_characters", models.CharField(max_length=4)),
                 (
                     "scope_list",
                     django.contrib.postgres.fields.ArrayField(
