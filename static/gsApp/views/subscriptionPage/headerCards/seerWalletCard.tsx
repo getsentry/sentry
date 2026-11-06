@@ -52,6 +52,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
       organization,
       autoTopUp,
       creditPriceCents,
+      purchasedExpiresAt: wallet.purchased.expiresAt,
     });
 
   return (
