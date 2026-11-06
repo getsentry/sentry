@@ -295,11 +295,6 @@
       "count": 1
     }
   },
-  "components/events/eventDrawer.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
   "components/events/eventMessage.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3083,9 +3078,6 @@
   "views/explore/releases/drawer/releasesDrawerDetails.tsx": {
     "@sentry/prefer-nuqs": {
       "count": 1
-    },
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 2
     }
   },
   "views/explore/releases/drawer/releasesDrawerList.tsx": {
