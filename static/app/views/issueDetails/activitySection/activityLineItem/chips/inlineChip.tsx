@@ -73,6 +73,7 @@ const chipFrameStyles = (p: {theme: Theme}) => css`
     padding-block: 1px;
     white-space: normal;
     overflow-wrap: anywhere;
+    -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
   }
 

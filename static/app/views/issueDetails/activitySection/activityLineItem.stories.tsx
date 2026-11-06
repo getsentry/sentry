@@ -407,7 +407,7 @@ const investigationLinkActivities = [
       hypothesisId: 'h-1',
       hypothesisStatement: 'Payment client retries exhaust the connection pool',
       reason:
-        'TimeoutError QueuePool limit 10+10 reached, 4,734 events during the spike; culprit charge_card in payments/client.py.',
+        'TimeoutError QueuePool limit 10+10 reached, 4,734 events during the spike; culprit process_payment_authorization_and_retry_connection_pool in payments/client.py.',
     }),
     id: 'investigation-linked',
   },

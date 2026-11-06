@@ -1,4 +1,4 @@
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {TimeSince} from 'sentry/components/timeSince';
@@ -52,18 +52,15 @@ export function ActivityLineInvestigationLinked({
         <Container paddingTop="sm">
           <Container width="100%" padding="sm md" border="muted" radius="md">
             <Stack gap="sm">
-              <Text as="p" density="comfortable">
+              <Text as="p" density="comfortable" wordBreak="break-word">
                 {hypothesisStatement}
               </Text>
               {reason ? (
-                <Flex gap="xs" borderTop="muted" paddingTop="sm">
-                  <Text bold size="xs" variant="muted">
-                    {t('Evidence:')}
+                <Container borderTop="muted" paddingTop="sm">
+                  <Text as="p" size="xs" variant="muted" wordBreak="break-word">
+                    <Text bold>{t('Evidence:')}</Text> {reason}
                   </Text>
-                  <Text size="xs" variant="muted">
-                    {reason}
-                  </Text>
-                </Flex>
+                </Container>
               ) : null}
             </Stack>
           </Container>
