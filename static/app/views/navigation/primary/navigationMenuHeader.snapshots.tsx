@@ -66,11 +66,14 @@ const SAMPLED_AVATAR_COLORS = {
 };
 
 describe('NavigationMenuHeader', () => {
-  it.snapshot.each(Object.keys(SAMPLED_AVATAR_COLORS))(
+  it.snapshot.each<keyof typeof SAMPLED_AVATAR_COLORS>([
+    'purple',
+    'yellow',
+    'near-black',
+  ])(
     'organization-image-avatar-%s',
     colorName => {
-      const sampledColor =
-        SAMPLED_AVATAR_COLORS[colorName as keyof typeof SAMPLED_AVATAR_COLORS];
+      const sampledColor = SAMPLED_AVATAR_COLORS[colorName];
       const avatarUrl = solidImage(sampledColor);
       return (
         <MenuHeaderFrame queryClient={sampledQueryClient(avatarUrl, sampledColor)}>
