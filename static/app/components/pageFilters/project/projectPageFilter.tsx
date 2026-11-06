@@ -12,10 +12,13 @@ import xor from 'lodash/xor';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import type {MultipleSelectProps, SelectOption} from '@sentry/scraps/compactSelect';
+import type {
+  MultipleSelectProps,
+  SelectOption,
+  SelectSection,
+} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -121,7 +124,7 @@ export function ProjectPageFilter({
   // We need to backpropagate the staged value to the options so that we can update the UI.
   const [stagedValue, setStagedValue] = useState(committedSelectionIntent.ids);
 
-  const options = useMemo<Array<SelectOption<number>>>(() => {
+  const options = useMemo<Array<SelectSection<number>>>(() => {
     const optionSelectionIntent = selectionToIntent({
       projects,
       selection: stagedValue,
@@ -267,8 +270,6 @@ export function ProjectPageFilter({
                   icon={<IconAllProjects size="md" variant="muted" />}
                   label={t('All Projects')}
                   count={projects.length}
-                  // Divide from the project list if no other quick-select is shown below
-                  showDivider={!showMyProjects && !showFavoriteProjects}
                 />
               ),
               textValue: t('All Projects'),
@@ -299,7 +300,6 @@ export function ProjectPageFilter({
                   icon={<IconMyProjects size="md" variant="muted" />}
                   label={t('My Projects')}
                   count={memberProjectList.length}
-                  showDivider={!showFavoriteProjects}
                 />
               ),
               textValue: t('My Projects'),
@@ -348,7 +348,6 @@ export function ProjectPageFilter({
                   icon={<IconStar size="md" variant="muted" />}
                   label={t('Favorite Projects')}
                   count={favoriteProjectList.length}
-                  showDivider
                 />
               ),
               textValue: t('Favorite Projects'),
@@ -398,7 +397,12 @@ export function ProjectPageFilter({
       project => !lastSelected.includes(parseInt(project.id, 10))
     ).map(getProjectItem);
 
-    return [...specialItems, ...projectItems];
+    // Explicit keys keep the project rows mounted when the quick-select section
+    // appears or disappears.
+    return [
+      ...(specialItems.length > 0 ? [{key: 'quick-select', options: specialItems}] : []),
+      {key: 'projects', options: projectItems},
+    ];
     // oxlint-disable-next-line react/memo-dependencies
   }, [projects, stagedValue, urlProjectSelection, organization]);
 
@@ -564,10 +568,10 @@ export function ProjectPageFilter({
     }, 0);
   };
 
-  // React Compiler could not prove this memoization is preserved; it bails out on
-  // code this callback depends on. Revisit once those bailouts are fixed.
-  // oxlint-disable-next-line react/preserve-manual-memoization
-  const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
+  const defaultMenuWidth = useMemo(
+    () => computeMenuWidth(options.flatMap(section => section.options)),
+    [options]
+  );
 
   const canCreateProject = useCanCreateProject();
 
@@ -682,12 +686,10 @@ function QuickSelectLabel({
   icon,
   label,
   count,
-  showDivider,
 }: {
   count: number;
   icon: React.ReactNode;
   label: string;
-  showDivider: boolean;
 }) {
   return (
     <Flex align="center" justify="between" gap="sm" flex="1 1 100%">
@@ -698,21 +700,6 @@ function QuickSelectLabel({
       <Text size="xs" variant="muted">
         ({count})
       </Text>
-      {showDivider ? (
-        // The options list stays flat (sections would disable virtualization), so
-        // draw the section divider on the row boundary, positioned against the
-        // item's content box. Insets match the CompactSelect section separator.
-        <Container
-          aria-hidden
-          position="absolute"
-          bottom="-4px"
-          left="-20px"
-          right="0"
-          pointerEvents="none"
-        >
-          <Separator orientation="horizontal" border="muted" />
-        </Container>
-      ) : null}
     </Flex>
   );
 }

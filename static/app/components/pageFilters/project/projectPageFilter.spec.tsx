@@ -455,7 +455,7 @@ describe('ProjectPageFilter', () => {
     expect(screen.getByRole('checkbox', {name: 'Select project-3'})).not.toBeChecked();
   });
 
-  it('does not show All Projects separator when My Projects is visible', async () => {
+  it('groups the quick-select options and the projects into separate sections', async () => {
     render(<ProjectPageFilter />, {
       organization,
       initialRouterConfig: {
@@ -465,10 +465,33 @@ describe('ProjectPageFilter', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
 
-    const allProjectsRow = screen.getByRole('row', {name: /All Projects/i});
+    const [quickSelectSection, projectSection] = screen.getAllByRole('rowgroup');
     expect(
-      within(allProjectsRow).queryByRole('separator', {hidden: true})
-    ).not.toBeInTheDocument();
+      within(quickSelectSection!)
+        .getAllByRole('row')
+        .map(row => row.getAttribute('aria-label'))
+    ).toEqual(['All Projects', 'My Projects']);
+    expect(
+      within(projectSection!)
+        .getAllByRole('row')
+        .map(row => row.getAttribute('aria-label'))
+    ).toEqual(['project-1', 'project-2', 'project-3']);
+  });
+
+  it('drops the quick-select section while searching', async () => {
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    await userEvent.type(screen.getByPlaceholderText('Search…'), 'project');
+
+    const sections = screen.getAllByRole('rowgroup');
+    expect(sections).toHaveLength(1);
+    expect(within(sections[0]!).getAllByRole('row')).toHaveLength(3);
   });
 
   it('hides special project options when search is active', async () => {
