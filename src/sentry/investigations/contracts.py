@@ -455,6 +455,14 @@ class LinkedIssueSerializer(RelaxedContractSerializer):
         return attrs
 
 
+def valid_linked_issues(items: object) -> list[dict[str, Any]]:
+    """The linked issues Sentry can use. A bad item is dropped, so it can't block the run."""
+    if not isinstance(items, list):
+        return []
+    validators = [LinkedIssueSerializer(data=item) for item in items[:MAX_LINKED_ISSUES]]
+    return [dict(validator.validated_data) for validator in validators if validator.is_valid()]
+
+
 class OrchestrationProjectionSerializer(RelaxedContractSerializer):
     """The projection blob Seer sends with every orchestration event."""
 
@@ -484,9 +492,6 @@ class OrchestrationProjectionSerializer(RelaxedContractSerializer):
         child=SteeringIntentSerializer(),
         required=False,
         max_length=MAX_PROJECTION_INTENTS,
-    )
-    linkedIssues = serializers.ListField(
-        child=LinkedIssueSerializer(), required=False, max_length=MAX_LINKED_ISSUES
     )
     errors = serializers.ListField(  # type: ignore[assignment]
         child=ProjectionErrorSerializer(),

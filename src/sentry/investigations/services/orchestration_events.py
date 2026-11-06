@@ -18,6 +18,7 @@ from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
     OrchestrationProjectionSerializer,
     valid_action_requests,
+    valid_linked_issues,
 )
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
@@ -322,15 +323,14 @@ def _schedule_issue_links(run: InvestigationOrchestrationRun) -> None:
     # Like the inbox marker, skipped generations are remembered so turning the flag on
     # doesn't link old runs when Seer replays a completed projection.
     control["issueLinksGeneration"] = run.generation
-    if not run.projection.get("linkedIssues") or not issue_links_enabled(
-        run.investigation.organization
-    ):
+    linked_issues = valid_linked_issues(run.projection.get("linkedIssues"))
+    if not linked_issues or not issue_links_enabled(run.investigation.organization):
         return
     investigation_id = run.investigation_id
-    generation = run.generation
+    # The items travel with the task so a newer generation can't replace them first.
     transaction.on_commit(
         lambda: publish_investigation_issue_links.delay(
-            investigation_id=investigation_id, generation=generation
+            investigation_id=investigation_id, linked_issues=linked_issues
         ),
         using=router.db_for_write(InvestigationOrchestrationRun),
     )

@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
+from sentry.auth.access import Access, from_user
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.commit import Commit
@@ -169,6 +170,15 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             "investigation_linked",
             "first_seen",
         ]
+
+    @with_feature(["organizations:investigations", "organizations:investigations-issue-links"])
+    def test_investigation_links_are_hidden_from_tokens_without_an_org_scope(self) -> None:
+        self._first_seen()
+        investigation = self.create_notebook(organization=self.organization, title="Checkout")
+        self._investigation_link(investigation.id)
+        event_only = from_user(self.user, self.organization, scopes=["event:read"])
+
+        assert [item["type"] for item in self._activity_items(access=event_only)] == ["first_seen"]
 
     @with_feature("organizations:investigations")
     def test_investigation_links_are_hidden_without_the_flag(self) -> None:
@@ -534,10 +544,16 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             data={"comment_id": comment.id, **data},
         )
 
-    def _activity_items(self, limit: int = 99) -> list[dict[str, Any]]:
+    def _activity_items(
+        self, limit: int = 99, access: Access | None = None
+    ) -> list[dict[str, Any]]:
         with action_log_activity_enabled():
             items = get_serialized_activity_items(
-                self.group, self.user, endpoint="test", limit=limit
+                self.group,
+                self.user,
+                access=access or from_user(self.user, self.organization),
+                endpoint="test",
+                limit=limit,
             )
         assert items is not None
         return items
@@ -636,7 +652,12 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         self.create_group_action_log_entry(type=GroupActionType.LINK_EXTERNAL_ISSUE)
 
         with action_log_activity_enabled():
-            items = get_serialized_activity_items(self.group, self.user, endpoint="test")
+            items = get_serialized_activity_items(
+                self.group,
+                self.user,
+                access=from_user(self.user, self.organization),
+                endpoint="test",
+            )
 
         assert items is None
 

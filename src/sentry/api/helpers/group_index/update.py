@@ -793,6 +793,7 @@ def prepare_response(
                 activity_items = get_serialized_activity_items(
                     group,
                     acting_user,
+                    access=request.access,
                     endpoint=activity_read_endpoint(request),
                     limit=ACTIVITIES_COUNT - 1,
                 )

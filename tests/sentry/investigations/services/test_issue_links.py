@@ -29,19 +29,12 @@ class LinkInvestigationIssuesTest(TestCase):
             organization=self.organization, created_by=self.user, title="Checkout latency"
         )
         self.create_notebook_project(self.investigation, self.project)
-        self.orchestration_run = self.create_investigation_orchestration_run(
-            investigation=self.investigation,
-            source={"type": "manual"},
-            projection={},
-        )
 
-    def complete(self, linked_issues: list[Any], *, generation: int = 1) -> None:
-        self.orchestration_run.generation = generation
-        self.orchestration_run.status = "completed"
-        self.orchestration_run.projection = {"linkedIssues": linked_issues}
-        self.orchestration_run.save()
+    def complete(self, linked_issues: list[dict[str, Any]]) -> None:
         with outbox_runner():
-            link_investigation_issues(investigation_id=self.investigation.id, generation=generation)
+            link_investigation_issues(
+                investigation_id=self.investigation.id, linked_issues=linked_issues
+            )
 
     def link(self, group: Group, **fields: Any) -> dict[str, Any]:
         return {
@@ -98,7 +91,7 @@ class LinkInvestigationIssuesTest(TestCase):
 
     def test_a_later_run_does_not_link_the_issue_again(self) -> None:
         self.complete([self.link(self.group)])
-        self.complete([self.link(self.group, reason="Still relevant.")], generation=2)
+        self.complete([self.link(self.group, reason="Still relevant.")])
 
         [entry] = self.entries()
         assert entry.action.dict()["reason"] == "Its timeouts start with the deploy."
@@ -114,17 +107,6 @@ class LinkInvestigationIssuesTest(TestCase):
 
         assert self.entries(other_project_group) == []
         assert self.entries(other_org_group) == []
-
-    def test_stale_generation_publishes_nothing(self) -> None:
-        self.orchestration_run.generation = 2
-        self.orchestration_run.status = "completed"
-        self.orchestration_run.projection = {"linkedIssues": [self.link(self.group)]}
-        self.orchestration_run.save()
-
-        with outbox_runner():
-            link_investigation_issues(investigation_id=self.investigation.id, generation=1)
-
-        assert self.entries() == []
 
     def test_archived_investigation_publishes_nothing(self) -> None:
         self.investigation.status = NotebookStatus.ARCHIVED
@@ -182,10 +164,10 @@ class LinkInvestigationIssuesTest(TestCase):
         assert self.entries() == []
 
         NotebookProject.objects.filter(project=other_project).delete()
-        self.complete([self.link(self.group)], generation=2)
+        self.complete([self.link(self.group)])
         assert len(self.entries()) == 1
 
         ServiceAccountReplica.objects.filter(service_account_id=account.id).update(is_active=False)
         linked = self.create_group(project=self.project)
-        self.complete([self.link(linked)], generation=3)
+        self.complete([self.link(linked)])
         assert self.entries(linked) == []

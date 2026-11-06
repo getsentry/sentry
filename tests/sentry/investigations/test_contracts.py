@@ -24,6 +24,7 @@ from sentry.investigations.contracts import (
     StrictCharField,
     valid_action_request,
     valid_action_requests,
+    valid_linked_issues,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
 from sentry.investigations.services.action_kinds.base import (
@@ -174,28 +175,20 @@ def test_projection_is_bounded_by_its_serialized_size() -> None:
     rejects(OrchestrationProjectionSerializer, projection(seerAddedThisLater="x" * (600 * 1024)))
 
 
-def test_projection_validates_linked_issues() -> None:
+def test_valid_linked_issues_drops_bad_items_without_rejecting_the_projection() -> None:
     linked = {"groupId": 7, "hypothesisId": "h-1", "hypothesisStatement": "Retries pile up"}
-    validator = OrchestrationProjectionSerializer(data=projection(linkedIssues=[linked]))
-
-    assert validator.is_valid(), validator.errors
-    assert validator.validated_data["linkedIssues"] == [linked]
-    rejects(OrchestrationProjectionSerializer, projection(linkedIssues=[{"groupId": 7}]))
     by_short_id = {**linked, "groupId": None, "shortId": "CHECKOUT-1A3"}
-    assert OrchestrationProjectionSerializer(data=projection(linkedIssues=[by_short_id])).is_valid()
-    for references in ({"groupId": None}, {"shortId": "CHECKOUT-1A3"}):
-        rejects(
-            OrchestrationProjectionSerializer,
-            projection(linkedIssues=[{**linked, **references}]),
-        )
-    rejects(
-        OrchestrationProjectionSerializer,
-        projection(linkedIssues=[{**linked, "groupId": n} for n in range(1, 12)]),
-    )
-    rejects(
-        OrchestrationProjectionSerializer,
-        projection(linkedIssues=[{**linked, "groupId": "7"}]),
-    )
+    bad = [
+        {"groupId": 7},
+        {**linked, "groupId": "7"},
+        {**linked, "shortId": "CHECKOUT-1A3"},
+        {**linked, "groupId": None},
+    ]
+
+    assert valid_linked_issues([linked, by_short_id, *bad]) == [linked, by_short_id]
+    assert len(valid_linked_issues([{**linked, "groupId": n} for n in range(1, 13)])) == 10
+    assert valid_linked_issues({"groupId": 7}) == []
+    assert OrchestrationProjectionSerializer(data=projection(linkedIssues=bad)).is_valid()
 
 
 def test_projection_phase_and_status_must_be_known_values() -> None:

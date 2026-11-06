@@ -6,10 +6,6 @@ from typing import Any
 from django.db.models import QuerySet
 
 from sentry.constants import ObjectStatus
-from sentry.investigations.models import (
-    InvestigationOrchestrationRun,
-    InvestigationOrchestrationStatus,
-)
 from sentry.investigations.services.actor_access import actor_can_investigate
 from sentry.issues.action_log import ActionSource, publish_action
 from sentry.issues.action_log.types import InvestigationLinkedAction
@@ -62,27 +58,21 @@ def _linked_group(
         return None
 
 
-def link_investigation_issues(*, investigation_id: int, generation: int) -> None:
-    """Record the issues a completed run linked on each issue's action log."""
-    run = (
-        InvestigationOrchestrationRun.objects.select_related("investigation__organization")
-        .filter(
-            investigation_id=investigation_id,
-            # A newer generation schedules its own links once it completes.
-            generation=generation,
-            status=InvestigationOrchestrationStatus.COMPLETED,
-            investigation__status=NotebookStatus.ACTIVE,
-        )
+def link_investigation_issues(
+    *, investigation_id: int, linked_issues: list[dict[str, Any]]
+) -> None:
+    """Record a completed run's linked issues on each issue's action log."""
+    notebook = (
+        Notebook.objects.select_related("organization")
+        .filter(id=investigation_id, status=NotebookStatus.ACTIVE)
         .first()
     )
-    if run is None or not issue_links_enabled(run.investigation.organization):
+    if notebook is None or not issue_links_enabled(notebook.organization):
         return
-    notebook = run.investigation
 
     # Seer leaves out the issue the investigation started from, since it already links there.
-    linked = run.projection.get("linkedIssues", [])
     project_ids = list(_linkable_projects(notebook).values_list("id", flat=True))
-    for item in linked:
+    for item in linked_issues:
         group = _linked_group(notebook.organization_id, item, project_ids)
         if group is None:
             continue
@@ -101,5 +91,5 @@ def link_investigation_issues(*, investigation_id: int, generation: int) -> None
 
     logger.info(
         "investigations.issue_links.published",
-        extra={"investigation_id": notebook.id, "generation": generation, "linked": len(linked)},
+        extra={"investigation_id": notebook.id, "linked": len(linked_issues)},
     )

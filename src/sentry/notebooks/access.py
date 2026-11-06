@@ -6,6 +6,7 @@ from sentry import features
 from sentry.models.organization import Organization
 
 if TYPE_CHECKING:
+    from sentry.auth.access import Access
     from sentry.auth.principal import RequestPrincipal
 
 INVESTIGATIONS_FEATURE = "organizations:investigations"
@@ -30,4 +31,14 @@ def issue_links_enabled(organization: Organization, actor: RequestPrincipal | No
     """Whether investigations record, and `actor` sees, the issues they link."""
     return features.has(ISSUE_LINKS_FEATURE, organization, actor=actor) and (
         has_investigations_access(organization, actor)
+    )
+
+
+def can_view_issue_links(
+    organization: Organization, actor: RequestPrincipal | None, access: Access
+) -> bool:
+    """Whether a request can see investigation links, which name an investigation and its
+    hypothesis. Needs the scope the investigation endpoints require, not just `event:read`."""
+    return issue_links_enabled(organization, actor) and any(
+        access.has_scope(scope) for scope in INVESTIGATION_SCOPES
     )

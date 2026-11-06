@@ -3901,7 +3901,9 @@ class InvestigationIssueLinksScheduleTest(InvestigationOrchestrationEventTestBas
             expected_workflow_version=3,
         )
 
-        mock_delay.assert_called_once_with(investigation_id=self.investigation.id, generation=1)
+        mock_delay.assert_called_once_with(
+            investigation_id=self.investigation.id, linked_issues=self.LINKED_ISSUES
+        )
 
     def test_new_generation_schedules_again(self, mock_delay: Mock) -> None:
         self.complete()
@@ -3912,7 +3914,19 @@ class InvestigationIssueLinksScheduleTest(InvestigationOrchestrationEventTestBas
         )
         self.complete(sequence=2, generation=2)
 
-        assert [call.kwargs["generation"] for call in mock_delay.call_args_list] == [1, 2]
+        assert mock_delay.call_count == 2
+
+    def test_bad_linked_issues_are_dropped_without_failing_the_run(self, mock_delay: Mock) -> None:
+        projection = self.completed(workflow_version=2)
+        projection["linkedIssues"] = [*self.LINKED_ISSUES, {"groupId": "not-an-id"}]
+
+        self.deliver(self.make_event(1, "workflow_updated", {"projection": projection}))
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.status == "completed"
+        mock_delay.assert_called_once_with(
+            investigation_id=self.investigation.id, linked_issues=self.LINKED_ISSUES
+        )
 
     def test_unfinished_run_schedules_nothing(self, mock_delay: Mock) -> None:
         projection = self.projection(workflow_version=2)

@@ -12,6 +12,7 @@ from sentry.api.serializers.models.activity import (
     serialize_group_notes,
 )
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
+from sentry.auth.access import Access
 from sentry.auth.principal import RequestPrincipal
 from sentry.issues.action_log.read_metrics import (
     ActivityReadFallbackReason,
@@ -39,7 +40,7 @@ from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
-from sentry.notebooks.access import issue_links_enabled
+from sentry.notebooks.access import can_view_issue_links
 from sentry.notebooks.models import Notebook
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializer
 from sentry.sentry_apps.services.app import app_service
@@ -128,6 +129,7 @@ def get_serialized_activity_items(
     group: "Group",
     user: RequestPrincipal | None,
     *,
+    access: Access,
     endpoint: str,
     limit: int = 99,
 ) -> list[dict[str, Any]] | None:
@@ -146,7 +148,7 @@ def get_serialized_activity_items(
 
     # Investigation links are only shown to viewers who can open the investigation.
     hidden_types: list[GroupActionType] = []
-    if not issue_links_enabled(group.project.organization, user):
+    if not can_view_issue_links(group.project.organization, user, access):
         hidden_types.append(GroupActionType.INVESTIGATION_LINKED)
     oldest_entry = (
         GroupActionLogEntry.objects.filter(
