@@ -378,7 +378,12 @@ class ServiceAccountTokenTest(TestCase):
 
 
 @all_silo_test
-class ServiceAccountTokenReplicationTest(TestCase):
+class ServiceAccountTokenReplicaServiceTest(TestCase):
+    """
+    Calls `upsert_replicated_service_account_token` directly. Nothing calls it from the
+    token's outbox yet: that caller ships separately, after this method is deployed.
+    """
+
     def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
@@ -400,6 +405,14 @@ class ServiceAccountTokenReplicationTest(TestCase):
             )
         # Deleting the token clears its `id`, so keep a copy for reads after the delete.
         self.token_id = self.token.id
+
+    def upsert(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = serialize_service_account_token(self.token)
+        with assume_test_silo_mode(SiloMode.CELL):
+            cell_replica_service.upsert_replicated_service_account_token(
+                token=token, cell_name="us"
+            )
 
     def get_replica(self) -> ServiceAccountTokenReplica | None:
         with assume_test_silo_mode(SiloMode.CELL):
@@ -426,7 +439,12 @@ class ServiceAccountTokenReplicationTest(TestCase):
         assert outbox.shard_identifier == self.organization.id
         assert outbox.cell_name == cell_name
 
-    def test_create_replicates_token(self) -> None:
+    def test_upsert_creates_replica(self) -> None:
+        # setUp drained the token's outbox, which has no handler yet.
+        assert self.get_replica() is None
+
+        self.upsert()
+
         replica = self.get_replica()
         assert replica is not None
         assert replica.organization_id == self.organization.id
@@ -439,18 +457,21 @@ class ServiceAccountTokenReplicationTest(TestCase):
         assert replica.date_expires == self.token.date_expires
         assert replica.date_deactivated is None
 
-    def test_revoke_keeps_replica_with_date_deactivated(self) -> None:
+    def test_upsert_of_revoked_token_keeps_replica_with_date_deactivated(self) -> None:
+        self.upsert()
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.token.update(date_deactivated=timezone.now())
+        self.upsert()
 
         replica = self.get_replica()
         assert replica is not None
         assert replica.date_deactivated == self.token.date_deactivated
 
-    def test_token_of_deleted_account_still_replicates(self) -> None:
+    def test_upsert_for_deleted_account_still_replicates(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             assert self.service_account.deactivate()
             self.token.update(date_deactivated=timezone.now())
+        self.upsert()
 
         replica = self.get_replica()
         assert replica is not None
@@ -462,24 +483,19 @@ class ServiceAccountTokenReplicationTest(TestCase):
                 service_account_id=self.service_account.id
             ).delete()
 
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            self.token.update(name="deploys-2")
+        self.upsert()
 
         assert self.get_replica() is None
 
     def test_upsert_does_not_query_organization(self) -> None:
-        token = serialize_service_account_token(self.token)
-        # setUp already replicated the token, so this goes through the update path.
-        with (
-            assume_test_silo_mode(SiloMode.CELL),
-            CaptureQueriesContext(connections[router.db_for_write(Organization)]) as ctx,
-        ):
-            cell_replica_service.upsert_replicated_service_account_token(
-                token=token, cell_name="us"
-            )
+        self.upsert()
+        # The replica now exists, so this goes through the update path.
+        with CaptureQueriesContext(connections[router.db_for_write(Organization)]) as ctx:
+            self.upsert()
         assert not [q for q in ctx.captured_queries if '"sentry_organization"' in q["sql"]]
 
     def test_delete_removes_replica(self) -> None:
+        self.upsert()
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.token.delete()
 
