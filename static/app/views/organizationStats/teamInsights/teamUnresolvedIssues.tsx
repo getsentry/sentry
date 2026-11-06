@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
+import {useQuery} from '@tanstack/react-query';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -13,9 +14,8 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {ProjectBadge, ProjectBadgeContainer, TeamInsightsTable} from './styles';
 import {
@@ -51,19 +51,18 @@ export function TeamUnresolvedIssues({
     isPending,
     isError,
     refetch,
-  } = useApiQuery<ProjectReleaseCount>(
-    [
-      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/all-unresolved-issues/', {
-        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
-      }),
+  } = useQuery(
+    apiOptions.as<ProjectReleaseCount>()(
+      '/teams/$organizationIdOrSlug/$teamIdOrSlug/all-unresolved-issues/',
       {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
         query: {
           ...normalizeDateTimeParams({start, end, period, utc}),
           environment,
         },
-      },
-    ],
-    {staleTime: 0}
+        staleTime: 0,
+      }
+    )
   );
 
   function getTotalUnresolved(projectId: number): number {

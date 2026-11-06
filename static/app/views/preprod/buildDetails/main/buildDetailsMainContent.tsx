@@ -5,6 +5,7 @@ import {IconGraphCircle} from '@sentry/icons/graphCircle';
 import {IconGrid} from '@sentry/icons/grid';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {IconSearch} from '@sentry/icons/search';
+import type {UseQueryResult} from '@tanstack/react-query';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -16,8 +17,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {parseApiError} from 'sentry/utils/parseApiError';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {openMissingDsymModal} from 'sentry/views/preprod/components/missingDsymModal';
@@ -40,7 +40,7 @@ import {AppSizeInsights} from './insights/appSizeInsights';
 import {BuildDetailsMetricCards} from './buildDetailsMetricCards';
 
 interface BuildDetailsMainContentProps {
-  appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
+  appSizeQuery: UseQueryResult<AppSizeApiResponse>;
   isRerunning: boolean;
   onRerunAnalysis: () => void;
   buildDetailsData?: BuildDetailsApiResponse | null;
@@ -213,7 +213,10 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   }
 
   if (isAppSizeError) {
-    const errorMessage = appSizeError ? parseApiError(appSizeError) : 'Unknown API Error';
+    const errorMessage =
+      appSizeError instanceof RequestError
+        ? parseApiError(appSizeError)
+        : 'Unknown API Error';
     return (
       <Flex width="100%" justify="center" align="center" minHeight="60vh">
         <BuildError
