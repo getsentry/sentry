@@ -959,6 +959,46 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[3]["text"]["text"].endswith(expect_status)
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
+    def test_resolve_in_next_release_without_releases(
+        self, mock_tags: MagicMock, mock_record: MagicMock
+    ) -> None:
+        original_message = self.get_original_message(self.group.id)
+        status_action = self.get_resolve_status_action()
+        resp = self.post_webhook_block_kit(
+            action_data=[status_action], original_message=original_message
+        )
+        assert resp.status_code == 200, resp.content
+
+        view: View = self._mock_view_update.call_args.kwargs["view"]
+        assert view.private_metadata is not None
+
+        resp = self.post_webhook_block_kit(
+            type="view_submission",
+            private_metadata=view.private_metadata,
+            selected_option="resolved:inNextRelease",
+        )
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data["response_type"] == "ephemeral"
+        assert not resp.data["replace_original"]
+        assert resp.data["text"] == (
+            "No release data present in the system to form a basis for 'Next Release'"
+        )
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.UNRESOLVED
+        assert not GroupResolution.objects.filter(group=self.group).exists()
+        # Opening the dialog succeeds; the submission halts instead of failing.
+        outcomes = [call.args[0] for call in mock_record.mock_calls]
+        assert outcomes == [
+            EventLifecycleOutcome.STARTED,
+            EventLifecycleOutcome.SUCCESS,
+            EventLifecycleOutcome.STARTED,
+            EventLifecycleOutcome.HALTED,
+        ]
+
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_resolve_in_next_release_through_unfurl(self, mock_tags: MagicMock) -> None:
         release = Release.objects.create(
