@@ -149,24 +149,6 @@ def _org_allows_coding(group: Group) -> bool:
     )
 
 
-def _check_autofix_quota(group: Group, referrer: str | None) -> None:
-    """Raise if the organization has no seat-based Seer quota left."""
-    has_budget: bool = quotas.backend.check_seer_quota(
-        org_id=group.organization.id,
-        data_category=DataCategory.SEER_AUTOFIX,
-    )
-    if not has_budget:
-        logger.warning(
-            "autofix_feature.dispatch.quota_denied",
-            extra={
-                "group_id": group.id,
-                "organization_id": group.organization.id,
-                "referrer": referrer,
-            },
-        )
-        raise NoSeerQuotaException()
-
-
 def check_autofix_billing(
     group: Group,
     operation: SeerOperation,
@@ -177,10 +159,12 @@ def check_autofix_billing(
 ) -> bool:
     """
     Raise if the organization can't pay for the operation. Token-billed orgs are
-    checked for credits, everyone else for seat-based quota. Returns whether the
-    operation uses quota.
+    checked for credits, and everyone else is checked for quota once per run.
+    Returns whether the operation uses quota.
     """
     organization = group.organization
+
+    # Check credits for token-billed orgs.
     if features.has("organizations:token-billed-seer-enabled", organization):
         if (
             features.has("organizations:seer-credit-checks", organization)
@@ -199,14 +183,26 @@ def check_autofix_billing(
             raise SeerOutOfCreditsException()
         return False
 
-    # Quota counts runs, so only new runs use it.
-    # Free cohort orgs bypass quota only when called from agentic triage
-    # (skip_quota_for_free_cohort=True). Agentic triage is not exposed via the API.
-    uses_quota = is_new_run and not (
-        skip_quota_for_free_cohort and is_free_cohort_org(organization)
-    )
+    # Check quota for non-token-billed orgs once per run.
+    # Free cohort orgs skip quota when the caller passes skip_quota_for_free_cohort=True.
+    # Only agentic triage does, and it is not exposed via API.
+    skips_quota = skip_quota_for_free_cohort and is_free_cohort_org(organization)
+    uses_quota = is_new_run and not skips_quota
     if uses_quota:
-        _check_autofix_quota(group, referrer)
+        has_budget: bool = quotas.backend.check_seer_quota(
+            org_id=group.organization.id,
+            data_category=DataCategory.SEER_AUTOFIX,
+        )
+        if not has_budget:
+            logger.warning(
+                "autofix_feature.dispatch.quota_denied",
+                extra={
+                    "group_id": group.id,
+                    "organization_id": group.organization.id,
+                    "referrer": referrer,
+                },
+            )
+            raise NoSeerQuotaException()
     return uses_quota
 
 
