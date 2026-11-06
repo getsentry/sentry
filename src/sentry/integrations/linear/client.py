@@ -260,11 +260,16 @@ class LinearClient:
                 token = refresh_access_token(refresh_token).as_metadata()
             except LinearRefreshTokenError:
                 # A concurrent reauthorization must not be disabled by the old grant's failure.
-                Integration.objects.filter(
-                    id=integration.id,
-                    status=ObjectStatus.ACTIVE,
-                    date_updated=integration.date_updated,
-                ).update(status=ObjectStatus.DISABLED, date_updated=timezone.now())
+                # The date_updated filter catches stamped writes atomically; re-reading the
+                # stored refresh token also covers writers that persist new credentials
+                # without bumping date_updated.
+                current = Integration.objects.filter(id=integration.id).first()
+                if current is not None and current.metadata.get("refresh_token") == refresh_token:
+                    Integration.objects.filter(
+                        id=integration.id,
+                        status=ObjectStatus.ACTIVE,
+                        date_updated=integration.date_updated,
+                    ).update(status=ObjectStatus.DISABLED, date_updated=timezone.now())
                 raise
             # Persist both rotating tokens together, without overwriting a new authorization.
             if not Integration.objects.filter(

@@ -909,6 +909,33 @@ class GetAccessTokenTest(TestCase):
         assert integration.status == ObjectStatus.ACTIVE
         assert integration.metadata["refresh_token"] == "reauthorized-refresh-token"
 
+    @responses.activate
+    def test_linear_unstamped_reauthorization_is_not_disabled(self) -> None:
+        integration = self.create_linear(expires_at=None)
+
+        def reauthorize_without_bumping_stamp(request: Any) -> tuple[int, dict[str, str], str]:
+            # A writer that replaces the credentials without bumping date_updated
+            # (e.g. a queryset update) must still be visible to the disable guard.
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                Integration.objects.filter(id=integration.id).update(
+                    metadata={
+                        "access_token": "reauthorized-token",
+                        "refresh_token": "reauthorized-refresh-token",
+                    },
+                )
+            return (400, {"Content-Type": "application/json"}, '{"error":"invalid_grant"}')
+
+        responses.add_callback(
+            responses.POST, LINEAR_TOKEN_URL, callback=reauthorize_without_bumping_stamp
+        )
+
+        assert self.get_token(integration) is None
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.refresh_from_db()
+        assert integration.status == ObjectStatus.ACTIVE
+        assert integration.metadata["refresh_token"] == "reauthorized-refresh-token"
+
     def create_github(self, expires_at: str = "2025-01-01T06:22:00") -> Integration:
         return self.create_integration(
             organization=self.organization,
