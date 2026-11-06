@@ -701,7 +701,11 @@ function Collapsible(props: CollapsibleProps) {
             expanded: {
               height: 'auto',
               // Let focus rings and other content extend beyond the expanded section.
-              ...(settingsV3 ? {transitionEnd: {overflow: 'visible'}} : {}),
+              // Animating `overflow` too gives it a motion value, which transitionEnd
+              // needs in order to update the DOM after a collapse and reopen.
+              ...(settingsV3
+                ? {overflow: 'hidden', transitionEnd: {overflow: 'visible'}}
+                : {}),
             },
           }}
           initial="collapsed"
