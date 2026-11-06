@@ -1,7 +1,5 @@
 import moment from 'moment-timezone';
 
-import {getFormat} from '@sentry/scraps/dateTime';
-
 import {getConfigFromTimeRange} from './getConfigFromTimeRange';
 
 describe('getConfigFromTimeRange', () => {
@@ -16,7 +14,12 @@ describe('getConfigFromTimeRange', () => {
       periodStart: start,
       start,
       end,
-      dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
+      dateLabelOptions: {
+        mode: 'time',
+        precision: 'second',
+        showTimezone: false,
+        timezone,
+      },
       elapsedMinutes: 5,
       rollupConfig: {
         bucketPixels: 40,
@@ -31,7 +34,7 @@ describe('getConfigFromTimeRange', () => {
         minimumMarkerInterval: 0.625,
         referenceMarkerInterval: 0.71875,
       },
-      dateTimeProps: {timeOnly: true},
+      dateTimeProps: {mode: 'time', showTimezone: false, timezone},
       timelineWidth,
       timezone,
     });
@@ -47,7 +50,13 @@ describe('getConfigFromTimeRange', () => {
         .subtract(60 * 154, 'seconds')
         .toDate(),
       end,
-      dateLabelFormat: getFormat(),
+      dateLabelOptions: {
+        mode: 'dateTime',
+        year: 'never',
+        precision: 'minute',
+        showTimezone: false,
+        timezone,
+      },
       elapsedMinutes: 1445,
       rollupConfig: {
         bucketPixels: 0.5,
@@ -62,7 +71,7 @@ describe('getConfigFromTimeRange', () => {
         minimumMarkerInterval: 219.8478561549101,
         referenceMarkerInterval: 229.84094052558783,
       },
-      dateTimeProps: {timeOnly: false},
+      dateTimeProps: {mode: 'dateTime', showTimezone: false, timezone},
       timelineWidth: 723,
       timezone,
     });
@@ -78,7 +87,12 @@ describe('getConfigFromTimeRange', () => {
         .subtract(900 * 2, 'seconds')
         .toDate(),
       end,
-      dateLabelFormat: getFormat({timeOnly: true}),
+      dateLabelOptions: {
+        mode: 'time',
+        precision: 'minute',
+        showTimezone: false,
+        timezone,
+      },
       elapsedMinutes: 900,
       rollupConfig: {
         bucketPixels: 13,
@@ -93,7 +107,7 @@ describe('getConfigFromTimeRange', () => {
         minimumMarkerInterval: 115.38461538461537,
         referenceMarkerInterval: 132.69230769230768,
       },
-      dateTimeProps: {timeOnly: true},
+      dateTimeProps: {mode: 'time', showTimezone: false, timezone},
       timelineWidth: 780,
       timezone,
     });
@@ -109,7 +123,7 @@ describe('getConfigFromTimeRange', () => {
         .subtract(1800 * 112, 'seconds')
         .toDate(),
       end,
-      dateLabelFormat: getFormat(),
+      dateLabelOptions: {year: 'never', showTimezone: false, timezone},
       // 31 elapsed days
       elapsedMinutes: 31 * 24 * 60,
       rollupConfig: {
@@ -126,7 +140,7 @@ describe('getConfigFromTimeRange', () => {
         minimumMarkerInterval: 6000,
         referenceMarkerInterval: 6900,
       },
-      dateTimeProps: {dateOnly: true},
+      dateTimeProps: {mode: 'date', showTimezone: false, timezone},
       timelineWidth: 744,
       timezone,
     });
@@ -142,7 +156,13 @@ describe('getConfigFromTimeRange', () => {
         .subtract(900 * 2, 'seconds')
         .toDate(),
       end,
-      dateLabelFormat: getFormat(),
+      dateLabelOptions: {
+        mode: 'dateTime',
+        year: 'never',
+        precision: 'minute',
+        showTimezone: false,
+        timezone,
+      },
       // 14 hours
       elapsedMinutes: 14 * 60,
       rollupConfig: {
@@ -158,7 +178,7 @@ describe('getConfigFromTimeRange', () => {
         minimumMarkerInterval: 117.85714285714285,
         referenceMarkerInterval: 123.21428571428571,
       },
-      dateTimeProps: {timeOnly: false},
+      dateTimeProps: {mode: 'dateTime', showTimezone: false, timezone},
       timelineWidth: 784,
       timezone,
     });

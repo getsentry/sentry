@@ -124,7 +124,7 @@ export function RevisionListItem({
                 {formatRevisionSource(revisionSource)}
               </Text>
             )}
-            {dateCreated && <DateTime date={dateCreated} timeZone />}
+            {dateCreated && <DateTime date={dateCreated} showTimezone />}
             <Flex align="center" gap="xs">
               {userForAvatar && <UserAvatar user={userForAvatar} size={16} />}
               <Text size="sm" variant="muted">

@@ -1,8 +1,9 @@
 import moment from 'moment-timezone';
 import {createStore} from 'reflux';
 
-import {configureDateTime} from '@sentry/scraps/dateTime';
+import {configureFormatting, type FormattingSnapshot} from '@sentry/scraps/dateTime';
 
+import {getLocaleSnapshot, subscribeLocale} from 'sentry/locale';
 import type {Config} from 'sentry/types/system';
 
 import type {StrictStoreDefinition} from './types';
@@ -59,10 +60,32 @@ const storeConfig: ConfigStoreDefinition = {
 
 export const ConfigStore = createStore(storeConfig);
 
-configureDateTime({
-  getTimezone: () =>
-    ConfigStore.get('user')?.options.timezone ??
-    Intl.DateTimeFormat().resolvedOptions().timeZone,
-  getClockDisplay: () => (ConfigStore.get('user')?.options.clock24Hours ? '24' : '12'),
-  subscribe: onChange => ConfigStore.listen(onChange, undefined) as () => void,
+let formattingSnapshot: FormattingSnapshot | undefined;
+
+configureFormatting({
+  getSnapshot: () => {
+    const {locale, messages} = getLocaleSnapshot();
+    const user = ConfigStore.get('user');
+    const timezone =
+      user?.options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const clock = user?.options.clock24Hours ? '24' : '12';
+    if (
+      !formattingSnapshot ||
+      formattingSnapshot.timezone !== timezone ||
+      formattingSnapshot.clock !== clock ||
+      formattingSnapshot.locale !== locale ||
+      formattingSnapshot.messages !== messages
+    ) {
+      formattingSnapshot = {timezone, clock, locale, messages};
+    }
+    return formattingSnapshot;
+  },
+  subscribe: onChange => {
+    const unlistenConfig = ConfigStore.listen(onChange, undefined) as () => void;
+    const unlistenLocale = subscribeLocale(onChange);
+    return () => {
+      unlistenConfig();
+      unlistenLocale();
+    };
+  },
 });

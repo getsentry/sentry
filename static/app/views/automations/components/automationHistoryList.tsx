@@ -107,7 +107,7 @@ export function AutomationHistoryList({automationId, query}: Props) {
         {fireHistory.map((row, index) => (
           <SimpleTable.Row key={index}>
             <SimpleTable.RowCell>
-              <DateTime date={row.lastTriggered} timeZone />
+              <DateTime date={row.lastTriggered} showTimezone />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               {row.detector ? (

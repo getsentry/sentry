@@ -30,7 +30,6 @@ import {getInternalDate} from 'sentry/utils/dates';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {retentionPrioritiesLabels} from 'sentry/views/settings/projectPerformance';
 import {projectDetectorSettingsId} from 'sentry/views/settings/projectPerformance/detectors/detectorFieldGroups';
@@ -282,7 +281,6 @@ export function AuditLogList({
   statsPeriod,
   utc = false,
 }: Props) {
-  const is24Hours = useUser().options?.clock24Hours;
   const organization = useOrganization();
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
@@ -403,12 +401,8 @@ export function AuditLogList({
                   )}
                 </SimpleTable.RowCell>
                 <TimestampInfo>
-                  <DateTime dateOnly date={entry.dateCreated} />
-                  <DateTime
-                    timeOnly
-                    format={is24Hours ? 'HH:mm z' : 'LT z'}
-                    date={entry.dateCreated}
-                  />
+                  <DateTime date={entry.dateCreated} mode="date" />
+                  <DateTime showTimezone date={entry.dateCreated} mode="time" />
                 </TimestampInfo>
               </SimpleTable.Row>
             );

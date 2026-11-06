@@ -2,10 +2,15 @@ import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {render, screen} from '@testing-library/react';
 
-import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/dateTime';
+import {
+  configureFormatting,
+  type DateTimePreferences,
+  DateTimeProvider,
+} from '@sentry/scraps/dateTime';
 import {RelativeTime} from '@sentry/scraps/relativeTime';
 import {lightTheme} from '@sentry/scraps/theme';
-import {configureTranslation} from '@sentry/scraps/translation';
+
+import {getSnapshot} from '../dateTime/config';
 
 afterEach(() => {
   try {
@@ -22,11 +27,11 @@ const DATE = '2026-01-01T00:00:00Z';
 function renderInTimezone(
   children: NonNullable<React.ReactNode>,
   timezone: string,
-  clockDisplay: DateTimeContextValue['clockDisplay'] = '12'
+  clock: DateTimePreferences['clock'] = '12'
 ) {
   return render(
     <ThemeProvider theme={lightTheme}>
-      <DateTimeProvider value={{timezone, clockDisplay}}>{children}</DateTimeProvider>
+      <DateTimeProvider value={{timezone, clock}}>{children}</DateTimeProvider>
     </ThemeProvider>
   );
 }
@@ -139,7 +144,8 @@ describe('RelativeTime', () => {
         date="2026-09-04T00:00:00Z"
         label="Last Seen"
         suffix="ago"
-        unitStyle="short"
+        rounding="unit"
+        style="short"
       />,
       'America/Los_Angeles'
     );
@@ -147,9 +153,15 @@ describe('RelativeTime', () => {
     expect(screen.getByText('in 3d')).toBeInTheDocument();
   });
 
-  it('matches the trigger by respecting unitStyle', () => {
+  it('matches the trigger by respecting unit width', () => {
     renderInTimezone(
-      <RelativeTime date={DATE} label="Last Seen" suffix="ago" unitStyle="short" />,
+      <RelativeTime
+        date={DATE}
+        label="Last Seen"
+        suffix="ago"
+        rounding="unit"
+        style="short"
+      />,
       'America/Los_Angeles'
     );
 
@@ -162,19 +174,26 @@ describe('localized preferences', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:05Z'));
   });
   it('updates localized duration and clock preferences through the date provider', () => {
-    const restore = configureTranslation({
-      t: label => label,
-      pgettext: (_context, label) => label,
-      tn: (_singular, plural) => `translated ${plural}`,
+    const snapshot = {
+      ...getSnapshot(),
+      messages: {
+        ...getSnapshot().messages,
+        tn: (_singular: string, plural: string) => `translated ${plural}`,
+      },
+    };
+    const restore = configureFormatting({
+      getSnapshot: () => snapshot,
+      subscribe: () => () => {},
     });
     const {rerender} = render(
       <ThemeProvider theme={lightTheme}>
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '12'}}>
           <RelativeTime
             date={DATE}
             label="Last seen"
             suffix="elapsed"
-            unitStyle="regular"
+            rounding="unit"
+            style="long"
           />
         </DateTimeProvider>
       </ThemeProvider>
@@ -183,12 +202,13 @@ describe('localized preferences', () => {
     expect(screen.getByText('12:00 AM')).toBeInTheDocument();
     rerender(
       <ThemeProvider theme={lightTheme}>
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '24'}}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '24'}}>
           <RelativeTime
             date={DATE}
             label="Last seen"
             suffix="elapsed"
-            unitStyle="regular"
+            rounding="unit"
+            style="long"
           />
         </DateTimeProvider>
       </ThemeProvider>

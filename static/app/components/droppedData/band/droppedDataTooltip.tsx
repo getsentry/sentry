@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {getFormat} from '@sentry/scraps/dateTime';
+import {formatDateTime, type DateTimeOptions} from '@sentry/scraps/dateTime';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -33,11 +33,11 @@ function formatBucketRange(start: number, end: number, timezone: string): string
   const endMoment = moment.tz(end, timezone);
   const showYear = startMoment.year() !== moment().year();
 
-  const endFormat = startMoment.isSame(endMoment, 'day')
-    ? getFormat({timeOnly: true, timeZone: true})
-    : getFormat({year: showYear, timeZone: true});
-
-  return `${startMoment.format(getFormat({year: showYear}))} - ${endMoment.format(endFormat)}`;
+  const year = showYear ? 'always' : 'never';
+  const endOptions = startMoment.isSame(endMoment, 'day')
+    ? ({mode: 'time', showTimezone: true, timezone} satisfies DateTimeOptions)
+    : ({year, showTimezone: true, timezone} satisfies DateTimeOptions);
+  return `${formatDateTime(start, {year, showTimezone: false, timezone})} - ${formatDateTime(end, endOptions)}`;
 }
 
 function totalEventCount(bucket: DroppedDataBucket): number {

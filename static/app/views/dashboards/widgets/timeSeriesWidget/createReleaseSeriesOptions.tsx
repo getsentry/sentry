@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 import type {CustomSeriesOption} from 'echarts';
 
-import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
+import {formatDateTime} from '@sentry/scraps/dateTime';
 
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
@@ -47,8 +47,9 @@ export function createReleaseSeriesOptions(
         trigger: 'item',
         formatter: function (params: any) {
           const time = formatDateTime(params.value, {
-            format: getFormat({timeZone: true, year: true}),
-            utc: !utc,
+            year: 'always',
+            showTimezone: true,
+            timezone: utc ? undefined : 'UTC',
           });
 
           const version = escape(formatVersion(params.name, true));

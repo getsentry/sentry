@@ -107,7 +107,7 @@ export function ReplayBadge({replay}: Props) {
             <IconCalendar variant="muted" size="xs" />
             <Text size="sm" variant="muted" wrap="normal">
               {timestampType === 'absolute' ? (
-                <DateTime year timeZone date={replay.started_at} />
+                <DateTime date={replay.started_at} year="always" showTimezone />
               ) : (
                 <TimeSince date={replay.started_at} />
               )}

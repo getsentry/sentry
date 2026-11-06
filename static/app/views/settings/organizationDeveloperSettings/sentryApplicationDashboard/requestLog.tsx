@@ -20,7 +20,6 @@ import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {SentryApp, SentryAppSchemaIssueLink} from 'sentry/types/integrations';
-import {shouldUse24Hours} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {granularWebhookEvents} from 'sentry/views/settings/organizationDeveloperSettings/constants';
@@ -104,7 +103,6 @@ interface RequestLogProps {
 
 export function RequestLog({app}: RequestLogProps) {
   const organization = useOrganization();
-  const timeFormat = shouldUse24Hours() ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z';
   const [currentPage, setCurrentPage] = useState(0);
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [eventType, setEventType] = useState(ALL_EVENTS);
@@ -214,7 +212,12 @@ export function RequestLog({app}: RequestLogProps) {
                   >
                     <InteractionStateLayer />
                     <Text>
-                      <DateTime date={request.date} format={timeFormat} />
+                      <DateTime
+                        date={request.date}
+                        year="always"
+                        precision="second"
+                        showTimezone
+                      />
                     </Text>
                   </RowButton>
                 </SimpleTable.RowCell>

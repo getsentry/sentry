@@ -7,7 +7,7 @@ import {IconTelescope} from '@sentry/icons/telescope';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
+import {formatDateTime} from '@sentry/scraps/dateTime';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -59,13 +59,9 @@ function BuildButton({
   const platform = buildDetails.app_info?.platform ?? null;
 
   const dateToShow = dateBuilt || dateAdded;
-  const formattedDate = formatDateTime(dateToShow, {
-    format: getFormat({timeZone: true, year: true}),
-    utc: false,
-  });
-
-  // Build metadata parts for the second line
-  const metadataParts = [formattedDate];
+  const metadataParts = dateToShow
+    ? [formatDateTime(dateToShow, {year: 'always', showTimezone: true})]
+    : [];
   if (version) {
     metadataParts.unshift(`Version ${version}`);
   }

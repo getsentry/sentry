@@ -475,7 +475,7 @@ function BodyCell({
     case 'age':
       return (
         <Text align="right" variant="muted">
-          <TimeSince unitStyle="extraShort" date={conversation.endTimestamp} />
+          <TimeSince unitStyle="narrow" date={conversation.endTimestamp} />
         </Text>
       );
     default:

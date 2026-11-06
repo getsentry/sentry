@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
-import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
+import {formatDateTime, type DateTimeOptions} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -21,16 +21,21 @@ import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 // or absolute date range formatted like "Jan 1, 2022 - Jan 2, 2022"
 function getFormattedDateTime(dateTime: PageFilterDatetime): string | null {
   const {start, end, period} = dateTime;
-  const format = getFormat({dateOnly: true, year: true});
+  const format = {
+    mode: 'date',
+    year: 'always',
+    showTimezone: false,
+    timezone: 'UTC',
+  } satisfies DateTimeOptions;
 
   if (period) {
     const periodToHours = parsePeriodToHours(period);
     const periodStartDate = new Date(Date.now() - periodToHours * 60 * 60 * 1000);
-    return formatDateTime(periodStartDate, {format, utc: true});
+    return formatDateTime(periodStartDate, format);
   }
 
   if (start && end) {
-    return `${formatDateTime(new Date(start), {format, utc: true})} - ${formatDateTime(new Date(end), {format, utc: true})}`;
+    return `${formatDateTime(new Date(start), format)} - ${formatDateTime(new Date(end), format)}`;
   }
 
   return null;

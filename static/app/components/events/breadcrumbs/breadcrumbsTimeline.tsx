@@ -29,9 +29,14 @@ function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
         <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
         <DescriptionList.Details>
           <TimestampValues>
-            <DateTime date={timestamp} seconds milliseconds timeZone />
+            <DateTime date={timestamp} precision="millisecond" showTimezone />
             {!isUTCLocalTimezone && (
-              <DateTime date={timestamp} seconds milliseconds timeZone utc />
+              <DateTime
+                date={timestamp}
+                precision="millisecond"
+                showTimezone
+                timezone="UTC"
+              />
             )}
           </TimestampValues>
         </DescriptionList.Details>
@@ -124,7 +129,7 @@ export function BreadcrumbsTimeline({
               abbreviation
             />
           ) : (
-            <DateTime date={timestamp} seconds milliseconds timeZone />
+            <DateTime date={timestamp} precision="millisecond" showTimezone />
           )}
         </Tooltip>
       </Timestamp>

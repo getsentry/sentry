@@ -2,11 +2,10 @@ import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
-import {formatDateTime} from '@sentry/scraps/dateTime';
 import {Overlay} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
 
-import {shouldUse24Hours} from 'sentry/utils/dates';
+import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {divide} from 'sentry/utils/number/divide';
 import {toPercent} from 'sentry/utils/number/toPercent';
@@ -65,10 +64,7 @@ export function TimelineTooltip({container}: Props) {
     >
       <Text size="sm" tabular style={{fontWeight: 'normal'}}>
         {timestampType === 'absolute'
-          ? formatDateTime(startTimestamp + (lastHoverTime ?? 0), {
-              format: shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS',
-              utc: false,
-            })
+          ? formatChartDateTime(startTimestamp + (lastHoverTime ?? 0), 'replayTime')
           : formatDuration({
               duration: [lastHoverTime ?? 0, 'ms'],
               precision: 'ms',

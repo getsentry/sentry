@@ -82,7 +82,7 @@ export function LogTimestamp({
 
   return (
     <LogDate>
-      <DateTime seconds milliseconds date={date} />
+      <DateTime date={date} precision="millisecond" />
     </LogDate>
   );
 }

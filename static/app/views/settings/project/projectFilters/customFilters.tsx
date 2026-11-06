@@ -644,10 +644,10 @@ export function CustomFilters({project}: {project: Project}) {
                     isError={isStatsError}
                   />
                   <SimpleTable.RowCell whiteSpace="nowrap">
-                    <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
+                    <TimeSince date={filter.dateCreated} unitStyle="narrow" />
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell whiteSpace="nowrap">
-                    <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
+                    <TimeSince date={filter.dateUpdated} unitStyle="narrow" />
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
                     <Flex gap="sm">

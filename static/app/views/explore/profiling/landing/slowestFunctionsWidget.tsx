@@ -371,11 +371,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
       .map(values => (Array.isArray(values) ? values : []))
       .flatMap((example, i) => {
         const timestamp = (
-          <TimeSince
-            unitStyle="extraShort"
-            date={timestamps[i]! * 1000}
-            tooltipShowSeconds
-          />
+          <TimeSince unitStyle="narrow" date={timestamps[i]! * 1000} tooltipShowSeconds />
         );
         return example.slice(0, 1).map(profileRef => {
           const targetId = getProfileTargetId(profileRef);

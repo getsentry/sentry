@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
 import {InlineCode} from '@sentry/scraps/code';
-import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
+import {useDateTimeFormatter} from '@sentry/scraps/dateTime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Separator} from '@sentry/scraps/separator';
@@ -21,6 +21,7 @@ interface FlagSeriesProps {
 
 export function useFlagSeries({event, flags}: FlagSeriesProps) {
   const theme = useTheme();
+  const formatDateTime = useDateTimeFormatter();
   const {selection} = usePageFilters();
   const renderToString = useRenderToString();
 
@@ -48,8 +49,9 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
       trigger: 'item',
       formatter: ({data}: any) => {
         const time = formatDateTime(data.xAxis, {
-          format: getFormat({timeZone: true, year: true}),
-          utc: !!selection.datetime.utc,
+          year: 'always',
+          showTimezone: true,
+          timezone: selection.datetime.utc ? 'UTC' : undefined,
         });
 
         const timeObject = moment(data.xAxis);

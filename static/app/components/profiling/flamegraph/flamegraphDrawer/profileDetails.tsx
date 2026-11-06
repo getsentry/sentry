@@ -40,11 +40,11 @@ function renderValue(
   if (key === 'threads' && value === undefined) {
     return profileGroup?.profiles.length;
   }
-  if (key === 'received') {
-    return <DateTime date={value} />;
-  }
   if (value === undefined || value === '') {
     return t('ø');
+  }
+  if (key === 'received') {
+    return <DateTime date={value} />;
   }
 
   return value;

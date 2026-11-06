@@ -1,9 +1,15 @@
 export {DateTime, type DateTimeProps} from './dateTime';
+export {DateTimeProvider, useTimezone, useClock, useDateTimeFormatter} from './context';
 export {
-  DateTimeProvider,
-  useTimezone,
-  useClockDisplay,
-  type DateTimeContextValue,
-} from './context';
-export {configureDateTime, type DateTimeConfigSource} from './config';
-export {formatDateTime, getFormat, type DateTimeOptions} from './format';
+  configureFormatting,
+  type DateTimePreferences,
+  type FormattingSource,
+  type FormattingSnapshot,
+} from './config';
+export {
+  formatDateTime,
+  type DateTimeInput,
+  type DateTimeOptions,
+  type TimePrecision,
+  type YearDisplay,
+} from './format';

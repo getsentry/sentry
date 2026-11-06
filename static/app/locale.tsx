@@ -4,7 +4,7 @@ import Jed from 'jed';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
 import {sprintf} from 'sprintf-js';
 
-import {configureTranslation} from '@sentry/scraps/translation';
+import type {Translation} from '@sentry/scraps/translation';
 
 import {toArray} from './utils/array/toArray';
 import {localStorageWrapper} from './utils/localStorage';
@@ -33,8 +33,23 @@ export const DEFAULT_LOCALE_DATA = {
 /**
  * Global Jed locale object loaded with translations via setLocale
  */
-let i18n: Jed | null = null;
+let i18n: Jed = new Jed({
+  domain: 'sentry',
+  missing_key_callback: () => {},
+  locale_data: {sentry: DEFAULT_LOCALE_DATA},
+});
 const staticTranslations = new Set<string>();
+const localeListeners = new Set<() => void>();
+let localeSnapshot = createLocaleSnapshot(i18n, 'en');
+
+export function subscribeLocale(onChange: () => void): () => void {
+  localeListeners.add(onChange);
+  return () => localeListeners.delete(onChange);
+}
+
+export function getLocaleSnapshot() {
+  return localeSnapshot;
+}
 
 /**
  * Set the current application locale.
@@ -44,30 +59,48 @@ const staticTranslations = new Set<string>();
  * to lookup translations at runtime.
  */
 export function setLocale(translations: any): Jed {
-  i18n = new Jed({
+  const client = new Jed({
     domain: 'sentry',
     missing_key_callback: () => {},
     locale_data: {
       sentry: translations,
     },
   });
+  i18n = client;
+  localeSnapshot = createLocaleSnapshot(
+    client,
+    (translations['']?.lang ?? translations['']?.language ?? 'en').replace('_', '-')
+  );
+  localeListeners.forEach(onChange => onChange());
+  return client;
+}
 
-  return i18n;
+function createLocaleSnapshot(
+  client: Jed,
+  locale: string
+): {locale: string; messages: Translation} {
+  return {
+    locale,
+    messages: {
+      t: (message, ...args) => {
+        const value: string = client.gettext(message);
+        if (args.length === 0) {
+          staticTranslations.add(value);
+          return mark(value);
+        }
+        return mark(format(value, args) as string);
+      },
+      tn: (singular, plural, count) => translatePlural(client, singular, plural, count),
+      pgettext: (context, message) => {
+        const value: string = client.pgettext(context, message);
+        staticTranslations.add(value);
+        return mark(value);
+      },
+    },
+  };
 }
 
 type FormatArg = ComponentMap | React.ReactNode;
-
-/**
- * Helper to return the i18n client, and initialize for the default locale (English)
- * if it has otherwise not been initialized.
- */
-function getClient(): Jed | null {
-  if (!i18n) {
-    return setLocale(DEFAULT_LOCALE_DATA);
-  }
-
-  return i18n;
-}
 
 export function isStaticString(formatString: string): boolean {
   if (formatString.trim() === '') {
@@ -324,7 +357,7 @@ function format(formatString: string, args: FormatArg[]): React.ReactNode {
  * [0]: https://github.com/alexei/sprintf.js
  */
 function gettext(string: string, ...args: FormatArg[]): string {
-  const val: string = getClient().gettext(string);
+  const val: string = i18n.gettext(string);
 
   if (args.length === 0) {
     staticTranslations.add(val);
@@ -348,6 +381,15 @@ function gettext(string: string, ...args: FormatArg[]): string {
  * [0]: https://github.com/alexei/sprintf.js
  */
 function ngettext(singular: string, plural: string, ...args: FormatArg[]): string {
+  return translatePlural(i18n, singular, plural, ...args);
+}
+
+function translatePlural(
+  client: Jed,
+  singular: string,
+  plural: string,
+  ...args: FormatArg[]
+): string {
   let countArg = 0;
 
   if (args.length > 0) {
@@ -372,20 +414,7 @@ function ngettext(singular: string, plural: string, ...args: FormatArg[]): strin
   }
 
   // XXX(ts): See XXX in gettext.
-  return mark(format(getClient().ngettext(singular, plural, countArg), args) as string);
-}
-
-/**
- * Translates a string that is disambiguated by a context, using `msgctxt` in
- * the PO catalog. Reach for this only when the same source string needs more
- * than one translation — for example the extra-short duration labels, where
- * "m" means both minutes and months, and would otherwise share a single msgid
- * with every other "m" in the codebase.
- */
-function pgettext(context: string, string: string): string {
-  const val: string = getClient().pgettext(context, string);
-  staticTranslations.add(val);
-  return mark(val);
+  return mark(format(client.ngettext(singular, plural, countArg), args) as string);
 }
 
 /**
@@ -408,7 +437,7 @@ function gettextComponentTemplate(
   template: string,
   components: ComponentMap
 ): React.JSX.Element {
-  const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
+  const parsedTemplate = parseComponentTemplate(i18n.gettext(template));
   return mark(
     renderTemplate(parsedTemplate, {
       ...components,
@@ -422,7 +451,7 @@ function gettextComponentTemplate(
  * This function is intentionally not included in the gettext extraction script.
  */
 function gettextDescription(string: string): string {
-  const val: string = getClient().gettext(string);
+  const val: string = i18n.gettext(string);
   staticTranslations.add(val);
   return mark(val);
 }
@@ -435,7 +464,4 @@ export {
   gettextComponentTemplate as tct,
   ngettext as tn,
   gettextDescription as td,
-  pgettext,
 };
-
-configureTranslation({t: gettext, tn: ngettext, pgettext});
