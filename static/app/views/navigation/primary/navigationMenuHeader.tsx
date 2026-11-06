@@ -75,7 +75,7 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
   );
 }
 
-const DEFAULT_GRADIENT = ['#2c155c', '#4e168c'] as const;
+const DEFAULT_GRADIENT = {start: '#2c155c', end: '#4e168c'};
 
 function MenuHeader({
   label,
@@ -92,7 +92,7 @@ function MenuHeader({
 }) {
   const currentTheme = useTheme();
   const invertedTheme = useInvertedTheme();
-  const [gradientStart, gradientEnd] = useAvatarGradient(avatarProps, DEFAULT_GRADIENT);
+  const gradient = useAvatarGradient(avatarProps, DEFAULT_GRADIENT);
 
   return (
     <ThemeProvider theme={currentTheme.type === 'dark' ? currentTheme : invertedTheme}>
@@ -101,7 +101,7 @@ function MenuHeader({
         padding="xs"
         css={theme => css`
           margin: -${theme.space.sm} -${theme.space.lg};
-          background: linear-gradient(90deg, ${gradientStart}, ${gradientEnd});
+          background: linear-gradient(90deg, ${gradient.start}, ${gradient.end});
         `}
       >
         <Stack gap="md" padding="md lg">

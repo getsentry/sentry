@@ -4,7 +4,10 @@ import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 
 import {useAvatarColors} from './useAvatarColors';
 
-type Gradient = readonly [start: string, end: string];
+interface Gradient {
+  end: string;
+  start: string;
+}
 
 // Keeps the avatar's hue and saturation but never gets brighter than
 // `ceiling`, so text designed against `ceiling` keeps its contrast.
@@ -15,19 +18,21 @@ function getAvatarGradient(avatarColor: string, ceiling: string): Gradient {
     end = end.lightness(Math.max(end.lightness() - 1, 0));
   }
   const start = end.lightness(Math.max(end.lightness() - 10, 0));
-  return [start.hex(), end.hex()];
+  return {start: start.hex(), end: end.hex()};
 }
 
 /**
- * A gradient in the avatar's color, no brighter than `fallback`'s end color.
- * Returns `fallback` when the avatar has no usable color.
+ * A gradient in the avatar's color. Its end color is never brighter than
+ * `defaultGradient.end`, so text that reads on the default gradient still
+ * reads on this one. Returns `defaultGradient` while the avatar has no usable
+ * color, for example while an image avatar is still being sampled.
  */
 export function useAvatarGradient(
   avatar: BaseAvatarProps | undefined,
-  fallback: Gradient
+  defaultGradient: Gradient
 ): Gradient {
   const avatarColors = useAvatarColors(avatar);
   return avatarColors.type === 'none'
-    ? fallback
-    : getAvatarGradient(avatarColors.dominant, fallback[1]);
+    ? defaultGradient
+    : getAvatarGradient(avatarColors.dominant, defaultGradient.end);
 }
