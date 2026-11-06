@@ -29,9 +29,10 @@ interface AutofixStartCardProps {
   onStarted?: () => void;
   referrer?: string;
   /**
-   * Shows the muted out-of-credits notice above the disabled start button. The
-   * issue sidebar sets this; the Seer drawer and Autofix tab show their own
-   * alert at the top of their content instead.
+   * Swaps the "Have Seer..." explainer for the muted out-of-credits notice,
+   * above the disabled start button. The issue sidebar sets this; the Seer
+   * drawer and Autofix tab show their own alert at the top of their content
+   * instead.
    */
   showOutOfCreditsNotice?: boolean;
 }
@@ -67,9 +68,11 @@ export function AutofixStartCard({
 
   return (
     <Stack gap="md">
-      <AutofixStartCardContent />
-      {showOutOfCreditsNotice && !creditCheck.hasEnoughCredits && (
+      {/* The Billing Gates design gives the sidebar one card: the notice takes the explainer's place. */}
+      {showOutOfCreditsNotice && !creditCheck.hasEnoughCredits ? (
         <SeerOutOfCreditsCta reason="autofix-start" variant="muted" />
+      ) : (
+        <AutofixStartCardContent />
       )}
       <Button
         size="md"

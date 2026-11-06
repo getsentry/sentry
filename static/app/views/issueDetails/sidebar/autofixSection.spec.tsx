@@ -893,7 +893,7 @@ describe('AutofixSection', () => {
       registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
     });
 
-    it('shows the muted notice above a disabled Start Analysis', async () => {
+    it('swaps the explainer for the muted notice above a disabled Start Analysis', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
         body: {autofix: null},
@@ -915,7 +915,7 @@ describe('AutofixSection', () => {
       expect(
         cta.compareDocumentPosition(startButton) & Node.DOCUMENT_POSITION_FOLLOWING
       ).toBeTruthy();
-      expect(screen.getByText('Have Seer...')).toBeInTheDocument();
+      expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
       expect(creditCheck).toHaveBeenCalledTimes(1);
     });
 
@@ -935,6 +935,7 @@ describe('AutofixSection', () => {
       });
 
       expect(await screen.findByRole('button', {name: 'Start Analysis'})).toBeDisabled();
+      expect(screen.getByText('Have Seer...')).toBeInTheDocument();
       expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
     });
 
