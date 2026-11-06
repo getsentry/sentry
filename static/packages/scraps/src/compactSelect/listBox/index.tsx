@@ -290,30 +290,32 @@ export function ListBox<T extends ListItemBase>({
           >
             {overlayIsOpen && (
               <Fragment>
-                <VirtualSpacer height={virtual.spaceBefore} />
-                {virtual.rows.map(({node, props: rowProps}) =>
-                  node.type === 'section' ? (
-                    <ListBoxSection
-                      {...rowProps}
-                      key={node.key}
-                      item={node}
-                      listState={listState}
-                      hiddenOptions={hiddenOptions}
-                      size={size}
-                      showSectionHeaders={showSectionHeaders}
-                      showDetails={showDetails}
-                    />
-                  ) : (
-                    <ListBoxOption
-                      {...rowProps}
-                      key={node.key}
-                      item={node}
-                      listState={listState}
-                      size={size}
-                      showDetails={showDetails}
-                    />
-                  )
-                )}
+                {virtual.rows.map(({node, props: rowProps, spaceBefore}) => (
+                  <Fragment key={node.key}>
+                    <VirtualSpacer height={spaceBefore} />
+                    {node.type === 'section' ? (
+                      <ListBoxSection
+                        {...rowProps}
+                        item={node}
+                        listState={listState}
+                        hiddenOptions={hiddenOptions}
+                        size={size}
+                        showSectionHeaders={showSectionHeaders}
+                        showDetails={showDetails}
+                      />
+                    ) : (
+                      <ListBoxOption
+                        {...rowProps}
+                        // AriaOptionProps requires `key`.
+                        key={node.key}
+                        item={node}
+                        listState={listState}
+                        size={size}
+                        showDetails={showDetails}
+                      />
+                    )}
+                  </Fragment>
+                ))}
                 <VirtualSpacer height={virtual.spaceAfter} />
               </Fragment>
             )}

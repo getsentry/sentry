@@ -94,10 +94,12 @@ export interface DropdownMenuListProps
   };
   size?: MenuItemProps['size'];
   /**
-   * Render only the items near the viewport. Set by DropdownMenuContent from
-   * `virtualizeThreshold`.
+   * Number of items above which only the items near the viewport are rendered.
+   * Menus with sections are never virtualized. Submenus inherit the threshold
+   * of their parent menu. Pass `Infinity` to never virtualize.
+   * @default 150
    */
-  virtualized?: boolean;
+  virtualizeThreshold?: number;
   /**
    * Style overrides applied to the position wrapper. Useful for overriding
    * the default z-index (e.g. when the menu is inside a high z-index container
@@ -242,7 +244,7 @@ function DropdownMenuList({
   overlayState,
   overlayPositionProps,
   zIndex,
-  virtualized = false,
+  virtualizeThreshold,
   ...props
 }: DropdownMenuListProps) {
   const {t} = useTranslation();
@@ -256,6 +258,14 @@ function DropdownMenuList({
         .flatMap(node => (node.type === 'section' ? [...node.childNodes] : [node]))
         .some(node => node.value?.leadingItems || node.value?.isSelected !== undefined),
     [stateCollection]
+  );
+  const virtualized = useMemo(
+    () =>
+      shouldVirtualize(stateCollection, {
+        threshold: virtualizeThreshold,
+        isSection: node => node.type === 'section',
+      }),
+    [stateCollection, virtualizeThreshold]
   );
 
   // Implement focus states, keyboard navigation, aria-label,...
@@ -389,8 +399,9 @@ function DropdownMenuList({
       rootOverlayState: rootOverlayState ?? overlayState,
       parentMenuState: state,
       safetyTriangle,
+      virtualizeThreshold,
     }),
-    [rootOverlayState, overlayState, state, safetyTriangle]
+    [rootOverlayState, overlayState, state, safetyTriangle, virtualizeThreshold]
   );
   const searchInput = searchState && (
     <Search
@@ -465,19 +476,20 @@ function DropdownMenuList({
                   <ReserveLeadingSlot reserve={hasLeadingItems}>
                     {virtualized ? (
                       <Fragment>
-                        <VirtualSpacer height={virtual.spaceBefore} />
-                        {virtual.rows.map(({node, props: rowProps}) => (
-                          <DropdownMenuCollectionItem
-                            key={node.key}
-                            node={node}
-                            rowProps={rowProps}
-                            closeOnSelect={closeOnSelect}
-                            disableTextSelection={disableTextSelection}
-                            onClose={onClose}
-                            separatorProps={separatorProps}
-                            size={size}
-                            state={state}
-                          />
+                        {virtual.rows.map(({node, props: rowProps, spaceBefore}) => (
+                          <Fragment key={node.key}>
+                            <VirtualSpacer height={spaceBefore} />
+                            <DropdownMenuCollectionItem
+                              node={node}
+                              rowProps={rowProps}
+                              closeOnSelect={closeOnSelect}
+                              disableTextSelection={disableTextSelection}
+                              onClose={onClose}
+                              separatorProps={separatorProps}
+                              size={size}
+                              state={state}
+                            />
+                          </Fragment>
                         ))}
                         <VirtualSpacer height={virtual.spaceAfter} />
                       </Fragment>
@@ -614,18 +626,9 @@ function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
   }, []);
 }
 
-export type DropdownMenuContentProps = Omit<
-  DropdownMenuListProps,
-  'searchState' | 'virtualized'
-> & {
+export type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'searchState'> & {
   items: MenuItemProps[];
   search?: DropdownMenuSearchOptions;
-  /**
-   * Number of items above which only the items near the viewport are rendered.
-   * Menus with sections are never virtualized.
-   * @default 150
-   */
-  virtualizeThreshold?: number;
 };
 
 export function DropdownMenuContent({
@@ -637,6 +640,10 @@ export function DropdownMenuContent({
   ...props
 }: DropdownMenuContentProps) {
   const [searchValue, setSearchValue] = useState('');
+  // A submenu renders inside its parent menu's context, so it inherits the
+  // parent's threshold unless it sets its own.
+  const {virtualizeThreshold: inheritedVirtualizeThreshold} =
+    useContext(DropdownMenuContext);
   const resolveHref = useResolveLinkHref();
   const activeItems = useMemo(
     () => removeHiddenItemsAndSetHref(items, resolveHref),
@@ -651,22 +658,13 @@ export function DropdownMenuContent({
     () => getDisabledKeys(visibleItems),
     [visibleItems]
   );
-  const virtualized = useMemo(
-    () =>
-      shouldVirtualize(visibleItems, {
-        threshold: virtualizeThreshold,
-        isSection: isMenuSection,
-      }),
-    [visibleItems, virtualizeThreshold]
-  );
-
   return (
     <DropdownMenuList
       {...props}
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
-      virtualized={virtualized}
+      virtualizeThreshold={virtualizeThreshold ?? inheritedVirtualizeThreshold}
       searchState={
         search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
       }

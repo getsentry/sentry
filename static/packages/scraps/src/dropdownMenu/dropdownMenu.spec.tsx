@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {IconStar} from '@sentry/icons/star';
-import {render, screen, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -1046,6 +1046,12 @@ describe('DropdownMenu', () => {
       label: `Item ${index}`,
     }));
 
+    function scrollMenuTo(top: number) {
+      const menu = screen.getByRole('menu');
+      menu.scrollTop = top;
+      fireEvent.scroll(menu);
+    }
+
     it('renders only the items near the viewport in a long menu', async () => {
       render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
         wrapper: ThemeWrapper,
@@ -1093,10 +1099,51 @@ describe('DropdownMenu', () => {
       const search = screen.getByRole('textbox', {name: 'Search items'});
       await waitFor(() => expect(search).toHaveFocus());
 
+      scrollMenuTo(20_000);
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('menuitemradio', {name: 'Item 0'})
+        ).not.toBeInTheDocument()
+      );
+
+      // Item 0 is not mounted, so ArrowDown scrolls it into view before
+      // focusing it.
       await userEvent.keyboard('{ArrowDown}');
-      expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toHaveFocus();
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toHaveFocus()
+      );
       await userEvent.keyboard('{ArrowUp}');
       expect(search).toHaveFocus();
+    });
+
+    it('keeps keyboard focus on an item scrolled out of view', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toHaveFocus()
+      );
+      await userEvent.keyboard('{ArrowDown}');
+      expect(screen.getByRole('menuitemradio', {name: 'Item 1'})).toHaveFocus();
+      // Let the virtualizer settle its scroll to Item 1 before scrolling away.
+      await act(() => new Promise(resolve => requestAnimationFrame(resolve)));
+
+      scrollMenuTo(10_000);
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('menuitemradio', {name: 'Item 2'})
+        ).not.toBeInTheDocument()
+      );
+
+      // The focused item stays mounted, so focus stays in the menu and the
+      // keyboard keeps working.
+      expect(screen.getByRole('menuitemradio', {name: 'Item 1'})).toHaveFocus();
+      await userEvent.keyboard('{ArrowDown}');
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'Item 2'})).toHaveFocus()
+      );
     });
 
     it('renders every item when the menu is under the threshold', async () => {
@@ -1112,6 +1159,25 @@ describe('DropdownMenu', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
 
       expect(screen.getAllByRole('menuitemradio')).toHaveLength(manyItems.length);
+    });
+
+    it('applies the parent menu threshold to submenus', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          virtualizeThreshold={manyItems.length}
+          items={[{key: 'more', label: 'More', submenu: true, children: manyItems}]}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'More'}));
+
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Item 499'})
+      ).toBeInTheDocument();
+      expect(screen.getAllByRole('menuitemradio')).toHaveLength(manyItems.length + 1);
     });
 
     it('does not virtualize menus with sections', async () => {

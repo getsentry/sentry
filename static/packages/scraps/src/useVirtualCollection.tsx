@@ -1,7 +1,8 @@
 import type * as React from 'react';
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
 import type {Key, Node} from '@react-types/shared';
+import {defaultRangeExtractor, type Range} from '@tanstack/react-virtual';
 
 import type {FormSize} from '@sentry/scraps/theme';
 import {useVirtualRows} from '@sentry/scraps/useVirtualRows';
@@ -43,6 +44,13 @@ export interface VirtualRow<T> {
   node: Node<T>;
   /** Undefined when virtualization is disabled. */
   props: VirtualRowProps | undefined;
+  /**
+   * Height of the unmounted rows between this row and the previous one. Render
+   * a `VirtualSpacer` of this height before the row. Usually only the first
+   * row has space before it, but the focused row stays mounted when it scrolls
+   * out of view, so there can be a gap on either side of it.
+   */
+  spaceBefore: number;
 }
 
 interface UseVirtualCollectionOptions<T> {
@@ -58,7 +66,9 @@ interface UseVirtualCollectionOptions<T> {
   size: FormSize;
   /**
    * The collection's focused key. When it changes through the keyboard, the
-   * row is scrolled into view so it mounts and React Aria can focus it.
+   * row is scrolled into view so it mounts and React Aria can focus it. The
+   * focused row also stays mounted while it is scrolled out of view, so it
+   * keeps DOM focus and the keyboard keeps working.
    */
   focusedKey?: Key | null;
   /**
@@ -71,13 +81,18 @@ interface UseVirtualCollectionOptions<T> {
  * Windows a React Aria collection so only the rows near the viewport mount.
  *
  * It owns layout only, never selection or focus. Callers keep their React Aria
- * state and render rows as usual, with a spacer before and after them:
+ * state and render rows as usual, with a spacer before each row and after the
+ * last one:
  *
  * ```tsx
  * const virtual = useVirtualCollection({nodes, enabled, size, scrollRef, focusedKey});
  * <ul ref={scrollRef}>
- *   <VirtualSpacer height={virtual.spaceBefore} />
- *   {virtual.rows.map(({node, props}) => <Option key={node.key} {...props} node={node} />)}
+ *   {virtual.rows.map(({node, props, spaceBefore}) => (
+ *     <Fragment key={node.key}>
+ *       <VirtualSpacer height={spaceBefore} />
+ *       <Option {...props} node={node} />
+ *     </Fragment>
+ *   ))}
  *   <VirtualSpacer height={virtual.spaceAfter} />
  * </ul>
  * ```
@@ -95,6 +110,27 @@ export function useVirtualCollection<T>({
 }: UseVirtualCollectionOptions<T>) {
   const heights = ROW_HEIGHT_ESTIMATES[size];
 
+  const focusedIndex = useMemo(
+    () =>
+      enabled && focusedKey !== null && focusedKey !== undefined
+        ? nodes.findIndex(node => node.key === focusedKey)
+        : -1,
+    [enabled, focusedKey, nodes]
+  );
+
+  // Keep the focused row mounted when it scrolls out of view. If it unmounted,
+  // DOM focus would fall back to the body and keyboard navigation would stop.
+  const rangeExtractor = useCallback(
+    (range: Range) => {
+      const indexes = defaultRangeExtractor(range);
+      if (focusedIndex === -1 || indexes.includes(focusedIndex)) {
+        return indexes;
+      }
+      return [...indexes, focusedIndex].sort((a, b) => a - b);
+    },
+    [focusedIndex]
+  );
+
   const {virtualizer, virtualItems, totalSize} = useVirtualRows({
     count: nodes.length,
     enabled,
@@ -107,46 +143,45 @@ export function useVirtualCollection<T>({
     paddingStart: listPadding,
     scrollPaddingStart: listPadding,
     overscan: 1,
+    rangeExtractor,
   });
 
   // Keyboard navigation can move focus to a row that is not mounted. Scroll it
   // into view so it mounts; React Aria then focuses it. Pointer focus follows
   // the hovered row, which is already visible, so scrolling would only fight it.
   useEffect(() => {
-    if (!enabled || focusedKey === null || focusedKey === undefined) {
+    if (focusedIndex === -1 || getInteractionModality() === 'pointer') {
       return;
     }
-    if (getInteractionModality() === 'pointer') {
-      return;
-    }
-    const index = nodes.findIndex(node => node.key === focusedKey);
-    if (index !== -1) {
-      virtualizer.scrollToIndex(index, {align: 'auto'});
-    }
-  }, [enabled, focusedKey, nodes, virtualizer]);
+    virtualizer.scrollToIndex(focusedIndex, {align: 'auto'});
+  }, [focusedIndex, virtualizer]);
 
   const rows = useMemo<Array<VirtualRow<T>>>(() => {
     if (!enabled) {
-      return nodes.map(node => ({node, props: undefined}));
+      return nodes.map(node => ({node, props: undefined, spaceBefore: 0}));
     }
+    let previousEnd = listPadding;
     return virtualItems.flatMap(item => {
       const node = nodes[item.index];
-      return node
-        ? [{node, props: {'data-index': item.index, ref: virtualizer.measureElement}}]
-        : [];
+      if (!node) {
+        return [];
+      }
+      const spaceBefore = Math.max(0, item.start - previousEnd);
+      previousEnd = item.end;
+      return [
+        {
+          node,
+          props: {'data-index': item.index, ref: virtualizer.measureElement},
+          spaceBefore,
+        },
+      ];
     });
-  }, [enabled, nodes, virtualItems, virtualizer]);
+  }, [enabled, listPadding, nodes, virtualItems, virtualizer]);
 
-  if (!enabled) {
-    return {rows, spaceBefore: 0, spaceAfter: 0};
-  }
-
-  const first = virtualItems[0];
   const last = virtualItems.at(-1);
   return {
     rows,
-    spaceBefore: first ? Math.max(0, first.start - listPadding) : 0,
-    spaceAfter: last ? Math.max(0, totalSize - last.end) : 0,
+    spaceAfter: enabled && last ? Math.max(0, totalSize - last.end) : 0,
   };
 }
 

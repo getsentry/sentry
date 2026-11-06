@@ -1,6 +1,6 @@
-import {useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import type {Node} from '@react-types/shared';
-import {render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 
 import {shouldVirtualize, useVirtualCollection} from './useVirtualCollection';
 
@@ -15,29 +15,43 @@ const nodes = Array.from(
     ({key: `row-${index}`, type: 'item', props: {}}) as Node<Record<PropertyKey, unknown>>
 );
 
-function TestList({enabled}: {enabled: boolean}) {
+function TestList({enabled, focusedKey}: {enabled: boolean; focusedKey?: string}) {
   const scrollRef = useRef<HTMLUListElement>(null);
-  const {rows, spaceBefore, spaceAfter} = useVirtualCollection({
+  const {rows, spaceAfter} = useVirtualCollection({
     nodes,
     enabled,
     size: 'md',
     scrollRef,
+    focusedKey,
     listPadding: LIST_PADDING,
   });
 
   return (
-    <ul ref={scrollRef}>
-      <li data-test-id="space-before" style={{height: spaceBefore}} />
-      {rows.map(({node, props}) => (
-        <li key={node.key} data-test-id="row" data-row-props={props ? 'set' : 'unset'} />
+    <ul ref={scrollRef} data-test-id="list">
+      {rows.map(({node, props, spaceBefore}) => (
+        <Fragment key={node.key}>
+          <li data-test-id="spacer" style={{height: spaceBefore}} />
+          <li
+            {...props}
+            data-test-id="row"
+            data-key={node.key}
+            data-row-props={props ? 'set' : 'unset'}
+          />
+        </Fragment>
       ))}
-      <li data-test-id="space-after" style={{height: spaceAfter}} />
+      <li data-test-id="spacer" style={{height: spaceAfter}} />
     </ul>
   );
 }
 
-function height(testId: string) {
-  return parseFloat(screen.getByTestId(testId).style.height || '0');
+function spacerHeights() {
+  return screen
+    .getAllByTestId('spacer')
+    .map(spacer => parseFloat(spacer.style.height || '0'));
+}
+
+function sum(values: number[]) {
+  return values.reduce((total, value) => total + value, 0);
 }
 
 const offsetHeightDescriptor = Object.getOwnPropertyDescriptor(
@@ -75,8 +89,25 @@ describe('useVirtualCollection', () => {
 
     // The list's own padding is CSS, so spacers and rows add up to the rows'
     // height alone.
-    const spanned =
-      height('space-before') + rendered.length * ROW_HEIGHT + height('space-after');
+    const spanned = sum(spacerHeights()) + rendered.length * ROW_HEIGHT;
+    expect(spanned).toBe(ROW_COUNT * ROW_HEIGHT);
+  });
+
+  it('keeps the focused row mounted after it scrolls out of view', () => {
+    render(<TestList enabled focusedKey="row-0" />);
+
+    const list = screen.getByTestId('list');
+    list.scrollTop = 150 * ROW_HEIGHT;
+    fireEvent.scroll(list);
+
+    const keys = screen.getAllByTestId('row').map(row => row.dataset.key);
+    expect(keys[0]).toBe('row-0');
+    expect(keys).toContain('row-150');
+    expect(keys).not.toContain('row-1');
+
+    // A spacer fills the gap between the focused row and the window, so the
+    // list keeps its full height.
+    const spanned = sum(spacerHeights()) + keys.length * ROW_HEIGHT;
     expect(spanned).toBe(ROW_COUNT * ROW_HEIGHT);
   });
 
@@ -86,8 +117,7 @@ describe('useVirtualCollection', () => {
     const rendered = screen.getAllByTestId('row');
     expect(rendered).toHaveLength(ROW_COUNT);
     expect(rendered[0]).toHaveAttribute('data-row-props', 'unset');
-    expect(height('space-before')).toBe(0);
-    expect(height('space-after')).toBe(0);
+    expect(sum(spacerHeights())).toBe(0);
   });
 });
 

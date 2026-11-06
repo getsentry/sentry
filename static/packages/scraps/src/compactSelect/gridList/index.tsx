@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import {useContext, useId, useMemo, useRef} from 'react';
+import {Fragment, useContext, useId, useMemo, useRef} from 'react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
@@ -135,26 +135,26 @@ function GridList<T extends ListItemBase>({
       {overlayIsOpen && (
         <Container ref={scrollRef} height="100%" overflowY="auto">
           <ListWrap {...mergedProps} onKeyDown={onKeyDown} ref={ref}>
-            <VirtualSpacer height={virtual.spaceBefore} />
-            {virtual.rows.map(({node, props: rowProps}) =>
-              node.type === 'section' ? (
-                <GridListSection
-                  {...rowProps}
-                  key={node.key}
-                  node={node}
-                  listState={listState}
-                  size={size}
-                />
-              ) : (
-                <GridListOption
-                  {...rowProps}
-                  key={node.key}
-                  node={node}
-                  listState={listState}
-                  size={size}
-                />
-              )
-            )}
+            {virtual.rows.map(({node, props: rowProps, spaceBefore}) => (
+              <Fragment key={node.key}>
+                <VirtualSpacer height={spaceBefore} />
+                {node.type === 'section' ? (
+                  <GridListSection
+                    {...rowProps}
+                    node={node}
+                    listState={listState}
+                    size={size}
+                  />
+                ) : (
+                  <GridListOption
+                    {...rowProps}
+                    node={node}
+                    listState={listState}
+                    size={size}
+                  />
+                )}
+              </Fragment>
+            ))}
             <VirtualSpacer height={virtual.spaceAfter} />
 
             {!searchable && hiddenOptions.size > 0 && (
