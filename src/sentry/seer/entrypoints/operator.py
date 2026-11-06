@@ -105,6 +105,14 @@ PROCESS_INVESTIGATION_TIMEOUT_SECONDS = 60
 
 AGENT_REFRESH_TIMEOUT_SECONDS = 60
 
+# The Seer operation (and so the credit check) for the autofix step a stopping point starts.
+AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION: dict[AutofixStoppingPoint, SeerOperation] = {
+    AutofixStoppingPoint.ROOT_CAUSE: SeerOperation.AUTOFIX_ROOT_CAUSE,
+    AutofixStoppingPoint.SOLUTION: SeerOperation.AUTOFIX_SOLUTION,
+    AutofixStoppingPoint.CODE_CHANGES: SeerOperation.AUTOFIX_CODE_CHANGES,
+    AutofixStoppingPoint.OPEN_PR: SeerOperation.AUTOFIX_OPEN_PR,
+}
+
 
 def has_seer_autofix_entrypoint_access(
     *,
@@ -178,7 +186,10 @@ class SeerAutofixOperator[CachePayloadT]:
                     data_category=DataCategory.SEER_AUTOFIX,
                 )
             )
-            and can_run_seer_operation(group.organization, SeerOperation.AUTOFIX_ROOT_CAUSE)
+            and can_run_seer_operation(
+                group.organization,
+                AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION[AutofixStoppingPoint.ROOT_CAUSE],
+            )
         )
 
     def trigger_autofix(

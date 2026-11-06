@@ -11,6 +11,12 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
 from sentry import features, seer_credit
 from sentry.models.organization import Organization
 
+# Seer's SeerRunState.failure_reason (and the seer.errored event's failure_reason) when a run
+# stopped because the org ran out of credits.
+OUT_OF_CREDITS_FAILURE_REASON = "out_of_credits"
+# RepoPRState.pr_creation_error_code when opening a PR failed for lack of credits.
+OUT_OF_CREDITS_PR_ERROR_CODE = "out_of_credits"
+
 
 class SeerOperation(StrEnum):
     AGENT_CHAT_MESSAGE = "agent_chat_message"

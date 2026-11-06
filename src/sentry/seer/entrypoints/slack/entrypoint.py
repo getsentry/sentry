@@ -24,6 +24,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixError,
+    SeerAutofixOutOfCredits,
+    SeerAutofixTrigger,
     SeerAutofixUpdate,
     SeerInvestigationError,
     SeerInvestigationStarted,
@@ -44,6 +46,11 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.credits import (
+    OUT_OF_CREDITS_FAILURE_REASON,
+    OUT_OF_CREDITS_PR_ERROR_CODE,
+    can_run_seer_operation,
+)
 from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestData,
     AgentApprovalRequestSerializer,
@@ -56,6 +63,7 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
 )
+from sentry.seer.entrypoints.operator import AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
@@ -234,6 +242,31 @@ def _get_handoff_target(project: Project) -> CodingAgentProviderType | None:
         )
         return None
     return target
+
+
+def _has_credits_for_next_step(data: SeerAutofixUpdate) -> bool:
+    """Whether the org can afford the Seer step the update's next-step button starts."""
+    # The handoff button hands the run to an external agent, not a Seer step.
+    if data.handoff_target and data.current_point == AutofixStoppingPoint.ROOT_CAUSE:
+        return True
+    if not data.has_next_trigger:
+        return True
+    next_point = SeerAutofixTrigger.from_update(data).stopping_point
+    try:
+        organization = Organization.objects.get_from_cache(id=data.organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "seer.entrypoint.slack.next_step_credit_check.organization_missing",
+            extra={
+                "organization_id": data.organization_id,
+                "run_id": data.run_id,
+                "group_id": data.group_id,
+            },
+        )
+        return False
+    return can_run_seer_operation(
+        organization, AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION[next_point]
+    )
 
 
 def _get_missing_scope_settings_url(
@@ -462,15 +495,20 @@ class SlackAutofixEntrypoint(
 
         match event_type:
             case SentryAppEventType.SEER_ERRORED:
+                error: SeerAutofixError | SeerAutofixOutOfCredits = SeerAutofixError(
+                    organization_id=cache_payload["organization_id"],
+                    error_message=AUTOFIX_RUN_FAILED_MESSAGE,
+                )
+                if event_payload.get("failure_reason") == OUT_OF_CREDITS_FAILURE_REASON:
+                    error = SeerAutofixOutOfCredits(
+                        organization_id=cache_payload["organization_id"], started=True
+                    )
                 # Posted to the whole thread: the run may have been started by anyone.
                 schedule_all_thread_updates(
                     threads=cache_payload["threads"],
                     integration_id=cache_payload["integration_id"],
                     organization_id=cache_payload["organization_id"],
-                    data=SeerAutofixError(
-                        organization_id=cache_payload["organization_id"],
-                        error_message=AUTOFIX_RUN_FAILED_MESSAGE,
-                    ),
+                    data=error,
                 )
                 logger.info("seer.entrypoint.slack.autofix_error_scheduled", extra=logging_ctx)
                 metrics.incr(
@@ -587,6 +625,8 @@ class SlackAutofixEntrypoint(
                 return
 
         data = SeerAutofixUpdate(**data_kwargs)
+        if not _has_credits_for_next_step(data):
+            data = data.copy(update={"has_credits_for_next_step": False})
         schedule_all_thread_updates(
             threads=cache_payload["threads"],
             integration_id=cache_payload["integration_id"],
@@ -727,6 +767,22 @@ class SlackAgentEntrypoint(
                     },
                 )
 
+        for pr in _get_repo_pr_states(state):
+            if not _is_pr_out_of_credits(pr):
+                continue
+            key = f"pr_out_of_credits:{pr.repo_name}:{pr.pr_number}:{pr.commit_sha}"
+            if key in replies:
+                continue
+            message_ts = send_thread_update(
+                install=install,
+                thread=thread,
+                data=SeerAutofixOutOfCredits(organization_id=organization_id, started=True),
+            )
+            if message_ts:
+                SlackSeerAgentReplyCache.set(
+                    run_id=run_id, key=key, reply=SlackSeerAgentReply(message_ts=message_ts)
+                )
+
         replies = SlackSeerAgentReplyCache.get(run_id=run_id)
         answers = [answer for turn in state.get_turns() if (answer := turn.answer) is not None]
         latest = next(
@@ -776,6 +832,13 @@ def _get_repo_pr_states(state: SeerRunState) -> list[RepoPRState]:
     return [state.repo_pr_states[repo] for repo in sorted(state.repo_pr_states)]
 
 
+def _is_pr_out_of_credits(pr: RepoPRState) -> bool:
+    return (
+        pr.pr_creation_status == "error"
+        and pr.pr_creation_error_code == OUT_OF_CREDITS_PR_ERROR_CODE
+    )
+
+
 def _hash_pr_status(prs: Sequence[RepoPRState]) -> str:
     payload = orjson.dumps(
         [
@@ -794,7 +857,7 @@ def _next_agent_reply(
     cache_payload: SlackAgentCachePayload,
     state: SeerRunState,
     replies: Mapping[str, SlackSeerAgentReply],
-) -> tuple[str, SeerAgentError | SeerAgentResponse] | None:
+) -> tuple[str, SeerAgentError | SeerAgentResponse | SeerAutofixOutOfCredits] | None:
     """The reply to post and its cache key, or None if the thread is up to date.
 
     Sends and records the write approval DM when a new approval is pending.
@@ -851,6 +914,13 @@ def _next_agent_reply(
             "I sent you a message."
         )
         repo_pr_states: list[RepoPRState] = []
+    elif state.failure_reason == OUT_OF_CREDITS_FAILURE_REASON:
+        # Seer ends the turn with its own plain-text notice; reply with the shared out-of-credits
+        # notification instead. Keyed on the last block so each stopped turn replies once.
+        key = f"out_of_credits:{state.blocks[-1].id}" if state.blocks else "out_of_credits"
+        if key in replies:
+            return None
+        return key, SeerAutofixOutOfCredits(organization_id=organization_id, started=True)
     else:
         turn = next((turn for turn in reversed(state.get_turns()) if turn.answer), None)
         if turn is None or turn.answer is None:
