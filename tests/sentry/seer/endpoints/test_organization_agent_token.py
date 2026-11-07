@@ -36,6 +36,7 @@ from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATU
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.eventattachment import EventAttachment
+from sentry.models.groupshare import GroupShare
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
@@ -1216,6 +1217,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
         elif name == "group":
             resource = self._resource("event").group
+        elif name == "group_share":
+            group = self._resource("group")
+            resource = GroupShare.objects.create(project_id=group.project_id, group=group)
         elif name == "integration":
             resource = self.create_integration(
                 organization=self.org,
@@ -1526,6 +1530,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return str(self._resource("environment").name)
         if placeholder == "issue_id":
             return str(self._resource("group").id)
+        if placeholder == "share_id":
+            return str(self._resource("group_share").uuid)
         if placeholder == "integration_id":
             if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
                 return str(self._resource("channel_integration").id)
