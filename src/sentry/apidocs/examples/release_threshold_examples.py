@@ -13,6 +13,7 @@ class ReleaseThresholdExamples:
                         "project_id": 0,
                         "project_slug": BASE_PROJECT["slug"],
                         "environment": {
+                            "id": "1",
                             "name": "production",
                         },
                         "project": BASE_PROJECT,

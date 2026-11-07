@@ -34,6 +34,7 @@ from sentry.models.dashboard_widget import (
 from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
 from sentry.search.events.fields import is_function, parse_arguments
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -580,7 +581,9 @@ class DashboardListResponse(TypedDict):
     id: Annotated[str, ApiDescription("ID of the dashboard")]
     title: Annotated[str, ApiDescription("Title of the dashboard")]
     dateCreated: Annotated[datetime, ApiDescription("When the dashboard was created (ISO 8601)")]
-    createdBy: Annotated[dict[str, object] | None, ApiDescription("User who created the dashboard")]
+    createdBy: Annotated[
+        UserSerializerResponse | None, ApiDescription("User who created the dashboard")
+    ]
     environment: Annotated[list[str], ApiDescription("Saved environment filter for the dashboard")]
     filters: Annotated[
         DashboardFilters, ApiDescription("Saved release and global filters for the dashboard")
@@ -617,7 +620,7 @@ class _WidgetPreview(TypedDict):
 class _Widget(TypedDict):
     widget_display: list[str | None]
     widget_preview: list[_WidgetPreview]
-    created_by: dict[str, object] | None
+    created_by: UserSerializerResponse | None
     permissions: NotRequired[dict[str, object]]
     is_favorited: NotRequired[bool]
     projects: list[int]
@@ -715,7 +718,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             lambda: {
                 "widget_display": [],
                 "widget_preview": [],
-                "created_by": {},
+                "created_by": None,
                 "projects": [],
                 "environment": [],
                 "filters": {},
@@ -825,7 +828,9 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     id: Annotated[str, ApiDescription("ID of the dashboard")]
     title: Annotated[str, ApiDescription("Title of the dashboard")]
     dateCreated: Annotated[datetime, ApiDescription("When the dashboard was created (ISO 8601)")]
-    createdBy: Annotated[dict[str, object] | None, ApiDescription("User who created the dashboard")]
+    createdBy: Annotated[
+        UserSerializerResponse | None, ApiDescription("User who created the dashboard")
+    ]
     widgets: Annotated[list[DashboardWidgetResponse], ApiDescription("Widgets on the dashboard")]
     projects: Annotated[
         list[int], ApiDescription("Saved project filter for the dashboard. [-1] means all projects")

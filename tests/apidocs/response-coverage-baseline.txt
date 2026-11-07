@@ -1,6 +1,5 @@
 # Response fields that are not described or typed yet; see src/sentry/apidocs/README.md#response-fields.
 # Only remove lines: python -m sentry.apidocs.response_coverage --prune
-missing-description sentry.api.serializers.models.organization_member.response.OrganizationMemberWithRolesResponse.invite_link
 untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].issue
 untyped POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.issue
 untyped components/ListReplayRecordingSegments[][]
@@ -13,11 +12,7 @@ untyped sentry.api.endpoints.organization_events.EventsMeta.debug_info
 untyped sentry.api.endpoints.organization_events.EventsMeta.discoverSplitDecision
 untyped sentry.api.endpoints.organization_stats_summary._ProjectSummaryStats.stats[]
 untyped sentry.api.endpoints.organization_trace_meta_types.OrganizationTraceMetaResponse.transactionChildCountMap[]
-untyped sentry.api.endpoints.release_thresholds.types.SerializedThreshold.environment
-untyped sentry.api.endpoints.release_thresholds.types.SerializedThreshold.project
-untyped sentry.api.serializers.models.dashboard.DashboardDetailsResponse.createdBy
 untyped sentry.api.serializers.models.dashboard.DashboardFilters.globalFilter[]
-untyped sentry.api.serializers.models.dashboard.DashboardListResponse.createdBy
 untyped sentry.api.serializers.models.debug_file.DebugFileSerializerResponse.data
 untyped sentry.api.serializers.models.discoversavedquery.DiscoverSavedQueryResponseOptional.exploreQuery
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse._meta
@@ -37,14 +32,8 @@ untyped sentry.api.serializers.models.project.DetailedProjectResponse.options
 untyped sentry.api.serializers.models.project.DetailedProjectResponse.seerNightshiftTweaks
 untyped sentry.api.serializers.models.project._OrganizationProjectOptionalResponse.options
 untyped sentry.api.serializers.models.release_file.ReleaseFileSerializerResponse.headers
-untyped sentry.api.serializers.release_details_types.VersionInfo.version
 untyped sentry.api.serializers.types.GroupEventReleaseSerializerResponse.data
-untyped sentry.api.serializers.types.GroupEventReleaseSerializerResponse.lastCommit
 untyped sentry.api.serializers.types.ReleaseSerializerResponse.data
-untyped sentry.api.serializers.types.ReleaseSerializerResponseOptional.adoptionStages
-untyped sentry.api.serializers.types.ReleaseSerializerResponseOptional.currentProjectMeta
-untyped sentry.api.serializers.types.ReleaseSerializerResponseOptional.lastCommit
-untyped sentry.api.serializers.types.ReleaseSerializerResponseOptional.owner
 untyped sentry.core.endpoints.scim.schemas.SCIMSchemaResponse.attributes[]
 untyped sentry.flags.endpoints.logs.FlagAuditLogModelSerializerResponse.tags
 untyped sentry.integrations.api.serializers.models.integration.IntegrationProviderInfo.aspects
