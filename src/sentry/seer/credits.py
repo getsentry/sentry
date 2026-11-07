@@ -19,6 +19,7 @@ class SeerOperation(StrEnum):
     AUTOFIX_CODE_CHANGES = "autofix_code_changes"
     AUTOFIX_OPEN_PR = "autofix_open_pr"
     AUTOFIX_PR_ITERATION = "autofix_pr_iteration"
+    AUTOFIX_SINGLE_RUN_REPLY = "autofix_single_run_reply"
 
 
 class SeerFeature(StrEnum):
@@ -57,16 +58,17 @@ SEER_OPERATIONS: dict[SeerOperation, SeerOperationConfig] = {
     SeerOperation.AUTOFIX_PR_ITERATION: SeerOperationConfig(
         SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
     ),
+    SeerOperation.AUTOFIX_SINGLE_RUN_REPLY: SeerOperationConfig(
+        SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
+    ),
 }
 
 
-def can_run_seer_operation(organization: Organization, operation: SeerOperation) -> bool:
-    """Whether the organization is token-billed and has enough Seer credits to run the operation."""
-    if not features.has("organizations:seer-credit-checks", organization) or not features.has(
-        "organizations:token-billed-seer-enabled", organization
-    ):
-        return True
-
+def has_enough_seer_credits(organization: Organization, operation: SeerOperation) -> bool:
+    """
+    Checks whether the organization has enough Seer credits to run the operation,
+    for callers that already checked the credit check and token-billed flags.
+    """
     config = SEER_OPERATIONS[operation]
     response = seer_credit.backend.check_seer_credits(
         CheckSeerCreditsRequest(
@@ -77,3 +79,12 @@ def can_run_seer_operation(organization: Organization, operation: SeerOperation)
         )
     )
     return response.has_enough_credits
+
+
+def can_run_seer_operation(organization: Organization, operation: SeerOperation) -> bool:
+    """Checks whether the organization is token-billed and has enough Seer credits to run the operation."""
+    if not features.has("organizations:seer-credit-checks", organization) or not features.has(
+        "organizations:token-billed-seer-enabled", organization
+    ):
+        return True
+    return has_enough_seer_credits(organization, operation)
