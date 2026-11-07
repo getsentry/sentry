@@ -1417,6 +1417,14 @@ class DashboardParams:
         description="""The ID of the dashboard you'd like to retrieve.""",
     )
 
+    REVISION_ID = OpenApiParameter(
+        name="revision_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the dashboard revision, from the dashboard's revision list.",
+    )
+
     FILTER = OpenApiParameter(
         name="filter",
         location="query",
