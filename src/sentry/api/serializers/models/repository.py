@@ -6,6 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.constants import ObjectStatusName
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.users.models.user import User
@@ -29,12 +30,7 @@ class RepositorySerializerResponseOptional(TypedDict, total=False):
     provider: Annotated[
         dict[str, str], ApiDescription("Provider of the repository, with its id and name")
     ]
-    status: Annotated[
-        str,
-        ApiDescription(
-            "Status of the repository: active, disabled, pending_deletion or deletion_in_progress"
-        ),
-    ]
+    status: Annotated[ObjectStatusName, ApiDescription("Status of the repository")]
     integrationId: Annotated[
         str | None,
         ApiDescription(
@@ -128,7 +124,7 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
             "name": obj.config.get("pending_deletion_name", obj.name),
             "url": obj.url,
             "provider": provider,
-            "status": obj.get_status_display(),
+            "status": cast(ObjectStatusName, obj.get_status_display()),
             "dateCreated": obj.date_added,
             "integrationId": integration_id,
             "externalSlug": external_slug,

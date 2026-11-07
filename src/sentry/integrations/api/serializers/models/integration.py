@@ -9,7 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.constants import ObjectStatus
+from sentry.constants import ObjectStatus, ObjectStatusName
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.constants import SlackScope
@@ -71,7 +71,7 @@ class OrganizationIntegrationResponse(TypedDict):
             "Features the installation can't support because of missing permissions. Null for providers without a permissions model"
         ),
     ]
-    status: Annotated[str, ApiDescription("Status of the integration, such as active or disabled")]
+    status: Annotated[ObjectStatusName, ApiDescription("Status of the integration")]
     provider: Annotated[IntegrationProviderInfo, ApiDescription("Integration provider details")]
     configOrganization: Annotated[
         Any, ApiDescription("Organization-level configuration fields of the integration")
@@ -84,10 +84,7 @@ class OrganizationIntegrationResponse(TypedDict):
         int, ApiDescription("ID of the organization the integration is installed in")
     ]
     organizationIntegrationStatus: Annotated[
-        str,
-        ApiDescription(
-            "Status of the integration in this organization, such as active or disabled"
-        ),
+        ObjectStatusName, ApiDescription("Status of the integration in this organization")
     ]
     gracePeriodEnd: Annotated[
         datetime | None,
@@ -165,7 +162,7 @@ class IntegrationSerializerResponse(TypedDict):
             "Features the installation can't support because of missing permissions. Null for providers without a permissions model"
         ),
     ]
-    status: Annotated[str, ApiDescription("Status of the integration, such as active or disabled")]
+    status: Annotated[ObjectStatusName, ApiDescription("Status of the integration")]
     provider: Annotated[IntegrationProviderInfo, ApiDescription("Integration provider details")]
 
 
@@ -228,7 +225,7 @@ class IntegrationSerializer(Serializer):
             "scopes": obj.metadata.get("scopes"),
             "outOfDate": out_of_date,
             "missingFeatures": missing_features,
-            "status": obj.get_status_display(),
+            "status": cast(ObjectStatusName, obj.get_status_display()),
             "provider": serialize_provider(provider),
         }
 
@@ -353,7 +350,7 @@ class OrganizationIntegrationSerializer(Serializer):
         organization_integration_fields = {
             "externalId": integration.external_id,
             "organizationId": obj.organization_id,
-            "organizationIntegrationStatus": obj.get_status_display(),
+            "organizationIntegrationStatus": cast(ObjectStatusName, obj.get_status_display()),
             "gracePeriodEnd": obj.grace_period_end,
         }
         if self.params.get("action") == "create":

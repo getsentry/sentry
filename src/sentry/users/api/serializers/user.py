@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, TypedDict, cast
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -32,11 +32,13 @@ from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.serializers import manytoone_to_dict
 
+# The names of the avatar type choices of users, organizations and teams, as
+# get_avatar_type_display() returns them.
+AvatarTypeName = Literal["letter_avatar", "upload", "gravatar"]
+
 
 class SerializedAvatarFields(TypedDict, total=False):
-    avatarType: Annotated[
-        str, ApiDescription("Avatar type, such as letter_avatar, upload or gravatar")
-    ]
+    avatarType: Annotated[AvatarTypeName, ApiDescription("Avatar type")]
     avatarUuid: Annotated[HexId | None, ApiDescription("ID of the uploaded avatar image, or null")]
     avatarUrl: Annotated[
         str | None, ApiDescription("URL of the avatar image, or null if none is set")
