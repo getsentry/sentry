@@ -3,6 +3,7 @@ from typing import Annotated, Any, TypedDict
 
 from sentry.api.serializers.release_details_types import Author, LastDeploy, Project, VersionInfo
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.models.release import ReleaseStatusName
 
 
 # Reponse type for OrganizationReleaseDetailsEndpoint
@@ -53,7 +54,7 @@ class ReleaseSerializerResponse(ReleaseSerializerResponseOptional):
     id: Annotated[int, ApiDescription("Release ID")]
     version: Annotated[str, ApiDescription("Version of the release")]
     newGroups: Annotated[int, ApiDescription("Number of new issues first seen in the release")]
-    status: Annotated[str, ApiDescription("Release status (open or archived)")]
+    status: Annotated[ReleaseStatusName, ApiDescription("Release status")]
     shortVersion: Annotated[str, ApiDescription("Shortened release version")]
     versionInfo: Annotated[VersionInfo | None, ApiDescription("Parsed version information")]
     data: Annotated[dict[str, Any], ApiDescription("Extra data stored on the release")]
@@ -79,7 +80,7 @@ class GroupEventReleaseSerializerResponse(TypedDict, total=False):
         dict[str, Any] | None, ApiDescription("Most recent commit in the release")
     ]
     lastDeploy: Annotated[LastDeploy | None, ApiDescription("Most recent deploy of the release")]
-    status: Annotated[str, ApiDescription("Release status (open or archived)")]
+    status: Annotated[ReleaseStatusName, ApiDescription("Release status")]
     url: Annotated[str | None, ApiDescription("Release URL")]
     userAgent: Annotated[
         str | None, ApiDescription("User agent of the client that created the release")

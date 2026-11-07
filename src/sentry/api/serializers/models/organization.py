@@ -87,7 +87,7 @@ from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.types.cell import get_locality_name_for_cell
-from sentry.users.api.serializers.user import SerializedAvatarFields
+from sentry.users.api.serializers.user import AvatarTypeName, SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -409,7 +409,7 @@ class ControlSiloOrganizationMappingSerializer(
             # URL must point at that cell's locality rather than the local
             # control silo.
             avatar: SerializedAvatarFields = {
-                "avatarType": avatar_type,
+                "avatarType": cast(AvatarTypeName, avatar_type),
                 "avatarUuid": (
                     hex_id(avatar_replica.avatar_ident) if avatar_type == "upload" else None
                 ),
