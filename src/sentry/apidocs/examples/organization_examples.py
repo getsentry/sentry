@@ -707,6 +707,7 @@ class OrganizationExamples:
                         "id": "2837091",
                         "name": "Raj's Raspberries",
                         "username": "rajraspberry",
+                        "email": "raj@raspberries",
                         "avatarUrl": "https://gravatar.com/avatar/bf99685de539465db9208ab3a888843ba0e5e85b1f156084484c7c6c31312be5?s=32&d=mm",
                         "isActive": True,
                         "isSuspended": False,
@@ -724,8 +725,8 @@ class OrganizationExamples:
                         ],
                         "avatar": {
                             "avatarType": "upload",
-                            "avatarUuid": "xyz123",
-                            "avatarUrl": "https://sentry.io/avatar/xyz123/",
+                            "avatarUuid": "2d641b5d3c8c4b6aa3b14c4d0e7f9c3a",
+                            "avatarUrl": "https://sentry.io/avatar/2d641b5d3c8c4b6aa3b14c4d0e7f9c3a/",
                         },
                     },
                 },
