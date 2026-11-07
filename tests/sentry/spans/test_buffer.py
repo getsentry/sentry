@@ -47,6 +47,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.flusher.flush-lock-ttl": 0,
     "spans.buffer.flusher-cumulative-logger-enabled": False,
     "spans.buffer.flusher.log-flushed-segments": False,
+    "spans.buffer.memory-metrics-interval-seconds": 10,
     "spans.buffer.compression.level": 0,
     "spans.buffer.pipeline-batch-size": 0,
     "spans.buffer.max-spans-per-evalsha": 0,
@@ -1156,6 +1157,59 @@ def test_compression_functionality(compression_level: int) -> None:
 
         buffer.done_flush_segments(segments)
         assert_clean(buffer.client)
+
+
+def _loaded_bytes_timings(timing: mock.MagicMock) -> list[mock._Call]:
+    return [
+        call
+        for call in timing.call_args_list
+        if call.args[0].startswith("spans.buffer.flush_segments.loaded_")
+    ]
+
+
+def test_flush_segments_records_loaded_bytes(buffer: SpansBuffer) -> None:
+    spans = [
+        _span("b" * 16, None, is_segment_span=True),
+        _span("a" * 16, "b" * 16),
+        _span("c" * 16, "b" * 16),
+    ]
+    process_spans(spans, buffer, now=0)
+
+    # Payloads are stored zstd-compressed, see `spans.buffer.compression.level`.
+    segment_key = _segment_id(1, "a" * 32, "b" * 16)
+    payload_keys = buffer.store.load_payload_keys([segment_key])[segment_key]
+    compressed_size = sum(
+        len(member)
+        for payload_key in payload_keys
+        for member in buffer.client.smembers(payload_key)
+    )
+    decompressed_size = sum(len(span.payload) for span in spans)
+
+    with mock.patch("sentry.spans.buffer.metrics.timing") as timing:
+        rv = buffer.flush_segments(now=11)
+
+    assert len(rv[segment_key].spans) == 3
+    tags = {"shards": ",".join(map(str, range(32)))}
+    assert _loaded_bytes_timings(timing) == [
+        mock.call(
+            "spans.buffer.flush_segments.loaded_compressed_bytes", compressed_size, tags=tags
+        ),
+        mock.call(
+            "spans.buffer.flush_segments.loaded_decompressed_bytes", decompressed_size, tags=tags
+        ),
+    ]
+
+    buffer.done_flush_segments(rv)
+    assert_clean(buffer.client)
+
+
+def test_flush_segments_skips_loaded_bytes_without_segments(buffer: SpansBuffer) -> None:
+    with mock.patch("sentry.spans.buffer.metrics.timing") as timing:
+        rv = buffer.flush_segments(now=11)
+
+    assert rv == {}
+    assert _loaded_bytes_timings(timing) == []
+    timing.assert_any_call("spans.buffer.flush_segments.num_segments", 0)
 
 
 @mock.patch("sentry.spans.buffer.Project")

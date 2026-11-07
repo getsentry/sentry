@@ -3739,6 +3739,15 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Minimum number of seconds between two reports of the per-process memory
+# gauges (spans.buffer.process_memory.*) from the process-spans consumer and
+# each of its flusher processes. 0 disables them.
+register(
+    "spans.buffer.memory-metrics-interval-seconds",
+    type=Int,
+    default=10,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
 register(
