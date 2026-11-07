@@ -276,6 +276,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
+            TraceParams.TIMESTAMP,
             INCLUDE_UPTIME_PARAM,
         ],
         responses={
