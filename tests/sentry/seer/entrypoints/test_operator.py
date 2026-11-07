@@ -37,8 +37,10 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
 )
+from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.operator import (
+    AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION,
     SEER_EVENT_TO_ACTIVITY_TYPE,
     SeerAgentOperator,
     SeerAutofixOperator,
@@ -261,6 +263,15 @@ class SeerOperatorTest(TestCase):
             "name": self.user.get_display_name(),
             "email": "583231+octocat@users.noreply.github.com",
             "scm_login": "octocat",
+        }
+
+    def test_stopping_point_to_seer_operation_covers_every_stopping_point(self) -> None:
+        assert set(AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION) == set(AutofixStoppingPoint)
+        assert AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION == {
+            AutofixStoppingPoint.ROOT_CAUSE: SeerOperation.AUTOFIX_ROOT_CAUSE,
+            AutofixStoppingPoint.SOLUTION: SeerOperation.AUTOFIX_SOLUTION,
+            AutofixStoppingPoint.CODE_CHANGES: SeerOperation.AUTOFIX_CODE_CHANGES,
+            AutofixStoppingPoint.OPEN_PR: SeerOperation.AUTOFIX_OPEN_PR,
         }
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
