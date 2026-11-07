@@ -1690,6 +1690,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return {"service_span": "permission-matrix-span", "project_id": self.project.id}
         if endpoint.endpoint_name == "OrganizationTraceItemAttributesEndpoint":
             return {"dataset": "spans", "project": [self.project.id]}
+        if endpoint.endpoint_name == "OrganizationTraceLogsEndpoint":
+            return {"traceId": uuid4().hex, "statsPeriod": "1h"}
         if endpoint.endpoint_name == "OrganizationTraceItemStatsEndpoint":
             return {
                 "statsType": ["attributeDistributions"],
