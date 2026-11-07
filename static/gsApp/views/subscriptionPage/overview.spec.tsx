@@ -161,4 +161,24 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByText(/Usage:/)).not.toBeInTheDocument();
     expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
   });
+
+  it('renders ContactBillingMembers for members disabled by the member limit', async () => {
+    // Members disabled by the member limit receive a reduced customer payload
+    // without planDetails, even when their role grants org:billing.
+    // Reset the store so state from previous tests isn't merged in.
+    SubscriptionStore.init();
+    SubscriptionStore.set(organization.slug, {
+      slug: organization.slug,
+      totalLicenses: 1,
+    });
+
+    render(<Overview />, {
+      organization,
+      additionalWrapper: SecondaryNavigationContextProvider,
+    });
+
+    expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
+    expect(screen.queryByText(/Usage:/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
+  });
 });

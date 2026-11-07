@@ -68,7 +68,12 @@ function Overview({subscription}: Props) {
 
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.
-  if (!hasBillingPerms && !subscription.canSelfServe) {
+  //
+  // Members disabled by the plan's member limit receive a reduced customer
+  // payload (only `slug` and `totalLicenses`) without plan details, regardless
+  // of their role, so they cannot view the billing overview either.
+  const isReducedSubscription = !subscription.planDetails;
+  if (isReducedSubscription || (!hasBillingPerms && !subscription.canSelfServe)) {
     return (
       <SubscriptionPageContainer>
         <BreadcrumbTitle title={t('Overview')} />
