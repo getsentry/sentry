@@ -35,7 +35,9 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
 from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.dashboard import DashboardRevision
 from sentry.models.eventattachment import EventAttachment
+from sentry.models.groupshare import GroupShare
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
@@ -1188,6 +1190,15 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                     token_last_characters="mtrx",
                     scope_list=["org:ci"],
                 )
+        elif name == "dashboard_revision":
+            dashboard = self._resource("dashboard")
+            resource = DashboardRevision.objects.create(
+                dashboard=dashboard,
+                created_by_id=self.owner.id,
+                title=dashboard.title,
+                snapshot={"title": dashboard.title},
+                snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+            )
         elif name == "custom_inbound_filter":
             resource = CustomInboundFilter.objects.create(
                 project=self.project,
@@ -1235,6 +1246,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
         elif name == "group":
             resource = self._resource("event").group
+        elif name == "group_share":
+            group = self._resource("group")
+            resource = GroupShare.objects.create(project_id=group.project_id, group=group)
         elif name == "integration":
             resource = self.create_integration(
                 organization=self.org,
@@ -1536,6 +1550,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return str(self._resource("org_auth_token").id)
         if placeholder == "dashboard_id":
             return str(self._resource("dashboard").id)
+        if placeholder == "revision_id":
+            return str(self._resource("dashboard_revision").id)
         if placeholder == "detector_id":
             detector = (
                 self._resource("mutable_detector")
@@ -1547,6 +1563,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return str(self._resource("environment").name)
         if placeholder == "issue_id":
             return str(self._resource("group").id)
+        if placeholder == "share_id":
+            return str(self._resource("group_share").uuid)
         if placeholder == "integration_id":
             if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
                 return str(self._resource("channel_integration").id)
@@ -1711,6 +1729,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return {"service_span": "permission-matrix-span", "project_id": self.project.id}
         if endpoint.endpoint_name == "OrganizationTraceItemAttributesEndpoint":
             return {"dataset": "spans", "project": [self.project.id]}
+        if endpoint.endpoint_name == "OrganizationTraceLogsEndpoint":
+            return {"traceId": uuid4().hex, "statsPeriod": "1h"}
         if endpoint.endpoint_name == "OrganizationTraceItemStatsEndpoint":
             return {
                 "statsType": ["attributeDistributions"],

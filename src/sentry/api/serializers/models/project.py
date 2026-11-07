@@ -1611,6 +1611,22 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         )
 
 
+class SharedProjectOrganizationResponse(TypedDict):
+    slug: Annotated[str, ApiDescription("Slug of the organization")]
+    name: Annotated[str, ApiDescription("Name of the organization")]
+
+
+class SharedProjectSerializerResponse(TypedDict):
+    slug: Annotated[str, ApiDescription("Slug of the project")]
+    name: Annotated[str, ApiDescription("Name of the project")]
+    color: Annotated[str, ApiDescription("Color of the project, as a hex code such as `#bf6e3f`")]
+    features: Annotated[list[str], ApiDescription("Always empty for a shared issue's project")]
+    organization: Annotated[
+        SharedProjectOrganizationResponse,
+        ApiDescription("Organization the project belongs to"),
+    ]
+
+
 class SharedProjectSerializer(Serializer):
     def serialize(
         self,
@@ -1618,7 +1634,7 @@ class SharedProjectSerializer(Serializer):
         attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser | None,
         **kwargs: object,
-    ) -> dict[str, object]:
+    ) -> SharedProjectSerializerResponse:
         return {
             "slug": obj.slug,
             "name": obj.name,

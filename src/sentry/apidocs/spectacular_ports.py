@@ -268,7 +268,7 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
         hints_with_extras = get_type_hints(hint, include_extras=True)
         _typed_dicts_in_progress.append(hint)
         try:
-            return build_object_type(
+            schema = build_object_type(
                 properties={
                     k: _field_schema(
                         _resolve_at(v, "properties", k),
@@ -286,6 +286,10 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
                     if k not in excluded_fields
                 ],
             )
+            # A TypedDict without fields describes a response that is always `{}`.
+            if not hints_with_extras:
+                schema["maxProperties"] = 0
+            return schema
         finally:
             _typed_dicts_in_progress.pop()
     elif origin is Union or origin is UnionType:
