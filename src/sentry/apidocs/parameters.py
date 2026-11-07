@@ -915,9 +915,15 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         name="interval",
         location="query",
         required=False,
-        type=int,
+        type={
+            "anyOf": [
+                {"type": "integer"},
+                {"type": "string", "pattern": r"^\d+[smhdw]?$"},
+            ]
+        },
         description="""The size of the bucket for the timeseries to have, must be a value smaller than the window being
-queried. If the interval is invalid a default interval will be selected instead""",
+queried. Either a number of seconds, or a number with a unit suffix of `s`, `m`, `h`, `d`, or `w`, such as `5m` or
+`1h`. If the interval is invalid a default interval will be selected instead""",
     )
     GROUP_BY = OpenApiParameter(
         name="groupBy",
@@ -933,8 +939,10 @@ top events are""",
         location="query",
         required=False,
         type=str,
-        description="""The aggregate field to create the timeseries for, defaults to `count()` when
-        not included.
+        many=True,
+        description="""The aggregate fields to create timeseries for, defaults to `count()` when
+        not included. Pass the parameter more than once to get a timeseries for each aggregate, for
+        example `?yAxis=count()&yAxis=p95(span.duration)`.
 - `count()` - Total count of events over the period.
 - `avg(field)` - Average value of the field over the period.
 - `pXX(field)` - Percentile value of the field over the period. One of: `p50`, `p75`, `p90`, `p95`, `p99`, `p100`.
@@ -1132,6 +1140,15 @@ class TraceParams:
         required=True,
         type=str,
         description="The ID of the trace, a 32-character hexadecimal string.",
+    )
+    TIMESTAMP = OpenApiParameter(
+        name="timestamp",
+        location="query",
+        required=False,
+        type=str,
+        description="""The timestamp of an event in the trace, as an ISO 8601 string or Unix timestamp in
+seconds. When passed, the query is narrowed to a window around this time, which is faster than
+searching the full time range.""",
     )
 
 
