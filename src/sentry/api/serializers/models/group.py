@@ -75,7 +75,7 @@ from sentry.search.events.filter import (
 from sentry.services.eventstore.reprocessing.base import ReprocessingInfo
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
-from sentry.tagstore.types import GroupTagValue
+from sentry.tagstore.types import GroupTagValue, TagKeySerializerResponse
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.group import SUBSTATUS_TO_STR, GroupPriorityStr, GroupSubStatusStr, PriorityLevel
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -88,6 +88,8 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
 
 if TYPE_CHECKING:
+    from sentry.api.serializers.types import ReleaseSerializerResponse
+    from sentry.integrations.api.serializers.models.external_issue import ExternalIssueResponse
     from sentry.models.groupinbox import InboxDetails
     from sentry.models.groupowner import OwnersSerialized
     from sentry.sentry_apps.api.serializers.platform_external_issue import (
@@ -247,18 +249,43 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     ]
 
 
+class GroupReleaseVersionResponse(TypedDict):
+    version: Annotated[str, ApiDescription("Version of the release")]
+
+
+class GroupForecastResponse(TypedDict):
+    data: Annotated[
+        list[int],
+        ApiDescription(
+            "Forecast daily event counts, starting on the day the forecast was generated"
+        ),
+    ]
+    date_added: Annotated[
+        float, ApiDescription("When the forecast was generated, as a Unix timestamp")
+    ]
+
+
+class GroupSeenByResponse(UserSerializerResponse):
+    lastSeen: Annotated[datetime, ApiDescription("When the user last saw the issue (ISO 8601)")]
+
+
+class GroupParticipantResponse(UserSerializerResponse):
+    type: Annotated[Literal["user"], ApiDescription("Kind of participant. Always user")]
+
+
 class GroupDetailsResponseOptional(TypedDict, total=False):
     # Included by default; removable via `?collapse=release|tags|stats`
+    # A release that no longer exists serializes to just its version.
     firstRelease: Annotated[
-        dict[str, Any] | None,
+        ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
         ApiDescription("First release the issue was seen in. Omitted when release is collapsed"),
     ]
     lastRelease: Annotated[
-        dict[str, Any] | None,
+        ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
         ApiDescription("Latest release the issue was seen in. Omitted when release is collapsed"),
     ]
     tags: Annotated[
-        list[dict[str, Any]],
+        list[TagKeySerializerResponse],
         ApiDescription(
             "Tag keys seen on the issue's events, with their top values. Omitted when tags is collapsed"
         ),
@@ -279,13 +306,13 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
         ApiDescription("Suggested owners of the issue. Only included when requested with expand"),
     ]
     forecast: Annotated[
-        dict[str, Any],
+        GroupForecastResponse,
         ApiDescription(
             "Escalation forecast for the issue. Only included when requested with expand"
         ),
     ]
     integrationIssues: Annotated[
-        list[dict[str, Any]],
+        list[ExternalIssueResponse],
         ApiDescription(
             "External issues linked through integrations. Only included when requested with expand"
         ),
@@ -309,12 +336,12 @@ class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOpti
         list[dict[str, Any]], ApiDescription("Recent activity on the issue, newest first")
     ]
     seenBy: Annotated[
-        list[dict[str, Any]],
+        list[GroupSeenByResponse],
         ApiDescription("Users who have seen the issue, with when they last saw it"),
     ]
     userReportCount: Annotated[int, ApiDescription("Number of user reports for the issue")]
     participants: Annotated[
-        list[dict[str, Any]], ApiDescription("Users participating in the issue")
+        list[GroupParticipantResponse], ApiDescription("Users participating in the issue")
     ]
 
 

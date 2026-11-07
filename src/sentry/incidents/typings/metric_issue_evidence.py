@@ -1,8 +1,13 @@
-from typing import Annotated, Any, Literal, NotRequired, TypedDict
+from typing import Annotated, Literal, NotRequired, TypedDict
 
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.incidents.typings.query_subscription import QuerySubscriptionSerializerResponse
 from sentry.issues.issue_occurrence import BaseIssueOccurrenceResponse
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+)
 
 # These mirror `MetricIssueEvidenceData` as the API returns it: `EventSerializer` camelCases every
 # key of the stored snake_case evidence data.
@@ -17,13 +22,28 @@ class MetricIssueAnomalyDetectionValueResponse(TypedDict):
     timestamp: Annotated[str, ApiDescription("When the value was measured")]
 
 
+# The comparison of an anomaly_detection condition, as AnomalyDetectionHandler's
+# comparison_json_schema requires it.
+class MetricIssueAnomalyDetectionComparisonResponse(TypedDict):
+    sensitivity: Annotated[
+        AnomalyDetectionSensitivity, ApiDescription("How sensitive the anomaly detection is")
+    ]
+    seasonality: Annotated[
+        AnomalyDetectionSeasonality, ApiDescription("Seasonality the anomaly detection model uses")
+    ]
+    thresholdType: Annotated[
+        AnomalyDetectionThresholdType,
+        ApiDescription("Direction of anomalies to detect: 0 above, 1 below, 2 above and below"),
+    ]
+
+
 class MetricIssueConditionResponse(TypedDict):
     id: Annotated[int, ApiDescription("ID of the detector condition")]
     type: Annotated[
         str, ApiDescription("Type of the condition, such as gt, lt or anomaly_detection")
     ]
     comparison: Annotated[
-        float | dict[str, Any],
+        float | MetricIssueAnomalyDetectionComparisonResponse,
         ApiDescription(
             "Threshold the value is compared with, or the anomaly detection settings for an anomaly_detection condition"
         ),

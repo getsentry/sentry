@@ -190,7 +190,8 @@ def _cycle_placeholder(hint: Any) -> dict[str, Any]:
 def resolve_type_hint(hint: TypeHint) -> TypeHint:
     """drf-spectacular library method modified as described above"""
     if hint is type(None):
-        return {"nullable": True, "enum": [None]}
+        # Validators reject "nullable" without a "type", so this keeps one.
+        return {"type": "object", "nullable": True, "enum": [None]}
 
     origin, args = _get_type_hint_origin(hint)
     excluded_fields = get_override(hint, "exclude_fields", [])
@@ -311,13 +312,13 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
             # There's an issue where if 3 or more types are OR'd together and one of
             # them is None, validating the schema will fail because "nullable: true"
             # with "anyOf" raises an error because there is no "type" key on the
-            # schema. This works around it by including a proxy null object in
-            # the "anyOf".
+            # schema. This works around it by including a proxy object in the
+            # "anyOf" that only allows null.
             # See:
             #   - https://github.com/tfranzel/drf-spectacular/issues/925
             #   - https://github.com/OAI/OpenAPI-Specification/issues/1368.
             if len(args) > 2:
-                schema["anyOf"].append({"type": "object", "nullable": True})
+                schema["anyOf"].append(resolve_type_hint(type(None)))
             else:
                 schema["nullable"] = True
         return schema

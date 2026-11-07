@@ -1,10 +1,8 @@
 # Response fields that are not described or typed yet; see src/sentry/apidocs/README.md#response-fields.
 # Only remove lines: python -m sentry.apidocs.response_coverage --prune
 missing-description sentry.api.serializers.models.organization_member.response.OrganizationMemberWithRolesResponse.invite_link
-untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].statusDetails
 untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].issue
 untyped POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.issue
-untyped PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200.statusDetails
 untyped components/ListReplayRecordingSegments[][]
 untyped components/OrganizationProfilingChunksResponse
 untyped components/OrganizationProfilingFlamegraphResponse
@@ -15,12 +13,8 @@ untyped sentry.api.endpoints.organization_events.EventsMeta.debug_info
 untyped sentry.api.endpoints.organization_events.EventsMeta.discoverSplitDecision
 untyped sentry.api.endpoints.organization_stats_summary._ProjectSummaryStats.stats[]
 untyped sentry.api.endpoints.organization_trace_meta_types.OrganizationTraceMetaResponse.transactionChildCountMap[]
-untyped sentry.api.endpoints.release_thresholds.types.EnrichedThreshold.metric_value<anyOf2>
 untyped sentry.api.endpoints.release_thresholds.types.SerializedThreshold.environment
 untyped sentry.api.endpoints.release_thresholds.types.SerializedThreshold.project
-untyped sentry.api.endpoints.source_map_debug.SourceMapScrapingProcessResult.source_file<anyOf3>
-untyped sentry.api.endpoints.source_map_debug.SourceMapScrapingProcessResult.source_map<anyOf3>
-untyped sentry.api.endpoints.timeseries.GroupBy.value<anyOf2>
 untyped sentry.api.serializers.models.dashboard.DashboardDetailsResponse.createdBy
 untyped sentry.api.serializers.models.dashboard.DashboardFilters.globalFilter[]
 untyped sentry.api.serializers.models.dashboard.DashboardListResponse.createdBy
@@ -29,35 +23,20 @@ untyped sentry.api.serializers.models.discoversavedquery.DiscoverSavedQueryRespo
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse._meta
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.entries[]
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.metadata
-untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.occurrence<anyOf2>
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.packages
 untyped sentry.api.serializers.models.event.EventDetailFields.context
 untyped sentry.api.serializers.models.event.EventDetailFields.contexts
 untyped sentry.api.serializers.models.event.IssueEventSerializerResponse.sdkUpdates[]
 untyped sentry.api.serializers.models.event.SimpleEventSerializerResponse.metadata
-untyped sentry.api.serializers.models.eventuser.EventUserSerializerResponse.identifier<anyOf2>
 untyped sentry.api.serializers.models.group.BaseGroupSerializerResponse.metadata
 untyped sentry.api.serializers.models.group.GroupDetailsResponse.activity[]
-untyped sentry.api.serializers.models.group.GroupDetailsResponse.participants[]
-untyped sentry.api.serializers.models.group.GroupDetailsResponse.seenBy[]
-untyped sentry.api.serializers.models.group.GroupDetailsResponseOptional.firstRelease
-untyped sentry.api.serializers.models.group.GroupDetailsResponseOptional.forecast
-untyped sentry.api.serializers.models.group.GroupDetailsResponseOptional.integrationIssues[]
-untyped sentry.api.serializers.models.group.GroupDetailsResponseOptional.lastRelease
-untyped sentry.api.serializers.models.group.GroupDetailsResponseOptional.tags[]
-untyped sentry.api.serializers.models.group_stream.StreamGroupSerializerSnubaResponse.integrationIssues[]
-untyped sentry.api.serializers.models.group_stream.StreamGroupSerializerSnubaResponse.lifetime
 untyped sentry.api.serializers.models.group_stream.StreamGroupSerializerSnubaResponse.metadata
-untyped sentry.api.serializers.models.group_stream.StreamGroupSerializerSnubaResponse.sentryAppIssues[]
-untyped sentry.api.serializers.models.group_stream.StreamGroupSerializerSnubaResponse.stats
-untyped sentry.api.serializers.models.group_stream._Filtered.stats
 untyped sentry.api.serializers.models.organization.OnboardingTasksSerializerResponse.data
 untyped sentry.api.serializers.models.organization.OrganizationSummarySerializerResponseOptional.extraOptions{}
 untyped sentry.api.serializers.models.project.DetailedProjectResponse.options
 untyped sentry.api.serializers.models.project.DetailedProjectResponse.seerNightshiftTweaks
 untyped sentry.api.serializers.models.project._OrganizationProjectOptionalResponse.options
 untyped sentry.api.serializers.models.release_file.ReleaseFileSerializerResponse.headers
-untyped sentry.api.serializers.models.release_file.ReleaseFileSerializerResponse.id<anyOf2>
 untyped sentry.api.serializers.release_details_types.VersionInfo.version
 untyped sentry.api.serializers.types.GroupEventReleaseSerializerResponse.data
 untyped sentry.api.serializers.types.GroupEventReleaseSerializerResponse.lastCommit
@@ -68,8 +47,6 @@ untyped sentry.api.serializers.types.ReleaseSerializerResponseOptional.lastCommi
 untyped sentry.api.serializers.types.ReleaseSerializerResponseOptional.owner
 untyped sentry.core.endpoints.scim.schemas.SCIMSchemaResponse.attributes[]
 untyped sentry.flags.endpoints.logs.FlagAuditLogModelSerializerResponse.tags
-untyped sentry.incidents.typings.metric_issue_evidence.MetricIssueConditionResponse.comparison<anyOf1>
-untyped sentry.incidents.typings.metric_issue_evidence.MetricIssueEvidenceDataResponse.value<anyOf2>
 untyped sentry.integrations.api.serializers.models.integration.IntegrationProviderInfo.aspects
 untyped sentry.integrations.api.serializers.models.integration.IntegrationProviderResponse.metadata
 untyped sentry.integrations.api.serializers.models.integration.OrganizationIntegrationResponse.configData
@@ -78,7 +55,6 @@ untyped sentry.integrations.types.IntegrationIssueConfigField.choices[][]
 untyped sentry.integrations.types.IntegrationIssueConfigField.default
 untyped sentry.integrations.types.IntegrationIssueConfigField.defaultValue
 untyped sentry.interfaces.user.EventUserApiContext.data
-untyped sentry.issues.endpoints.group_hashes.GroupHashesResult.latestEvent<anyOf2>
 untyped sentry.issues.issue_occurrence.IssueOccurrenceResponse.evidenceData
 untyped sentry.models.eventerror.EventErrorApiContext.data
 untyped sentry.preprod.api.models.public.size_analysis.DiffItemResponseDict.diffItems[]
