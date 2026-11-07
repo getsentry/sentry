@@ -1,8 +1,10 @@
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated, NewType
 from urllib.parse import urlsplit
+from uuid import UUID
 
 from sentry.utils.env import in_test_environment
 
@@ -55,12 +57,43 @@ GIT_REF_MAX_LENGTH = 255
 IsoDateTimeStr = NewType("IsoDateTimeStr", str)
 UrlStr = NewType("UrlStr", str)
 
+# The string types behind Uuid, HexId, NumericId and Slug. Like IsoDateTimeStr, they're
+# NewTypes: build values with uuid_str(), hex_id(), numeric_id() and slug().
+UuidStr = NewType("UuidStr", str)
+HexIdStr = NewType("HexIdStr", str)
+NumericIdStr = NewType("NumericIdStr", str)
+SlugStr = NewType("SlugStr", str)
+
+UUID_PATTERN = r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+HEX_ID_PATTERN = r"^[0-9a-f]{32}$"
+NUMERIC_ID_PATTERN = r"^[0-9]+$"
+# Django's validate_slug, which every SlugField runs. Sentry's own slug validators are
+# stricter, but slugs saved before they existed weren't checked against them.
+SLUG_PATTERN = r"^[-a-zA-Z0-9_]+$"
+
+_UUID_REGEX = re.compile(UUID_PATTERN)
+_HEX_ID_REGEX = re.compile(HEX_ID_PATTERN)
+_NUMERIC_ID_REGEX = re.compile(NUMERIC_ID_PATTERN)
+_SLUG_REGEX = re.compile(SLUG_PATTERN)
+
 # A date and time as an ISO 8601 string with a UTC offset, such as
 # `2024-01-01T00:00:00+00:00`. Build it with iso_datetime().
 IsoDateTime = Annotated[IsoDateTimeStr, ApiFormat(format="date-time")]
 # An absolute URL, such as `https://sentry.io/organizations/org-slug/issues/1/`. Build it
 # with absolute_url().
 Url = Annotated[UrlStr, ApiFormat(format="uri")]
+# A UUID in its hyphenated form, such as `6a2c8b1e-5d4f-4c3b-9a8e-7f6d5c4b3a21`. Build it
+# with uuid_str().
+Uuid = Annotated[UuidStr, ApiFormat(format="uuid")]
+# A 32-character lowercase hex ID, such as an event ID or a UUID without hyphens:
+# `9fac2ceed9344f2bbfdd1fdacb0ed9b1`. Build it with hex_id().
+HexId = Annotated[HexIdStr, ApiFormat(pattern=HEX_ID_PATTERN)]
+# A database ID as a string of digits, such as `4505281256090153`. Build it with
+# numeric_id().
+NumericId = Annotated[NumericIdStr, ApiFormat(pattern=NUMERIC_ID_PATTERN)]
+# A slug of letters, digits, hyphens and underscores, such as `my-project`. Build it with
+# slug().
+Slug = Annotated[SlugStr, ApiFormat(pattern=SLUG_PATTERN)]
 
 
 def _invalid(format: str, problem: str) -> None:
@@ -93,6 +126,55 @@ def absolute_url(value: str) -> Url:
     if not parts.scheme or not parts.netloc:
         _invalid("uri", "the URL has no scheme or host")
     return UrlStr(value)
+
+
+def uuid_str(value: UUID | str) -> Uuid:
+    """
+    Returns ``value`` as the value of a ``uuid`` field. A ``UUID`` becomes its hyphenated
+    string; a string is returned unchanged.
+
+    A string that isn't a hyphenated UUID, such as one without hyphens, is invalid.
+    """
+    if isinstance(value, UUID):
+        return UuidStr(str(value))
+    if not _UUID_REGEX.fullmatch(value):
+        _invalid("uuid", "the value isn't a hyphenated UUID")
+    return UuidStr(value)
+
+
+def hex_id(value: str) -> HexId:
+    """
+    Returns ``value`` unchanged as the value of a 32-character hex ID field.
+
+    A value that isn't 32 lowercase hex characters is invalid.
+    """
+    if not _HEX_ID_REGEX.fullmatch(value):
+        _invalid("hex ID", "the value isn't 32 lowercase hex characters")
+    return HexIdStr(value)
+
+
+def numeric_id(value: int | str) -> NumericId:
+    """
+    Returns ``value`` as a string, the value of a numeric ID field.
+
+    A negative number, or a string with anything other than digits, is invalid.
+    """
+    text = str(value)
+    if not _NUMERIC_ID_REGEX.fullmatch(text):
+        _invalid("numeric ID", "the value isn't a string of digits")
+    return NumericIdStr(text)
+
+
+def slug(value: str) -> Slug:
+    """
+    Returns ``value`` unchanged as the value of a slug field.
+
+    A value with characters other than letters, digits, hyphens and underscores, or an
+    empty string, is invalid.
+    """
+    if not _SLUG_REGEX.fullmatch(value):
+        _invalid("slug", "the value has characters other than letters, digits, - and _")
+    return SlugStr(value)
 
 
 # A git branch or ref name, or an empty string. Uploads are validated against the same

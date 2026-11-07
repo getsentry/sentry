@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import Uuid, uuid_str
 from sentry.app import env
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -82,7 +83,7 @@ class SentryAppSerializerResponse(TypedDict):
     status: Annotated[
         str, ApiDescription("Status of the integration, such as unpublished, published or internal")
     ]
-    uuid: Annotated[str, ApiDescription("UUID of the custom integration")]
+    uuid: Annotated[Uuid, ApiDescription("UUID of the custom integration")]
     verifyInstall: Annotated[
         bool, ApiDescription("Whether installations of the integration must be verified")
     ]
@@ -221,7 +222,7 @@ class SentryAppSerializer(Serializer):
             scopes=obj.get_scopes(),
             slug=obj.slug,
             status=obj.get_status_display(),
-            uuid=obj.uuid,
+            uuid=uuid_str(obj.uuid),
             verifyInstall=obj.verify_install,
             webhookUrl=obj.webhook_url,
             # Header values are write-only after save; masked values can still be

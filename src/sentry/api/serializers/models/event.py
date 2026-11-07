@@ -19,6 +19,7 @@ from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import HexId, NumericId, hex_id, numeric_id
 from sentry.eventtypes import EventTypeStr
 from sentry.grouping.api import GroupingConfig
 from sentry.incidents.typings.metric_issue_evidence import MetricIssueOccurrenceResponse
@@ -171,10 +172,10 @@ def get_entries(
 
 
 class BaseEventSerializerResponse(TypedDict):
-    id: Annotated[str, ApiDescription("ID of the event")]
-    groupID: Annotated[str | None, ApiDescription("ID of the issue the event belongs to")]
-    eventID: Annotated[str, ApiDescription("ID of the event")]
-    projectID: Annotated[str, ApiDescription("ID of the project the event belongs to")]
+    id: Annotated[HexId, ApiDescription("ID of the event")]
+    groupID: Annotated[NumericId | None, ApiDescription("ID of the issue the event belongs to")]
+    eventID: Annotated[HexId, ApiDescription("ID of the event")]
+    projectID: Annotated[NumericId, ApiDescription("ID of the project the event belongs to")]
     message: Annotated[str | None, ApiDescription("Event message")]
     title: Annotated[str, ApiDescription("Event title")]
     location: Annotated[
@@ -462,10 +463,10 @@ class EventSerializer(Serializer):
         occurrence = getattr(obj, "occurrence", None)
 
         event_data: EventSerializerResponse = {
-            "id": obj.event_id,
-            "groupID": str(obj.group_id) if obj.group_id else None,
-            "eventID": obj.event_id,
-            "projectID": str(obj.project_id),
+            "id": hex_id(obj.event_id),
+            "groupID": numeric_id(obj.group_id) if obj.group_id else None,
+            "eventID": hex_id(obj.event_id),
+            "projectID": numeric_id(obj.project_id),
             "size": obj.size,
             "entries": attrs["entries"],
             "dist": obj.dist,
@@ -758,13 +759,15 @@ class SharedEventSerializer(EventSerializer):
 SimpleEventSerializerResponse = TypedDict(
     "SimpleEventSerializerResponse",
     {
-        "id": Annotated[str, ApiDescription("ID of the event")],
+        "id": Annotated[HexId, ApiDescription("ID of the event")],
         "event.type": Annotated[
             str, ApiDescription("Event type, such as error, default or transaction")
         ],
-        "groupID": Annotated[str | None, ApiDescription("ID of the issue the event belongs to")],
-        "eventID": Annotated[str, ApiDescription("ID of the event")],
-        "projectID": Annotated[str, ApiDescription("ID of the project the event belongs to")],
+        "groupID": Annotated[
+            NumericId | None, ApiDescription("ID of the issue the event belongs to")
+        ],
+        "eventID": Annotated[HexId, ApiDescription("ID of the event")],
+        "projectID": Annotated[NumericId, ApiDescription("ID of the project the event belongs to")],
         "message": Annotated[str, ApiDescription("Event message")],
         "title": Annotated[str, ApiDescription("Event title")],
         "location": Annotated[
@@ -852,11 +855,11 @@ class SimpleEventSerializer(EventSerializer):
         event_user = obj.get_minimal_user()
 
         return {
-            "id": str(obj.event_id),
+            "id": hex_id(obj.event_id),
             "event.type": str(obj.get_event_type()),
-            "groupID": str(obj.group_id) if obj.group_id else None,
-            "eventID": str(obj.event_id),
-            "projectID": str(obj.project_id),
+            "groupID": numeric_id(obj.group_id) if obj.group_id else None,
+            "eventID": hex_id(obj.event_id),
+            "projectID": numeric_id(obj.project_id),
             # XXX for 'message' this doesn't do the proper resolution of logentry
             # etc. that _get_legacy_message_with_meta does.
             "message": obj.message,

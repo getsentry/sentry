@@ -931,7 +931,7 @@ class OrganizationExamples:
                     "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
                     "fingerprints": ["c4a4d06bc314205bb3b6bdb612dde7f1"],
                     "groupID": "1",
-                    "id": "1",
+                    "id": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
                     "location": "example.py:42",
                     "message": "",
                     "title": "This is an example Python exception",

@@ -19,6 +19,7 @@ from sentry import features, options, projectoptions, quotas, release_health, ro
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import NumericId, Slug, numeric_id, slug
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.principal import has_user
@@ -309,8 +310,8 @@ class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
 
 
 class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
-    id: Annotated[str, ApiDescription("ID of the project")]
-    slug: Annotated[str, ApiDescription("Slug of the project")]
+    id: Annotated[NumericId, ApiDescription("ID of the project")]
+    slug: Annotated[Slug, ApiDescription("Slug of the project")]
     # TODO: add deprecation about this field (not used in app)
     name: Annotated[str, ApiDescription("Name of the project")]
     platform: Annotated[str | None, ApiDescription("Platform of the project")]
@@ -699,8 +700,8 @@ class ProjectSerializer(Serializer):
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
         context: ProjectSerializerResponse = {
-            "id": str(obj.id),
-            "slug": obj.slug,
+            "id": numeric_id(obj.id),
+            "slug": slug(obj.slug),
             "name": obj.name,  # Deprecated
             "platform": obj.platform,
             "dateCreated": obj.date_added,
@@ -777,9 +778,9 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
 
 
 class TeamResponseDict(TypedDict):
-    id: Annotated[str, ApiDescription("ID of the team")]
+    id: Annotated[NumericId, ApiDescription("ID of the team")]
     name: Annotated[str, ApiDescription("Name of the team")]
-    slug: Annotated[str, ApiDescription("Slug of the team")]
+    slug: Annotated[Slug, ApiDescription("Slug of the team")]
 
 
 class _MaybeTeam(TypedDict, total=False):
@@ -804,8 +805,8 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
         teams = {
             pt.team_id: {
-                "id": str(pt.team.id),
-                "slug": pt.team.slug,
+                "id": numeric_id(pt.team.id),
+                "slug": slug(pt.team.slug),
                 "name": pt.team.name,
             }
             for pt in project_teams
@@ -967,9 +968,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         context = OrganizationProjectResponse(
             team=attrs["teams"][0] if attrs["teams"] else None,
             teams=attrs["teams"],
-            id=str(obj.id),
+            id=numeric_id(obj.id),
             name=obj.name,
-            slug=obj.slug,
+            slug=slug(obj.slug),
             isBookmarked=attrs["is_bookmarked"],
             isMember=attrs["is_member"],
             access=sorted(attrs["access"]),

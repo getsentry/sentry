@@ -30,7 +30,7 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.api.serializers.models.event import SharedEventSerializerResponse
 from sentry.api.serializers.models.project import SharedProjectSerializerResponse
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.apidocs.formats import Url, absolute_url
+from sentry.apidocs.formats import NumericId, Slug, Url, absolute_url, numeric_id, slug
 from sentry.auth.principal import has_user
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
@@ -146,9 +146,9 @@ class GroupStatusDetailsResponseOptional(TypedDict, total=False):
 
 
 class GroupProjectResponse(TypedDict):
-    id: Annotated[str, ApiDescription("ID of the project")]
+    id: Annotated[NumericId, ApiDescription("ID of the project")]
     name: Annotated[str, ApiDescription("Name of the project")]
-    slug: Annotated[str, ApiDescription("Slug of the project")]
+    slug: Annotated[Slug, ApiDescription("Slug of the project")]
     platform: Annotated[str | None, ApiDescription("Platform of the project")]
 
 
@@ -169,7 +169,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
-    id: Annotated[str, ApiDescription("ID of the issue")]
+    id: Annotated[NumericId, ApiDescription("ID of the issue")]
     shareId: Annotated[
         str | None,
         ApiDescription("ID used in the issue's public share URL. Null when the issue isn't shared"),
@@ -345,9 +345,9 @@ def is_seen_stats(o: object) -> TypeGuard[SeenStats]:
 
 def _make_group_project_response(project: Project) -> GroupProjectResponse:
     return {
-        "id": str(project.id),
+        "id": numeric_id(project.id),
         "name": project.name,
-        "slug": project.slug,
+        "slug": slug(project.slug),
         "platform": project.platform,
     }
 
@@ -587,7 +587,7 @@ class GroupSerializerBase(Serializer, ABC):
         qualified_short_id = obj.qualified_short_id
 
         group_dict: BaseGroupSerializerResponse = {
-            "id": str(obj.id),
+            "id": numeric_id(obj.id),
             "shareId": share_id,
             "shortId": qualified_short_id,
             "title": obj.title,
