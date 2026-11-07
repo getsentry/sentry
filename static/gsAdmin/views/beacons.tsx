@@ -1,39 +1,40 @@
 import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {Truncate} from 'sentry/components/truncate';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
 const getRow = (row: any) => [
-  <td key="beacon">
+  <SimpleTable.RowCell key="beacon" direction="column" align="start" gap="xs">
     <strong>
       <Link to={`/_admin/beacons/${row.id}/`}>{row.installID.substring(0, 14)}</Link>
     </strong>
-    <br />
     {row.email && (
-      <small>
+      <Text size="xs">
         <a href={`mailto:${row.email}`}>{row.email}</a>
-      </small>
+      </Text>
     )}
-  </td>,
-  <td key="version" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="version" justify="center" overflow="visible">
     <Truncate maxLength={15} value={row.version} />
-  </td>,
-  <td key="events" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="events" justify="center">
     {row.events24h?.toLocaleString() ?? ''}
-  </td>,
-  <td key="users" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="users" justify="center">
     {row.totalUsers?.toLocaleString() ?? ''}
-  </td>,
-  <td key="projects" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="projects" justify="center">
     {row.totalProjects?.toLocaleString() ?? ''}
-  </td>,
-  <td key="checkin" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="checkin" justify="end">
     {moment(row.firstCheckin).fromNow()}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function Beacons() {
@@ -46,22 +47,12 @@ export function Beacons() {
         path="/_admin/beacons/"
         endpoint="/beacons/"
         columns={[
-          <th key="beacon">Beacon</th>,
-          <th key="version" style={{width: 100, textAlign: 'center'}}>
-            Version
-          </th>,
-          <th key="events" style={{width: 130, textAlign: 'center'}}>
-            Events (24h)
-          </th>,
-          <th key="users" style={{width: 100, textAlign: 'center'}}>
-            Users
-          </th>,
-          <th key="projects" style={{width: 100, textAlign: 'center'}}>
-            Projects
-          </th>,
-          <th key="checkin" style={{width: 200, textAlign: 'right'}}>
-            First Checkin
-          </th>,
+          {key: 'beacon', label: 'Beacon'},
+          {key: 'version', label: 'Version', width: 100, align: 'center'},
+          {key: 'events', label: 'Events (24h)', width: 130, align: 'center'},
+          {key: 'users', label: 'Users', width: 100, align: 'center'},
+          {key: 'projects', label: 'Projects', width: 100, align: 'center'},
+          {key: 'checkin', label: 'First Checkin', width: 200, align: 'right'},
         ]}
         columnsForRow={getRow}
         hasSearch

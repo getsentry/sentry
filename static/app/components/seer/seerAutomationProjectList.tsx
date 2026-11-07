@@ -1,20 +1,16 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
-import {useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {EmptyState} from '@sentry/scraps/emptyState';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -25,7 +21,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
-import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -33,11 +28,13 @@ import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SEER_THRESHOLD_MAP} from 'sentry/views/settings/projectSeer';
+
+import {SEER_THRESHOLD_OPTIONS} from './legacy/constants';
 
 const PROJECTS_PER_PAGE = 20;
 
@@ -131,13 +128,32 @@ function getSeerDropdownLabel(key: string) {
 
 export function SeerAutomationProjectList() {
   const organization = useOrganization();
-  const api = useApi({persistInFlight: true});
   const {projects, fetching, fetchError} = useProjects();
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
+
+  const {mutateAsync: updateProject} = useMutation({
+    mutationFn: ({
+      projectSlug,
+      data,
+    }: {
+      data: Record<string, unknown>;
+      projectSlug: string;
+    }) =>
+      fetchMutation({
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+          },
+        }),
+        method: 'PUT',
+        data,
+      }),
+  });
 
   const filteredProjects = useMemo(() => {
     return projects.filter(
@@ -220,7 +236,7 @@ export function SeerAutomationProjectList() {
   };
 
   async function updateProjectsSeerValue(value: string) {
-    addLoadingMessage('Updating projects...', {duration: 60000});
+    toast.loading('Updating projects...', {duration: 60000});
     try {
       const batchSize = 20;
       const selectedProjects = Array.from(selected);
@@ -239,24 +255,14 @@ export function SeerAutomationProjectList() {
               updateData.seerScannerAutomation = true;
             }
 
-            return api.requestPromise(
-              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }),
-              {
-                method: 'PUT',
-                data: updateData,
-              }
-            );
+            return updateProject({projectSlug: project.slug, data: updateData});
           })
         );
       }
-      addSuccessMessage('Projects updated successfully');
+      toast.success('Projects updated successfully');
     } catch {
-      addErrorMessage('Failed to update some projects');
+      toast.error('Failed to update some projects');
+      // oxlint-disable-next-line react/todo
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);
@@ -274,7 +280,7 @@ export function SeerAutomationProjectList() {
   }
 
   async function updateProjectsSeerScanner(value: boolean) {
-    addLoadingMessage('Updating projects...', {duration: 60000});
+    toast.loading('Updating projects...', {duration: 60000});
     try {
       const batchSize = 20;
       const selectedProjects = Array.from(selected);
@@ -287,24 +293,17 @@ export function SeerAutomationProjectList() {
             if (!project) {
               return Promise.resolve();
             }
-            return api.requestPromise(
-              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }),
-              {
-                method: 'PUT',
-                data: {seerScannerAutomation: value},
-              }
-            );
+            return updateProject({
+              projectSlug: project.slug,
+              data: {seerScannerAutomation: value},
+            });
           })
         );
       }
-      addSuccessMessage('Projects updated successfully');
+      toast.success('Projects updated successfully');
     } catch {
-      addErrorMessage('Failed to update some projects');
+      toast.error('Failed to update some projects');
+      // oxlint-disable-next-line react/todo
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);
@@ -342,14 +341,14 @@ export function SeerAutomationProjectList() {
 
   return (
     <Fragment>
-      <SearchWrapper>
-        <SearchBarWrapper>
+      <Flex align="center" gap="xl">
+        <Container flex="1">
           <SearchBar
             query={search}
             onChange={handleSearchChange}
             placeholder={t('Search projects')}
           />
-        </SearchBarWrapper>
+        </Container>
         <Button
           size="md"
           variant="primary"
@@ -357,7 +356,7 @@ export function SeerAutomationProjectList() {
         >
           {t('Open Setup Wizard')}
         </Button>
-      </SearchWrapper>
+      </Flex>
       <Panel>
         <PanelHeader hasButtons>
           <div>{t('Automation for Existing Projects')}</div>
@@ -428,16 +427,6 @@ export function SeerAutomationProjectList() {
     </Fragment>
   );
 }
-
-const SearchWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xl};
-  align-items: center;
-`;
-
-const SearchBarWrapper = styled('div')`
-  flex: 1;
-`;
 
 const SeerValue = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};

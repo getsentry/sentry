@@ -1,14 +1,12 @@
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {generateExportRowCountOptions} from 'sentry/components/exports/generateExportRowCountOptions';
 import {
   type DataExportPayload,
@@ -16,7 +14,8 @@ import {
   useDataExport,
 } from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
-import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+
+import type {ExploreExportConfig} from './types';
 
 enum ModalColumnValue {
   ALL = 'all',
@@ -91,7 +90,7 @@ export function ExploreExportModal({
 
       if (localDownloadForSubmit) {
         localDownloadForSubmit({format, limit: value.limit});
-        addSuccessMessage(t('Downloading file to your browser.'));
+        toast.success(t('Downloading file to your browser.'));
         closeModal();
         return;
       }
@@ -153,7 +152,7 @@ export function ExploreExportModal({
                   }
                   disabled={columnsValue === ModalColumnValue.ALL}
                 >
-                  <field.Layout.Stack label={t('Format')}>
+                  <field.Layout.Stack label={t('Format')} align="start">
                     <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
                     <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
                   </field.Layout.Stack>
@@ -182,18 +181,12 @@ export function ExploreExportModal({
           )}
           <form.AppField name="limit">
             {field => (
-              <field.Layout.Stack label={t('Number of rows')}>
-                <CompactSelect
+              <field.Layout.Stack label={t('Number of rows')} align="start">
+                <field.CompactSelect
                   disabled={rowCountOptions.length === 1}
                   options={rowCountOptions}
                   value={field.state.value}
-                  onChange={option => field.handleChange(option.value)}
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button
-                      {...triggerProps}
-                      aria-label={t('Number of rows')}
-                    />
-                  )}
+                  onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}

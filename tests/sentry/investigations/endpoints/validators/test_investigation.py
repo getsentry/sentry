@@ -26,55 +26,13 @@ class TestInvestigationCreateValidator:
 
         assert data["title"] == "Latency spike"
 
-    def test_requires_a_title_without_a_template(self) -> None:
+    def test_requires_a_title_without_a_source(self) -> None:
         validator = InvestigationCreateValidator(data={"projectIds": [1]})
 
         assert not validator.is_valid()
         assert "title" in validator.errors
 
-    def test_requires_template_key_and_version_together(self) -> None:
-        validator = InvestigationCreateValidator(
-            data={"title": "T", "templateKey": "breached_metric"}
-        )
-
-        assert not validator.is_valid()
-        assert "templateKey" in validator.errors
-
-    def test_accepts_a_template_backed_investigation(self) -> None:
-        data = assert_valid(
-            InvestigationCreateValidator(
-                data={
-                    "templateKey": "breached_metric",
-                    "templateVersion": 1,
-                    "source": {"type": "metric_open_period", "ref": {"openPeriodId": "1"}},
-                }
-            )
-        )
-
-        assert data["template_key"] == "breached_metric"
-
-    def test_requires_a_source_with_a_template(self) -> None:
-        validator = InvestigationCreateValidator(
-            data={"templateKey": "breached_metric", "templateVersion": 1}
-        )
-
-        assert not validator.is_valid()
-        assert "source" in validator.errors
-
-    def test_rejects_caller_supplied_projects_with_a_template(self) -> None:
-        validator = InvestigationCreateValidator(
-            data={
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
-                "source": {"type": "metric_open_period", "ref": {"openPeriodId": "1"}},
-                "projectIds": [1],
-            }
-        )
-
-        assert not validator.is_valid()
-        assert "projectIds" in validator.errors
-
-    def test_accepts_an_agentic_manual_source_without_a_template(self) -> None:
+    def test_accepts_an_agentic_manual_source(self) -> None:
         data = assert_valid(
             InvestigationCreateValidator(
                 data={
@@ -198,17 +156,22 @@ class TestInvestigationCreateValidator:
         data = assert_valid(
             InvestigationCreateValidator(
                 data={
-                    "templateKey": "breached_metric",
-                    "templateVersion": 1,
                     "source": {
                         "type": "metric_open_period",
-                        "ref": {"openPeriodId": "1", "detectorId": "2"},
+                        "ref": {"groupId": "1", "openPeriodId": "2"},
                     },
                 }
             )
         )
 
-        assert data["source"]["ref"] == {"openPeriodId": "1", "detectorId": "2"}
+        assert data["source"]["ref"] == {"groupId": "1", "openPeriodId": "2"}
+
+    def test_converts_multi_word_error_keys_to_camel_case(self) -> None:
+        validator = InvestigationCreateValidator(data={"title": "T", "projectIds": "nope"})
+
+        assert not validator.is_valid()
+        assert "projectIds" in validator.errors
+        assert "project_ids" not in validator.errors
 
 
 class TestInvestigationUpdateValidator:

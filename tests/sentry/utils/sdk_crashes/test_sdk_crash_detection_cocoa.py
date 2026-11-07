@@ -1,4 +1,5 @@
 from collections.abc import Collection
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from fixtures.sdk_crash_detection.crash_event_cocoa import (
@@ -39,7 +40,7 @@ class CococaSDKFilenameTestMixin(BaseSDKCrashDetectionMixin):
             mock_sdk_crash_reporter,
         )
 
-    def _get_crash_event(self, filename) -> dict[str, Collection[str]]:
+    def _get_crash_event(self, filename: str) -> dict[str, Collection[str]]:
         return get_crash_event_with_frames(
             frames=[
                 {
@@ -1150,5 +1151,7 @@ class SDKCrashDetectionCocoaTest(
     CocoaSDKCoreDataTrackerTestMixin,
     CocoaSDKCPPExceptionTerminateTestMixin,
 ):
-    def create_event(self, data, project_id, assert_no_errors=True):
+    def create_event(
+        self, data: dict[str, Any], project_id: int, assert_no_errors: bool = True
+    ) -> Any:
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)

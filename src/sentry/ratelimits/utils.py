@@ -83,21 +83,29 @@ def get_rate_limit_key(
     if actual_user is not None:
         request_user = actual_user
 
-    from django.contrib.auth.models import AnonymousUser
-
+    from sentry.auth.principal import acting_user_id, has_user
     from sentry.auth.system import is_system_auth
     from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
     from sentry.models.apikey import ApiKey
+    from sentry.service_accounts.auth import is_service_account_auth
 
     # Don't Rate Limit System Token Requests
     if is_system_auth(request_auth):
         return None
 
-    if is_api_token_auth(request_auth) and request_user:
+    id: int | str | None
+    if is_service_account_auth(request_auth):
+        # User limits, in a bucket of the account's own rather than its caller's IP.
+        category = "user"
+        id = f"service_account:{request_auth.entity_id}"
+
+    elif is_api_token_auth(request_auth) and request_user:
+        token_id: int | None = None
         token_org_id = None
         if isinstance(request_auth, ApiToken):
             token_id = request_auth.id
-        elif isinstance(request_auth, AuthenticatedToken) and request_auth.entity_id is not None:
+        elif isinstance(request_auth, AuthenticatedToken):
+            # No entity_id when it's from SENTRY_EXTRA_API_AUTHENTICATION.
             token_id = request_auth.entity_id
             token_org_id = request_auth.organization_id
         elif isinstance(request_auth, ApiTokenReplica) and request_auth.apitoken_id is not None:
@@ -108,7 +116,9 @@ def get_rate_limit_key(
 
         if getattr(request_user, "is_sentry_app", False):
             category = "org"
-            id = token_org_id or get_organization_id_from_token(token_id)
+            id = token_org_id
+            if id is None and token_id is not None:
+                id = get_organization_id_from_token(token_id)
 
             # Fallback to IP address limit if we can't find the organization
             if id is None and ip_address is not None:
@@ -118,13 +128,9 @@ def get_rate_limit_key(
             category = "user"
             id = request_auth.user_id
 
-    elif (
-        not isinstance(request_auth, ApiKey)
-        and request_user
-        and not isinstance(request_user, AnonymousUser)
-    ):
+    elif not isinstance(request_auth, ApiKey) and request_user and has_user(request_user):
         category = "user"
-        id = request_user.id
+        id = acting_user_id(request_user)
 
     # ApiKeys & OrgAuthTokens will be treated with IP ratelimits
     elif ip_address is not None:

@@ -95,6 +95,9 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_AVATAR_UPDATE = 47
     SEER_RUN_CREATE = 48
     GROUP_ACTION_LOG_EVENT = 49
+    SERVICE_ACCOUNT_UPDATE = 50
+    ORGANIZATION_PROVISION_ANALYTICS = 51
+    SERVICE_ACCOUNT_CREATE = 52
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -312,6 +315,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.SEND_SIGNAL,
             OutboxCategory.ORGAUTHTOKEN_UPDATE_USED,
             OutboxCategory.POST_ORGANIZATION_PROVISION,
+            OutboxCategory.ORGANIZATION_PROVISION_ANALYTICS,
             OutboxCategory.DISABLE_AUTH_PROVIDER,
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
             OutboxCategory.TEAM_UPDATE,
@@ -320,6 +324,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.API_KEY_UPDATE,
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
             OutboxCategory.ORG_AUTH_TOKEN_UPDATE,
+            OutboxCategory.SERVICE_ACCOUNT_UPDATE,
             OutboxCategory.PARTNER_ACCOUNT_UPDATE,
             OutboxCategory.UNUSED_FOUR,
             OutboxCategory.ISSUE_COMMENT_UPDATE,
@@ -380,6 +385,7 @@ class OutboxScope(IntEnum):
     ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
     SEER_SCOPE = scope_categories(13, {OutboxCategory.SEER_RUN_CREATE})
     GROUP_SCOPE = scope_categories(14, {OutboxCategory.GROUP_ACTION_LOG_EVENT})
+    SERVICE_ACCOUNT_SCOPE = scope_categories(15, {OutboxCategory.SERVICE_ACCOUNT_CREATE})
 
     def __str__(self) -> str:
         return self.name
@@ -406,6 +412,8 @@ class OutboxScope(IntEnum):
             return "seer_run_id"
         if scope == OutboxScope.GROUP_SCOPE:
             return "group_id"
+        if scope == OutboxScope.SERVICE_ACCOUNT_SCOPE:
+            return "organization_id"
 
         return "shard_identifier"
 

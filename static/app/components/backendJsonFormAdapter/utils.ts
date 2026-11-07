@@ -21,7 +21,6 @@ export function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
       return z.url();
     case 'choice_mapper':
       return z.looseObject({});
-    case 'project_mapper':
     case 'table':
       return z.array(z.any());
     case 'select':
@@ -131,7 +130,6 @@ export function getDefaultForField(field: JsonFormAdapterFieldConfig): unknown {
       return 0;
     case 'choice_mapper':
       return {};
-    case 'project_mapper':
     case 'table':
       return [];
     case 'select':

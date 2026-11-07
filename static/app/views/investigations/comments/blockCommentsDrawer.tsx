@@ -18,19 +18,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
   getInvestigationDetailQueryOptions,
+  INVESTIGATION_COMMENTS_PAGE_SIZE,
   investigationCommentsQueryOptions,
 } from 'sentry/views/investigations/api';
-import {CommentActions} from 'sentry/views/investigations/comments/commentActions';
-import {
-  CommentComposer,
-  EditCommentForm,
-} from 'sentry/views/investigations/comments/commentComposer';
-import {
-  COMMENTS_DRAWER_PARSERS,
-  isCommentEdited,
-} from 'sentry/views/investigations/comments/utils';
-import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/cell';
+import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/block';
 import type {InvestigationComment} from 'sentry/views/investigations/types';
+
+import {CommentActions} from './commentActions';
+import {CommentComposer, EditCommentForm} from './commentComposer';
+import {COMMENTS_DRAWER_PARSERS, isCommentEdited} from './utils';
 
 export function BlockCommentsDrawer({investigationId}: {investigationId: string}) {
   const [{commentsBlock: blockId, comment: highlightedId}] = useQueryStates(
@@ -68,7 +64,7 @@ function BlockThread({
       investigationId,
       blockId,
     }),
-    refetchInterval: 10_000,
+    refetchInterval: investigation?.status === 'archived' ? false : 10_000,
     select: selectJsonWithHeaders,
   });
 
@@ -132,7 +128,10 @@ function BlockThread({
               {hasOlder ? (
                 <Container as="li">
                   <Text variant="muted" size="sm">
-                    {t('Showing the latest 100 comments.')}
+                    {t(
+                      'Showing the latest %s comments.',
+                      INVESTIGATION_COMMENTS_PAGE_SIZE
+                    )}
                   </Text>
                 </Container>
               ) : null}

@@ -8,8 +8,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CopyFrameLink} from 'sentry/components/events/interfaces/frame/copyFrameLink';
-import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -19,8 +17,10 @@ import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnaly
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
+import {CopyFrameLink} from './copyFrameLink';
 import {StacktraceLinkModal} from './stacktraceLinkModal';
 import {useStacktraceLink} from './useStacktraceLink';
+import {hasFileExtension} from './utils';
 
 const scmProviders = ['github', 'gitlab', 'bitbucket'];
 
@@ -66,7 +66,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   );
   const isQueryEnabled = hasGithubSourceLink
     ? false
-    : shouldStartQuery && validFilePath && frame.inApp;
+    : shouldStartQuery && validFilePath && frame.inApp && !!project;
 
   const {
     data: match,

@@ -4,8 +4,9 @@ import logging
 from base64 import b64decode
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
+from django.utils import timezone
 from requests import PreparedRequest
 
 from sentry.integrations.cursor_origin.constants import (
@@ -238,10 +239,10 @@ class CursorOriginSetupApiClient(IntegrationProxyClient):
         return prepared_request
 
     def get_app(self) -> OriginApp:
-        return self.get("/app")
+        return cast("OriginApp", self.get_mapping("/app"))
 
     def get_installation(self, installation_id: str) -> OriginInstallation:
-        return self.get(f"/app/installations/{installation_id}")
+        return cast("OriginInstallation", self.get_mapping(f"/app/installations/{installation_id}"))
 
     def delete_installation(self, installation_id: str) -> None:
         """Remove the installation on Origin. Responds with an empty body."""
@@ -286,19 +287,31 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
 
     @control_silo_function
     def _refresh_access_token(self) -> AccessTokenData | None:
-        integration = Integration.objects.filter(id=self.integration.id).first()
-        if not integration:
+        if not Integration.objects.filter(id=self.integration.id).exists():
             return None
 
         data = self.post(f"/app/installations/{self.integration.external_id}/access_tokens")
+        if not isinstance(data, Mapping):
+            raise ApiError("no token or expiresAt from Cursor Origin")
 
-        token = data["token"]
-        expires_at = data["expiresAt"]
+        token = data.get("token")
+        expires_at = data.get("expiresAt")
+        if not isinstance(token, str) or not isinstance(expires_at, str):
+            raise ApiError("no token or expiresAt from Cursor Origin")
         if _parse_expires_at(expires_at) is None:
             raise ApiError(f"unparseable expiresAt from Cursor Origin: {expires_at!r}")
 
+        # Re-read and write only the metadata: saving the copy read before the request would
+        # undo a rename or an uninstall that landed meanwhile. No row lock, since locks on
+        # control tables have stalled the control database before.
+        integration = Integration.objects.filter(id=self.integration.id).first()
+        if not integration:
+            return None
         integration.metadata.update({"access_token": token, "expires_at": expires_at})
-        integration.save()
+        if not Integration.objects.filter(id=integration.id).update(
+            metadata=integration.metadata, date_updated=timezone.now()
+        ):
+            return None
         self.integration = integration
 
         return {"access_token": token, "expires_at": expires_at}
@@ -376,7 +389,7 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
             if page_token:
                 request_params["pageToken"] = page_token
 
-            response = self.get(path, params=request_params)
+            response = self.get_mapping(path, params=request_params)
             results.extend(response[collection_key])
             if limit is not None and len(results) >= limit:
                 return results[:limit]
@@ -394,7 +407,7 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
         return self._paginate("/installation/repos", "repositories", params=params)
 
     def get_repo(self, repo_full_name: str) -> OriginRepository:
-        return self.get(f"/repos/{repo_full_name}")
+        return cast("OriginRepository", self.get_mapping(f"/repos/{repo_full_name}"))
 
     def get_branches(self, repo_full_name: str) -> list[OriginBranch]:
         return self._paginate(f"/repos/{repo_full_name}/branches", "branches")
@@ -410,7 +423,7 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
 
     def get_commit(self, repo_full_name: str, sha: str) -> OriginCommit:
         """Return a commit with aggregate stats."""
-        return self.get(f"/repos/{repo_full_name}/commits/{sha}")
+        return cast("OriginCommit", self.get_mapping(f"/repos/{repo_full_name}/commits/{sha}"))
 
     def get_commit_files(self, repo_full_name: str, sha: str) -> list[OriginCommitFile]:
         """Return the files changed by a commit."""
@@ -420,7 +433,9 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
 
     def compare_commits(self, repo_full_name: str, base: str, head: str) -> OriginComparison:
         """Return how `head` relates to `base`."""
-        return self.get(f"/repos/{repo_full_name}/compare/{base}...{head}")
+        return cast(
+            "OriginComparison", self.get_mapping(f"/repos/{repo_full_name}/compare/{base}...{head}")
+        )
 
     def get_compare_files(
         self, repo_full_name: str, base: str, head: str
@@ -439,7 +454,7 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
         would otherwise surface as an opaque failure.
         """
         try:
-            response = self.get(
+            response = self.get_mapping(
                 f"/repos/{repo_full_name}/git/trees/{tree_sha}", params={"recursive": "true"}
             )
         except ApiError as e:
@@ -458,7 +473,7 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
         return entries
 
     def get_blob(self, repo_full_name: str, sha: str) -> OriginBlob:
-        return self.get(f"/repos/{repo_full_name}/git/blobs/{sha}")
+        return cast("OriginBlob", self.get_mapping(f"/repos/{repo_full_name}/git/blobs/{sha}"))
 
     def get_languages(
         self, repo_full_name: str, tree: list[dict[str, Any]] | None = None
@@ -484,11 +499,13 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
         params: dict[str, Any] = {"path": path}
         if ref:
             params["ref"] = ref
-        return self.get(f"/repos/{repo_full_name}/contents", params=params)
+        return cast(
+            "OriginContents", self.get_mapping(f"/repos/{repo_full_name}/contents", params=params)
+        )
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         # Origin has no HEAD route for contents, so this is a GET whose body we discard.
-        # Errors are left for RepositoryIntegration.check_file, which classifies them.
+        # Errors are left for RepositoryIntegration._check_file, which classifies them.
         return self.get_contents(repo.name, path, ref=version)
 
     def get_file(

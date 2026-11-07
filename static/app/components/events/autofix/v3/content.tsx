@@ -2,11 +2,13 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getOrderedAutofixSections,
   isCodeChangesSection,
@@ -14,22 +16,25 @@ import {
   isLastStepPrIteration,
   isPullRequestsSection,
   isRootCauseSection,
+  isSingleRunAutofix,
   isSolutionSection,
   useExplorerAutofix,
   type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {AutofixStartCard} from 'sentry/components/events/autofix/v3/autofixStartCard';
-import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
-import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
-import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
-import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
-import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
-import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
-import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+
+import {AutofixStartCard} from './autofixStartCard';
+import {CodeChangesCard} from './codeChangesCard';
+import {CodingAgentsCard} from './codingAgentsCard';
+import {SeerDrawerNextStep} from './nextStep';
+import {PullRequestsCard} from './pullRequestsCard';
+import {RootCauseCard} from './rootCauseCard';
+import {SeerEnableNotifications} from './seerEnableNotifications';
+import {SolutionCard} from './solutionCard';
+import {useToggleSingleRunChat} from './useToggleSingleRunChat';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -53,6 +58,8 @@ export function SeerDrawerContent({
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
   );
+  const singleRun = isSingleRunAutofix(autofix.runState) ? autofix.runState : null;
+  const toggleSingleRunChat = useToggleSingleRunChat(getAutofixRunId(singleRun));
 
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
@@ -72,10 +79,18 @@ export function SeerDrawerContent({
   return (
     <Stack gap="lg">
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
-      {(autofix.runState?.status === 'completed' ||
-        isLastStepPrIteration(autofix.runState)) && (
+      {!isSingleRunAutofix(autofix.runState) &&
+        (autofix.runState?.status === 'completed' ||
+          isLastStepPrIteration(autofix.runState)) && (
+          <NextStepWrap isSticky={stickyNextStep}>
+            <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
+          </NextStepWrap>
+        )}
+      {singleRun && (
         <NextStepWrap isSticky={stickyNextStep}>
-          <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
+          <Button variant="primary" icon={<IconSeer />} onClick={toggleSingleRunChat}>
+            {t('Open Autofix')}
+          </Button>
         </NextStepWrap>
       )}
       {autofix.codingAgentErrors.map(({id, message}) => (

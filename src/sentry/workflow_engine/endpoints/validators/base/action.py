@@ -23,7 +23,7 @@ class ActionInput(TypedDict):
     type: str
     data: dict[str, Any]
     config: dict[str, Any]
-    integrationId: NotRequired[int | None]
+    integrationId: NotRequired[str | None]
     status: NotRequired[str]
 
 
@@ -36,20 +36,23 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
 
     def _get_action_handler(self) -> builtins.type[ActionHandler]:
         action_type = self.initial_data.get("type")
-        return action_handler_registry.get(action_type)
+        try:
+            return action_handler_registry.get(action_type)
+        except NoRegistrationExistsError:
+            raise serializers.ValidationError(f"Invalid action type: {action_type}") from None
 
-    def validate_data(self, value: Any) -> ActionData:
+    def validate_data(self, value: ActionData) -> ActionData:
         data_schema = self._get_action_handler().data_schema
         return validate_json_schema(value, data_schema)
 
-    def validate_status(self, value: Any) -> int:
+    def validate_status(self, value: int | str | None) -> int:
         if value is None:
             return ObjectStatus.ACTIVE
         if isinstance(value, str):
             return ObjectStatus.from_str(value)
         return value
 
-    def validate_config(self, value: Any) -> ActionConfig:
+    def validate_config(self, value: ActionConfig) -> ActionConfig:
         action_handler = self._get_action_handler()
         config_transformer = action_handler.get_config_transformer()
 
@@ -60,7 +63,7 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
             # No transformer, validate directly against config schema
             return validate_json_schema(value, action_handler.config_schema)
 
-    def validate_type(self, value: Any) -> str:
+    def validate_type(self, value: str) -> str:
         try:
             action_type = Action.Type(value)
         except ValueError:
@@ -112,7 +115,13 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
 
     def create(self, validated_value: dict[str, Any]) -> Action:
         self._check_action_type(Action.Type(validated_value["type"]))
-        return Action.objects.create(**validated_value)
+        return Action.objects.create(
+            type=validated_value["type"],
+            config=validated_value["config"],
+            data=validated_value["data"],
+            integration_id=validated_value.get("integration_id"),
+            status=validated_value.get("status", ObjectStatus.ACTIVE),
+        )
 
     def update(self, instance: Action, validated_value: dict[str, Any]) -> Action:
         if instance.type != validated_value["type"]:

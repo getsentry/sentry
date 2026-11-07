@@ -5,8 +5,8 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
+import {isActiveSuperuser} from './isActiveSuperuser';
 import {useUserTeams} from './useUserTeams';
 
 jest.mock('sentry/utils/isActiveSuperuser', () => ({

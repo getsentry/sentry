@@ -12,10 +12,10 @@ from rest_framework.response import Response
 
 from sentry import analytics, features, options, tagstore, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
-from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
+from sentry.api.client import client
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_func, get_environments
 from sentry.api.helpers.group_index import (
@@ -39,15 +39,15 @@ from sentry.apidocs.examples.issue_examples import IssueExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import (
     publish_action,
-    resolve_action_actor,
-    resolve_action_source,
 )
 from sentry.issues.action_log.read_metrics import activity_read_endpoint
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
@@ -101,12 +101,14 @@ class GroupDetailsPermission(GroupPermission):
 @cell_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     permission_classes = (GroupDetailsPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -241,8 +243,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
     )
     def get(self, request: Request, group: Group) -> Response[GroupDetailsResponse]:
         """
-        Return details on an individual issue, including its basic stats, comment
-        and user-report counts, and a summary of the latest event.
+        Return details on an individual issue, including its basic stats, comment count, and
+        user-report count.
         """
         from sentry.utils import snuba
 
@@ -307,7 +309,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 data.update({"owners": owners})
 
             if "forecast" in expand:
-                fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
+                fetched_forecast = EscalatingGroupForecast.fetch(group)
                 if fetched_forecast:
                     fetched_forecast_dict = fetched_forecast.to_dict()
                     data.update(
@@ -566,7 +568,7 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
                 project_id=group.project.id,
                 group_id=group.id,
                 client=f"mcp - {client_family}",
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
             )
         )
         if features.has("organizations:mcp-issue-view-attribution", group.project.organization):

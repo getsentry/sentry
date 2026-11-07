@@ -6,6 +6,7 @@ class AgenticOnboardingStageCompletedEvent(analytics.Event):
     user_id: int
     organization_id: int
     run_id: str
+    origin: str | None
     stage: str
     status: str
 
@@ -15,6 +16,7 @@ class AgenticOnboardingStageStatusChangedEvent(analytics.Event):
     user_id: int
     organization_id: int
     run_id: str
+    origin: str | None
     stage: str
     status: str
 
@@ -24,6 +26,7 @@ class AgenticOnboardingRunCompletedEvent(analytics.Event):
     user_id: int
     organization_id: int
     run_id: str
+    origin: str | None
     status: str
 
 

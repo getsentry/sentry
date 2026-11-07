@@ -66,6 +66,5 @@ export function ChartWidgetLoader(props: Props) {
     return <Placeholder height="100%" error={t('Error loading widget')} />;
   }
 
-  // oxlint-disable-next-line react/refs
   return <Component {...props} chartRef={props.ref} />;
 }

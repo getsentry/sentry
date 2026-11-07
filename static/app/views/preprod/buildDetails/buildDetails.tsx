@@ -6,8 +6,8 @@ import {useMutation} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -114,13 +114,13 @@ export default function BuildDetails() {
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Analysis rerun started successfully!'));
+      toast.success(t('Analysis rerun started successfully!'));
       setTimeout(() => {
         window.location.reload();
       }, 1000);
     },
     onError: error => {
-      addErrorMessage(t('Error: %s', error.message));
+      toast.error(t('Error: %s', error.message));
     },
   });
 
@@ -188,14 +188,12 @@ export default function BuildDetails() {
     <SentryDocumentTitle title={title}>
       <Stack flex={1}>
         <PreprodQuotaAlert system />
-        <Layout.Header>
-          <BuildDetailsHeaderContent
-            buildDetailsQuery={buildDetailsQuery}
-            projectSlug={projectSlug ?? ''}
-            artifactId={artifactId}
-            projectType={projectType}
-          />
-        </Layout.Header>
+        <BuildDetailsHeaderContent
+          buildDetailsQuery={buildDetailsQuery}
+          projectSlug={projectSlug ?? ''}
+          artifactId={artifactId}
+          projectType={projectType}
+        />
 
         <Layout.Body gap={{zero: '2xl', '4xl': '3xl'}}>
           <Layout.Side
@@ -206,8 +204,6 @@ export default function BuildDetails() {
             <BuildDetailsSidebarContent
               buildDetailsData={buildDetailsQuery.data}
               isBuildDetailsPending={buildDetailsQuery.isLoading}
-              artifactId={artifactId}
-              projectId={projectSlug ?? null}
             />
           </Layout.Side>
           <Layout.Main row={{zero: 'auto', '4xl': '1'}}>

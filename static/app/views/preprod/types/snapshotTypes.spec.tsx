@@ -1,8 +1,5 @@
-import {
-  getSnapshotImageUrl,
-  getSnapshotImageUrlForKey,
-} from 'sentry/views/preprod/types/snapshotTypes';
-import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
+import {getSnapshotImageUrl, getSnapshotImageUrlForKey} from './snapshotTypes';
+import type {SnapshotImage} from './snapshotTypes';
 
 function makeImage(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
   return {

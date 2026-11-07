@@ -12,7 +12,7 @@ from sentry.api.paginator import MissingPaginationError, OffsetPaginator
 class APIPaginationCheckTestCase(TestCase):
     def test_if_wrong_api_method_fails(self) -> None:
         class ExampleEndpoint(TestCase, Endpoint):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args: str, **kwargs: str) -> None:
                 super().__init__(*args, **kwargs)
                 self.access = "read"
 
@@ -20,7 +20,7 @@ class APIPaginationCheckTestCase(TestCase):
             def check_permissions(self, request: Request) -> None:
                 pass
 
-            def get(self, request, *args, **kwargs):
+            def get(self, request: object, *args: object, **kwargs: object) -> Response:
                 return Response(data=[])
 
         # Test the endpoint, assert there is a MissingPaginationError
@@ -32,7 +32,7 @@ class APIPaginationCheckTestCase(TestCase):
 
     def test_endpoint_in_allowlist(self) -> None:
         class GroupTagsEndpoint(TestCase, Endpoint):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args: str, **kwargs: str) -> None:
                 super().__init__(*args, **kwargs)
                 self.access = "read"
 
@@ -40,7 +40,7 @@ class APIPaginationCheckTestCase(TestCase):
             def check_permissions(self, request: Request) -> None:
                 pass
 
-            def get(self, request, *args, **kwargs):
+            def get(self, request: object, *args: object, **kwargs: object) -> Response:
                 return Response(data=[])
 
         # Test the endpoint, assert there is no MissingPaginationError
@@ -51,7 +51,7 @@ class APIPaginationCheckTestCase(TestCase):
 
     def test_empty_payload_with_pagination(self) -> None:
         class ExampleEndpoint(Endpoint):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args: str, **kwargs: str) -> None:
                 super().__init__(*args, **kwargs)
                 self.access = "read"
 
@@ -60,7 +60,7 @@ class APIPaginationCheckTestCase(TestCase):
                 pass
 
             # call the pagination method
-            def get(self, request, *args, **kwargs):
+            def get(self, request: Request, *args: object, **kwargs: object) -> Response:
                 return self.paginate(
                     request=request,
                     queryset=[],

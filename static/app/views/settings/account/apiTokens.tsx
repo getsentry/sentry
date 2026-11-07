@@ -5,12 +5,8 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -21,8 +17,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getApiQueryData, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
-import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import {ApiTokenRow} from './apiTokenRow';
 
 const PAGE_TITLE = t('Personal Tokens');
 const API_TOKEN_QUERY_KEY = [getApiUrl('/api-tokens/')] as const;
@@ -56,7 +53,7 @@ function ApiTokens() {
       });
     },
     onMutate: token => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       queryClient.cancelQueries({queryKey: API_TOKEN_QUERY_KEY});
 
       const previous = getApiQueryData<InternalAppApiToken[]>(
@@ -75,10 +72,10 @@ function ApiTokens() {
       return {previous};
     },
     onSuccess: _data => {
-      addSuccessMessage(t('Removed token'));
+      toast.success(t('Removed token'));
     },
     onError: (_error, _variables, context) => {
-      addErrorMessage(t('Unable to remove token. Please try again.'));
+      toast.error(t('Unable to remove token. Please try again.'));
 
       if (context?.previous) {
         setApiQueryData<InternalAppApiToken[]>(

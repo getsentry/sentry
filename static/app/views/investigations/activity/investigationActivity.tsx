@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NoteBody} from 'sentry/components/activity/note/body';
@@ -12,7 +13,14 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {ProgressState} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {
+  getAppliedActivityNote,
+  getAppliedActivityTitle,
+} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
+import {INVESTIGATION_COMMENTS_PAGE_SIZE} from 'sentry/views/investigations/api';
 import {CommentActions} from 'sentry/views/investigations/comments/commentActions';
 import {
   CommentComposer,
@@ -20,11 +28,13 @@ import {
 } from 'sentry/views/investigations/comments/commentComposer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {isCommentEdited} from 'sentry/views/investigations/comments/utils';
-import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/cell';
+import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/block';
 import type {
+  InvestigationActionRequest,
   InvestigationComment,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
+import {getActorName} from 'sentry/views/investigations/utils';
 import {
   ActivityLineContent,
   ActivityLineHeadline,
@@ -36,13 +46,17 @@ import {ActivityProgressMarker} from 'sentry/views/issueDetails/activitySection/
 export function InvestigationActivity({
   investigation,
   composerRef,
+  id,
   ref,
 }: {
   investigation: InvestigationDetail;
   composerRef?: React.RefObject<HTMLDivElement | null>;
+  id?: string;
   ref?: React.Ref<HTMLElement>;
 }) {
-  const {data, isPending, refetch} = useInvestigationComments(investigation.id);
+  const {data, isPending, refetch} = useInvestigationComments(investigation.id, {
+    shouldPoll: investigation.status !== 'archived',
+  });
   const blockTitles = useMemo(
     () =>
       new Map(
@@ -52,9 +66,14 @@ export function InvestigationActivity({
   );
   const comments = data?.json ?? [];
   const hasOlder = parseLinkHeader(data?.headers.Link ?? null).next?.results === true;
+  const entries = getActivityEntries(
+    comments,
+    investigation.actionRequests ?? [],
+    hasOlder
+  );
 
   return (
-    <Stack ref={ref} as="section" gap="lg" paddingTop="2xl" borderTop="primary">
+    <Stack ref={ref} as="section" id={id} gap="lg" paddingTop="2xl" borderTop="primary">
       <Heading as="h2" size="lg">
         {t('Activity')}
       </Heading>
@@ -67,23 +86,35 @@ export function InvestigationActivity({
         <LoadingError onRetry={refetch} />
       ) : (
         <ActivityList as="ol" aria-label={t('Activity')}>
-          {comments.map(comment => (
-            <CommentRow
-              key={comment.id}
-              comment={comment}
-              investigationId={investigation.id}
-              readOnly={investigation.status === 'archived'}
-              blockTitle={comment.blockId ? blockTitles.get(comment.blockId) : undefined}
-              onDeleted={() => composerRef?.current?.focus()}
-            />
-          ))}
+          {entries.map(entry =>
+            entry.type === 'comment' ? (
+              <CommentRow
+                key={`comment-${entry.comment.id}`}
+                comment={entry.comment}
+                investigationId={investigation.id}
+                readOnly={investigation.status === 'archived'}
+                blockTitle={
+                  entry.comment.blockId
+                    ? blockTitles.get(entry.comment.blockId)
+                    : undefined
+                }
+                onDeleted={() => composerRef?.current?.focus()}
+              />
+            ) : (
+              <AppliedActionRow
+                key={`action-${entry.actionRequest.id}`}
+                actionRequest={entry.actionRequest}
+                dateApplied={entry.date}
+              />
+            )
+          )}
           {hasOlder ? (
             <ActivityLineRow as="li">
               <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
                 <ActivityProgressMarker state="activity" label={t('Older comments')} />
               </Grid>
               <Text variant="muted" density="comfortable">
-                {t('Showing the latest 100 comments.')}
+                {t('Showing the latest %s comments.', INVESTIGATION_COMMENTS_PAGE_SIZE)}
               </Text>
             </ActivityLineRow>
           ) : null}
@@ -105,6 +136,67 @@ export function InvestigationActivity({
   );
 }
 
+type ActivityEntry =
+  | {comment: InvestigationComment; date: string; type: 'comment'}
+  | {actionRequest: InvestigationActionRequest; date: string; type: 'action'};
+
+function getActivityEntries(
+  comments: InvestigationComment[],
+  actionRequests: InvestigationActionRequest[],
+  hasOlderComments: boolean
+): ActivityEntry[] {
+  const entries: ActivityEntry[] = comments.map(comment => ({
+    type: 'comment',
+    date: comment.dateCreated,
+    comment,
+  }));
+  const oldestComment = hasOlderComments
+    ? Math.min(...comments.map(comment => Date.parse(comment.dateCreated)))
+    : -Infinity;
+  for (const actionRequest of actionRequests) {
+    if (
+      actionRequest.state === 'applied' &&
+      actionRequest.dateApplied &&
+      Date.parse(actionRequest.dateApplied) >= oldestComment
+    ) {
+      entries.push({type: 'action', date: actionRequest.dateApplied, actionRequest});
+    }
+  }
+  return entries.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+}
+
+function AppliedActionRow({
+  actionRequest,
+  dateApplied,
+}: {
+  actionRequest: InvestigationActionRequest;
+  dateApplied: string;
+}) {
+  const organization = useOrganization();
+  const {appliedBy} = actionRequest;
+
+  return (
+    <ActivityLineRow as="li">
+      <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
+        {appliedBy ? (
+          <UserAvatar user={appliedBy} size={22} hasTooltip />
+        ) : (
+          <ActivityProgressMarker state="activity" label={t('Applied')} />
+        )}
+      </Grid>
+      <ActivityLineHeadline
+        title={getAppliedActivityTitle(
+          actionRequest,
+          appliedBy ? getActorName(appliedBy) : null,
+          organization.slug
+        )}
+        details={getAppliedActivityNote(actionRequest)}
+        timestamp={<TimeSince date={dateApplied} />}
+      />
+    </ActivityLineRow>
+  );
+}
+
 function CommentRow({
   comment,
   investigationId,
@@ -120,6 +212,7 @@ function CommentRow({
 }) {
   const actionsRef = useRef<HTMLButtonElement>(null);
   const user = useUser();
+  const location = useLocation();
   const [editing, setEditing] = useState(false);
 
   const isAuthor = comment.author?.id === user.id;
@@ -145,14 +238,32 @@ function CommentRow({
       >
         <Text bold density="comfortable">
           {tct('[author] commented', {
-            author: comment.author
-              ? comment.author.name || comment.author.email
-              : t('Unknown user'),
+            author: comment.author ? getActorName(comment.author) : t('Unknown user'),
           })}
         </Text>
         {comment.blockId ? (
           <Text variant="muted" density="comfortable">
-            {tct('on [block]', {block: blockTitle ?? t('a deleted block')})}
+            {blockTitle
+              ? tct('on [block]', {
+                  block: (
+                    <Link
+                      data-block-comments-trigger
+                      to={{
+                        query: {
+                          ...location.query,
+                          comments: 'open',
+                          commentsBlock: comment.blockId,
+                          comment: comment.id,
+                        },
+                      }}
+                    >
+                      <Text variant="muted" underline>
+                        {blockTitle}
+                      </Text>
+                    </Link>
+                  ),
+                })
+              : t('on a deleted block')}
           </Text>
         ) : null}
         <Text variant="muted" density="comfortable">

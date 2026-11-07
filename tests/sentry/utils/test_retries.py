@@ -79,13 +79,18 @@ class TimedRetryPolicyTestCase(TestCase):
         bomb = Exception("Boom!")
         callable = mock.MagicMock(side_effect=[bomb, mock.sentinel.OK])
 
-        @TimedRetryPolicy.wrap(0.3, delay=lambda i: 0.1)
-        def retrying_func() -> mock._Sentinel:
-            return callable()
+        with mock.patch("sentry.utils.retries.time") as clock:
+            clock.time.side_effect = [0, 0.15, 0.25]
 
-        retrying_func.clock = mock.Mock()
-        retrying_func.clock.sleep = mock.MagicMock()
-        retrying_func.clock.time = mock.MagicMock(side_effect=[0, 0.15, 0.25])
+            @TimedRetryPolicy.wrap(0.3, delay=lambda i: 0.1)
+            def retrying_func() -> mock._Sentinel:
+                return callable()
 
-        assert retrying_func() is mock.sentinel.OK
+            assert retrying_func() is mock.sentinel.OK
+
         assert callable.call_count == 2
+        clock.sleep.assert_called_once_with(0.1)
+
+
+def test_retry_exception_str() -> None:
+    assert str(RetryException("Boom!", ValueError())) == "Boom!"

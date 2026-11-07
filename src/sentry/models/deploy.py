@@ -33,13 +33,13 @@ class Deploy(Model):
         db_table = "sentry_deploy"
 
     @staticmethod
-    def get_lock_key(release_id, environment_id):
+    def get_lock_key(release_id: int, environment_id: int) -> str:
         # Repeated callbacks for one deployment share a release and environment
         # but not a Deploy id, so the lock has to cover that pair.
         return "deploy-notify:%s:%s" % (release_id, environment_id)
 
     @classmethod
-    def notify_if_ready(cls, deploy_id, fetch_complete=False):
+    def notify_if_ready(cls, deploy_id: int, fetch_complete: bool = False) -> None:
         """
         create activity and send deploy notifications
         if they haven't been sent

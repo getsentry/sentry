@@ -10,8 +10,8 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -49,16 +49,16 @@ function AccountEmails() {
     onSuccess: response => {
       queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
       if (response?.detail) {
-        addSuccessMessage(response.detail);
+        toast.success(response.detail);
       }
     },
     onError: error => {
       if (error instanceof RequestError) {
         const errorMessage = error.responseJSON?.detail;
         if (typeof errorMessage === 'string') {
-          addErrorMessage(errorMessage);
+          toast.error(errorMessage);
         } else {
-          addErrorMessage(errorMessage?.message ?? t('An unknown error occurred.'));
+          toast.error(errorMessage?.message ?? t('An unknown error occurred.'));
         }
       }
     },
@@ -160,7 +160,7 @@ export function EmailAddresses() {
       .requestPromise(endpoint, requestParams)
       .catch(err => {
         if (err instanceof RequestError && typeof err?.responseJSON?.email === 'string') {
-          addErrorMessage(err.responseJSON.email);
+          toast.error(err.responseJSON.email);
         }
       })
       .finally(() => {
@@ -234,11 +234,11 @@ function EmailRow({
 }: EmailRowProps) {
   return (
     <EmailItem>
-      <EmailTags>
+      <Grid align="center" gap="md" flow="column">
         {email}
         {!isVerified && <Tag variant="warning">{t('Unverified')}</Tag>}
         {isPrimary && <Tag variant="success">{t('Primary')}</Tag>}
-      </EmailTags>
+      </Grid>
       <Grid flow="column" align="center" gap="md">
         {!isPrimary && isVerified && (
           <Button size="sm" onClick={() => onSetPrimary?.(email)}>
@@ -271,13 +271,6 @@ function EmailRow({
     </EmailItem>
   );
 }
-
-const EmailTags = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
 
 const EmailItem = styled(PanelItem)`
   justify-content: space-between;

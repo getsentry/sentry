@@ -6,20 +6,17 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 import {IconClose} from '@sentry/icons/close';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilderState} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
-import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
-import {
-  shiftFocusToChild,
-  useShiftFocusToChild,
-} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
   InvalidReason,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
+
+import {InvalidTokenTooltip} from './invalidTokenTooltip';
+import {shiftFocusToChild, useShiftFocusToChild} from './utils';
 
 type DeletableTokenProps = {
   children: React.ReactNode;

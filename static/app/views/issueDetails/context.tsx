@@ -8,7 +8,7 @@ import {
   type Reducer,
 } from 'react';
 
-import type {DetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorDetails';
+import type {DetectorDetails} from './sidebar/detectorDetails';
 
 export const enum SectionKey {
   /**
@@ -65,6 +65,7 @@ export const enum SectionKey {
   EXTRA = 'extra',
   PACKAGES = 'packages',
   VIEW_HIERARCHY = 'view-hierarchy',
+  FLAMEGRAPH_ATTACHMENT = 'flamegraph-attachment',
   ATTACHMENTS = 'attachments',
   SDK = 'sdk',
   GROUPING_INFO = 'grouping-info',
@@ -111,8 +112,19 @@ export interface SectionConfig {
   initialCollapse?: boolean;
 }
 
+/**
+ * Where issue details is scrolled. `page` scrolls with the page below the top
+ * bar, while `pane` scrolls inside its own container (e.g. a preview pane).
+ */
+export type IssueDetailsScrollContext = 'page' | 'pane';
+
 interface IssueDetailsContextType extends IssueDetailsState {
   dispatch: Dispatch<IssueDetailsActions>;
+  /**
+   * Determines where sticky headers stick. When `pane`, they stick to the top
+   * of the scroll container rather than below the top bar.
+   */
+  scrollContext: IssueDetailsScrollContext;
 }
 
 const initialState: IssueDetailsState = {
@@ -126,6 +138,7 @@ const initialState: IssueDetailsState = {
 
 export const IssueDetailsContext = createContext<IssueDetailsContextType>({
   ...initialState,
+  scrollContext: 'page',
   dispatch: () => {},
 });
 
@@ -216,7 +229,13 @@ function updateEventSection(
  * If trying to use the current state of the issue/event page, you likely want to use
  * `useIssueDetails` instead. This hook is just meant to create state for the provider.
  */
-export function IssueDetailsContextProvider({children}: {children: React.ReactNode}) {
+export function IssueDetailsContextProvider({
+  children,
+  scrollContext = 'page',
+}: {
+  children: React.ReactNode;
+  scrollContext?: IssueDetailsScrollContext;
+}) {
   const reducer: Reducer<IssueDetailsState, IssueDetailsActions> = useCallback(
     (state, action): IssueDetailsState => {
       switch (action.type) {
@@ -235,6 +254,7 @@ export function IssueDetailsContextProvider({children}: {children: React.ReactNo
         case 'UPDATE_DETECTOR_DETAILS':
           return {...state, detectorDetails: action.detectorDetails};
         case 'REMOVE_EVENT_SECTION': {
+          // oxlint-disable-next-line react/todo
           const {[action.key]: _removed, ...remainingSections} = state.sectionData;
           return {...state, sectionData: remainingSections};
         }
@@ -247,7 +267,10 @@ export function IssueDetailsContextProvider({children}: {children: React.ReactNo
 
   const [issueDetails, dispatch] = useReducer(reducer, initialState);
 
-  const value = useMemo(() => ({...issueDetails, dispatch}), [issueDetails, dispatch]);
+  const value = useMemo(
+    () => ({...issueDetails, scrollContext, dispatch}),
+    [issueDetails, scrollContext, dispatch]
+  );
 
   return <IssueDetailsContext value={value}>{children}</IssueDetailsContext>;
 }

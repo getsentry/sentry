@@ -27,18 +27,14 @@ function makeProps(
   overrides: Partial<React.ComponentProps<typeof InputSection>> = {}
 ): React.ComponentProps<typeof InputSection> {
   return {
-    blocks: [],
     composerRef: createRef(),
     enabled: true,
     inputValue: {text: '', mentions: []},
-    onCreatePR: jest.fn(),
     onInputChange: jest.fn(),
     onInputClick: jest.fn(),
     onInterrupt: jest.fn(),
     onKeyDown: jest.fn(),
-    onPRWidgetClick: jest.fn(),
     onSend: jest.fn(),
-    prWidgetButtonRef: createRef(),
     repoPRStates: REPO_PR_STATES,
     ...overrides,
   };
@@ -48,19 +44,15 @@ describe('InputSection', () => {
   it('styles the interrupted placeholder with the warning color', () => {
     render(
       <InputSection
-        blocks={[]}
         composerRef={createRef()}
         enabled
         inputValue={{text: '', mentions: []}}
         interruptState="completed"
-        onCreatePR={jest.fn()}
         onInputChange={jest.fn()}
         onInputClick={jest.fn()}
         onInterrupt={jest.fn()}
         onKeyDown={jest.fn()}
-        onPRWidgetClick={jest.fn()}
         onSend={jest.fn()}
-        prWidgetButtonRef={createRef()}
         repoPRStates={{}}
       />
     );
@@ -92,5 +84,21 @@ describe('InputSection', () => {
       expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
       expect(screen.getByRole('button', {name: 'acme/web#482'})).toBeInTheDocument();
     });
+  });
+
+  it('shows the pull requests on an Autofix single run without ask-seer-create-pr', () => {
+    render(<InputSection {...makeProps({isSingleRun: true})} />, {
+      organization: OrganizationFixture({features: []}),
+    });
+
+    expect(screen.getByRole('button', {name: 'acme/web#482'})).toBeInTheDocument();
+  });
+
+  it('hides the pull requests on other runs without ask-seer-create-pr', () => {
+    render(<InputSection {...makeProps()} />, {
+      organization: OrganizationFixture({features: []}),
+    });
+
+    expect(screen.queryByRole('button', {name: 'acme/web#482'})).not.toBeInTheDocument();
   });
 });

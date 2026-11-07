@@ -30,6 +30,7 @@ const repoPRStateSchema = z.object({
   branch_name: z.string().nullable(),
   commit_sha: z.string().nullable(),
   pr_creation_error: z.string().nullable(),
+  pr_creation_error_code: z.string().nullish(),
   pr_creation_status: zLooseEnum(['creating', 'completed', 'error']).nullable(),
   pr_id: z.union([z.string(), z.number()]).nullable(),
   pr_number: z.number().nullable(),
@@ -200,7 +201,6 @@ export interface Block {
   live_calls?: CallRecord[] | null;
   loading?: boolean;
   merged_file_patches?: ExplorerFilePatch[] | null;
-  pr_commit_shas?: Record<string, string> | null;
   progress?: ProgressEvent[] | null;
   todos?: TodoItem[] | null;
   tool_links?: Array<ToolLink | null> | null;
@@ -268,6 +268,7 @@ export type SeerExplorerResponse = {
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;
   } | null;
+  feature_id?: string | null;
   sentry_run_id?: string | null;
 };
 

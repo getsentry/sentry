@@ -6,7 +6,8 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
+
+import {useDefaultToAllProjects} from './useDefaultToAllProjects';
 
 jest.mock('sentry/components/pageFilters/actions');
 

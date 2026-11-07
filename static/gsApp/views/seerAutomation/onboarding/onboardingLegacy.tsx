@@ -2,20 +2,16 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconSearch} from '@sentry/icons/search';
-import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
+import {useInfiniteQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -41,11 +37,11 @@ import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   organizationRepositoriesInfiniteOptions,
   selectUniqueRepos,
 } from 'sentry/utils/repositories/repoQueryOptions';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -151,7 +147,7 @@ function ProjectRowWithUpdate({
           updateProjectSeerPreferences({repositories: reposData});
 
           if (reposData.length > 0) {
-            addSuccessMessage(
+            toast.success(
               t('%s repo(s) connected to %s', reposData.length, project.slug)
             );
             onSuccess(project.id);
@@ -368,7 +364,7 @@ function ProjectsWithoutRepos({
           <HeaderText>
             {t('%s Projects missing repositories', projectsWithoutRepos.length)}
           </HeaderText>
-          <SearchInputWrapper>
+          <Container width="300px">
             <InputGroup>
               <InputGroup.LeadingItems>
                 <IconSearch size="sm" />
@@ -384,7 +380,7 @@ function ProjectsWithoutRepos({
                 size="sm"
               />
             </InputGroup>
-          </SearchInputWrapper>
+          </Container>
         </PanelHeader>
         <PanelBody>
           {projectsWithoutRepos.map(project => (
@@ -458,18 +454,37 @@ function AutoTriggerFixesButton({
   selectedThreshold: string;
 }) {
   const organization = useOrganization();
-  const api = useApi();
   const queryClient = useQueryClient();
   const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
   const [isLoading, setIsLoading] = useState(false);
 
+  const {mutateAsync: updateProject} = useMutation({
+    mutationFn: ({
+      projectSlug,
+      data,
+    }: {
+      data: Record<string, unknown>;
+      projectSlug: string;
+    }) =>
+      fetchMutation({
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+          },
+        }),
+        method: 'PUT',
+        data,
+      }),
+  });
+
   const handleEnableAutoTriggerFixes = async () => {
     if (projectsWithRepos.length === 0) {
-      addErrorMessage(t('No projects with repositories found to update'));
+      toast.error(t('No projects with repositories found to update'));
       return;
     }
 
-    addLoadingMessage(t('Enabling automation for projects with repositories...'), {
+    toast.loading(t('Enabling automation for projects with repositories...'), {
       duration: 60000,
     });
     setIsLoading(true);
@@ -481,26 +496,18 @@ function AutoTriggerFixesButton({
         const batch = projectsWithRepos.slice(i, i + batchSize);
         await Promise.all(
           batch.map(project =>
-            api.requestPromise(
-              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }),
-              {
-                method: 'PUT',
-                data: {
-                  autofixAutomationTuning: selectedThreshold,
-                  seerScannerAutomation: true,
-                },
-              }
-            )
+            updateProject({
+              projectSlug: project.slug,
+              data: {
+                autofixAutomationTuning: selectedThreshold,
+                seerScannerAutomation: true,
+              },
+            })
           )
         );
       }
 
-      addSuccessMessage(
+      toast.success(
         t(
           'Automation enabled for %s project(s) with repositories',
           projectsWithRepos.length
@@ -520,7 +527,8 @@ function AutoTriggerFixesButton({
       const enableIssueScansStepNumber = getStepNumber('enable-issue-scans');
       setCurrentStep(enableIssueScansStepNumber);
     } catch (err) {
-      addErrorMessage(t('Failed to enable automation for some projects'));
+      toast.error(t('Failed to enable automation for some projects'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);
     }
@@ -546,20 +554,37 @@ function EnableIssueScansButton({
   projectsWithoutRepos: Project[];
 }) {
   const organization = useOrganization();
-  const api = useApi();
   const queryClient = useQueryClient();
   const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
   const [isLoading, setIsLoading] = useState(false);
 
+  const {mutateAsync: updateProject} = useMutation({
+    mutationFn: ({
+      projectSlug,
+      data,
+    }: {
+      data: Record<string, unknown>;
+      projectSlug: string;
+    }) =>
+      fetchMutation({
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+          },
+        }),
+        method: 'PUT',
+        data,
+      }),
+  });
+
   const handleEnableIssueScans = async () => {
     if (projectsWithoutRepos.length === 0) {
-      addErrorMessage(t('No remaining projects found to update'));
+      toast.error(t('No remaining projects found to update'));
       return;
     }
 
-    addLoadingMessage(t('Enabling issue scans for remaining projects...'), {
-      duration: 60000,
-    });
+    toast.loading(t('Enabling issue scans for remaining projects...'), {duration: 60000});
     setIsLoading(true);
 
     try {
@@ -569,23 +594,15 @@ function EnableIssueScansButton({
         const batch = projectsWithoutRepos.slice(i, i + batchSize);
         await Promise.all(
           batch.map(project =>
-            api.requestPromise(
-              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }),
-              {
-                method: 'PUT',
-                data: {seerScannerAutomation: true},
-              }
-            )
+            updateProject({
+              projectSlug: project.slug,
+              data: {seerScannerAutomation: true},
+            })
           )
         );
       }
 
-      addSuccessMessage(
+      toast.success(
         t('Issue scans enabled for %s remaining project(s)', projectsWithoutRepos.length)
       );
 
@@ -602,7 +619,8 @@ function EnableIssueScansButton({
       const reviewCustomizeStepNumber = getStepNumber('review-customize');
       setCurrentStep(reviewCustomizeStepNumber);
     } catch (err) {
-      addErrorMessage(t('Failed to enable issue scans for some projects'));
+      toast.error(t('Failed to enable issue scans for some projects'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);
     }
@@ -915,8 +933,4 @@ const CustomizationList = styled('ul')`
     margin-bottom: ${p => p.theme.space.md};
     color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const SearchInputWrapper = styled('div')`
-  width: 300px;
 `;

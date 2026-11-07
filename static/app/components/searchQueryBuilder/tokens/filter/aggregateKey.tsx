@@ -5,25 +5,22 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {
-  AggregateKeyVisual,
-  Parameters,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKeyVisual';
-import {SearchQueryBuilderParametersCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/parametersCombobox';
-import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
-import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import type {
   AggregateFilter,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
+
+import {AggregateKeyVisual, Parameters} from './aggregateKeyVisual';
+import {SearchQueryBuilderParametersCombobox} from './parametersCombobox';
+import {UnstyledButton} from './unstyledButton';
+import {useFilterButtonProps} from './useFilterButtonProps';
 
 type AggregateKeyProps = {
   filterRef: React.RefObject<HTMLDivElement | null>;

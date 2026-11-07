@@ -2,9 +2,15 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from drf_spectacular.openapi import AutoSchema
+from openapi_schema_validator import OAS30Validator
+
+from sentry.apidocs.extensions import SentryInlineResponseSerializerExtension
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.issues.endpoints.project_stacktrace_link import StacktraceLinkResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -154,6 +160,14 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             "integrations": [serialized_integration(self.integration)],
             "error": "no_code_mappings_for_project",
         }
+        serializer = inline_sentry_response_serializer(
+            "StacktraceLinkResponse", StacktraceLinkResponse
+        )
+        schema = SentryInlineResponseSerializerExtension(serializer).map_serializer(
+            AutoSchema(), "response"
+        )
+        assert set(schema["required"]) == {"error", "config", "sourceUrl", "integrations"}
+        OAS30Validator(schema).validate(response.data)
 
     def test_file_not_found_error(self) -> None:
         """File matches code mapping but it cannot be found in the source repository."""

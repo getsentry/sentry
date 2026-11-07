@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
-
-from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
@@ -42,7 +40,7 @@ def create_link(
     integration: RpcIntegration,
     installation: IntegrationInstallation,
     event: GroupEvent,
-    response: Response,
+    response: Mapping[str, Any],
 ) -> None:
     """
     After creating the event on a third-party service, create a link to the
@@ -98,24 +96,9 @@ def create_link(
     )
 
 
-def build_description_workflow_engine_ui(
-    event: GroupEvent,
-    workflow_id: int,
-    installation: IssueBasicIntegration,
-    generate_footer: Callable[[str], str],
-) -> str:
-    project = event.group.project
-    workflow_url = create_link_to_workflow(project.organization.slug, str(workflow_id))
-
-    description: str = installation.get_group_description(event.group, event) + generate_footer(
-        workflow_url
-    )
-    return description
-
-
 def build_description(
     event: GroupEvent,
-    rule_id: int,
+    workflow_id: int,
     installation: IssueBasicIntegration,
     generate_footer: Callable[[str], str],
 ) -> str:
@@ -123,12 +106,10 @@ def build_description(
     Format the description of the ticket/work item
     """
     project = event.group.project
-    rule_url = (
-        f"/organizations/{project.organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/"
-    )
+    workflow_url = create_link_to_workflow(project.organization.slug, str(workflow_id))
 
     description: str = installation.get_group_description(event.group, event) + generate_footer(
-        rule_url
+        workflow_url
     )
     return description
 
@@ -168,11 +149,24 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
         workflow_id = origin.workflow_id
         if workflow_id is not None:
-            data["description"] = build_description_workflow_engine_ui(
+            data["description"] = build_description(
                 event, workflow_id, installation, generate_footer
             )
         else:
-            data["description"] = build_description(event, rule_id, installation, generate_footer)
+            # Without a workflow there's nothing to link the footer to, so the
+            # description is created without one.
+            if not origin.is_test_notification():
+                logger.warning(
+                    "%s.rule_trigger.missing_workflow_id",
+                    provider,
+                    extra={
+                        "legacy_rule_id": origin.legacy_rule_id,
+                        "project_id": event.group.project.id,
+                        "group_id": event.group.id,
+                        "organization_id": organization.id,
+                    },
+                )
+            data["description"] = installation.get_group_description(event.group, event)
 
         if data.get("dynamic_form_fields"):
             del data["dynamic_form_fields"]

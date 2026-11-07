@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
+from sentry.auth.principal import require_user
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.models.authidentity import AuthIdentity
 from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
@@ -188,7 +189,7 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
         If the requesting user is the same as the target user, keep
         the current session alive. Otherwise invalidate all sessions.
         """
-        if request.user.id == user.id:
+        if require_user(request).id == user.id:
             user.refresh_session_nonce(request._request)
         else:
             user.refresh_session_nonce()

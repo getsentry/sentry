@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 
+import type * as React from 'react';
 import {ThemeProvider, css} from '@emotion/react';
 import {act, render, renderHook, screen} from '@testing-library/react';
 

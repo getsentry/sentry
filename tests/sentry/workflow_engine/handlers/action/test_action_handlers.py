@@ -51,7 +51,7 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
     def test_execute_metric_alert_type(self, mock_registry_get: mock.MagicMock) -> None:
         """Test that execute calls correct handler for MetricIssue"""
         self.detector.type = MetricIssue.slug
-        self.detector.config = {"threshold_period": 1, "detection_type": "static"}
+        self.detector.config = {"detection_type": "static"}
         self.detector.save()
 
         self.group.type = MetricIssue.type_id

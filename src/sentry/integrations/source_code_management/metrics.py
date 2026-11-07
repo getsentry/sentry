@@ -1,14 +1,24 @@
 from collections.abc import Mapping
+from contextvars import ContextVar, Token
 from enum import StrEnum
-from typing import Any
+from types import TracebackType
+from typing import Any, Self
 
 from attr import dataclass
 
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
+from sentry.integrations.utils.metrics import (
+    IntegrationEventLifecycle,
+    IntegrationEventLifecycleMetric,
+)
 from sentry.models.commit import Commit
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+
+
+def normalize_scm_provider_key(provider_key: str) -> str:
+    """Return the canonical integration provider slug."""
+    return provider_key.removeprefix("integrations:")
 
 
 class SCMIntegrationInteractionType(StrEnum):
@@ -19,7 +29,6 @@ class SCMIntegrationInteractionType(StrEnum):
     # RepositoryIntegration
     GET_STACKTRACE_LINK = "get_stacktrace_link"
     GET_CODEOWNER_FILE = "get_codeowner_file"
-    CHECK_FILE = "check_file"
 
     # SourceCodeIssueIntegration (SCM only)
     GET_REPOSITORY_CHOICES = "get_repository_choices"
@@ -27,7 +36,6 @@ class SCMIntegrationInteractionType(StrEnum):
     # SourceCodeSearchEndpoint
     HANDLE_SEARCH_ISSUES = "handle_search_issues"
     HANDLE_SEARCH_REPOSITORIES = "handle_search_repositories"
-    GET = "get"
 
     # CommitContextIntegration
     GET_BLAME_FOR_FILES = "get_blame_for_files"
@@ -50,16 +58,64 @@ class SCMIntegrationInteractionType(StrEnum):
 
     # Releases
     COMPARE_COMMITS = "compare_commits"
+    LINK_ISSUE_TO_PR = "link_issue_to_pr"
+    RESOLVE_ISSUE_VIA_COMMIT = "resolve_issue_via_commit"
+    RESOLVE_ISSUE_VIA_PR = "resolve_issue_via_pr"
 
     # Status Checks
     CREATE_STATUS_CHECK = "create_status_check"
 
-    # Rate Limiting
-    GET_RATE_LIMIT = "get_rate_limit"
 
-    # Repo Trees
-    GET_REPOSITORIES = "get_repositories"
-    GET_REPO_TREE = "get_repo_tree"
+_current_scm_interaction_type: ContextVar[SCMIntegrationInteractionType | None] = ContextVar(
+    "current_scm_interaction_type", default=None
+)
+
+
+def get_current_scm_interaction_type() -> SCMIntegrationInteractionType | None:
+    return _current_scm_interaction_type.get()
+
+
+class SCMIntegrationEventLifecycle(IntegrationEventLifecycle):
+    def __init__(
+        self,
+        payload: IntegrationEventLifecycleMetric,
+        interaction_type: SCMIntegrationInteractionType,
+        assume_success: bool,
+        sample_log_rate: float,
+    ) -> None:
+        super().__init__(payload, assume_success, sample_log_rate)
+        self.interaction_type = interaction_type
+        self._interaction_token: Token[SCMIntegrationInteractionType | None] | None = None
+
+    def __enter__(self) -> Self:
+        if self._interaction_token is not None:
+            raise RuntimeError("SCM integration lifecycle cannot be re-entered")
+
+        self._interaction_token = _current_scm_interaction_type.set(self.interaction_type)
+        try:
+            return super().__enter__()
+        except BaseException:
+            _current_scm_interaction_type.reset(self._interaction_token)
+            self._interaction_token = None
+            raise
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType,
+    ) -> None:
+        try:
+            super().__exit__(exc_type, exc_value, traceback)
+        finally:
+            if self._interaction_token is not None:
+                _current_scm_interaction_type.reset(self._interaction_token)
+                self._interaction_token = None
+
+
+class SCMResolutionHaltReason(StrEnum):
+    GROUP_LINK_ALREADY_EXISTS = "group_link_already_exists"
+    ISSUE_ALREADY_RESOLVED = "issue_already_resolved"
 
 
 @dataclass
@@ -77,13 +133,23 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
         return IntegrationDomain.SOURCE_CODE_MANAGEMENT
 
     def get_integration_name(self) -> str:
-        return self.provider_key
+        return normalize_scm_provider_key(self.provider_key)
 
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
 
     def get_integration_id(self) -> int | None:
         return self.integration_id
+
+    def capture(
+        self, assume_success: bool = True, sample_log_rate: float = 1.0
+    ) -> SCMIntegrationEventLifecycle:
+        return SCMIntegrationEventLifecycle(
+            self,
+            self.interaction_type,
+            assume_success,
+            sample_log_rate,
+        )
 
     def get_extras(self) -> Mapping[str, Any]:
         return {
@@ -135,13 +201,9 @@ class LinkAllReposHaltReason(StrEnum):
 
 class SourceCodeSearchEndpointHaltReason(StrEnum):
     """
-    Reasons why a SourceCodeSearchEndpoint method (handle_search_issues,
-    handle_search_repositories, or get) may halt without success/failure.
+    Reasons why a SourceCodeSearchEndpoint search handler may halt without success/failure.
     """
 
     NO_ISSUE_TRACKER = "no_issue_tracker"
     RATE_LIMITED = "rate_limited"
     MISSING_REPOSITORY_OR_NO_ACCESS = "missing_repository_or_no_access"
-    MISSING_INTEGRATION = "missing_integration"
-    SERIALIZER_ERRORS = "serializer_errors"
-    MISSING_REPOSITORY_FIELD = "missing_repository_field"

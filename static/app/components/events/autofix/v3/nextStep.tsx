@@ -5,8 +5,9 @@ import {IconSeer} from '@sentry/icons/seer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Footer} from '@sentry/scraps/menu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
@@ -29,11 +30,6 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
-import {RepositoryWritePermissionButton} from 'sentry/components/events/autofix/v3/repositoryWritePermissionButton';
-import {useAskSeerHandoff} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
-import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
-import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -41,6 +37,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+
+import {PrIterationFeedbackForm} from './prIterationFeedbackForm';
+import {RepositoryWritePermissionButton} from './repositoryWritePermissionButton';
+import {useAskSeerHandoff} from './useAskSeerHandoff';
+import {useCodingAgents} from './useCodingAgents';
+import {useRethinkInChat} from './useRethinkInChat';
 
 interface SeerDrawerNextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -595,14 +597,14 @@ function NextStepTemplate({
               position="bottom-end"
               shouldCloseOnBlur={false}
               menuFooter={
-                <DropdownMenuFooter>
+                <Footer>
                   <MenuComponents.CTALinkButton
                     icon={<IconAdd />}
                     to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
                   >
                     {t('Add Integration')}
                   </MenuComponents.CTALinkButton>
-                </DropdownMenuFooter>
+                </Footer>
               }
             />
           )}

@@ -10,6 +10,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
+import {useErrorsOnlyFilter} from './useErrorsOnlyFilter';
+
 export interface ConversationUser {
   email: string | null;
   id: string | null;
@@ -129,7 +131,8 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
   const organization = useOrganization();
   const {cursor, setCursor, unsetCursor} = useTableCursor();
   const pageFilters = usePageFilters();
-  const combinedQuery = useCombinedQuery();
+  const {errorsOnlyQuery} = useErrorsOnlyFilter();
+  const combinedQuery = useCombinedQuery(errorsOnlyQuery);
   const [sort, setSort] = useQueryState(
     'sort',
     parseAsStringLiteral(CONVERSATION_SORTS).withDefault(
@@ -155,7 +158,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
           sort: [sort],
           ...normalizeDateTimeParams(pageFilters.selection.datetime),
         },
-        staleTime: 0,
+        staleTime: 60_000,
       }
     ),
     enabled,

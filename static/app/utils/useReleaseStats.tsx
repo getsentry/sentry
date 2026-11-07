@@ -1,9 +1,10 @@
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useFetchAllPages} from './api/apiFetch';
+import {apiOptions} from './api/apiOptions';
+import {useOrganization} from './useOrganization';
 
 interface ReleaseMetaBasic {
   date: string;

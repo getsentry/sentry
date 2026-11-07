@@ -5,8 +5,8 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -19,14 +19,12 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
-import {SpansTabCrossEventMetricsSearchBar} from 'sentry/views/explore/spans/crossEvents/crossEventMetricsSearchBar';
-import {SpansTabCrossEventSearchBar} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBar';
-import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
-import {
-  getCrossEventDatasetOptions,
-  makeCrossEvent,
-} from 'sentry/views/explore/spans/crossEvents/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {SpansTabCrossEventMetricsSearchBar} from './crossEventMetricsSearchBar';
+import {SpansTabCrossEventSearchBar} from './crossEventSearchBar';
+import {useCrossEventDatasetAvailability} from './useCrossEventDatasetAvailability';
+import {getCrossEventDatasetOptions, makeCrossEvent} from './utils';
 
 const EMPTY_CROSS_EVENTS: CrossEvent[] = [];
 
@@ -40,7 +38,7 @@ export function SpansTabCrossEventSearchBars() {
   // firing based off of the cross events changing
   const fireErrorToast = useEffectEvent(() => {
     if (crossEvents.length > MAX_CROSS_EVENT_QUERIES) {
-      addErrorMessage(
+      toast.error(
         t(
           'You can add up to a maximum of %s cross event queries.',
           MAX_CROSS_EVENT_QUERIES
@@ -182,7 +180,7 @@ export function SpansTabCrossEventSearchBars() {
         </Container>
         <Container
           area="delete"
-          justifySelf={{zero: 'stretch', md: 'end'}}
+          justifySelf={{zero: 'stretch', md: 'start'}}
           width={{zero: '100%', md: 'auto'}}
         >
           {props => (
@@ -193,7 +191,7 @@ export function SpansTabCrossEventSearchBars() {
               onClick={() => {
                 // we add 1 here to the max because the current cross event is being removed
                 if (crossEvents.length > MAX_CROSS_EVENT_QUERIES + 1) {
-                  addErrorMessage(
+                  toast.error(
                     t(
                       'You can add up to a maximum of %s cross event queries.',
                       MAX_CROSS_EVENT_QUERIES

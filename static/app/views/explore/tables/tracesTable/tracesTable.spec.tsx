@@ -8,11 +8,13 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useExploreTracesTableApiOptions} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {TracesTable} from 'sentry/views/explore/tables/tracesTable/tracesTable';
+
+import {TracesTable} from './tracesTable';
 
 jest.mock('sentry/utils/analytics');
 
@@ -27,7 +29,7 @@ function TracesTableWithResults() {
     select: selectJsonWithHeaders,
   });
 
-  return <TracesTable tracesTableResult={{error: null, result}} />;
+  return <TracesTable tracesTableResult={{error: parseError(result.error), result}} />;
 }
 
 function makeTrace(overrides: Partial<TraceResult> = {}): TraceResult {
@@ -255,11 +257,14 @@ describe('TracesTable', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the error indicator when the traces request fails', async () => {
+  it('shows the query timeout message when the traces request times out', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/traces/`,
-      statusCode: 500,
-      body: {},
+      statusCode: 400,
+      body: {
+        detail:
+          'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.',
+      },
     });
 
     render(<TracesTableWithResults />, {
@@ -267,6 +272,13 @@ describe('TracesTable', () => {
       additionalWrapper: Wrapper,
     });
 
-    expect(await screen.findByTestId('error-indicator')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
   });
 });

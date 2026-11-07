@@ -30,15 +30,6 @@ import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {
-  DetectorsTableActions,
-  DetectorsTableActionsBanner,
-} from 'sentry/views/detectors/components/detectorListTable/actions';
-import {
-  DetectorListRow,
-  DetectorListRowSkeleton,
-} from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
-import {IssueStreamDetectorContextProvider} from 'sentry/views/detectors/components/detectorListTable/issueStreamDetectorContext';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
 import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
 import {
@@ -47,6 +38,10 @@ import {
 } from 'sentry/views/detectors/monitorViewContext';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
+
+import {DetectorsTableActions, DetectorsTableActionsBanner} from './actions';
+import {DetectorListRow, DetectorListRowSkeleton} from './detectorListRow';
+import {IssueStreamDetectorContextProvider} from './issueStreamDetectorContext';
 
 type DetectorListTableProps = {
   allResultsVisible: boolean;
@@ -162,13 +157,13 @@ export function DetectorListTable({
   const elementRef = useRef<HTMLTableCellElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 1000});
-  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
-
   const {
     additionalColumns = [],
+    maxBucketInterval,
     renderVisualization,
     renderTimelineOverlay,
   } = useMonitorViewContext();
+  const timeWindowConfig = useTimeWindowConfig({timelineWidth, maxBucketInterval});
   const hasVisualization = defined(renderVisualization);
 
   return (

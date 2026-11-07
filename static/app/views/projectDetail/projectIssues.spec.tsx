@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ProjectIssues} from 'sentry/views/projectDetail/projectIssues';
+import {ProjectIssues} from './projectIssues';
 
 describe('ProjectDetail > ProjectIssues', () => {
   let mockFetchIssues: ReturnType<typeof MockApiClient.addMockResponse>;
@@ -101,7 +101,7 @@ describe('ProjectDetail > ProjectIssues', () => {
       }
     );
 
-    expect(await screen.findAllByTestId('group')).toHaveLength(2);
+    expect(await screen.findAllByText(GroupFixture().shortId)).toHaveLength(2);
   });
 
   it('renders a link to Issues', async () => {

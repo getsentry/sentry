@@ -14,17 +14,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardFilterKeys} from 'sentry/views/dashboards/types';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+
 import {
   bucketsKeepThresholds,
   getBucketsFromGlobalFilters,
   NAVIGATION_TYPE_BUCKETS,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
-import {useNavigationTypeCounts} from 'sentry/views/insights/browser/webVitals/navigationType/useNavigationTypeCounts';
-import {
-  getSwitcherFilter,
-  useNavigationTypeExperiment,
-} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
-import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+} from './settings';
+import {useNavigationTypeCounts} from './useNavigationTypeCounts';
+import {getSwitcherFilter, useNavigationTypeExperiment} from './utils';
 
 interface Props {
   children: React.ReactNode;

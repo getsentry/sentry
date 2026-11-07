@@ -11,23 +11,23 @@ class InMemoryCache:
     internal assertions to ensure correct use of `raw`.
     """
 
-    def __init__(self):
-        self.data = {}
+    def __init__(self) -> None:
+        self.data: dict[str, object] = {}
         #: Used to check for consistent usage of `raw` param
-        self.raw_map = {}
+        self.raw_map: dict[str, bool] = {}
 
-    def get(self, key, raw=False):
+    def get(self, key: str, raw: bool = False) -> object | None:
         assert key not in self.raw_map or raw == self.raw_map[key]
         return copy.deepcopy(self.data.get(key))
 
-    def set(self, key, value, timeout=None, raw=False):
+    def set(self, key: str, value: object, timeout: int | None = None, raw: bool = False) -> None:
         # Attachment chunks MUST be bytestrings. Josh please don't change this
         # to unicode.
         assert isinstance(value, bytes) or not raw
         assert key not in self.raw_map or raw == self.raw_map[key]
         self.data[key] = value
 
-    def delete(self, key):
+    def delete(self, key: str) -> None:
         del self.data[key]
 
 

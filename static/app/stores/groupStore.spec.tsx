@@ -4,9 +4,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {GroupStore} from 'sentry/stores/groupStore';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Group, GroupStats} from 'sentry/types/group';
+
+import {GroupStore} from './groupStore';
 
 const MOCK_PROJECT = ProjectFixture();
 

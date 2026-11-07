@@ -5,8 +5,10 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import keyBy from 'lodash/keyBy';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -54,6 +56,7 @@ export function NotificationSettingsByEntity({
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  const [organizationIdParam] = useQueryState('organizationId', parseAsString);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [selectedValue, setSelectedValue] = useState<Value | null>(null);
 
@@ -63,7 +66,7 @@ export function NotificationSettingsByEntity({
   )?.id;
 
   const orgId =
-    (location.query?.organizationId as string | undefined) ??
+    organizationIdParam ??
     orgFromSubdomain ??
     (organizations.length === 1 ? organizations[0]?.id : undefined);
   let organization = organizations.find(({id}) => id === orgId);
@@ -121,8 +124,10 @@ export function NotificationSettingsByEntity({
     handleAddNotificationOption(data);
   };
 
-  const valueOptions =
-    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType].choices;
+  const valueOptions = (
+    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType].choices ??
+    []
+  ).map(([value, label]) => ({value, label}));
 
   const renderOverrides = () => {
     const matchedOptions = notificationOptions.filter(
@@ -154,7 +159,7 @@ export function NotificationSettingsByEntity({
             placeholder={t('Value\u2026')}
             value={option.value}
             name={`${entity.id}-value`}
-            choices={valueOptions}
+            options={valueOptions}
             onChange={({value}: {value: string}) => {
               handleEditNotificationOption({
                 ...option,
@@ -162,7 +167,7 @@ export function NotificationSettingsByEntity({
               });
             }}
           />
-          <RemoveButtonWrapper>
+          <Container margin="0 xs">
             <Button
               aria-label={t('Delete')}
               size="sm"
@@ -170,7 +175,7 @@ export function NotificationSettingsByEntity({
               icon={<IconDelete />}
               onClick={() => handleRemoveNotificationOption(option.id)}
             />
-          </RemoveButtonWrapper>
+          </Container>
         </Item>
       );
     });
@@ -229,7 +234,7 @@ export function NotificationSettingsByEntity({
       : entityOptions;
 
   return (
-    <MinHeight>
+    <Container minHeight="400px">
       <Panel>
         <StyledPanelHeader>
           {entityType === 'project' ? (
@@ -269,7 +274,7 @@ export function NotificationSettingsByEntity({
                 placeholder={t('Value\u2026')}
                 value={selectedValue}
                 name="value"
-                choices={valueOptions}
+                options={valueOptions}
                 onChange={({value}: {value: string}) => {
                   setSelectedValue(value as Value);
                 }}
@@ -298,13 +303,9 @@ export function NotificationSettingsByEntity({
           </Fragment>
         )}
       </Panel>
-    </MinHeight>
+    </Container>
   );
 }
-
-const MinHeight = styled('div')`
-  min-height: 400px;
-`;
 
 const StyledPanelHeader = styled(PanelHeader)`
   flex-wrap: wrap;
@@ -330,8 +331,4 @@ const Item = styled('div')`
 
 const ControlItem = styled(Item)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const RemoveButtonWrapper = styled('div')`
-  margin: 0 ${p => p.theme.space.xs};
 `;

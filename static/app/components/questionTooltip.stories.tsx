@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as Storybook from 'sentry/stories';
+
+import {QuestionTooltip} from './questionTooltip';
 
 export default Storybook.story('QuestionTooltip', story => {
   story('Basics', () => {
@@ -12,8 +12,8 @@ export default Storybook.story('QuestionTooltip', story => {
       <Fragment>
         <p>
           The <Storybook.JSXNode name="QuestionTooltip" /> component is a small{' '}
-          <Storybook.JSXNode name="IconQuestion" /> where you can specify a tooltip to go
-          with it. It is useful for placing after headers and titles to include additional
+          <Storybook.JSXNode name="IconInfo" /> where you can specify a tooltip to go with
+          it. It is useful for placing after headers and titles to include additional
           information. Prefer <Storybook.JSXNode name="InfoTip" /> for new usages.
         </p>
         <p>
@@ -45,7 +45,7 @@ export default Storybook.story('QuestionTooltip', story => {
           icon. Remember to keep the size relative to the text or content it is near.
           Valid values are
         </p>
-        <IconExamples>
+        <Grid gap="md">
           <div>
             "xs" <QuestionTooltip size="xs" title="xs" />
           </div>
@@ -64,7 +64,7 @@ export default Storybook.story('QuestionTooltip', story => {
           <div>
             "2xl" <QuestionTooltip size="2xl" title="2xl" />
           </div>
-        </IconExamples>
+        </Grid>
       </Fragment>
     );
   });
@@ -92,8 +92,3 @@ export default Storybook.story('QuestionTooltip', story => {
     );
   });
 });
-
-const IconExamples = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-`;

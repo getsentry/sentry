@@ -4,24 +4,24 @@ from functools import cached_property
 from unittest import TestCase
 
 import pytest
+from redis.client import StrictRedis
+from sentry_redis_tools.clients import RedisCluster
 
-from sentry.utils.locking.backends.redis import (
-    BaseRedisLockBackend,
-    RedisClusterLockBackend,
-    RedisLockBackend,
-)
-from sentry.utils.redis import clusters, redis_clusters
+from sentry.exceptions import InvalidConfiguration
+from sentry.testutils.helpers.options import override_options
+from sentry.utils.locking.backends.redis import BaseRedisLockBackend, RedisClusterLockBackend
+from sentry.utils.redis import redis_clusters
 
 
 class RedisBackendTestCaseBase:
     backend_class: type[BaseRedisLockBackend]
 
     @property
-    def cluster(self):
+    def cluster(self) -> RedisCluster[str] | StrictRedis[str]:
         raise NotImplementedError
 
     @property
-    def backend(self):
+    def backend(self) -> BaseRedisLockBackend:
         return self.backend_class(self.cluster, uuid="09cd7348c93f4198995177a57216e620")
 
     def test_success(self) -> None:
@@ -77,17 +77,28 @@ class RedisBackendTestCaseBase:
         assert self.backend_class(cluster="default").cluster == self.cluster
 
 
-class RedisLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
-    backend_class = RedisLockBackend
-
-    @cached_property
-    def cluster(self):
-        return clusters.get("default")
-
-
 class RedisClusterLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
     backend_class = RedisClusterLockBackend
 
     @cached_property
-    def cluster(self):
+    def cluster(self) -> RedisCluster[str] | StrictRedis[str]:
         return redis_clusters.get("default")
+
+
+class RedisClusterLockBackendConfigurationTestCase(TestCase):
+    def test_multi_host_cluster_without_is_redis_cluster_raises_clear_error(self) -> None:
+        clusters_config = {
+            "locks-multi-host": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
+        }
+        with override_options({"redis.clusters": clusters_config}):
+            with pytest.raises(InvalidConfiguration) as excinfo:
+                RedisClusterLockBackend("locks-multi-host")
+
+        message = str(excinfo.value)
+        assert "'locks-multi-host'" in message
+        assert "exactly one host" in message
+        assert "is_redis_cluster" in message
+
+    def test_unknown_cluster_still_raises_key_error(self) -> None:
+        with pytest.raises(KeyError, match="Invalid cluster name"):
+            RedisClusterLockBackend("locks-does-not-exist")
