@@ -3,7 +3,7 @@ from __future__ import annotations
 import collections
 from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, TypedDict, cast
 
 from sentry_sdk import traces
 
@@ -64,6 +64,28 @@ class OTAUpdatesResponseType(TypedDict, total=False):
     update_id: Annotated[str | None, ApiDescription("ID of the over-the-air update")]
 
 
+# Keys are the click fields' query names; see CLICK_FIELD_MAP.
+ReplayClickResponse = TypedDict(
+    "ReplayClickResponse",
+    {
+        "click.alt": Annotated[str | None, ApiDescription("Alt text of the clicked element")],
+        "click.label": Annotated[str | None, ApiDescription("ARIA label of the clicked element")],
+        "click.classes": Annotated[
+            list[str] | None, ApiDescription("CSS classes of the clicked element")
+        ],
+        "click.component_name": Annotated[
+            str | None, ApiDescription("Name of the frontend component that was clicked")
+        ],
+        "click.id": Annotated[str | None, ApiDescription("ID of the clicked element")],
+        "click.role": Annotated[str | None, ApiDescription("Role of the clicked element")],
+        "click.tag": Annotated[str | None, ApiDescription("HTML tag of the clicked element")],
+        "click.testid": Annotated[str | None, ApiDescription("Test ID of the clicked element")],
+        "click.text": Annotated[str | None, ApiDescription("Text of the clicked element")],
+        "click.title": Annotated[str | None, ApiDescription("Title of the clicked element")],
+    },
+)
+
+
 @sentry_schema_serializer(
     omit_from_public_schema={
         "info_ids": "Internal breadcrumb index used by the replay UI.",
@@ -87,7 +109,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     urls: Annotated[list[str] | None, ApiDescription("URLs visited during the replay")]
     segment_names: Annotated[list[str] | None, ApiDescription("Names of the replay's segments")]
     clicks: Annotated[
-        list[dict[str, Any]],
+        list[ReplayClickResponse],
         ApiDescription("Clicks recorded during the replay, one object per click"),
     ]
     count_dead_clicks: Annotated[int | None, ApiDescription("Number of dead clicks")]
@@ -323,7 +345,7 @@ CLICK_FIELD_MAP = {
 
 def extract_click_fields(
     item: MutableMapping[str, Any],
-) -> list[dict[str, Any]]:
+) -> list[ReplayClickResponse]:
     """
     pops all of the click fields from the item and returns a list of the individual clicks as objects
     """
@@ -340,4 +362,4 @@ def extract_click_fields(
             click_dict[CLICK_FIELD_MAP[click_field]] = click_val
 
     list_of_dicts = [dict(zip(click_dict.keys(), row)) for row in zip_longest(*click_dict.values())]
-    return list_of_dicts
+    return cast(list[ReplayClickResponse], list_of_dicts)
