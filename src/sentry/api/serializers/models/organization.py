@@ -131,7 +131,10 @@ class OnboardingTasksSerializerResponse(TypedDict):
     ]
     dateCompleted: Annotated[datetime, ApiDescription("When the task was completed or skipped")]
     data: Annotated[
-        object, ApiDescription("Extra data recorded for the task, which depends on the task")
+        object,
+        ApiDescription(
+            "Free-form data recorded for the task. Its keys depend on the task and aren't fixed"
+        ),
     ]
 
 

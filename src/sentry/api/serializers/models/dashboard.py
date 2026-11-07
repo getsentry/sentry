@@ -806,7 +806,10 @@ class DashboardFilters(TypedDict, total=False):
     release: Annotated[list[str], ApiDescription("Saved release filter")]
     releaseId: Annotated[list[str], ApiDescription("Saved release ID filter")]
     globalFilter: Annotated[
-        list[dict[str, object]], ApiDescription("Saved global filters applied to every widget")
+        list[dict[str, object]],
+        ApiDescription(
+            "Saved global filters applied to every widget. They're free-form: the API stores them as sent without checking their fields"
+        ),
     ]
 
 
