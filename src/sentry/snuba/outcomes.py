@@ -4,7 +4,7 @@ import itertools
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Generic, NotRequired, TypeVar
+from typing import Annotated, Any, Generic, NotRequired, TypeVar
 from typing import TypedDict as TypingTypedDict
 
 from django.http import QueryDict
@@ -16,6 +16,7 @@ from snuba_sdk.expressions import Granularity, Limit, Offset
 from snuba_sdk.function import Function
 from snuba_sdk.query import Query
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution
@@ -587,16 +588,26 @@ def massage_sessions_result(
 
 
 class _StatsGroup(TypingTypedDict):
-    by: dict[str, Any]
-    totals: dict[str, Any]
-    series: NotRequired[dict[str, Any]]
+    by: Annotated[dict[str, Any], ApiDescription("Values of the group-by columns of the group")]
+    totals: Annotated[
+        dict[str, Any],
+        ApiDescription("Value of each requested field over the whole time range, by field"),
+    ]
+    series: NotRequired[
+        Annotated[
+            dict[str, Any],
+            ApiDescription("Value of each requested field for each interval, by field"),
+        ]
+    ]
 
 
 class StatsApiResponse(TypingTypedDict):
-    start: str
-    end: str
-    intervals: NotRequired[list[str]]
-    groups: list[_StatsGroup]
+    start: Annotated[str, ApiDescription("Start of the queried time range (ISO 8601)")]
+    end: Annotated[str, ApiDescription("End of the queried time range (ISO 8601)")]
+    intervals: NotRequired[
+        Annotated[list[str], ApiDescription("Start of each interval in the series (ISO 8601)")]
+    ]
+    groups: Annotated[list[_StatsGroup], ApiDescription("Result for each group")]
 
 
 def massage_outcomes_result(

@@ -396,7 +396,7 @@ class ProjectSerializerResponse(ProjectSerializerBaseResponse):
     isInternal: Annotated[
         bool, ApiDescription("Whether this is the Sentry install's own internal project")
     ]
-    isPublic: bool
+    isPublic: Annotated[bool, ApiDescription("Whether the project is public")]
     avatar: Annotated[
         SerializedAvatarFields, ApiDescription("Avatar of the project. Always a letter avatar")
     ]
@@ -1300,7 +1300,9 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     seerScannerAutomation: NotRequired[
         Annotated[bool, ApiDescription("Whether Seer scans new issues automatically")]
     ]
-    seerNightshiftTweaks: NotRequired[Any]
+    seerNightshiftTweaks: NotRequired[
+        Annotated[Any, ApiDescription("Experimental Seer settings with no stable shape")]
+    ]
     scmSourceContextEnabled: NotRequired[
         Annotated[
             bool,
