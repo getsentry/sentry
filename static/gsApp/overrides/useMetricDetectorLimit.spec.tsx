@@ -28,6 +28,10 @@ describe('useMetricDetectorLimit', () => {
   });
 
   it('handles feature flag is disabled', () => {
+    SubscriptionStore.set(
+      mockOrganizationWithoutFeature.slug,
+      SubscriptionFixture({organization: mockOrganizationWithoutFeature})
+    );
     const detectorsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       headers: {'X-Hits': '5'},
