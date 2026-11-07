@@ -87,7 +87,8 @@ def test_credentials_and_instance_remain_shell_arguments(field: str, value: str)
     ]
     assert shlex.split(installer)[4:] == [*assignments, "bash"]
     assert (
-        f"SENTRY_URL={shlex.quote(context['sentry_url'])} sentry auth status --fresh --json"
+        f"SENTRY_URL={shlex.quote(context['sentry_url'])} "
+        f"SENTRY_CLIENT_ID={shlex.quote(context['client_id'])} sentry auth status --fresh --json"
         in guide
     )
 
@@ -122,13 +123,21 @@ def test_runbook_includes_flow_instructions_after_authentication() -> None:
     )
 
 
-@pytest.mark.parametrize("flow", list(HandoffFlow))
+@pytest.mark.parametrize(
+    "flow,expected",
+    [
+        (HandoffFlow.GUIDED_NEXT_STEPS, "Now ask the user what they would like to do next."),
+        (HandoffFlow.ONBOARDING, "agent-setup/get-started.md guide."),
+    ],
+)
 @pytest.mark.parametrize("mode", list(HandoffMode))
-def test_flow_guides_the_user_to_their_next_task(flow: HandoffFlow, mode: HandoffMode) -> None:
+def test_runbook_includes_selected_flow_instructions(
+    flow: HandoffFlow, mode: HandoffMode, expected: str
+) -> None:
     guide = render(
         flow_instructions=get_flow_instructions(flow, mode=mode, user_id=1, organization_id=2)
     )
-    assert guide.rstrip().endswith("Now ask the user what they would like to do next.")
+    assert guide.rstrip().endswith(expected)
 
 
 def test_runbook_has_windows_commands_and_restores_the_environment() -> None:
@@ -183,3 +192,30 @@ def test_flow_handler_receives_rendering_mode_and_context(mode: HandoffMode) -> 
 
     assert instructions == "Flow instructions."
     handler.assert_called_once_with(mode, 1, 2)
+
+
+@pytest.mark.parametrize("mode", list(HandoffMode))
+def test_onboarding_flow_uses_live_documentation(mode: HandoffMode) -> None:
+    guide = render(
+        flow_instructions=get_flow_instructions(
+            HandoffFlow.ONBOARDING, mode=mode, user_id=1, organization_id=2
+        )
+    )
+    assert "You're onboarding a new user to Sentry" in guide
+    assert "https://docs.sentry.io/index.md" in guide
+
+
+@pytest.mark.parametrize("sentry_url", ["sentry.io", "https://sentry.io", "https://sentry.io/"])
+def test_default_instance_uses_cli_environment_defaults(sentry_url: str) -> None:
+    guide = render(sentry_url=sentry_url)
+
+    assert "SENTRY_HOST" not in guide
+    assert "SENTRY_URL" not in guide
+    assert "SENTRY_CLIENT_ID" not in guide
+    assert "```bash\nsentry auth status --fresh --json\n```" in guide
+    assert "```powershell\nsentry auth status --fresh --json\n```" in guide
+    assert (
+        "curl -fsSL https://cli.sentry.dev/install | "
+        "SENTRY_SETUP_CODE=sntryc_example-setup-code bash"
+    ) in guide
+    assert "$env:SENTRY_SETUP_CODE = 'sntryc_example-setup-code'" in guide
