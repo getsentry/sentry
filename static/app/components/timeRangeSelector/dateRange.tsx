@@ -1,7 +1,5 @@
-import {Component} from 'react';
+import {useId, useState} from 'react';
 import type {Range} from 'react-date-range';
-import type {Theme} from '@emotion/react';
-import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -10,7 +8,6 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {DateRangePicker} from 'sentry/components/calendar';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -28,15 +25,6 @@ const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm
 
 type ChangeData = {end?: Date; hasDateRangeErrors?: boolean; start?: Date};
 
-const defaultProps = {
-  showAbsolute: true,
-  showRelative: false,
-  /**
-   * The maximum number of days in the past you can pick
-   */
-  maxPickableDays: MAX_PICKABLE_DAYS,
-};
-
 type Props = {
   /**
    * End date value for absolute date selector
@@ -53,16 +41,9 @@ type Props = {
   onChangeUtc: () => void;
 
   /**
-   * The matched routes, used to derive a parameterized path for analytics.
-   */
-  routes: PlainRoute[];
-
-  /**
    * Start date value for absolute date selector
    */
   start: Date | null;
-
-  theme: Theme;
 
   className?: string;
 
@@ -72,9 +53,18 @@ type Props = {
   maxDateRange?: number;
 
   /**
+   * The maximum number of days in the past you can pick
+   */
+  maxPickableDays?: number;
+
+  /**
    * Just used for metrics
    */
   organization?: Organization;
+
+  showAbsolute?: boolean;
+
+  showRelative?: boolean;
 
   /**
    * Should we have a time selector?
@@ -85,48 +75,53 @@ type Props = {
    * Use UTC
    */
   utc?: boolean | null;
-} & Partial<typeof defaultProps>;
-
-type State = {
-  hasEndErrors: boolean;
-  hasStartErrors: boolean;
 };
 
-class BaseDateRange extends Component<Props, State> {
-  static defaultProps = defaultProps;
+function BaseDateRange({
+  className,
+  start: startProp,
+  end: endProp,
+  onChange,
+  onChangeUtc,
+  organization,
+  maxDateRange,
+  maxPickableDays = MAX_PICKABLE_DAYS,
+  showTimePicker,
+  utc,
+}: Props) {
+  const routes = useRoutes();
+  const utcInputId = useId();
+  const [hasStartErrors, setHasStartErrors] = useState(false);
+  const [hasEndErrors, setHasEndErrors] = useState(false);
+  // Capture "now" once on mount so render stays pure. Can't select dates in the future.
+  const [now] = useState(() => new Date());
 
-  state: State = {
-    hasStartErrors: false,
-    hasEndErrors: false,
-  };
-
-  private readonly utcInputId =
-    'utc-picker-' + Math.random().toString(36).substring(2, 12);
-
-  handleSelectDateRange = (range: Range) => {
-    const {onChange} = this.props;
+  const handleSelectDateRange = (range: Range) => {
     const {startDate, endDate} = range;
-    const end = endDate ? getEndOfDay(endDate) : endDate;
+    const newEnd = endDate ? getEndOfDay(endDate) : endDate;
 
     onChange({
       start: startDate,
-      end,
+      end: newEnd,
     });
   };
 
-  handleChangeStart = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeStart = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Safari does not support "time" inputs, so we don't have access to
     // `e.target.valueAsDate`, must parse as string
     //
     // Time will be in 24hr e.g. "21:00"
-    const start = this.props.start ?? '';
-    const end = this.props.end ?? undefined;
-    const {onChange, organization, routes} = this.props;
+    const currentStart = startProp ?? '';
+    const currentEnd = endProp ?? undefined;
     const startTime = e.target.value;
-    const newStartTime = setDateToTime(start, startTime, {local: true});
+    const newStartTime = setDateToTime(currentStart, startTime, {local: true});
 
-    if (!startTime || !isValidTime(startTime) || (end && newStartTime > end)) {
-      this.setState({hasStartErrors: true});
+    if (
+      !startTime ||
+      !isValidTime(startTime) ||
+      (currentEnd && newStartTime > currentEnd)
+    ) {
+      setHasStartErrors(true);
       onChange({hasDateRangeErrors: true});
       return;
     }
@@ -140,22 +135,25 @@ class BaseDateRange extends Component<Props, State> {
 
     onChange({
       start: newStartTime,
-      end,
-      hasDateRangeErrors: this.state.hasEndErrors,
+      end: currentEnd,
+      hasDateRangeErrors: hasEndErrors,
     });
 
-    this.setState({hasStartErrors: false});
+    setHasStartErrors(false);
   };
 
-  handleChangeEnd = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const start = this.props.start ?? undefined;
-    const end = this.props.end ?? '';
-    const {organization, onChange, routes} = this.props;
+  const handleChangeEnd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const currentStart = startProp ?? undefined;
+    const currentEnd = endProp ?? '';
     const endTime = e.target.value;
-    const newEndTime = setDateToTime(end, endTime, {local: true});
+    const newEndTime = setDateToTime(currentEnd, endTime, {local: true});
 
-    if (!endTime || !isValidTime(endTime) || (start && start > newEndTime)) {
-      this.setState({hasEndErrors: true});
+    if (
+      !endTime ||
+      !isValidTime(endTime) ||
+      (currentStart && currentStart > newEndTime)
+    ) {
+      setHasEndErrors(true);
       onChange({hasDateRangeErrors: true});
       return;
     }
@@ -168,86 +166,72 @@ class BaseDateRange extends Component<Props, State> {
     });
 
     onChange({
-      start,
+      start: currentStart,
       end: newEndTime,
-      hasDateRangeErrors: this.state.hasStartErrors,
+      hasDateRangeErrors: hasStartErrors,
     });
 
-    this.setState({hasEndErrors: false});
+    setHasEndErrors(false);
   };
 
-  render() {
-    const {className, maxPickableDays, utc, showTimePicker, onChangeUtc, maxDateRange} =
-      this.props;
-    const {hasStartErrors, hasEndErrors} = this.state;
-    const start = this.props.start ?? '';
-    const end = this.props.end ?? '';
+  const start = startProp ?? '';
+  const end = endProp ?? '';
 
-    const startTime = getTimeStringFromDate(new Date(start));
-    const endTime = getTimeStringFromDate(new Date(end));
+  const startTime = getTimeStringFromDate(new Date(start));
+  const endTime = getTimeStringFromDate(new Date(end));
 
-    // Restraints on the time range that you can select
-    // Can't select dates in the future b/c we're not fortune tellers (yet)
-    //
-    // We want `maxPickableDays` - 1 (if today is Jan 5, max is 3 days, the minDate should be Jan 3)
-    // Subtract additional day  because we force the end date to be inclusive,
-    // so when you pick Jan 1 the time becomes Jan 1 @ 23:59:59,
-    // (or really, Jan 2 @ 00:00:00 - 1 second), while the start time is at 00:00
-    let minDate = getStartOfPeriodAgo('days', (maxPickableDays ?? MAX_PICKABLE_DAYS) - 1);
+  // Restraints on the time range that you can select
+  // Can't select dates in the future b/c we're not fortune tellers (yet)
+  //
+  // We want `maxPickableDays` - 1 (if today is Jan 5, max is 3 days, the minDate should be Jan 3)
+  // Subtract additional day  because we force the end date to be inclusive,
+  // so when you pick Jan 1 the time becomes Jan 1 @ 23:59:59,
+  // (or really, Jan 2 @ 00:00:00 - 1 second), while the start time is at 00:00
+  let minDate = getStartOfPeriodAgo('days', maxPickableDays - 1);
 
-    let maxDate = new Date();
+  let maxDate = now;
 
-    // if the start and end date are the same, it means the user can still select another date,
-    // at this point we want to apply the maxDateRange
-    const startDate = moment(start).local();
-    const endDate = moment(end).local();
-    const isSameDay = startDate.isSame(endDate, 'day');
-    if (maxDateRange && isSameDay) {
-      minDate = moment(new Date(start)).subtract(maxDateRange, 'days').toDate();
-      const newMaxDate = moment(new Date(end)).add(maxDateRange, 'days').toDate();
-      maxDate = newMaxDate > maxDate ? maxDate : newMaxDate;
-    }
-
-    return (
-      <div className={className} data-test-id="date-range">
-        <DateRangePicker
-          startDate={startDate.toDate()}
-          endDate={endDate.toDate()}
-          minDate={minDate}
-          maxDate={maxDate}
-          onChange={this.handleSelectDateRange}
-        />
-        {showTimePicker && (
-          <TimeAndUtcPicker>
-            <StyledTimePicker
-              start={startTime}
-              end={endTime}
-              onChangeStart={this.handleChangeStart}
-              onChangeEnd={this.handleChangeEnd}
-              hasStartErrors={hasStartErrors}
-              hasEndErrors={hasEndErrors}
-            />
-            <UtcPicker>
-              <Checkbox
-                onChange={onChangeUtc}
-                checked={utc || false}
-                id={this.utcInputId}
-              />
-              <UtcPickerLabel htmlFor={this.utcInputId}>{t('UTC')}</UtcPickerLabel>
-            </UtcPicker>
-          </TimeAndUtcPicker>
-        )}
-      </div>
-    );
+  // if the start and end date are the same, it means the user can still select another date,
+  // at this point we want to apply the maxDateRange
+  const startDate = moment(start).local();
+  const endDate = moment(end).local();
+  const isSameDay = startDate.isSame(endDate, 'day');
+  if (maxDateRange && isSameDay) {
+    minDate = moment(new Date(start)).subtract(maxDateRange, 'days').toDate();
+    const newMaxDate = moment(new Date(end)).add(maxDateRange, 'days').toDate();
+    maxDate = newMaxDate > maxDate ? maxDate : newMaxDate;
   }
+
+  return (
+    <div className={className} data-test-id="date-range">
+      <DateRangePicker
+        startDate={startDate.toDate()}
+        endDate={endDate.toDate()}
+        minDate={minDate}
+        maxDate={maxDate}
+        onChange={handleSelectDateRange}
+      />
+      {showTimePicker && (
+        <TimeAndUtcPicker>
+          <StyledTimePicker
+            start={startTime}
+            end={endTime}
+            onChangeStart={handleChangeStart}
+            onChangeEnd={handleChangeEnd}
+            hasStartErrors={hasStartErrors}
+            hasEndErrors={hasEndErrors}
+          />
+          <UtcPicker>
+            <Checkbox onChange={onChangeUtc} checked={utc || false} id={utcInputId} />
+            <UtcPickerLabel htmlFor={utcInputId}>{t('UTC')}</UtcPickerLabel>
+          </UtcPicker>
+        </TimeAndUtcPicker>
+      )}
+    </div>
+  );
 }
 
-function WithRoutes(props: Omit<Props, 'routes'>) {
-  const routes = useRoutes();
-  return <BaseDateRange {...props} routes={routes} />;
-}
-
-export const DateRange = styled(withTheme(WithRoutes))`
+export const DateRange = styled(BaseDateRange)`
   display: flex;
   flex-direction: column;
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
