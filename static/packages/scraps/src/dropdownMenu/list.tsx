@@ -260,6 +260,7 @@ function DropdownMenuList({
   ...props
 }: DropdownMenuListProps) {
   const {t} = useTranslation();
+  const theme = useTheme();
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
   const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
@@ -311,6 +312,8 @@ function DropdownMenuList({
     scrollRef: menuRef,
     focusedKey: state.selectionManager.focusedKey,
     widestKey,
+    // Matches the `gapAbove` margin of `MenuItemWrap`.
+    sectionRowGap: parseFloat(theme.space['2xs']),
   });
 
   // A virtualized menu's width follows the rows that happen to be mounted.
@@ -442,7 +445,6 @@ function DropdownMenuList({
     [menuProps, hasFocus]
   );
 
-  const theme = useTheme();
   const contextValue = useMemo(
     () => ({
       rootOverlayState: rootOverlayState ?? overlayState,

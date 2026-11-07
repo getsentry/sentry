@@ -119,6 +119,13 @@ interface UseVirtualCollectionOptions<T> {
    */
   listPadding?: number;
   /**
+   * Top margin (px) of each row in a section except the first, if the rows
+   * are spaced that way. Rows are measured with their margins, so adding it to
+   * the estimates of unmounted rows keeps the scroll range from shrinking
+   * until they mount.
+   */
+  sectionRowGap?: number;
+  /**
    * A row to keep mounted wherever the list is scrolled, such as the one with
    * the longest label. A list that sizes its width to its content is then as
    * wide as that row from the start, instead of widening as wider rows scroll
@@ -166,6 +173,7 @@ export function useVirtualCollection<T>({
   focusedKey,
   listPadding = 0,
   widestKey,
+  sectionRowGap = 0,
 }: UseVirtualCollectionOptions<T>): VirtualCollection<T> {
   const heights = ROW_HEIGHT_ESTIMATES[size];
 
@@ -227,10 +235,19 @@ export function useVirtualCollection<T>({
     enabled,
     getScrollElement: () => scrollRef.current,
     getItemKey: index => nodes[index]?.key ?? index,
-    estimateSize: index =>
+    estimateSize: index => {
+      const node = nodes[index];
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      nodes[index]?.props?.details ? heights.withDetails : heights.regular,
-    estimateKey: size,
+      const height = node?.props?.details ? heights.withDetails : heights.regular;
+      // Each section's children follow its row, so a child that does not
+      // directly follow its section row is not the section's first.
+      const isAfterFirstInSection =
+        node?.parentKey !== null &&
+        node?.parentKey !== undefined &&
+        nodes[index - 1]?.key !== node.parentKey;
+      return isAfterFirstInSection ? height + sectionRowGap : height;
+    },
+    estimateKey: `${size}-${sectionRowGap}`,
     paddingStart: listPadding,
     // The list's padding is the same at both ends, so a row scrolled into view
     // at the bottom clears it too.

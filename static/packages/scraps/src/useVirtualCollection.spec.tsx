@@ -19,10 +19,12 @@ function TestList({
   enabled,
   focusedKey,
   items = nodes,
+  sectionRowGap,
 }: {
   enabled: boolean;
   focusedKey?: string;
   items?: typeof nodes;
+  sectionRowGap?: number;
 }) {
   const scrollRef = useRef<HTMLUListElement>(null);
   const {rows, spaceAfter} = useVirtualCollection({
@@ -32,6 +34,7 @@ function TestList({
     scrollRef,
     focusedKey,
     listPadding: LIST_PADDING,
+    sectionRowGap,
   });
 
   return (
@@ -139,16 +142,17 @@ describe('useVirtualCollection', () => {
     expect(spanned).toBe(ROW_COUNT * ROW_HEIGHT);
   });
 
+  const sectioned = ['a', 'b'].flatMap(section => [
+    {key: `section-${section}`, type: 'section', props: {}},
+    ...Array.from({length: ROW_COUNT / 2}, (_, index) => ({
+      key: `${section}-${index}`,
+      type: 'item',
+      parentKey: `section-${section}`,
+      props: {},
+    })),
+  ]) as typeof nodes;
+
   it('keeps the section row of mounted rows mounted', () => {
-    const sectioned = ['a', 'b'].flatMap(section => [
-      {key: `section-${section}`, type: 'section', props: {}},
-      ...Array.from({length: ROW_COUNT / 2}, (_, index) => ({
-        key: `${section}-${index}`,
-        type: 'item',
-        parentKey: `section-${section}`,
-        props: {},
-      })),
-    ]) as typeof nodes;
     render(<TestList enabled items={sectioned} />);
 
     const list = screen.getByTestId('list');
@@ -163,6 +167,23 @@ describe('useVirtualCollection', () => {
 
     const spanned = sum(spacerHeights()) + keys.length * ROW_HEIGHT;
     expect(spanned).toBe(sectioned.length * ROW_HEIGHT);
+  });
+
+  it('estimates the gap above unmounted section rows after the first', () => {
+    const gap = 2;
+    render(<TestList enabled items={sectioned} sectionRowGap={gap} />);
+
+    const keys = screen.getAllByTestId('row').map(row => row.dataset.key);
+    const isAfterFirst = (key: string) => /^[ab]-[1-9]/.test(key);
+    // Mounted rows are measured, and jsdom gives them no margin, so only the
+    // unmounted rows after the first of their section add the gap.
+    const unmountedAfterFirst = sectioned.filter(
+      node => isAfterFirst(String(node.key)) && !keys.includes(String(node.key))
+    ).length;
+    expect(unmountedAfterFirst).toBeGreaterThan(0);
+
+    const spanned = sum(spacerHeights()) + keys.length * ROW_HEIGHT;
+    expect(spanned).toBe(sectioned.length * ROW_HEIGHT + unmountedAfterFirst * gap);
   });
 
   it('renders every row without measurement props when disabled', () => {
