@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import NoReturn, NotRequired, TypedDict
+from typing import Annotated, NoReturn, NotRequired, TypedDict
 
 from django.http import HttpRequest
 from drf_spectacular.utils import extend_schema
@@ -17,6 +17,7 @@ from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.services.auth import auth_service
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
@@ -152,15 +153,20 @@ class OrganizationSCIMTeamPermission(OrganizationSCIMPermission):
 
 
 class SCIMListBaseResponse(TypedDict):
-    schemas: list[str]
-    totalResults: int
-    startIndex: int
-    itemsPerPage: int
+    schemas: Annotated[
+        list[str],
+        ApiDescription("SCIM schema URIs of the response, always the ListResponse message schema"),
+    ]
+    totalResults: Annotated[int, ApiDescription("Total number of resources that match the query")]
+    startIndex: Annotated[int, ApiDescription("1-based index of the first resource in this page")]
+    itemsPerPage: Annotated[int, ApiDescription("Number of resources in this page")]
 
 
 class SCIMMetaResponse(TypedDict):
-    resourceType: str
-    location: str
+    resourceType: Annotated[
+        str, ApiDescription("SCIM resource type of the resource, such as Schema or ResourceType")
+    ]
+    location: Annotated[str, ApiDescription("Absolute URL of the resource")]
 
 
 @extend_schema(tags=["SCIM"])
