@@ -180,17 +180,11 @@ class BaseEventSerializerResponse(TypedDict):
     location: Annotated[
         str | None, ApiDescription("Source location of the event, such as a file and line")
     ]
-    user: Annotated[EventUserApiContext | None, ApiDescription("User context of the event")]
-    tags: Annotated[list[EventTag], ApiDescription("Tags attached to the event")]
     platform: Annotated[
         str | None, ApiDescription("Platform of the event, such as python or javascript")
     ]
     dateReceived: Annotated[
         datetime | None, ApiDescription("When Sentry received the event (ISO 8601)")
-    ]
-    contexts: Annotated[
-        dict[str, object] | None,
-        ApiDescription("Contexts of the event, such as device, os, browser and runtime"),
     ]
     size: Annotated[int | None, ApiDescription("Size of the event payload in bytes")]
     entries: Annotated[
@@ -202,11 +196,6 @@ class BaseEventSerializerResponse(TypedDict):
     dist: Annotated[
         str | None, ApiDescription("Distribution of the release the event was sent with")
     ]
-    sdk: Annotated[EventSdkApiContext | None, ApiDescription("SDK that sent the event")]
-    context: Annotated[
-        dict[str, object] | None,
-        ApiDescription("Additional data sent with the event in its extra field"),
-    ]
     packages: Annotated[
         dict[str, object],
         ApiDescription(
@@ -217,9 +206,6 @@ class BaseEventSerializerResponse(TypedDict):
         EventTypeStr, ApiDescription("Event type, such as error, default or transaction")
     ]
     metadata: Annotated[dict[str, object], ApiDescription("Event metadata")]
-    errors: Annotated[
-        list[EventErrorApiContext], ApiDescription("Errors Sentry found while processing the event")
-    ]
     # Typed variants come first: generated clients try `anyOf` members in order, and the
     # catch-all `IssueOccurrenceResponse` also matches every typed occurrence.
     occurrence: Annotated[
@@ -233,6 +219,25 @@ class BaseEventSerializerResponse(TypedDict):
         ApiDescription(
             "Metadata about changes Sentry made to the event's fields, such as data scrubbing or trimming"
         ),
+    ]
+
+
+class EventDetailFields(TypedDict):
+    """Fields that shared issues leave out of their latest event."""
+
+    user: Annotated[EventUserApiContext | None, ApiDescription("User context of the event")]
+    tags: Annotated[list[EventTag], ApiDescription("Tags attached to the event")]
+    contexts: Annotated[
+        dict[str, object] | None,
+        ApiDescription("Contexts of the event, such as device, os, browser and runtime"),
+    ]
+    sdk: Annotated[EventSdkApiContext | None, ApiDescription("SDK that sent the event")]
+    context: Annotated[
+        dict[str, object] | None,
+        ApiDescription("Additional data sent with the event in its extra field"),
+    ]
+    errors: Annotated[
+        list[EventErrorApiContext], ApiDescription("Errors Sentry found while processing the event")
     ]
 
 
@@ -266,6 +271,12 @@ class TransactionEventFields(TypedDict, total=False):
 
 
 class EventSerializerResponse(
+    BaseEventSerializerResponse, EventDetailFields, ErrorEventFields, TransactionEventFields
+):
+    pass
+
+
+class SharedEventSerializerResponse(
     BaseEventSerializerResponse, ErrorEventFields, TransactionEventFields
 ):
     pass
@@ -729,21 +740,19 @@ class SharedEventSerializer(EventSerializer):
     ) -> dict[Event | GroupEvent, dict[str, object]]:
         return super().get_attrs(item_list, user, is_public=True, **kwargs)
 
-    def serialize(
+    def serialize(  # type: ignore[override]  # return value is a subset
         self,
         obj: Event | GroupEvent,
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> EventSerializerResponse:
+    ) -> SharedEventSerializerResponse:
         base = super().serialize(obj, attrs, user)
         result: dict[str, Any] = {
-            k: v
-            for k, v in base.items()
-            if k not in {"context", "contexts", "user", "tags", "sdk", "errors"}
+            k: v for k, v in base.items() if k not in EventDetailFields.__annotations__
         }
         result["entries"] = [e for e in result["entries"] if e["type"] != "breadcrumbs"]
-        return cast("EventSerializerResponse", result)
+        return cast("SharedEventSerializerResponse", result)
 
 
 SimpleEventSerializerResponse = TypedDict(

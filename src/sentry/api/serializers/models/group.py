@@ -27,6 +27,8 @@ from sentry import features, tagstore
 from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.api.serializers.models.event import SharedEventSerializerResponse
+from sentry.api.serializers.models.project import SharedProjectSerializerResponse
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.formats import Url, absolute_url
 from sentry.auth.principal import has_user
@@ -1106,15 +1108,24 @@ class GroupSerializer(GroupSerializerBase):
 
 
 class SharedGroupSerializerResponse(TypedDict):
-    culprit: str | None
-    id: str
-    isUnhandled: bool | None
-    issueCategory: str
-    permalink: str
-    shortId: str | None
-    title: str
-    latestEvent: dict[str, Any]
-    project: dict[str, Any]
+    culprit: Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
+    id: Annotated[str, ApiDescription("ID of the issue")]
+    isUnhandled: Annotated[
+        bool | None,
+        ApiDescription("Whether the issue includes unhandled events. Null when it isn't known"),
+    ]
+    issueCategory: Annotated[str, ApiDescription("Issue category, such as error or performance")]
+    permalink: Annotated[Url, ApiDescription("URL of the issue in Sentry")]
+    shortId: Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    title: Annotated[str, ApiDescription("Title of the issue")]
+    latestEvent: Annotated[
+        SharedEventSerializerResponse | None,
+        ApiDescription(
+            "Latest event of the issue, without its user, tags, contexts, SDK, extra data, "
+            "processing errors or breadcrumbs. Null when the issue has no stored event"
+        ),
+    ]
+    project: Annotated[SharedProjectSerializerResponse, ApiDescription("Project of the issue")]
 
 
 class SharedGroupSerializer(GroupSerializer):

@@ -3,7 +3,10 @@ from datetime import datetime
 from drf_spectacular.utils import OpenApiExample
 
 from sentry.api.helpers.group_index.types import MutateIssueResponse
-from sentry.api.serializers.models.group import GroupDetailsResponse
+from sentry.api.serializers.models.group import (
+    GroupDetailsResponse,
+    SharedGroupSerializerResponse,
+)
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnubaResponse
 from sentry.apidocs.formats import absolute_url
 
@@ -220,6 +223,55 @@ GROUP_DETAILS: GroupDetailsResponse = {
     },
 }
 
+SHARED_ISSUE: SharedGroupSerializerResponse = {
+    "id": "1",
+    "shortId": "PUMP-STATION-1",
+    "title": "Payment failed",
+    "culprit": "payments.checkout in charge",
+    "permalink": absolute_url(
+        "https://sentry.io/organizations/the-interstellar-jurisdiction/issues/1/"
+    ),
+    "isUnhandled": False,
+    "issueCategory": "error",
+    "latestEvent": {
+        "id": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
+        "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
+        "groupID": "1",
+        "projectID": "2",
+        "title": "Payment failed",
+        "message": "Payment failed",
+        "location": None,
+        "culprit": "payments.checkout in charge",
+        "type": "default",
+        "platform": "python",
+        "dist": None,
+        "size": 1113,
+        "dateCreated": datetime.fromisoformat("2018-11-06T21:19:55Z"),
+        "dateReceived": datetime.fromisoformat("2018-11-06T21:19:56Z"),
+        "entries": [{"type": "message", "data": {"formatted": "Payment failed"}}],
+        "packages": {},
+        "metadata": {"title": "Payment failed"},
+        "fingerprints": ["1305a2b0c6c0eaf556d3ac2b18e25155"],
+        "groupingConfig": {
+            "id": "newstyle:2026-01-20",
+            "enhancements": "KLUv_SAd6QAAkwORuGFsbC1wbGF0",
+        },
+        "crashFile": None,
+        "occurrence": None,
+        "_meta": {"entries": {}, "message": None, "packages": None},
+    },
+    "project": {
+        "slug": "pump-station",
+        "name": "Pump Station",
+        "color": "#bf6e3f",
+        "features": [],
+        "organization": {
+            "slug": "the-interstellar-jurisdiction",
+            "name": "The Interstellar Jurisdiction",
+        },
+    },
+}
+
 
 class IssueExamples:
     ORGANIZATION_GROUP_INDEX_GET = [
@@ -242,6 +294,14 @@ class IssueExamples:
         OpenApiExample(
             "Return an issue",
             value=GROUP_DETAILS,
+            response_only=True,
+            status_codes=["200"],
+        )
+    ]
+    SHARED_ISSUE_DETAILS = [
+        OpenApiExample(
+            "Return a shared issue",
+            value=SHARED_ISSUE,
             response_only=True,
             status_codes=["200"],
         )
