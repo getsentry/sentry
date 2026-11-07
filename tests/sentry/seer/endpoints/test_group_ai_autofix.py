@@ -23,7 +23,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
@@ -38,6 +38,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.credits import SeerOperation
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -1684,6 +1685,38 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "Seer can no longer iterate on this pull request"
         mock_enqueue.assert_not_called()
 
+    @patch(
+        "sentry.seer.autofix.pr_iteration.manual_trigger.can_run_seer_operation",
+        return_value=False,
+    )
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
+    def test_pr_iteration_rejected_when_out_of_credits(
+        self, mock_run_state: MagicMock, mock_enqueue: MagicMock, mock_can_run: MagicMock
+    ) -> None:
+        group = self.create_group()
+        mock_run_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7)},
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "pr_iteration", "run_id": 123, "user_context": "please fix this"},
+            format="json",
+        )
+
+        assert response.status_code == 402, response.data
+        assert response.data == {
+            "detail": "Your organization does not have enough credits to continue your Autofix run."
+        }
+        mock_can_run.assert_called_once_with(group.organization, SeerOperation.AUTOFIX_PR_ITERATION)
+        mock_enqueue.assert_not_called()
+
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
@@ -1759,6 +1792,54 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 402, response.data
         assert response.data == "No budget for Seer Autofix."
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_returns_402_when_out_of_seer_credits(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        """POST returns 402 Payment Required when the credit check fails."""
+        mock_trigger_explorer.side_effect = SeerOutOfCreditsException()
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+        )
+
+        assert response.status_code == 402, response.data
+        assert response.data == {
+            "detail": "Your organization does not have enough credits to start an Autofix run."
+        }
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_returns_402_when_out_of_seer_credits_continuing_a_run(
+        self, mock_trigger_explorer: MagicMock, mock_run_state: MagicMock
+    ) -> None:
+        """POST says the run can't continue when a later step fails the credit check."""
+        mock_trigger_explorer.side_effect = SeerOutOfCreditsException()
+        mock_run_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+        )
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "solution", "run_id": 123},
+            format="json",
+        )
+
+        assert response.status_code == 402, response.data
+        assert response.data == {
+            "detail": "Your organization does not have enough credits to continue your Autofix run."
+        }
 
     def test_post_coding_agent_handoff_errors_with_both_provider_and_integration_id(self) -> None:
         """POST returns 400 when both provider and integration_id are specified for coding_agent_handoff."""
@@ -1969,6 +2050,23 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 404, response.data
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_push_changes")
+    def test_open_pr_out_of_credits(self, mock_push_changes: MagicMock) -> None:
+        mock_push_changes.side_effect = SeerOutOfCreditsException()
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "open_pr", "run_id": 123},
+            format="json",
+        )
+
+        assert response.status_code == 402, response.data
+        assert response.data == {
+            "detail": "Your organization does not have enough credits to continue your Autofix run."
+        }
 
     def test_open_pr_coding_disabled(self) -> None:
         self.login_as(user=self.user)

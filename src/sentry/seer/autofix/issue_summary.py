@@ -34,6 +34,7 @@ from sentry.seer.autofix.exceptions import (
     IssueSummaryHidden,
     IssueSummarySelfHosted,
     NoSeerQuotaException,
+    SeerOutOfCreditsException,
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
@@ -204,7 +205,7 @@ def _trigger_autofix_task(
                     data={"referrer": referrer.value},
                     send_notification=False,
                 )
-        except NoSeerQuotaException:
+        except (NoSeerQuotaException, SeerOutOfCreditsException):
             pass
 
         if run and SeerAutofixOperator.has_access(organization=group.project.organization):

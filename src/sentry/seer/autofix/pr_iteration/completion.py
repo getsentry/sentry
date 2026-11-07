@@ -15,6 +15,7 @@ from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix_agent import trigger_push_changes
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
 from sentry.seer.autofix.feature.models import PrIterationStepArgs
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
@@ -489,6 +490,9 @@ def _push_iteration_changes(
             # Never overwrite commits on the PR that Seer didn't push.
             allow_force_push=False,
         )
+    except SeerOutOfCreditsException:
+        log_ctx.info("autofix.pr_iteration.push", outcome="failed", reason="out_of_credits")
+        return False
     except Exception as e:
         log_ctx.error(
             "autofix.pr_iteration.push",
@@ -572,6 +576,10 @@ def _retry_push_on_moved_branch(
                 ),
             ),
         )
+    except SeerOutOfCreditsException:
+        log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="out_of_credits")
+        # Not PR_CREATION_ERRORED, which pauses iteration for good. Credits can be topped up.
+        return PrIterationOutcome.PUSH_FAILED
     except Exception as e:
         # End the iteration as errored, so the caller pauses the run and records the outcome.
         log_ctx.error(
