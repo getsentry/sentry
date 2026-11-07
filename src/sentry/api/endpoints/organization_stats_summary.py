@@ -2,7 +2,7 @@ import csv
 from collections.abc import Iterator
 from contextlib import contextmanager
 from io import StringIO
-from typing import Annotated, Any, TypedDict, cast
+from typing import Annotated, TypedDict, cast
 
 from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
@@ -113,11 +113,11 @@ class OrgStatsSummaryQueryParamsSerializer(serializers.Serializer):
     )
 
 
-class _ProjectSummaryStats(TypedDict):  # this response is pretty dynamic, leaving generic
-    id: Annotated[str, ApiDescription("ID of the project")]
+class _ProjectSummaryStats(TypedDict):
+    id: Annotated[int, ApiDescription("ID of the project")]
     slug: Annotated[str, ApiDescription("Slug of the project")]
     stats: Annotated[
-        list[dict[str, Any]], ApiDescription("Outcome counts of the project by data category")
+        list[_CategoryStats], ApiDescription("Outcome counts of the project by data category")
     ]
 
 

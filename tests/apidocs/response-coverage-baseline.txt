@@ -10,7 +10,6 @@ untyped sentry.ai_monitoring.endpoints.organization_ai_conversation_details.AICo
 untyped sentry.api.endpoints.organization_events.EventsApiResponse.data[]
 untyped sentry.api.endpoints.organization_events.EventsMeta.debug_info
 untyped sentry.api.endpoints.organization_events.EventsMeta.discoverSplitDecision
-untyped sentry.api.endpoints.organization_stats_summary._ProjectSummaryStats.stats[]
 untyped sentry.api.endpoints.organization_trace_meta_types.OrganizationTraceMetaResponse.transactionChildCountMap[]
 untyped sentry.api.serializers.models.dashboard.DashboardFilters.globalFilter[]
 untyped sentry.api.serializers.models.debug_file.DebugFileSerializerResponse.data

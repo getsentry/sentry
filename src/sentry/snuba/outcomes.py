@@ -629,10 +629,22 @@ def massage_outcomes_result(
 
 
 class _CategoryStats(TypingTypedDict):
-    category: str
-    outcomes: dict[str, int]
-    totals: dict[str, int]
-    reason: NotRequired[str]
+    category: Annotated[str, ApiDescription("Data category of the counts, such as error")]
+    outcomes: Annotated[
+        dict[str, int],
+        ApiDescription("Quantity of each outcome, such as accepted or rate_limited"),
+    ]
+    totals: Annotated[
+        dict[str, int],
+        ApiDescription(
+            "Totals of the requested fields, such as sum(quantity). Also has dropped, the quantity of the dropped outcomes, unless the outcome filter leaves them all out"
+        ),
+    ]
+    reason: NotRequired[
+        Annotated[
+            str, ApiDescription("Reason for the outcomes. Only present when grouped by reason")
+        ]
+    ]
 
 
 class _Project(TypingTypedDict):
