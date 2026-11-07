@@ -27,12 +27,12 @@ untyped sentry.api.serializers.models.dashboard.DashboardListResponse.createdBy
 untyped sentry.api.serializers.models.debug_file.DebugFileSerializerResponse.data
 untyped sentry.api.serializers.models.discoversavedquery.DiscoverSavedQueryResponseOptional.exploreQuery
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse._meta
-untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.context
-untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.contexts
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.entries[]
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.metadata
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.occurrence<anyOf2>
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.packages
+untyped sentry.api.serializers.models.event.EventDetailFields.context
+untyped sentry.api.serializers.models.event.EventDetailFields.contexts
 untyped sentry.api.serializers.models.event.IssueEventSerializerResponse.sdkUpdates[]
 untyped sentry.api.serializers.models.event.SimpleEventSerializerResponse.metadata
 untyped sentry.api.serializers.models.eventuser.EventUserSerializerResponse.identifier<anyOf2>

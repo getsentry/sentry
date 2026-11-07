@@ -477,6 +477,8 @@ def _fix_nullable_enums(node: Any) -> None:
 
 
 def _canonical_issue_path(path: str) -> str:
+    if "/shared/{var}/{share_id}" in path:
+        return path.replace("/shared/{var}/{share_id}", "/shared/issues/{share_id}")
     if "{var}/{issue_id}" not in path:
         return path
     path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
@@ -492,8 +494,8 @@ def _fix_issue_paths(result: Any) -> Any:
     The way we define `/issues/` paths causes some problems with drf-spectacular:
     - The path may be defined twice, with `/organizations/{organization_id_slug}` prefix and
       without. We want to use the `/organizations` prefixed path as it works across regions.
-    - The `/issues/` part of the path is defined as `issues|groups` for compatibility reasons,
-      but we only want to use `issues` in the docs
+    - The `/issues/` part of the path, including in `/shared/issues/`, is defined as
+      `issues|groups` for compatibility reasons, but we only want to use `issues` in the docs
 
     This function removes duplicate paths, removes the `issues|groups` path parameter and
     replaces it with `issues` in the path.
@@ -503,7 +505,7 @@ def _fix_issue_paths(result: Any) -> Any:
     modified_paths = []
 
     for path, endpoint in items:
-        if "{var}/{issue_id}" in path:
+        if _canonical_issue_path(path) != path:
             modified_paths.append(path)
 
     for path in modified_paths:
