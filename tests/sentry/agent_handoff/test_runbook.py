@@ -87,7 +87,8 @@ def test_credentials_and_instance_remain_shell_arguments(field: str, value: str)
     ]
     assert shlex.split(installer)[4:] == [*assignments, "bash"]
     assert (
-        f"SENTRY_URL={shlex.quote(context['sentry_url'])} sentry auth status --fresh --json"
+        f"SENTRY_URL={shlex.quote(context['sentry_url'])} "
+        f"SENTRY_CLIENT_ID={shlex.quote(context['client_id'])} sentry auth status --fresh --json"
         in guide
     )
 
@@ -202,3 +203,19 @@ def test_onboarding_flow_uses_live_documentation(mode: HandoffMode) -> None:
     )
     assert "You're onboarding a new user to Sentry" in guide
     assert "https://docs.sentry.io/index.md" in guide
+
+
+@pytest.mark.parametrize("sentry_url", ["sentry.io", "https://sentry.io", "https://sentry.io/"])
+def test_default_instance_uses_cli_environment_defaults(sentry_url: str) -> None:
+    guide = render(sentry_url=sentry_url)
+
+    assert "SENTRY_HOST" not in guide
+    assert "SENTRY_URL" not in guide
+    assert "SENTRY_CLIENT_ID" not in guide
+    assert "```bash\nsentry auth status --fresh --json\n```" in guide
+    assert "```powershell\nsentry auth status --fresh --json\n```" in guide
+    assert (
+        "curl -fsSL https://cli.sentry.dev/install | "
+        "SENTRY_SETUP_CODE=sntryc_example-setup-code bash"
+    ) in guide
+    assert "$env:SENTRY_SETUP_CODE = 'sntryc_example-setup-code'" in guide

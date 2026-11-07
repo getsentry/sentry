@@ -418,10 +418,9 @@ def pytest_configure(config: pytest.Config) -> None:
     register_extensions()
 
     if not SENTRY_SKIP_SERVICE_VALIDATION:
-        from sentry.utils.redis import clusters
+        from sentry.utils.redis import redis_clusters
 
-        with clusters.get("default").all() as client:
-            client.flushdb()
+        redis_clusters.get("default").flushdb()
 
 
 def register_extensions() -> None:
@@ -481,10 +480,9 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     newsletter.backend.test_only__downcast_to(DummyNewsletter).clear()
 
-    from sentry.utils.redis import clusters, pop_used_key_prefix_clients
+    from sentry.utils.redis import pop_used_key_prefix_clients, redis_clusters
 
-    with clusters.get("default").all() as client:
-        client.flushdb()
+    redis_clusters.get("default").flushdb()
 
     for cluster_client in pop_used_key_prefix_clients():
         try:
