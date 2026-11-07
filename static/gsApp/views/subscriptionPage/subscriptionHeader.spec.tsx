@@ -127,24 +127,24 @@ describe('SubscriptionHeader', () => {
     );
   }
 
-  it('renders Seer pricing alert for a sales account that pays for Seer', async () => {
-    renderWithSeer({type: BillingType.INVOICED, paidSeer: true});
+  it('renders Seer pricing alert for a self-serve customer that pays for Seer', async () => {
+    renderWithSeer({type: BillingType.CREDIT_CARD, paidSeer: true});
     expect(
       await screen.findByText(/How we charge for Seer is changing/)
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Learn more'})).toBeInTheDocument();
   });
 
-  it('does not render Seer pricing alert for a self-serve customer that pays for Seer', async () => {
-    renderWithSeer({type: BillingType.CREDIT_CARD, paidSeer: true});
+  it('does not render Seer pricing alert for a sales account that pays for Seer', async () => {
+    renderWithSeer({type: BillingType.INVOICED, paidSeer: true});
     await screen.findByRole('heading', {name: 'Receipts & notifications'});
     expect(
       screen.queryByText(/How we charge for Seer is changing/)
     ).not.toBeInTheDocument();
   });
 
-  it('does not render Seer pricing alert for a sales account without paid Seer', async () => {
-    renderWithSeer({type: BillingType.INVOICED, paidSeer: false});
+  it('does not render Seer pricing alert for a self-serve customer without paid Seer', async () => {
+    renderWithSeer({type: BillingType.CREDIT_CARD, paidSeer: false});
     await screen.findByRole('heading', {name: 'Receipts & notifications'});
     expect(
       screen.queryByText(/How we charge for Seer is changing/)

@@ -22,7 +22,7 @@ export function hasPaidSeer(subscription: Subscription) {
 
 function SeerAnnouncementAlert({children}: {children: ReactNode}) {
   const subscription = useSubscription();
-  if (!subscription || !isSalesAccount(subscription)) {
+  if (subscription && isSalesAccount(subscription)) {
     return null;
   }
 
