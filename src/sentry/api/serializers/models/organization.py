@@ -25,6 +25,7 @@ from sentry.api.serializers.models.role import (
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.utils import generate_locality_url
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import NumericId, Slug, hex_id, numeric_id, slug
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
@@ -152,8 +153,8 @@ class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
 
 
 class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
-    id: Annotated[str, ApiDescription("Organization ID")]
-    slug: Annotated[str, ApiDescription("Organization slug")]
+    id: Annotated[NumericId, ApiDescription("Organization ID")]
+    slug: Annotated[Slug, ApiDescription("Organization slug")]
     status: Annotated[_Status, ApiDescription("Organization status")]
     name: Annotated[str, ApiDescription("Organization name, or its slug when it has no name")]
     dateCreated: Annotated[datetime, ApiDescription("When the organization was created (ISO 8601)")]
@@ -409,7 +410,9 @@ class ControlSiloOrganizationMappingSerializer(
             # control silo.
             avatar: SerializedAvatarFields = {
                 "avatarType": avatar_type,
-                "avatarUuid": avatar_replica.avatar_ident if avatar_type == "upload" else None,
+                "avatarUuid": (
+                    hex_id(avatar_replica.avatar_ident) if avatar_type == "upload" else None
+                ),
                 "avatarUrl": avatar_replica.absolute_url(),
             }
         else:
@@ -562,7 +565,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
+                "avatarUuid": hex_id(attrs["avatar"].ident) if attrs["avatar"].file_id else None,
                 "avatarUrl": attrs["avatar"].absolute_url(),
             }
         else:
@@ -575,8 +578,8 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         has_auth_provider = attrs.get("auth_provider", None) is not None
 
         context: OrganizationSummarySerializerResponse = {
-            "id": str(obj.id),
-            "slug": obj.slug,
+            "id": numeric_id(obj.id),
+            "slug": slug(obj.slug),
             "status": {"id": status.name.lower(), "name": status.label},
             "name": obj.name or obj.slug,
             "dateCreated": obj.date_added,

@@ -8,7 +8,7 @@ from sentry.api.serializers.models.group import (
     SharedGroupSerializerResponse,
 )
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnubaResponse
-from sentry.apidocs.formats import absolute_url
+from sentry.apidocs.formats import absolute_url, numeric_id, slug
 
 SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "annotations": [],
@@ -33,7 +33,12 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "metadata": {"title": "This is an example Python exception"},
     "numComments": 0,
     "permalink": "https://sentry.io/the-interstellar-jurisdiction/pump-station/issues/1/",
-    "project": {"id": "2", "name": "Pump Station", "slug": "pump-station", "platform": "python"},
+    "project": {
+        "id": numeric_id("2"),
+        "name": "Pump Station",
+        "slug": slug("pump-station"),
+        "platform": "python",
+    },
     "shareId": "123def456abc",
     "shortId": "PUMP-STATION-1",
     "stats": {
@@ -154,7 +159,7 @@ MUTATE_ISSUE_RESULT: MutateIssueResponse = {
 
 
 GROUP_DETAILS: GroupDetailsResponse = {
-    "id": "1",
+    "id": numeric_id("1"),
     "shareId": "123def456abc",
     "shortId": "PUMP-STATION-1",
     "title": "This is an example Python exception",
@@ -174,7 +179,12 @@ GROUP_DETAILS: GroupDetailsResponse = {
     "seerFixabilityScore": None,
     "seerAutofixLastTriggered": None,
     "seerExplorerAutofixLastTriggered": None,
-    "project": {"id": "2", "name": "Pump Station", "slug": "pump-station", "platform": "python"},
+    "project": {
+        "id": numeric_id("2"),
+        "name": "Pump Station",
+        "slug": slug("pump-station"),
+        "platform": "python",
+    },
     "type": "default",
     "issueType": "error",
     "issueCategory": "error",

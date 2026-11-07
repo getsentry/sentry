@@ -7,9 +7,10 @@ from sentry.api.serializers.models.event import (
     GroupEventDetailsResponse,
     SimpleEventSerializerResponse,
 )
+from sentry.apidocs.formats import hex_id, numeric_id
 
 SIMPLE_EVENT: SimpleEventSerializerResponse = {
-    "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
+    "eventID": hex_id("9fac2ceed9344f2bbfdd1fdacb0ed9b1"),
     "tags": [
         {"key": "browser", "value": "Chrome 60.0"},
         {"key": "device", "value": "Other"},
@@ -24,14 +25,14 @@ SIMPLE_EVENT: SimpleEventSerializerResponse = {
     "user": None,
     "message": "",
     "title": "This is an example Python exception",
-    "id": "dfb1a2d057194e76a4186cc8a5271553",
+    "id": hex_id("dfb1a2d057194e76a4186cc8a5271553"),
     "platform": "python",
     "event.type": "error",
-    "groupID": "1889724436",
+    "groupID": numeric_id("1889724436"),
     "crashFile": None,
     "location": "example.py:123",
     "culprit": "/books/new/",
-    "projectID": "49271",
+    "projectID": numeric_id("49271"),
     "metadata": {
         "type": "ExampleException",
         "value": "This is an example Python exception",
@@ -39,14 +40,14 @@ SIMPLE_EVENT: SimpleEventSerializerResponse = {
 }
 
 GROUP_EVENT: GroupEventDetailsResponse = {
-    "groupID": "1341191803",
-    "eventID": "9999aaaaca8b46d797c23c6077c6ff01",
+    "groupID": numeric_id("1341191803"),
+    "eventID": hex_id("9999aaaaca8b46d797c23c6077c6ff01"),
     "dist": None,
     "userReport": None,
     "previousEventID": None,
     "message": "",
     "title": "This is an example Python exception",
-    "id": "9999aaafcc8b46d797c23c6077c6ff01",
+    "id": hex_id("9999aaafcc8b46d797c23c6077c6ff01"),
     "size": 107762,
     "errors": [
         {
@@ -416,7 +417,7 @@ GROUP_EVENT: GroupEventDetailsResponse = {
     "culprit": "/books/new/",
     "groupingConfig": {"enhancements": "abc", "id": "2359823092345612392"},
     "occurrence": None,
-    "projectID": "5236886",
+    "projectID": numeric_id("5236886"),
     "resolvedWith": [],
     "sdkUpdates": [],
 }
@@ -424,10 +425,10 @@ GROUP_EVENT: GroupEventDetailsResponse = {
 # Base event response shape returned by EventSerializer.serialize. Compared to
 # GROUP_EVENT (GroupEventDetailsResponse), this omits fields added by other serializers or for navigation
 EVENT_RESPONSE: EventSerializerResponse = {
-    "id": "9999aaafcc8b46d797c23c6077c6ff01",
-    "groupID": "1341191803",
-    "eventID": "9999aaaaca8b46d797c23c6077c6ff01",
-    "projectID": "5236886",
+    "id": hex_id("9999aaafcc8b46d797c23c6077c6ff01"),
+    "groupID": numeric_id("1341191803"),
+    "eventID": hex_id("9999aaaaca8b46d797c23c6077c6ff01"),
+    "projectID": numeric_id("5236886"),
     "message": "",
     "title": "This is an example Python exception",
     "location": "example.py:123",

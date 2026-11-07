@@ -3,6 +3,7 @@ from typing import Annotated, Any, Literal, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import Uuid, uuid_str
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.workflow_engine.types import ActionHandler
 
@@ -11,7 +12,7 @@ class SentryAppContext(TypedDict):
     id: Annotated[str, ApiDescription("ID of the Sentry app")]
     name: Annotated[str, ApiDescription("Name of the Sentry app")]
     installationId: Annotated[str, ApiDescription("ID of the Sentry app installation")]
-    installationUuid: Annotated[str, ApiDescription("UUID of the Sentry app installation")]
+    installationUuid: Annotated[Uuid, ApiDescription("UUID of the Sentry app installation")]
     status: Annotated[str, ApiDescription("Status of the Sentry app")]
     settings: NotRequired[
         Annotated[
@@ -128,7 +129,7 @@ class ActionHandlerSerializer(Serializer[ActionHandlerSerializerResponse]):
                 "id": str(installation.sentry_app.id),
                 "name": installation.sentry_app.name,
                 "installationId": str(installation.id),
-                "installationUuid": str(installation.uuid),
+                "installationUuid": uuid_str(installation.uuid),
                 "status": installation.sentry_app.status,
             }
             if component:
