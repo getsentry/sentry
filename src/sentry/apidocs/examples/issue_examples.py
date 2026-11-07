@@ -8,7 +8,7 @@ from sentry.api.serializers.models.group import (
     SharedGroupSerializerResponse,
 )
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnubaResponse
-from sentry.apidocs.formats import absolute_url, numeric_id, slug
+from sentry.apidocs.formats import absolute_url, hex_id, numeric_id, slug
 
 SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "annotations": [],
@@ -244,10 +244,10 @@ SHARED_ISSUE: SharedGroupSerializerResponse = {
     "isUnhandled": False,
     "issueCategory": "error",
     "latestEvent": {
-        "id": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
-        "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
-        "groupID": "1",
-        "projectID": "2",
+        "id": hex_id("9fac2ceed9344f2bbfdd1fdacb0ed9b1"),
+        "eventID": hex_id("9fac2ceed9344f2bbfdd1fdacb0ed9b1"),
+        "groupID": numeric_id("1"),
+        "projectID": numeric_id("2"),
         "title": "Payment failed",
         "message": "Payment failed",
         "location": None,
