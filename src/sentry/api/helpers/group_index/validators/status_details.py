@@ -1,21 +1,46 @@
-from typing import NotRequired, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.api.helpers.group_index.validators.in_commit import InCommitResult, InCommitValidator
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.release import Release
 
 
 class StatusDetailsResult(TypedDict):
-    inNextRelease: NotRequired[bool]
-    inRelease: NotRequired[str]
-    inCommit: NotRequired[InCommitResult]
-    ignoreDuration: NotRequired[int]
-    ignoreCount: NotRequired[int]
-    ignoreWindow: NotRequired[int]
-    ignoreUserCount: NotRequired[int]
-    ignoreUserWindow: NotRequired[int]
+    inNextRelease: NotRequired[
+        Annotated[bool, ApiDescription("Whether the issues are resolved in the next release")]
+    ]
+    inRelease: NotRequired[
+        Annotated[str, ApiDescription("Version of the release the issues are resolved in")]
+    ]
+    inCommit: NotRequired[
+        Annotated[InCommitResult, ApiDescription("Commit that resolves the issues")]
+    ]
+    ignoreDuration: NotRequired[
+        Annotated[int, ApiDescription("Minutes the issues are ignored for")]
+    ]
+    ignoreCount: NotRequired[
+        Annotated[
+            int,
+            ApiDescription(
+                "Number of occurrences, within ignoreWindow minutes, after which the issues stop being ignored"
+            ),
+        ]
+    ]
+    ignoreWindow: NotRequired[Annotated[int, ApiDescription("Window in minutes for ignoreCount")]]
+    ignoreUserCount: NotRequired[
+        Annotated[
+            int,
+            ApiDescription(
+                "Number of affected users, within ignoreUserWindow minutes, after which the issues stop being ignored"
+            ),
+        ]
+    ]
+    ignoreUserWindow: NotRequired[
+        Annotated[int, ApiDescription("Window in minutes for ignoreUserCount")]
+    ]
 
 
 @extend_schema_serializer()

@@ -1,42 +1,5 @@
 # Response fields that are not described or typed yet; see src/sentry/apidocs/README.md#response-fields.
 # Only remove lines: python -m sentry.apidocs.response_coverage --prune
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].annotations
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].assignedTo
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].count
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].culprit
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].firstSeen
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].hasSeen
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].id
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].isBookmarked
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].isPublic
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].isSubscribed
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].lastSeen
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].level
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].logger
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].metadata
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].metadata<oneOf0>.filename
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].metadata<oneOf0>.type
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].metadata<oneOf0>.value
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].metadata<oneOf1>.title
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].numComments
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].permalink
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].project
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].project.id
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].project.name
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].project.slug
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].shareId
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].shortId
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].stats
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].stats.24h
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].status
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].statusDetails
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].subscriptionDetails
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].title
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].type
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].userCount
-missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200.isPublic
-missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200.status
-missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200.statusDetails
 missing-description components/ProjectRepoLinkResponse.created
 missing-description components/ProjectRepoLinkResponse.id
 missing-description components/ProjectRepoLinkResponse.projectId
@@ -98,34 +61,6 @@ missing-description sentry.api.endpoints.release_thresholds.types.SerializedThre
 missing-description sentry.api.endpoints.release_thresholds.types.SerializedThreshold.value
 missing-description sentry.api.endpoints.release_thresholds.types.SerializedThreshold.window_in_seconds
 missing-description sentry.api.endpoints.seer_models.SeerModelsResponse.models
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.assignedTo
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.discard
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.hasSeen
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.inbox
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.isBookmarked
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.isPublic
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.isSubscribed
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.merge
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.priority
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.shareId
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.status
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.statusDetails
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.subscriptionDetails
-missing-description sentry.api.helpers.group_index.types.MutateIssueResponse.substatus
-missing-description sentry.api.helpers.group_index.validators.in_commit.InCommitResult.commit
-missing-description sentry.api.helpers.group_index.validators.in_commit.InCommitResult.repository
-missing-description sentry.api.helpers.group_index.validators.status_details.StatusDetailsResult.ignoreCount
-missing-description sentry.api.helpers.group_index.validators.status_details.StatusDetailsResult.ignoreDuration
-missing-description sentry.api.helpers.group_index.validators.status_details.StatusDetailsResult.ignoreUserCount
-missing-description sentry.api.helpers.group_index.validators.status_details.StatusDetailsResult.ignoreUserWindow
-missing-description sentry.api.helpers.group_index.validators.status_details.StatusDetailsResult.ignoreWindow
-missing-description sentry.api.helpers.group_index.validators.status_details.StatusDetailsResult.inCommit
-missing-description sentry.api.helpers.group_index.validators.status_details.StatusDetailsResult.inNextRelease
-missing-description sentry.api.helpers.group_index.validators.status_details.StatusDetailsResult.inRelease
-missing-description sentry.api.serializers.models.actor.ActorSerializerResponse.email
-missing-description sentry.api.serializers.models.actor.ActorSerializerResponse.id
-missing-description sentry.api.serializers.models.actor.ActorSerializerResponse.name
-missing-description sentry.api.serializers.models.actor.ActorSerializerResponse.type
 missing-description sentry.api.serializers.models.debug_file.DebugFileSerializerResponse.codeId
 missing-description sentry.api.serializers.models.debug_file.DebugFileSerializerResponse.cpuName
 missing-description sentry.api.serializers.models.debug_file.DebugFileSerializerResponse.data
@@ -511,24 +446,11 @@ missing-description sentry.issues.issue_occurrence.IssueEvidenceData.name
 missing-description sentry.issues.issue_occurrence.IssueEvidenceData.value
 missing-description sentry.issues.issue_occurrence.IssueOccurrenceResponse.evidenceData
 missing-description sentry.issues.issue_occurrence.IssueOccurrenceResponse.type
-missing-description sentry.issues.merge.MergedGroup.children
-missing-description sentry.issues.merge.MergedGroup.parent
 missing-description sentry.issues.ownership.grammar.OwnershipRuleMatcher.pattern
 missing-description sentry.issues.ownership.grammar.OwnershipRuleMatcher.type
 missing-description sentry.models.eventerror.EventErrorApiContext.data
 missing-description sentry.models.eventerror.EventErrorApiContext.message
 missing-description sentry.models.eventerror.EventErrorApiContext.type
-missing-description sentry.models.groupinbox.InboxDetails.date_added
-missing-description sentry.models.groupinbox.InboxDetails.reason
-missing-description sentry.models.groupinbox.InboxDetails.reason_details
-missing-description sentry.models.groupinbox.InboxReasonDetails.count
-missing-description sentry.models.groupinbox.InboxReasonDetails.until
-missing-description sentry.models.groupinbox.InboxReasonDetails.user_count
-missing-description sentry.models.groupinbox.InboxReasonDetails.user_window
-missing-description sentry.models.groupinbox.InboxReasonDetails.window
-missing-description sentry.models.groupowner.OwnersSerialized.date_added
-missing-description sentry.models.groupowner.OwnersSerialized.owner
-missing-description sentry.models.groupowner.OwnersSerialized.type
 missing-description sentry.notifications.api.serializers.notification_action_response.OutgoingNotificationActionResponse.id
 missing-description sentry.notifications.api.serializers.notification_action_response.OutgoingNotificationActionResponse.integrationId
 missing-description sentry.notifications.api.serializers.notification_action_response.OutgoingNotificationActionResponse.organizationId
@@ -539,8 +461,6 @@ missing-description sentry.notifications.api.serializers.notification_action_res
 missing-description sentry.notifications.api.serializers.notification_action_response.OutgoingNotificationActionResponse.targetIdentifier
 missing-description sentry.notifications.api.serializers.notification_action_response.OutgoingNotificationActionResponse.targetType
 missing-description sentry.notifications.api.serializers.notification_action_response.OutgoingNotificationActionResponse.triggerType
-missing-description sentry.notifications.helpers.SubscriptionDetails.disabled
-missing-description sentry.notifications.helpers.SubscriptionDetails.reason
 missing-description sentry.release_health.base.CurrentAndPreviousCrashFreeRate.currentCrashFreeRate
 missing-description sentry.release_health.base.CurrentAndPreviousCrashFreeRate.previousCrashFreeRate
 missing-description sentry.release_health.base.GroupKeyDict.environment
@@ -586,9 +506,7 @@ missing-description sentry.snuba.outcomes.StatsApiResponse.start
 missing-description sentry.snuba.outcomes._StatsGroup.by
 missing-description sentry.snuba.outcomes._StatsGroup.series
 missing-description sentry.snuba.outcomes._StatsGroup.totals
-untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].assignedTo
 untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].statusDetails
-untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].subscriptionDetails
 untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].issue
 untyped POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.issue
 untyped PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200.statusDetails
