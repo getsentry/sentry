@@ -306,7 +306,7 @@ class UserDetailsPermission(UserAndStaffPermission):
             isinstance(request.successful_authenticator, UserAuthTokenAuthentication)
             and is_api_token_auth(request.auth)
             and not agent_token.is_agent_auth(request.auth)
-            and not getattr(request.user, "is_sentry_app", False)
+            and not request.user.is_sentry_app
         )
 
 
