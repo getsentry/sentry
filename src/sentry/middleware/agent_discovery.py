@@ -14,6 +14,7 @@ AGENT_DISCOVERY_LINK_HEADER = (
     ', </.well-known/oauth-authorization-server>; rel="oauth-authorization-server"; type="application/json"'
     ', </.well-known/mcp/server-card.json>; rel="https://modelcontextprotocol.io/rel/server-card"; type="application/json"'
     ', </.well-known/agent-skills/index.json>; rel="https://agentskills.io/rel/skills-index"; type="application/json"'
+    ', </.well-known/agent-problem-reports>; rel="https://sentry.io/rel/agent-problem-reports"; type="text/markdown"'
     ', <https://docs.sentry.io/api/>; rel="service-doc"; type="text/html"'
 )
 
