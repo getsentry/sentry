@@ -105,6 +105,36 @@ describe('SubscriptionHeader', () => {
     }
   }
 
+  it('renders Seer pricing alert only when the customer pays for Seer', async () => {
+    const organization = OrganizationFixture({access: ['org:billing']});
+    const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+    SubscriptionStore.set(organization.slug, subscription);
+    const {rerender} = render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
+    );
+    await screen.findByRole('heading', {name: 'Receipts & notifications'});
+    expect(
+      screen.queryByText(/How we charge for Seer is changing/)
+    ).not.toBeInTheDocument();
+
+    const seerSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      addOns: {
+        ...subscription.addOns,
+        seer: {...subscription.addOns!.seer!, enabled: true},
+      },
+    });
+    rerender(
+      <SubscriptionHeader organization={organization} subscription={seerSubscription} />
+    );
+    expect(
+      await screen.findByText(/How we charge for Seer is changing/)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Learn more'})).toBeInTheDocument();
+  });
+
   it('renders header cards and manage plan button for self-serve free customers', async () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
