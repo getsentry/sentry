@@ -49,7 +49,7 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-        assert response.data["detail"] == "Team does not exist."
+        assert response.data["detail"] == "Team 'not-a-team' does not exist."
 
     @with_feature("organizations:team-roles")
     def test_add_team_with_team_role(self) -> None:
@@ -169,7 +169,7 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-        assert response.data["detail"] == "Team does not exist."
+        assert response.data["detail"] == "Team 'not-a-team' does not exist."
 
     @with_feature("organizations:team-roles")
     def test_remove_team_with_team_role(self) -> None:
