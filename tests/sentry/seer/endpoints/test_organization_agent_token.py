@@ -1630,6 +1630,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             self._resource("replay_recording_segment")
             return "0"
         if placeholder == "snapshot_id" and endpoint.endpoint_name in {
+            "OrganizationPreprodSnapshotArchiveEndpoint",
             "OrganizationPreprodSnapshotEndpoint",
             "OrganizationPreprodSnapshotImageDetailEndpoint",
         }:
@@ -2230,6 +2231,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("ProjectKeyDetailsEndpoint", "PUT"): {"name": "Permission matrix key"},
             ("ProjectKeysEndpoint", "POST"): {"name": "Permission matrix key"},
             ("ProjectOwnershipEndpoint", "PUT"): {"raw": f"* {self.owner.email}"},
+            # No chunks makes this a status poll, so no build is created.
+            ("ProjectPreprodArtifactAssembleEndpoint", "POST"): {
+                "checksum": "a" * 40,
+                "chunks": [],
+            },
             ("ProjectPreprodSizeAnalysisSkipStatusCheckEndpoint", "POST"): {
                 "sha": "a" * 40,
                 "repository": "owner/not-integrated",
