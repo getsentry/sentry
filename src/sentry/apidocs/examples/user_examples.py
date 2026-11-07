@@ -36,3 +36,50 @@ class UserExamples:
             response_only=True,
         )
     ]
+
+    RETRIEVE_API_INDEX = [
+        OpenApiExample(
+            "Retrieve the current credentials",
+            value={
+                "version": "0",
+                "auth": {"scopes": ["org:read", "project:read"]},
+                "user": {
+                    "id": "1",
+                    "name": "Jane Bloggs",
+                    "username": "jane@example.com",
+                    "email": "jane@example.com",
+                    "avatarUrl": "https://gravatar.com/avatar/1d4e7f2c9b3a?s=32&d=mm",
+                    "isActive": True,
+                    "isSuspended": False,
+                    "hasPasswordAuth": True,
+                    "isManaged": False,
+                    "dateJoined": "2023-03-01T18:12:42.000000Z",
+                    "lastLogin": "2026-11-02T09:31:05.000000Z",
+                    "has2fa": True,
+                    "lastActive": "2026-11-07T15:20:11.000000Z",
+                    "isSuperuser": False,
+                    "isStaff": False,
+                    "emails": [{"id": "1", "email": "jane@example.com", "is_verified": True}],
+                    "experiments": {},
+                    "options": {
+                        "theme": "system",
+                        "language": "en",
+                        "stacktraceOrder": -1,
+                        "defaultIssueEvent": "recommended",
+                        "timezone": "UTC",
+                        "clock24Hours": False,
+                        "prefersIssueDetailsStreamlinedUI": None,
+                    },
+                    "flags": {"newsletter_consent_prompt": False},
+                    "avatar": {
+                        "avatarType": "letter_avatar",
+                        "avatarUuid": None,
+                        "avatarUrl": None,
+                    },
+                    "identities": [],
+                },
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
