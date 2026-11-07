@@ -105,6 +105,11 @@ concrete type that matches what the endpoint returns. A TypedDict without any
 fields gets `maxProperties: 0`, so it counts as typed: use one for a response
 that is always `{}`.
 
+A few fields hold data whose shape Sentry doesn't define, such as the contexts
+an SDK sent. Type those as `JsonValue` from `sentry.apidocs.formats`: the schema
+lists every JSON type, and the check counts it as typed. Don't use it for a
+field you can type.
+
 `tests/apidocs/test_response_coverage.py` checks this after `make build-api-docs`.
 Fields that already lacked a description or a type are listed in
 `tests/apidocs/response-coverage-baseline.txt`, so the check fails only for new
