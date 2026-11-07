@@ -14,6 +14,9 @@ from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.types.actor import Actor
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
+    TriggerSerializerResponse,
+)
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataConditionGroup,
@@ -59,7 +62,8 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
         ApiDescription("Data sources the monitor evaluates, such as a query subscription"),
     ]
     conditionGroup: Annotated[
-        dict[str, Any] | None, ApiDescription("Conditions that decide the monitor's status")
+        TriggerSerializerResponse | None,
+        ApiDescription("Conditions that decide the monitor's status"),
     ]
     config: Annotated[
         dict[str, Any], ApiDescription("Configuration of the monitor, which depends on its type")

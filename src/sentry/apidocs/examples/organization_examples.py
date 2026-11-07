@@ -495,7 +495,7 @@ class OrganizationExamples:
                 "end": "2023-09-19T12:28:00Z",
                 "projects": [
                     {
-                        "id": "1",
+                        "id": 1,
                         "slug": "android-project",
                         "stats": [
                             {

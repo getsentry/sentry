@@ -10,7 +10,6 @@ untyped sentry.ai_monitoring.endpoints.organization_ai_conversation_details.AICo
 untyped sentry.api.endpoints.organization_events.EventsApiResponse.data[]
 untyped sentry.api.endpoints.organization_events.EventsMeta.debug_info
 untyped sentry.api.endpoints.organization_events.EventsMeta.discoverSplitDecision
-untyped sentry.api.endpoints.organization_stats_summary._ProjectSummaryStats.stats[]
 untyped sentry.api.endpoints.organization_trace_meta_types.OrganizationTraceMetaResponse.transactionChildCountMap[]
 untyped sentry.api.serializers.models.dashboard.DashboardFilters.globalFilter[]
 untyped sentry.api.serializers.models.debug_file.DebugFileSerializerResponse.data
@@ -34,7 +33,6 @@ untyped sentry.api.serializers.models.project._OrganizationProjectOptionalRespon
 untyped sentry.api.serializers.models.release_file.ReleaseFileSerializerResponse.headers
 untyped sentry.api.serializers.types.GroupEventReleaseSerializerResponse.data
 untyped sentry.api.serializers.types.ReleaseSerializerResponse.data
-untyped sentry.core.endpoints.scim.schemas.SCIMSchemaResponse.attributes[]
 untyped sentry.flags.endpoints.logs.FlagAuditLogModelSerializerResponse.tags
 untyped sentry.integrations.api.serializers.models.integration.IntegrationProviderInfo.aspects
 untyped sentry.integrations.api.serializers.models.integration.IntegrationProviderResponse.metadata
@@ -48,20 +46,15 @@ untyped sentry.issues.issue_occurrence.IssueOccurrenceResponse.evidenceData
 untyped sentry.models.eventerror.EventErrorApiContext.data
 untyped sentry.preprod.api.models.public.size_analysis.DiffItemResponseDict.diffItems[]
 untyped sentry.preprod.api.models.public.size_analysis.SizeAnalysisResponseDict.insights
-untyped sentry.replays.endpoints.project_replay_viewed_by.ReplayViewedByResponsePayload.viewed_by[]
 untyped sentry.replays.post_process.ReplayDetailsResponse.clicks[]
 untyped sentry.seer.autofix.types.AutofixStateResponse.autofix
 untyped sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentSerializerResponse.schema
 untyped sentry.sentry_apps.utils.errors.SentryAppPublicErrorBody.context
-untyped sentry.snuba.outcomes._StatsGroup.by
-untyped sentry.snuba.outcomes._StatsGroup.series
-untyped sentry.snuba.outcomes._StatsGroup.totals
 untyped sentry.snuba.trace.SerializedSpan.additional_attributes
 untyped sentry.snuba.trace.SerializedUptimeCheck.additional_attributes
 untyped sentry.workflow_engine.endpoints.serializers.action_handler_serializer.ActionHandlerSerializerResponse.configSchema
 untyped sentry.workflow_engine.endpoints.serializers.action_handler_serializer.ActionHandlerSerializerResponse.dataSchema
 untyped sentry.workflow_engine.endpoints.serializers.action_handler_serializer.SentryAppContext.settings
-untyped sentry.workflow_engine.endpoints.serializers.detector_serializer.DetectorSerializerResponse.conditionGroup
 untyped sentry.workflow_engine.endpoints.serializers.detector_serializer.DetectorSerializerResponse.config
 untyped sentry.workflow_engine.endpoints.serializers.detector_serializer.DetectorSerializerResponse.dataSources[]
 untyped sentry.workflow_engine.endpoints.serializers.detector_serializer.DetectorSerializerResponseOptional.latestGroup
