@@ -1,10 +1,11 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.users.models.user import User
@@ -12,24 +13,53 @@ from sentry.users.services.user.model import RpcUser
 
 
 class RepositorySettingsSerializerResponse(TypedDict):
-    enabledCodeReview: bool
-    codeReviewTriggers: list[str]
+    enabledCodeReview: Annotated[
+        bool, ApiDescription("Whether AI code review is on for the repository")
+    ]
+    codeReviewTriggers: Annotated[
+        list[str],
+        ApiDescription(
+            "Pull request events that start a code review: on_new_commit or on_ready_for_review"
+        ),
+    ]
 
 
 class RepositorySerializerResponseOptional(TypedDict, total=False):
-    url: str | None
-    provider: dict[str, str]
-    status: str
-    integrationId: str | None
-    externalSlug: str | None
-    externalId: str | None
-    settings: RepositorySettingsSerializerResponse | None
+    url: Annotated[str | None, ApiDescription("URL of the repository")]
+    provider: Annotated[
+        dict[str, str], ApiDescription("Provider of the repository, with its id and name")
+    ]
+    status: Annotated[
+        str,
+        ApiDescription(
+            "Status of the repository: active, disabled, pending_deletion or deletion_in_progress"
+        ),
+    ]
+    integrationId: Annotated[
+        str | None,
+        ApiDescription(
+            "ID of the repository's integration. Null for repositories added without an integration"
+        ),
+    ]
+    externalSlug: Annotated[
+        str | None,
+        ApiDescription("Identifier of the repository in the provider, such as owner/name"),
+    ]
+    externalId: Annotated[str | None, ApiDescription("ID of the repository in the provider")]
+    settings: Annotated[
+        RepositorySettingsSerializerResponse | None,
+        ApiDescription(
+            "Settings of the repository. Only set when expand includes settings. Null when it has none"
+        ),
+    ]
 
 
 class RepositorySerializerResponse(RepositorySerializerResponseOptional):
-    id: str
-    name: str
-    dateCreated: datetime
+    id: Annotated[str, ApiDescription("ID of the repository")]
+    name: Annotated[str, ApiDescription("Name of the repository, such as owner/name")]
+    dateCreated: Annotated[
+        datetime, ApiDescription("When the repository was added to Sentry (ISO 8601)")
+    ]
 
 
 @register(RepositorySettings)

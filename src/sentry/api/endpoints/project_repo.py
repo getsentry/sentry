@@ -149,11 +149,17 @@ class ProjectRepoEndpoint(ProjectEndpoint):
             201: inline_serializer(
                 "ProjectRepoLinkResponse",
                 fields={
-                    "id": serializers.CharField(),
-                    "projectId": serializers.CharField(),
-                    "repositoryId": serializers.CharField(),
-                    "source": serializers.CharField(),
-                    "created": serializers.BooleanField(),
+                    "id": serializers.CharField(
+                        help_text="ID of the link between the project and the repository."
+                    ),
+                    "projectId": serializers.CharField(help_text="ID of the project."),
+                    "repositoryId": serializers.CharField(help_text="ID of the repository."),
+                    "source": serializers.CharField(
+                        help_text="How the link was made: manual, scm_onboarding, auto_event, auto_name_match or seer_preference."
+                    ),
+                    "created": serializers.BooleanField(
+                        help_text="Whether the request created the link. False when it already existed."
+                    ),
                 },
             ),
             400: RESPONSE_BAD_REQUEST,
