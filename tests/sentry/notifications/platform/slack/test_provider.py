@@ -49,10 +49,15 @@ from sentry.notifications.platform.tracking import (
     NotificationTrackingContext,
 )
 from sentry.notifications.platform.types import (
+    BlockQuoteSection,
+    CodeSection,
     NotificationCategory,
     NotificationProviderKey,
+    NotificationRenderedTemplate,
     NotificationSource,
     NotificationTargetResourceType,
+    ParagraphSection,
+    PlainTextBlock,
 )
 from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
@@ -113,6 +118,36 @@ class SlackRendererTest(TestCase):
                 "type": "context",
             },
         ]
+
+    def test_default_renderer_truncates_text_to_slack_limits(self) -> None:
+        data = MockNotification(message="test")
+        long_text = "x" * 5000
+        rendered_template = NotificationRenderedTemplate(
+            subject=[PlainTextBlock(text=long_text)],
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=long_text)]),
+                CodeSection(blocks=[PlainTextBlock(text=long_text)]),
+                BlockQuoteSection(blocks=[PlainTextBlock(text=long_text)]),
+            ],
+        )
+
+        renderable = SlackRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+            link_decorator=NotificationLinkDecorator(
+                data=data, provider=NotificationProviderKey.SLACK
+            ),
+        )
+        # to_dict() runs slack_sdk's validation, which raises on over-length text
+        header, paragraph, code, quote = [block.to_dict() for block in renderable["blocks"]]
+
+        assert len(header["text"]["text"]) == 150
+        assert len(paragraph["text"]["text"]) == 3000
+        assert len(code["text"]["text"]) == 3000
+        assert code["text"]["text"].startswith("```")
+        assert code["text"]["text"].endswith("...```")
+        assert len(quote["text"]["text"]) == 3000
+        assert quote["text"]["text"].startswith(">")
 
 
 class SlackNotificationProviderTest(TestCase):
