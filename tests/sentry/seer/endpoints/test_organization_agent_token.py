@@ -605,6 +605,19 @@ OUTER_BOUNDARY_MUTATION_STATUSES = {
 
 AGENT_SUDO_BOUNDARY_MUTATIONS = frozenset({("TeamDetailsEndpoint", "DELETE")})
 
+# Public rows that are also user-global: agent tokens and service accounts must never read
+# a person's account, so those credentials are denied rather than matching the oracle.
+USER_GLOBAL_ENDPOINT_NAMES = frozenset(
+    endpoint.endpoint_name for endpoint in USER_GLOBAL_GET_ENDPOINTS
+)
+NON_PERSON_AUTHENTICATIONS = frozenset(
+    {
+        MatrixAuthentication.AGENT_TOKEN,
+        MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
+        MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
+    }
+)
+
 
 # Oracle: an owner token with the account's scopes. The account has `all_projects`, so it
 # should reach every project the owner does. User-global routes must deny it, since it has
@@ -1513,6 +1526,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return str(member.id)
         if placeholder == "attachment_id":
             return str(self._resource("event_attachment").id)
+        if placeholder == "user_id":
+            return "me"
         if placeholder == "dashboard_id":
             return str(self._resource("dashboard").id)
         if placeholder == "detector_id":
@@ -2563,6 +2578,16 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         assert baseline.status_code < 500, baseline.content
         expected_baseline_status = OUTER_BOUNDARY_GET_STATUSES.get(endpoint.endpoint_name, 200)
         assert baseline.status_code == expected_baseline_status, baseline.content
+        if (
+            endpoint.endpoint_name in USER_GLOBAL_ENDPOINT_NAMES
+            and authentication in NON_PERSON_AUTHENTICATIONS
+        ):
+            assert response.status_code in {401, 403}, (
+                endpoint.path_template,
+                authentication,
+                response.content,
+            )
+            return
         if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
             self._assert_service_account_outcome(endpoint, authorization_oracle, response)
             return
