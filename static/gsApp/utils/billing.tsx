@@ -22,6 +22,7 @@ import {
 } from 'getsentry/constants';
 import {
   AddOnCategory,
+  BillingType,
   CREDIT_INVOICE_ITEM_TYPES,
   FEE_INVOICE_ITEM_TYPES,
   OnDemandBudgetMode,
@@ -690,6 +691,17 @@ export function hasPaygBudgetForCategory(
     return (subscription.onDemandBudgets.budgets?.[category] ?? 0) > 0;
   }
   return subscription.onDemandBudgets.sharedMaxBudget > 0;
+}
+
+/**
+ * Returns true if sales manages the subscription: it is invoiced, or it has a custom
+ * price. Billing platform subscriptions never report a custom price.
+ */
+export function isSalesAccount(subscription: Subscription) {
+  return (
+    subscription.type === BillingType.INVOICED ||
+    (subscription.customPrice !== null && subscription.customPrice > 0)
+  );
 }
 
 /**

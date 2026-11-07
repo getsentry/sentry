@@ -9,6 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import {BillingType} from 'getsentry/types';
 import {SubscriptionHeader} from 'getsentry/views/subscriptionPage/subscriptionHeader';
 
 describe('SubscriptionHeader', () => {
@@ -105,34 +106,49 @@ describe('SubscriptionHeader', () => {
     }
   }
 
-  it('renders Seer pricing alert only when the customer pays for Seer', async () => {
+  function renderWithSeer({type, paidSeer}: {paidSeer: boolean; type: BillingType}) {
     const organization = OrganizationFixture({access: ['org:billing']});
-    const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
-    SubscriptionStore.set(organization.slug, subscription);
-    const {rerender} = render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />,
-      {additionalWrapper: SecondaryNavigationContextProvider}
-    );
-    await screen.findByRole('heading', {name: 'Receipts & notifications'});
-    expect(
-      screen.queryByText(/How we charge for Seer is changing/)
-    ).not.toBeInTheDocument();
-
-    const seerSubscription = SubscriptionFixture({
+    const baseSubscription = SubscriptionFixture({organization, plan: 'am3_business'});
+    const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_business',
+      type,
       addOns: {
-        ...subscription.addOns,
-        seer: {...subscription.addOns!.seer!, enabled: true},
+        ...baseSubscription.addOns,
+        seer: {...baseSubscription.addOns!.seer!, enabled: paidSeer},
       },
     });
-    rerender(
-      <SubscriptionHeader organization={organization} subscription={seerSubscription} />
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {
+        additionalWrapper: SecondaryNavigationContextProvider,
+      }
     );
+  }
+
+  it('renders Seer pricing alert for a sales account that pays for Seer', async () => {
+    renderWithSeer({type: BillingType.INVOICED, paidSeer: true});
     expect(
       await screen.findByText(/How we charge for Seer is changing/)
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Learn more'})).toBeInTheDocument();
+  });
+
+  it('does not render Seer pricing alert for a self-serve customer that pays for Seer', async () => {
+    renderWithSeer({type: BillingType.CREDIT_CARD, paidSeer: true});
+    await screen.findByRole('heading', {name: 'Receipts & notifications'});
+    expect(
+      screen.queryByText(/How we charge for Seer is changing/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render Seer pricing alert for a sales account without paid Seer', async () => {
+    renderWithSeer({type: BillingType.INVOICED, paidSeer: false});
+    await screen.findByRole('heading', {name: 'Receipts & notifications'});
+    expect(
+      screen.queryByText(/How we charge for Seer is changing/)
+    ).not.toBeInTheDocument();
   });
 
   it('renders header cards and manage plan button for self-serve free customers', async () => {
