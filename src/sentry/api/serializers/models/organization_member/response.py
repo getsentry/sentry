@@ -187,7 +187,6 @@ class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
 )
 class OrganizationMemberWithRolesResponse(OrganizationMemberWithTeamsResponse):
     roles: NotRequired[list[OrganizationRoleSerializerResponse]]  # Deprecated: use orgRoleList
-    invite_link: str | None
     isOnlyOwner: Annotated[
         bool, ApiDescription("Whether the member is the only owner of the organization")
     ]
