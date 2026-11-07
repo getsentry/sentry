@@ -1,11 +1,12 @@
 import mimetypes
 from collections.abc import Mapping
 from datetime import datetime
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
 from sentry.users.models.user import User
@@ -13,15 +14,20 @@ from sentry.users.services.user.model import RpcUser
 
 
 class EventAttachmentSerializerResponse(TypedDict):
-    id: str
-    event_id: str
-    type: str
-    name: str
-    mimetype: str | None
-    dateCreated: datetime
-    size: int
-    headers: dict[str, str | None]
-    sha1: str | None
+    id: Annotated[str, ApiDescription("ID of the attachment")]
+    event_id: Annotated[str, ApiDescription("ID of the event the attachment belongs to")]
+    type: Annotated[
+        str, ApiDescription("Type of the attachment, such as event.attachment or event.minidump")
+    ]
+    name: Annotated[str, ApiDescription("File name of the attachment")]
+    mimetype: Annotated[str | None, ApiDescription("MIME type of the attachment")]
+    dateCreated: Annotated[datetime, ApiDescription("When the attachment was stored (ISO 8601)")]
+    size: Annotated[int, ApiDescription("Size of the attachment in bytes")]
+    headers: Annotated[
+        dict[str, str | None],
+        ApiDescription("Legacy field. Only contains Content-Type, which matches mimetype"),
+    ]
+    sha1: Annotated[str | None, ApiDescription("Legacy field, always null")]
 
 
 @register(EventAttachment)

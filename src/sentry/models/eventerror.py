@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import enum
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
+
+from sentry.apidocs.descriptions import ApiDescription
 
 
 class EventErrorType(enum.StrEnum):
@@ -62,9 +64,14 @@ class EventErrorType(enum.StrEnum):
 
 
 class EventErrorApiContext(TypedDict):
-    type: str
-    message: str
-    data: dict[str, Any]
+    type: Annotated[
+        str, ApiDescription("Type of the processing error, such as invalid_data or js_no_source")
+    ]
+    message: Annotated[str, ApiDescription("Human-readable message of the error")]
+    data: Annotated[
+        dict[str, Any],
+        ApiDescription("Details of the error, such as the name of the invalid field"),
+    ]
 
 
 ErrorData = dict[str, Any]
