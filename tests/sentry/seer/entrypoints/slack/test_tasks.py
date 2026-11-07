@@ -8,6 +8,7 @@ from unittest.mock import ANY, MagicMock, patch
 from django.test import override_settings
 
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
+from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
     SlackSeerAgentFeedback,
@@ -399,6 +400,103 @@ class ProcessMentionForSlackTest(TestCase):
         self._run_task()
 
         assert_not_analytics_event(mock_record, SlackSeerAgentResponded)
+
+
+class ProcessMentionSeerCreditsTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.mock_entrypoint = MagicMock()
+        self.mock_entrypoint.thread_ts = "1234567890.123456"
+        self.mock_entrypoint.install.get_thread_history.return_value = []
+
+    def _run_task(
+        self, *, user_id: int, mock_agent_cls: MagicMock, mock_resolve_user: MagicMock
+    ) -> None:
+        mock_resolve_user.return_value = MagicMock(id=user_id, username="alice")
+        mock_agent_cls.return_value = self.mock_entrypoint
+        process_mention_for_slack(**{**TASK_KWARGS, "organization_id": self.organization.id})
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.entrypoints.slack.tasks.can_run_seer_operation", return_value=False)
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_out_of_credits_halts_without_running(
+        self,
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_can_run: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
+        mock_operator_cls.has_access.return_value = True
+
+        self._run_task(
+            user_id=self.user.id, mock_agent_cls=mock_agent_cls, mock_resolve_user=mock_resolve_user
+        )
+
+        mock_can_run.assert_called_once_with(self.organization, SeerOperation.AGENT_CHAT_MESSAGE)
+        mock_operator_cls.assert_not_called()
+        self.mock_entrypoint.install.get_thread_history.assert_not_called()
+        self.mock_entrypoint.install.set_thread_status.assert_called_once_with(
+            channel_id="C1234567890",
+            thread_ts="1234567890.123456",
+            status="",
+        )
+        assert_halt_metric(mock_record, ProcessMentionHaltReason.OUT_OF_SEER_CREDITS)
+
+    @patch("sentry.seer.credits.seer_credit.backend.check_seer_credits")
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_credit_check_flag_on_with_enough_credits_runs(
+        self,
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_check: MagicMock,
+    ) -> None:
+        mock_operator_cls.has_access.return_value = True
+        mock_operator_cls.return_value.trigger_agent.return_value = None
+        mock_check.return_value = MagicMock(has_enough_credits=True)
+
+        with self.feature(
+            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
+        ):
+            self._run_task(
+                user_id=self.user.id,
+                mock_agent_cls=mock_agent_cls,
+                mock_resolve_user=mock_resolve_user,
+            )
+
+        mock_check.assert_called_once()
+        mock_operator_cls.return_value.trigger_agent.assert_called_once()
+
+    @patch("sentry.seer.credits.seer_credit.backend.check_seer_credits")
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_credit_check_flag_on_without_enough_credits_halts(
+        self,
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_check: MagicMock,
+    ) -> None:
+        mock_operator_cls.has_access.return_value = True
+        mock_check.return_value = MagicMock(has_enough_credits=False)
+
+        with self.feature(
+            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
+        ):
+            self._run_task(
+                user_id=self.user.id,
+                mock_agent_cls=mock_agent_cls,
+                mock_resolve_user=mock_resolve_user,
+            )
+
+        mock_check.assert_called_once()
+        mock_operator_cls.assert_not_called()
 
 
 class LinkedMessagesContextTest(TestCase):
