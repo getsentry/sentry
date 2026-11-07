@@ -13,7 +13,7 @@ import hashlib
 import hmac
 import logging
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, Protocol
 
 import orjson
@@ -139,6 +139,7 @@ class TeapotClient:
         self,
         dump: TeapotAttachment,
         shader_debug_info: Sequence[TeapotAttachment] | None = None,
+        sources: Sequence[Mapping[str, Any]] | None = None,
     ) -> dict[str, Any]:
         shader_debug_info = shader_debug_info or []
         url = f"{self.base_url}/symbolicate"
@@ -157,6 +158,9 @@ class TeapotClient:
                 for att in shader_debug_info
             ],
         }
+        if sources:
+            # Carries the system token; never log the body.
+            body["sources"] = list(sources)
         data = orjson.dumps(body)
         headers = {
             "X-Teapot-Version": "1",
@@ -226,6 +230,7 @@ def submit_to_teapot(
     event_id: str,
     dump: TeapotAttachment,
     shader_debug_info: Sequence[TeapotAttachment] | None = None,
+    sources: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     """Best-effort teapot invocation.
 
@@ -233,11 +238,13 @@ def submit_to_teapot(
     URL, missing attachment, 4xx) — teapot is healthy, so the caller should not
     trip the circuit breaker. Raises ``TeapotUnavailable`` on a genuine outage
     (network, timeout, 5xx) so the caller can.
+
+    ``sources`` tells teapot where to fetch the shader binaries itself.
     """
 
     try:
         client = TeapotClient(project=project, event_id=event_id)
-        return client.symbolicate(dump, shader_debug_info or [])
+        return client.symbolicate(dump, shader_debug_info or [], sources=sources)
     except TeapotRequestError as e:
         logger.info("teapot.request_error", extra={"event_id": event_id, "error": str(e)})
         return None

@@ -8,7 +8,9 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 from xml.sax.saxutils import unescape as _xml_unescape
 
+from sentry.constants import MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.utils import metrics
+from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +127,13 @@ def apply_gpu_crash_symbolication(
             gpu_tags[key] = str(value)
 
     _tag("gpu.shader_hash", primary_shader.get("shader_hash"))
+    shader_group = _shader_group(response)
+    material, shader_class = _shader_group_parts(shader_group)
+    _tag("gpu.shader_group", truncatechars(shader_group, MAX_TAG_VALUE_LENGTH))
+    _tag("gpu.material", material)
+    _tag("gpu.shader_class", shader_class)
+    if shader_group:
+        data["culprit"] = truncatechars(shader_group, MAX_CULPRIT_LENGTH)
     _tag("gpu.shader_type", primary_shader.get("shader_type"))
     _tag("gpu.device", gpu_state.get("device_name"))
     _tag("gpu.generation", _generation_name(gpu_state))
@@ -152,6 +161,27 @@ def apply_gpu_crash_symbolication(
 def _primary_shader(response: Mapping[str, Any]) -> dict[str, Any]:
     active = (response.get("shader_context") or {}).get("active_shaders") or []
     return active[0] if active else {}
+
+
+def _shader_group(response: Mapping[str, Any]) -> str | None:
+    """The UE shader group recorded with the faulting frame's dxil debug file, if any."""
+    frames = response.get("frames") or []
+    first = frames[0] if frames and isinstance(frames[0], dict) else {}
+    group = (first.get("data") or {}).get("shader_group")
+    return group if isinstance(group, str) and group else None
+
+
+def _shader_group_parts(group: str | None) -> tuple[str | None, str | None]:
+    """``(material, shader_class)`` from ``Material/Quality/VertexFactory/ShaderClass/Permutation``
+    or ``Global/ShaderClass/Permutation``."""
+    if not group:
+        return None, None
+    parts = [part for part in group.split("/") if part]
+    if len(parts) < 2:
+        return None, None
+    if parts[0] == "Global":
+        return None, parts[1]
+    return parts[0], parts[-2] if len(parts) >= 3 else None
 
 
 def _raw_sections(response: Mapping[str, Any]) -> dict[str, Any]:
@@ -327,6 +357,8 @@ def _build_gpu_crash_context(response: Mapping[str, Any]) -> dict[str, Any]:
     sections = _raw_sections(response)
     faulted = _faulted_warps(sections)
     first_faulted = faulted[0] if faulted else {}
+    shader_group = _shader_group(response)
+    material, shader_class = _shader_group_parts(shader_group)
 
     flat: dict[str, Any] = {
         "type": "gpu_crash",
@@ -351,6 +383,9 @@ def _build_gpu_crash_context(response: Mapping[str, Any]) -> dict[str, Any]:
         "resource_destroyed": resource.get("was_destroyed") or None,
         "shader_hash": primary_shader.get("shader_hash"),
         "shader_type": primary_shader.get("shader_type"),
+        "shader_group": shader_group,
+        "material": material,
+        "shader_class": shader_class,
         "shader_size": _shader_size(sections),
         "shader_debug_info_uid": primary_shader.get("shader_debug_info_uid"),
         "status": response.get("status"),
@@ -477,6 +512,9 @@ def _normalize_gpu_frames(teapot_frames: list[Any]) -> list[dict[str, Any]]:
             )
         if not frame.get("module") and frame.get("package"):
             frame["module"] = frame["package"]
+        group = raw_data.get("shader_group")
+        if isinstance(group, str) and group and not frame.get("filename"):
+            frame["filename"] = group
 
         frame.setdefault("data", {})
         frame["data"].setdefault("symbolicator_status", "symbolicated")
