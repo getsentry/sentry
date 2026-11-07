@@ -257,9 +257,12 @@ class CadenceTickTest(CadenceTickTestCase):
             ),
             (("cadence.tick.claimed", 2), {}),
         ]
-        ((timing_args, _),) = cadence_metric_calls(mock_timing)
-        assert timing_args[0] == "cadence.trigger.dispatch_duration"
-        assert timing_args[3] == {"trigger_type": "seer_workflow", "result": "success"}
+        (claim_args, _), (dispatch_args, _) = cadence_metric_calls(mock_timing)
+        assert claim_args[0] == "cadence.tick.claim_batch_duration"
+        assert claim_args[3] == {"result": "success"}
+        assert claim_args[4] == 1.0
+        assert dispatch_args[0] == "cadence.trigger.dispatch_duration"
+        assert dispatch_args[3] == {"trigger_type": "seer_workflow", "result": "success"}
 
     @freeze_time(NOW)
     def test_kill_switch(self) -> None:
