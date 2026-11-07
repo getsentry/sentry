@@ -21,34 +21,39 @@ class StatusDetailsResult(TypedDict):
 @extend_schema_serializer()
 class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
     inNextRelease = serializers.BooleanField(
-        help_text="If true, marks the issue as resolved in the next release."
+        required=False, help_text="If true, marks the issue as resolved in the next release."
     )
     inRelease = serializers.CharField(
+        required=False,
         help_text=(
             "The version of the release that the issue should be resolved in."
             "If set to `latest`, the latest release will be used."
-        )
+        ),
     )
     inCommit = InCommitValidator(
         help_text="The commit data that the issue should use for resolution.", required=False
     )
     ignoreDuration = serializers.IntegerField(
-        help_text="Ignore the issue until for this many minutes.", min_value=0
+        required=False, help_text="Ignore the issue until for this many minutes.", min_value=0
     )
     ignoreCount = serializers.IntegerField(
+        required=False,
         help_text="Ignore the issue until it has occurred this many times in `ignoreWindow` minutes.",
         min_value=0,
     )
     ignoreWindow = serializers.IntegerField(
+        required=False,
         help_text="Ignore the issue until it has occurred `ignoreCount` times in this many minutes. (Max: 1 week)",
         min_value=0,
         max_value=7 * 24 * 60,
     )
     ignoreUserCount = serializers.IntegerField(
+        required=False,
         help_text="Ignore the issue until it has affected this many users in `ignoreUserWindow` minutes.",
         min_value=0,
     )
     ignoreUserWindow = serializers.IntegerField(
+        required=False,
         help_text="Ignore the issue until it has affected `ignoreUserCount` users in this many minutes. (Max: 1 week)",
         min_value=0,
         max_value=7 * 24 * 60,
