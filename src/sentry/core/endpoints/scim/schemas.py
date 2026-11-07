@@ -1,4 +1,4 @@
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -198,12 +199,17 @@ SCIM_SCHEMAS_BY_ID = {schema["id"]: schema for schema in SCIM_SCHEMA_LIST}
 
 
 class SCIMSchemaResponse(TypedDict):
-    schemas: list[str]
-    id: str
-    name: str
-    description: str
-    attributes: list[dict[str, Any]]
-    meta: SCIMMetaResponse
+    schemas: Annotated[
+        list[str], ApiDescription("SCIM schema URIs of the response, always the Schema schema")
+    ]
+    id: Annotated[str, ApiDescription("URI of the schema")]
+    name: Annotated[str, ApiDescription("Name of the schema: User or Group")]
+    description: Annotated[str, ApiDescription("What the schema's resources map to in Sentry")]
+    attributes: Annotated[
+        list[dict[str, Any]],
+        ApiDescription("Attributes of the schema, as SCIM attribute definitions"),
+    ]
+    meta: Annotated[SCIMMetaResponse, ApiDescription("Resource type and location of the schema")]
 
 
 def build_schema_representation(

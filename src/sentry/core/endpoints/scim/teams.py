@@ -1,7 +1,7 @@
 import logging
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -30,6 +30,7 @@ from sentry.apidocs.constants import (
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
@@ -185,7 +186,10 @@ def _team_expand(excluded_attributes: list[str]) -> list[str] | None:
 
 
 class SCIMListTeamsResponse(SCIMListBaseResponse):
-    Resources: list[OrganizationTeamSCIMSerializerResponse]
+    Resources: Annotated[
+        list[OrganizationTeamSCIMSerializerResponse],
+        ApiDescription("Teams in this page, as SCIM groups"),
+    ]
 
 
 @extend_schema(tags=["SCIM"])
