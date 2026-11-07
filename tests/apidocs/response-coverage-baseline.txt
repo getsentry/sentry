@@ -1,17 +1,5 @@
 # Response fields that are not described or typed yet; see src/sentry/apidocs/README.md#response-fields.
 # Only remove lines: python -m sentry.apidocs.response_coverage --prune
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 200[].dateCreated
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 200[].events
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 200[].id
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 200[].secret
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 200[].status
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 200[].url
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.dateCreated
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.events
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.id
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.secret
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.status
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.url
 missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].annotations
 missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].assignedTo
 missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].count
@@ -46,41 +34,6 @@ missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or
 missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].title
 missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].type
 missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].userCount
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/tags/{key}/values/ 200[].name
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].comments
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].dateCreated
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].email
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].event
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].event.eventID
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].event.id
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].eventID
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].id
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].issue
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].name
-missing-description GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].user
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 201.dateCreated
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 201.events
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 201.id
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 201.secret
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 201.status
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/ 201.url
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.comments
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.dateCreated
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.email
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.event
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.event.eventID
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.event.id
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.eventID
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.id
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.issue
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.name
-missing-description POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.user
-missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.dateCreated
-missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.events
-missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.id
-missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.secret
-missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.status
-missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/ 200.url
 missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200.isPublic
 missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200.status
 missing-description PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200.statusDetails
@@ -279,16 +232,6 @@ missing-description sentry.api.serializers.models.repository.RepositorySerialize
 missing-description sentry.api.serializers.models.repository.RepositorySerializerResponseOptional.url
 missing-description sentry.api.serializers.models.repository.RepositorySettingsSerializerResponse.codeReviewTriggers
 missing-description sentry.api.serializers.models.repository.RepositorySettingsSerializerResponse.enabledCodeReview
-missing-description sentry.api.serializers.models.userreport.UserReportEvent.eventID
-missing-description sentry.api.serializers.models.userreport.UserReportEvent.id
-missing-description sentry.api.serializers.models.userreport.UserReportSerializerResponse.comments
-missing-description sentry.api.serializers.models.userreport.UserReportSerializerResponse.dateCreated
-missing-description sentry.api.serializers.models.userreport.UserReportSerializerResponse.email
-missing-description sentry.api.serializers.models.userreport.UserReportSerializerResponse.event
-missing-description sentry.api.serializers.models.userreport.UserReportSerializerResponse.eventID
-missing-description sentry.api.serializers.models.userreport.UserReportSerializerResponse.id
-missing-description sentry.api.serializers.models.userreport.UserReportSerializerResponse.name
-missing-description sentry.api.serializers.models.userreport.UserReportSerializerResponse.user
 missing-description sentry.api.serializers.types.GroupEventReleaseSerializerResponse.commitCount
 missing-description sentry.api.serializers.types.GroupEventReleaseSerializerResponse.data
 missing-description sentry.api.serializers.types.GroupEventReleaseSerializerResponse.dateCreated
@@ -643,29 +586,11 @@ missing-description sentry.snuba.outcomes.StatsApiResponse.start
 missing-description sentry.snuba.outcomes._StatsGroup.by
 missing-description sentry.snuba.outcomes._StatsGroup.series
 missing-description sentry.snuba.outcomes._StatsGroup.totals
-missing-description sentry.tagstore.types.TagKeySerializerResponse.key
-missing-description sentry.tagstore.types.TagKeySerializerResponse.name
-missing-description sentry.tagstore.types.TagKeySerializerResponseOptional.uniqueValues
-missing-description sentry.tagstore.types.TagValueSerializerResponse.count
-missing-description sentry.tagstore.types.TagValueSerializerResponse.firstSeen
-missing-description sentry.tagstore.types.TagValueSerializerResponse.key
-missing-description sentry.tagstore.types.TagValueSerializerResponse.lastSeen
-missing-description sentry.tagstore.types.TagValueSerializerResponse.name
-missing-description sentry.tagstore.types.TagValueSerializerResponse.value
-missing-description sentry.tagstore.types.TagValueSerializerResponseOptional.query
-missing-description sentry.utils.eventuser.SerializedEventUser.avatarUrl
-missing-description sentry.utils.eventuser.SerializedEventUser.email
-missing-description sentry.utils.eventuser.SerializedEventUser.id
-missing-description sentry.utils.eventuser.SerializedEventUser.ipAddress
-missing-description sentry.utils.eventuser.SerializedEventUser.name
-missing-description sentry.utils.eventuser.SerializedEventUser.username
 untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].assignedTo
 untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].statusDetails
 untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200[].subscriptionDetails
 untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].issue
-untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].user
 untyped POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.issue
-untyped POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.user
 untyped PUT /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/ 200.statusDetails
 untyped components/ListReplayRecordingSegments[][]
 untyped components/OrganizationProfilingChunksResponse
