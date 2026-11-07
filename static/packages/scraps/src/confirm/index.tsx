@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {cloneElement, Fragment, isValidElement, useRef, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -6,8 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {openModal} from '@sentry/scraps/modal';
-
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 export type ConfirmMessageRenderProps = {
   /**
@@ -159,8 +159,8 @@ export const openConfirmModal = ({
   bypass,
   onConfirming,
   priority = 'primary',
-  cancelText = t('Cancel'),
-  confirmText = t('Confirm'),
+  cancelText,
+  confirmText,
   disableConfirmButton = false,
   onClose,
   ...rest
@@ -214,8 +214,7 @@ export function Confirm({
     return null;
   }
 
-  // TODO(ts): Understand why the return type of `cloneElement` is strange
-  return cloneElement(children, {disabled, onClick: triggerModal}) as any;
+  return cloneElement(children, {disabled, onClick: triggerModal});
 }
 
 type ModalProps = ModalRenderProps &
@@ -253,9 +252,10 @@ function ConfirmModal({
   onConfirm,
   renderMessage,
   message,
-  errorMessage = t('Something went wrong. Please try again.'),
+  errorMessage,
   closeModal,
 }: ModalProps) {
+  const {t} = useTranslation();
   const confirmCallbackRef = useRef<() => void>(() => {});
   const [shouldDisableConfirmButton, setShouldDisableConfirmButton] =
     useState(disableConfirmButton);
@@ -319,7 +319,7 @@ function ConfirmModal({
         {isError && (
           <Alert.Container>
             <Alert variant="danger" showIcon={false}>
-              {errorMessage}
+              {errorMessage ?? t('Something went wrong. Please try again.')}
             </Alert>
           </Alert.Container>
         )}

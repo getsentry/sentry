@@ -8,16 +8,16 @@ import userEvent from '@testing-library/user-event';
 import {
   AutoSaveContextProvider,
   useAutoSaveContext,
-  DisplayField,
-  useFieldId,
-  useHintTextId,
-  useLabelId,
+} from '@sentry/scraps/form/autoSaveContext';
+import {DisplayField} from '@sentry/scraps/form/displayField';
+import {useFieldId, useHintTextId, useLabelId} from '@sentry/scraps/form/field/fieldIds';
+import {
   GroupProvider,
   type GroupContextValue,
-  FieldMeta,
-  fieldContext as FieldContext,
-  FieldLayout,
-} from '@sentry/scraps/formPresentation';
+} from '@sentry/scraps/form/field/groupContext';
+import {FieldMeta} from '@sentry/scraps/form/field/meta';
+import {fieldContext as FieldContext} from '@sentry/scraps/form/formContext';
+import {FieldLayout} from '@sentry/scraps/form/layout';
 import {lightTheme} from '@sentry/scraps/theme';
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {

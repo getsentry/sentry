@@ -1,13 +1,11 @@
+import type * as React from 'react';
 import {useId} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {
-  useAutoSaveContext,
-  useFieldContext,
-  useLabelId,
-  GroupProvider,
-  useGroupItemContext,
-} from '@sentry/scraps/formPresentation';
+import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {useLabelId} from '@sentry/scraps/form/field/fieldIds';
+import {GroupProvider, useGroupItemContext} from '@sentry/scraps/form/field/groupContext';
+import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 

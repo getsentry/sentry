@@ -12,6 +12,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
@@ -27,7 +28,6 @@ import {ArchiveActions} from 'sentry/components/actions/archive';
 import {ResolveActions} from 'sentry/components/actions/resolve';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {openConfirmModal} from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';

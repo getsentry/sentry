@@ -1,14 +1,15 @@
+import type * as React from 'react';
 import {useId} from 'react';
 
+import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {useLabelId} from '@sentry/scraps/form/field/fieldIds';
 import {
-  useAutoSaveContext,
-  useFieldContext,
-  useLabelId,
   GroupProvider,
   useGroupItemContext,
   type GroupContextValue,
-  FieldMeta,
-} from '@sentry/scraps/formPresentation';
+} from '@sentry/scraps/form/field/groupContext';
+import {FieldMeta} from '@sentry/scraps/form/field/meta';
+import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
