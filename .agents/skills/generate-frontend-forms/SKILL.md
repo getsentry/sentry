@@ -191,7 +191,7 @@ Use `field.Select` for form choices. Do not compose a form select from bare `Men
 
 ### Checkbox Group (Multiple Selections)
 
-Use `field.Checkbox.Group` and `field.Checkbox.Item` for multiple selections stored as one string array. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
+Use `field.CheckboxGroup` with a render callback `{({Item}) => ...}` for multiple selections stored as one string array. Pass `field.state.value` as `value` and `field.handleChange` as `onChange` so that item values use the array's element type. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
 
 ### TextArea Field
 
