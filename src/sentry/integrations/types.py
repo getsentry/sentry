@@ -1,31 +1,58 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Any, Generic, Literal, NotRequired, TypedDict, TypeVar
+from typing import Annotated, Any, Generic, Literal, NotRequired, TypedDict, TypeVar
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 
 class IntegrationIssueConfigField(TypedDict):
     """JSON form field returned by an issue integration."""
 
-    name: str
-    label: str
-    type: str
-    default: NotRequired[Any]
-    defaultValue: NotRequired[Any]
-    required: NotRequired[bool]
-    choices: NotRequired[Sequence[tuple[Any, str]]]
-    url: NotRequired[str]
-    updatesForm: NotRequired[bool]
-    multiple: NotRequired[bool]
-    autosize: NotRequired[bool]
-    maxRows: NotRequired[int]
-    maxLength: NotRequired[int]
-    help: NotRequired[str]
-    placeholder: NotRequired[str]
-    prefetch: NotRequired[bool]
-    dependsOn: NotRequired[Sequence[str]]
+    name: Annotated[str, ApiDescription("Name of the form field")]
+    label: Annotated[str, ApiDescription("Label of the form field")]
+    type: Annotated[
+        str, ApiDescription("Type of the form field, such as string, text, select or boolean")
+    ]
+    default: NotRequired[Annotated[Any, ApiDescription("Default value of the field")]]
+    defaultValue: NotRequired[
+        Annotated[
+            Any, ApiDescription("Default value of the field, for integrations that use this key")
+        ]
+    ]
+    required: NotRequired[Annotated[bool, ApiDescription("Whether the field is required")]]
+    choices: NotRequired[
+        Annotated[
+            Sequence[tuple[Any, str]],
+            ApiDescription("Options of a select field, as [value, label] pairs"),
+        ]
+    ]
+    url: NotRequired[
+        Annotated[str, ApiDescription("URL that returns the field's options as the user types")]
+    ]
+    updatesForm: NotRequired[
+        Annotated[bool, ApiDescription("Whether changing the field reloads the form")]
+    ]
+    multiple: NotRequired[
+        Annotated[bool, ApiDescription("Whether the field accepts more than one value")]
+    ]
+    autosize: NotRequired[
+        Annotated[bool, ApiDescription("Whether a text field grows with its content")]
+    ]
+    maxRows: NotRequired[Annotated[int, ApiDescription("Maximum number of rows of a text field")]]
+    maxLength: NotRequired[Annotated[int, ApiDescription("Maximum length of the value")]]
+    help: NotRequired[Annotated[str, ApiDescription("Help text of the field")]]
+    placeholder: NotRequired[Annotated[str, ApiDescription("Placeholder of the field")]]
+    prefetch: NotRequired[
+        Annotated[bool, ApiDescription("Whether the field's options load before the user types")]
+    ]
+    dependsOn: NotRequired[
+        Annotated[
+            Sequence[str],
+            ApiDescription("Names of the fields whose values the field's options depend on"),
+        ]
+    ]
 
 
 class ExternalProviders(ValueEqualityEnum):
