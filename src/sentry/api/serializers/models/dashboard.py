@@ -919,12 +919,34 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
         return data
 
 
+class DashboardRevisionCreatedByResponse(TypedDict):
+    id: Annotated[str, ApiDescription("ID of the user")]
+    name: Annotated[str, ApiDescription("Display name of the user")]
+    email: Annotated[str, ApiDescription("Primary email address of the user")]
+    avatarType: Annotated[
+        str | None, ApiDescription("Avatar type, such as letter_avatar, upload or gravatar")
+    ]
+    avatarUrl: Annotated[
+        str | None, ApiDescription("URL of the avatar image, or null if none is set")
+    ]
+
+
 class DashboardRevisionResponse(TypedDict):
-    id: str
-    title: str
-    dateCreated: datetime
-    createdBy: dict[str, object] | None
-    source: str
+    id: Annotated[str, ApiDescription("ID of the revision")]
+    title: Annotated[str, ApiDescription("Title of the dashboard in this revision")]
+    dateCreated: Annotated[datetime, ApiDescription("When the revision was recorded (ISO 8601)")]
+    createdBy: Annotated[
+        DashboardRevisionCreatedByResponse | None,
+        ApiDescription(
+            "User whose change recorded the revision, or null if there is no such user or it was deleted"
+        ),
+    ]
+    source: Annotated[
+        str,
+        ApiDescription(
+            "Change that recorded the revision, which holds the dashboard as it was just before that change: edit (a dashboard edit), edit-with-agent (an edit the client marked as made by an AI agent) or pre-restore (a restore of another revision)"
+        ),
+    ]
 
 
 @register(DashboardRevision)

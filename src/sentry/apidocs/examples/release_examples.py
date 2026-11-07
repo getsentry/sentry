@@ -72,6 +72,21 @@ COMMIT: CommitSerializerResponseWithReleases = {
     ],
 }
 
+PREVIOUS_RELEASE_WITH_COMMITS: ReleaseSerializerResponse = {
+    **RELEASE,
+    "id": 2,
+    "version": "frontend@0.9.0",
+    "shortVersion": "frontend@0.9.0",
+    "commitCount": 1,
+    "lastCommit": {
+        "id": COMMIT["id"],
+        "message": COMMIT["message"],
+        "dateCreated": COMMIT["dateCreated"],
+        "pullRequest": None,
+        "suspectCommitType": "",
+    },
+}
+
 RELEASE_TIMESERIES = {
     "version": "frontend@1.0.0",
     "date": datetime.fromisoformat("2024-01-01T00:00:00Z"),
@@ -131,4 +146,19 @@ class ReleaseExamples:
             response_only=True,
             status_codes=["200"],
         )
+    ]
+
+    RETRIEVE_PREVIOUS_RELEASE_WITH_COMMITS = [
+        OpenApiExample(
+            "Retrieve the previous release with commits",
+            value=PREVIOUS_RELEASE_WITH_COMMITS,
+            response_only=True,
+            status_codes=["200"],
+        ),
+        OpenApiExample(
+            "No previous release with commits",
+            value={},
+            response_only=True,
+            status_codes=["200"],
+        ),
     ]

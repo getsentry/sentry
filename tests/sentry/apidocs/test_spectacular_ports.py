@@ -89,6 +89,18 @@ def test_functional_typed_dict_field_description() -> None:
     }
 
 
+class EmptyResponse(TypedDict):
+    """Always an empty object."""
+
+
+def test_typed_dict_without_fields_is_an_empty_object() -> None:
+    assert resolve_type_hint(EmptyResponse) == {
+        "type": "object",
+        "description": "Always an empty object.",
+        "maxProperties": 0,
+    }
+
+
 class FormattedResponse(TypedDict):
     created: Annotated[IsoDateTime, ApiDescription("A timestamp")]
     expires: IsoDateTime | None
