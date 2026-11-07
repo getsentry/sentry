@@ -8,6 +8,7 @@ from sentry.api.serializers.models.group import (
     SharedGroupSerializerResponse,
 )
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnubaResponse
+from sentry.apidocs.examples.release_examples import RELEASE
 from sentry.apidocs.formats import absolute_url, hex_id, numeric_id, slug
 
 SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
@@ -214,14 +215,7 @@ GROUP_DETAILS: GroupDetailsResponse = {
     "userReportCount": 0,
     "participants": [],
     # Default-included unless suppressed via `?collapse=...`
-    "firstRelease": {
-        "version": "17642328ead24b51867165985996d04b29310337",
-        "shortVersion": "1764232",
-        "dateCreated": "2018-11-06T21:19:55.146Z",
-        "dateReleased": None,
-        "ref": None,
-        "url": None,
-    },
+    "firstRelease": RELEASE,
     "lastRelease": None,
     "tags": [
         {"key": "browser", "name": "Browser", "totalValues": 150},
