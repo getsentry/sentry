@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, TypedDict, cast
 
 from django.db.models import OuterRef, Subquery
 
@@ -24,6 +24,7 @@ from sentry.workflow_engine.endpoints.serializers.response_schemas import detect
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     TriggerSerializerResponse,
 )
+from sentry.workflow_engine.generated_schema_types import DetectorConfigResponse
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataConditionGroup,
@@ -73,7 +74,7 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
         ApiDescription("Conditions that decide the monitor's status"),
     ]
     config: Annotated[
-        dict[str, Any],
+        DetectorConfigResponse,
         ApiDescription("Configuration of the monitor, which depends on its type"),
         ApiSchema(detector_config_schema),
     ]
@@ -238,8 +239,11 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
-            "config": convert_dict_key_case(
-                self._normalize_config(attrs.get("config", {})), snake_to_camel_case
+            "config": cast(
+                DetectorConfigResponse,
+                convert_dict_key_case(
+                    self._normalize_config(attrs.get("config", {})), snake_to_camel_case
+                ),
             ),
             "enabled": obj.enabled,
             "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
