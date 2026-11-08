@@ -7,7 +7,10 @@ from django.db.models import OuterRef, Subquery
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.api.serializers.models.group import SimpleGroupSerializer
+from sentry.api.serializers.models.group import (
+    SimpleGroupSerializer,
+    SimpleGroupSerializerResponse,
+)
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.omissions import sentry_schema_serializer
@@ -40,7 +43,7 @@ class DetectorSerializerResponseOptional(TypedDict, total=False):
     alertRuleId: int | None
     ruleId: int | None
     latestGroup: Annotated[
-        dict[str, Any] | None, ApiDescription("Latest issue the monitor created")
+        SimpleGroupSerializerResponse | None, ApiDescription("Latest issue the monitor created")
     ]
     description: Annotated[str | None, ApiDescription("Description of the monitor")]
 

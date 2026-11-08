@@ -14,6 +14,7 @@ from sentry_sdk import traces
 
 from sentry import options
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.event_metadata import EventMetadataResponse
 from sentry.api.serializers.models.eventattachment import EventAttachmentSerializerResponse
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
@@ -206,7 +207,7 @@ class BaseEventSerializerResponse(TypedDict):
     type: Annotated[
         EventTypeStr, ApiDescription("Event type, such as error, default or transaction")
     ]
-    metadata: Annotated[dict[str, object], ApiDescription("Event metadata")]
+    metadata: Annotated[EventMetadataResponse, ApiDescription("Event metadata")]
     # Typed variants come first: generated clients try `anyOf` members in order, and the
     # catch-all `IssueOccurrenceResponse` also matches every typed occurrence.
     occurrence: Annotated[
@@ -482,7 +483,7 @@ class EventSerializer(Serializer):
             "context": context,
             "packages": packages,
             "type": obj.get_event_type(),
-            "metadata": obj.get_event_metadata(),
+            "metadata": cast(EventMetadataResponse, obj.get_event_metadata()),
             "tags": tags,
             "platform": obj.platform,
             "dateReceived": received,
@@ -786,7 +787,7 @@ SimpleEventSerializerResponse = TypedDict(
         "crashFile": Annotated[
             str | None, ApiDescription("Crash report attachment of the event, if any")
         ],
-        "metadata": Annotated[dict[str, Any], ApiDescription("Event metadata")],
+        "metadata": Annotated[EventMetadataResponse, ApiDescription("Event metadata")],
     },
 )
 
@@ -873,7 +874,7 @@ class SimpleEventSerializer(EventSerializer):
             "dateCreated": obj.datetime,
             # Needed to generate minidump links in UI
             "crashFile": attrs["crash_file"],
-            "metadata": obj.get_event_metadata(),
+            "metadata": cast(EventMetadataResponse, obj.get_event_metadata()),
         }
 
 
