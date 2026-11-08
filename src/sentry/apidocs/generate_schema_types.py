@@ -467,13 +467,16 @@ def generate(file: GeneratedFile) -> str:
 
 
 def _format(source: str, path: Path) -> str:
-    return subprocess.run(
-        [sys.executable, "-m", "ruff", "format", "--stdin-filename", str(path), "-"],
-        input=source,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
+    # The import sorter decides the blank lines after the imports, so it runs too.
+    for command in (["format"], ["check", "--fix", "--quiet", "--select", "I"]):
+        source = subprocess.run(
+            [sys.executable, "-m", "ruff", *command, "--stdin-filename", str(path), "-"],
+            input=source,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    return source
 
 
 def stale_files(files: Iterable[GeneratedFile] | None = None) -> dict[str, str]:

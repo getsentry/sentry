@@ -8,7 +8,6 @@
 
 from typing import Literal, NotRequired, TypeAlias, TypedDict
 
-
 SentryAppUri: TypeAlias = str
 
 

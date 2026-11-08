@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from sentry.apidocs.generate_schema_types import (
@@ -154,18 +156,16 @@ def test_generated_files_are_up_to_date() -> None:
     )
 
 
-def test_reports_a_schema_change_that_was_not_regenerated(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_reports_a_schema_change_that_was_not_regenerated() -> None:
     schema = {
         "type": "object",
         "properties": {"frequency": {"type": "integer"}, "snooze": {"type": "boolean"}},
         "additionalProperties": False,
     }
-    monkeypatch.setattr(Workflow, "config_schema", schema)
     workflow_file = next(file for file in FILES if file.path.startswith("sentry/workflow_engine"))
 
-    stale = stale_files([workflow_file])
+    with mock.patch.object(Workflow, "config_schema", schema):
+        stale = stale_files([workflow_file])
 
     assert list(stale) == [workflow_file.path]
     assert "+    snooze: NotRequired[bool]\n" in stale[workflow_file.path]
