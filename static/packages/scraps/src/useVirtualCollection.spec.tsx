@@ -65,30 +65,21 @@ function sum(values: number[]) {
   return values.reduce((total, value) => total + value, 0);
 }
 
-const offsetHeightDescriptor = Object.getOwnPropertyDescriptor(
-  HTMLElement.prototype,
-  'offsetHeight'
-);
-
 describe('useVirtualCollection', () => {
+  let offsetHeight: jest.SpyInstance;
+
   // jsdom does not lay out, so the viewport and every row would measure 0px.
+  // Rows carry `data-index`; the element without it is the viewport.
   beforeEach(() => {
-    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
-      configurable: true,
-      get(this: HTMLElement) {
-        return this.tagName === 'UL' ? VIEWPORT_HEIGHT : ROW_HEIGHT;
-      },
-    });
+    offsetHeight = jest
+      .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+      .mockImplementation(function (this: HTMLElement) {
+        return this.hasAttribute('data-index') ? ROW_HEIGHT : VIEWPORT_HEIGHT;
+      });
   });
 
   afterEach(() => {
-    if (offsetHeightDescriptor) {
-      Object.defineProperty(
-        HTMLElement.prototype,
-        'offsetHeight',
-        offsetHeightDescriptor
-      );
-    }
+    offsetHeight.mockRestore();
   });
 
   it('renders a window of rows with spacers standing in for the rest', () => {
