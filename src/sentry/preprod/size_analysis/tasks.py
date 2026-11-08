@@ -252,20 +252,21 @@ def compare_preprod_artifact_size_analysis(
                     )
                     _run_size_analysis_comparison(org_id, head_metric, base_metric)
 
-                for artifact_id in preprod_artifact_status_check_updates:
-                    # Update all artifact's status check with the new comparison
-                    create_preprod_status_check_task.apply_async(
-                        kwargs={
-                            "preprod_artifact_id": artifact_id,
-                            "caller": "compare_completion",
-                        }
-                    )
-                    create_preprod_size_pr_comment_task.apply_async(
-                        kwargs={
-                            "preprod_artifact_id": artifact_id,
-                            "caller": "compare_completion",
-                        }
-                    )
+            # Queued after the block so the tasks read committed comparisons
+            for artifact_id in preprod_artifact_status_check_updates:
+                # Update all artifact's status check with the new comparison
+                create_preprod_status_check_task.apply_async(
+                    kwargs={
+                        "preprod_artifact_id": artifact_id,
+                        "caller": "compare_completion",
+                    }
+                )
+                create_preprod_size_pr_comment_task.apply_async(
+                    kwargs={
+                        "preprod_artifact_id": artifact_id,
+                        "caller": "compare_completion",
+                    }
+                )
 
             try:
                 artifact_type_name = PreprodArtifact.ArtifactType(
