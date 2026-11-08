@@ -7,6 +7,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import Email, email_address
 from sentry.auth.principal import RequestPrincipal
 from sentry.issues.action_log.types import ActionSource, GroupActionType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -46,7 +47,7 @@ class ResolvedMention(TypedDict):
     """A Sentry user @mentioned by an activity, resolved from the stored id ref."""
 
     name: Annotated[str, ApiDescription("Display name of the mentioned user")]
-    email: Annotated[str, ApiDescription("Email of the mentioned user")]
+    email: Annotated[Email, ApiDescription("Email of the mentioned user")]
     username: Annotated[str, ApiDescription("Username of the mentioned user")]
 
 
@@ -169,7 +170,7 @@ def _resolve_mentioned_users(
         activity_id: [
             {
                 "name": user.get_display_name(),
-                "email": user.email,
+                "email": email_address(user.email),
                 "username": user.username,
             }
             for user_id in user_ids

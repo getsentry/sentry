@@ -5,7 +5,15 @@ from unittest import mock
 
 import pytest
 
-from sentry.apidocs.formats import absolute_url, hex_id, iso_datetime, numeric_id, slug, uuid_str
+from sentry.apidocs.formats import (
+    absolute_url,
+    email_address,
+    hex_id,
+    iso_datetime,
+    numeric_id,
+    slug,
+    uuid_str,
+)
 
 
 def test_iso_datetime_returns_isoformat() -> None:
@@ -104,6 +112,19 @@ def test_slug_accepts(value: str) -> None:
 def test_slug_rejects(value: str) -> None:
     with pytest.raises(ValueError, match="letters, digits"):
         slug(value)
+
+
+@pytest.mark.parametrize("value", ["user@example.com", "first.last+tag@sub.example.co.uk"])
+def test_email_address_accepts(value: str) -> None:
+    assert email_address(value) == value
+
+
+@pytest.mark.parametrize(
+    "value", ["", "user", "@example.com", "user@", "a@b@example.com", "user @example.com"]
+)
+def test_email_address_rejects(value: str) -> None:
+    with pytest.raises(ValueError, match="isn't an email address"):
+        email_address(value)
 
 
 def test_invalid_value_is_logged_outside_tests(caplog: pytest.LogCaptureFixture) -> None:

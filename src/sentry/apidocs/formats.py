@@ -63,6 +63,8 @@ UuidStr = NewType("UuidStr", str)
 HexIdStr = NewType("HexIdStr", str)
 NumericIdStr = NewType("NumericIdStr", str)
 SlugStr = NewType("SlugStr", str)
+# The string type behind Email. Build values with email_address().
+EmailStr = NewType("EmailStr", str)
 
 UUID_PATTERN = r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 HEX_ID_PATTERN = r"^[0-9a-f]{32}$"
@@ -70,11 +72,15 @@ NUMERIC_ID_PATTERN = r"^[0-9]+$"
 # Django's validate_slug, which every SlugField runs. Sentry's own slug validators are
 # stricter, but slugs saved before they existed weren't checked against them.
 SLUG_PATTERN = r"^[-a-zA-Z0-9_]+$"
+# One `@` with a non-empty local part and domain, and no whitespace. Django's EmailField
+# checks more, but addresses saved before it did, or through other paths, weren't checked.
+EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+$"
 
 _UUID_REGEX = re.compile(UUID_PATTERN)
 _HEX_ID_REGEX = re.compile(HEX_ID_PATTERN)
 _NUMERIC_ID_REGEX = re.compile(NUMERIC_ID_PATTERN)
 _SLUG_REGEX = re.compile(SLUG_PATTERN)
+_EMAIL_REGEX = re.compile(EMAIL_PATTERN)
 
 # A date and time as an ISO 8601 string with a UTC offset, such as
 # `2024-01-01T00:00:00+00:00`. Build it with iso_datetime().
@@ -94,6 +100,8 @@ NumericId = Annotated[NumericIdStr, ApiFormat(pattern=NUMERIC_ID_PATTERN)]
 # A slug of letters, digits, hyphens and underscores, such as `my-project`. Build it with
 # slug().
 Slug = Annotated[SlugStr, ApiFormat(pattern=SLUG_PATTERN)]
+# An email address, such as `user@example.com`. Build it with email_address().
+Email = Annotated[EmailStr, ApiFormat(format="email")]
 
 
 def _invalid(format: str, problem: str) -> None:
@@ -175,6 +183,18 @@ def slug(value: str) -> Slug:
     if not _SLUG_REGEX.fullmatch(value):
         _invalid("slug", "the value has characters other than letters, digits, - and _")
     return SlugStr(value)
+
+
+def email_address(value: str) -> Email:
+    """
+    Returns ``value`` unchanged as the value of an ``email`` field.
+
+    A value without exactly one ``@`` between a non-empty local part and domain, or with
+    whitespace, such as an empty string, is invalid.
+    """
+    if not _EMAIL_REGEX.fullmatch(value):
+        _invalid("email", "the value isn't an email address")
+    return EmailStr(value)
 
 
 # A git branch or ref name, or an empty string. Uploads are validated against the same
