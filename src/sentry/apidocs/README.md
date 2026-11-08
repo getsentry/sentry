@@ -105,6 +105,12 @@ concrete type that matches what the endpoint returns. A TypedDict without any
 fields gets `maxProperties: 0`, so it counts as typed: use one for a response
 that is always `{}`.
 
+When another schema already pins a field down, such as a JSON Schema the code
+validates the data against, build the field's schema from it with
+`Annotated[T, ApiSchema(build)]` instead of copying it into a TypedDict, so the
+two can't drift. `sentry.apidocs.json_schemas` converts a JSON Schema, including
+one from sentry-kafka-schemas, and fails when a property has no description.
+
 `tests/apidocs/test_response_coverage.py` checks this after `make build-api-docs`.
 Fields that already lacked a description or a type are listed in
 `tests/apidocs/response-coverage-baseline.txt`, so the check fails only for new

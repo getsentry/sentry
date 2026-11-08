@@ -61,7 +61,7 @@ from drf_spectacular.plumbing import build_array_type as drf_build_array_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import _SchemaType
 
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.formats import ApiFormat
 from sentry.apidocs.omission_guard import descended, omissions_enabled, record_typed_dict
 from sentry.apidocs.omissions import OMISSION_REASONS_OVERRIDE
@@ -74,6 +74,7 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 #   grabbing description from a TypedDict __doc__
 #   grabbing field descriptions from Annotated[T, ApiDescription(...)]
 #   adding schema keywords such as format from Annotated[T, ApiFormat(...)]
+#   replacing the schema with Annotated[T, ApiSchema(...)]
 #   support for TypedDict required fields
 #   support for excluded fields via @extend_schema_serializer
 
@@ -201,6 +202,9 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
     if isinstance(hint, NewType):
         return resolve_type_hint(hint.__supertype__)
     if origin is Annotated:
+        for metadata in hint.__metadata__:
+            if isinstance(metadata, ApiSchema):
+                return metadata.build()
         schema = resolve_type_hint(hint.__origin__)
         for metadata in hint.__metadata__:
             if isinstance(metadata, ApiFormat):
