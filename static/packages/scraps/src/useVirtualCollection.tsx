@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
 import type {Key, Node} from '@react-types/shared';
 import {defaultRangeExtractor, type Range} from '@tanstack/react-virtual';
@@ -141,37 +141,27 @@ export function useVirtualCollection<T>({
   widestKey,
   sectionRowGap = 0,
 }: UseVirtualCollectionOptions<T>): VirtualCollection<T> {
-  const focusedIndex = useMemo(
-    () =>
-      enabled && focusedKey !== null && focusedKey !== undefined
-        ? nodes.findIndex(node => node.key === focusedKey)
-        : -1,
-    [enabled, focusedKey, nodes]
-  );
-  const widestIndex = useMemo(
-    () =>
-      enabled && widestKey !== null && widestKey !== undefined
-        ? nodes.findIndex(node => node.key === widestKey)
-        : -1,
-    [enabled, widestKey, nodes]
-  );
-
-  const sectionIndexes = useMemo(() => getSectionIndexes(nodes), [nodes]);
+  const focusedIndex =
+    enabled && focusedKey !== null && focusedKey !== undefined
+      ? nodes.findIndex(node => node.key === focusedKey)
+      : -1;
+  const widestIndex =
+    enabled && widestKey !== null && widestKey !== undefined
+      ? nodes.findIndex(node => node.key === widestKey)
+      : -1;
+  const sectionIndexes = getSectionIndexes(nodes);
 
   // Keep the focused row mounted when it scrolls out of view. If it unmounted,
   // DOM focus would fall back to the body and keyboard navigation would stop.
   // Also keep the widest row and the section row of every mounted row, since
   // the section's element wraps its children.
-  const rangeExtractor = useCallback(
-    (range: Range) =>
-      getMountedIndexes({
-        windowIndexes: defaultRangeExtractor(range),
-        focusedIndex,
-        widestIndex,
-        sectionIndexes,
-      }),
-    [focusedIndex, widestIndex, sectionIndexes]
-  );
+  const rangeExtractor = (range: Range) =>
+    getMountedIndexes({
+      windowIndexes: defaultRangeExtractor(range),
+      focusedIndex,
+      widestIndex,
+      sectionIndexes,
+    });
 
   const {virtualizer, virtualItems, totalSize} = useVirtualRows({
     count: nodes.length,
@@ -199,27 +189,22 @@ export function useVirtualCollection<T>({
     virtualizer.scrollToIndex(focusedIndex, {align: 'auto'});
   }, [focusedIndex, virtualizer]);
 
-  const rows = useMemo<Array<VirtualRow<T>>>(() => {
-    if (!enabled) {
-      return nodes.map(node => ({node, props: undefined, spaceBefore: 0}));
-    }
-    let previousEnd = listPadding;
-    return virtualItems.flatMap(item => {
-      const node = nodes[item.index];
-      if (!node) {
-        return [];
-      }
-      const spaceBefore = Math.max(0, item.start - previousEnd);
-      previousEnd = item.end;
-      return [
-        {
-          node,
-          props: {'data-index': item.index, ref: virtualizer.measureElement},
-          spaceBefore,
-        },
-      ];
-    });
-  }, [enabled, listPadding, nodes, virtualItems, virtualizer]);
+  const rows: Array<VirtualRow<T>> = enabled
+    ? virtualItems.flatMap((item, position) => {
+        const node = nodes[item.index];
+        if (!node) {
+          return [];
+        }
+        const previousEnd = virtualItems[position - 1]?.end ?? listPadding;
+        return [
+          {
+            node,
+            props: {'data-index': item.index, ref: virtualizer.measureElement},
+            spaceBefore: Math.max(0, item.start - previousEnd),
+          },
+        ];
+      })
+    : nodes.map(node => ({node, props: undefined, spaceBefore: 0}));
 
   // Before any row mounts, the spacer stands in for the whole list. A list
   // without padding of its own would otherwise be 0px tall, and the
