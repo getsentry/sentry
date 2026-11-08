@@ -1,6 +1,12 @@
 import {Fragment, useRef} from 'react';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
 import type {Node} from '@react-types/shared';
 import {fireEvent, render, screen, within} from '@testing-library/react';
+
+import {Container} from '@sentry/scraps/layout';
+import {ListItem, SectionGroup} from '@sentry/scraps/menu';
+import {lightTheme} from '@sentry/scraps/theme';
 
 import {useVirtualCollection, VirtualRows} from './useVirtualCollection';
 
@@ -15,6 +21,10 @@ const nodes = Array.from(
     ({key: `row-${index}`, type: 'item', props: {}}) as Node<Record<PropertyKey, unknown>>
 );
 
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
+
 function TestList({
   enabled,
   focusedKey,
@@ -27,7 +37,7 @@ function TestList({
   sectionRowGap?: number;
 }) {
   const scrollRef = useRef<HTMLUListElement>(null);
-  const {rows, spaceAfter} = useVirtualCollection({
+  const virtual = useVirtualCollection({
     nodes: items,
     enabled,
     size: 'md',
@@ -38,27 +48,31 @@ function TestList({
   });
 
   return (
-    <ul ref={scrollRef} data-test-id="list">
-      {rows.map(({node, props, spaceBefore}) => (
-        <Fragment key={node.key}>
-          <li data-test-id="spacer" style={{height: spaceBefore}} />
-          <li
-            {...props}
-            data-test-id="row"
-            data-key={node.key}
-            data-row-props={props ? 'set' : 'unset'}
-          />
-        </Fragment>
-      ))}
-      <li data-test-id="spacer" style={{height: spaceAfter}} />
-    </ul>
+    <Container as="ul" ref={scrollRef} aria-label="Rows">
+      <VirtualRows
+        virtual={virtual}
+        renderRow={({node, props}) => <ListItem label={String(node.key)} {...props} />}
+        renderSection={({node, props}, rows) => (
+          <Fragment>
+            <ListItem label={String(node.key)} {...props} />
+            {rows}
+          </Fragment>
+        )}
+      />
+    </Container>
   );
 }
 
+/** Heights of the spacers standing in for unmounted rows. */
 function spacerHeights() {
   return screen
-    .getAllByTestId('spacer')
+    .queryAllByRole('presentation', {hidden: true})
     .map(spacer => parseFloat(spacer.style.height || '0'));
+}
+
+/** Keys of the mounted rows, in render order. */
+function mountedKeys() {
+  return screen.getAllByRole('listitem').map(row => row.textContent);
 }
 
 function sum(values: number[]) {
@@ -83,11 +97,11 @@ describe('useVirtualCollection', () => {
   });
 
   it('renders a window of rows with spacers standing in for the rest', () => {
-    render(<TestList enabled />);
+    render(<TestList enabled />, {wrapper: ThemeWrapper});
 
-    const rendered = screen.getAllByTestId('row');
+    const rendered = screen.getAllByRole('listitem');
     expect(rendered.length).toBeLessThan(ROW_COUNT);
-    expect(rendered[0]).toHaveAttribute('data-row-props', 'set');
+    expect(rendered[0]).toHaveAttribute('data-index');
 
     // The list's own padding is CSS, so spacers and rows add up to the rows'
     // height alone.
@@ -98,31 +112,28 @@ describe('useVirtualCollection', () => {
   it('mounts rows when the list is only as tall as its content', () => {
     // Like DropdownMenu's list, which has no padding: before any row mounts,
     // its height comes from the spacers alone.
-    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
-      configurable: true,
-      get(this: HTMLElement) {
-        if (this.tagName !== 'UL') {
-          return ROW_HEIGHT;
-        }
-        const content =
-          sum(spacerHeights()) + screen.queryAllByTestId('row').length * ROW_HEIGHT;
-        return Math.min(VIEWPORT_HEIGHT, content);
-      },
+    offsetHeight.mockImplementation(function (this: HTMLElement) {
+      if (this.hasAttribute('data-index')) {
+        return ROW_HEIGHT;
+      }
+      const content =
+        sum(spacerHeights()) + screen.queryAllByRole('listitem').length * ROW_HEIGHT;
+      return Math.min(VIEWPORT_HEIGHT, content);
     });
 
-    render(<TestList enabled />);
+    render(<TestList enabled />, {wrapper: ThemeWrapper});
 
-    expect(screen.getAllByTestId('row').length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('listitem').length).toBeGreaterThan(0);
   });
 
   it('keeps the focused row mounted after it scrolls out of view', () => {
-    render(<TestList enabled focusedKey="row-0" />);
+    render(<TestList enabled focusedKey="row-0" />, {wrapper: ThemeWrapper});
 
-    const list = screen.getByTestId('list');
+    const list = screen.getByRole('list', {name: 'Rows'});
     list.scrollTop = 150 * ROW_HEIGHT;
     fireEvent.scroll(list);
 
-    const keys = screen.getAllByTestId('row').map(row => row.dataset.key);
+    const keys = mountedKeys();
     expect(keys[0]).toBe('row-0');
     expect(keys).toContain('row-150');
     expect(keys).not.toContain('row-1');
@@ -144,13 +155,13 @@ describe('useVirtualCollection', () => {
   ]) as typeof nodes;
 
   it('keeps the section row of mounted rows mounted', () => {
-    render(<TestList enabled items={sectioned} />);
+    render(<TestList enabled items={sectioned} />, {wrapper: ThemeWrapper});
 
-    const list = screen.getByTestId('list');
+    const list = screen.getByRole('list', {name: 'Rows'});
     list.scrollTop = 250 * ROW_HEIGHT;
     fireEvent.scroll(list);
 
-    const keys = screen.getAllByTestId('row').map(row => row.dataset.key);
+    const keys = mountedKeys();
     expect(keys[0]).toBe('section-b');
     expect(keys).toContain('b-100');
     expect(keys).not.toContain('b-0');
@@ -162,9 +173,11 @@ describe('useVirtualCollection', () => {
 
   it('estimates the gap above unmounted section rows after the first', () => {
     const gap = 2;
-    render(<TestList enabled items={sectioned} sectionRowGap={gap} />);
+    render(<TestList enabled items={sectioned} sectionRowGap={gap} />, {
+      wrapper: ThemeWrapper,
+    });
 
-    const keys = screen.getAllByTestId('row').map(row => row.dataset.key);
+    const keys = mountedKeys();
     const isAfterFirst = (key: string) => /^[ab]-[1-9]/.test(key);
     // Mounted rows are measured, and jsdom applies no styles, so only the
     // unmounted rows after the first of their section add the gap.
@@ -178,11 +191,11 @@ describe('useVirtualCollection', () => {
   });
 
   it('renders every row without measurement props when disabled', () => {
-    render(<TestList enabled={false} />);
+    render(<TestList enabled={false} />, {wrapper: ThemeWrapper});
 
-    const rendered = screen.getAllByTestId('row');
+    const rendered = screen.getAllByRole('listitem');
     expect(rendered).toHaveLength(ROW_COUNT);
-    expect(rendered[0]).toHaveAttribute('data-row-props', 'unset');
+    expect(rendered[0]).not.toHaveAttribute('data-index');
     expect(sum(spacerHeights())).toBe(0);
   });
 });
@@ -195,7 +208,7 @@ describe('VirtualRows', () => {
       spaceBefore,
     });
     render(
-      <ul>
+      <Container as="ul">
         <VirtualRows
           virtual={{
             rows: [
@@ -207,21 +220,26 @@ describe('VirtualRows', () => {
             ],
             spaceAfter: 30,
           }}
-          renderRow={({node}) => <li data-test-id={node.key} />}
+          renderRow={({node}) => <ListItem label={String(node.key)} />}
           renderSection={(section, rows) => (
-            <li data-test-id={section.node.key}>
-              <ul>{rows}</ul>
-            </li>
+            <SectionGroup aria-label={String(section.node.key)}>
+              <Container as="ul">{rows}</Container>
+            </SectionGroup>
           )}
         />
-      </ul>
+      </Container>,
+      {wrapper: ThemeWrapper}
     );
 
-    const section = screen.getByTestId('section-a');
-    expect(within(section).getByTestId('a-1')).toBeInTheDocument();
-    expect(within(section).getByTestId('a-2')).toBeInTheDocument();
-    expect(within(section).queryByTestId('top')).not.toBeInTheDocument();
-    expect(within(section).queryByTestId('after')).not.toBeInTheDocument();
+    const section = screen.getByRole('listitem', {name: 'section-a'});
+    expect(within(section).getByRole('listitem', {name: 'a-1'})).toBeInTheDocument();
+    expect(within(section).getByRole('listitem', {name: 'a-2'})).toBeInTheDocument();
+    expect(
+      within(section).queryByRole('listitem', {name: 'top'})
+    ).not.toBeInTheDocument();
+    expect(
+      within(section).queryByRole('listitem', {name: 'after'})
+    ).not.toBeInTheDocument();
 
     const spacers = screen
       .getAllByRole('presentation', {hidden: true})
