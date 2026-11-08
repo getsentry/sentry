@@ -93,9 +93,11 @@ export interface UseVirtualCollectionOptions<T> {
   listPadding?: number;
   /**
    * Space (px) above each row in a section except the first, if the rows are
-   * spaced that way. Mounted rows are measured with it, so adding it to the
-   * estimates of unmounted rows keeps the scroll range from shrinking until
-   * they mount.
+   * spaced that way. The virtualizer measures a row's border box, so the space
+   * must be padding on the row's own element for mounted rows to keep it. A
+   * margin, or a gap on the list, is not part of a measured row: the rows would
+   * lose it once they mount and the scroll range would shrink. Added to the
+   * estimates of unmounted rows so the range does not shrink until they mount.
    */
   sectionRowGap?: number;
   /**

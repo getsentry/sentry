@@ -67,9 +67,10 @@ export function getMountedIndexes({
 }
 
 /**
- * Height to assume for a row that has not been measured. Rows are measured
- * with the space above them, so a row after the first in its section includes
- * `sectionRowGap`.
+ * Height to assume for a row that has not been measured. A row after the
+ * first in its section includes `sectionRowGap`, which stands for padding on
+ * the row's own element: mounted rows are measured by their border box, so
+ * they include it too.
  */
 export function estimateRowHeight<T>(
   nodes: ReadonlyArray<Node<T>>,
