@@ -26,11 +26,12 @@ from sentry_sdk import traces
 from sentry import features, tagstore
 from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.activity_response_schemas import group_activity_schema
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.event import SharedEventSerializerResponse
 from sentry.api.serializers.models.event_metadata import EventMetadataResponse
 from sentry.api.serializers.models.project import SharedProjectSerializerResponse
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.formats import NumericId, Slug, Url, absolute_url, numeric_id, slug
 from sentry.auth.principal import has_user
 from sentry.constants import LOG_LEVELS
@@ -334,7 +335,8 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
 
 class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
     activity: Annotated[
-        list[dict[str, Any]], ApiDescription("Recent activity on the issue, newest first")
+        list[Annotated[dict[str, Any], ApiSchema(group_activity_schema)]],
+        ApiDescription("Recent activity on the issue, newest first"),
     ]
     seenBy: Annotated[
         list[GroupSeenByResponse],
