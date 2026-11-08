@@ -19,11 +19,12 @@ from sentry.api.serializers.models.eventattachment import EventAttachmentSeriali
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.formats import HexId, NumericId, hex_id, numeric_id
 from sentry.eventtypes import EventTypeStr
 from sentry.grouping.api import GroupingConfig
 from sentry.incidents.typings.metric_issue_evidence import MetricIssueOccurrenceResponse
+from sentry.interfaces.contexts import contexts_response_schema
 from sentry.interfaces.sdk import EventSdkApiContext
 from sentry.interfaces.user import EventUserApiContext
 from sentry.issues.issue_occurrence import IssueOccurrenceResponse
@@ -230,8 +231,11 @@ class EventDetailFields(TypedDict):
     user: Annotated[EventUserApiContext | None, ApiDescription("User context of the event")]
     tags: Annotated[list[EventTag], ApiDescription("Tags attached to the event")]
     contexts: Annotated[
-        dict[str, object] | None,
-        ApiDescription("Contexts of the event, such as device, os, browser and runtime"),
+        dict[str, dict[str, Any]] | None,
+        ApiDescription(
+            "Contexts of the event, such as device, os, browser and runtime, keyed by alias"
+        ),
+        ApiSchema(contexts_response_schema),
     ]
     sdk: Annotated[EventSdkApiContext | None, ApiDescription("SDK that sent the event")]
     context: Annotated[

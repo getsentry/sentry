@@ -10,7 +10,6 @@ untyped sentry.api.endpoints.organization_events.EventsMeta.debug_info
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse._meta
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.entries[]
 untyped sentry.api.serializers.models.event.EventDetailFields.context
-untyped sentry.api.serializers.models.event.EventDetailFields.contexts
 untyped sentry.api.serializers.models.organization.OrganizationSummarySerializerResponseOptional.extraOptions{}
 untyped sentry.api.serializers.models.project.DetailedProjectResponse.options
 untyped sentry.api.serializers.models.project.DetailedProjectResponse.seerNightshiftTweaks
@@ -24,5 +23,3 @@ untyped sentry.interfaces.user.EventUserApiContext.data
 untyped sentry.issues.issue_occurrence.IssueOccurrenceResponse.evidenceData
 untyped sentry.seer.autofix.types.AutofixStateResponse.autofix
 untyped sentry.sentry_apps.utils.errors.SentryAppPublicErrorBody.context
-untyped sentry.snuba.trace.SerializedSpan.additional_attributes
-untyped sentry.snuba.trace.SerializedUptimeCheck.additional_attributes
