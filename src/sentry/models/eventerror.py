@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, TypedDict, cast
 
 from sentry.apidocs.descriptions import ApiDescription
 
@@ -63,14 +63,45 @@ class EventErrorType(enum.StrEnum):
     PROGUARD_MISSING_LINENO = "proguard_missing_lineno"
 
 
+class EventErrorData(TypedDict, total=False):
+    """
+    Fields of `EventErrorData.data` in static/app/components/events/interfaces/types.tsx,
+    plus the ones Relay's event processing error and the native and JavaScript processors
+    set. Other keys depend on the error type, and Relay's `value`, the discarded original
+    value, can be any JSON.
+    """
+
+    name: Annotated[str | None, ApiDescription("Affected key or path in the event")]
+    message: Annotated[str, ApiDescription("Details of the error from the processor that hit it")]
+    url: Annotated[str, ApiDescription("URL that couldn't be fetched, such as a source file")]
+    image_path: Annotated[str, ApiDescription("Path of the debug image the error is about")]
+    image_name: Annotated[str, ApiDescription("Name of the debug image the error is about")]
+    image_uuid: Annotated[str, ApiDescription("Debug ID of the image the error is about")]
+    image_arch: Annotated[str, ApiDescription("CPU architecture of the image the error is about")]
+    symbolicator_type: Annotated[
+        str, ApiDescription("Error type Symbolicator reported, such as missing_source")
+    ]
+    source: Annotated[str, ApiDescription("Source file or URL the error is about")]
+    sourcemap: Annotated[str, ApiDescription("Source map the error is about")]
+    row: Annotated[int, ApiDescription("Line of the location that couldn't be mapped")]
+    column: Annotated[int, ApiDescription("Column of the location that couldn't be mapped")]
+    sdk_time: Annotated[str, ApiDescription("Time the SDK reported, for clock drift errors")]
+    server_time: Annotated[
+        str, ApiDescription("Time the server received the event, for clock drift errors")
+    ]
+
+
 class EventErrorApiContext(TypedDict):
     type: Annotated[
         str, ApiDescription("Type of the processing error, such as invalid_data or js_no_source")
     ]
     message: Annotated[str, ApiDescription("Human-readable message of the error")]
     data: Annotated[
-        dict[str, Any],
-        ApiDescription("Details of the error, such as the name of the invalid field"),
+        EventErrorData,
+        ApiDescription(
+            "Details of the error, such as the name of the invalid field. Other keys depend on "
+            "the error type"
+        ),
     ]
 
 
@@ -144,4 +175,8 @@ class EventError:
         return self._messages.get(self._data["type"], self._messages["unknown_error"])
 
     def get_api_context(self) -> EventErrorApiContext:
-        return {"type": self.type, "message": self.message, "data": self.data}
+        return {
+            "type": self.type,
+            "message": self.message,
+            "data": cast(EventErrorData, self.data),
+        }
