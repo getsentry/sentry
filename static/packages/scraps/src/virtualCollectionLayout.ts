@@ -79,8 +79,9 @@ export function estimateRowHeight<T>(
 ): number {
   const node = nodes[index];
   const heights = ROW_HEIGHT_ESTIMATES[size];
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const height = node?.props?.details ? heights.withDetails : heights.regular;
+  // `Node.props` is typed `any`; the only prop read here is `details`.
+  const props: {details?: unknown} | undefined = node?.props;
+  const height = props?.details ? heights.withDetails : heights.regular;
   // Each section's children follow its row, so a child that does not directly
   // follow its section row is not the section's first.
   const isAfterFirstInSection =
