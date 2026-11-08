@@ -107,6 +107,9 @@ def to_response_schema(
                 continue
             if key in ("items", "additionalProperties", "not") and isinstance(item, dict):
                 result[key] = convert(item, f"{path}[]" if key == "items" else path)
+            elif key == "items" and isinstance(item, list):
+                # OpenAPI 3.0 has no tuples, so each item can be any of the tuple's types.
+                result[key] = union_schema(convert(branch, f"{path}[]") for branch in item)
             elif key in ("anyOf", "oneOf", "allOf"):
                 result[key] = [convert(branch, path) for branch in item]
             else:
@@ -143,7 +146,9 @@ def union_schema(schemas: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     """`anyOf` the distinct schemas, such as one per handler in a registry."""
     distinct: dict[str, Mapping[str, Any]] = {}
     for schema in schemas:
-        distinct.setdefault(json.dumps(schema, sort_keys=True), schema)
+        nested = schema["anyOf"] if list(schema) == ["anyOf"] else [schema]
+        for branch in nested:
+            distinct.setdefault(json.dumps(branch, sort_keys=True), branch)
     branches = [copy.deepcopy(dict(schema)) for schema in distinct.values()]
     return branches[0] if len(branches) == 1 else {"anyOf": branches}
 

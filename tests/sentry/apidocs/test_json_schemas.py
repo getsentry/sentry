@@ -110,3 +110,10 @@ def test_union_schema_drops_duplicates() -> None:
     assert union_schema([{"type": "boolean"}, {"type": "integer"}]) == {
         "anyOf": [{"type": "boolean"}, {"type": "integer"}]
     }
+
+
+def test_tuple_items_become_a_union() -> None:
+    schema = to_response_schema(
+        {"type": "array", "items": [{"type": "string"}, {"anyOf": [{"type": "number"}]}]}
+    )
+    assert schema == {"type": "array", "items": {"anyOf": [{"type": "string"}, {"type": "number"}]}}
