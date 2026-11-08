@@ -7,6 +7,12 @@ import {defaultRangeExtractor, type Range} from '@tanstack/react-virtual';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useVirtualRows} from '@sentry/scraps/useVirtualRows';
 
+import {
+  estimateRowHeight,
+  getMountedIndexes,
+  getSectionIndexes,
+} from './virtualCollectionLayout';
+
 /**
  * Item count above which shared menu controls (CompactSelect, DropdownMenu)
  * virtualize their list.
@@ -30,12 +36,6 @@ export function flattenSections<T>(
       node.type === 'section' ? [node, ...[...node.childNodes].filter(isVisible)] : [node]
     );
 }
-
-const ROW_HEIGHT_ESTIMATES = {
-  xs: {regular: 25, withDetails: 42},
-  sm: {regular: 32, withDetails: 49},
-  md: {regular: 36, withDetails: 53},
-} as const satisfies Record<FormSize, {regular: number; withDetails: number}>;
 
 /** Props for the element that renders a row. Spread them onto the row's root element. */
 export interface VirtualRowProps {
@@ -141,8 +141,6 @@ export function useVirtualCollection<T>({
   widestKey,
   sectionRowGap = 0,
 }: UseVirtualCollectionOptions<T>): VirtualCollection<T> {
-  const heights = ROW_HEIGHT_ESTIMATES[size];
-
   const focusedIndex = useMemo(
     () =>
       enabled && focusedKey !== null && focusedKey !== undefined
@@ -158,41 +156,20 @@ export function useVirtualCollection<T>({
     [enabled, widestKey, nodes]
   );
 
-  // Index of the section row each row belongs to, if that section is in `nodes`.
-  const sectionIndexes = useMemo(() => {
-    const indexByKey = new Map<Key, number>();
-    nodes.forEach((node, index) => {
-      if (node.type === 'section') {
-        indexByKey.set(node.key, index);
-      }
-    });
-    return nodes.map(node =>
-      node.parentKey === null || node.parentKey === undefined
-        ? undefined
-        : indexByKey.get(node.parentKey)
-    );
-  }, [nodes]);
+  const sectionIndexes = useMemo(() => getSectionIndexes(nodes), [nodes]);
 
   // Keep the focused row mounted when it scrolls out of view. If it unmounted,
   // DOM focus would fall back to the body and keyboard navigation would stop.
   // Also keep the widest row and the section row of every mounted row, since
   // the section's element wraps its children.
   const rangeExtractor = useCallback(
-    (range: Range) => {
-      const indexes = new Set(defaultRangeExtractor(range));
-      for (const index of [focusedIndex, widestIndex]) {
-        if (index !== -1) {
-          indexes.add(index);
-        }
-      }
-      for (const index of [...indexes]) {
-        const sectionIndex = sectionIndexes[index];
-        if (sectionIndex !== undefined) {
-          indexes.add(sectionIndex);
-        }
-      }
-      return [...indexes].sort((a, b) => a - b);
-    },
+    (range: Range) =>
+      getMountedIndexes({
+        windowIndexes: defaultRangeExtractor(range),
+        focusedIndex,
+        widestIndex,
+        sectionIndexes,
+      }),
     [focusedIndex, widestIndex, sectionIndexes]
   );
 
@@ -201,18 +178,7 @@ export function useVirtualCollection<T>({
     enabled,
     getScrollElement: () => scrollRef.current,
     getItemKey: index => nodes[index]?.key ?? index,
-    estimateSize: index => {
-      const node = nodes[index];
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const height = node?.props?.details ? heights.withDetails : heights.regular;
-      // Each section's children follow its row, so a child that does not
-      // directly follow its section row is not the section's first.
-      const isAfterFirstInSection =
-        node?.parentKey !== null &&
-        node?.parentKey !== undefined &&
-        nodes[index - 1]?.key !== node.parentKey;
-      return isAfterFirstInSection ? height + sectionRowGap : height;
-    },
+    estimateSize: index => estimateRowHeight(nodes, index, size, sectionRowGap),
     estimateKey: `${size}-${sectionRowGap}`,
     paddingStart: listPadding,
     // The list's padding is the same at both ends, so a row scrolled into view

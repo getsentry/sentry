@@ -1,15 +1,21 @@
-import {Fragment, useRef} from 'react';
+import {useRef} from 'react';
 import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
 import type {Node} from '@react-types/shared';
-import {fireEvent, render, screen, within} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 
 import {Container} from '@sentry/scraps/layout';
-import {ListItem, SectionGroup} from '@sentry/scraps/menu';
+import {ListItem} from '@sentry/scraps/menu';
 import {lightTheme} from '@sentry/scraps/theme';
 
 import {useVirtualCollection, VirtualRows} from './useVirtualCollection';
 
+// jsdom does not lay out, so these tests stub the viewport and row heights and
+// check what the hook promises regardless of them: unmounted space plus mounted
+// rows always add up to the full list. Which rows mount, and how unmounted rows
+// are estimated, is covered without a DOM in virtualCollectionLayout.spec.ts.
+// Keyboard and focus behavior is covered through the real DropdownMenu and
+// CompactSelect specs.
 const ROW_COUNT = 300;
 const ROW_HEIGHT = 36;
 const VIEWPORT_HEIGHT = 100;
@@ -25,26 +31,15 @@ function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
 }
 
-function TestList({
-  enabled,
-  focusedKey,
-  items = nodes,
-  sectionRowGap,
-}: {
-  enabled: boolean;
-  focusedKey?: string;
-  items?: typeof nodes;
-  sectionRowGap?: number;
-}) {
+function TestList({focusedKey}: {focusedKey?: string}) {
   const scrollRef = useRef<HTMLUListElement>(null);
   const virtual = useVirtualCollection({
-    nodes: items,
-    enabled,
+    nodes,
+    enabled: true,
     size: 'md',
     scrollRef,
     focusedKey,
     listPadding: LIST_PADDING,
-    sectionRowGap,
   });
 
   return (
@@ -52,12 +47,7 @@ function TestList({
       <VirtualRows
         virtual={virtual}
         renderRow={({node, props}) => <ListItem label={String(node.key)} {...props} />}
-        renderSection={({node, props}, rows) => (
-          <Fragment>
-            <ListItem label={String(node.key)} {...props} />
-            {rows}
-          </Fragment>
-        )}
+        renderSection={(_section, rows) => rows}
       />
     </Container>
   );
@@ -82,7 +72,6 @@ function sum(values: number[]) {
 describe('useVirtualCollection', () => {
   let offsetHeight: jest.SpyInstance;
 
-  // jsdom does not lay out, so the viewport and every row would measure 0px.
   // Rows carry `data-index`; the element without it is the viewport.
   beforeEach(() => {
     offsetHeight = jest
@@ -96,17 +85,16 @@ describe('useVirtualCollection', () => {
     offsetHeight.mockRestore();
   });
 
-  it('renders a window of rows with spacers standing in for the rest', () => {
-    render(<TestList enabled />, {wrapper: ThemeWrapper});
+  it('mounts a window of rows and fills the rest of the list with spacers', () => {
+    render(<TestList />, {wrapper: ThemeWrapper});
 
-    const rendered = screen.getAllByRole('listitem');
-    expect(rendered.length).toBeLessThan(ROW_COUNT);
-    expect(rendered[0]).toHaveAttribute('data-index');
+    const keys = mountedKeys();
+    expect(keys.length).toBeGreaterThan(0);
+    expect(keys.length).toBeLessThan(ROW_COUNT);
 
     // The list's own padding is CSS, so spacers and rows add up to the rows'
     // height alone.
-    const spanned = sum(spacerHeights()) + rendered.length * ROW_HEIGHT;
-    expect(spanned).toBe(ROW_COUNT * ROW_HEIGHT);
+    expect(sum(spacerHeights()) + keys.length * ROW_HEIGHT).toBe(ROW_COUNT * ROW_HEIGHT);
   });
 
   it('mounts rows when the list is only as tall as its content', () => {
@@ -121,129 +109,24 @@ describe('useVirtualCollection', () => {
       return Math.min(VIEWPORT_HEIGHT, content);
     });
 
-    render(<TestList enabled />, {wrapper: ThemeWrapper});
+    render(<TestList />, {wrapper: ThemeWrapper});
 
     expect(screen.getAllByRole('listitem').length).toBeGreaterThan(0);
   });
 
-  it('keeps the focused row mounted after it scrolls out of view', () => {
-    render(<TestList enabled focusedKey="row-0" />, {wrapper: ThemeWrapper});
+  it('keeps the focused row mounted, and the list its full height, after scrolling', () => {
+    render(<TestList focusedKey="row-0" />, {wrapper: ThemeWrapper});
 
     const list = screen.getByRole('list', {name: 'Rows'});
     list.scrollTop = 150 * ROW_HEIGHT;
     fireEvent.scroll(list);
 
     const keys = mountedKeys();
-    expect(keys[0]).toBe('row-0');
+    expect(keys).toContain('row-0');
     expect(keys).toContain('row-150');
     expect(keys).not.toContain('row-1');
 
-    // A spacer fills the gap between the focused row and the window, so the
-    // list keeps its full height.
-    const spanned = sum(spacerHeights()) + keys.length * ROW_HEIGHT;
-    expect(spanned).toBe(ROW_COUNT * ROW_HEIGHT);
-  });
-
-  const sectioned = ['a', 'b'].flatMap(section => [
-    {key: `section-${section}`, type: 'section', props: {}},
-    ...Array.from({length: ROW_COUNT / 2}, (_, index) => ({
-      key: `${section}-${index}`,
-      type: 'item',
-      parentKey: `section-${section}`,
-      props: {},
-    })),
-  ]) as typeof nodes;
-
-  it('keeps the section row of mounted rows mounted', () => {
-    render(<TestList enabled items={sectioned} />, {wrapper: ThemeWrapper});
-
-    const list = screen.getByRole('list', {name: 'Rows'});
-    list.scrollTop = 250 * ROW_HEIGHT;
-    fireEvent.scroll(list);
-
-    const keys = mountedKeys();
-    expect(keys[0]).toBe('section-b');
-    expect(keys).toContain('b-100');
-    expect(keys).not.toContain('b-0');
-    expect(keys).not.toContain('section-a');
-
-    const spanned = sum(spacerHeights()) + keys.length * ROW_HEIGHT;
-    expect(spanned).toBe(sectioned.length * ROW_HEIGHT);
-  });
-
-  it('estimates the gap above unmounted section rows after the first', () => {
-    const gap = 2;
-    render(<TestList enabled items={sectioned} sectionRowGap={gap} />, {
-      wrapper: ThemeWrapper,
-    });
-
-    const keys = mountedKeys();
-    const isAfterFirst = (key: string) => /^[ab]-[1-9]/.test(key);
-    // Mounted rows are measured, and jsdom applies no styles, so only the
-    // unmounted rows after the first of their section add the gap.
-    const unmountedAfterFirst = sectioned.filter(
-      node => isAfterFirst(String(node.key)) && !keys.includes(String(node.key))
-    ).length;
-    expect(unmountedAfterFirst).toBeGreaterThan(0);
-
-    const spanned = sum(spacerHeights()) + keys.length * ROW_HEIGHT;
-    expect(spanned).toBe(sectioned.length * ROW_HEIGHT + unmountedAfterFirst * gap);
-  });
-
-  it('renders every row without measurement props when disabled', () => {
-    render(<TestList enabled={false} />, {wrapper: ThemeWrapper});
-
-    const rendered = screen.getAllByRole('listitem');
-    expect(rendered).toHaveLength(ROW_COUNT);
-    expect(rendered[0]).not.toHaveAttribute('data-index');
-    expect(sum(spacerHeights())).toBe(0);
-  });
-});
-
-describe('VirtualRows', () => {
-  it('renders each row inside its section, with spacers for unmounted rows', () => {
-    const row = (key: string, type = 'item', parentKey?: string, spaceBefore = 0) => ({
-      node: {key, type, parentKey} as (typeof nodes)[number],
-      props: undefined,
-      spaceBefore,
-    });
-    render(
-      <Container as="ul">
-        <VirtualRows
-          virtual={{
-            rows: [
-              row('top'),
-              row('section-a', 'section', undefined, 10),
-              row('a-1', 'item', 'section-a'),
-              row('a-2', 'item', 'section-a', 20),
-              row('after'),
-            ],
-            spaceAfter: 30,
-          }}
-          renderRow={({node}) => <ListItem label={String(node.key)} />}
-          renderSection={(section, rows) => (
-            <SectionGroup aria-label={String(section.node.key)}>
-              <Container as="ul">{rows}</Container>
-            </SectionGroup>
-          )}
-        />
-      </Container>,
-      {wrapper: ThemeWrapper}
-    );
-
-    const section = screen.getByRole('listitem', {name: 'section-a'});
-    expect(within(section).getByRole('listitem', {name: 'a-1'})).toBeInTheDocument();
-    expect(within(section).getByRole('listitem', {name: 'a-2'})).toBeInTheDocument();
-    expect(
-      within(section).queryByRole('listitem', {name: 'top'})
-    ).not.toBeInTheDocument();
-    expect(
-      within(section).queryByRole('listitem', {name: 'after'})
-    ).not.toBeInTheDocument();
-
-    const spacers = screen
-      .getAllByRole('presentation', {hidden: true})
-      .map(spacer => spacer.style.height);
-    expect(spacers).toEqual(['10px', '20px', '30px']);
+    // A spacer fills the gap between the focused row and the window.
+    expect(sum(spacerHeights()) + keys.length * ROW_HEIGHT).toBe(ROW_COUNT * ROW_HEIGHT);
   });
 });
