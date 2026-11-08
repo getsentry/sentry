@@ -39,8 +39,6 @@ untyped sentry.integrations.types.IntegrationIssueConfigField.defaultValue
 untyped sentry.interfaces.user.EventUserApiContext.data
 untyped sentry.issues.issue_occurrence.IssueOccurrenceResponse.evidenceData
 untyped sentry.models.eventerror.EventErrorApiContext.data
-untyped sentry.preprod.api.models.public.size_analysis.DiffItemResponseDict.diffItems[]
-untyped sentry.preprod.api.models.public.size_analysis.SizeAnalysisResponseDict.insights
 untyped sentry.replays.post_process.ReplayDetailsResponse.clicks[]
 untyped sentry.seer.autofix.types.AutofixStateResponse.autofix
 untyped sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentSerializerResponse.schema
