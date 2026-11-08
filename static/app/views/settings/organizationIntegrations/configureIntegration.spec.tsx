@@ -432,16 +432,13 @@ describe('ConfigureIntegration mapping removals', () => {
 
   function setup({
     providerKey = 'jira',
-    features = [],
     configData = {sync_status_forward: mappings},
   }: {
     configData?: Record<string, unknown>;
-    features?: string[];
     providerKey?: string;
   } = {}) {
     const organization = OrganizationFixture({
       access: ['org:integrations', 'org:write'],
-      features,
     });
     const provider = GitHubIntegrationProviderFixture({
       key: providerKey,
@@ -495,23 +492,8 @@ describe('ConfigureIntegration mapping removals', () => {
     await userEvent.click(deleteButtons[1]!);
   }
 
-  it('uses the legacy full replacement payload when the feature is disabled', async () => {
-    const postRequest = setup();
-
-    await deleteSecondMapping();
-
-    await waitFor(() =>
-      expect(postRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {sync_status_forward: {'10000': mappings['10000']}},
-        })
-      )
-    );
-  });
-
   it('appends a removal entry for a removed mapping', async () => {
-    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
+    const postRequest = setup();
 
     await deleteSecondMapping();
 
@@ -531,10 +513,7 @@ describe('ConfigureIntegration mapping removals', () => {
   });
 
   it('does not have explicit removals for a non-Jira provider', async () => {
-    const postRequest = setup({
-      providerKey: 'github',
-      features: ['jira-explicit-mapping-removals'],
-    });
+    const postRequest = setup({providerKey: 'github'});
 
     await deleteSecondMapping();
 
@@ -549,7 +528,7 @@ describe('ConfigureIntegration mapping removals', () => {
   });
 
   it('sends all current mappings as objects when updating a mapping', async () => {
-    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
+    const postRequest = setup();
 
     await selectEvent.select(await screen.findByText('Open'), 'To Do');
 
@@ -569,10 +548,7 @@ describe('ConfigureIntegration mapping removals', () => {
   });
 
   it('does not add removals when previous mapping data is missing', async () => {
-    const postRequest = setup({
-      features: ['jira-explicit-mapping-removals'],
-      configData: {},
-    });
+    const postRequest = setup({configData: {}});
 
     await userEvent.click(await screen.findByText('Add Project'));
     await userEvent.click(await screen.findByRole('option', {name: 'Project A'}));
