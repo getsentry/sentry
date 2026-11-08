@@ -9,7 +9,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
@@ -17,6 +17,7 @@ from sentry.types.actor import Actor
 from sentry.workflow_engine.endpoints.serializers.data_source_serializer import (
     DataSourceSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.serializers.response_schemas import detector_config_schema
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     TriggerSerializerResponse,
 )
@@ -69,7 +70,9 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
         ApiDescription("Conditions that decide the monitor's status"),
     ]
     config: Annotated[
-        dict[str, Any], ApiDescription("Configuration of the monitor, which depends on its type")
+        dict[str, Any],
+        ApiDescription("Configuration of the monitor, which depends on its type"),
+        ApiSchema(detector_config_schema),
     ]
     enabled: Annotated[bool, ApiDescription("Whether the monitor is enabled")]
 

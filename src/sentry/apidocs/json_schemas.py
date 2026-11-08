@@ -21,19 +21,24 @@ from __future__ import annotations
 import copy
 import json  # noqa: S003
 import os
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from functools import cache
 from pathlib import Path
 from typing import Any
 
 import sentry_kafka_schemas
 
+from sentry.api.serializers.rest_framework.base import snake_to_camel_case
 from sentry.apidocs.response_coverage import CYCLE
 
-_DEFINITION_PREFIX = "#/definitions/"
+_DEFINITION_PREFIXES = ("#/definitions/", "#/$defs/")
 _JSON_TYPES = {str: "string", bool: "boolean", int: "integer", float: "number"}
 _NULL = {"type": "object", "nullable": True, "enum": [None]}
-_DROPPED_KEYWORDS = frozenset({"$schema", "$ref", "title", "definitions", "if", "then", "else"})
+# `optional` isn't a JSON Schema keyword, but some schemas use it as a note.
+_DROPPED_KEYWORDS = frozenset(
+    {"$schema", "$id", "$ref", "title", "definitions", "$defs", "if", "then", "else", "optional"}
+)
+_VALIDATION_ONLY_KEYWORDS = frozenset({"anyOf", "oneOf", "allOf", "not"})
 
 
 class UndescribedPropertyError(ValueError):
@@ -45,21 +50,32 @@ def to_response_schema(
     *,
     definitions: Mapping[str, Any] | None = None,
     descriptions: Mapping[str, str] | None = None,
+    camel_case: bool = False,
 ) -> dict[str, Any]:
     """
-    Converts a JSON Schema (draft 7 or earlier) to an OpenAPI 3.0 response schema.
+    Converts a JSON Schema to an OpenAPI 3.0 response schema.
 
-    `#/definitions/` references are inlined. A definition that refers back to itself is
-    cut short with a cycle marker, the way a recursive TypedDict is.
+    `#/definitions/` and `#/$defs/` references are inlined. A definition that refers back
+    to itself is cut short with a cycle marker, the way a recursive TypedDict is.
+
+    A property's description comes from the schema, then from `descriptions` keyed by its
+    path, such as `<definition>.<property>` or `filters[].key`, then by its bare name. Set `camel_case` when the
+    response camelCases the keys of the validated data.
     """
-    definitions = definitions if definitions is not None else schema.get("definitions", {})
+    if definitions is None:
+        definitions = {**schema.get("definitions", {}), **schema.get("$defs", {})}
     descriptions = descriptions or {}
     in_progress: list[str] = []
+    rename = snake_to_camel_case if camel_case else str
 
     def described(value: dict[str, Any], key: str, ref: Mapping[str, Any]) -> dict[str, Any]:
         if value.get("description"):
             return value
-        text = descriptions.get(key) or _referenced_description(ref, definitions)
+        text = (
+            descriptions.get(key)
+            or descriptions.get(key.rsplit(".", 1)[-1])
+            or _referenced_description(ref, definitions)
+        )
         if not text:
             raise UndescribedPropertyError(
                 f"{key} has no description; add one to the descriptions passed to "
@@ -67,12 +83,10 @@ def to_response_schema(
             )
         return {**value, "description": text}
 
-    def convert(value: Mapping[str, Any], owner: str) -> dict[str, Any]:
+    def convert(value: Mapping[str, Any], path: str) -> dict[str, Any]:
         ref = value.get("$ref")
         if isinstance(ref, str):
-            if not ref.startswith(_DEFINITION_PREFIX):
-                raise ValueError(f"Unsupported reference {ref}")
-            target = ref[len(_DEFINITION_PREFIX) :]
+            target = _definition_name(ref)
             if target in in_progress:
                 return _cycle_placeholder(target, definitions[target])
             in_progress.append(target)
@@ -83,22 +97,31 @@ def to_response_schema(
             siblings = {k: v for k, v in value.items() if k not in _DROPPED_KEYWORDS}
             return {**resolved, **siblings}
 
+        properties = value.get("properties")
+        # Next to properties, these only add validation rules, such as which properties
+        # are required together, and don't change the shape.
+        skipped = _VALIDATION_ONLY_KEYWORDS if isinstance(properties, dict) else frozenset()
         result: dict[str, Any] = {}
         for key, item in value.items():
-            if key in _DROPPED_KEYWORDS or key == "properties":
+            if key in _DROPPED_KEYWORDS or key in skipped or key == "properties":
                 continue
             if key in ("items", "additionalProperties", "not") and isinstance(item, dict):
-                result[key] = convert(item, owner)
+                result[key] = convert(item, f"{path}[]" if key == "items" else path)
             elif key in ("anyOf", "oneOf", "allOf"):
-                result[key] = [convert(branch, owner) for branch in item]
+                result[key] = [convert(branch, path) for branch in item]
             else:
                 result[key] = item
 
-        if isinstance(properties := value.get("properties"), dict):
-            result["properties"] = {
-                prop: described(convert(spec, owner), f"{owner}.{prop}", spec)
-                for prop, spec in properties.items()
-            }
+        if isinstance(properties, dict):
+            result["properties"] = {}
+            for prop, spec in properties.items():
+                key = f"{path}.{prop}".lstrip(".")
+                result["properties"][rename(prop)] = described(convert(spec, key), key, spec)
+        if isinstance(required := value.get("required"), list):
+            result["required"] = [rename(prop) for prop in required]
+        if result.get("additionalProperties") is False and not result.get("properties"):
+            # The same marker an empty TypedDict gets, so the object counts as typed.
+            result["maxProperties"] = 0
         if "const" in result:
             result["enum"] = [result.pop("const")]
         _move_null_to_nullable(result)
@@ -109,13 +132,29 @@ def to_response_schema(
     return copy.deepcopy(convert(schema, ""))
 
 
+def _definition_name(ref: str) -> str:
+    for prefix in _DEFINITION_PREFIXES:
+        if ref.startswith(prefix):
+            return ref[len(prefix) :]
+    raise ValueError(f"Unsupported reference {ref}")
+
+
+def union_schema(schemas: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    """`anyOf` the distinct schemas, such as one per handler in a registry."""
+    distinct: dict[str, Mapping[str, Any]] = {}
+    for schema in schemas:
+        distinct.setdefault(json.dumps(schema, sort_keys=True), schema)
+    branches = [copy.deepcopy(dict(schema)) for schema in distinct.values()]
+    return branches[0] if len(branches) == 1 else {"anyOf": branches}
+
+
 def _referenced_description(spec: Mapping[str, Any], definitions: Mapping[str, Any]) -> str | None:
     """The description of the definition a property refers to, directly or as `X | null`."""
     candidates = [spec, *spec.get("oneOf", ()), *spec.get("anyOf", ())]
     for candidate in candidates:
         ref = candidate.get("$ref")
-        if isinstance(ref, str) and ref.startswith(_DEFINITION_PREFIX):
-            text = definitions.get(ref[len(_DEFINITION_PREFIX) :], {}).get("description")
+        if isinstance(ref, str):
+            text = definitions.get(_definition_name(ref), {}).get("description")
             if text:
                 return str(text)
     return None
@@ -129,10 +168,11 @@ def _move_null_to_nullable(result: dict[str, Any]) -> None:
             result["nullable"] = True
         if len(non_null) == 1:
             result["type"] = non_null[0]
-        else:
+        elif non_null:
             result.pop("type")
-            if non_null:
-                result["anyOf"] = [{"type": kind} for kind in non_null]
+            result["anyOf"] = [{"type": kind} for kind in non_null]
+        else:
+            result.update(_NULL)
     for combinator in ("oneOf", "anyOf"):
         branches = result.get(combinator)
         if not isinstance(branches, list):
@@ -187,7 +227,7 @@ def kafka_definition_schema(
     """A response schema for one definition of a sentry-kafka-schemas topic."""
     schema = _kafka_json_schema(topic)
     return to_response_schema(
-        {"$ref": f"{_DEFINITION_PREFIX}{definition}"},
+        {"$ref": f"{_DEFINITION_PREFIXES[0]}{definition}"},
         definitions=schema["definitions"],
         descriptions=descriptions,
     )
