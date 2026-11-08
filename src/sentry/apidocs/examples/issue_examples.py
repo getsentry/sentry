@@ -204,11 +204,13 @@ GROUP_DETAILS: GroupDetailsResponse = {
     # Always added by the detail view
     "activity": [
         {
-            "data": {},
+            "data": {"priority": "high"},
             "dateCreated": "2018-11-06T21:19:55Z",
             "id": "0",
+            "commentId": None,
             "type": "first_seen",
             "user": None,
+            "sentry_app": None,
         }
     ],
     "seenBy": [],

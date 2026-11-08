@@ -8,7 +8,7 @@ from django.db.models import Prefetch, prefetch_related_objects
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
-from sentry.api.serializers.release_details_types import Author
+from sentry.api.serializers.release_details_types import Author, EmptyAuthor
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
@@ -64,8 +64,16 @@ class PullRequestSerializerResponse(TypedDict):
     repository: Annotated[
         RepositorySerializerResponse, ApiDescription("Repository of the pull request")
     ]
-    author: Annotated[Author, ApiDescription("Author of the pull request")]
-    externalUrl: Annotated[str, ApiDescription("URL of the pull request in the provider")]
+    author: Annotated[
+        Author | EmptyAuthor,
+        ApiDescription("Author of the pull request, or an empty object when it has none"),
+    ]
+    externalUrl: Annotated[
+        str | None,
+        ApiDescription(
+            "URL of the pull request in the provider, or null when the provider can't build one"
+        ),
+    ]
 
 
 LinkedPullRequestAttributionAgent = Literal["cursor", "github_copilot", "claude_code", "unknown"]
@@ -151,8 +159,8 @@ class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
             "mergedAt": obj.merged_at,
             "status": get_stored_pull_request_status(obj),
             "repository": cast(RepositorySerializerResponse, attrs["repository"]),
-            "author": cast(Author, attrs["user"]),
-            "externalUrl": cast(str, attrs["external_url"]),
+            "author": cast(Author | EmptyAuthor, attrs["user"]),
+            "externalUrl": cast(str | None, attrs["external_url"]),
         }
 
 
