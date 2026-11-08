@@ -30,7 +30,7 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.eventerror import EventError, EventErrorApiContext
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
-from sentry.sdk_updates import SdkSetupState, get_suggested_updates
+from sentry.sdk_updates import SdkSetupState, SdkUpdateSuggestionResponse, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -198,7 +198,7 @@ class BaseEventSerializerResponse(TypedDict):
         str | None, ApiDescription("Distribution of the release the event was sent with")
     ]
     packages: Annotated[
-        dict[str, object],
+        dict[str, str | None],
         ApiDescription(
             "Modules loaded when the event occurred, keyed by module name with their versions"
         ),
@@ -296,7 +296,8 @@ class IssueEventSerializerResponse(SqlFormatEventSerializerResponse):
         ApiDescription("User feedback submitted for the event. Null when there's none"),
     ]
     sdkUpdates: Annotated[
-        list[dict[str, object]], ApiDescription("Suggested updates for the SDK that sent the event")
+        list[SdkUpdateSuggestionResponse],
+        ApiDescription("Suggested updates for the SDK that sent the event"),
     ]
     resolvedWith: Annotated[
         list[str],
@@ -697,7 +698,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         is_public = kwargs.pop("is_public", False)
         return super().get_attrs(item_list, user, is_public=is_public, **kwargs)
 
-    def _get_sdk_updates(self, obj: Event | GroupEvent) -> list[dict[str, object]]:
+    def _get_sdk_updates(self, obj: Event | GroupEvent) -> list[SdkUpdateSuggestionResponse]:
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
     def _get_resolved_with(self, obj: Event | GroupEvent) -> list[str]:
