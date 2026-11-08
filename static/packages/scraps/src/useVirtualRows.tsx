@@ -1,5 +1,5 @@
 import {useLayoutEffect} from 'react';
-import {useVirtualizer, type Rect} from '@tanstack/react-virtual';
+import {useVirtualizer, type Range, type Rect} from '@tanstack/react-virtual';
 
 export interface UseVirtualRowsOptions {
   count: number;
@@ -13,6 +13,7 @@ export interface UseVirtualRowsOptions {
   overscan?: number;
   paddingEnd?: number;
   paddingStart?: number;
+  rangeExtractor?: (range: Range) => number[];
   scrollPaddingEnd?: number;
   scrollPaddingStart?: number;
   useAnimationFrameWithResizeObserver?: boolean;
