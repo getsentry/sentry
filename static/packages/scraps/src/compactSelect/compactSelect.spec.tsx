@@ -3,7 +3,7 @@ import {Fragment, useRef, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {act, render, screen, waitFor, within} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
@@ -2074,6 +2074,50 @@ describe('CompactSelect', () => {
               {name: 'B 249'}
             )
           ).toHaveFocus()
+        );
+      }
+    );
+
+    it.each([
+      ['list box', undefined, 'listbox', 'option'],
+      ['grid', 'grid', 'grid', 'row'],
+    ] as const)(
+      'keeps keyboard focus on an option of a %s scrolled out of view',
+      async (_, mode, listRole, optionRole) => {
+        render(
+          <CompactSelect
+            mode={mode}
+            menuWidth={300}
+            options={sections}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus()
+        );
+
+        // The list scrolls inside a wrapper, which has no role to query.
+        // oxlint-disable-next-line testing-library/no-node-access
+        const scroller = screen.getByRole(listRole).parentElement;
+        if (!scroller) {
+          throw new Error('The list has no scroll wrapper');
+        }
+        scroller.scrollTop = 10_000;
+        fireEvent.scroll(scroller);
+        await waitFor(() =>
+          expect(screen.queryByRole(optionRole, {name: 'A 1'})).not.toBeInTheDocument()
+        );
+
+        // The focused option stays mounted, so focus stays in the list and the
+        // keyboard keeps working.
+        expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus();
+        await userEvent.keyboard('{ArrowDown}');
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'A 1'})).toHaveFocus()
         );
       }
     );
