@@ -1,10 +1,32 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, NotRequired, TypedDict, cast
 
 from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.debugfile import ProjectDebugFile
+
+
+class DebugFileData(TypedDict):
+    """`ProjectDebugFile.data`, as `DifMeta` and the proguard and dartsymbolmap uploads set it."""
+
+    type: NotRequired[
+        Annotated[
+            str,
+            ApiDescription(
+                "Kind of the object, such as executable, debug companion or library. Left out "
+                "for mapping files"
+            ),
+        ]
+    ]
+    features: NotRequired[
+        Annotated[
+            list[str],
+            ApiDescription(
+                "Debug features the file provides, such as symtab, debug, unwind, sources or mapping"
+            ),
+        ]
+    ]
 
 
 class DebugFileSerializerResponse(TypedDict):
@@ -30,7 +52,8 @@ class DebugFileSerializerResponse(TypedDict):
     sha1: Annotated[str, ApiDescription("SHA-1 checksum of the file")]
     dateCreated: Annotated[datetime, ApiDescription("When the file was uploaded (ISO 8601)")]
     data: Annotated[
-        dict[str, Any], ApiDescription("Extra data about the file, such as its features")
+        DebugFileData,
+        ApiDescription("Extra data about the file, such as its features. Empty when not known"),
     ]
 
 
@@ -57,5 +80,5 @@ class DebugFileSerializer(Serializer[DebugFileSerializerResponse]):
             "size": obj.get_file_size(),
             "sha1": obj.get_checksum(),
             "dateCreated": obj.get_date_created(),
-            "data": obj.data or {},
+            "data": cast(DebugFileData, obj.data or {}),
         }

@@ -94,6 +94,82 @@ class OrganizationIntegrationResponse(TypedDict):
     ]
 
 
+class IntegrationAlert(TypedDict):
+    type: Annotated[str, ApiDescription("Style of the alert, such as warning")]
+    icon: Annotated[str, ApiDescription("Icon shown with the alert, such as icon-warning-sm")]
+    text: Annotated[str, ApiDescription("Text of the alert, in Markdown")]
+
+
+class IntegrationDialog(TypedDict):
+    actionText: Annotated[str, ApiDescription("Label of the dialog's confirm button")]
+    body: Annotated[str, ApiDescription("Text of the dialog")]
+
+
+class IntegrationExternalInstall(TypedDict):
+    url: Annotated[
+        str, ApiDescription("URL to install the integration from, such as a marketplace")
+    ]
+    buttonText: Annotated[str, ApiDescription("Label of the install button")]
+    noticeText: Annotated[str, ApiDescription("Notice shown before the user leaves Sentry")]
+
+
+class IntegrationConfigureIntegration(TypedDict):
+    title: Annotated[str, ApiDescription("Title of the configuration step")]
+
+
+class IntegrationAspects(TypedDict, total=False):
+    """Matches `IntegrationAspects` in static/app/types/integrations.tsx."""
+
+    alerts: Annotated[list[IntegrationAlert], ApiDescription("Alerts shown during setup")]
+    configure_integration: Annotated[
+        IntegrationConfigureIntegration, ApiDescription("Configuration step after install")
+    ]
+    directEnable: Annotated[
+        bool, ApiDescription("Whether the integration is enabled without an install flow")
+    ]
+    disable_dialog: Annotated[
+        IntegrationDialog, ApiDescription("Dialog shown before the integration is disabled")
+    ]
+    externalInstall: Annotated[
+        IntegrationExternalInstall,
+        ApiDescription("Where to install the integration when it's installed outside Sentry"),
+    ]
+    removal_dialog: Annotated[
+        IntegrationDialog, ApiDescription("Dialog shown before the integration is removed")
+    ]
+
+
+class IntegrationFeatureDescription(TypedDict):
+    description: Annotated[str, ApiDescription("Description of the feature, in Markdown")]
+    featureGate: Annotated[
+        str | None,
+        ApiDescription(
+            "Organization feature flag that gates the feature, such as integrations-commits"
+        ),
+    ]
+
+
+class IntegrationMetadataResponse(TypedDict):
+    """`IntegrationMetadata.asdict()`."""
+
+    description: Annotated[str, ApiDescription("Description of the integration, in Markdown")]
+    features: Annotated[
+        list[IntegrationFeatureDescription], ApiDescription("Features the integration provides")
+    ]
+    author: Annotated[str, ApiDescription("Author of the integration")]
+    noun: Annotated[
+        str, ApiDescription("Noun for one installation, such as Installation or Account")
+    ]
+    issue_url: Annotated[str, ApiDescription("URL to report problems with the integration")]
+    source_url: Annotated[str, ApiDescription("URL of the integration's source or docs")]
+    aspects: Annotated[
+        IntegrationAspects,
+        ApiDescription(
+            "Extra provider details shown during setup, such as alerts and configuration instructions"
+        ),
+    ]
+
+
 class IntegrationProviderInfo(TypedDict):
     key: Annotated[str, ApiDescription("Key of the integration provider, such as github")]
     slug: Annotated[str, ApiDescription("Slug of the integration provider, same as key")]
@@ -112,7 +188,7 @@ class IntegrationProviderInfo(TypedDict):
         ),
     ]
     aspects: Annotated[
-        dict[str, Any],
+        IntegrationAspects,
         ApiDescription(
             "Extra provider details shown during setup, such as alerts and configuration instructions"
         ),
@@ -128,7 +204,8 @@ def serialize_provider(provider: IntegrationProvider) -> IntegrationProviderInfo
         "canAdd": provider.can_add,
         "canDisable": provider.can_disable,
         "features": sorted(f.value for f in provider.features),
-        "aspects": getattr(provider.metadata, "aspects", {}),
+        # test_integration_provider_types checks every provider's aspects against the TypedDict.
+        "aspects": cast(IntegrationAspects, getattr(provider.metadata, "aspects", {})),
     }
 
 
@@ -404,7 +481,7 @@ class IntegrationProviderResponse(TypedDict):
     slug: Annotated[str, ApiDescription("Slug of the integration provider, same as key")]
     name: Annotated[str, ApiDescription("Display name of the integration provider")]
     metadata: Annotated[
-        Any,
+        IntegrationMetadataResponse | None,
         ApiDescription(
             "Provider metadata, such as description, author, source URL and setup details"
         ),
@@ -464,8 +541,10 @@ class IntegrationProviderSerializer(Serializer[IntegrationProviderResponse]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> IntegrationProviderResponse:
-        metadata: Any = obj.metadata
-        metadata = metadata and metadata.asdict() or None
+        # test_integration_provider_types checks every provider's metadata against the TypedDict.
+        metadata = cast(
+            IntegrationMetadataResponse | None, obj.metadata and obj.metadata.asdict() or None
+        )
 
         can_add = obj.can_add
         if can_add and not obj.allow_multiple and attrs["has_existing_integration"]:
