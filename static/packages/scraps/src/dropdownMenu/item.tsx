@@ -15,6 +15,7 @@ import {
   type MenuItemTrailingAction,
 } from '@sentry/scraps/menu';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
+import type {VirtualRowProps} from '@sentry/scraps/useVirtualCollection';
 
 import {DropdownMenuContext} from './context';
 
@@ -129,6 +130,12 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
    * Tag name for item wrapper
    */
   renderAs?: T;
+  /**
+   * Measurement props from a virtualized list, applied to the item's root
+   * element. The root is measured rather than a wrapper, since submenu
+   * wrappers use `display: contents` and have no height of their own.
+   */
+  rowProps?: VirtualRowProps;
   submenuRef?: React.RefObject<HTMLElement | null>;
 }
 
@@ -146,6 +153,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   ref,
   menuItemRef,
   submenuRef,
+  rowProps,
   ...props
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
@@ -289,7 +297,12 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
 
   return (
     <ListItem
-      ref={mergeRefs(ref, itemRef)}
+      ref={mergeRefs(ref, itemRef, rowProps?.ref)}
+      data-index={rowProps?.['data-index']}
+      // Items in a section are spaced on the item rather than with a gap on
+      // the section's list. A gap would also open up around the spacer rows of
+      // a virtualized menu.
+      gapAbove={isAfterFirstInSection(node, state.collection)}
       as={renderAs}
       label={itemLabel}
       leadingItems={
@@ -367,4 +380,16 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       {...itemProps}
     />
   );
+}
+
+/** Whether an item is in a section, after the section's first item. */
+function isAfterFirstInSection(
+  node: Node<MenuItemProps>,
+  collection: TreeState<MenuItemProps>['collection']
+): boolean {
+  if (node.parentKey === null || node.parentKey === undefined) {
+    return false;
+  }
+  const [first] = collection.getItem(node.parentKey)?.childNodes ?? [];
+  return first !== undefined && first.key !== node.key;
 }

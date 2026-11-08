@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import {Fragment, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import {useCallback, useContext, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -11,7 +11,7 @@ import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
-import type {Node} from '@react-types/shared';
+import type {Key, Node} from '@react-types/shared';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 import {useResolveLinkHref} from '@sentry/scraps/link/linkBehaviorContext';
@@ -20,6 +20,9 @@ import {
   Header,
   ReserveLeadingSlot,
   Search,
+  SECTION_ITEM_GAP,
+  SectionGroup,
+  SectionList,
   SectionSeparator,
   Title,
 } from '@sentry/scraps/menu';
@@ -27,6 +30,14 @@ import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
+import {
+  DEFAULT_VIRTUALIZE_THRESHOLD,
+  flattenSections,
+  useVirtualCollection,
+  VirtualRows,
+  type VirtualCollection,
+  type VirtualRowProps,
+} from '@sentry/scraps/useVirtualCollection';
 
 import type {OverlayState} from './context';
 import {DropdownMenuContext} from './context';
@@ -80,6 +91,13 @@ export interface DropdownMenuListProps
   };
   size?: MenuItemProps['size'];
   /**
+   * Number of items, counting the items inside sections, above which only the
+   * items near the viewport are rendered. Submenus inherit the threshold of
+   * their parent menu. Pass `Infinity` to never virtualize.
+   * @default 150
+   */
+  virtualizeThreshold?: number;
+  /**
    * Style overrides applied to the position wrapper. Useful for overriding
    * the default z-index (e.g. when the menu is inside a high z-index container
    * like a sidebar).
@@ -89,6 +107,7 @@ export interface DropdownMenuListProps
 
 type DropdownMenuCollectionProps = {
   closeOnSelect: boolean;
+  /** Top-level nodes of the menu, in order. */
   collection: Array<Node<MenuItemProps>>;
   onClose: DropdownMenuListProps['onClose'];
   separatorProps: ReturnType<typeof useSeparator>['separatorProps'];
@@ -99,36 +118,22 @@ type DropdownMenuCollectionProps = {
 
 interface DropdownMenuCollectionItemProps extends Omit<
   DropdownMenuCollectionProps,
-  'collection'
+  'collection' | 'separatorProps'
 > {
   node: Node<MenuItemProps>;
+  /** Measurement props for the item's row when the menu is virtualized. */
+  rowProps?: VirtualRowProps;
 }
 
 function DropdownMenuCollectionItem({
   node,
+  rowProps,
   closeOnSelect,
   disableTextSelection,
   onClose,
-  separatorProps,
   size,
   state,
 }: DropdownMenuCollectionItemProps): React.ReactNode {
-  if (node.type === 'section') {
-    return (
-      <DropdownMenuSection node={node}>
-        <DropdownMenuCollection
-          collection={[...node.childNodes]}
-          closeOnSelect={closeOnSelect}
-          disableTextSelection={disableTextSelection}
-          onClose={onClose}
-          separatorProps={separatorProps}
-          size={size}
-          state={state}
-        />
-      </DropdownMenuSection>
-    );
-  }
-
   if (node.value?.submenu) {
     if (!node.value.children) {
       return null;
@@ -138,6 +143,7 @@ function DropdownMenuCollectionItem({
       <DropdownSubmenu
         items={node.value.children}
         node={node}
+        rowProps={rowProps}
         state={state}
         onClose={onClose}
         closeOnSelect={closeOnSelect}
@@ -150,6 +156,7 @@ function DropdownMenuCollectionItem({
   return (
     <DropdownMenuItem
       node={node}
+      rowProps={rowProps}
       state={state}
       onClose={onClose}
       closeOnSelect={closeOnSelect}
@@ -157,50 +164,82 @@ function DropdownMenuCollectionItem({
   );
 }
 
-function DropdownMenuCollection({
-  closeOnSelect,
-  collection,
-  onClose,
+function DropdownMenuSeparator({
   separatorProps,
-  state,
-  disableTextSelection,
-  size,
-}: DropdownMenuCollectionProps) {
+}: {
+  separatorProps: DropdownMenuCollectionProps['separatorProps'];
+}) {
   return (
-    <Fragment>
-      {collection.map((node, i) => {
-        const isLastNode = collection.length - 1 === i;
-        const showSeparator =
-          !isLastNode &&
-          (node.type === 'section' || collection[i + 1]?.type === 'section');
+    <Stack
+      justify="center"
+      height="8px"
+      padding="0 lg 0 xl"
+      {...separatorProps}
+      role="presentation"
+    >
+      <SectionSeparator />
+    </Stack>
+  );
+}
 
-        return (
-          <Fragment key={node.key}>
-            <DropdownMenuCollectionItem
-              node={node}
-              closeOnSelect={closeOnSelect}
-              disableTextSelection={disableTextSelection}
-              onClose={onClose}
-              separatorProps={separatorProps}
-              size={size}
-              state={state}
-            />
-            {showSeparator && (
-              <Stack
-                as="li"
-                justify="center"
-                height="8px"
-                padding="0 lg 0 xl"
-                {...separatorProps}
-                role="presentation"
-              >
-                <SectionSeparator />
-              </Stack>
-            )}
-          </Fragment>
-        );
-      })}
-    </Fragment>
+interface DropdownMenuRowsProps extends DropdownMenuCollectionProps {
+  virtual: VirtualCollection<MenuItemProps>;
+}
+
+/**
+ * Renders a menu's rows, with each item in its section. A regular menu passes
+ * every node as a row, a virtualized one only the mounted rows, so both render
+ * the same tree and nothing remounts when a menu crosses its threshold.
+ *
+ * A separator goes between a section and whatever is next to it. It renders
+ * inside a measured row, either the section's own row or the row of the item
+ * after a section, so it is part of the virtualized scroll offsets.
+ */
+function DropdownMenuRows({
+  virtual,
+  collection,
+  separatorProps,
+  ...itemProps
+}: DropdownMenuRowsProps) {
+  const itemsAfterSections = useMemo(
+    () =>
+      new Set(
+        collection
+          .filter((_, index) => collection[index - 1]?.type === 'section')
+          .map(node => node.key)
+      ),
+    [collection]
+  );
+
+  return (
+    <VirtualRows
+      virtual={virtual}
+      renderRow={({node, props}) =>
+        itemsAfterSections.has(node.key) ? (
+          <SectionGroup role="presentation" {...props}>
+            <DropdownMenuSeparator separatorProps={separatorProps} />
+            <SectionList>
+              <DropdownMenuCollectionItem node={node} {...itemProps} />
+            </SectionList>
+          </SectionGroup>
+        ) : (
+          <DropdownMenuCollectionItem node={node} rowProps={props} {...itemProps} />
+        )
+      }
+      renderSection={(section, rows) => (
+        <DropdownMenuSection
+          node={section.node}
+          rowProps={section.props}
+          separator={
+            section.node.key !== collection[0]?.key && (
+              <DropdownMenuSeparator separatorProps={separatorProps} />
+            )
+          }
+        >
+          {rows}
+        </DropdownMenuSection>
+      )}
+    />
   );
 }
 
@@ -218,20 +257,35 @@ function DropdownMenuList({
   overlayState,
   overlayPositionProps,
   zIndex,
+  virtualizeThreshold,
   ...props
 }: DropdownMenuListProps) {
   const {t} = useTranslation();
+  const theme = useTheme();
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
   const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
-  const hasLeadingItems = useMemo(
-    () =>
-      stateCollection
-        .flatMap(node => (node.type === 'section' ? [...node.childNodes] : [node]))
-        .some(node => node.value?.leadingItems || node.value?.isSelected !== undefined),
-    [stateCollection]
+  const flatNodes = useMemo(() => flattenSections(stateCollection), [stateCollection]);
+  const items = useMemo(
+    () => flatNodes.filter(node => node.type !== 'section'),
+    [flatNodes]
   );
+  // The keys keyboard focus can reach, in order. Disabled items are skipped, so
+  // the first and last keys are the first and last focusable items. Matches the
+  // rule CompactSelect uses for its ArrowUp/Down region handoff.
+  const focusableKeys = useMemo(
+    () =>
+      items
+        .filter(node => node.type === 'item' && !state.disabledKeys.has(node.key))
+        .map(node => String(node.key)),
+    [items, state.disabledKeys]
+  );
+  const hasLeadingItems = items.some(
+    node => node.value?.leadingItems || node.value?.isSelected !== undefined
+  );
+  const virtualized =
+    items.length > (virtualizeThreshold ?? DEFAULT_VIRTUALIZE_THRESHOLD);
 
   // Implement focus states, keyboard navigation, aria-label,...
   const menuRef = useRef<HTMLUListElement>(null);
@@ -239,16 +293,98 @@ function DropdownMenuList({
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
   const {separatorProps} = useSeparator({elementType: 'li'});
 
+  // The menu sizes its width to its rows. Keep the item with the longest label
+  // mounted, so a virtualized menu does not widen while scrolling.
+  const widestKey = useMemo(
+    () =>
+      virtualized
+        ? items.reduce<Node<MenuItemProps> | undefined>(
+            (widest, node) =>
+              !widest || node.textValue.length > widest.textValue.length ? node : widest,
+            undefined
+          )?.key
+        : undefined,
+    [items, virtualized]
+  );
+  const virtual = useVirtualCollection({
+    collection: stateCollection,
+    enabled: virtualized,
+    size: size ?? 'md',
+    scrollRef: menuRef,
+    focusedKey: state.selectionManager.focusedKey,
+    widestKey,
+    // The space items in a section get from `gapAbove`.
+    sectionRowGap: parseFloat(theme.space[SECTION_ITEM_GAP]),
+  });
+
+  // A virtualized menu's width follows the rows that happen to be mounted.
+  // Only let it grow while scrolling, so it does not jitter. The grown width
+  // belongs to one set of items: when they change, such as when a search
+  // filters them, the menu takes its natural width again and grows from there.
+  const itemsSignature = useMemo(
+    () => (virtualized ? items.map(node => String(node.key)).join('\n') : ''),
+    [items, virtualized]
+  );
+  const [grownWidth, setGrownWidth] = useState({signature: '', width: 0});
+  const virtualizedMinWidth =
+    grownWidth.signature === itemsSignature ? grownWidth.width : 0;
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (!virtualized || !menu) {
+      return;
+    }
+    const grow = () =>
+      setGrownWidth(current => {
+        const width = Math.max(
+          current.signature === itemsSignature ? current.width : 0,
+          menu.offsetWidth
+        );
+        return current.signature === itemsSignature && current.width === width
+          ? current
+          : {signature: itemsSignature, width};
+      });
+    // Measure now as well: the observer does not report a menu whose width
+    // stays the same when the previous items' width is dropped.
+    grow();
+    const observer = new ResizeObserver(grow);
+    observer.observe(menu);
+    return () => observer.disconnect();
+  }, [virtualized, itemsSignature]);
+
+  /**
+   * Moves focus to an item by key. Items outside a virtualized window are not
+   * mounted, so focus goes through the selection manager: the list scrolls the
+   * item into view and React Aria focuses it once it mounts.
+   */
+  const focusItem = (key: Key | undefined) => {
+    if (key === undefined) {
+      return;
+    }
+    const element = menuRef.current?.querySelector<HTMLElement>(
+      `[data-key="${CSS.escape(String(key))}"]`
+    );
+    if (element) {
+      element.focus();
+      return;
+    }
+    state.selectionManager.setFocused(true);
+    state.selectionManager.setFocusedKey(key);
+  };
+
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
-      const enabledMenuItems = getEnabledMenuItems(menuRef.current);
+      // Read from the collection rather than the DOM, since a virtualized menu
+      // only mounts some of its items. The key comes from the event target:
+      // React Aria has already moved focusedKey to the next item by now.
+      const targetKey = getMenuItemKey(e.target);
       // When keyboard navigation wraps past the last item, show the top of the
       // list again so the search field and first item are visible.
       if (
         e.key === 'ArrowDown' &&
         searchRef.current &&
         menuRef.current &&
-        e.target === enabledMenuItems.at(-1)
+        targetKey !== undefined &&
+        targetKey === focusableKeys.at(-1)
       ) {
         menuRef.current.scrollTop = 0;
       }
@@ -257,7 +393,8 @@ function DropdownMenuList({
         e.key === 'ArrowUp' &&
         searchRef.current &&
         menuRef.current &&
-        document.activeElement === enabledMenuItems[0]
+        targetKey !== undefined &&
+        targetKey === focusableKeys[0]
       ) {
         e.preventDefault();
         menuRef.current.scrollTop = 0;
@@ -309,14 +446,14 @@ function DropdownMenuList({
     [menuProps, hasFocus]
   );
 
-  const theme = useTheme();
   const contextValue = useMemo(
     () => ({
       rootOverlayState: rootOverlayState ?? overlayState,
       parentMenuState: state,
       safetyTriangle,
+      virtualizeThreshold,
     }),
-    [rootOverlayState, overlayState, state, safetyTriangle]
+    [rootOverlayState, overlayState, state, safetyTriangle, virtualizeThreshold]
   );
   const searchInput = searchState && (
     <Search
@@ -330,7 +467,7 @@ function DropdownMenuList({
         // ArrowDown moves from the search field into the filtered menu items.
         if (event.key === 'ArrowDown') {
           event.preventDefault();
-          getEnabledMenuItems(menuRef.current)[0]?.focus();
+          focusItem(focusableKeys[0]);
         }
       }}
     />
@@ -385,10 +522,12 @@ function DropdownMenuList({
                   ref={menuRef}
                   disableTextSelection={disableTextSelection}
                   flexGrow={showEmptyMessage ? 1 : undefined}
+                  minWidth={virtualized ? `${virtualizedMinWidth}px` : undefined}
                   {...mergeProps(modifiedMenuProps, keyboardProps)}
                 >
                   <ReserveLeadingSlot reserve={hasLeadingItems}>
-                    <DropdownMenuCollection
+                    <DropdownMenuRows
+                      virtual={virtual}
                       collection={stateCollection}
                       closeOnSelect={closeOnSelect}
                       disableTextSelection={disableTextSelection}
@@ -454,6 +593,11 @@ function isMenuItemHidden(search: string, label: React.ReactNode, textValue?: st
   );
 }
 
+/** Items with children render as a section, unless they open a submenu. */
+function isMenuSection(item: MenuItemProps): boolean {
+  return Boolean(item.children && item.children.length > 0 && !item.submenu);
+}
+
 function filterMenuItems(items: MenuItemProps[], search: string): MenuItemProps[] {
   const query = search.trim().toLocaleLowerCase();
   if (!query) {
@@ -470,15 +614,15 @@ function filterMenuItems(items: MenuItemProps[], search: string): MenuItemProps[
   });
 }
 
-/**
- * Returns the menu items keyboard focus can reach. Disabled items are skipped,
- * so the first and last of these are the first and last focusable items.
- * Matches the rule CompactSelect uses for its ArrowUp/Down region handoff.
- */
-function getEnabledMenuItems(menu: HTMLElement | null): HTMLElement[] {
-  return Array.from(
-    menu?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? []
-  ).filter(item => item.getAttribute('aria-disabled') !== 'true');
+/** The key of the menu item an event fired on, if it fired on one. */
+function getMenuItemKey(target: EventTarget | null): string | undefined {
+  if (
+    !(target instanceof HTMLElement) ||
+    !target.getAttribute('role')?.startsWith('menuitem')
+  ) {
+    return undefined;
+  }
+  return target.dataset.key;
 }
 
 /**
@@ -511,9 +655,14 @@ export function DropdownMenuContent({
   disabledKeys,
   size,
   search,
+  virtualizeThreshold,
   ...props
 }: DropdownMenuContentProps) {
   const [searchValue, setSearchValue] = useState('');
+  // A submenu renders inside its parent menu's context, so it inherits the
+  // parent's threshold unless it sets its own.
+  const {virtualizeThreshold: inheritedVirtualizeThreshold} =
+    useContext(DropdownMenuContext);
   const resolveHref = useResolveLinkHref();
   const activeItems = useMemo(
     () => removeHiddenItemsAndSetHref(items, resolveHref),
@@ -528,13 +677,13 @@ export function DropdownMenuContent({
     () => getDisabledKeys(visibleItems),
     [visibleItems]
   );
-
   return (
     <DropdownMenuList
       {...props}
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
+      virtualizeThreshold={virtualizeThreshold ?? inheritedVirtualizeThreshold}
       searchState={
         search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
       }
@@ -542,7 +691,7 @@ export function DropdownMenuContent({
       {(item: MenuItemProps) => {
         const {onAction: _onAction, ...itemProps} = item;
 
-        if (item.children && item.children.length > 0 && !item.submenu) {
+        if (isMenuSection(item)) {
           return (
             <Section key={item.key} title={item.label} items={item.children}>
               {sectionItem => {
@@ -574,11 +723,13 @@ interface DropdownSubmenuProps extends Pick<
   items: MenuItemProps[];
   node: Node<MenuItemProps>;
   state: TreeState<MenuItemProps>;
+  rowProps?: VirtualRowProps;
 }
 
 function DropdownSubmenu({
   items,
   node,
+  rowProps,
   state,
   closeOnSelect,
   disableTextSelection,
@@ -632,6 +783,7 @@ function DropdownSubmenu({
         submenuRef={isOpen ? overlayRef : undefined}
         renderAs="div"
         node={node}
+        rowProps={rowProps}
         state={state}
         closeOnSelect={false}
       />

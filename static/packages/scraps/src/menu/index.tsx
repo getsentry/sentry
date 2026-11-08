@@ -11,6 +11,7 @@ export {
   MenuListItem as ListItem,
   ReserveLeadingSlot,
   MenuSectionSeparator as SectionSeparator,
+  SECTION_ITEM_GAP,
   SearchInput as Search,
   useReserveLeadingSlot,
   focusMenuItemDetails,
