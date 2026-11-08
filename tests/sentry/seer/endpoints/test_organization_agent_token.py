@@ -2004,6 +2004,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         key = (endpoint.endpoint_name, endpoint.method)
         if key == ("SentryAppInstallationExternalIssueActionsEndpoint", "POST"):
             return {"groupId": self._resource("group").id, "action": "link", "uri": "/link"}
+        if key == ("ProjectUserReportsEndpoint", "POST"):
+            return {
+                "event_id": self._resource("event").event_id,
+                "name": "Permission Matrix",
+                "email": "matrix@example.com",
+                "comments": "Permission matrix feedback",
+            }
         payloads: dict[tuple[str, str], dict[str, Any]] = {
             ("CustomInboundFilterDetailsEndpoint", "PUT"): {
                 "name": "Updated permission matrix filter",
