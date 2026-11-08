@@ -11,6 +11,7 @@ property without a description fails `make build-api-docs`.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from sentry.apidocs.json_schemas import to_response_schema, union_schema
@@ -94,7 +95,9 @@ _CONDITION_DESCRIPTIONS: dict[str, dict[str, str]] = {
     },
 }
 # Operator conditions, such as gt or eq on a monitor, compare against a plain value.
-_OPERATOR_COMPARISONS = [{"type": "number"}, {"type": "string"}, {"type": "boolean"}]
+OPERATOR_COMPARISON_SCHEMA = {
+    "anyOf": [{"type": "number"}, {"type": "string"}, {"type": "boolean"}]
+}
 
 _ACTION_CONFIG_DESCRIPTIONS = {
     "target_type": "Kind of target the action notifies, such as specific, user or team",
@@ -124,69 +127,109 @@ _ERROR_DETECTOR_OPTIONS: dict[str, dict[str, Any]] = {
         "description": "Hours of inactivity after which the project's issues resolve. 0 to never",
     },
 }
-_EMPTY_CONFIG = {
+EMPTY_DETECTOR_CONFIG_SCHEMA = {
     "type": "object",
     "maxProperties": 0,
     "description": "Empty for monitor types without configuration",
 }
 
 
-def condition_comparison_schema() -> dict[str, Any]:
+def condition_comparison_sources() -> list[tuple[str, Mapping[str, Any]]]:
+    """Every registered condition handler's comparison JSON Schema, by condition type."""
     from sentry.workflow_engine.registry import condition_handler_registry
 
-    handlers = sorted(condition_handler_registry.registrations.items())
+    return [
+        (str(name), handler.comparison_json_schema)
+        for name, handler in sorted(condition_handler_registry.registrations.items())
+    ]
+
+
+def action_config_sources(*, api: bool) -> list[tuple[str, Mapping[str, Any]]]:
+    """
+    Every registered action handler's config JSON Schema, by action type. With `api`, the
+    schema of the config the API returns, which the handler's config transformer defines.
+    """
+    from sentry.workflow_engine.registry import action_handler_registry
+
+    sources = []
+    for action_type, handler in sorted(action_handler_registry.registrations.items()):
+        transformer = handler.get_config_transformer() if api else None
+        sources.append(
+            (str(action_type), transformer.api_schema if transformer else handler.config_schema)
+        )
+    return sources
+
+
+def action_data_sources() -> list[tuple[str, Mapping[str, Any]]]:
+    """Every registered action handler's data JSON Schema, by action type."""
+    from sentry.workflow_engine.registry import action_handler_registry
+
+    return [
+        (str(action_type), handler.data_schema)
+        for action_type, handler in sorted(action_handler_registry.registrations.items())
+    ]
+
+
+def detector_config_sources() -> list[tuple[str, Mapping[str, Any]]]:
+    """Every detector type's config JSON Schema, by group type slug."""
+    from sentry.issues.grouptype import registry
+
+    sources = []
+    for group_type in sorted(registry.all(), key=lambda group_type: group_type.slug):
+        settings = group_type.detector_settings
+        if settings is not None and settings.config_schema:
+            sources.append((group_type.slug, settings.config_schema))
+    return sources
+
+
+def error_detector_options_schema() -> dict[str, Any]:
+    """The project options that error detectors serialize instead of their own config."""
+    from sentry.workflow_engine.models import Detector
+
+    options = {
+        option: _ERROR_DETECTOR_OPTIONS[option]
+        for option in Detector.error_detector_project_options.values()
+    }
+    return {"type": "object", "properties": options, "additionalProperties": False}
+
+
+def condition_comparison_schema() -> dict[str, Any]:
     return union_schema(
         [
-            *_OPERATOR_COMPARISONS,
+            OPERATOR_COMPARISON_SCHEMA,
             *(
                 to_response_schema(
-                    handler.comparison_json_schema,
-                    descriptions=_CONDITION_DESCRIPTIONS.get(str(name), {}),
+                    schema,
+                    descriptions=_CONDITION_DESCRIPTIONS.get(name, {}),
                     camel_case=True,
                 )
-                for name, handler in handlers
+                for name, schema in condition_comparison_sources()
             ),
         ]
     )
 
 
 def action_config_schema() -> dict[str, Any]:
-    from sentry.workflow_engine.registry import action_handler_registry
-
-    schemas = []
-    for _, handler in sorted(action_handler_registry.registrations.items()):
-        transformer = handler.get_config_transformer()
-        source = transformer.api_schema if transformer else handler.config_schema
-        schemas.append(
-            to_response_schema(source, descriptions=_ACTION_CONFIG_DESCRIPTIONS, camel_case=True)
-        )
-    return union_schema(schemas)
+    return union_schema(
+        to_response_schema(schema, descriptions=_ACTION_CONFIG_DESCRIPTIONS, camel_case=True)
+        for _, schema in action_config_sources(api=True)
+    )
 
 
 def detector_config_schema() -> dict[str, Any]:
     from sentry.grouping.grouptype import ErrorGroupType
-    from sentry.issues.grouptype import registry
-    from sentry.workflow_engine.models import Detector
 
-    error_options = {
-        option: _ERROR_DETECTOR_OPTIONS[option]
-        for option in Detector.error_detector_project_options.values()
-    }
     schemas = [
-        _EMPTY_CONFIG,
-        to_response_schema(
-            {"type": "object", "properties": error_options, "additionalProperties": False},
-            camel_case=True,
-        ),
+        EMPTY_DETECTOR_CONFIG_SCHEMA,
+        to_response_schema(error_detector_options_schema(), camel_case=True),
     ]
-    for group_type in sorted(registry.all(), key=lambda group_type: group_type.slug):
-        settings = group_type.detector_settings
-        if group_type is ErrorGroupType or settings is None or not settings.config_schema:
+    for slug, schema in detector_config_sources():
+        if slug == ErrorGroupType.slug:
             continue
         schemas.append(
             to_response_schema(
-                settings.config_schema,
-                descriptions=_DETECTOR_CONFIG_DESCRIPTIONS.get(group_type.slug, {}),
+                schema,
+                descriptions=_DETECTOR_CONFIG_DESCRIPTIONS.get(slug, {}),
                 camel_case=True,
             )
         )
