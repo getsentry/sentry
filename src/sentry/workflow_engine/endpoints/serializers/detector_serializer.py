@@ -14,6 +14,9 @@ from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.types.actor import Actor
+from sentry.workflow_engine.endpoints.serializers.data_source_serializer import (
+    DataSourceSerializerResponse,
+)
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     TriggerSerializerResponse,
 )
@@ -58,7 +61,7 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     dateCreated: Annotated[datetime, ApiDescription("When the monitor was created (ISO 8601)")]
     dateUpdated: Annotated[datetime, ApiDescription("When the monitor was last updated (ISO 8601)")]
     dataSources: Annotated[
-        list[dict[str, Any]] | None,
+        list[DataSourceSerializerResponse] | None,
         ApiDescription("Data sources the monitor evaluates, such as a query subscription"),
     ]
     conditionGroup: Annotated[

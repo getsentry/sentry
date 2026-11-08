@@ -9,7 +9,6 @@ untyped components/ProjectProfilingProfileResponse
 untyped sentry.ai_monitoring.endpoints.organization_ai_conversation_details.AIConversationDetailsResponse.spans[]
 untyped sentry.api.endpoints.organization_events.EventsApiResponse.data[]
 untyped sentry.api.endpoints.organization_events.EventsMeta.debug_info
-untyped sentry.api.serializers.models.dashboard.DashboardFilters.globalFilter[]
 untyped sentry.api.serializers.models.debug_file.DebugFileSerializerResponse.data
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse._meta
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.entries[]
@@ -20,7 +19,6 @@ untyped sentry.api.serializers.models.event.SimpleEventSerializerResponse.metada
 untyped sentry.api.serializers.models.group.BaseGroupSerializerResponse.metadata
 untyped sentry.api.serializers.models.group.GroupDetailsResponse.activity[]
 untyped sentry.api.serializers.models.group_stream.StreamGroupSerializerSnubaResponse.metadata
-untyped sentry.api.serializers.models.organization.OnboardingTasksSerializerResponse.data
 untyped sentry.api.serializers.models.organization.OrganizationSummarySerializerResponseOptional.extraOptions{}
 untyped sentry.api.serializers.models.project.DetailedProjectResponse.options
 untyped sentry.api.serializers.models.project.DetailedProjectResponse.seerNightshiftTweaks
@@ -48,7 +46,6 @@ untyped sentry.workflow_engine.endpoints.serializers.action_handler_serializer.A
 untyped sentry.workflow_engine.endpoints.serializers.action_handler_serializer.ActionHandlerSerializerResponse.dataSchema
 untyped sentry.workflow_engine.endpoints.serializers.action_handler_serializer.SentryAppContext.settings
 untyped sentry.workflow_engine.endpoints.serializers.detector_serializer.DetectorSerializerResponse.config
-untyped sentry.workflow_engine.endpoints.serializers.detector_serializer.DetectorSerializerResponse.dataSources[]
 untyped sentry.workflow_engine.endpoints.serializers.detector_serializer.DetectorSerializerResponseOptional.latestGroup
 untyped sentry.workflow_engine.endpoints.serializers.workflow_serializer.ActionSerializerResponse.config
 untyped sentry.workflow_engine.endpoints.serializers.workflow_serializer.TriggerSerializerResponse.actions<anyOf1>[]
