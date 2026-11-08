@@ -1,6 +1,5 @@
 import type * as React from 'react';
 import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
-import type {AriaOptionProps} from '@react-aria/listbox';
 import {useOption} from '@react-aria/listbox';
 import {mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
@@ -21,7 +20,7 @@ export const ListBoxDetailsHoverContext = createContext<
   ((isHovered: boolean, event: React.PointerEvent) => void) | undefined
 >(undefined);
 
-export interface ListBoxOptionProps extends AriaOptionProps {
+export interface ListBoxOptionProps {
   item: Node<any>;
   listState: ListState<any>;
   size: ListItemProps['size'];

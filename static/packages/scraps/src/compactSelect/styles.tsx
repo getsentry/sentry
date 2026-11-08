@@ -1,4 +1,3 @@
-import type * as React from 'react';
 //
 // Styled components used by both ListBox and GridList
 //
@@ -12,10 +11,6 @@ import {SectionSeparator as MenuSectionSeparator} from '@sentry/scraps/menu';
 export const ListWrap = styled('ul')`
   margin: 0;
   padding: ${p => p.theme.space.xs} 0;
-
-  > [data-section-separator]:first-of-type {
-    display: none;
-  }
 
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
@@ -116,17 +111,9 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   }
 `;
 
-export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
+export function SectionSeparator() {
   return (
-    <Stack
-      as="li"
-      data-section-separator
-      justify="center"
-      height="8px"
-      padding="0 lg 0 xl"
-      {...props}
-      role="presentation"
-    >
+    <Stack justify="center" height="8px" padding="0 lg 0 xl" role="presentation">
       <MenuSectionSeparator />
     </Stack>
   );

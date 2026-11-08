@@ -3,7 +3,7 @@ import {Fragment, useRef, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {act, render, screen, waitFor} from '@testing-library/react';
+import {act, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
@@ -1983,6 +1983,141 @@ describe('CompactSelect', () => {
       // click on Trailing Button Two, onPointerUpMock is called
       await userEvent.click(screen.getByRole('button', {name: 'Trailing Button Two'}));
       expect(onPointerUpMock).toHaveBeenCalled();
+    });
+  });
+
+  describe('virtualization with sections', () => {
+    // jsdom does not lay out or scroll. Give elements a height so the list has
+    // a viewport and room to scroll, and make scrollTo move the scroll position
+    // like a browser does.
+    const stubs: Array<[typeof Element.prototype, string, PropertyDescriptor]> = [
+      [HTMLElement.prototype, 'offsetHeight', {get: () => 100}],
+      [Element.prototype, 'clientHeight', {get: () => 100}],
+      [Element.prototype, 'scrollHeight', {get: () => 50_000}],
+      [
+        Element.prototype,
+        'scrollTo',
+        {
+          value(this: Element, options?: ScrollToOptions) {
+            this.scrollTop = options?.top ?? this.scrollTop;
+            this.dispatchEvent(new Event('scroll'));
+          },
+        },
+      ],
+    ];
+    const originals = stubs.map(
+      ([target, name]) =>
+        [target, name, Object.getOwnPropertyDescriptor(target, name)] as const
+    );
+
+    beforeEach(() => {
+      for (const [target, name, descriptor] of stubs) {
+        Object.defineProperty(target, name, {configurable: true, ...descriptor});
+      }
+    });
+
+    afterEach(() => {
+      for (const [target, name, descriptor] of originals) {
+        if (descriptor) {
+          Object.defineProperty(target, name, descriptor);
+        } else {
+          Reflect.deleteProperty(target, name);
+        }
+      }
+    });
+
+    const sections = ['A', 'B'].map(section => ({
+      key: section,
+      label: `Section ${section}`,
+      options: Array.from({length: 250}, (_, i) => ({
+        value: `${section}-${i}`,
+        label: `${section} ${i}`,
+      })),
+    }));
+
+    it.each([
+      ['list box', undefined, 'group', 'option'],
+      ['grid', 'grid', 'rowgroup', 'row'],
+    ] as const)(
+      'windows a %s with sections and reaches the last section with the keyboard',
+      async (_, mode, sectionRole, optionRole) => {
+        render(
+          <CompactSelect
+            mode={mode}
+            menuWidth={300}
+            options={sections}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+
+        const sectionA = await screen.findByRole(sectionRole, {name: 'Section A'});
+        expect(within(sectionA).getByRole(optionRole, {name: 'A 0'})).toBeInTheDocument();
+        expect(screen.getAllByRole(optionRole).length).toBeLessThan(500);
+        expect(
+          screen.queryByRole(sectionRole, {name: 'Section B'})
+        ).not.toBeInTheDocument();
+
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus()
+        );
+        await userEvent.keyboard('{End}');
+
+        // The option renders inside its section, which keeps its heading.
+        await waitFor(() =>
+          expect(
+            within(screen.getByRole(sectionRole, {name: 'Section B'})).getByRole(
+              optionRole,
+              {name: 'B 249'}
+            )
+          ).toHaveFocus()
+        );
+      }
+    );
+
+    it.each([
+      ['list box', undefined, 'option'],
+      ['grid', 'grid', 'row'],
+    ] as const)(
+      'lets the virtualizer measure the options of a %s',
+      async (_, mode, optionRole) => {
+        render(
+          <CompactSelect
+            mode={mode}
+            menuWidth={300}
+            options={sections}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+
+        // The virtualizer measures the elements that carry their row's index.
+        expect(await screen.findByRole(optionRole, {name: 'A 0'})).toHaveAttribute(
+          'data-index'
+        );
+      }
+    );
+
+    it('counts the options inside sections against the threshold', async () => {
+      render(
+        <CompactSelect
+          virtualizeThreshold={500}
+          options={sections}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      expect(await screen.findAllByRole('option')).toHaveLength(500);
     });
   });
 });

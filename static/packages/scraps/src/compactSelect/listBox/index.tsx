@@ -1,6 +1,6 @@
 import type * as React from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {getInteractionModality} from '@react-aria/interactions';
+import {useTheme} from '@emotion/react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -14,12 +14,12 @@ import {
   SizeLimitMessage,
 } from '@sentry/scraps/compactSelect/styles';
 import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
 import {hasVisibleLeadingItems} from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
 import {ReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation';
+import {useVirtualCollection, VirtualRows} from '@sentry/scraps/useVirtualCollection';
 
 import {ListBoxDetailsHoverContext, ListBoxOption} from './option';
 import {ListBoxSection} from './section';
@@ -102,7 +102,8 @@ interface ListBoxProps<T extends ListItemBase>
    */
   virtualized?: boolean;
   /**
-   * Vertical padding (in px) added to the virtualizer height. Defaults to 4 (theme.space.xs).
+   * Vertical padding (in px) of the list above its first item, used to align
+   * virtualized rows. Defaults to `theme.space.xs`, the vertical padding of `ListWrap`.
    */
   virtualizedListPadding?: number;
 }
@@ -145,6 +146,7 @@ export function ListBox<T extends ListItemBase>({
   ...props
 }: ListBoxProps<T>) {
   const {t} = useTranslation();
+  const theme = useTheme();
   const listElementRef = useRef<HTMLUListElement>(null);
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const [hasEverOverflowed, setHasEverOverflowed] = useState(false);
@@ -245,29 +247,15 @@ export function ListBox<T extends ListItemBase>({
     cancelFocusClear();
   };
 
-  const virtualizer = useVirtualizedItems({
-    listItems,
-    virtualized,
+  const virtual = useVirtualCollection({
+    collection: listItems,
+    hiddenKeys: hiddenOptions,
+    enabled: !!virtualized,
     size,
-    listPadding: virtualizedListPadding,
+    scrollRef: scrollElementRef,
+    focusedKey: listState.selectionManager.focusedKey,
+    listPadding: virtualizedListPadding ?? parseFloat(theme.space.xs),
   });
-
-  useEffect(() => {
-    if (
-      !virtualized ||
-      listState.selectionManager.focusedKey === null ||
-      getInteractionModality() === 'pointer'
-    ) {
-      return;
-    }
-
-    const focusedIndex = listItems.findIndex(
-      item => item.key === listState.selectionManager.focusedKey
-    );
-    if (focusedIndex !== -1) {
-      virtualizer.scrollToIndex(focusedIndex);
-    }
-  }, [virtualized, listItems, listState.selectionManager.focusedKey, virtualizer]);
 
   const refs = useMemo(() => {
     const overflowTracker = (scrollContainer: HTMLDivElement | null) => {
@@ -277,14 +265,10 @@ export function ListBox<T extends ListItemBase>({
 
       setHasEverOverflowed(scrollContainer.scrollHeight > scrollContainer.clientHeight);
     };
-    return mergeRefs(
-      scrollElementRef,
-      overflowTracker,
-      virtualizer.scrollElementRef,
-      scrollContainerRef
-    );
+    return mergeRefs(scrollElementRef, overflowTracker, scrollContainerRef);
+    // listItems is a dependency so the tracker re-runs when the options change.
     // oxlint-disable-next-line react/memo-dependencies
-  }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems, scrollContainerRef]);
+  }, [hasEverOverflowed, listItems, scrollContainerRef]);
 
   return (
     <ListBoxDetailsHoverContext value={onDetailsHoverChange}>
@@ -300,58 +284,45 @@ export function ListBox<T extends ListItemBase>({
           className={className}
           style={hasEverOverflowed ? {scrollbarGutter: 'stable'} : undefined}
         >
-          <Container {...virtualizer.wrapperProps}>
-            <ListWrap
-              {...mergedProps}
-              style={{
-                ...mergedProps.style,
-                ...virtualizer.listWrapStyle,
-              }}
-              onKeyDown={onKeyDown}
-              onMouseEnter={onMouseEnter}
-              onMouseLeave={onMouseLeave}
-              ref={mergeRefs(listElementRef, ref)}
-            >
-              {overlayIsOpen &&
-                virtualizer.items.map(row => {
-                  const item = listItems[row.index];
-                  if (!item) {
-                    return null;
-                  }
-                  if (item.type === 'section') {
-                    return (
-                      <ListBoxSection
-                        {...virtualizer.itemProps(row.index)}
-                        key={item.key}
-                        item={item}
-                        listState={listState}
-                        hiddenOptions={hiddenOptions}
-                        size={size}
-                        showSectionHeaders={showSectionHeaders}
-                        showDetails={showDetails}
-                      />
-                    );
-                  }
+          <ListWrap
+            {...mergedProps}
+            onKeyDown={onKeyDown}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+            ref={mergeRefs(listElementRef, ref)}
+          >
+            {overlayIsOpen && (
+              <VirtualRows
+                virtual={virtual}
+                renderRow={({node, props: rowProps}) => (
+                  <ListBoxOption
+                    {...rowProps}
+                    item={node}
+                    listState={listState}
+                    size={size}
+                    showDetails={showDetails}
+                  />
+                )}
+                renderSection={(section, rows) => (
+                  <ListBoxSection
+                    rowProps={section.props}
+                    item={section.node}
+                    listState={listState}
+                    showSectionHeaders={showSectionHeaders}
+                    showSeparator={section.node.key !== listItems[0]?.key}
+                  >
+                    {rows}
+                  </ListBoxSection>
+                )}
+              />
+            )}
 
-                  return (
-                    <ListBoxOption
-                      key={item.key}
-                      {...virtualizer.itemProps(row.index)}
-                      item={item}
-                      listState={listState}
-                      size={size}
-                      showDetails={showDetails}
-                    />
-                  );
-                })}
-
-              {!searchable && !hasSearch && hiddenOptions.size > 0 && (
-                <SizeLimitMessage>
-                  {sizeLimitMessage ?? t('Use search to find more options…')}
-                </SizeLimitMessage>
-              )}
-            </ListWrap>
-          </Container>
+            {!searchable && !hasSearch && hiddenOptions.size > 0 && (
+              <SizeLimitMessage>
+                {sizeLimitMessage ?? t('Use search to find more options…')}
+              </SizeLimitMessage>
+            )}
+          </ListWrap>
         </Container>
       </ReserveLeadingSlot>
     </ListBoxDetailsHoverContext>
