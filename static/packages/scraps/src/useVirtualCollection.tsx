@@ -21,10 +21,11 @@ import {
 export const DEFAULT_VIRTUALIZE_THRESHOLD = 150;
 
 /**
- * Lists a collection's nodes in the order `useVirtualCollection` expects: each
- * section is followed by its child nodes, so a long section is windowed like
- * any other run of rows instead of mounting all at once. Nodes in `hiddenKeys`
- * are left out, whether they are sections, their children or top-level items.
+ * Lists a collection's nodes in the order `useVirtualCollection` renders them:
+ * each section is followed by its child nodes, so a long section is windowed
+ * like any other run of rows instead of mounting all at once. Nodes in
+ * `hiddenKeys` are left out, whether they are sections, their children or
+ * top-level items.
  */
 export function flattenSections<T>(
   nodes: Iterable<Node<T>>,
@@ -57,22 +58,25 @@ export interface VirtualRow<T> {
   spaceBefore: number;
 }
 
-interface UseVirtualCollectionOptions<T> {
+export interface UseVirtualCollectionOptions<T> {
+  /**
+   * The collection's top-level nodes, such as a React Aria `state.collection`.
+   * Each section's child nodes are windowed as rows of their own, see
+   * `flattenSections`.
+   */
+  collection: Iterable<Node<T>>;
   /** Whether to virtualize. When false, every node is returned as a row. */
   enabled: boolean;
-  /**
-   * Collection nodes, in render order. Use `flattenSections` so each section
-   * is followed by its child nodes. A section's row stays mounted while any of
-   * its children are, so its heading and group element are there to wrap them;
-   * `groupVirtualRows` puts them back together.
-   */
-  nodes: ReadonlyArray<Node<T>>;
   /**
    * The element that scrolls. Rows and spacers must render inside it.
    */
   scrollRef: React.RefObject<HTMLElement | null>;
-  /** Item size. Used to estimate the height of rows that have not been measured. */
-  size: FormSize;
+  /**
+   * Height to assume for a row that has not been measured yet. Pass a stable
+   * function: the estimates are rebuilt when it changes. Defaults to the height
+   * of a menu `ListItem` of `size`, plus `sectionRowGap`.
+   */
+  estimateSize?: (node: Node<T>, index: number) => number;
   /**
    * The collection's focused key. When it changes through the keyboard, the
    * row is scrolled into view so it mounts and React Aria can focus it. The
@@ -80,6 +84,8 @@ interface UseVirtualCollectionOptions<T> {
    * keeps DOM focus and the keyboard keeps working.
    */
   focusedKey?: Key | null;
+  /** Keys of nodes to leave out, whether they are sections, their children or top-level items. */
+  hiddenKeys?: ReadonlySet<Key>;
   /**
    * Vertical CSS padding (px) of the list, at each end. The first row starts
    * below it, and rows scrolled into view keep clear of it.
@@ -93,12 +99,25 @@ interface UseVirtualCollectionOptions<T> {
    */
   sectionRowGap?: number;
   /**
+   * Item size of the default `estimateSize`. Defaults to `md`. Ignored when
+   * `estimateSize` is set.
+   */
+  size?: FormSize;
+  /**
    * A row to keep mounted wherever the list is scrolled, such as the one with
    * the longest label. A list that sizes its width to its content is then as
    * wide as that row from the start, instead of widening as wider rows scroll
    * into view.
    */
   widestKey?: Key | null;
+}
+
+/** The result of `useVirtualCollection`. Render it with `VirtualRows`. */
+export interface VirtualCollection<T> {
+  /** The rows to render, in order: every node, or the mounted ones when virtualized. */
+  rows: Array<VirtualRow<T>>;
+  /** Height of the unmounted rows after the last mounted one. */
+  spaceAfter: number;
 }
 
 /**
@@ -109,8 +128,13 @@ interface UseVirtualCollectionOptions<T> {
  * section and fills the space of the unmounted rows:
  *
  * ```tsx
- * const nodes = useMemo(() => flattenSections(state.collection), [state.collection]);
- * const virtual = useVirtualCollection({nodes, enabled, size, scrollRef, focusedKey});
+ * const virtual = useVirtualCollection({
+ *   collection: state.collection,
+ *   enabled,
+ *   size,
+ *   scrollRef,
+ *   focusedKey: state.selectionManager.focusedKey,
+ * });
  * <ul ref={scrollRef}>
  *   <VirtualRows
  *     virtual={virtual}
@@ -125,23 +149,19 @@ interface UseVirtualCollectionOptions<T> {
  * Spacers keep the list's own element and padding intact, so a virtualized
  * list has the same DOM structure and styling as a regular one.
  */
-export interface VirtualCollection<T> {
-  /** The rows to render, in order: every node, or the mounted ones when virtualized. */
-  rows: Array<VirtualRow<T>>;
-  /** Height of the unmounted rows after the last mounted one. */
-  spaceAfter: number;
-}
-
 export function useVirtualCollection<T>({
+  collection,
   enabled,
-  nodes,
   scrollRef,
-  size,
+  estimateSize,
   focusedKey,
+  hiddenKeys,
   listPadding = 0,
-  widestKey,
   sectionRowGap = 0,
+  size = 'md',
+  widestKey,
 }: UseVirtualCollectionOptions<T>): VirtualCollection<T> {
+  const nodes = flattenSections(collection, hiddenKeys);
   const focusedIndex =
     enabled && focusedKey !== null && focusedKey !== undefined
       ? nodes.findIndex(node => node.key === focusedKey)
@@ -169,8 +189,13 @@ export function useVirtualCollection<T>({
     enabled,
     getScrollElement: () => scrollRef.current,
     getItemKey: index => nodes[index]?.key ?? index,
-    estimateSize: index => estimateRowHeight(nodes, index, size, sectionRowGap),
-    estimateKey: `${size}-${sectionRowGap}`,
+    estimateSize: index => {
+      const node = nodes[index];
+      return estimateSize && node
+        ? estimateSize(node, index)
+        : estimateRowHeight(nodes, index, size, sectionRowGap);
+    },
+    estimateKey: estimateSize ?? `${size}-${sectionRowGap}`,
     paddingStart: listPadding,
     // The list's padding is the same at both ends, so a row scrolled into view
     // at the bottom clears it too.
@@ -270,13 +295,18 @@ interface VirtualRowsProps<T> {
    * height, so the virtualizer can measure it.
    */
   renderRow: (row: VirtualRow<T>) => React.ReactNode;
+  /** The result of `useVirtualCollection`. */
+  virtual: VirtualCollection<T>;
   /**
    * Renders a section around its rendered rows. Spread the section's `props`
    * onto the element above its rows, such as the one holding its header.
+   * Required when the collection has sections; by default only the rows render.
    */
-  renderSection: (section: VirtualRow<T>, rows: React.ReactNode) => React.ReactNode;
-  /** The result of `useVirtualCollection`. */
-  virtual: VirtualCollection<T>;
+  renderSection?: (section: VirtualRow<T>, rows: React.ReactNode) => React.ReactNode;
+}
+
+function renderSectionRows(_section: VirtualRow<unknown>, rows: React.ReactNode) {
+  return rows;
 }
 
 /**
@@ -285,7 +315,11 @@ interface VirtualRowsProps<T> {
  * element. Rows outside sections stay siblings, so they keep their elements
  * when the list reorders.
  */
-export function VirtualRows<T>({virtual, renderRow, renderSection}: VirtualRowsProps<T>) {
+export function VirtualRows<T>({
+  virtual,
+  renderRow,
+  renderSection = renderSectionRows,
+}: VirtualRowsProps<T>) {
   const renderWithSpacer = (row: VirtualRow<T>) => (
     <Fragment key={row.node.key}>
       <VirtualSpacer height={row.spaceBefore} />

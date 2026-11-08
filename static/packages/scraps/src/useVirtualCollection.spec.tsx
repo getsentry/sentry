@@ -2,13 +2,13 @@ import {useRef} from 'react';
 import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
 import type {Node} from '@react-types/shared';
-import {fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 
 import {Container} from '@sentry/scraps/layout';
 import {ListItem} from '@sentry/scraps/menu';
 import {lightTheme} from '@sentry/scraps/theme';
 
-import {useVirtualCollection, VirtualRows} from './useVirtualCollection';
+import {useVirtualCollection, VirtualRows, type VirtualRow} from './useVirtualCollection';
 
 // jsdom does not lay out, so these tests stub the viewport and row heights and
 // check what the hook promises regardless of them: unmounted space plus mounted
@@ -31,12 +31,25 @@ function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
 }
 
-function TestList({focusedKey}: {focusedKey?: string}) {
+function TestList({
+  collection = nodes,
+  estimateSize,
+  focusedKey,
+  renderSection,
+}: {
+  collection?: Array<Node<Record<PropertyKey, unknown>>>;
+  estimateSize?: (node: Node<Record<PropertyKey, unknown>>, index: number) => number;
+  focusedKey?: string;
+  renderSection?: (
+    section: VirtualRow<Record<PropertyKey, unknown>>,
+    rows: React.ReactNode
+  ) => React.ReactNode;
+}) {
   const scrollRef = useRef<HTMLUListElement>(null);
   const virtual = useVirtualCollection({
-    nodes,
+    collection,
+    estimateSize,
     enabled: true,
-    size: 'md',
     scrollRef,
     focusedKey,
     listPadding: LIST_PADDING,
@@ -47,7 +60,7 @@ function TestList({focusedKey}: {focusedKey?: string}) {
       <VirtualRows
         virtual={virtual}
         renderRow={({node, props}) => <ListItem label={String(node.key)} {...props} />}
-        renderSection={(_section, rows) => rows}
+        renderSection={renderSection}
       />
     </Container>
   );
@@ -128,5 +141,41 @@ describe('useVirtualCollection', () => {
 
     // A spacer fills the gap between the focused row and the window.
     expect(sum(spacerHeights()) + keys.length * ROW_HEIGHT).toBe(ROW_COUNT * ROW_HEIGHT);
+  });
+
+  it('estimates unmounted rows with estimateSize', () => {
+    const estimate = 50;
+    render(<TestList estimateSize={() => estimate} />, {wrapper: ThemeWrapper});
+
+    const keys = mountedKeys();
+    expect(sum(spacerHeights())).toBe((ROW_COUNT - keys.length) * estimate);
+  });
+
+  it('windows the children of a section as rows of their own', () => {
+    const children = nodes.map(node => ({...node, parentKey: 'section'}));
+    const section = {
+      key: 'section',
+      type: 'section',
+      props: {},
+      childNodes: children,
+    } as unknown as Node<Record<PropertyKey, unknown>>;
+
+    render(
+      <TestList
+        collection={[section]}
+        renderSection={(sectionRow, rows) => (
+          <li {...sectionRow.props} aria-label={String(sectionRow.node.key)}>
+            <ul>{rows}</ul>
+          </li>
+        )}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    const group = screen.getByRole('listitem', {name: 'section'});
+    const rows = within(group).getAllByRole('listitem');
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThan(ROW_COUNT);
+    expect(rows[0]).toHaveTextContent('row-0');
   });
 });
