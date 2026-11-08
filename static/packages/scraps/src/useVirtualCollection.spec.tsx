@@ -57,7 +57,7 @@ function TestList({focusedKey}: {focusedKey?: string}) {
 function spacerHeights() {
   return screen
     .queryAllByRole('presentation', {hidden: true})
-    .map(spacer => parseFloat(spacer.style.height || '0'));
+    .map(spacer => parseFloat(getComputedStyle(spacer).height || '0'));
 }
 
 /** Keys of the mounted rows, in render order. */

@@ -4,6 +4,7 @@ import {getInteractionModality} from '@react-aria/interactions';
 import type {Key, Node} from '@react-types/shared';
 import {defaultRangeExtractor, type Range} from '@tanstack/react-virtual';
 
+import {Container} from '@sentry/scraps/layout';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useVirtualRows} from '@sentry/scraps/useVirtualRows';
 
@@ -252,7 +253,15 @@ function VirtualSpacer({height}: {height: number}) {
   if (height <= 0) {
     return null;
   }
-  return <li aria-hidden role="presentation" style={{height, flexShrink: 0}} />;
+  return (
+    <Container
+      as="li"
+      aria-hidden
+      role="presentation"
+      height={`${height}px`}
+      flexShrink={0}
+    />
+  );
 }
 
 interface VirtualRowsProps<T> {
