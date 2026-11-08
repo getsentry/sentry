@@ -151,7 +151,7 @@ def action_config_sources(*, api: bool) -> list[tuple[str, Mapping[str, Any]]]:
     """
     from sentry.workflow_engine.registry import action_handler_registry
 
-    sources = []
+    sources: list[tuple[str, Mapping[str, Any]]] = []
     for action_type, handler in sorted(action_handler_registry.registrations.items()):
         transformer = handler.get_config_transformer() if api else None
         sources.append(
@@ -174,7 +174,7 @@ def detector_config_sources() -> list[tuple[str, Mapping[str, Any]]]:
     """Every detector type's config JSON Schema, by group type slug."""
     from sentry.issues.grouptype import registry
 
-    sources = []
+    sources: list[tuple[str, Mapping[str, Any]]] = []
     for group_type in sorted(registry.all(), key=lambda group_type: group_type.slug):
         settings = group_type.detector_settings
         if settings is not None and settings.config_schema:

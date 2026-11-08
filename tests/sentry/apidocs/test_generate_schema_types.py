@@ -158,8 +158,9 @@ def test_reports_a_schema_change_that_was_not_regenerated(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     schema = {
-        **Workflow.config_schema,
-        "properties": {**Workflow.config_schema["properties"], "snooze": {"type": "boolean"}},
+        "type": "object",
+        "properties": {"frequency": {"type": "integer"}, "snooze": {"type": "boolean"}},
+        "additionalProperties": False,
     }
     monkeypatch.setattr(Workflow, "config_schema", schema)
     workflow_file = next(file for file in FILES if file.path.startswith("sentry/workflow_engine"))

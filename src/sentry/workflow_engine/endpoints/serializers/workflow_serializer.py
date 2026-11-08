@@ -15,6 +15,11 @@ from sentry.workflow_engine.endpoints.serializers.response_schemas import (
     condition_comparison_schema,
     workflow_config_schema,
 )
+from sentry.workflow_engine.generated_schema_types import (
+    ActionConfigResponse,
+    ConditionComparisonResponse,
+    WorkflowConfig,
+)
 from sentry.workflow_engine.models import (
     DataConditionGroup,
     DetectorWorkflow,
@@ -56,7 +61,7 @@ class ActionSerializerResponse(TypedDict, total=False):
         dict[str, str], ApiDescription("Extra data for the action, which depends on its type")
     ]
     config: Annotated[
-        dict[str, Any],
+        ActionConfigResponse,
         ApiDescription("Configuration of the action, such as targetType and targetIdentifier"),
         ApiSchema(action_config_schema),
     ]
@@ -67,7 +72,7 @@ class ConditionSerializerResponse(TypedDict):
     id: Annotated[str, ApiDescription("ID of the condition")]
     type: Annotated[str, ApiDescription("Type of the condition, such as first_seen_event or level")]
     comparison: Annotated[
-        bool | int | float | str | list[str] | dict[str, Any],
+        ConditionComparisonResponse,
         ApiDescription("Value the condition compares against, which depends on its type"),
         ApiSchema(condition_comparison_schema),
     ]
@@ -113,7 +118,7 @@ class WorkflowSerializerResponse(TypedDict):
         ),
     ]
     config: Annotated[
-        dict[str, Any],
+        WorkflowConfig,
         ApiDescription("Configuration of the alert, such as frequency in minutes"),
         ApiSchema(workflow_config_schema),
     ]
