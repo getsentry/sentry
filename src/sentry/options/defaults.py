@@ -452,6 +452,13 @@ register(
 )
 
 register(
+    "unmerge.max-batch-size",
+    default=50,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "merge.killswitch-projects",
     default=[],
     type=Any,

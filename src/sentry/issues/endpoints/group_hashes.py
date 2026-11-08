@@ -1,3 +1,5 @@
+import time
+import uuid
 from collections.abc import Sequence
 from functools import partial
 from typing import Annotated, TypedDict
@@ -8,6 +10,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
@@ -31,6 +34,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.unmerge_recovery import RETENTION_SECONDS
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.service_accounts.principal import ServiceAccountPrincipal
@@ -40,6 +44,11 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_query
+
+
+class _UnmergeRecoveryArguments(TypedDict, total=False):
+    operation_id: str
+    operation_expires_at: int
 
 
 class GroupHashesResult(TypedDict):
@@ -173,8 +182,21 @@ class GroupHashesEndpoint(GroupEndpoint):
             tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
         )
 
+        task_kwargs: _UnmergeRecoveryArguments = {}
+        if features.has("organizations:unmerge-recovery", group.project.organization):
+            # Stable across starter and batch redeliveries; a broker activation
+            # ID alone does not identify duplicate child deliveries.
+            task_kwargs = {
+                "operation_id": uuid.uuid4().hex,
+                "operation_expires_at": int(time.time()) + RETENTION_SECONDS,
+            }
         start_unmerge.delay(
-            group.project_id, group.id, None, grouphashes, acting_user_id(request.user)
+            group.project_id,
+            group.id,
+            None,
+            grouphashes,
+            acting_user_id(request.user),
+            **task_kwargs,
         )
 
         return Response(status=202)
