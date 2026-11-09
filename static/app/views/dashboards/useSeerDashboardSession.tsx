@@ -20,7 +20,7 @@ const POST_COMPLETE_POLL_MS = 5000;
 function buildEditOnPageContext(
   dashboard: Pick<DashboardDetails, 'title' | 'widgets'>
 ): string {
-  return `The user is editing an existing dashboard. The current dashboard state is:\n\n${JSON.stringify({title: dashboard.title, widgets: dashboard.widgets})}\n\nThis session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change.`;
+  return `The user is editing an existing dashboard. The current dashboard state is:\n\n${JSON.stringify({title: dashboard.title, widgets: dashboard.widgets})}\n\nThis session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change. Keep the \`id\` of every widget and query you keep or change, and leave \`id\` out of widgets and queries you add.`;
 }
 
 async function startDashboardEditSession(
@@ -135,7 +135,7 @@ export function useSeerDashboardSession({
         // oxlint-disable-next-line react/set-state-in-effect
         setIsUpdating(false);
       }
-      const dashboardData = extractDashboardFromSession(session);
+      const dashboardData = extractDashboardFromSession(session, dashboard?.widgets);
       if (dashboardData) {
         onDashboardUpdate(dashboardData, seerRunId);
       }
@@ -147,6 +147,7 @@ export function useSeerDashboardSession({
     sessionUpdatedAt,
     onDashboardUpdate,
     seerRunId,
+    dashboard?.widgets,
   ]);
 
   const sendFollowUpMessage = useCallback(

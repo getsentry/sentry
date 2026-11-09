@@ -114,11 +114,70 @@ function applyLimitDefaults(limit: number | null | undefined): number {
   return limit;
 }
 
+// The API returns query ids, but `WidgetQuery` doesn't declare them.
+type WidgetQueryWithId = WidgetQuery & {id?: string | number};
+
+function withoutId<T extends {id?: unknown}>({id: _id, ...rest}: T): Omit<T, 'id'> {
+  return rest;
+}
+
+/**
+ * Keeps the widget and query ids that Seer copied from the dashboard being
+ * edited, so saving updates those rows instead of deleting and recreating
+ * them. Any id that isn't on `currentWidgets` (invented, reused for a second
+ * widget, or attached to another widget's query) is dropped, so that entry is
+ * saved as new instead of failing the whole save.
+ */
+export function keepCurrentWidgetIds(
+  widgets: Widget[],
+  currentWidgets: Widget[]
+): Widget[] {
+  const currentQueryIds = new Map<string, Set<string>>();
+  for (const widget of currentWidgets) {
+    if (widget.id !== undefined) {
+      currentQueryIds.set(
+        String(widget.id),
+        new Set(
+          (widget.queries as WidgetQueryWithId[]).flatMap(query =>
+            query.id === undefined ? [] : [String(query.id)]
+          )
+        )
+      );
+    }
+  }
+
+  // Ids are removed from these sets once used, so a copied id is kept only once.
+  return widgets.map(widget => {
+    const widgetId = widget.id === undefined ? undefined : String(widget.id);
+    const queryIds = widgetId === undefined ? undefined : currentQueryIds.get(widgetId);
+    if (widgetId === undefined || queryIds === undefined) {
+      return {
+        ...withoutId(widget),
+        queries: (widget.queries as WidgetQueryWithId[]).map(withoutId),
+      };
+    }
+    currentQueryIds.delete(widgetId);
+
+    return {
+      ...widget,
+      id: widgetId,
+      queries: (widget.queries as WidgetQueryWithId[]).map(query => {
+        const queryId = query.id === undefined ? undefined : String(query.id);
+        return queryId !== undefined && queryIds.delete(queryId)
+          ? {...query, id: queryId}
+          : withoutId(query);
+      }),
+    };
+  });
+}
+
 /**
  * Extracts the latest dashboard artifact from a Seer Explorer session's blocks.
+ * `currentWidgets` are the widgets of the dashboard being edited, if any.
  */
 export function extractDashboardFromSession(
-  session: NonNullable<SeerExplorerResponse['session']>
+  session: NonNullable<SeerExplorerResponse['session']>,
+  currentWidgets: Widget[] = []
 ): {
   title: string;
   widgets: Widget[];
@@ -132,9 +191,10 @@ export function extractDashboardFromSession(
       return {
         title: data.title,
         widgets: assignDefaultLayout(
-          applySeerWidgetDefaults(data.widgets.map(normalizeWidgetCase)).map(
-            assignTempId
-          ),
+          keepCurrentWidgetIds(
+            applySeerWidgetDefaults(data.widgets.map(normalizeWidgetCase)),
+            currentWidgets
+          ).map(assignTempId),
           getInitialColumnDepths()
         ),
       };

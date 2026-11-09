@@ -3,6 +3,7 @@ import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 import {
   applySeerWidgetDefaults,
   extractDashboardFromSession,
+  keepCurrentWidgetIds,
   splitDashboardPrompt,
   statusIsTerminal,
 } from './createFromSeerUtils';
@@ -107,6 +108,90 @@ describe('applySeerWidgetDefaults', () => {
   });
 });
 
+function makeWidgetWithIds(
+  widgetId: string | number | undefined,
+  queryIds: Array<string | number | undefined>
+): Widget {
+  const base = makeWidget();
+  return {
+    ...base,
+    id: widgetId as string | undefined,
+    queries: queryIds.map(queryId => ({...base.queries[0]!, id: queryId})),
+  };
+}
+
+function idsOf(widgets: Widget[]) {
+  return widgets.map(widget => ({
+    id: widget.id,
+    queryIds: widget.queries.map(query => (query as {id?: string}).id),
+  }));
+}
+
+describe('keepCurrentWidgetIds', () => {
+  const currentWidgets = [
+    makeWidgetWithIds('1', ['10', '11']),
+    makeWidgetWithIds('2', ['20']),
+  ];
+
+  it('keeps widget and query ids that exist on the current dashboard', () => {
+    const result = keepCurrentWidgetIds(
+      [makeWidgetWithIds('2', ['20']), makeWidgetWithIds('1', ['11', '10'])],
+      currentWidgets
+    );
+
+    expect(idsOf(result)).toEqual([
+      {id: '2', queryIds: ['20']},
+      {id: '1', queryIds: ['11', '10']},
+    ]);
+  });
+
+  it('normalizes numeric ids to strings', () => {
+    const result = keepCurrentWidgetIds([makeWidgetWithIds(1, [10])], currentWidgets);
+
+    expect(idsOf(result)).toEqual([{id: '1', queryIds: ['10']}]);
+  });
+
+  it('drops a widget id that is not on the current dashboard, with its query ids', () => {
+    const result = keepCurrentWidgetIds(
+      [makeWidgetWithIds('99', ['10'])],
+      currentWidgets
+    );
+
+    expect(idsOf(result)).toEqual([{id: undefined, queryIds: [undefined]}]);
+    expect(result[0]).not.toHaveProperty('id');
+    expect(result[0]!.queries[0]).not.toHaveProperty('id');
+  });
+
+  it('keeps a reused widget id only on its first widget', () => {
+    const result = keepCurrentWidgetIds(
+      [makeWidgetWithIds('1', ['10']), makeWidgetWithIds('1', ['10'])],
+      currentWidgets
+    );
+
+    expect(idsOf(result)).toEqual([
+      {id: '1', queryIds: ['10']},
+      {id: undefined, queryIds: [undefined]},
+    ]);
+  });
+
+  it('drops query ids owned by another widget or repeated within a widget', () => {
+    const result = keepCurrentWidgetIds(
+      [makeWidgetWithIds('1', ['20', '10', '10', undefined])],
+      currentWidgets
+    );
+
+    expect(idsOf(result)).toEqual([
+      {id: '1', queryIds: [undefined, '10', undefined, undefined]},
+    ]);
+  });
+
+  it('drops every id when there is no current dashboard', () => {
+    const result = keepCurrentWidgetIds([makeWidgetWithIds('1', ['10'])], []);
+
+    expect(idsOf(result)).toEqual([{id: undefined, queryIds: [undefined]}]);
+  });
+});
+
 describe('statusIsTerminal', () => {
   it.each(['completed', 'error', 'awaiting_user_input'])(
     'returns true for %s',
@@ -191,5 +276,55 @@ describe('extractDashboardFromSession', () => {
     expect(result!.widgets[0]!.title).toBe('Count');
     expect(result!.widgets[0]!.displayType).toBe('line');
     expect(result!.widgets[0]!.widgetType).toBe('spans');
+  });
+
+  it('keeps ids copied from the dashboard being edited', () => {
+    const session = makeSession({
+      blocks: [
+        {
+          id: 'block-1',
+          message: {content: 'Updated your dashboard', role: 'assistant'},
+          timestamp: new Date().toISOString(),
+          artifacts: [
+            {
+              key: 'dashboard',
+              reason: 'generated',
+              data: {
+                title: 'My Dashboard',
+                widgets: [
+                  {
+                    id: '1',
+                    title: 'Count',
+                    display_type: 'line',
+                    widget_type: 'spans',
+                    queries: [{...makeWidget().queries[0]!, id: '10'}],
+                    layout: {x: 0, y: 0, w: 3, h: 2, min_h: 2},
+                    interval: '1h',
+                  },
+                  {
+                    id: '99',
+                    title: 'New',
+                    display_type: 'line',
+                    widget_type: 'spans',
+                    queries: [makeWidget().queries[0]!],
+                    layout: {x: 3, y: 0, w: 3, h: 2, min_h: 2},
+                    interval: '1h',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = extractDashboardFromSession(session, [makeWidgetWithIds('1', ['10'])]);
+
+    expect(idsOf(result!.widgets)).toEqual([
+      {id: '1', queryIds: ['10']},
+      {id: undefined, queryIds: [undefined]},
+    ]);
+    expect(result!.widgets[0]!.tempId).toBeUndefined();
+    expect(result!.widgets[1]!.tempId).toBeDefined();
   });
 });
