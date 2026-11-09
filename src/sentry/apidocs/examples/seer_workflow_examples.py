@@ -15,6 +15,7 @@ WORKFLOW_RUNS_RESPONSE = [
                         "environment": "production",
                         "eventId": "9f2d4c1b8a7e4f6d9c3b2a1e0f9d8c7b",
                         "groupId": "501",
+                        "groupShortId": "BACKEND-1A",
                         "observedAt": "2025-01-01T09:59:30Z",
                         "occurrenceId": "3b1e6f0a-2c4d-4e8f-9a1b-7c6d5e4f3a2b",
                         "projectId": "42",

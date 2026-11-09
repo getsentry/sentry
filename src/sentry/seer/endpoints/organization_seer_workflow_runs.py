@@ -113,6 +113,7 @@ class MetricBreachTriggerResponse(TypedDict):
     environment: str | None
     eventId: str
     groupId: str
+    groupShortId: str | None
     observedAt: datetime
     occurrenceId: str
     projectId: str
@@ -337,6 +338,7 @@ def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
                 "environment": trigger.environment,
                 "eventId": trigger.event_id,
                 "groupId": str(trigger.group_id),
+                "groupShortId": trigger.group_short_id,
                 "observedAt": trigger.observed_at,
                 "occurrenceId": trigger.occurrence_id,
                 "projectId": str(trigger.project_id),
