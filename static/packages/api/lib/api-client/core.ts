@@ -21,7 +21,7 @@ import {
   ConfigurationError,
   createApiError,
 } from "./errors.js";
-import { API_MAX_PER_PAGE } from "./pagination.js";
+import { API_MAX_PER_PAGE, paginate } from "./pagination.js";
 import {
   type ErrorResponseBody,
   readErrorResponse,
@@ -293,16 +293,17 @@ export function createApiClientCore({
 /**
  * Fetch up to `limit` rows from a list endpoint, starting at `cursor`.
  *
- * Each page asks for exactly the rows still missing, up to
- * {@link API_MAX_PER_PAGE}, and is validated with `schema`. The walk stops
- * once it has `limit` rows or the server has no next page, and returns the
- * server's cursor for the page after the last one fetched.
+ * Walks pages with {@link paginate}, so every request in a walk uses the same
+ * `per_page`: a fresh walk splits `limit` evenly, and a page-number cursor
+ * (`OffsetPaginator`) keeps the page size it encodes. Each page is validated
+ * with `schema`. The walk stops once it has `limit` rows, the server has no
+ * next page, or it has fetched {@link MAX_LIST_PAGES} pages, and returns a
+ * cursor that resumes at the first row not returned.
  *
  * @throws {ApiValidationError} When `limit` is not between 1 and
  *   `API_MAX_PER_PAGE * MAX_LIST_PAGES`
  * @throws {ApiResponseValidationError} When a page does not match `schema`
- * @throws {Error} When a page has more rows than requested, a cursor
- *   repeats, or the walk passes {@link MAX_LIST_PAGES}
+ * @throws {Error} When a page has more rows than requested or a cursor repeats
  */
 export async function listPage<T>(
   fetchPage: (
@@ -322,26 +323,24 @@ export async function listPage<T>(
       `limit must be an integer between 1 and ${API_MAX_PER_PAGE * MAX_LIST_PAGES}`,
     );
   }
-  const items: T[] = [];
   const seenCursors = new Set<string>();
-  let cursor = initialCursor ?? undefined;
-  for (let page = 0; page < MAX_LIST_PAGES; page += 1) {
-    const perPage = Math.min(API_MAX_PER_PAGE, limit - items.length);
-    const { data, response } = await fetchPage(perPage, cursor);
-    const rows = validateResponse(schema, data);
-    if (rows.length > perPage) {
-      throw new Error("API returned more items than requested");
-    }
-    items.push(...rows);
-    const nextCursor = nextPageCursor(response);
-    if (items.length >= limit || !nextCursor) {
-      return { items, nextCursor };
-    }
-    if (seenCursors.has(nextCursor) || nextCursor === cursor) {
-      throw new Error("API returned a repeated pagination cursor");
-    }
-    seenCursors.add(nextCursor);
-    cursor = nextCursor;
-  }
-  throw new Error("API pagination exceeded its page limit");
+  const result = await paginate(
+    { limit, cursor: initialCursor ?? undefined, maxPages: MAX_LIST_PAGES },
+    async (perPage, cursor) => {
+      const { data, response } = await fetchPage(perPage, cursor);
+      const rows = validateResponse(schema, data);
+      if (rows.length > perPage) {
+        throw new Error("API returned more items than requested");
+      }
+      const nextCursor = nextPageCursor(response);
+      if (nextCursor) {
+        if (seenCursors.has(nextCursor) || nextCursor === cursor) {
+          throw new Error("API returned a repeated pagination cursor");
+        }
+        seenCursors.add(nextCursor);
+      }
+      return nextCursor ? { data: rows, nextCursor } : { data: rows };
+    },
+  );
+  return { items: result.data, nextCursor: result.nextCursor ?? null };
 }
