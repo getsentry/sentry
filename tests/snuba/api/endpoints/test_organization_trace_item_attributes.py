@@ -67,6 +67,7 @@ class TestBuildAttributeContext:
             "brief": "The operation of a span.",
             "examples": ["http.client"],
             "isDeprecated": False,
+            "applyScrubbing": {"mode": "never"},
         }
 
     def test_deprecated_attribute_includes_replacement(self) -> None:
@@ -75,6 +76,15 @@ class TestBuildAttributeContext:
         assert context["isConvention"] is True
         assert context["isDeprecated"] is True
         assert context["replacementAttribute"] == "sentry.segment.name"
+
+    def test_includes_scrubbing_reason_when_the_convention_has_one(self) -> None:
+        context = build_sentry_convention_context("file.path", "file.path", "string")
+
+        assert context is not None
+        assert context["applyScrubbing"] == {
+            "mode": "auto",
+            "reason": "File paths can contain end-user paths (e.g. from stack traces) that may be sensitive.",
+        }
 
     def test_unknown_attribute_returns_none(self) -> None:
         assert build_sentry_convention_context("not.a.convention", "also.not.a.convention") is None
@@ -775,6 +785,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             ),
             "examples": ["medium"],
             "isDeprecated": False,
+            "applyScrubbing": {"mode": "manual"},
         }
         # A deprecated convention also surfaces the replacement attribute.
         assert attributes["transaction"]["context"] == {
@@ -783,6 +794,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "examples": ["GET /"],
             "isDeprecated": True,
             "replacementAttribute": "sentry.segment.name",
+            "applyScrubbing": {"mode": "manual"},
         }
         # Custom (non-convention) attributes aren't served yet, so they get an
         # empty context.
@@ -794,6 +806,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "examples": ["gpt-4-turbo-preview"],
             "isDeprecated": False,
             "isInOtel": True,
+            "applyScrubbing": {"mode": "manual"},
         }
         # `http.route` is a convention defined in sentry-conventions but not in
         # attributes.py, so it resolves as a `user` source attribute but is still
@@ -814,6 +827,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "examples": ["/users/:id"],
             "isDeprecated": False,
             "isInOtel": True,
+            "applyScrubbing": {"mode": "manual"},
         }
         # `span.description` is a Sentry-defined attribute that isn't a sentry
         # convention. It's always included (this segment sets no description) and
@@ -822,6 +836,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert attributes["span.description"]["attributeSource"]["source_type"] == "sentry"
         assert attributes["span.description"]["context"]["isConvention"] is False
         assert attributes["span.description"]["context"]["brief"]
+        assert "applyScrubbing" not in attributes["span.description"]["context"]
         # `project` is served as a virtual column (VirtualColumnDefinition), not a
         # ResolvedAttribute. Its brief still surfaces via the virtual-context
         # fallback, marked isConvention=False with a `sentry` source.

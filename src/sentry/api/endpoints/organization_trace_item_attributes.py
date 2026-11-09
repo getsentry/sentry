@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NamedTuple, TypeIs, cast, get_args
+from typing import Any, NamedTuple, TypeIs, assert_never, cast, get_args
 
 import sentry_sdk
 from django.db.models import Q
@@ -10,7 +10,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_conventions.attributes import ATTRIBUTE_METADATA, AttributeMetadata
+from sentry_conventions.attributes import ATTRIBUTE_METADATA, ApplyScrubbing, AttributeMetadata
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
@@ -37,6 +37,8 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeContext,
     TraceItemAttributeKey,
+    TraceItemAttributeScrubbing,
+    TraceItemAttributeScrubbingMode,
     TraceItemAttributeSource,
     TraceItemAttributeUnit,
     TraceItemAttributeValidateResponse,
@@ -364,6 +366,18 @@ def _is_trace_item_attribute_unit(value: str) -> TypeIs[TraceItemAttributeUnit]:
     return value in _TRACE_ITEM_ATTRIBUTE_UNITS
 
 
+def _scrubbing_mode(apply_scrubbing: ApplyScrubbing) -> TraceItemAttributeScrubbingMode:
+    match apply_scrubbing:
+        case ApplyScrubbing.AUTO:
+            return "auto"
+        case ApplyScrubbing.MANUAL:
+            return "manual"
+        case ApplyScrubbing.NEVER:
+            return "never"
+        case _:
+            assert_never(apply_scrubbing)
+
+
 SENTRY_ALWAYS_INCLUDED_ATTRIBUTES: dict[SupportedTraceItemType, frozenset[str]] = {
     SupportedTraceItemType.SPANS: frozenset({"span.description"}),
     SupportedTraceItemType.LOGS: frozenset({"message"}),
@@ -455,6 +469,11 @@ def build_sentry_convention_context(
 
     if metadata.is_in_otel:
         context["isInOtel"] = True
+
+    scrubbing: TraceItemAttributeScrubbing = {"mode": _scrubbing_mode(metadata.apply_scrubbing.key)}
+    if metadata.apply_scrubbing.reason is not None:
+        scrubbing["reason"] = metadata.apply_scrubbing.reason
+    context["applyScrubbing"] = scrubbing
 
     return context
 
