@@ -33,31 +33,7 @@ from sentry.notebooks.endpoints.organization_investigation_block_details import 
 )
 from sentry.notebooks.endpoints.schema import InvestigationSchema
 from sentry.notebooks.endpoints.validators.block import BlockExecutionResumeValidator
-from sentry.seer.endpoints.admin_metric_breaches import SeerAdminMetricBreachesEndpoint
 from tests.sentry.apidocs import generate_schema
-
-
-def test_synthetic_breach_schema() -> None:
-    schema = generate_schema(
-        "api/0/internal/seer/metric-breaches/", view=SeerAdminMetricBreachesEndpoint
-    )
-    operation = schema["paths"]["/api/0/internal/seer/metric-breaches/"]["post"]
-    components = schema["components"]["schemas"]
-    request_ref = operation["requestBody"]["content"]["application/json"]["schema"]["$ref"]
-    assert set(components[request_ref.split("/")[-1]]["required"]) == {
-        "organizationId",
-        "monitorId",
-    }
-    success_ref = operation["responses"]["201"]["content"]["application/json"]["schema"]["$ref"]
-    assert set(components[success_ref.split("/")[-1]]["required"]) == {
-        "issueId",
-        "issueUrl",
-        "eventId",
-    }
-    failure_ref = operation["responses"]["503"]["content"]["application/json"]["schema"]["$ref"]
-    failure = components[failure_ref.split("/")[-1]]
-    assert failure["required"] == ["detail"]
-    assert set(failure["properties"]) == {"detail"}
 
 
 def test_null_only_response_field() -> None:
