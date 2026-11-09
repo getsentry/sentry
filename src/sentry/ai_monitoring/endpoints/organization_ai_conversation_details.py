@@ -41,7 +41,9 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Organizati
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import META_ATTRIBUTE_PREFIX
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
+from sentry.search.eap.spans.attributes import SPAN_ATTRIBUTE_DEFINITIONS, SPAN_VIRTUAL_CONTEXTS
 from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
@@ -154,6 +156,58 @@ AI_CONVERSATION_ATTRIBUTES = [
     "user.username",
     "user.ip",
 ]
+
+
+def _get_meta_columns() -> dict[str, str]:
+    """
+    Returns the columns to select for the PII scrubbing meta of the attributes the
+    endpoint returns, mapped to those attributes.
+
+    When Relay scrubs an attribute, it records what it changed in a separate
+    attribute, the meta. For `user.email`, stored as `sentry.user.email`, that's
+    `sentry._meta.fields.attributes.sentry.user.email`, so this maps
+    `tags[sentry._meta.fields.attributes.sentry.user.email,string]` to `user.email`.
+    """
+    columns = {}
+    for attribute in AI_CONVERSATION_ATTRIBUTES:
+        # Virtual columns, like `project`, are derived at query time, so Relay never
+        # scrubs them and they have no meta. Selecting one would only add an empty
+        # column to every query.
+        if attribute in SPAN_VIRTUAL_CONTEXTS:
+            continue
+        # Look up the public name, like `user.email`, to get its stored name and type.
+        definition = SPAN_ATTRIBUTE_DEFINITIONS.get(attribute)
+        # Only strings can hold replacement texts, so skip numbers and booleans.
+        if definition is not None and definition.search_type != "string":
+            continue
+        # Undefined attributes are stored as strings under their own name.
+        internal_name = definition.internal_name if definition else attribute
+        # The resolver only knows the public names in `SPAN_ATTRIBUTE_DEFINITIONS`, and
+        # meta attributes have none. `tags[<name>,<type>]` selects any attribute by its
+        # stored name instead. EAP stores attributes separately per value type, so
+        # the type tells it where to read: meta is a JSON string. The `tags` syntax is a
+        # leftover from querying event tags; it isn't specific to tags.
+        # The column is the key, as result rows come back keyed by the selected column.
+        columns[f"tags[{META_ATTRIBUTE_PREFIX}.{internal_name},string]"] = attribute
+    return columns
+
+
+META_COLUMNS = _get_meta_columns()
+
+
+def _move_meta_columns(spans: Sequence[SpanRow]) -> None:
+    for span in spans:
+        meta: dict[str, Any] = {}
+        for column, attribute in META_COLUMNS.items():
+            value = span.pop(column, None)
+            if not value:
+                continue
+            # Relay stores the meta as a JSON string; key it by the public name.
+            try:
+                meta[attribute] = json.loads(value)
+            except json.JSONDecodeError:
+                continue
+        span["meta"] = meta
 
 
 class AIConversationModelUsage(TypedDict):
@@ -692,7 +746,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             TableQuery(
                 name="spans",
                 query_string=query_string,
-                selected_columns=AI_CONVERSATION_ATTRIBUTES,
+                selected_columns=[*AI_CONVERSATION_ATTRIBUTES, *META_COLUMNS],
                 orderby=["precise.start_ts"],
                 offset=offset,
                 limit=limit,
@@ -727,7 +781,9 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         stats: AIConversationStats | None = None
         if aggregate_result is not None:
             stats = _parse_grouped_stats(aggregate_result.get("data", []))
-        return {"data": results["spans"].get("data", []), "stats": stats}
+        spans = results["spans"].get("data", [])
+        _move_meta_columns(spans)
+        return {"data": spans, "stats": stats}
 
     @traces.trace
     def _conversation_exists(self, snuba_params: SnubaParams, conversation_id: str) -> bool:
