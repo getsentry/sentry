@@ -49,14 +49,6 @@ class EventLookupError(Exception):
     pass
 
 
-class OccurrenceRateLimited(Exception):
-    pass
-
-
-class OccurrenceIngestionDisabled(Exception):
-    pass
-
-
 def create_rate_limit_key(project_id: int, fingerprint: str) -> str:
     rate_limit_key = f"occurrence_rate_limit:{project_id}-{fingerprint}"
     return rate_limit_key
@@ -316,10 +308,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 @traces.trace
 @metrics.wraps("occurrence_consumer.process_occurrence_message")
 def process_occurrence_message(
-    message: Mapping[str, Any],
-    span: StreamedSpan,
-    *,
-    raise_on_drop: bool = False,
+    message: Mapping[str, Any], span: StreamedSpan
 ) -> tuple[IssueOccurrence, GroupInfo | None] | None:
     with metrics.timer("occurrence_consumer._process_message._get_kwargs"):
         kwargs = _get_kwargs(message)
@@ -348,8 +337,6 @@ def process_occurrence_message(
             tags=metric_tags,
         )
         span.set_attribute("result", "dropped_feature_disabled")
-        if raise_on_drop:
-            raise OccurrenceIngestionDisabled
         return None
 
     if is_rate_limited(project.id, fingerprint=occurrence_data["fingerprint"][0]):
@@ -359,8 +346,6 @@ def process_occurrence_message(
             tags=metric_tags,
         )
         span.set_attribute("result", "dropped_rate_limited")
-        if raise_on_drop:
-            raise OccurrenceRateLimited
         return None
 
     if "event_data" in kwargs:

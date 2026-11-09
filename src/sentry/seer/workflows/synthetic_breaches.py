@@ -17,11 +17,7 @@ from sentry.incidents.utils.types import (
 )
 from sentry.investigations.services.breached_metrics import code_mode_dataset
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.occurrence_consumer import (
-    OccurrenceIngestionDisabled,
-    OccurrenceRateLimited,
-    process_occurrence_message,
-)
+from sentry.issues.occurrence_consumer import process_occurrence_message
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import should_create_open_periods
 from sentry.models.organization import Organization
@@ -175,15 +171,9 @@ def create_synthetic_breach(context: SyntheticBreachContext) -> tuple[Group, str
         },
     }
     with traces.start_span(name="seer.synthetic_metric_breach") as span:
-        try:
-            result = process_occurrence_message(payload, span, raise_on_drop=True)
-        except OccurrenceRateLimited:
-            raise SyntheticBreachError("Issue creation was rate limited.", 429)
-        except OccurrenceIngestionDisabled:
-            raise SyntheticBreachError("Metric issue ingestion is unavailable.", 409)
-    if result is None:
-        raise SyntheticBreachError("Issue creation was prevented by ingestion controls.", 429)
-    saved_occurrence, group_info = result
-    if group_info is None:
-        raise SyntheticBreachError("Issue creation was prevented by ingestion controls.", 429)
-    return group_info.group, saved_occurrence.event_id
+        result = process_occurrence_message(payload, span)
+    if result is not None:
+        saved_occurrence, group_info = result
+        if group_info is not None:
+            return group_info.group, saved_occurrence.event_id
+    raise SyntheticBreachError("Synthetic breach was dropped by ingestion controls.", 409)

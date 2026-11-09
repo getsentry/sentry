@@ -283,11 +283,19 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         assert publish.call_args.args[1].evidence_data["synthetic"] is True
 
     @patch("sentry.issues.occurrence_consumer.is_rate_limited", return_value=True)
-    def test_ingestion_rate_limit(self, limit: MagicMock) -> None:
+    def test_ingestion_drop_returns_generic_error(self, limit: MagicMock) -> None:
         response = self.get_error_response(
-            organizationId=self.organization.id, monitorId=self.detector.id, status_code=429
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=409
         )
-        assert "issueUrl" not in response.data
+        assert response.data == {"detail": "Synthetic breach was dropped by ingestion controls."}
+        assert not Group.objects.filter(type=8001).exists()
+
+    @patch("sentry.issues.ingest.save_issue_from_occurrence", return_value=None)
+    def test_issue_creation_drop_returns_generic_error(self, save_issue: MagicMock) -> None:
+        response = self.get_error_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=409
+        )
+        assert response.data == {"detail": "Synthetic breach was dropped by ingestion controls."}
         assert not Group.objects.filter(type=8001).exists()
 
     @patch(
