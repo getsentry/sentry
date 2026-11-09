@@ -346,16 +346,17 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             organization_id=organization.id,
             avatar_type=1,  # upload
             file_id=1,
-            ident="abc123",
+            ident="9fac2ceed9344f2bbfdd1fdacb0ed9b1",
         )
         resp = self.get_response(organization.slug)
         assert resp.status_code == 200
         assert "avatar" in resp.data
         assert resp.data["avatar"]["avatarType"] == "upload"
-        assert resp.data["avatar"]["avatarUuid"] == "abc123"
+        assert resp.data["avatar"]["avatarUuid"] == "9fac2ceed9344f2bbfdd1fdacb0ed9b1"
         assert (
             resp.data["avatar"]["avatarUrl"]
-            == generate_locality_url() + f"/organization-avatar/{organization.slug}/abc123/"
+            == generate_locality_url()
+            + f"/organization-avatar/{organization.slug}/9fac2ceed9344f2bbfdd1fdacb0ed9b1/"
         )
 
     def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self) -> None:
