@@ -13,3 +13,4 @@ export {
 } from './formContext';
 export {Checkmark, Spinner} from './icons';
 export {FieldLayout} from './fieldLayout';
+export {useStackedLayout} from './useStackedLayout';

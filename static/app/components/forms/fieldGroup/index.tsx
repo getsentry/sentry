@@ -1,3 +1,5 @@
+import {useStackedLayout} from '@sentry/scraps/formPresentation';
+
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 
 import {ControlState} from './controlState';
@@ -19,10 +21,15 @@ import type {FieldGroupProps} from './types';
 export function FieldGroup({
   className,
   disabled = false,
-  inline = true,
+  inline: inlineProp = true,
   visible = true,
   ...rest
 }: FieldGroupProps) {
+  // Inline rows split the width 50/50, which leaves no room for the control in
+  // narrow containers. Stack them there, at the same breakpoint as FieldLayout.Row.
+  const isStackLayout = useStackedLayout();
+  const inline = inlineProp && !isStackLayout;
+
   const props = {
     inline,
     disabled,
