@@ -1,10 +1,10 @@
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useProjects} from 'sentry/utils/useProjects';
 
 // Refetch the data every second
@@ -46,31 +46,30 @@ export function useRecentCreatedProject({
       ? projects.find(p => p.slug === projectSlug)
       : undefined;
 
-  const {isPending: isProjectLoading, data: freshProject} = useApiQuery<Project>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/', {
+  const {isPending: isProjectLoading, data: freshProject} = useQuery({
+    ...apiOptions.as<Project>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/',
+      {
         path: {
           organizationIdOrSlug: orgSlug,
           projectIdOrSlug: projectSlug!,
         },
-      }),
-    ],
-    {
-      staleTime: 0,
-      enabled: !!projectSlug,
-      refetchInterval: query => {
-        if (!query.state.data) {
-          return false;
-        }
-        const projectData = query.state.data.json;
+        staleTime: 0,
+      }
+    ),
+    enabled: !!projectSlug,
+    refetchInterval: query => {
+      if (!query.state.data) {
+        return false;
+      }
+      const projectData = query.state.data.json;
 
-        if (pollUntilFirstEvent) {
-          return projectData.firstEvent ? false : DEFAULT_POLL_INTERVAL_MS;
-        }
-        return isProjectActive(projectData) ? false : DEFAULT_POLL_INTERVAL_MS;
-      },
-    }
-  );
+      if (pollUntilFirstEvent) {
+        return projectData.firstEvent ? false : DEFAULT_POLL_INTERVAL_MS;
+      }
+      return isProjectActive(projectData) ? false : DEFAULT_POLL_INTERVAL_MS;
+    },
+  });
 
   if (isProjectLoading || !freshProject) {
     return {

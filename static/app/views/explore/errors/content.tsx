@@ -11,13 +11,11 @@ import {
   ExploreBodyContent,
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
-import {
-  ErrorsContentSection,
-  ErrorsControlSection,
-} from 'sentry/views/explore/errors/body';
-import {ErrorsFilterSection} from 'sentry/views/explore/errors/filterContent';
 import {useControlSectionExpanded} from 'sentry/views/explore/hooks/useControlSectionExpanded';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {ErrorsContentSection, ErrorsControlSection} from './body';
+import {ErrorsFilterSection} from './filterContent';
 
 export default function ErrorsContent() {
   const organization = useOrganization();

@@ -31,7 +31,7 @@ export function useSimilarIssuesDrawer({
       group_id: group.id,
       project_id: project.id,
     });
-    openDrawer(() => <SimilarIssuesDrawer group={group} project={project} />, {
+    openDrawer(() => <SimilarIssuesDrawer group={group} />, {
       drawerKey: 'similar-issues-drawer',
       ariaLabel: t('Similar Issues'),
       shouldCloseOnInteractOutside: () => false,

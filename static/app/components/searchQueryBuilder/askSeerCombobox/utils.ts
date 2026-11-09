@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {
@@ -22,6 +22,8 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
+
+import type {QueryTokensProps} from './types';
 
 function extractErrorReason(err: Error): string {
   if (err instanceof RequestError) {
@@ -100,7 +102,12 @@ export function getExpandedProjectIds(
   returnedProjectIds: number[] | null | undefined,
   selectedProjectIds: number[]
 ): number[] | undefined {
-  if (!returnedProjectIds || returnedProjectIds.length === 0) {
+  // The API resolves -1 to every accessible project, so Seer can't broaden it.
+  if (
+    !returnedProjectIds ||
+    returnedProjectIds.length === 0 ||
+    selectedProjectIds.includes(ALL_ACCESS_PROJECTS)
+  ) {
     return undefined;
   }
   const selectedSet = new Set(selectedProjectIds);
@@ -744,4 +751,19 @@ export function stringifyQueryForFeedback(query: QueryTokensProps): string {
     )
   );
   return JSON.stringify(filtered);
+}
+
+/**
+ * Seer's search endpoints explain access denials (AI features turned off,
+ * feature not enabled) in the 403 `detail`. Show that instead of a generic
+ * failure so users can tell an access problem from a Seer error.
+ */
+export function getAskSeerErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof RequestError && error.status === 403) {
+    const detail = error.responseJSON?.detail;
+    if (typeof detail === 'string' && detail) {
+      return detail;
+    }
+  }
+  return fallback;
 }

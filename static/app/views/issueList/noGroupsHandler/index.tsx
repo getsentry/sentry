@@ -9,9 +9,9 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {NoIssuesMatched} from 'sentry/views/issueList/noGroupsHandler/noIssuesMatched';
 import {DEFAULT_QUERY, FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
+import {NoIssuesMatched} from './noIssuesMatched';
 import {NoUnresolvedIssues} from './noUnresolvedIssues';
 
 const WaitingForEvents = lazy(() => import('sentry/components/waitingForEvents'));

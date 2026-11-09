@@ -1,26 +1,49 @@
 import type {Avatar} from 'sentry/types/core';
 
-export type InboxSubjectType = 'issue' | 'notebook';
+export const INBOX_SUBJECT_TYPES = ['issue', 'notebook'] as const;
 
-interface InboxEventDataByType {
-  'issue.assigned': {
-    assignmentSource: string | null;
-  };
-  'issue.pr_ready_for_review': {prUrl: string; seerRunId: string};
-  'issue.team_mentioned': {commentId: string};
-  'issue.user_mentioned': {commentId: string};
-  'notebook.completed': {seerRunId: string};
-  'notebook.mentioned': {commentId: string};
-  'notebook.needs_attention': Record<string, unknown>;
-  'notebook.participant_added': Record<string, never>;
+export type InboxSubjectType = (typeof INBOX_SUBJECT_TYPES)[number];
+
+export const INBOX_EVENT_TYPES = [
+  'issue.user_assigned',
+  'issue.team_assigned',
+  'issue.user_mentioned',
+  'issue.team_mentioned',
+  'issue.pr_ready_for_review',
+  'notebook.completed',
+  'notebook.mentioned',
+  'notebook.participant_added',
+] as const;
+
+export type InboxEventType = (typeof INBOX_EVENT_TYPES)[number];
+
+interface InboxIssueAssignedData {
+  assignmentSource:
+    | 'codeowners'
+    | 'projectOwnership'
+    | 'slack'
+    | 'msteams'
+    | 'discord'
+    | 'suspectCommitter'
+    | 'seerSuggested'
+    | null;
 }
 
-type InboxEventType = keyof InboxEventDataByType;
+interface InboxEventDataByType {
+  'issue.pr_ready_for_review': {prUrl: string; seerRunId: string};
+  'issue.team_assigned': InboxIssueAssignedData;
+  'issue.team_mentioned': {commentId: string};
+  'issue.user_assigned': InboxIssueAssignedData;
+  'issue.user_mentioned': {commentId: string};
+  'notebook.completed': {seerRunId: string};
+  'notebook.mentioned': {blockId: string | null; commentId: string};
+  'notebook.participant_added': Record<string, never>;
+}
 
 type InboxSystemActor = {
   avatar: null;
   id: null;
-  name: string;
+  name: 'Sentry';
   type: 'system';
 };
 
@@ -64,3 +87,8 @@ export interface InboxItem {
 }
 
 export type InboxSubject = Pick<InboxItem, 'subjectId' | 'subjectType'>;
+
+export interface InboxFilters {
+  eventType: InboxEventType[];
+  subjectType: InboxSubjectType[];
+}

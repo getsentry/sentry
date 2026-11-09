@@ -5,11 +5,12 @@ import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Annotated, Any, NotRequired, TypedDict, cast
 
 from django.utils.timezone import is_aware
 
 from sentry import nodestore
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 from sentry.types.actor import Actor
 from sentry.utils.dates import parse_timestamp
@@ -20,9 +21,14 @@ DEFAULT_LEVEL = "info"
 
 
 class IssueEvidenceData(TypedDict):
-    name: str
-    value: str
-    important: bool
+    name: Annotated[str, ApiDescription("Name of the evidence")]
+    value: Annotated[str, ApiDescription("Value of the evidence")]
+    important: Annotated[
+        bool,
+        ApiDescription(
+            "Whether to show the evidence first. At most one evidence of an occurrence is important"
+        ),
+    ]
 
 
 class IssueOccurrenceData(TypedDict):
@@ -49,26 +55,45 @@ class IssueOccurrenceData(TypedDict):
 
 # Per-type responses narrow `type` and `evidenceData`, which a TypedDict subclass can't override.
 class BaseIssueOccurrenceResponse(TypedDict):
-    id: str
-    projectId: int
-    eventId: str
-    fingerprint: list[str]
-    issueTitle: str
-    subtitle: str
-    resourceId: str | None
-    evidenceDisplay: list[IssueEvidenceData]
-    detectionTime: float
-    level: str | None
-    culprit: str | None
-    assignee: str | None
-    priority: int | None
+    id: Annotated[str, ApiDescription("ID of the occurrence")]
+    projectId: Annotated[int, ApiDescription("ID of the project")]
+    eventId: Annotated[str, ApiDescription("ID of the event the occurrence belongs to")]
+    fingerprint: Annotated[
+        list[str], ApiDescription("Fingerprint that groups the occurrence into an issue")
+    ]
+    issueTitle: Annotated[str, ApiDescription("Title of the issue")]
+    subtitle: Annotated[str, ApiDescription("Subtitle of the issue")]
+    resourceId: Annotated[
+        str | None,
+        ApiDescription(
+            "ID of the resource the occurrence is about, such as a monitor. Null when not set"
+        ),
+    ]
+    evidenceDisplay: Annotated[
+        list[IssueEvidenceData], ApiDescription("Evidence to show on the issue")
+    ]
+    detectionTime: Annotated[
+        float, ApiDescription("When the problem was detected, as a Unix timestamp in seconds")
+    ]
+    level: Annotated[
+        str | None, ApiDescription("Level of the occurrence, such as error or warning")
+    ]
+    culprit: Annotated[str | None, ApiDescription("Culprit of the occurrence")]
+    assignee: Annotated[
+        str | None, ApiDescription("Actor the issue is assigned to, such as user:1 or team:1")
+    ]
+    priority: Annotated[
+        int | None, ApiDescription("Initial priority of the issue: 25 low, 50 medium or 75 high")
+    ]
 
 
 class IssueOccurrenceResponse(BaseIssueOccurrenceResponse):
     """An issue occurrence of any type. `evidenceData` keys are camelCase."""
 
-    type: int
-    evidenceData: dict[str, Any]
+    type: Annotated[int, ApiDescription("Group type ID of the occurrence")]
+    evidenceData: Annotated[
+        dict[str, Any], ApiDescription("Data of the occurrence. Its keys depend on the group type")
+    ]
 
 
 @dataclass(frozen=True)

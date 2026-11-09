@@ -3,10 +3,8 @@ import {useMutation} from '@tanstack/react-query';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  useInvalidateSavedQueries,
-  type SavedQueryRef,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
+
+import {useInvalidateSavedQueries, type SavedQueryRef} from './useGetSavedQueries';
 
 export function useReorderStarredSavedQueries() {
   const organization = useOrganization();

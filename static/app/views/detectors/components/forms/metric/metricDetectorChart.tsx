@@ -31,7 +31,6 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
-import {getBackendDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
 import type {IncidentPeriod} from 'sentry/views/detectors/hooks/useIncidentMarkers';
@@ -43,6 +42,8 @@ import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/use
 import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
+
+import {getBackendDataset} from './metricFormData';
 
 const CHART_HEIGHT = 180;
 

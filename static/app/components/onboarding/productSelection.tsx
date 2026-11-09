@@ -1,21 +1,22 @@
 import type {ReactNode} from 'react';
 import {useEffect, useEffectEvent, useMemo} from 'react';
-import {IconQuestion} from '@sentry/icons/question';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {openModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useOnboardingQueryParams} from 'sentry/components/onboarding/useOnboardingQueryParams';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
+
+import {ProductSolution} from './gettingStartedDoc/types';
+import {useOnboardingQueryParams} from './useOnboardingQueryParams';
 
 interface DisabledProduct {
   reason: ReactNode;
@@ -603,7 +604,7 @@ function Product({
             disabled={isDisabled}
           />
           {label}
-          <IconQuestion size="xs" />
+          <IconInfo size="xs" />
         </Grid>
       </ProductButton>
     </Tooltip>

@@ -18,16 +18,14 @@ import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {
-  INPUT_STORAGE_KEY_PREFIX,
-  SeerExplorerContent,
-} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
+
+import {INPUT_STORAGE_KEY_PREFIX, SeerExplorerContent} from './seerExplorerContent';
 
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 
@@ -40,6 +38,7 @@ async function getSeerExplorerInput() {
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
+  featureId: null,
   isPolling: false,
   isError: false,
   hasSessionLoadError: false,
@@ -1575,7 +1574,7 @@ describe('SeerExplorerContent', () => {
       );
     });
 
-    it('does not show the debug menu without any debug feature flag', async () => {
+    it('shows the debug menu to employees', async () => {
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
@@ -1589,8 +1588,7 @@ describe('SeerExplorerContent', () => {
           organization,
         }
       );
-      await screen.findByTestId('seer-explorer-input');
-      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Debug'})).toBeInTheDocument();
     });
   });
 

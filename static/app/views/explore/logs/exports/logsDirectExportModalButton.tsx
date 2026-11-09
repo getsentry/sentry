@@ -1,15 +1,13 @@
 import {t} from 'sentry/locale';
 import {formatExportSort} from 'sentry/views/explore/components/exports/formatExportSort';
-import {
-  LogsExportModalButton,
-  useLogsQueryInfo,
-} from 'sentry/views/explore/logs/exports/logsExportModalButton';
-import {useLogsExportEstimatedRowCount} from 'sentry/views/explore/logs/exports/useLogsExportEstimatedRowCount';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   useQueryParamsFields,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+
+import {LogsExportModalButton, useLogsQueryInfo} from './logsExportModalButton';
+import {useLogsExportEstimatedRowCount} from './useLogsExportEstimatedRowCount';
 
 type LogsDirectExportModalButtonProps = {
   isLoading: boolean;

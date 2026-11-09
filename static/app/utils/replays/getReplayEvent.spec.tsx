@@ -1,11 +1,8 @@
 import {ReplayClickFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {
-  getNextReplayFrame,
-  getPrevReplayFrame,
-} from 'sentry/utils/replays/getReplayEvent';
-import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
+import {getNextReplayFrame, getPrevReplayFrame} from './getReplayEvent';
+import {hydrateBreadcrumbs} from './hydrateBreadcrumbs';
 
 const frames = hydrateBreadcrumbs(
   ReplayRecordFixture({

@@ -19,25 +19,26 @@ import {
 import {decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import {
-  defaultMetricQuery,
-  encodeMetricQueryParams,
-  type TraceMetric,
-  type BaseMetricQuery,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregateExpression';
-import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
-import {
-  isTraceMetricTypeValue,
-  TraceMetricKnownFieldKey,
-  type SampleTableColumnKey,
-} from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
   parseVisualize,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from './constants';
+import {
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+  type TraceMetric,
+  type BaseMetricQuery,
+} from './metricQuery';
+import {normalizeFunctionToken} from './parseAggregateExpression';
+import {parseMetricAggregate} from './parseMetricsAggregate';
+import {
+  isTraceMetricTypeValue,
+  TraceMetricKnownFieldKey,
+  type SampleTableColumnKey,
+} from './types';
 
 export function makeMetricsPathname({
   organizationSlug,

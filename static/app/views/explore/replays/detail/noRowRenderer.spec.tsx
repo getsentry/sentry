@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
+import {NoRowRenderer} from './noRowRenderer';
 
 const children = 'No logs yet';
 

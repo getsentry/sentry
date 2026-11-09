@@ -14,7 +14,8 @@ import {
 import {TeamStore} from 'sentry/stores/teamStore';
 import {GroupActivityType} from 'sentry/types/group';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
-import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
+
+import {ActivityDrawer} from './activityDrawer';
 
 describe('ActivityDrawer', () => {
   const project = ProjectFixture();
@@ -36,7 +37,7 @@ describe('ActivityDrawer', () => {
   function renderDrawer() {
     return render(
       <GroupIdProvider groupId={group.id}>
-        <ActivityDrawer project={project} />
+        <ActivityDrawer />
       </GroupIdProvider>,
       {
         initialRouterConfig: {

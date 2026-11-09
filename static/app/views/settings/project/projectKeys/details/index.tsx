@@ -1,22 +1,24 @@
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {RouteError} from 'sentry/views/routeError';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
-import {KeyStats} from 'sentry/views/settings/project/projectKeys/details/keyStats';
 import {RelayDsnOverrideAlert} from 'sentry/views/settings/project/projectKeys/relayDsnOverrideAlert';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {KeySettings} from './keySettings';
+import {KeyStats} from './keyStats';
 
 export default function ProjectKeyDetails() {
   const organization = useOrganization();
@@ -30,17 +32,18 @@ export default function ProjectKeyDetails() {
     data: projKeyData,
     isError,
     isPending,
-  } = useApiQuery<ProjectKey>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
+  } = useQuery(
+    apiOptions.as<ProjectKey>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectId,
           keyId,
         },
-      }),
-    ],
-    {staleTime: 0}
+        staleTime: 0,
+      }
+    )
   );
 
   function onDataChange(data: ProjectKey) {

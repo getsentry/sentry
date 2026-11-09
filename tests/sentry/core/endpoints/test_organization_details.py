@@ -617,16 +617,17 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             organization_id=organization.id,
             avatar_type=1,  # upload
             file_id=1,
-            ident="abc123",
+            ident="9fac2ceed9344f2bbfdd1fdacb0ed9b1",
         )
         resp = self.get_response(organization.slug)
         assert resp.status_code == 200
         assert "avatar" in resp.data
         assert resp.data["avatar"]["avatarType"] == "upload"
-        assert resp.data["avatar"]["avatarUuid"] == "abc123"
+        assert resp.data["avatar"]["avatarUuid"] == "9fac2ceed9344f2bbfdd1fdacb0ed9b1"
         assert (
             resp.data["avatar"]["avatarUrl"]
-            == generate_locality_url() + f"/organization-avatar/{organization.slug}/abc123/"
+            == generate_locality_url()
+            + f"/organization-avatar/{organization.slug}/9fac2ceed9344f2bbfdd1fdacb0ed9b1/"
         )
 
     def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self) -> None:
@@ -710,6 +711,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_reserved_slug(self) -> None:
         illegal_slug = list(RESERVED_ORGANIZATION_SLUGS)[0]
         self.get_error_response(self.organization.slug, slug=illegal_slug, status_code=400)
+
+    def test_agent_handoff_slug_is_reserved(self) -> None:
+        self.get_error_response(self.organization.slug, slug="agent-handoff", status_code=400)
 
     def test_valid_slugs(self) -> None:
         valid_slugs = ["santry", "downtown-canada", "1234-foo"]

@@ -4,10 +4,11 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
-import type {FeedbackModalProps} from 'sentry/components/featureFeedback/feedbackModal';
-import {FeedbackModal, modalCss} from 'sentry/components/featureFeedback/feedbackModal';
 import type {Data} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
+
+import type {FeedbackModalProps} from './feedbackModal';
+import {FeedbackModal, modalCss} from './feedbackModal';
 
 type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
   buttonProps?: Partial<ButtonProps>;

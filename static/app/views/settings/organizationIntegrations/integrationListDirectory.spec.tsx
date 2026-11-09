@@ -8,10 +8,11 @@ import {
 } from 'sentry-fixture/integrationListDirectory';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import IntegrationListDirectory from 'sentry/views/settings/organizationIntegrations/integrationListDirectory';
+
+import IntegrationListDirectory from './integrationListDirectory';
 
 jest.mock('sentry/utils/analytics');
 
@@ -94,6 +95,29 @@ describe('IntegrationListDirectory', () => {
 
       expect(screen.getByText('Bitbucket')).toBeInTheDocument();
       expect(screen.getByText('La Croix Monitor')).toBeInTheDocument();
+    });
+
+    it('replaces the search param and removes it when the search is cleared', async () => {
+      const {router} = render(<IntegrationListDirectory />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/integrations/`,
+            query: {other: 'kept'},
+          },
+        },
+      });
+      const filter = await screen.findByRole('textbox', {name: 'Filter'});
+
+      await userEvent.type(filter, 'it{enter}');
+      await waitFor(() =>
+        expect(router.location.query).toEqual({other: 'kept', search: 'it'})
+      );
+      expect(router.historyAction).toBe('REPLACE');
+
+      await userEvent.clear(filter);
+      await userEvent.keyboard('{enter}');
+      await waitFor(() => expect(router.location.query).toEqual({other: 'kept'}));
     });
 
     it('tracks searches with the number of results shown', async () => {
