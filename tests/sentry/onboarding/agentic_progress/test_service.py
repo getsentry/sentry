@@ -484,3 +484,50 @@ def test_resume_with_code_requires_existing_matching_code(
 
     with pytest.raises(RunOwnershipMismatch):
         create_run(service, user_id=1, organization_id=2, client_run_id="browser-session")
+
+
+def test_issue_stable_reporting_code(service: OnboardingProgressService) -> None:
+    run, _ = service.create_or_resume(user_id=1, organization_id=2, client_run_id="browser")
+    code = service.issue_reporting_code(run_id=run.run_id, user_id=1, organization_id=2)
+    assert len(code) == 10
+    assert code.isascii() and code.isalnum()
+    assert service.issue_reporting_code(run_id=run.run_id, user_id=1, organization_id=2) == code
+    active = service.get(run_id=run.run_id, user_id=1, organization_id=2)
+    assert active is not None
+    assert active.token_hash == service._hash_token(code)
+    assert active.expires_at == run.expires_at
+    updated, changed, _ = service.update(
+        token=code,
+        user_id=1,
+        organization_id=2,
+        update=ProgressUpdate(stage=Stage.ANALYZE_PROJECT, status=StageStatus.ACTIVE),
+    )
+    assert changed
+    assert updated.run_id == run.run_id
+
+
+@pytest.mark.parametrize("user_id,organization_id", [(9, 2), (1, 9)])
+def test_reporting_code_requires_run_ownership(
+    service: OnboardingProgressService, user_id: int, organization_id: int
+) -> None:
+    run, _ = service.create_or_resume(user_id=1, organization_id=2, client_run_id="browser")
+    with pytest.raises(RunNotFound):
+        service.issue_reporting_code(
+            run_id=run.run_id, user_id=user_id, organization_id=organization_id
+        )
+
+
+def test_reporting_code_rejects_cancelled_run(service: OnboardingProgressService) -> None:
+    run, _ = service.create_or_resume(user_id=1, organization_id=2, client_run_id="browser")
+    service.cancel(run_id=run.run_id, user_id=1, organization_id=2)
+    with pytest.raises(OnboardingRunTerminal):
+        service.issue_reporting_code(run_id=run.run_id, user_id=1, organization_id=2)
+
+
+def test_reporting_code_rejects_expired_run(
+    service: OnboardingProgressService, frozen_time: Any
+) -> None:
+    run, _ = service.create_or_resume(user_id=1, organization_id=2, client_run_id="browser")
+    frozen_time.shift(RUN_LIFETIME)
+    with pytest.raises(RunNotFound):
+        service.issue_reporting_code(run_id=run.run_id, user_id=1, organization_id=2)
