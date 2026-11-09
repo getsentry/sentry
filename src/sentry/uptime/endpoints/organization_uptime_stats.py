@@ -37,6 +37,9 @@ from sentry.utils.snuba_rpc import timeseries_rpc
 
 logger = logging.getLogger(__name__)
 
+# Don't default to the multi-day granularities; they're only used when requested explicitly.
+MAX_DEFAULT_ROLLUP_SECONDS = 24 * 3600
+
 
 @cell_silo_endpoint
 @extend_schema(tags=["Uptime Monitors"])
@@ -51,8 +54,12 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         timerange_args = self._parse_args(request, restrict_rollups=False)
         if "resolution" not in request.GET:
             timerange_args["rollup"] = min(
-                (g for g in VALID_GRANULARITIES if g >= timerange_args["rollup"]),
-                default=max(VALID_GRANULARITIES),
+                (
+                    g
+                    for g in VALID_GRANULARITIES
+                    if timerange_args["rollup"] <= g <= MAX_DEFAULT_ROLLUP_SECONDS
+                ),
+                default=MAX_DEFAULT_ROLLUP_SECONDS,
             )
         rollup_error = self._validate_rollup(timerange_args)
         if rollup_error:
