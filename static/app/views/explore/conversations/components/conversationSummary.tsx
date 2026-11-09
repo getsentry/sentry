@@ -715,7 +715,7 @@ function CostCount({
     return <LLMCosts cost={total} />;
   }
 
-  const sortedBreakdowns = [...breakdowns].sort((a, b) => b.totalCost - a.totalCost);
+  const sortedBreakdowns = breakdowns.toSorted((a, b) => b.totalCost - a.totalCost);
   return (
     <Tooltip title={<CostBreakdownTooltip breakdowns={sortedBreakdowns} />}>
       <BreakdownValue>{formatLLMCosts(total)}</BreakdownValue>
@@ -737,7 +737,7 @@ function ModelMetricBreakdown({
   }
 
   const formatValue = metric === 'llmCalls' ? formatAbbreviatedNumber : formatLLMCosts;
-  const sortedBreakdowns = [...breakdowns].sort((a, b) => b[metric] - a[metric]);
+  const sortedBreakdowns = breakdowns.toSorted((a, b) => b[metric] - a[metric]);
 
   return (
     <Tooltip

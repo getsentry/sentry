@@ -112,8 +112,8 @@ export function useCustomReleaseSorting({
   const sortGroups = useCallback(
     (data: SessionApiResponse): SessionApiResponse => {
       const groups = releaseOrder.length
-        ? [...data.groups]
-            .sort(
+        ? data.groups
+            .toSorted(
               (group1, group2) =>
                 releaseOrder.indexOf(group1.by.release as string) -
                 releaseOrder.indexOf(group2.by.release as string)

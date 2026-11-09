@@ -100,7 +100,7 @@ function sortSeriesParamsByValue(
   const rank = (value: unknown) =>
     typeof value !== 'number' || Number.isNaN(value) ? 2 : value === 0 ? 1 : 0;
 
-  return [...seriesParams].sort((a, b) => {
+  return seriesParams.toSorted((a, b) => {
     const aValue = getSeriesValue(a, 1);
     const bValue = getSeriesValue(b, 1);
     const rankDifference = rank(aValue) - rank(bValue);
