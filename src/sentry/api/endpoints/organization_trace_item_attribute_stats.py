@@ -1,9 +1,9 @@
 import logging
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from concurrent.futures import Future
 from datetime import UTC, datetime
-from typing import Annotated, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
@@ -28,6 +28,7 @@ from sentry.apidocs.descriptions import ApiDescription
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import anyvalue_to_python, or_trace_item_filters
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import ColumnType, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
@@ -59,6 +60,17 @@ class TraceItemAttributeDatasetStats(TypedDict):
         int | None,
         ApiDescription("Approximate number of distinct values the attribute had in the window"),
     ]
+    modifiedCount: NotRequired[
+        Annotated[
+            int | None,
+            ApiDescription(
+                "Number of stored spans in the window where Relay modified the attribute's "
+                "value, e.g. by truncating or scrubbing it. Only present for spans. Relay's "
+                "metadata is keyed by name alone, so attributes of different types that share "
+                "a name share this count"
+            ),
+        ]
+    ]
 
 
 def _resolver(dataset: str, snuba_params: SnubaParams) -> SearchResolver:
@@ -69,14 +81,9 @@ def _resolver(dataset: str, snuba_params: SnubaParams) -> SearchResolver:
     )
 
 
-def _exists_filter(refs: Sequence[StoredRef]) -> TraceItemFilter | None:
+def _exists_filter(keys: Iterable[AttributeKey]) -> TraceItemFilter | None:
     return or_trace_item_filters(
-        *(
-            TraceItemFilter(
-                exists_filter=ExistsFilter(key=AttributeKey(name=ref.name, type=ref.proto_type))
-            )
-            for ref in refs
-        )
+        *(TraceItemFilter(exists_filter=ExistsFilter(key=key)) for key in keys)
     )
 
 
@@ -98,7 +105,9 @@ def _query_last_seen_from_table(
                 limit=1,
                 referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_LAST_SEEN_FALLBACK.value,
                 name=name,
-                extra_conditions=_exists_filter(refs),
+                extra_conditions=_exists_filter(
+                    AttributeKey(name=ref.name, type=ref.proto_type) for ref in refs
+                ),
                 sampling_mode="HIGHEST_ACCURACY",
                 resolver=resolver,
             )
@@ -196,6 +205,41 @@ def query_cardinality(dataset: str, ref: StoredRef, snuba_params: SnubaParams) -
     return None
 
 
+def query_modified_count(refs: Sequence[StoredRef], snuba_params: SnubaParams) -> int | None:
+    name = "spans:modified"
+    result = Spans.run_bulk_table_queries(
+        [
+            TableQuery(
+                query_string="",
+                selected_columns=["count()"],
+                orderby=None,
+                offset=0,
+                limit=1,
+                referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_MODIFIED_COUNT.value,
+                name=name,
+                # Relay writes the meta under the stored name, untyped and as a string.
+                extra_conditions=_exists_filter(
+                    AttributeKey(
+                        name=f"{constants.META_ATTRIBUTE_PREFIX}.{ref.name}",
+                        type=AttributeKey.Type.TYPE_STRING,
+                    )
+                    for ref in refs
+                ),
+                sampling_mode="HIGHEST_ACCURACY",
+                resolver=SearchResolver(
+                    params=snuba_params,
+                    config=SearchResolverConfig(disable_aggregate_extrapolation=True),
+                    definitions=SPAN_DEFINITIONS,
+                ),
+            )
+        ]
+    )
+    rows = result[name]["data"]
+    if not rows or rows[0]["count()"] is None:
+        return None
+    return int(rows[0]["count()"])
+
+
 def _result_or_none[T](future: Future[T], dataset: str, stat: str) -> T | None:
     try:
         return future.result()
@@ -223,13 +267,19 @@ def query_attribute_stats(
         if attribute_type in CARDINALITY_ATTRIBUTE_TYPES and len(refs) == 1
     }
 
+    spans_refs = queryable.get(SupportedTraceItemType.SPANS.value)
+
     stats: dict[str, TraceItemAttributeDatasetStats] = {
         dataset: {"lastSeen": None, "cardinality": None} for dataset in refs_by_dataset
     }
+    if SupportedTraceItemType.SPANS.value in stats:
+        stats[SupportedTraceItemType.SPANS.value]["modifiedCount"] = None
     last_seen: datetime | None = None
     with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__,
-        max_workers=max(min(len(queryable) + len(cardinality_refs), MAX_QUERY_WORKERS), 1),
+        max_workers=max(
+            min(len(queryable) + len(cardinality_refs) + bool(spans_refs), MAX_QUERY_WORKERS), 1
+        ),
     ) as pool:
         last_seen_futures = {
             dataset: pool.submit(query_last_seen, dataset, refs, snuba_params)
@@ -239,6 +289,9 @@ def query_attribute_stats(
             dataset: pool.submit(query_cardinality, dataset, ref, snuba_params)
             for dataset, ref in cardinality_refs.items()
         }
+        modified_count_future = (
+            pool.submit(query_modified_count, spans_refs, snuba_params) if spans_refs else None
+        )
         for dataset, last_seen_future in last_seen_futures.items():
             dataset_last_seen = _result_or_none(last_seen_future, dataset, "last_seen")
             if dataset_last_seen is not None:
@@ -248,5 +301,9 @@ def query_attribute_stats(
         for dataset, cardinality_future in cardinality_futures.items():
             stats[dataset]["cardinality"] = _result_or_none(
                 cardinality_future, dataset, "cardinality"
+            )
+        if modified_count_future is not None:
+            stats[SupportedTraceItemType.SPANS.value]["modifiedCount"] = _result_or_none(
+                modified_count_future, SupportedTraceItemType.SPANS.value, "modified_count"
             )
     return stats, last_seen
