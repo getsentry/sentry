@@ -1,7 +1,8 @@
 # Forge-native staging app for testing the Forge migration against production
 # sentry.io. Register it with `forge register` (which fills in app.id), add that ID
-# to the `jira.forge.app-ids` option, then `forge deploy` and `forge install` it on
-# a test site that doesn't also have the production Connect app.
+# to both the `jira.forge.app-ids` and `jira.forge.native-app-ids` options (it has
+# no Connect predecessor), then `forge deploy` and `forge install` it on a test site
+# that doesn't also have the production Connect app.
 app:
   id: ari:cloud:ecosystem::app/00000000-0000-0000-0000-000000000000
   runtime:
