@@ -26,8 +26,7 @@ class TestFeatureAdoptionRedisCache(TestCase):
 
 class TestFeatureAdoptionRedisClusterCache(TestFeatureAdoptionRedisCache):
     def setUp(self) -> None:
-        # TODO: Once we have properly redis-cluster setup in tests and CI use that For now  that's
-        # the simplest way to test non redis-blaster compatibility.
+        # Uses the str client that a Redis Cluster config gets. The parent uses the bytes client.
         self.cache = FeatureAdoptionRedisBackend()
         self.cache.cluster = redis_clusters.get("default")
         self.org_id = 1234
