@@ -25,10 +25,13 @@ from sentry.notifications.platform.slack.renderers.seer_agent_write_approval imp
     SeerAgentWriteApprovalSlackRenderer,
 )
 from sentry.notifications.platform.templates.seer import (
+    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixCodeChange,
+    SeerAutofixOutOfCredits,
+    SeerAutofixOutOfCreditsTemplate,
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
     SeerInvestigationConclusionTemplate,
@@ -232,6 +235,32 @@ class SeerSlackRendererTest(TestCase):
         assert isinstance(actions_block.elements[1], ButtonElement)
         assert actions_block.elements[1].value == AutofixStoppingPoint.SOLUTION.value
 
+    def test_render_autofix_update_without_credits_has_no_next_trigger(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.ROOT_CAUSE,
+            summary="Test summary",
+        ).copy(update={"has_credits_for_next_step": False})
+        renderable = SeerSlackRenderer._render_autofix_update(data, link_decorator(data))
+        actions_blocks = [b for b in renderable["blocks"] if isinstance(b, ActionsBlock)]
+        assert len(actions_blocks) == 1
+        # Only the link to Sentry is left
+        assert len(actions_blocks[0].elements) == 1
+        assert isinstance(actions_blocks[0].elements[0], LinkButtonElement)
+
+    @patch(
+        "sentry.notifications.platform.templates.seer.organization_service.get_option",
+        return_value=False,
+    )
+    def test_render_autofix_update_solution_coding_disabled_has_no_next_trigger(
+        self, _mock_get_option: Mock
+    ) -> None:
+        data = self._create_update(current_point=AutofixStoppingPoint.SOLUTION)
+        renderable = SeerSlackRenderer._render_autofix_update(data, link_decorator(data))
+        actions_blocks = [b for b in renderable["blocks"] if isinstance(b, ActionsBlock)]
+        assert len(actions_blocks) == 1
+        assert len(actions_blocks[0].elements) == 1
+        assert isinstance(actions_blocks[0].elements[0], LinkButtonElement)
+
     @patch(
         "sentry.notifications.platform.templates.seer.organization_service.get_option",
         return_value=True,
@@ -297,6 +326,21 @@ class SeerSlackRendererTest(TestCase):
         assert handoff_button.action_id is not None
         assert handoff_button.action_id.startswith("seer_autofix_handoff::")
 
+    def test_render_autofix_update_handoff_shown_without_credits(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.ROOT_CAUSE,
+            handoff_target="cursor_background_agent",
+        ).copy(update={"has_credits_for_next_step": False})
+        renderable = SeerSlackRenderer._render_autofix_update(data, link_decorator(data))
+
+        actions_block = next((b for b in renderable["blocks"] if isinstance(b, ActionsBlock)), None)
+        assert actions_block is not None
+        assert len(actions_block.elements) == 2
+        handoff_button = actions_block.elements[1]
+        assert isinstance(handoff_button, ButtonElement)
+        assert handoff_button.action_id is not None
+        assert handoff_button.action_id.startswith("seer_autofix_handoff::")
+
     def test_render_autofix_update_root_cause_with_reasoning(self) -> None:
         data = self._create_update(
             current_point=AutofixStoppingPoint.ROOT_CAUSE,
@@ -329,6 +373,22 @@ class SeerSlackRendererTest(TestCase):
         # Should only have link button, no next trigger button
         assert len(actions_block.elements) == 1
         assert isinstance(actions_block.elements[0], LinkButtonElement)
+
+
+class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
+    def test_render_out_of_credits(self) -> None:
+        for started in (False, True):
+            data = SeerAutofixOutOfCredits(organization_id=1, started=started)
+            renderable = render_seer(
+                data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
+            )
+
+            assert renderable["text"] == AUTOFIX_OUT_OF_CREDITS_MESSAGE
+            blocks = renderable["blocks"]
+            assert len(blocks) == 1
+            assert isinstance(blocks[0], SectionBlock)
+            assert blocks[0].text is not None
+            assert blocks[0].text.text == AUTOFIX_OUT_OF_CREDITS_MESSAGE
 
 
 class SeerSlackRendererAgentErrorTest(TestCase):

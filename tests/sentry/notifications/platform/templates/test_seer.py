@@ -5,7 +5,10 @@ import pytest
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.templates.seer import (
+    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
+    SeerAutofixOutOfCredits,
+    SeerAutofixOutOfCreditsTemplate,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
     SeerInvestigationConclusionTemplate,
@@ -140,6 +143,19 @@ class SeerAgentErrorTemplateTest(TestCase):
 
         assert rendered.subject == "Agent failed"
         assert rendered.body[0].blocks[0].text == "Timeout."
+
+
+class SeerAutofixOutOfCreditsTemplateTest(TestCase):
+    def test_render(self) -> None:
+        for started in (False, True):
+            rendered = SeerAutofixOutOfCreditsTemplate().render(
+                SeerAutofixOutOfCredits(organization_id=1, started=started)
+            )
+
+            assert rendered.subject == AUTOFIX_OUT_OF_CREDITS_MESSAGE
+            assert len(rendered.body) == 1
+            assert isinstance(rendered.body[0], ParagraphSection)
+            assert rendered.body[0].blocks[0].text == AUTOFIX_OUT_OF_CREDITS_MESSAGE
 
 
 class SeerInvestigationStartedTemplateTest(TestCase):

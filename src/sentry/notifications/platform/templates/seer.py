@@ -82,6 +82,33 @@ class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
         )
 
 
+AUTOFIX_OUT_OF_CREDITS_MESSAGE = "Your org does not have enough credits to continue your Autofix run. Set up auto top up to keep your flow uninterrupted."
+
+
+class SeerAutofixOutOfCredits(NotificationData):
+    # False: the org tried to start a Seer step without credits.
+    # True: the org ran out of credits partway through a run.
+    started: bool
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS
+
+
+@template_registry.register(NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS)
+class SeerAutofixOutOfCreditsTemplate(NotificationTemplate[SeerAutofixOutOfCredits]):
+    category = NotificationCategory.SEER
+    example_data = SeerAutofixOutOfCredits(
+        source=NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS,
+        organization_id=1,
+        started=False,
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAutofixOutOfCredits) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=AUTOFIX_OUT_OF_CREDITS_MESSAGE)])],
+        )
+
+
 class SeerAutofixCodeChange(TypedDict):
     repo_name: str
     diff: str
@@ -108,6 +135,7 @@ class SeerAutofixUpdate(NotificationData):
     pull_requests: list[SeerAutofixPullRequest] = Field(default_factory=list)
     summary: str | None = None
     handoff_target: CodingAgentProviderType | None = None
+    has_credits_for_next_step: bool = True
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_UPDATE
 
     @property
