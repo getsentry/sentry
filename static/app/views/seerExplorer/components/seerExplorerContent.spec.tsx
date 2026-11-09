@@ -1,10 +1,12 @@
 import {useState} from 'react';
+import {QueryClientProvider, type QueryClient} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
   render,
@@ -2140,11 +2142,8 @@ describe('SeerExplorerContent', () => {
       });
     }
 
-    function renderContent({
-      org = creditsOrganization,
-      initialQuery,
-    }: {initialQuery?: string; org?: typeof creditsOrganization} = {}) {
-      return render(
+    function contentTree(initialQuery?: string) {
+      return (
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
             <SeerExplorerContent
@@ -2153,9 +2152,15 @@ describe('SeerExplorerContent', () => {
               initialQuery={initialQuery}
             />
           </SeerExplorerSessionsProvider>
-        </PictureInPictureProvider>,
-        {organization: org}
+        </PictureInPictureProvider>
       );
+    }
+
+    function renderContent({
+      org = creditsOrganization,
+      initialQuery,
+    }: {initialQuery?: string; org?: typeof creditsOrganization} = {}) {
+      return render(contentTree(initialQuery), {organization: org});
     }
 
     it('shows the CTA above the composer and keeps the draft instead of sending', async () => {
@@ -2379,6 +2384,95 @@ describe('SeerExplorerContent', () => {
       expect(
         screen.queryByTestId('seer-explorer-out-of-credits')
       ).not.toBeInTheDocument();
+    });
+
+    describe('after running out', () => {
+      // The test `rerender` mounts a new QueryClient, which would drop the credit
+      // check these tests watch, so they keep their own.
+      let queryClient: QueryClient;
+      beforeEach(() => {
+        queryClient = makeTestQueryClient();
+      });
+      function tree() {
+        return (
+          <QueryClientProvider client={queryClient}>{contentTree()}</QueryClientProvider>
+        );
+      }
+
+      it('rechecks credits when Seer stops a reply for credits', async () => {
+        const useSeerExplorerSpy = jest
+          .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+          .mockReturnValue({...defaultHookReturn, runId: 123});
+        const creditCheck = mockCreditCheck(true);
+        const {rerender} = render(tree(), {organization: creditsOrganization});
+        await waitFor(() => expect(creditCheck).toHaveBeenCalled());
+
+        mockCreditCheck(false);
+        useSeerExplorerSpy.mockReturnValue({
+          ...defaultHookReturn,
+          runId: 123,
+          sessionData: {
+            blocks: [],
+            status: 'error',
+            updated_at: '2024-01-01T00:01:00Z',
+            failure_reason: 'out_of_credits',
+          },
+        });
+        rerender(tree());
+
+        expect(
+          await screen.findByTestId('seer-explorer-out-of-credits')
+        ).toBeInTheDocument();
+      });
+
+      it('rechecks credits when a send is refused for credits', async () => {
+        const useSeerExplorerSpy = jest
+          .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+          .mockReturnValue(defaultHookReturn);
+        const creditCheck = mockCreditCheck(true);
+        const {rerender} = render(tree(), {organization: creditsOrganization});
+        await waitFor(() => expect(creditCheck).toHaveBeenCalled());
+
+        mockCreditCheck(false);
+        useSeerExplorerSpy.mockReturnValue({
+          ...defaultHookReturn,
+          requestError: {query: 'Why is this slow?', isOutOfCredits: true},
+        });
+        rerender(tree());
+
+        expect(
+          await screen.findByTestId('seer-explorer-out-of-credits')
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByText(
+            'There was an error sending your message, wait and try again.'
+          )
+        ).not.toBeInTheDocument();
+      });
+
+      it('rechecks credits for each send refused for credits', async () => {
+        const useSeerExplorerSpy = jest
+          .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+          .mockReturnValue(defaultHookReturn);
+        // The check keeps saying there are credits, so sending stays possible.
+        const creditCheck = mockCreditCheck(true);
+        const {rerender} = render(tree(), {organization: creditsOrganization});
+        await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(1));
+
+        useSeerExplorerSpy.mockReturnValue({
+          ...defaultHookReturn,
+          requestError: {query: 'Why is this slow?', isOutOfCredits: true},
+        });
+        rerender(tree());
+        await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(2));
+
+        useSeerExplorerSpy.mockReturnValue({
+          ...defaultHookReturn,
+          requestError: {query: 'Why is this slow?', isOutOfCredits: true},
+        });
+        rerender(tree());
+        await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(3));
+      });
     });
 
     it('does not check credits without seer-credit-checks', async () => {

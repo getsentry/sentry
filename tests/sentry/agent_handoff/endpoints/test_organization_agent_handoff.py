@@ -5,9 +5,8 @@ from django.conf import settings
 from django.test import override_settings
 from rest_framework.test import APIClient
 
-from sentry.agent_handoff.codes import HandoffFlow, consume_handoff
+from sentry.agent_handoff.codes import HandoffFlow, OnboardingHandoffContext, consume_handoff
 from sentry.agent_handoff.endpoints.organization_agent_handoff import HANDOFF_SCOPES
-from sentry.agent_handoff.flows import HandoffMode
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apisetupcode import ApiSetupCode
@@ -73,12 +72,65 @@ class OrganizationAgentHandoffTest(APITestCase):
         assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
 
     def test_select_onboarding_flow(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, flow="onboarding", status_code=201
+        with patch(
+            "sentry.agent_handoff.flows.onboarding.organization_service.has_active_onboarding_run",
+            return_value=True,
+        ) as validate:
+            response = self.get_success_response(
+                self.organization.slug,
+                flow="onboarding",
+                context={"runId": "a" * 32},
+                status_code=201,
+            )
+        validate.assert_called_once_with(
+            organization_id=self.organization.id, user_id=self.user.id, run_id="a" * 32
         )
         handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="127.0.0.1")
         assert handoff is not None
         assert handoff.flow is HandoffFlow.ONBOARDING
+        assert handoff.context == OnboardingHandoffContext(run_id="a" * 32)
+
+    def test_onboarding_requires_run_context(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, flow="onboarding", status_code=400
+        )
+        assert "context" in response.data
+
+    def test_guided_next_steps_rejects_run_context(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            flow="guided_next_steps",
+            context={"runId": "a" * 32},
+            status_code=400,
+        )
+        assert "context" in response.data
+
+    def test_onboarding_rejects_unavailable_run(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.onboarding.organization_service.has_active_onboarding_run",
+            return_value=False,
+        ):
+            response = self.get_error_response(
+                self.organization.slug,
+                flow="onboarding",
+                context={"runId": "a" * 32},
+                status_code=400,
+            )
+        assert response.data == {"context": {"runId": ["Onboarding run is unavailable."]}}
+
+    def test_rejects_invalid_run_identifier(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, flow="onboarding", context={"runId": "invalid"}, status_code=400
+        )
+        assert response.data == {
+            "context": {"runId": ["This value does not match the required pattern."]}
+        }
+
+    def test_onboarding_requires_run_identifier(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, flow="onboarding", context={}, status_code=400
+        )
+        assert response.data == {"context": {"runId": ["This field is required."]}}
 
     def test_unknown_flow(self) -> None:
         response = self.get_error_response(
@@ -230,19 +282,14 @@ class OrganizationAgentHandoffPreviewTest(APITestCase):
 
     def test_selected_flow(self) -> None:
         with patch(
-            "sentry.agent_handoff.endpoints.organization_agent_handoff_preview.get_flow_instructions",
+            "sentry.agent_handoff.flows.onboarding.OnboardingFlow.preview",
             return_value="Preview the onboarding flow.",
         ) as preview:
             response = self.get_success_response(
                 self.organization.slug, qs_params={"flow": "onboarding"}
             )
 
-        preview.assert_called_once_with(
-            HandoffFlow.ONBOARDING,
-            mode=HandoffMode.PREVIEW,
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-        )
+        preview.assert_called_once_with()
         assert response.data["markdown"].rstrip().endswith("Preview the onboarding flow.")
 
     def test_unknown_flow(self) -> None:

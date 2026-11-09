@@ -6,11 +6,9 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from time import time
-from typing import Any, TypeVar
+from typing import Any
 
 from django.utils.encoding import force_bytes, force_str
-from redis.client import StrictRedis
-from sentry_redis_tools.clients import RedisCluster
 
 from sentry.buffer.base import Buffer, BufferField
 from sentry.db import models
@@ -21,13 +19,11 @@ from sentry.utils.imports import import_string
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_redis_cluster,
-    is_instance_standalone_redis,
     validate_dynamic_cluster,
 )
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T", str, bytes)
 # Debounce our JSON validation a bit in order to not cause too much additional
 # load everywhere
 _last_validation_log: float | None = None
@@ -252,10 +248,10 @@ class RedisBuffer(Buffer):
     def _make_lock_key(self, key: str) -> str:
         return f"l:{key}"
 
-    def _lock_key(self, client: RedisCluster[T] | StrictRedis[T], key: str, ex: int) -> None | str:
+    def _lock_key(self, key: str, ex: int) -> None | str:
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to scheduled tasks + periodic task
-        if not client.set(lock_key, "1", nx=True, ex=ex):
+        if not self.cluster.set(lock_key, "1", nx=True, ex=ex):
             return None
         return lock_key
 
@@ -347,7 +343,7 @@ class RedisBuffer(Buffer):
         Fetches buffered values for a model/filter. Passed columns must be integer columns.
         """
         key = make_key(model, filters)
-        pipe = self.get_redis_connection(key, transaction=False)
+        pipe = self.get_redis_connection(transaction=False)
 
         for col in columns:
             pipe.hget(key, f"i+{col}")
@@ -357,7 +353,7 @@ class RedisBuffer(Buffer):
             col: (int(results[i]) if results[i] is not None else 0) for i, col in enumerate(columns)
         }
 
-    def get_redis_connection(self, key: str, transaction: bool = True) -> Pipeline:
+    def get_redis_connection(self, transaction: bool = True) -> Pipeline:
         return self.cluster.pipeline(transaction=transaction)
 
     def incr(
@@ -378,7 +374,7 @@ class RedisBuffer(Buffer):
         - Add hashmap key to pending flushes
         """
         key = make_key(model, filters)
-        pipe = self.get_redis_connection(key, transaction=(not self.is_redis_cluster))
+        pipe = self.get_redis_connection(transaction=(not self.is_redis_cluster))
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         _validate_json_roundtrip(filters, model)
 
@@ -416,8 +412,7 @@ class RedisBuffer(Buffer):
         )
 
     def process_pending(self) -> None:
-        client = self.cluster
-        lock_key = self._lock_key(client, self.pending_key, ex=60)
+        lock_key = self._lock_key(self.pending_key, ex=60)
         if not lock_key:
             return
 
@@ -426,41 +421,21 @@ class RedisBuffer(Buffer):
         )
 
         try:
-            keycount = 0
-            if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-                keys: list[str] = self.cluster.zrange(self.pending_key, 0, -1)
-                keycount += len(keys)
+            keys = [force_str(key) for key in self.cluster.zrange(self.pending_key, 0, -1)]
+            keycount = len(keys)
 
-                for key in keys:
-                    model_key = self._extract_model_from_key(key=key)
-                    pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
-                    pending_buffer.append(item=key)
-                    if pending_buffer.full():
-                        process_incr.apply_async(
-                            kwargs={"batch_keys": pending_buffer.flush()},
-                            headers={"sentry-propagate-traces": False},
-                        )
+            for key in keys:
+                model_key = self._extract_model_from_key(key=key)
+                pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
+                pending_buffer.append(item=key)
+                if pending_buffer.full():
+                    process_incr.apply_async(
+                        kwargs={"batch_keys": pending_buffer.flush()},
+                        headers={"sentry-propagate-traces": False},
+                    )
 
-                if keys:
-                    self.cluster.zrem(self.pending_key, *keys)
-
-            elif is_instance_standalone_redis(self.cluster, self.is_redis_cluster):
-                keysb = self.cluster.zrange(self.pending_key, 0, -1)
-                keycount += len(keysb)
-                for keyb in keysb:
-                    key = keyb.decode("utf-8")
-                    model_key = self._extract_model_from_key(key=key)
-                    pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
-                    pending_buffer.append(item=key)
-                    if pending_buffer.full():
-                        process_incr.apply_async(
-                            kwargs={"batch_keys": pending_buffer.flush()},
-                            headers={"sentry-propagate-traces": False},
-                        )
-                if keysb:
-                    self.cluster.zrem(self.pending_key, *keysb)
-            else:
-                raise AssertionError("unreachable")
+            if keys:
+                self.cluster.zrem(self.pending_key, *keys)
 
             # process any non-empty pending buffers
             for pending_buffer_value in pending_buffers_router.pending_buffers():
@@ -475,7 +450,7 @@ class RedisBuffer(Buffer):
 
             metrics.distribution("buffer.pending-size", keycount)
         finally:
-            client.delete(lock_key)
+            self.cluster.delete(lock_key)
 
     def process(  # type: ignore[override]
         self, key: str | None = None, batch_keys: list[str] | None = None, **kwargs: Any
@@ -502,15 +477,14 @@ class RedisBuffer(Buffer):
         return super().process(model, columns, filters, extra, signal_only)
 
     def _process_single_incr(self, key: str) -> None:
-        client = self.cluster
-        lock_key = self._lock_key(client, key, ex=10)
+        lock_key = self._lock_key(key, ex=10)
         if not lock_key:
             metrics.incr("buffer.revoked", tags={"reason": "locked"}, skip_internal=False)
             logger.debug("buffer.revoked.locked", extra={"redis_key": key})
             return
 
         try:
-            pipe = self.get_redis_connection(key, transaction=False)
+            pipe = self.get_redis_connection(transaction=False)
             pipe.hgetall(key)
             pipe.zrem(self.pending_key, key)
             pipe.delete(key)
@@ -551,4 +525,4 @@ class RedisBuffer(Buffer):
 
             self._base_process(model, incr_values, filters, extra_values, signal_only)
         finally:
-            client.delete(lock_key)
+            self.cluster.delete(lock_key)

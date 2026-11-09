@@ -205,7 +205,9 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
         )
     },
     DashboardWidgetTypes.PREPROD_APP_SIZE: {
-        "supported_display_types": frozenset({DashboardWidgetDisplayTypes.LINE_CHART})
+        "supported_display_types": frozenset(
+            {DashboardWidgetDisplayTypes.LINE_CHART, DashboardWidgetDisplayTypes.BAR_CHART}
+        )
     },
 }
 
