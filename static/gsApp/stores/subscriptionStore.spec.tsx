@@ -54,6 +54,69 @@ describe('SubscriptionStore', () => {
     ).toBeUndefined();
   });
 
+  it('allows a new load after a failed load', async () => {
+    const failedRequest = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      statusCode: 500,
+      body: {},
+    });
+
+    await SubscriptionStore.loadData(organization.slug);
+    expect(failedRequest).toHaveBeenCalledTimes(1);
+    expect(SubscriptionStore.errors[organization.slug]).toBeDefined();
+    expect(SubscriptionStore.getState()[organization.slug]).toBeUndefined();
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      body: subscription,
+    });
+
+    await SubscriptionStore.loadData(organization.slug);
+    expect(SubscriptionStore.errors[organization.slug]).toBeUndefined();
+    expect(SubscriptionStore.getState()[organization.slug]).toEqual({
+      ...subscription,
+      setAt: expect.any(Number),
+    });
+  });
+
+  it('runs callbacks from a failed load after the next successful load', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      statusCode: 500,
+      body: {},
+    });
+    const failedCallback = jest.fn();
+
+    await SubscriptionStore.get(organization.slug, failedCallback);
+    expect(failedCallback).not.toHaveBeenCalled();
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      body: subscription,
+    });
+    const retryCallback = jest.fn();
+
+    await SubscriptionStore.get(organization.slug, retryCallback);
+    const loaded = SubscriptionStore.getState()[organization.slug];
+    expect(failedCallback).toHaveBeenCalledTimes(1);
+    expect(failedCallback).toHaveBeenCalledWith(loaded);
+    expect(retryCallback).toHaveBeenCalledWith(loaded);
+  });
+
+  it('shares one request between concurrent loads', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      statusCode: 500,
+      body: {},
+    });
+
+    await Promise.all([
+      SubscriptionStore.loadData(organization.slug),
+      SubscriptionStore.loadData(organization.slug),
+    ]);
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
   it('should return stable reference from getState', () => {
     SubscriptionStore.set(organization.slug, subscription);
     const state = SubscriptionStore.getState();
