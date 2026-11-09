@@ -99,10 +99,16 @@ SeerWorkflowExecutionResponse = (
 )
 
 
+class SeerWorkflowRunTriggerResponse(TypedDict):
+    type: Literal["monitor"]
+    id: str
+
+
 class SeerWorkflowRunResponseBase(TypedDict):
     id: str
     configId: str
     strategy: str
+    trigger: SeerWorkflowRunTriggerResponse | None
     dateAdded: datetime
     dateUpdated: datetime
     dateCompleted: datetime | None
@@ -185,7 +191,9 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
           and each failed execution carries its own ``error``.
 
         Missing error details use code ``unknown``. Historical rows without lifecycle
-        tracking retain a null status. ``seerRunId`` is the linked Seer UUID or null.
+        tracking retain a null status. ``trigger`` identifies the monitor that started
+        the run as ``{"type": "monitor", "id": ...}``, or is null for runs not started
+        by a monitor. The monitor may have since been deleted. ``seerRunId`` is the linked Seer UUID or null.
         Each execution's ``outputs`` lists linked investigations by type, ID, and title
         when the viewer has investigation access, including archived investigations.
         The same investigation can be linked to multiple executions.
@@ -269,6 +277,7 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
         "id": str(run.id),
         "configId": str(run.workflow_config_id),
         "strategy": getattr(run, "strategy"),
+        "trigger": serialize_workflow_run_trigger(run.extras),
         "dateAdded": run.date_added,
         "dateUpdated": run.date_updated,
         "dateCompleted": run.date_completed,
@@ -286,6 +295,17 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
             "error": serialize_workflow_error(error) if error is not None else None,
         }
     return {**result, "status": status}
+
+
+def serialize_workflow_run_trigger(extras: object) -> SeerWorkflowRunTriggerResponse | None:
+    # Runs created without a snapshot (e.g. older rows or runs started from Seer) have no
+    # saved inputs, so read each level defensively.
+    snapshot = extras.get("snapshot") if isinstance(extras, dict) else None
+    inputs = snapshot.get("inputs") if isinstance(snapshot, dict) else None
+    detector_id = inputs.get("detector_id") if isinstance(inputs, dict) else None
+    if isinstance(detector_id, int) and not isinstance(detector_id, bool):
+        return {"type": "monitor", "id": str(detector_id)}
+    return None
 
 
 def serialize_workflow_execution(

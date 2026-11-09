@@ -87,6 +87,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                     "id": str(run.id),
                     "configId": str(self.config.id),
                     "strategy": "breached_metric_investigation",
+                    "trigger": None,
                     "status": "running",
                     "dateAdded": run.date_added,
                     "dateUpdated": run.date_updated,
@@ -479,8 +480,37 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert response.data["runs"][0]["executions"][0]["outputs"] == []
         assert investigation.title not in response.content.decode()
 
+    def test_returns_the_triggering_monitor(self) -> None:
+        detector = self.create_detector(project=self.project)
+        run = self.create_run(
+            inputs={"group_id": 1, "occurrence_id": "abc", "detector_id": detector.id}
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        (serialized_run,) = response.data["runs"]
+        assert serialized_run["id"] == str(run.id)
+        assert serialized_run["trigger"] == {"type": "monitor", "id": str(detector.id)}
+
+    def test_trigger_is_null_without_a_saved_monitor(self) -> None:
+        no_inputs = self.create_run()
+        no_snapshot = self.create_run(extras={})
+        malformed = self.create_run(inputs={"detector_id": "123"})
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert {run["id"]: run["trigger"] for run in response.data["runs"]} == {
+            str(no_inputs.id): None,
+            str(no_snapshot.id): None,
+            str(malformed.id): None,
+        }
+
     def create_run(
-        self, *, project_ids: Sequence[int] | None = None, **kwargs: object
+        self,
+        *,
+        project_ids: Sequence[int] | None = None,
+        inputs: dict[str, object] | None = None,
+        **kwargs: object,
     ) -> SeerWorkflowRun:
         kwargs.setdefault("status", SeerWorkflowRunStatus.QUEUED)
         kwargs.setdefault(
@@ -494,7 +524,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                     if project_ids is not None
                     else [self.project.id],
                     "output_policy": self.config.output_policy,
-                    "inputs": {},
+                    "inputs": inputs or {},
                 },
                 "error": None,
             },
