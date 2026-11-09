@@ -34,14 +34,16 @@ jest.mock('echarts-for-react/lib/core', () => {
       (event: Record<string, unknown>, instance: Record<string, unknown>) => void
     >;
     option: {
-      series: Array<{data?: Array<[number, number]>}>;
+      series: Array<{data?: Array<{value: [number, number]}>}>;
       brush?: unknown;
     };
   }) {
     return (
       <div>
         <output aria-label="Chart values">
-          {JSON.stringify(option.series.map(series => series.data))}
+          {JSON.stringify(
+            option.series.map(series => series.data?.map(point => point.value))
+          )}
         </output>
         <button
           onClick={() => {
