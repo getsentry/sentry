@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
+from sentry.auth.principal import acting_user_id
 from sentry.auth.services.auth.impl import promote_request_api_user
 from sentry.organizations.services.organization.service import organization_service
 from sentry.security.utils import capture_security_app_activity
@@ -117,7 +118,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 "sentry-app-authorizations.error-context",
                 exc_info=e,
                 extra={
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                     "sentry_app_installation_id": installation.id,
                     "organization_id": installation.organization_id,
                     "sentry_app_id": installation.sentry_app.id,

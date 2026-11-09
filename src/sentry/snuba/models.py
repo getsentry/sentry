@@ -139,6 +139,9 @@ class QuerySubscription(Model):
         UPDATING = 2
         DELETING = 3
         DISABLED = 4
+        # The query can't be built, so there is no Snuba subscription. Unlike DISABLED,
+        # this wasn't requested; editing or re-enabling the alert retries creation.
+        BROKEN = 5
 
     # NOTE: project fk SHOULD match AlertRule's fk
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
@@ -222,6 +225,7 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
                 QuerySubscription.Status.ACTIVE.value,
                 QuerySubscription.Status.CREATING.value,
                 QuerySubscription.Status.UPDATING.value,
+                QuerySubscription.Status.BROKEN.value,
             ),
         ).count()
 

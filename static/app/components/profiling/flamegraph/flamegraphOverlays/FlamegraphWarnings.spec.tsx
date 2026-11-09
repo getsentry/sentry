@@ -1,8 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {FlamegraphWarnings} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/FlamegraphWarnings';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
+
+import {FlamegraphWarnings} from './FlamegraphWarnings';
 
 const noDataProfile: Profiling.SampledProfile = {
   name: 'profile',

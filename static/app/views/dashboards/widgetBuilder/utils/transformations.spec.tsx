@@ -6,12 +6,13 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {explodeFieldString} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {convertBuilderStateToStateQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToStateQueryParams';
-import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+
+import {convertBuilderStateToStateQueryParams} from './convertBuilderStateToStateQueryParams';
+import {convertBuilderStateToWidget} from './convertBuilderStateToWidget';
+import {convertWidgetToQueryParams} from './convertWidgetToBuilderStateParams';
 
 describe('widget transformation persistence', () => {
-  it('round trips duplicate axes and distinct pipelines for each filter through the URL', () => {
+  it('round trips duplicate axes and distinct transformations for each filter through the URL', () => {
     const widget = WidgetFixture({
       widgetType: WidgetType.SPANS,
       displayType: DisplayType.LINE,
@@ -50,7 +51,7 @@ describe('widget transformation persistence', () => {
     );
   });
 
-  it('omits the transformations param for widgets without pipelines', () => {
+  it('omits the transformations param for widgets without transformations', () => {
     const widget = WidgetFixture({
       widgetType: WidgetType.SPANS,
       displayType: DisplayType.LINE,
@@ -67,7 +68,7 @@ describe('widget transformation persistence', () => {
     expect(convertWidgetToQueryParams(widget)).not.toHaveProperty('transformations');
   });
 
-  it('saves pipelines for equations', () => {
+  it('saves transformations for equations', () => {
     const widget = convertBuilderStateToWidget({
       dataset: WidgetType.SPANS,
       displayType: DisplayType.LINE,

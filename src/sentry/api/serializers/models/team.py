@@ -4,13 +4,15 @@ import dataclasses
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Annotated, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import NumericId, Slug, hex_id, numeric_id, slug
 from sentry.app import env
 from sentry.auth.access import (
     Access,
@@ -125,24 +127,50 @@ def get_access_requests(
 
 
 class _TeamSerializerResponseOptional(TypedDict, total=False):
-    externalTeams: list[ExternalActorResponse]
-    organization: OrganizationSummarySerializerResponse
-    projects: list[ProjectSerializerResponse]
+    externalTeams: Annotated[
+        list[ExternalActorResponse],
+        ApiDescription(
+            "Teams in external providers, such as Slack or GitHub, that are linked to this team"
+        ),
+    ]
+    organization: Annotated[
+        OrganizationSummarySerializerResponse, ApiDescription("Organization the team belongs to")
+    ]
+    projects: Annotated[
+        list[ProjectSerializerResponse], ApiDescription("Projects the team has access to")
+    ]
 
 
 class BaseTeamSerializerResponse(TypedDict):
-    id: str
-    slug: str
-    name: str
-    dateCreated: datetime | None
-    isMember: bool
-    teamRole: str | None
-    flags: dict[str, Any]
-    access: list[str]  # scopes granted by teamRole
-    hasAccess: bool
-    isPending: bool
-    memberCount: int
-    avatar: SerializedAvatarFields
+    id: Annotated[NumericId, ApiDescription("Team ID")]
+    slug: Annotated[Slug, ApiDescription("Team slug, unique within the organization")]
+    name: Annotated[str, ApiDescription("Display name of the team")]
+    dateCreated: Annotated[datetime | None, ApiDescription("When the team was created (ISO 8601)")]
+    isMember: Annotated[bool, ApiDescription("Whether the requesting user is a member of the team")]
+    teamRole: Annotated[str | None, ApiDescription("The requesting user's role in the team")]
+    flags: Annotated[
+        dict[str, bool],
+        ApiDescription(
+            "Team flags. idp:provisioned is true when the team is managed by an identity provider through SCIM"
+        ),
+    ]
+    access: Annotated[
+        list[str],
+        ApiDescription(
+            "Scopes the requesting user has on the team through their team role. Empty if the user has no access"
+        ),
+    ]
+    hasAccess: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the requesting user can access the team, as a member, through open membership or through an organization role with access to all teams"
+        ),
+    ]
+    isPending: Annotated[
+        bool, ApiDescription("Whether the requesting user has a pending request to join the team")
+    ]
+    memberCount: Annotated[int, ApiDescription("Number of members in the team")]
+    avatar: Annotated[SerializedAvatarFields, ApiDescription("Team avatar")]
 
 
 # We require a third Team Response TypedDict that inherits like so:
@@ -172,7 +200,7 @@ class BaseTeamSerializer(Serializer):
         collapse: Sequence[str] | None = None,
         expand: Sequence[str] | None = None,
         access: Access | None = None,
-    ):
+    ) -> None:
         self.collapse = collapse
         self.expand = expand
         self.access = access
@@ -299,15 +327,15 @@ class BaseTeamSerializer(Serializer):
             is_upload = avatar_obj.get_avatar_type_display() == "upload"
             avatar: SerializedAvatarFields = {
                 "avatarType": avatar_obj.get_avatar_type_display(),
-                "avatarUuid": avatar_obj.ident if is_upload else None,
+                "avatarUuid": hex_id(avatar_obj.ident) if is_upload else None,
                 "avatarUrl": avatar_obj.absolute_url() if is_upload else None,
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
 
         return {
-            "id": str(obj.id),
-            "slug": obj.slug,
+            "id": numeric_id(obj.id),
+            "slug": slug(obj.slug),
             "name": obj.name,
             "dateCreated": obj.date_added,
             "isMember": attrs["is_member"],
@@ -355,19 +383,22 @@ class TeamWithProjectsSerializer(TeamSerializer):
 
 
 class SCIMTeamMemberListItem(TypedDict):
-    value: str
-    display: str
+    value: Annotated[str, ApiDescription("Organization member ID")]
+    display: Annotated[str, ApiDescription("Email address of the member")]
 
 
 class OrganizationTeamSCIMSerializerRequired(TypedDict):
-    schemas: list[str]
-    id: str
-    displayName: str
-    meta: SCIMMeta
+    schemas: Annotated[list[str], ApiDescription("SCIM schema URIs of the resource")]
+    id: Annotated[str, ApiDescription("Team ID")]
+    displayName: Annotated[str, ApiDescription("Display name of the team")]
+    meta: Annotated[SCIMMeta, ApiDescription("SCIM resource metadata")]
 
 
 class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequired, total=False):
-    members: list[SCIMTeamMemberListItem]
+    members: Annotated[
+        list[SCIMTeamMemberListItem],
+        ApiDescription("Members of the team. Included only when members are requested"),
+    ]
 
 
 @dataclasses.dataclass

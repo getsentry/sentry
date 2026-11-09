@@ -25,7 +25,7 @@ ONDEMAND_FEATURES = [
 
 
 class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTestCase):
-    def url(self):
+    def url(self) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-widget-details",
             kwargs={"organization_id_or_slug": self.organization.slug},
@@ -844,7 +844,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=self.widget_1_data_1,
             spec_version=OnDemandMetricSpecVersioning.get_query_spec_version(
-                self.organization
+                self.organization.id
             ).version,
             spec_hashes=["abcd"],
             extraction_state="enabled:manual",
@@ -943,7 +943,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=self.widget_1_data_1,
             spec_version=OnDemandMetricSpecVersioning.get_query_spec_version(
-                self.organization
+                self.organization.id
             ).version,
             spec_hashes=["abcd"],
             extraction_state="enabled:manual",
@@ -1093,7 +1093,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
         option_get = options.get
 
-        def mock_options(option_name):
+        def mock_options(option_name: str) -> object:
             if option_name == "on_demand.max_widget_cardinality.on_query_count":
                 return 0
             else:

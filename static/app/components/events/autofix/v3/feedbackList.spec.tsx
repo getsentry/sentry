@@ -11,10 +11,8 @@ import {
   getOrderedAutofixSections,
   type ExplorerAutofixState,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {
-  FeedbackList,
-  usePrIterationFeedback,
-} from 'sentry/components/events/autofix/v3/feedbackList';
+
+import {FeedbackList, usePrIterationFeedback} from './feedbackList';
 
 function IterationFeedback({state}: {state: ExplorerAutofixState}) {
   const section = getOrderedAutofixSections(state).find(

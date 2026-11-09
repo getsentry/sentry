@@ -1,11 +1,9 @@
 import {useCallback, useEffect, useState} from 'react';
 
-import {
-  getDynamicFields,
-  type ExternalIssueAction,
-} from 'sentry/components/externalIssues/utils';
 import type {FieldValue} from 'sentry/components/forms/types';
 import type {IntegrationIssueConfig} from 'sentry/types/integrations';
+
+import {getDynamicFields, type ExternalIssueAction} from './utils';
 
 interface UseDynamicFieldsProps {
   action: ExternalIssueAction;

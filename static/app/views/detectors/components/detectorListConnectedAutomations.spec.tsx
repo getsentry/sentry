@@ -3,8 +3,8 @@ import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
-import {IssueStreamDetectorContextProvider} from 'sentry/views/detectors/components/detectorListTable/issueStreamDetectorContext';
+import {IssueStreamDetectorContextProvider} from './detectorListTable/issueStreamDetectorContext';
+import {DetectorListConnectedAutomations} from './detectorListConnectedAutomations';
 
 describe('DetectorListConnectedAutomations', () => {
   beforeEach(() => {

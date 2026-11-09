@@ -23,8 +23,9 @@ DURATIONS_FILE = Path(__file__).parent / "backend-test-durations.json"
 # runners (ubuntu-26.04-arm, XDIST_WORKERS=4 in backend.yml). Setup, pytest
 # startup and collection take about 2.5 of those minutes, which leaves each
 # xdist worker about this many seconds of tests, as timed in the durations
-# file (Arm runs them about 25% faster than that).
-WORKER_SECONDS_PER_SHARD = 40
+# file. Those timings come from 4-worker x64 master runs, and Arm runs the
+# same tests about 40% faster.
+WORKER_SECONDS_PER_SHARD = 50
 XDIST_WORKERS = 4
 TESTS_PER_SHARD = 300
 MIN_SHARDS = 1

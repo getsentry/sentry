@@ -3,19 +3,17 @@ from __future__ import annotations
 import logging
 from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
+from typing import Literal
 
 from django.db import router, transaction
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 from urllib3.exceptions import HTTPError
 
 from sentry import features
-from sentry.investigations.agent import (
-    cancel_investigation_executions_after_failure,
-    start_execution_run,
-)
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
@@ -39,6 +37,7 @@ from sentry.investigations.services.action_kinds.connect_telemetry import (
     telemetry_available,
 )
 from sentry.investigations.services.action_requests import complete_action_requests
+from sentry.investigations.services.actor_access import resolve_investigation_service_account
 from sentry.investigations.services.orchestration import (
     FOLLOW_UP_COMMAND_TYPES,
     INTERNAL_COMMAND_TYPES,
@@ -52,18 +51,13 @@ from sentry.investigations.services.orchestration_events import (
     schedule_investigation_updates,
     synchronize_orchestration_projection,
 )
-from sentry.investigations.telemetry import record_execution_failed
 from sentry.models.organization import Organization
-from sentry.notebooks.models import Notebook, NotebookBlockExecution
-from sentry.notebooks.services import (
-    mark_block_execution_dispatch_failed,
-    mark_block_execution_dispatch_started,
-)
+from sentry.notebooks.models import Notebook
+from sentry.notebooks.services.notebooks import InvestigationValidationError
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.users.services.user.service import user_service
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
@@ -71,6 +65,10 @@ logger = logging.getLogger(__name__)
 ORCHESTRATION_DISPATCH_RETRIES = 3
 CREATE_DISPATCH_ERROR_MESSAGE = "Unable to start this investigation. Try again."
 COMMAND_DISPATCH_ERROR_MESSAGE = "Unable to deliver this investigation command. Try again."
+ACTOR_ACCESS_DENIED_MESSAGE = (
+    "The investigation's user or service account no longer has access. "
+    "Check permissions and try again."
+)
 COMMAND_VERSION_CONFLICT_MESSAGE = (
     "The investigation changed before this update could be applied. "
     "Progress was refreshed; try again."
@@ -99,17 +97,25 @@ def _lock_orchestration_run(run_id: int) -> InvestigationOrchestrationRun | None
     )
 
 
-def _mark_create_dispatch_failed(run_id: int) -> None:
+def _mark_create_dispatch_failed(
+    run_id: int, *, reason: Literal["actor_access_denied"] | None = None
+) -> None:
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
         run = _lock_orchestration_run(run_id)
-        if run is None or run.seer_run_id is not None:
+        if run is None or run.seer_run_id:
             return
         detail = {
             "code": "seer_dispatch_failed",
-            "message": CREATE_DISPATCH_ERROR_MESSAGE,
+            "message": (
+                ACTOR_ACCESS_DENIED_MESSAGE
+                if reason == "actor_access_denied"
+                else CREATE_DISPATCH_ERROR_MESSAGE
+            ),
             "retryable": True,
         }
+        if reason is not None:
+            detail["dispatchReason"] = reason
         run.phase = InvestigationOrchestrationPhase.FAILED
         run.status = InvestigationOrchestrationStatus.FAILED
         run.error = detail
@@ -148,7 +154,9 @@ def _fail_commands_after(
     return blocked_user_command
 
 
-def _mark_command_dispatch_failed(command_id: int) -> None:
+def _mark_command_dispatch_failed(
+    command_id: int, *, reason: Literal["actor_access_denied"] | None = None
+) -> None:
     database = router.db_for_write(InvestigationOrchestrationCommand)
     with transaction.atomic(using=database):
         command_snapshot = InvestigationOrchestrationCommand.objects.filter(id=command_id).first()
@@ -173,11 +181,17 @@ def _mark_command_dispatch_failed(command_id: int) -> None:
             return
         detail = {
             "code": "seer_command_dispatch_failed",
-            "message": COMMAND_DISPATCH_ERROR_MESSAGE,
+            "message": (
+                ACTOR_ACCESS_DENIED_MESSAGE
+                if reason == "actor_access_denied"
+                else COMMAND_DISPATCH_ERROR_MESSAGE
+            ),
             "requestId": str(command.request_id),
             "commandType": command.type,
             "retryable": True,
         }
+        if reason is not None:
+            detail["dispatchReason"] = reason
         command.status = InvestigationOrchestrationCommandStatus.FAILED
         command.error = detail
         command.save(update_fields=["status", "error", "date_updated"])
@@ -291,16 +305,32 @@ def _mark_internal_command_rejected(command_id: int, code: CommandRejectionCode 
         command.save(update_fields=["status", "error", "date_updated"])
 
 
-def _command_viewer_scope(
-    command: InvestigationOrchestrationCommand, organization_id: int
+def _dispatch_viewer_scope(
+    investigation: Notebook, *, command: InvestigationOrchestrationCommand | None = None
 ) -> AbstractContextManager[None]:
-    if command.actor_id is not None:
+    try:
+        actor = command.requested_by_actor if command is not None else investigation.creator_actor
+    except ValueError as error:
+        raise PermissionDenied from error
+    # Human dispatch and missing creators retain the legacy ambient-context merging.
+    # Actorless commands are already interpreted as system by requested_by_actor.
+    if actor is None or actor.type == ActorType.USER:
         return nullcontext()
-    # Without an acting user, send it as Sentry. The task's inherited context can be missing,
-    # or belong to someone else, and Seer rejects an unknown actor.
-    return viewer_context_scope(
-        ViewerContext(organization_id=organization_id, actor=Actor(type=ActorType.SYSTEM))
-    )
+    if actor.type == ActorType.SERVICE_ACCOUNT:
+        try:
+            context = resolve_investigation_service_account(
+                organization=investigation.organization,
+                account_id=actor.id,
+                project_ids=investigation.projects.values_list("id", flat=True),
+            )
+        except InvestigationValidationError as error:
+            raise PermissionDenied from error
+    else:
+        context = ViewerContext(
+            organization_id=investigation.organization_id,
+            actor=Actor(type=actor.type, actor_id=actor.id),
+        )
+    return viewer_context_scope(context)
 
 
 def _reconcile_command_version_conflict(
@@ -379,14 +409,15 @@ def dispatch_investigation_orchestration_create(orchestration_run_id: int) -> No
     )
     if run is None:
         return
-    if run.seer_run_id is not None:
+    if run.seer_run_id:
         dispatch_investigation_orchestration_commands.delay(run.id)
         return
     viewer_context = SeerViewerContext(organization_id=run.investigation.organization_id)
     if run.investigation.created_by_id is not None:
         viewer_context["user_id"] = run.investigation.created_by_id
     try:
-        response = create_investigation_orchestration_run(run, viewer_context=viewer_context)
+        with _dispatch_viewer_scope(run.investigation):
+            response = create_investigation_orchestration_run(run, viewer_context=viewer_context)
         seer_run_id = response["runId"]
         projection = response["projection"]
         synchronize_orchestration_projection(
@@ -394,6 +425,9 @@ def dispatch_investigation_orchestration_create(orchestration_run_id: int) -> No
             seer_run_id=seer_run_id,
             projection=projection,
         )
+    except PermissionDenied:
+        _mark_create_dispatch_failed(run.id, reason="actor_access_denied")
+        return
     except (SeerApiError, HTTPError):
         if _is_last_dispatch_attempt():
             logger.exception("investigations.orchestration.create_dispatch_failed")
@@ -459,7 +493,7 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
         if command.actor_id is not None:
             viewer_context["user_id"] = command.actor_id
         try:
-            with _command_viewer_scope(command, run.investigation.organization_id):
+            with _dispatch_viewer_scope(run.investigation, command=command):
                 response = dispatch_investigation_orchestration_command(
                     command,
                     viewer_context=viewer_context,
@@ -473,6 +507,9 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
                 seer_run_id=response_run_id,
                 projection=projection,
             )
+        except PermissionDenied:
+            _mark_command_dispatch_failed(command.id, reason="actor_access_denied")
+            return
         except SeerApiError as error:
             if error.status == 409 and command.type in INTERNAL_COMMAND_TYPES:
                 code = error.code if isinstance(error, SeerCommandRejected) else None
@@ -505,8 +542,10 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
                     },
                 )
                 try:
-                    with _command_viewer_scope(command, run.investigation.organization_id):
+                    with _dispatch_viewer_scope(run.investigation, command=command):
                         _reconcile_command_version_conflict(run, command, viewer_context, reason)
+                except PermissionDenied:
+                    _mark_command_dispatch_failed(command.id, reason="actor_access_denied")
                 except (SeerApiError, HTTPError):
                     if _is_last_dispatch_attempt():
                         logger.exception(
@@ -538,41 +577,6 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
             return
 
         _mark_command_dispatch_acknowledged(run.id, command.id, response["rerun"])
-
-
-@instrumented_task(
-    name="sentry.tasks.seer.investigation.dispatch_investigation_execution",
-    namespace=seer_tasks,
-)
-def dispatch_investigation_execution(execution_id: int) -> None:
-    execution = (
-        NotebookBlockExecution.objects.select_related("block__notebook__organization")
-        .filter(id=execution_id)
-        .first()
-    )
-    if execution is None:
-        return
-    dispatch_claimed_at = mark_block_execution_dispatch_started(execution)
-    if dispatch_claimed_at is None:
-        return
-    user = (
-        user_service.get_user(user_id=execution.triggered_by_id)
-        if execution.triggered_by_id is not None
-        else None
-    )
-    try:
-        start_execution_run(
-            execution,
-            execution.block.notebook.organization,
-            user,
-            dispatch_claimed_at=dispatch_claimed_at,
-        )
-    except Exception:
-        logger.exception("investigations.execution.dispatch_failed")
-        if mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=dispatch_claimed_at):
-            execution.refresh_from_db(fields=["completed_at"])
-            record_execution_failed(execution, reason="dispatch_failed", seer_run_id=None)
-            cancel_investigation_executions_after_failure(execution)
 
 
 class TelemetryNotConnectedYet(Exception):

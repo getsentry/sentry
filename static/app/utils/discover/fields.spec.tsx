@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {ColumnValueType} from 'sentry/utils/discover/fields';
+import type {ColumnValueType} from './fields';
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
@@ -16,7 +16,7 @@ import {
   measurementType,
   parseFunction,
   prettifyParsedFunction,
-} from 'sentry/utils/discover/fields';
+} from './fields';
 
 describe('parseFunction', () => {
   it('returns null on non aggregate fields', () => {

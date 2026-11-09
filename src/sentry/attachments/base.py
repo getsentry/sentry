@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, TypedDict, Unpack, cast
 
 import zstandard
+from django.core.files.uploadedfile import UploadedFile
 from objectstore_client import TimeToLive
 
 from sentry.objectstore import UsecaseId, default_attachment_retention, get_session
@@ -24,23 +25,54 @@ class MissingAttachmentChunks(Exception):
     pass
 
 
+class _AttachmentCacheStorage(Protocol):
+    def set(self, key: str, value: bytes, timeout: int, *, raw: bool = ...) -> None: ...
+
+    def get(self, key: str, *, raw: bool = ...) -> object | None: ...
+
+    def delete(self, key: str) -> None: ...
+
+
+class _AttachmentMetadata(TypedDict, total=False):
+    id: int | None
+    name: str | None
+    content_type: str | None
+    type: str | None
+    chunks: int | None
+    data: object
+    stored_id: str | None
+    rate_limited: bool | None
+    size: int | None
+    retention_days: int | None
+
+
+class _AttachmentUploadOptions(TypedDict, total=False):
+    id: int | None
+    type: str | None
+    chunks: int | None
+    stored_id: str | None
+    rate_limited: bool | None
+    size: int | None
+    retention_days: int | None
+
+
 class CachedAttachment:
     def __init__(
         self,
-        key=None,
-        id=None,
-        name=None,
-        content_type=None,
-        type=None,
-        chunks=None,
-        data=UNINITIALIZED_DATA,
+        key: str | None = None,
+        id: int | None = None,
+        name: str | None = None,
+        content_type: str | None = None,
+        type: str | None = None,
+        chunks: int | None = None,
+        data: object = UNINITIALIZED_DATA,
         stored_id: str | None = None,
-        cache=None,
-        rate_limited=None,
-        size=None,
-        retention_days=None,
-        **kwargs,
-    ):
+        cache: BaseAttachmentCache | None = None,
+        rate_limited: bool | None = None,
+        size: int | None = None,
+        retention_days: int | None = None,
+        **kwargs: object,
+    ) -> None:
         self.key = key
         self.id = id
 
@@ -54,7 +86,7 @@ class CachedAttachment:
         if size is not None:
             self.size = size
         elif data not in (None, UNINITIALIZED_DATA):
-            self.size = len(data)
+            self.size = len(cast(bytes, data))
         else:
             self.size = 0
 
@@ -65,7 +97,9 @@ class CachedAttachment:
         self._has_initial_data = data is not UNINITIALIZED_DATA
 
     @classmethod
-    def from_upload(cls, file, **kwargs):
+    def from_upload(
+        cls, file: UploadedFile, **kwargs: Unpack[_AttachmentUploadOptions]
+    ) -> CachedAttachment:
         return CachedAttachment(
             name=file.name, content_type=file.content_type, data=file.read(), **kwargs
         )
@@ -83,11 +117,11 @@ class CachedAttachment:
             self._data = self._cache.get_data(self)
 
         assert self._data is not UNINITIALIZED_DATA
-        return self._data
+        return cast(bytes, self._data)
 
-    def delete(self):
+    def delete(self) -> None:
         for key in self.chunk_keys:
-            self._cache.inner.delete(key)
+            cast(BaseAttachmentCache, self._cache).inner.delete(key)
 
     @property
     def chunk_keys(self) -> Generator[str]:
@@ -106,25 +140,28 @@ class CachedAttachment:
                 key=self.key, id=self.id, chunk_index=chunk_index
             )
 
-    def meta(self) -> dict:
-        return prune_empty_keys(
-            {
-                "key": self.key,
-                "id": self.id,
-                "name": self.name,
-                "rate_limited": self.rate_limited,
-                "content_type": self.content_type,
-                "type": self.type,
-                "size": self.size or None,  # None for backwards compatibility
-                "chunks": self.chunks,
-                "stored_id": self.stored_id,
-                "retention_days": self.retention_days,
-            }
+    def meta(self) -> _AttachmentMetadata:
+        return cast(
+            _AttachmentMetadata,
+            prune_empty_keys(
+                {
+                    "key": self.key,
+                    "id": self.id,
+                    "name": self.name,
+                    "rate_limited": self.rate_limited,
+                    "content_type": self.content_type,
+                    "type": self.type,
+                    "size": self.size or None,  # None for backwards compatibility
+                    "chunks": self.chunks,
+                    "stored_id": self.stored_id,
+                    "retention_days": self.retention_days,
+                }
+            ),
         )
 
 
 class BaseAttachmentCache:
-    def __init__(self, inner):
+    def __init__(self, inner: _AttachmentCacheStorage) -> None:
         self.inner = inner
 
     def set(
@@ -133,7 +170,7 @@ class BaseAttachmentCache:
         attachments: list[CachedAttachment],
         timeout: int,
         project: Project | None = None,
-    ) -> list[dict]:
+    ) -> list[_AttachmentMetadata]:
         for id, attachment in enumerate(attachments):
             # TODO(markus): We need to get away from sequential IDs, they
             # are risking collision when using Relay.
@@ -149,7 +186,7 @@ class BaseAttachmentCache:
                 # A keyed `put` replaces the object wholesale, so metadata that is not
                 # sent here is lost rather than preserved from the previous write.
                 session.put(
-                    contents=attachment._data,
+                    contents=cast(bytes, attachment._data),
                     key=attachment.stored_id,
                     content_type=attachment.content_type,
                     filename=attachment.name,
@@ -177,12 +214,21 @@ class BaseAttachmentCache:
 
         return meta
 
-    def set_chunk(self, key: str, id: int, chunk_index: int, chunk_data: bytes, timeout: int):
+    def set_chunk(
+        self, key: str, id: int, chunk_index: int, chunk_data: bytes, timeout: int
+    ) -> None:
         key = ATTACHMENT_DATA_CHUNK_KEY.format(key=key, id=id, chunk_index=chunk_index)
         compressed = zstandard.compress(chunk_data)
         self.inner.set(key, compressed, timeout, raw=True)
 
-    def set_unchunked_data(self, key: str, id: int, data: bytes, timeout: int, metrics_tags=None):
+    def set_unchunked_data(
+        self,
+        key: str,
+        id: int,
+        data: bytes,
+        timeout: int,
+        metrics_tags: dict[str, str] | None = None,
+    ) -> None:
         key = ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=key, id=id)
         compressed = zstandard.compress(data)
         metrics.distribution("attachments.blob-size.raw", len(data), tags=metrics_tags, unit="byte")
@@ -192,7 +238,9 @@ class BaseAttachmentCache:
         metrics.incr("attachments.received", tags=metrics_tags, skip_internal=False)
         self.inner.set(key, compressed, timeout, raw=True)
 
-    def get_from_chunks(self, key: str, **attachment) -> CachedAttachment:
+    def get_from_chunks(
+        self, key: str, **attachment: Unpack[_AttachmentMetadata]
+    ) -> CachedAttachment:
         return CachedAttachment(key=key, cache=self, **attachment)
 
     def get_data(self, attachment: CachedAttachment) -> bytes:
@@ -202,7 +250,7 @@ class BaseAttachmentCache:
             raw_data = self.inner.get(key, raw=True)
             if raw_data is None:
                 raise MissingAttachmentChunks()
-            decompressed = zstandard.decompress(raw_data)
+            decompressed = zstandard.decompress(cast(bytes, raw_data))
             data.extend(decompressed)
 
         return bytes(data)

@@ -4,13 +4,10 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {AutomationBuilderNumberInput} from 'sentry/components/workflowEngine/form/automationBuilderNumberInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
-import {
-  COMPARISON_INTERVAL_CHOICES,
-  INTERVAL_CHOICES,
-  Interval,
-} from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+import {COMPARISON_INTERVAL_CHOICES, INTERVAL_CHOICES, Interval} from './constants';
 
 type IntervalChoice = {label: string; value: Interval};
 

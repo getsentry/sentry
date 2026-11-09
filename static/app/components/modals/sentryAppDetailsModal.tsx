@@ -2,7 +2,7 @@ import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconFlag} from '@sentry/icons/flag';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -17,13 +17,12 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {
   closeModal: () => void;
@@ -59,15 +58,11 @@ export function SentryAppDetailsModal(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>(
-    [
-      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/features/', {
-        path: {sentryAppIdOrSlug: sentryApp.slug},
-      }),
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<IntegrationFeature[]>()('/sentry-apps/$sentryAppIdOrSlug/features/', {
+      path: {sentryAppIdOrSlug: sentryApp.slug},
       staleTime: 0,
-    }
+    })
   );
 
   const installMutation = useMutation({

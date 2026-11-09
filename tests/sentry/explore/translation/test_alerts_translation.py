@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -129,7 +129,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_translate_alert_rule_p95(self, mock_create_rpc) -> None:
+    def test_translate_alert_rule_p95(self, mock_create_rpc: MagicMock) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -198,7 +198,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_translate_alert_rule_apdex(self, mock_create_rpc) -> None:
+    def test_translate_alert_rule_apdex(self, mock_create_rpc: MagicMock) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -256,7 +256,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_translate_alert_rule_apdex_float(self, mock_create_rpc) -> None:
+    def test_translate_alert_rule_apdex_float(self, mock_create_rpc: MagicMock) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -314,7 +314,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_translate_alert_rule_empty_query(self, mock_create_rpc) -> None:
+    def test_translate_alert_rule_empty_query(self, mock_create_rpc: MagicMock) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -375,7 +375,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     @patch("sentry.snuba.tasks._create_snql_in_snuba")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
     def test_rollback_alert_rule_query(
-        self, mock_create_rpc, mock_create_snql, mock_delete
+        self, mock_create_rpc: MagicMock, mock_create_snql: MagicMock, mock_delete: MagicMock
     ) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
         mock_create_snql.return_value = "rollback-subscription-id"
@@ -527,11 +527,11 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     )
     def test_rollback_anomaly_detection_alert(
         self,
-        mock_seer_request,
-        mock_seer,
-        mock_create_rpc,
-        mock_create_snql,
-        mock_delete,
+        mock_seer_request: MagicMock,
+        mock_seer: MagicMock,
+        mock_create_rpc: MagicMock,
+        mock_create_snql: MagicMock,
+        mock_delete: MagicMock,
     ) -> None:
         from sentry.workflow_engine.models.data_condition import Condition
 
@@ -583,12 +583,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             name="Test Detector",
             type=MetricIssue.slug,
             project=self.project,
-            config={
-                "detection_type": AlertRuleDetectionType.DYNAMIC.value,
-                "sensitivity": AnomalyDetectionSensitivity.HIGH,
-                "seasonality": AnomalyDetectionSeasonality.AUTO,
-                "threshold_type": AnomalyDetectionThresholdType.ABOVE,
-            },
+            config={"detection_type": AlertRuleDetectionType.DYNAMIC.value},
             workflow_condition_group=detector_data_condition_group,
         )
 
@@ -628,7 +623,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_extrapolation_mode_sum_transactions(self, mock_create_rpc) -> None:
+    def test_extrapolation_mode_sum_transactions(self, mock_create_rpc: MagicMock) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -677,7 +672,9 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_extrapolation_mode_avg_custom_measurement_transactions(self, mock_create_rpc) -> None:
+    def test_extrapolation_mode_avg_custom_measurement_transactions(
+        self, mock_create_rpc: MagicMock
+    ) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -727,7 +724,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_count_custom_measurement_transactions(self, mock_create_rpc) -> None:
+    def test_count_custom_measurement_transactions(self, mock_create_rpc: MagicMock) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -778,7 +775,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_in_snuba")
-    def test_avg_custom_measurement_transactions(self, mock_create_in_snuba) -> None:
+    def test_avg_custom_measurement_transactions(self, mock_create_in_snuba: MagicMock) -> None:
         mock_create_in_snuba.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -829,7 +826,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_extrapolation_mode_count_if_transactions(self, mock_create_rpc) -> None:
+    def test_extrapolation_mode_count_if_transactions(self, mock_create_rpc: MagicMock) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -878,7 +875,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_extrapolation_mode_p50_transactions(self, mock_create_rpc) -> None:
+    def test_extrapolation_mode_p50_transactions(self, mock_create_rpc: MagicMock) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -927,7 +924,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_eap_query_with_valid_event_types(self, mock_create_rpc) -> None:
+    def test_eap_query_with_valid_event_types(self, mock_create_rpc: MagicMock) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -989,7 +986,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_eap_query_invalid_event_types(self, mock_create_rpc) -> None:
+    def test_eap_query_invalid_event_types(self, mock_create_rpc: MagicMock) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -1052,7 +1049,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
-    def test_rollback_skips_user_updated_query(self, mock_create_rpc) -> None:
+    def test_rollback_skips_user_updated_query(self, mock_create_rpc: MagicMock) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
         snuba_query = create_snuba_query(
@@ -1112,7 +1109,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     @patch("sentry.snuba.tasks._create_snql_in_snuba")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
     def test_bypass_flag_check_rollback(
-        self, mock_create_rpc, mock_create_snql, mock_delete
+        self, mock_create_rpc: MagicMock, mock_create_snql: MagicMock, mock_delete: MagicMock
     ) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
         mock_create_snql.return_value = "rollback-subscription-id"

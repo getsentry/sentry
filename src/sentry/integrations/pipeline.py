@@ -124,7 +124,10 @@ def ensure_integration(
         provider=key, external_id=data["external_id"], defaults=defaults
     )
     if not created and (overwrite_existing_integration or not _has_live_installations(integration)):
-        integration.update(**defaults)
+        # Model.update() does not bump date_updated (the pre_save signal only fires on
+        # save()). Token-refresh code uses date_updated as a version stamp to detect
+        # concurrent reauthorizations, so bump it explicitly to make this write visible.
+        integration.update(date_updated=timezone.now(), **defaults)
 
     return integration
 
@@ -385,10 +388,10 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             return self._get_redirect_response(redirect_url_format=redirect_url_format)
         return self._dialog_success(org_integration)
 
-    def _dialog_success(self, org_integration) -> HttpResponseBase:
+    def _dialog_success(self, org_integration: OrganizationIntegration) -> HttpResponseBase:
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
-    def _dialog_response(self, data, success) -> HttpResponseBase:
+    def _dialog_response(self, data: object, success: bool) -> HttpResponseBase:
         document_origin = "document.origin"
         if features.has("system:multi-region"):
             document_origin = f'"{generate_organization_url(self.organization.slug)}"'

@@ -6,6 +6,7 @@ from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
+from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -32,7 +33,7 @@ from sentry.testutils.helpers.options import override_options
 partition = Partition(Topic("test"), 0)
 
 
-def create_consumer():
+def create_consumer() -> ProcessingStrategy[KafkaPayload]:
     factory = MonitorClockTickStrategyFactory()
     commit = mock.Mock()
     return factory.create_with_partitions(commit, {partition: 0})
@@ -43,10 +44,10 @@ def create_consumer():
 @mock.patch("sentry.monitors.consumers.clock_tick_consumer.process_clock_tick_for_system_incidents")
 @override_options({"crons.system_incidents.use_decisions": True})
 def test_simple(
-    mock_process_clock_tick_for_system_incidents,
-    mock_dispatch_check_timeout,
-    mock_dispatch_check_missing,
-):
+    mock_process_clock_tick_for_system_incidents: mock.MagicMock,
+    mock_dispatch_check_timeout: mock.MagicMock,
+    mock_dispatch_check_missing: mock.MagicMock,
+) -> None:
     consumer = create_consumer()
 
     ts = timezone.now().replace(second=0, microsecond=0)
@@ -80,11 +81,11 @@ def test_simple(
 @mock.patch("sentry.monitors.consumers.clock_tick_consumer.process_clock_tick_for_system_incidents")
 @override_options({"crons.system_incidents.use_decisions": True})
 def test_incident_mark_unknown(
-    mock_process_clock_tick_for_system_incidents,
-    mock_dispatch_check_timeout,
-    mock_dispatch_check_missing,
-    mock_dispatch_mark_unknown,
-):
+    mock_process_clock_tick_for_system_incidents: mock.MagicMock,
+    mock_dispatch_check_timeout: mock.MagicMock,
+    mock_dispatch_check_missing: mock.MagicMock,
+    mock_dispatch_mark_unknown: mock.MagicMock,
+) -> None:
     """
     Test that during an incident we mark in-progress check-ins as unknown and
     do NOT dispatch mark timeouts.

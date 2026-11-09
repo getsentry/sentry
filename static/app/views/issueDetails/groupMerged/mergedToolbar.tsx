@@ -1,8 +1,8 @@
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Grid} from '@sentry/scraps/layout';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
-import {Confirm} from 'sentry/components/confirm';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';

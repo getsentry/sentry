@@ -1,7 +1,9 @@
 from datetime import timedelta
+from typing import Any
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.api.endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
 from sentry.testutils.helpers.datetime import before_now
@@ -28,7 +30,9 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def _do_request(self, data, url=None, features=None):
+    def _do_request(
+        self, data: dict[str, Any], url: str | None = None, features: dict[str, bool] | None = None
+    ) -> Response:
         return self.client_get(data=data, url=self.url if url is None else url)
 
     def test_simple(self) -> None:
@@ -360,7 +364,7 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
             },
         }
 
-    def test_invalid_log_scale(self):
+    def test_invalid_log_scale(self) -> None:
         response = self._do_request(
             data={
                 "start": self.start,

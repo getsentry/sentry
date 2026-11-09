@@ -1,8 +1,12 @@
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Literal, TypedDict
+from typing import Annotated, Literal, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.principal import has_user
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.explore.models import (
@@ -12,6 +16,8 @@ from sentry.explore.models import (
     ExploreSavedQueryStarred,
 )
 from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -22,44 +28,61 @@ ExploreSavedQueryMode = Literal["samples", "aggregate"]
 
 
 class MetricResponseTypeOptional(TypedDict, total=False):
-    unit: str | None
+    unit: Annotated[str | None, ApiDescription("Unit of the metric. Null when it has none")]
 
 
 class MetricResponseType(MetricResponseTypeOptional):
-    name: str
-    type: Literal["counter", "gauge", "distribution"]
+    name: Annotated[str, ApiDescription("Name of the metric")]
+    type: Annotated[
+        Literal["counter", "gauge", "distribution"], ApiDescription("Type of the metric")
+    ]
 
 
 class VisualizeResponseTypeOptional(TypedDict, total=False):
-    chartType: int
-    transformations: list[str]
+    chartType: Annotated[int, ApiDescription("Chart type used to plot the aggregates")]
+    transformations: Annotated[
+        list[str], ApiDescription("Transformations applied to the plotted series")
+    ]
 
 
 class VisualizeResponseType(VisualizeResponseTypeOptional):
-    yAxes: list[str]
+    yAxes: Annotated[list[str], ApiDescription("Aggregates to plot")]
 
 
 class AggregateFieldResponseType(TypedDict, total=False):
-    chartType: int
-    yAxes: list[str]
-    groupBy: str
-    transformations: list[str]
+    chartType: Annotated[int, ApiDescription("Chart type used to plot the aggregates")]
+    yAxes: Annotated[list[str], ApiDescription("Aggregates to plot")]
+    groupBy: Annotated[str, ApiDescription("Field to group the aggregates by")]
+    transformations: Annotated[
+        list[str], ApiDescription("Transformations applied to the plotted series")
+    ]
 
 
 class QueryResponseTypeOptional(TypedDict, total=False):
-    fields: list[str] | None
-    orderby: str | None
-    groupby: list[str] | None
-    query: str | None
-    visualize: list[VisualizeResponseType] | None
-    aggregateField: list[AggregateFieldResponseType] | None
-    aggregateOrderby: str | None
-    metric: MetricResponseType | None
-    caseInsensitive: bool
+    fields: Annotated[list[str] | None, ApiDescription("Fields shown in the samples table")]
+    orderby: Annotated[str | None, ApiDescription("Field the samples are sorted by")]
+    groupby: Annotated[list[str] | None, ApiDescription("Fields the aggregates are grouped by")]
+    query: Annotated[str | None, ApiDescription("Search query that filters the results")]
+    visualize: Annotated[
+        list[VisualizeResponseType] | None, ApiDescription("Charts shown for the query")
+    ]
+    aggregateField: Annotated[
+        list[AggregateFieldResponseType] | None,
+        ApiDescription("Aggregates and group-by fields shown in aggregate mode"),
+    ]
+    aggregateOrderby: Annotated[
+        str | None, ApiDescription("Field the aggregate results are sorted by")
+    ]
+    metric: Annotated[
+        MetricResponseType | None, ApiDescription("Metric the query reads, for metric queries")
+    ]
+    caseInsensitive: Annotated[bool, ApiDescription("Whether the search query ignores letter case")]
 
 
 class QueryResponseType(QueryResponseTypeOptional):
-    mode: ExploreSavedQueryMode
+    mode: Annotated[
+        ExploreSavedQueryMode, ApiDescription("Whether the query shows samples or aggregates")
+    ]
 
 
 class CrossEventResponseTypeOptional(TypedDict, total=False):
@@ -84,9 +107,15 @@ class ExploreSavedQueryResponseOptional(TypedDict, total=False):
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):
-    orderby: list[dict[str, str]] | None
-    equations: list[dict[str, str | list[str]]] | None
-    columns: list[str]
+    orderby: Annotated[
+        list[dict[str, str]] | None,
+        ApiDescription("Sort orders dropped when the query was migrated. Null when none were"),
+    ]
+    equations: Annotated[
+        list[dict[str, str | list[str]]] | None,
+        ApiDescription("Equations dropped when the query was migrated. Null when none were"),
+    ]
+    columns: Annotated[list[str], ApiDescription("Columns dropped when the query was migrated")]
 
 
 class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
@@ -105,13 +134,27 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     changedReason: ExploreSavedQueryChangedReasonType | None
 
 
+class ExploreSavedQueryAttrs(TypedDict, total=False):
+    created_by: UserSerializerResponse | None
+    user_last_visited: datetime | None
+    starred: bool
+    position: int | None
+
+
 @register(ExploreSavedQuery)
 class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
-    def get_attrs(self, item_list, user, **kwargs):
-        result: defaultdict[str, dict] = defaultdict(lambda: {"created_by": {}})
+    def get_attrs(
+        self,
+        item_list: Sequence[ExploreSavedQuery],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[ExploreSavedQuery, dict[str, object]]:
+        result: defaultdict[ExploreSavedQuery, dict[str, object]] = defaultdict(
+            lambda: {"created_by": {}}
+        )
 
-        starred_queries: dict[int, int | None] = {}
-        user_last_visited: dict[int, datetime] = {}
+        starred_queries = {}
+        user_last_visited = {}
         if has_user(user):
             starred_queries = dict(
                 ExploreSavedQueryStarred.objects.filter(
@@ -158,7 +201,13 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> ExploreSavedQueryResponse:
+    def serialize(
+        self,
+        obj: ExploreSavedQuery,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ExploreSavedQueryResponse:
         query_keys = [
             "environment",
             "query",
@@ -170,18 +219,21 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             "agent",
             "errorsOnly",
         ]
+        dataset_name = ExploreSavedQueryDataset.get_type_name(obj.dataset)
+        assert dataset_name is not None
+        dataset_name = cast(ExploreSavedQueryDatasetType, dataset_name)
         data: ExploreSavedQueryResponse = {
             "id": str(obj.id),
             "name": obj.name,
             "projects": [project.id for project in obj.projects.all()],
-            "dataset": ExploreSavedQueryDataset.get_type_name(obj.dataset),
+            "dataset": dataset_name,
             "expired": False,
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "lastVisited": attrs.get("user_last_visited"),
-            "createdBy": attrs.get("created_by"),
-            "starred": attrs.get("starred"),
-            "position": attrs.get("position"),
+            "lastVisited": cast(datetime | None, attrs.get("user_last_visited")),
+            "createdBy": cast(UserSerializerResponse | None, attrs.get("created_by")),
+            "starred": cast(bool, attrs.get("starred")),
+            "position": cast(int | None, attrs.get("position")),
             "isPrebuilt": obj.prebuilt_id is not None,
             "changedReason": obj.changed_reason,
         }

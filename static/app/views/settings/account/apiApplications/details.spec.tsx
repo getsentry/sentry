@@ -5,7 +5,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ApiApplicationDetails from 'sentry/views/settings/account/apiApplications/details';
+import ApiApplicationDetails from './details';
 
 describe('ApiApplicationDetails', () => {
   const oauthBaseUrl = 'https://sentry-jest-tests.example.com/oauth';

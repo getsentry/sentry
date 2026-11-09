@@ -13,8 +13,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context
+from sentry.seer.assisted_query.capabilities import (
+    get_transformation_capabilities,
+    validate_search_agent_options,
+)
 from sentry.seer.endpoints.search_agent_start import resolve_referrer
 from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
@@ -58,11 +63,7 @@ class SearchAgentTranslateSerializer(serializers.Serializer):
     )
 
     def validate_options(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
-        if value is None:
-            return None
-        if "model_name" in value and not isinstance(value["model_name"], str):
-            raise serializers.ValidationError("model_name must be a string")
-        return value
+        return validate_search_agent_options(value)
 
 
 def send_translate_agentic_request(
@@ -163,7 +164,9 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         user_email = user_org_context.get("user_email")
         timezone = user_org_context.get("user_timezone")
 
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
+        viewer_context = SeerViewerContext(
+            organization_id=organization.id, user_id=acting_user_id(request.user)
+        )
         options["cross_event"] = features.has(
             "organizations:seer-assisted-query-cross-event-explorer",
             organization,
@@ -180,6 +183,10 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             actor=request.user,
         )
         options["source"] = resolve_referrer(request, validated_data.get("referrer")).value
+        if options["code_mode"]:
+            options["transformation_capabilities"] = get_transformation_capabilities(
+                organization, actor=request.user
+            )
         data = send_translate_agentic_request(
             organization.id,
             organization.slug,

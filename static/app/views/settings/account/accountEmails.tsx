@@ -8,12 +8,12 @@ import {z} from 'zod';
 import {AlertLink} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -49,16 +49,16 @@ function AccountEmails() {
     onSuccess: response => {
       queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
       if (response?.detail) {
-        addSuccessMessage(response.detail);
+        toast.success(response.detail);
       }
     },
     onError: error => {
       if (error instanceof RequestError) {
         const errorMessage = error.responseJSON?.detail;
         if (typeof errorMessage === 'string') {
-          addErrorMessage(errorMessage);
+          toast.error(errorMessage);
         } else {
-          addErrorMessage(errorMessage?.message ?? t('An unknown error occurred.'));
+          toast.error(errorMessage?.message ?? t('An unknown error occurred.'));
         }
       }
     },
@@ -160,7 +160,7 @@ export function EmailAddresses() {
       .requestPromise(endpoint, requestParams)
       .catch(err => {
         if (err instanceof RequestError && typeof err?.responseJSON?.email === 'string') {
-          addErrorMessage(err.responseJSON.email);
+          toast.error(err.responseJSON.email);
         }
       })
       .finally(() => {

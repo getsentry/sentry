@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address, ip_address
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 import sentry_sdk
 from django.db.models import QuerySet
@@ -28,6 +28,7 @@ from snuba_sdk import (
 from sentry import analytics
 from sentry.analytics.events.eventuser_snuba_for_projects import EventUserSnubaForProjects
 from sentry.analytics.events.eventuser_snuba_query import EventUserSnubaQuery
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -93,12 +94,17 @@ def get_ip_address_conditions(ip_addresses: Sequence[str]) -> list[Condition]:
 
 
 class SerializedEventUser(TypedDict):
-    id: str
-    username: str | None
-    email: str | None
-    name: str | None
-    ipAddress: str | None
-    avatarUrl: str | None
+    id: Annotated[str, ApiDescription("ID of the user, as sent with the event")]
+    username: Annotated[str | None, ApiDescription("Username sent with the event")]
+    email: Annotated[str | None, ApiDescription("Email address sent with the event")]
+    name: Annotated[
+        str | None,
+        ApiDescription(
+            "Display name of the user: the name, email address or username sent with the event, whichever is set first"
+        ),
+    ]
+    ipAddress: Annotated[str | None, ApiDescription("IP address sent with the event")]
+    avatarUrl: Annotated[str | None, ApiDescription("Gravatar URL for the user's email address")]
 
 
 @dataclass

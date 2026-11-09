@@ -11,9 +11,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import type {ConversationStats} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import type {ConversationStats} from './hooks/useConversation';
 import ConversationDetailPage from './conversationDetail';
 import {CONVERSATIONS_SIDEBAR_LABEL} from './settings';
 

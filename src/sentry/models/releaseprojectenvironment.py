@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import TypedDict
+from typing import TYPE_CHECKING, Annotated, TypedDict
 
 from django.db import models
 from django.utils import timezone
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -15,10 +16,16 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.metrics.base import MutableTags
 from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.last_seen import BumpResult, try_bump_last_seen
+
+if TYPE_CHECKING:
+    from sentry.models.environment import Environment
+    from sentry.models.project import Project
+    from sentry.models.release import Release
 
 
 class ReleaseStages(str, Enum):
@@ -54,11 +61,19 @@ class ReleaseProjectEnvironment(Model):
     __repr__ = sane_repr("project", "release", "environment")
 
     @classmethod
-    def get_cache_key(cls, release_id, project_id, environment_id) -> str:
+    def get_cache_key(cls, release_id: int, project_id: int, environment_id: int) -> str:
         return f"releaseprojectenv:{release_id}:{project_id}:{environment_id}"
 
     @classmethod
-    def get_or_create(cls, release, project, environment, datetime, metrics_tags=None, **kwargs):
+    def get_or_create(
+        cls,
+        release: Release,
+        project: Project,
+        environment: Environment,
+        datetime: datetime,
+        metrics_tags: MutableTags | None = None,
+        **kwargs: object,
+    ) -> ReleaseProjectEnvironment:
         with metrics.timer("models.releaseprojectenvironment.get_or_create") as timer_tags:
             instance = cls._get_or_create_impl(
                 release, project, environment, datetime, timer_tags, **kwargs
@@ -68,7 +83,15 @@ class ReleaseProjectEnvironment(Model):
             return instance
 
     @classmethod
-    def _get_or_create_impl(cls, release, project, environment, datetime, metrics_tags, **kwargs):
+    def _get_or_create_impl(
+        cls,
+        release: Release,
+        project: Project,
+        environment: Environment,
+        datetime: datetime,
+        metrics_tags: MutableTags,
+        **kwargs: object,
+    ) -> ReleaseProjectEnvironment:
         cache_key = cls.get_cache_key(project.id, release.id, environment.id)
 
         instance = cache.get(cache_key)
@@ -118,9 +141,11 @@ class ReleaseProjectEnvironment(Model):
 
 
 class AdoptionStage(TypedDict):
-    stage: ReleaseStages
-    adopted: datetime | None
-    unadopted: datetime | None
+    stage: Annotated[ReleaseStages, ApiDescription("Adoption stage of the release")]
+    adopted: Annotated[datetime | None, ApiDescription("When the release was adopted (ISO 8601)")]
+    unadopted: Annotated[
+        datetime | None, ApiDescription("When the release stopped being adopted (ISO 8601)")
+    ]
 
 
 def adoption_stage(adopted: datetime | None, unadopted: datetime | None) -> AdoptionStage:

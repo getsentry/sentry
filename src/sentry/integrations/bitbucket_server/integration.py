@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -25,13 +25,12 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
 from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -247,6 +246,21 @@ class OAuthApiStep:
         return PipelineStepResult.advance()
 
 
+class BitbucketServerProjectPayload(TypedDict, total=False):
+    key: str
+    name: str
+
+
+class BitbucketServerRepoPayload(TypedDict, total=False):
+    slug: str
+    name: str
+    project: BitbucketServerProjectPayload
+
+
+class BitbucketServerReposResponse(TypedDict, total=False):
+    values: list[BitbucketServerRepoPayload]
+
+
 class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     """
     IntegrationInstallation implementation for Bitbucket Server
@@ -269,7 +283,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
 
     # IntegrationInstallation methods
 
-    def error_message_from_json(self, data):
+    def error_message_from_json(self, data: Mapping[str, Any]) -> str:
         return data.get("error", {}).get("message", "unknown error")
 
     def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
@@ -293,6 +307,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     ) -> list[RepositoryInfo]:
         if not query:
             resp = self.get_client().get_repos()
+            repos = cast(BitbucketServerReposResponse, resp)
 
             return [
                 {
@@ -302,10 +317,11 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
                     "repo": repo["slug"],
                     "name": repo["project"]["name"] + "/" + repo["name"],
                 }
-                for repo in resp.get("values", [])
+                for repo in repos.get("values", [])
             ]
 
         resp = self.get_client().search_repositories(query)
+        repos = cast(BitbucketServerReposResponse, resp)
 
         return [
             {
@@ -315,7 +331,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
                 "repo": repo["slug"],
                 "name": repo["project"]["name"] + "/" + repo["name"],
             }
-            for repo in resp.get("values", [])
+            for repo in repos.get("values", [])
         ]
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
@@ -364,7 +380,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     # Bitbucket Server only methods
 
     @property
-    def username(self):
+    def username(self) -> str:
         return self.model.name
 
 
@@ -441,7 +457,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(

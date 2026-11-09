@@ -142,10 +142,6 @@ class OrganizationFeaturesResponse(BaseModel):
     features: list[str]
 
 
-class OrganizationAutofixConsentResponse(BaseModel):
-    consent: bool
-
-
 class GitHubEnterpriseConfigSuccessResponse(BaseModel):
     success: Literal[True] = True
     base_url: str
@@ -286,7 +282,7 @@ class EventFilterKeyEntry(BaseModel):
 class EventFilterKeysResponse(BaseModel):
     __root__: dict[str, EventFilterKeyEntry]
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, dict[str, Any]]:
         # Unwrap to the bare `{key: {...}}` map the seer caller expects.
         return {k: v.dict(**kwargs) for k, v in self.__root__.items()}
 
@@ -394,7 +390,7 @@ class AttributeValuesResponse(BaseModel):
 
     __root__: dict[str, list[str]]
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, list[str]]:
         # Pre-typed code returned `{field: sorted_list, ...}` directly — unwrap so
         # the dispatcher and downstream consumers see the bare map.
         return dict(self.__root__)
@@ -856,7 +852,7 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
     class Config:
         allow_population_by_field_name = True
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, Any]:
         kwargs.setdefault("by_alias", True)
         return super().dict(**kwargs)
 
@@ -885,6 +881,7 @@ class HeaderAuthConnectionData(BaseModel):
     url: str
     encrypted_auth_headers: dict[str, str] | None = None
     identity_id: int | None = None
+    integration_id: int | None = None
     auth_method: str
     refreshable: bool = True
 
@@ -950,6 +947,7 @@ class RefreshMonitoringProviderTokenErrorResponse(BaseModel):
         "encryption_failed",
         "identity_not_found",
         "identity_not_valid",
+        "integration_not_found",
         "refresh_failed",
         "refresh_not_supported",
     ]

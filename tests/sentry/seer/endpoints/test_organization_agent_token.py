@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
-from contextlib import ExitStack, nullcontext
+from collections.abc import Callable, Generator, Sequence
+from contextlib import ExitStack, contextmanager, nullcontext
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -34,7 +35,10 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
 from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.dashboard import DashboardRevision
 from sentry.models.eventattachment import EventAttachment
+from sentry.models.groupshare import GroupShare
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
@@ -78,7 +82,7 @@ class SuperuserAgentTokenTest(APITestCase):
         self.org = self.create_organization()
         self.path = f"/api/0/organizations/{self.org.slug}/"
 
-    def _chat_authorization(self):
+    def _chat_authorization(self) -> SuperuserAccess:
         self.login_as(self.employee, superuser=True)
         resolved_contexts: list[ViewerContext] = []
         with (
@@ -106,7 +110,7 @@ class SuperuserAgentTokenTest(APITestCase):
         assert grant is not None
         return grant
 
-    def _mint(self, grant):
+    def _mint(self, grant: SuperuserAccess | None) -> Response:
         viewer = encode_viewer_context(
             ViewerContext(
                 actor=Actor(type=ActorType.USER, actor_id=self.employee.id, superuser=grant),
@@ -114,17 +118,21 @@ class SuperuserAgentTokenTest(APITestCase):
             ),
             key=SECRET,
         )
-        return APIClient().post(
+        response: Response = APIClient().post(
             f"/api/0/organizations/{self.org.slug}/agent/token/",
             {"sessionId": "123"},
             format="json",
             HTTP_X_VIEWER_CONTEXT=viewer,
         )
+        return response
 
-    def _read(self, token, path=None):
-        return APIClient().get(path or self.path, HTTP_AUTHORIZATION=f"Bearer {token}")
+    def _read(self, token: str, path: str | None = None) -> Response:
+        response: Response = APIClient().get(
+            path or self.path, HTTP_AUTHORIZATION=f"Bearer {token}"
+        )
+        return response
 
-    def test_chat_to_mint_to_read_without_membership(self):
+    def test_chat_to_mint_to_read_without_membership(self) -> None:
         assert not OrganizationMember.objects.filter(
             organization=self.org, user_id=self.employee.id
         ).exists()
@@ -145,12 +153,12 @@ class SuperuserAgentTokenTest(APITestCase):
         assert claims["superuser"] == {"expires_at": grant.expires_at}
         assert claims["exp"] <= grant.expires_at
 
-    def test_identity_alone_does_not_delegate_superuser(self):
+    def test_identity_alone_does_not_delegate_superuser(self) -> None:
         self._chat_authorization()
         with self.feature(FLAG):
             assert self._mint(None).status_code == 403
 
-    def test_nonmember_superuser_project_indexes_are_org_bound(self):
+    def test_nonmember_superuser_project_indexes_are_org_bound(self) -> None:
         assert not OrganizationMember.objects.filter(
             organization=self.org, user_id=self.employee.id
         ).exists()
@@ -169,7 +177,7 @@ class SuperuserAgentTokenTest(APITestCase):
         assert {int(item["id"]) for item in global_response.data} == {project.id}
         assert {int(item["id"]) for item in org_response.data} == {project.id}
 
-    def test_elevated_browser_can_also_mint_a_usable_token(self):
+    def test_elevated_browser_can_also_mint_a_usable_token(self) -> None:
         self.login_as(self.employee, superuser=True)
         with self.feature(FLAG):
             minted = self.client.post(
@@ -178,7 +186,7 @@ class SuperuserAgentTokenTest(APITestCase):
             assert minted.status_code == 200, minted.content
             assert self._read(minted.data["token"]).status_code == 200
 
-    def test_elevated_member_keeps_approved_agent_writes(self):
+    def test_elevated_member_keeps_approved_agent_writes(self) -> None:
         self.create_member(user=self.employee, organization=self.org, role="owner")
         self.create_seer_agent_write_grant(
             organization=self.org, user=self.employee, session_id="123", scope_list=["org:write"]
@@ -196,12 +204,12 @@ class SuperuserAgentTokenTest(APITestCase):
             client.credentials(HTTP_AUTHORIZATION=f"Bearer {minted.data['token']}")
             assert client.put(self.path, {}, format="json").status_code == 200
 
-    def test_invalid_expiry_cannot_mint(self):
+    def test_invalid_expiry_cannot_mint(self) -> None:
         self._chat_authorization()
         with self.feature(FLAG):
             assert self._mint(SuperuserAccess(expires_at=True)).status_code == 401
 
-    def test_expired_elevation_cannot_mint_or_be_used(self):
+    def test_expired_elevation_cannot_mint_or_be_used(self) -> None:
         grant = self._chat_authorization()
         with self.feature(FLAG):
             minted = self._mint(grant)
@@ -210,16 +218,16 @@ class SuperuserAgentTokenTest(APITestCase):
                 assert self._mint(grant).status_code == 401
                 assert self._read(minted.data["token"]).status_code == 401
 
-    def test_current_user_privilege_is_rechecked_without_cache_clear(self):
+    def test_current_user_privilege_is_rechecked_without_cache_clear(self) -> None:
         self._assert_revoked({"is_superuser": False})
 
-    def test_inactive_user_cannot_use_elevation(self):
+    def test_inactive_user_cannot_use_elevation(self) -> None:
         self._assert_revoked({"is_active": False})
 
-    def test_suspended_user_cannot_use_elevation(self):
+    def test_suspended_user_cannot_use_elevation(self) -> None:
         self._assert_revoked({"is_suspended": True})
 
-    def _assert_revoked(self, changes):
+    def _assert_revoked(self, changes: dict[str, object]) -> None:
         grant = self._chat_authorization()
         with self.feature(FLAG):
             minted = self._mint(grant)
@@ -229,15 +237,15 @@ class SuperuserAgentTokenTest(APITestCase):
             assert self._mint(grant).status_code == 403
             assert self._read(minted.data["token"]).status_code == 401
 
-    def test_delegated_token_cannot_write_remint_or_cross_org(self):
+    def test_delegated_token_cannot_write_remint_or_cross_org(self) -> None:
         self._assert_read_only_delegated_token()
 
-    def test_writable_browser_cannot_delegate_agent_writes(self):
+    def test_writable_browser_cannot_delegate_agent_writes(self) -> None:
         self.add_user_permission(self.employee, "superuser.write")
         with self.options({"superuser.read-write.ga-rollout": True}):
             self._assert_read_only_delegated_token()
 
-    def _assert_read_only_delegated_token(self):
+    def _assert_read_only_delegated_token(self) -> None:
         grant = self._chat_authorization()
         other_org = self.create_organization()
         self.create_seer_agent_write_grant(
@@ -258,7 +266,7 @@ class SuperuserAgentTokenTest(APITestCase):
             )
             assert client.get(f"/api/0/organizations/{other_org.slug}/").status_code == 403
 
-    def test_customer_policy_is_rechecked(self):
+    def test_customer_policy_is_rechecked(self) -> None:
         grant = self._chat_authorization()
         with self.feature(FLAG):
             minted = self._mint(grant)
@@ -268,7 +276,7 @@ class SuperuserAgentTokenTest(APITestCase):
                 assert self._read(minted.data["token"]).status_code == 401
 
     @override_settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
-    def test_delegation_requires_existing_org_approval(self):
+    def test_delegation_requires_existing_org_approval(self) -> None:
         with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False):
             self.login_as(self.employee, superuser=True)
         request = self.make_request(user=self.employee)
@@ -303,7 +311,7 @@ class SuperuserAgentTokenTest(APITestCase):
             assert grant is not None
             assert self._mint(grant).status_code == 200
 
-    def test_delegation_does_not_renew_idle_expiry(self):
+    def test_delegation_does_not_renew_idle_expiry(self) -> None:
         self.login_as(self.employee, superuser=True)
         request = self.make_request(user=self.employee)
         request.auth = None
@@ -368,6 +376,16 @@ def _declared_scopes(view: type[Any], method: str) -> frozenset[str]:
     return frozenset(scopes)
 
 
+def _discover_endpoints(
+    enumerator: CustomEndpointEnumerator,
+) -> list[tuple[str, str, str, Any]]:
+    discover = cast(
+        "Callable[[object, str], list[tuple[str, str, str, Any]]]",
+        enumerator._get_api_endpoints,
+    )
+    return discover(enumerator.patterns, "")
+
+
 class _CollectionSafeEndpointEnumerator(CustomEndpointEnumerator):
     """Inspect declared HTTP methods without constructing every endpoint view."""
 
@@ -398,7 +416,7 @@ def _public_get_endpoints() -> tuple[PublicGetEndpoint, ...]:
     """
     enumerator = _CollectionSafeEndpointEnumerator()
     endpoints: dict[tuple[str, str], PublicGetEndpoint] = {}
-    discovered = enumerator._get_api_endpoints(enumerator.patterns, "")
+    discovered = _discover_endpoints(enumerator)
     for path, _path_regex, method, callback in discovered:
         view = callback.view_class
         status = view.publish_status.get(method)
@@ -439,7 +457,7 @@ def _public_mutation_endpoints() -> tuple[PublicMutationEndpoint, ...]:
     """Return every canonical public non-GET operation and its declared scopes."""
     enumerator = _CollectionSafeEndpointEnumerator()
     endpoints: dict[tuple[str, str], PublicMutationEndpoint] = {}
-    discovered = enumerator._get_api_endpoints(enumerator.patterns, "")
+    discovered = _discover_endpoints(enumerator)
     for path, _path_regex, method, callback in discovered:
         view = callback.view_class
         status = view.publish_status.get(method)
@@ -589,6 +607,16 @@ OUTER_BOUNDARY_MUTATION_STATUSES = {
 
 AGENT_SUDO_BOUNDARY_MUTATIONS = frozenset({("TeamDetailsEndpoint", "DELETE")})
 
+# Org auth tokens can only be managed without a token (a session, or a viewer context,
+# which carries no token either) or by an OAuth application token with `org:tokens`. Every
+# other matrix credential must be denied.
+SESSION_OR_OAUTH_APP_ONLY_ENDPOINTS = frozenset(
+    {"OrganizationAuthTokenDetailsEndpoint", "OrganizationAuthTokensEndpoint"}
+)
+TOKENLESS_AUTHENTICATIONS = frozenset(
+    {MatrixAuthentication.SESSION, MatrixAuthentication.VIEWER_CONTEXT}
+)
+
 
 # Oracle: an owner token with the account's scopes. The account has `all_projects`, so it
 # should reach every project the owner does. User-global routes must deny it, since it has
@@ -617,10 +645,6 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "SentryAppInstallationExternalIssueActions_post": ServiceAccountGap.CONTROL_SILO,
     "SentryAppInstallationExternalRequests": ServiceAccountGap.CONTROL_SILO,
     "EventAttachmentDetails": ServiceAccountGap.NO_MEMBERSHIP,
-    "OrganizationMemberDetails_delete": ServiceAccountGap.NO_MEMBERSHIP,
-    "OrganizationMemberDetails_put": ServiceAccountGap.NO_MEMBERSHIP,
-    "OrganizationMemberIndex_post": ServiceAccountGap.NO_MEMBERSHIP,
-    "OrganizationMemberTeamDetails_delete": ServiceAccountGap.NO_MEMBERSHIP,
     "ExternalTeam_post": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_put": ServiceAccountGap.NO_TEAM_ACCESS,
@@ -633,58 +657,48 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "TeamProjects_post": ServiceAccountGap.NO_TEAM_ACCESS,
 }
 
-# Rows that act on the caller as a person (saved views, stars, a personal team), so a
-# service account is denied with user-required instead of matching the oracle.
+# Rows that act on the caller as a person (saved views, stars, a personal team) or manage
+# members (including SCIM), so a service account is denied with user-required instead of matching the oracle.
 SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     {
-        "OrganizationGroupSearchViews",
         "OrganizationGroupSearchViews_post",
+        "OrganizationMemberDetails",
+        "OrganizationMemberDetails_delete",
+        "OrganizationMemberDetails_put",
+        "OrganizationMemberIndex_post",
+        "OrganizationMemberTeamDetails_delete",
         "OrganizationMemberTeamDetails_post",
+        "OrganizationMemberTeamDetails_put",
         "OrganizationProjects_post",
+        "OrganizationSCIMMemberDetails",
+        "OrganizationSCIMMemberDetails_delete",
+        "OrganizationSCIMMemberDetails_patch",
+        "OrganizationSCIMMemberIndex",
+        "OrganizationSCIMMemberIndex_post",
+        "OrganizationSCIMResourceTypeDetails",
+        "OrganizationSCIMResourceTypeIndex",
+        "OrganizationSCIMSchemaDetails",
+        "OrganizationSCIMServiceProviderConfig",
+        "OrganizationSCIMTeamDetails",
+        "OrganizationSCIMTeamDetails_delete",
+        "OrganizationSCIMTeamDetails_patch",
+        "OrganizationSCIMTeamIndex",
+        "OrganizationSCIMTeamIndex_post",
         "OrganizationStarredServiceSpans_delete",
         "OrganizationStarredServiceSpans_post",
     }
 )
 
 
-def _matrix_cases() -> tuple[tuple[PublicGetEndpoint, MatrixAuthentication], ...]:
-    cases: list[tuple[PublicGetEndpoint, MatrixAuthentication]] = []
-    for endpoint in PUBLIC_GET_ENDPOINTS:
-        for authentication in (
-            MatrixAuthentication.SESSION,
-            MatrixAuthentication.USER_TOKEN,
-            MatrixAuthentication.VIEWER_CONTEXT,
-            MatrixAuthentication.AGENT_TOKEN,
-            MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-            MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
-        ):
-            cases.append((endpoint, authentication))
-    return tuple(cases)
-
-
-def _mutation_matrix_cases() -> tuple[tuple[PublicMutationEndpoint, MatrixAuthentication], ...]:
-    return tuple(
-        (endpoint, authentication)
-        for endpoint in PUBLIC_MUTATION_ENDPOINTS
-        for authentication in MatrixAuthentication
-    )
-
-
-def _private_helper_get_matrix_cases() -> tuple[
-    tuple[PublicGetEndpoint, MatrixAuthentication], ...
-]:
-    return tuple(
-        (endpoint, authentication)
-        for endpoint in PRIVATE_HELPER_GET_ENDPOINTS
-        for authentication in (
-            MatrixAuthentication.SESSION,
-            MatrixAuthentication.USER_TOKEN,
-            MatrixAuthentication.VIEWER_CONTEXT,
-            MatrixAuthentication.AGENT_TOKEN,
-            MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-            MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
-        )
-    )
+PUBLIC_GET_AUTHENTICATIONS = (
+    MatrixAuthentication.SESSION,
+    MatrixAuthentication.USER_TOKEN,
+    MatrixAuthentication.VIEWER_CONTEXT,
+    MatrixAuthentication.AGENT_TOKEN,
+    MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
+    MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
+)
+PUBLIC_MUTATION_AUTHENTICATIONS = tuple(MatrixAuthentication)
 
 
 @override_settings(SEER_API_SHARED_SECRET=SECRET)
@@ -696,10 +710,11 @@ class OrganizationAgentTokenTest(APITestCase):
         self.owner = self.create_user()
         self.org = self.create_organization(owner=self.owner)
 
-    def _mint(self, **data):
-        return self.client.post(
+    def _mint(self, **data: object) -> Response:
+        response: Response = self.client.post(
             f"/api/0/organizations/{self.org.slug}/agent/token/", data=data, format="json"
         )
+        return response
 
     def _assert_user_global_get_denied(self, endpoint: PublicGetEndpoint) -> None:
         self.login_as(self.owner)
@@ -717,7 +732,13 @@ class OrganizationAgentTokenTest(APITestCase):
         assert agent_response.status_code == 403, agent_response.content
         assert "insufficient_scope" not in agent_response.get("WWW-Authenticate", "")
 
-    def _grant(self, *, organization=None, session_id="s1", scopes=("org:write",)):
+    def _grant(
+        self,
+        *,
+        organization: Organization | None = None,
+        session_id: str = "s1",
+        scopes: Sequence[str] = ("org:write",),
+    ) -> SeerAgentWriteGrant:
         return self.create_seer_agent_write_grant(
             organization=organization or self.org,
             user=self.owner,
@@ -1157,8 +1178,27 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if name in self._matrix_resources:
             return self._matrix_resources[name]
 
+        resource: Any
         if name == "dashboard":
             resource = self.create_dashboard(organization=self.org, created_by=self.owner)
+        elif name == "org_auth_token":
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                resource = self.create_org_auth_token(
+                    organization_id=self.org.id,
+                    name="Permission matrix token",
+                    token_hashed=uuid4().hex,
+                    token_last_characters="mtrx",
+                    scope_list=["org:ci"],
+                )
+        elif name == "dashboard_revision":
+            dashboard = self._resource("dashboard")
+            resource = DashboardRevision.objects.create(
+                dashboard=dashboard,
+                created_by_id=self.owner.id,
+                title=dashboard.title,
+                snapshot={"title": dashboard.title},
+                snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+            )
         elif name == "custom_inbound_filter":
             resource = CustomInboundFilter.objects.create(
                 project=self.project,
@@ -1192,6 +1232,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 data=b"permission matrix attachment",
             )
             attachment_file = EventAttachment.putfile(self.project.id, cached_attachment)
+            assert cached_attachment.name is not None
             resource = EventAttachment.objects.create(
                 event_id=event.event_id,
                 project_id=self.project.id,
@@ -1205,6 +1246,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
         elif name == "group":
             resource = self._resource("event").group
+        elif name == "group_share":
+            group = self._resource("group")
+            resource = GroupShare.objects.create(project_id=group.project_id, group=group)
         elif name == "integration":
             resource = self.create_integration(
                 organization=self.org,
@@ -1502,8 +1546,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return str(member.id)
         if placeholder == "attachment_id":
             return str(self._resource("event_attachment").id)
+        if placeholder == "token_id":
+            return str(self._resource("org_auth_token").id)
         if placeholder == "dashboard_id":
             return str(self._resource("dashboard").id)
+        if placeholder == "revision_id":
+            return str(self._resource("dashboard_revision").id)
         if placeholder == "detector_id":
             detector = (
                 self._resource("mutable_detector")
@@ -1512,9 +1560,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
             return str(detector.id)
         if placeholder == "environment":
-            return self._resource("environment").name
+            return str(self._resource("environment").name)
         if placeholder == "issue_id":
             return str(self._resource("group").id)
+        if placeholder == "share_id":
+            return str(self._resource("group_share").uuid)
         if placeholder == "integration_id":
             if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
                 return str(self._resource("channel_integration").id)
@@ -1534,9 +1584,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if placeholder == "artifact_id":
             return str(self._resource("preprod_artifact").id)
         if placeholder == "key_id":
-            return self._resource("project_key").public_key
+            return str(self._resource("project_key").public_key)
         if placeholder == "version":
-            return self._resource("release").version
+            return str(self._resource("release").version)
         if placeholder == "file_id":
             return str(self._resource("release_file").id)
         if placeholder == "repo_id":
@@ -1569,17 +1619,18 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 return str(self._resource("custom_inbound_filter").id)
             return "browser-extensions"
         if placeholder == "event_id":
-            return self._resource("event").event_id
+            return str(self._resource("event").event_id)
         if placeholder == "job_id":
             return str(self._resource("replay_deletion_job").id)
         if placeholder == "query_id":
             return str(self._resource("saved_query")["id"])
         if placeholder == "replay_id":
-            return self._resource("replay")
+            return str(self._resource("replay"))
         if placeholder == "segment_id":
             self._resource("replay_recording_segment")
             return "0"
         if placeholder == "snapshot_id" and endpoint.endpoint_name in {
+            "OrganizationPreprodSnapshotArchiveEndpoint",
             "OrganizationPreprodSnapshotEndpoint",
             "OrganizationPreprodSnapshotImageDetailEndpoint",
         }:
@@ -1622,6 +1673,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return {"file": "src/matrix.py", "platform": "python"}
         if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
             return {"channel": "permission-matrix"}
+        if endpoint.endpoint_name == "DsnLookupEndpoint":
+            return {"dsn": self._resource("project_key").dsn_public}
         if endpoint.endpoint_name == "OrganizationEventsEndpoint":
             return {
                 "field": ["id", "project"],
@@ -1679,6 +1732,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return {"service_span": "permission-matrix-span", "project_id": self.project.id}
         if endpoint.endpoint_name == "OrganizationTraceItemAttributesEndpoint":
             return {"dataset": "spans", "project": [self.project.id]}
+        if endpoint.endpoint_name == "OrganizationTraceLogsEndpoint":
+            return {"traceId": uuid4().hex, "statsPeriod": "1h"}
         if endpoint.endpoint_name == "OrganizationTraceItemStatsEndpoint":
             return {
                 "statsType": ["attributeDistributions"],
@@ -1780,7 +1835,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         assert approved_scopes <= set(response.data["scopes"]), response.data
         if requested_scopes is not None:
             assert set(response.data["scopes"]) <= requested_scopes, response.data
-        return response.data["token"]
+        token = response.data["token"]
+        assert isinstance(token, str)
+        return token
 
     @staticmethod
     def _listed_ids(response: Response, *, nested_organization: bool = False) -> set[int]:
@@ -1949,6 +2006,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         key = (endpoint.endpoint_name, endpoint.method)
         if key == ("SentryAppInstallationExternalIssueActionsEndpoint", "POST"):
             return {"groupId": self._resource("group").id, "action": "link", "uri": "/link"}
+        if key == ("ProjectUserReportsEndpoint", "POST"):
+            return {
+                "event_id": self._resource("event").event_id,
+                "name": "Permission Matrix",
+                "email": "matrix@example.com",
+                "comments": "Permission matrix feedback",
+            }
         payloads: dict[tuple[str, str], dict[str, Any]] = {
             ("CustomInboundFilterDetailsEndpoint", "PUT"): {
                 "name": "Updated permission matrix filter",
@@ -1957,6 +2021,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                     {"type": "error_message", "operator": "glob", "value": ["TypeError*"]}
                 ],
             },
+            ("OrganizationAuthTokensEndpoint", "POST"): {"name": "Permission matrix token"},
             ("CustomInboundFiltersEndpoint", "POST"): {
                 "name": "Permission matrix new filter",
                 "dataType": "all",
@@ -2116,10 +2181,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                         },
                     ],
                 },
-                "config": {
-                    "thresholdPeriod": 1,
-                    "detectionType": AlertRuleDetectionType.STATIC.value,
-                },
+                "config": {"detectionType": AlertRuleDetectionType.STATIC.value},
                 "workflowIds": [self._resource("workflow").id],
             },
             ("OrganizationMonitorIndexEndpoint", "POST"): {
@@ -2178,6 +2240,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("ProjectKeyDetailsEndpoint", "PUT"): {"name": "Permission matrix key"},
             ("ProjectKeysEndpoint", "POST"): {"name": "Permission matrix key"},
             ("ProjectOwnershipEndpoint", "PUT"): {"raw": f"* {self.owner.email}"},
+            # No chunks makes this a status poll, so no build is created.
+            ("ProjectPreprodArtifactAssembleEndpoint", "POST"): {
+                "checksum": "a" * 40,
+                "chunks": [],
+            },
             ("ProjectPreprodSizeAnalysisSkipStatusCheckEndpoint", "POST"): {
                 "sha": "a" * 40,
                 "repository": "owner/not-integrated",
@@ -2289,14 +2356,16 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         user_token_scopes: frozenset[str] | None = None,
     ) -> Response:
         if authentication is MatrixAuthentication.SESSION:
-            return self.client.get(path)
+            session_response: Response = self.client.get(path)
+            return session_response
 
         client = APIClient()
         if authentication is MatrixAuthentication.USER_TOKEN:
-            return client.get(
+            user_token_response: Response = client.get(
                 path,
                 HTTP_AUTHORIZATION=f"Bearer {self._user_token(user_token_scopes)}",
             )
+            return user_token_response
         if authentication is MatrixAuthentication.VIEWER_CONTEXT:
             viewer_context = encode_viewer_context(
                 ViewerContext(
@@ -2306,15 +2375,20 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 ),
                 key=SECRET,
             )
-            return client.get(path, HTTP_X_VIEWER_CONTEXT=viewer_context)
+            viewer_response: Response = client.get(path, HTTP_X_VIEWER_CONTEXT=viewer_context)
+            return viewer_response
         if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
-            return client.get(path, HTTP_X_VIEWER_CONTEXT=self._service_account_context)
+            service_account_response: Response = client.get(
+                path, HTTP_X_VIEWER_CONTEXT=self._service_account_context
+            )
+            return service_account_response
         if authentication in {
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
         }:
             assert agent_bearer is not None
-            return client.get(path, HTTP_AUTHORIZATION=f"Bearer {agent_bearer}")
+            agent_response: Response = client.get(path, HTTP_AUTHORIZATION=f"Bearer {agent_bearer}")
+            return agent_response
         raise AssertionError(f"unsupported authentication {authentication}")
 
     def _mutation_request(
@@ -2366,12 +2440,32 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 ),
             }
             request_format = "multipart"
-        return request_method(
+        response: Response = request_method(
             path,
             data=request_payload,
             format=request_format,
             **headers,
         )
+        return response
+
+    @contextmanager
+    def _rolled_back(self) -> Generator[None]:
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            savepoints = {
+                database: transaction.savepoint(using=database) for database in settings.DATABASES
+            }
+        try:
+            yield
+        finally:
+            with assume_test_silo_mode(SiloMode.MONOLITH):
+                for database, savepoint in reversed(savepoints.items()):
+                    # A save that raised (e.g. UserRequired) marks the test transaction
+                    # broken; returning to the pre-request savepoint recovers it.
+                    transaction.set_rollback(False, using=database)
+                    transaction.savepoint_rollback(savepoint, using=database)
+            # Model/option cache writes are not transactional. Remove cached
+            # deletions/updates so the next request observes the restored DB.
+            cache.clear()
 
     def _rolled_back_mutation_request(
         self,
@@ -2383,11 +2477,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         agent_bearer: str | None = None,
         user_token_scopes: frozenset[str] | None = None,
     ) -> Response:
-        with assume_test_silo_mode(SiloMode.MONOLITH):
-            savepoints = {
-                database: transaction.savepoint(using=database) for database in settings.DATABASES
-            }
-        try:
+        with self._rolled_back():
             return self._mutation_request(
                 endpoint,
                 path,
@@ -2396,16 +2486,28 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 agent_bearer=agent_bearer,
                 user_token_scopes=user_token_scopes,
             )
-        finally:
-            with assume_test_silo_mode(SiloMode.MONOLITH):
-                for database, savepoint in reversed(savepoints.items()):
-                    # A save that raised (e.g. UserRequired) marks the test transaction
-                    # broken; returning to the pre-request savepoint recovers it.
-                    transaction.set_rollback(False, using=database)
-                    transaction.savepoint_rollback(savepoint, using=database)
-            # Model/option cache writes are not transactional. Remove the control
-            # request's cached deletion/update so the replay observes the restored DB.
-            cache.clear()
+
+    def _assert_matrix_row(
+        self,
+        endpoint: PublicGetEndpoint | PublicMutationEndpoint,
+        authentications: tuple[MatrixAuthentication, ...],
+        assert_cell: Callable[[MatrixAuthentication], None],
+    ) -> None:
+        """Check each credential against one fixture, as if each ran in a fresh test.
+
+        The organization and endpoint resources cost far more to build than the requests
+        do, so cells share them and roll back everything a cell writes.
+        """
+        # Resources are memoized on first use. Build them before the first savepoint so
+        # one cell's rollback cannot delete a resource the next cell reads from the memo.
+        self._path(endpoint)
+        if isinstance(endpoint, PublicMutationEndpoint):
+            self._mutation_payload(endpoint)
+        cookies = deepcopy(self.client.cookies)
+        for authentication in authentications:
+            self.client.cookies = deepcopy(cookies)
+            with self.subTest(authentication=authentication.value), self._rolled_back():
+                assert_cell(authentication)
 
     def _assert_public_get_authentication(
         self,
@@ -2518,6 +2620,16 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         assert baseline.status_code < 500, baseline.content
         expected_baseline_status = OUTER_BOUNDARY_GET_STATUSES.get(endpoint.endpoint_name, 200)
         assert baseline.status_code == expected_baseline_status, baseline.content
+        if (
+            endpoint.endpoint_name in SESSION_OR_OAUTH_APP_ONLY_ENDPOINTS
+            and authentication not in TOKENLESS_AUTHENTICATIONS
+        ):
+            assert response.status_code in {401, 403}, (
+                endpoint.path_template,
+                authentication,
+                response.content,
+            )
+            return
         if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
             self._assert_service_account_outcome(endpoint, authorization_oracle, response)
             return
@@ -2596,6 +2708,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 patch(
                     "sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent",
                     return_value=SimpleNamespace(seer_run_state_id=1, uuid=uuid4()),
+                )
+            )
+            downstream_scope.enter_context(
+                patch(
+                    "sentry.seer.endpoints.group_ai_autofix.is_single_run_record",
+                    return_value=False,
                 )
             )
             # Kickoffs are gated on Seer setup (SCM integration + linked repos)
@@ -2681,6 +2799,17 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
         else:
             assert baseline.status_code == outer_status, baseline.content
+        if (
+            endpoint.endpoint_name in SESSION_OR_OAUTH_APP_ONLY_ENDPOINTS
+            and authentication not in TOKENLESS_AUTHENTICATIONS
+        ):
+            assert response.status_code in {401, 403}, (
+                endpoint.path_template,
+                endpoint.method,
+                authentication,
+                response.content,
+            )
+            return
         if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
             self._assert_service_account_outcome(endpoint, authorization_oracle, response)
             return
@@ -2725,75 +2854,78 @@ def _mark_service_account_gap[F: Callable[..., None]](test: F, test_id: str) -> 
     return pytest.mark.xfail(strict=True, reason=gap.value)(test)
 
 
-def _install_public_get_matrix_tests() -> None:
-    """Generate real unittest methods because pytest cannot parametrize APITestCase."""
+def _install_matrix_row_tests[E: (PublicGetEndpoint, PublicMutationEndpoint)](
+    prefix: str,
+    endpoints: Sequence[E],
+    authentications: tuple[MatrixAuthentication, ...],
+    assert_cell: Callable[[AgentTokenPublicGetMatrixTest, E, MatrixAuthentication], None],
+) -> None:
+    """Generate real unittest methods because pytest cannot parametrize APITestCase.
 
-    for index, (endpoint, authentication) in enumerate(_matrix_cases()):
+    Each endpoint gets one method that checks every credential as a subtest. A known
+    service-account gap gets its own strict-xfail method so fixing it still fails.
+    """
+    # The service-account cell enables a feature for the rest of its test, so it runs last.
+    assert MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT is authentications[-1]
 
-        def test_matrix_cell(
-            self: AgentTokenPublicGetMatrixTest,
-            endpoint: PublicGetEndpoint = endpoint,
-            authentication: MatrixAuthentication = authentication,
-        ) -> None:
-            self._assert_public_get_authentication(endpoint, authentication)
+    def install(name: str, test: Callable[[AgentTokenPublicGetMatrixTest], None]) -> None:
+        test.__name__ = name
+        setattr(AgentTokenPublicGetMatrixTest, name, test)
 
-        test_matrix_cell.__name__ = (
-            f"test_public_get_{index:03d}_{endpoint.test_id}_{authentication.value}"
-        )
-        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
-            test_matrix_cell = _mark_service_account_gap(test_matrix_cell, endpoint.test_id)
-        setattr(AgentTokenPublicGetMatrixTest, test_matrix_cell.__name__, test_matrix_cell)
-
-
-_install_public_get_matrix_tests()
-
-
-def _install_public_mutation_matrix_tests() -> None:
-    for index, (endpoint, authentication) in enumerate(_mutation_matrix_cases()):
-
-        def test_matrix_cell(
-            self: AgentTokenPublicGetMatrixTest,
-            endpoint: PublicMutationEndpoint = endpoint,
-            authentication: MatrixAuthentication = authentication,
-        ) -> None:
-            self._assert_public_mutation_authentication(endpoint, authentication)
-
-        test_matrix_cell.__name__ = (
-            f"test_public_mutation_{index:03d}_{endpoint.test_id}_{authentication.value}"
-        )
-        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
-            test_matrix_cell = _mark_service_account_gap(test_matrix_cell, endpoint.test_id)
-        setattr(AgentTokenPublicGetMatrixTest, test_matrix_cell.__name__, test_matrix_cell)
-
-
-_install_public_mutation_matrix_tests()
-
-
-def _install_private_helper_matrix_tests() -> None:
-    for index, (get_endpoint, get_authentication) in enumerate(_private_helper_get_matrix_cases()):
-
-        def test_get_matrix_cell(
-            self: AgentTokenPublicGetMatrixTest,
-            endpoint: PublicGetEndpoint = get_endpoint,
-            authentication: MatrixAuthentication = get_authentication,
-        ) -> None:
-            self._assert_public_get_authentication(
+    def row_test(
+        endpoint: E, row_authentications: tuple[MatrixAuthentication, ...]
+    ) -> Callable[[AgentTokenPublicGetMatrixTest], None]:
+        def test_matrix_row(self: AgentTokenPublicGetMatrixTest) -> None:
+            self._assert_matrix_row(
                 endpoint,
-                authentication,
-                require_actionable_scope_denial=True,
+                row_authentications,
+                lambda authentication: assert_cell(self, endpoint, authentication),
             )
 
-        test_get_matrix_cell.__name__ = (
-            f"test_private_helper_get_{index:03d}_{get_endpoint.test_id}_{get_authentication.value}"
-        )
-        if get_authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
-            test_get_matrix_cell = _mark_service_account_gap(
-                test_get_matrix_cell, get_endpoint.test_id
+        return test_matrix_row
+
+    def gap_test(endpoint: E) -> Callable[[AgentTokenPublicGetMatrixTest], None]:
+        def test_gap_cell(self: AgentTokenPublicGetMatrixTest) -> None:
+            assert_cell(self, endpoint, MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT)
+
+        return _mark_service_account_gap(test_gap_cell, endpoint.test_id)
+
+    for index, endpoint in enumerate(endpoints):
+        name = f"{prefix}_{index:03d}_{endpoint.test_id}"
+        if endpoint.test_id in SERVICE_ACCOUNT_KNOWN_GAPS:
+            install(name, row_test(endpoint, authentications[:-1]))
+            install(
+                f"{name}_{MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT.value}",
+                gap_test(endpoint),
             )
-        setattr(AgentTokenPublicGetMatrixTest, test_get_matrix_cell.__name__, test_get_matrix_cell)
+        else:
+            install(name, row_test(endpoint, authentications))
 
 
-_install_private_helper_matrix_tests()
+_install_matrix_row_tests(
+    "test_public_get",
+    PUBLIC_GET_ENDPOINTS,
+    PUBLIC_GET_AUTHENTICATIONS,
+    lambda self, endpoint, authentication: self._assert_public_get_authentication(
+        endpoint, authentication
+    ),
+)
+_install_matrix_row_tests(
+    "test_public_mutation",
+    PUBLIC_MUTATION_ENDPOINTS,
+    PUBLIC_MUTATION_AUTHENTICATIONS,
+    lambda self, endpoint, authentication: self._assert_public_mutation_authentication(
+        endpoint, authentication
+    ),
+)
+_install_matrix_row_tests(
+    "test_private_helper_get",
+    PRIVATE_HELPER_GET_ENDPOINTS,
+    PUBLIC_GET_AUTHENTICATIONS,
+    lambda self, endpoint, authentication: self._assert_public_get_authentication(
+        endpoint, authentication, require_actionable_scope_denial=True
+    ),
+)
 
 
 def _install_disallowed_agent_token_boundary_matrix_tests() -> None:

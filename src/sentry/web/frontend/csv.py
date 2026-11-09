@@ -22,11 +22,11 @@ class CsvResponder(Generic[T]):
     def get_header(self) -> tuple[str, ...]:
         raise NotImplementedError
 
-    def get_row(self, item: T) -> tuple[str, ...]:
+    def get_row(self, item: T) -> tuple[object, ...]:
         raise NotImplementedError
 
     def respond(self, iterable: Iterable[T], filename: str) -> StreamingHttpResponse:
-        def row_iter() -> Generator[tuple[str, ...]]:
+        def row_iter() -> Generator[tuple[object, ...]]:
             header = self.get_header()
             if header:
                 yield header

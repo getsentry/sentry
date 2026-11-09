@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';

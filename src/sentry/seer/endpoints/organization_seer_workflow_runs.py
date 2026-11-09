@@ -22,6 +22,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.models.organization import Organization
+from sentry.notebooks.access import has_investigations_access
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
@@ -32,6 +33,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
+from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -61,12 +63,19 @@ class SeerWorkflowErrorResponse(TypedDict):
     message: str
 
 
+class SeerWorkflowInvestigationOutputResponse(TypedDict):
+    type: Literal["investigation"]
+    id: str
+    title: str
+
+
 class SeerWorkflowExecutionResponseBase(TypedDict):
     id: str
     seerRunId: str | None
     dateAdded: datetime
     dateUpdated: datetime
     dateCompleted: datetime | None
+    outputs: list[SeerWorkflowInvestigationOutputResponse]
 
 
 class SeerWorkflowExecutionStateResponse(SeerWorkflowExecutionResponseBase):
@@ -177,6 +186,9 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
         Missing error details use code ``unknown``. Historical rows without lifecycle
         tracking retain a null status. ``seerRunId`` is the linked Seer UUID or null.
+        Each execution's ``outputs`` lists linked investigations by type, ID, and title
+        when the viewer has investigation access, including archived investigations.
+        The same investigation can be linked to multiple executions.
         Limited-access members must be able to access every project in the saved run
         snapshot; runs without a saved scope are hidden from them.
         """
@@ -208,7 +220,12 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             queryset=runs,
             order_by=("-date_added", "-id"),
             paginator_cls=OffsetPaginator,
-            on_results=serialize_workflow_runs,
+            on_results=lambda runs: serialize_workflow_runs(
+                runs,
+                # TODO(telkins): Align automation and investigation access checks instead of
+                # returning empty outputs for otherwise visible runs.
+                include_investigations=has_investigations_access(organization, actor=request.user),
+            ),
         )
 
     @extend_schema(
@@ -228,14 +245,20 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
         return Response({"runId": str(run.id)}, status=202)
 
 
-def serialize_workflow_runs(runs: Sequence[SeerWorkflowRun]) -> SeerWorkflowRunsResponse:
+def serialize_workflow_runs(
+    runs: Sequence[SeerWorkflowRun], *, include_investigations: bool
+) -> SeerWorkflowRunsResponse:
     """Serialize runs loaded with a `workflow_config__strategy` annotation."""
+    output_links = SeerWorkflowOutputLink.objects.select_related("notebook").order_by("id")
+    if not include_investigations:
+        output_links = output_links.none()
     prefetch_related_objects(
         runs,
         Prefetch(
             "executions",
             queryset=SeerWorkflowRunExecution.objects.select_related("seer_run").order_by("id"),
         ),
+        Prefetch("executions__output_links", queryset=output_links),
     )
     return {"runs": [serialize_workflow_run(run) for run in runs]}
 
@@ -279,6 +302,11 @@ def serialize_workflow_execution(
         "dateAdded": execution.date_added,
         "dateUpdated": execution.date_updated,
         "dateCompleted": execution.date_completed,
+        "outputs": [
+            {"type": "investigation", "id": str(link.notebook.id), "title": link.notebook.title}
+            for link in execution.output_links.all()
+            if link.notebook is not None and link.notebook.organization_id == organization_id
+        ],
     }
     status = SeerWorkflowExecutionStatus(execution.status) if execution.status is not None else None
     if status == SeerWorkflowExecutionStatus.FAILED:

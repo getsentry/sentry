@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import Http404
@@ -17,6 +18,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     OrganizationWithProjectsAndTeamsSerializer,
 )
+from sentry.auth.principal import require_user
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.core.endpoints.project_transfer import SALT
 from sentry.models.options.project_option import ProjectOption
@@ -43,20 +45,21 @@ class AcceptProjectTransferEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (SentryIsAuthenticated,)
 
-    def get_validated_data(self, data, user: User):
+    def get_validated_data(self, data: str, user: User) -> tuple[dict[str, object], Project]:
         try:
-            data = unsign(force_str(data), salt=SALT)
+            payload = cast(dict[str, object], unsign(force_str(data), salt=SALT))
         except SignatureExpired:
             raise InvalidPayload("Project transfer link has expired.")
         except BadSignature:
             raise InvalidPayload("Could not approve transfer, please make sure link is valid.")
 
-        if data["user_id"] != user.id:
+        if payload["user_id"] != user.id:
             raise InvalidPayload("Invalid permissions")
 
         try:
             project = Project.objects.get(
-                id=data["project_id"], organization_id=data["from_organization_id"]
+                id=cast(str | int, payload["project_id"]),
+                organization_id=cast(str | int, payload["from_organization_id"]),
             )
         except Project.DoesNotExist:
             raise InvalidPayload("Project no longer exists")
@@ -64,16 +67,17 @@ class AcceptProjectTransferEndpoint(Endpoint):
         expected_transaction_id = ProjectOption.objects.get_value(
             project, "sentry:project-transfer-transaction-id"
         )
-        if data["transaction_id"] != expected_transaction_id:
+        if payload["transaction_id"] != expected_transaction_id:
             raise InvalidPayload("Invalid transaction id")
 
-        return data, project
+        return payload, project
 
     @sudo_required
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-accept-project-transfer"])
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
             return Response(status=400)
+        user = require_user(request)
 
         try:
             data = request.GET["data"]
@@ -81,13 +85,11 @@ class AcceptProjectTransferEndpoint(Endpoint):
             raise Http404
 
         try:
-            data, project = self.get_validated_data(data, request.user)
+            _payload, project = self.get_validated_data(data, user)
         except InvalidPayload as e:
             return Response({"detail": str(e)}, status=400)
 
-        organizations = Organization.objects.get_organizations_where_user_is_owner(
-            user_id=request.user.id
-        )
+        organizations = Organization.objects.get_organizations_where_user_is_owner(user_id=user.id)
 
         return Response(
             {
@@ -106,6 +108,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
     def post(self, request: Request) -> Response:
         if not request.user.is_authenticated:
             return Response(status=400)
+        user = require_user(request)
 
         try:
             data = request.data["data"]
@@ -113,11 +116,11 @@ class AcceptProjectTransferEndpoint(Endpoint):
             raise Http404
 
         try:
-            data, project = self.get_validated_data(data, request.user)
+            payload, project = self.get_validated_data(data, user)
         except InvalidPayload as e:
             return Response({"detail": str(e)}, status=400)
 
-        transaction_id = data["transaction_id"]
+        transaction_id = cast("int | str | None", payload["transaction_id"])
 
         org_slug = request.data.get("organization")
         # DEPRECATED
@@ -134,7 +137,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
 
         # check if user is an owner of the organization
         is_org_owner = request.access.has_role_in_organization(
-            role=roles.get_top_dog().id, organization=organization, user_id=request.user.id
+            role=roles.get_top_dog().id, organization=organization, user_id=user.id
         )
 
         if not is_org_owner:

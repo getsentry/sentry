@@ -13,7 +13,7 @@ class SentryAppInstallationParser(Serializer):
         )
     )
 
-    def validate_status(self, new_status):
+    def validate_status(self, new_status: str) -> str:
         # can only set status to installed
         if new_status != SentryAppInstallationStatus.INSTALLED_STR:
             raise ValidationError(

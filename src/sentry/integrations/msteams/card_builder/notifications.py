@@ -21,6 +21,7 @@ from sentry.types.actor import Actor
 from .block import (
     Action,
     ActionType,
+    AdaptiveCard,
     ColumnSetBlock,
     TextBlock,
     TextSize,
@@ -106,7 +107,7 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
 
         return action_blocks
 
-    def build_notification_card(self):
+    def build_notification_card(self) -> AdaptiveCard:
         fields = [self.create_attachment_title_block(), self.create_description_block()]
 
         # TODO: Add support for notification actions.
