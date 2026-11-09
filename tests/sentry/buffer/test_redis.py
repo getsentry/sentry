@@ -265,6 +265,46 @@ class TestRedisBuffer:
         self.buf.process("foo")
         process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, True)
 
+    @mock.patch("sentry.buffer.base.Buffer.process")
+    def test_process_keeps_counts_when_pending_zrem_fails(self, process: mock.MagicMock) -> None:
+        client = self.buf.cluster
+        client.hmset(
+            "foo",
+            {
+                "f": '{"pk": ["i","1"]}',
+                "i+times_seen": "1",
+                "m": "unittest.mock.Mock",
+            },
+        )
+        # A non-sorted-set value makes ZREM fail, as a dead shard would.
+        client.set("b:p", "not-a-zset")
+
+        self.buf.process("foo")
+
+        process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, None)
+
+    @mock.patch("sentry.buffer.base.Buffer.process")
+    def test_process_flushes_incr_that_lands_during_the_flush(
+        self, process: mock.MagicMock
+    ) -> None:
+        client = self.buf.cluster
+        model = mock.Mock()
+        model.__name__ = "Mock"
+        filters: dict[str, Any] = {"pk": 1}
+        key = make_key(model, filters=filters)
+        self.buf.incr(model, {"times_seen": 5}, filters)
+        real_zrem = client.zrem
+
+        def zrem(*args: Any) -> Any:
+            self.buf.incr(model, {"times_seen": 3}, filters)
+            return real_zrem(*args)
+
+        with mock.patch.object(client, "zrem", side_effect=zrem):
+            self.buf.process(key=key)
+
+        assert process.call_args.args[1] == {"times_seen": 8}
+        assert client.hgetall(key) == {}
+
     @django_db_all
     @freeze_time()
     def test_incr_uses_signal_only(

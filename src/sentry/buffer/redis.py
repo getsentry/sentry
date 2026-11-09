@@ -484,9 +484,16 @@ class RedisBuffer(Buffer):
             return
 
         try:
+            # ZREM first: an incr landing after it re-adds its own pointer, and a failure
+            # here still lets the counts below be read and written.
+            try:
+                self.cluster.zrem(self.pending_key, key)
+            except Exception:
+                metrics.incr("buffer.zrem-failed", skip_internal=False)
+                logger.debug("buffer.zrem-failed", extra={"redis_key": key})
+
             pipe = self.get_redis_connection(transaction=False)
             pipe.hgetall(key)
-            pipe.zrem(self.pending_key, key)
             pipe.delete(key)
             values = pipe.execute()[0]
 
