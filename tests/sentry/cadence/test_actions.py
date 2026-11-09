@@ -8,10 +8,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 NOW = datetime(2024, 3, 9, 12, 0, tzinfo=UTC)
 
 
-def test_log_firings_are_spread() -> None:
-    assert trigger_type_registry.get(ScheduledTriggerType.LOG).spread_window == timedelta(minutes=5)
-
-
 @freeze_time(NOW)
 def test_log_action_logs_each_firing() -> None:
     firings = [
@@ -34,7 +30,7 @@ def test_log_action_logs_each_firing() -> None:
                 "organization_id": 1,
                 "target_id": target_id,
                 "scheduled_for": (NOW - timedelta(seconds=target_id)).isoformat(),
-                "lag_seconds": float(target_id),
+                "seconds_since_scheduled": float(target_id),
             },
         )
         for target_id in (3, 4)

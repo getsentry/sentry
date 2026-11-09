@@ -155,7 +155,7 @@ type TimeseriesRequestOptions = {
 
 type TransformationParams = Record<`transformations[${number}]`, string[]>;
 
-function getAggregatePipelines(
+function getAggregateTransformations(
   widget: Widget,
   queryIndex: number,
   organization: Organization | undefined
@@ -170,32 +170,28 @@ function getAggregatePipelines(
 
   return Object.fromEntries(
     Object.entries(widgetQuery.transformations ?? {}).filter(
-      ([index, pipeline]) =>
-        Number(index) < widgetQuery.aggregates.length && pipeline.length
+      ([index, axisTransformations]) =>
+        Number(index) < widgetQuery.aggregates.length && axisTransformations.length
     )
   );
 }
 
-/**
- * Pairs each requested y-axis with its pipeline, dropping repeats of the
- * same y-axis and pipeline, and indexes the pipelines by request position.
- */
 function getRequestedSeries(
   yAxis: string[],
-  pipelines: Record<number, string[]>
+  aggregateTransformations: Record<number, string[]>
 ): {transformations: TransformationParams; yAxis: string[]} {
   const requestedYAxis: string[] = [];
   const transformations: TransformationParams = {};
   const seen = new Set<string>();
   yAxis.forEach((axis, index) => {
-    const pipeline = pipelines[index] ?? [];
-    const key = JSON.stringify([axis, pipeline]);
+    const axisTransformations = aggregateTransformations[index] ?? [];
+    const key = JSON.stringify([axis, axisTransformations]);
     if (seen.has(key)) {
       return;
     }
     seen.add(key);
-    if (pipeline.length) {
-      transformations[`transformations[${requestedYAxis.length}]`] = pipeline;
+    if (axisTransformations.length) {
+      transformations[`transformations[${requestedYAxis.length}]`] = axisTransformations;
     }
     requestedYAxis.push(axis);
   });
@@ -224,7 +220,7 @@ export function getTimeseriesRequestQuery(
   );
   const requestedSeries = getRequestedSeries(
     toArray(yAxis),
-    getAggregatePipelines(widget, queryIndex, organization)
+    getAggregateTransformations(widget, queryIndex, organization)
   );
 
   const params = {
@@ -255,17 +251,17 @@ export function getTimeseriesRequestQuery(
 export type TimeseriesRequestQuery = ReturnType<typeof getTimeseriesRequestQuery>;
 
 /**
- * Tags each response series with the pipeline it was requested with, which
+ * Tags each response series with the transformations it was requested with, which
  * the response does not include, so transformed duplicates get distinct names.
  */
 export function withRequestedTransformations(
   response: EventsTimeSeriesResponse,
   query: TimeseriesRequestQuery
 ): EventsTimeSeriesResponse {
-  const pipelines = query.yAxis.map(
+  const transformations = query.yAxis.map(
     (_, index) => query[`transformations[${index}]`] ?? []
   );
-  if (!pipelines.some(pipeline => pipeline.length)) {
+  if (!transformations.some(axisTransformations => axisTransformations.length)) {
     return response;
   }
 
@@ -274,7 +270,7 @@ export function withRequestedTransformations(
     // Each response group repeats the requested axes in order, without an axis index.
     timeSeries: response.timeSeries.map((timeSeries, index) => ({
       ...timeSeries,
-      requestedTransformations: pipelines[index % pipelines.length],
+      requestedTransformations: transformations[index % transformations.length],
     })),
   };
 }

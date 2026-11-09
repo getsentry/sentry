@@ -177,7 +177,7 @@ class SentryAppExamples:
                     "scopes": ["event:admin", "org:admin"],
                     "slug": "acme-corp-integration-v2",
                     "status": "unpublished",
-                    "uuid": "77cebea3-019e-484d-8673-123124234",
+                    "uuid": "8f3a1c2d-6b4e-4f7a-9c0d-2e5b7a9c1d3f",
                     "verifyInstall": True,
                     "webhookUrl": "https://example.com/webhook",
                     "webhookHeaders": ["X-Custom-Header: value"],

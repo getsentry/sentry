@@ -1,6 +1,8 @@
+from typing import Any
 from uuid import uuid4
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.testutils.cases import (
     APITestCase,
@@ -25,7 +27,11 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query=None, features=None):
+    def do_request(
+        self,
+        query: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         with self.feature(self.feature_flags if features is None else features):
             url = reverse(
                 self.viewname,
@@ -162,6 +168,43 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         assert response.data["name"] == "severity"
         assert response.data["attributeSource"] == {"source_type": "sentry"}
         assert response.data["datasets"] == ["logs"]
+
+    def test_returns_user_attribute_when_requested_by_source_and_a_sentry_attribute_shares_its_name(
+        self,
+    ) -> None:
+        self._store_span({"severity": "custom"})
+        self._store_log()
+
+        response = self.do_request(
+            query={
+                "attributeName": "severity",
+                "attributeType": "string",
+                "attributeSource": "user",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "severity"
+        assert response.data["attributeSource"] == {"source_type": "user"}
+        assert response.data["datasets"] == ["spans"]
+
+    def test_returns_404_when_the_attribute_was_not_stored_with_the_requested_source(
+        self,
+    ) -> None:
+        self._store_span({"cart": "a"})
+
+        response = self.do_request(
+            query={"attributeName": "cart", "attributeType": "string", "attributeSource": "sentry"}
+        )
+
+        assert response.status_code == 404, response.content
+
+    def test_returns_400_when_attribute_source_is_invalid(self) -> None:
+        response = self.do_request(
+            query={"attributeName": "cart", "attributeType": "string", "attributeSource": "other"}
+        )
+
+        assert response.status_code == 400, response.content
 
     def test_returns_log_message_parameter_when_requested_by_its_public_alias(self) -> None:
         self._store_log({"sentry.message.parameter.0": {"string_value": "laptop"}})

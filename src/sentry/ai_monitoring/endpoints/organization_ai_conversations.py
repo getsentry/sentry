@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
 
-from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
+from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS, AI_CONVERSATIONS_SORT_FIELDS
 from sentry.ai_monitoring.conversation_aggregates import (
     CONVERSATION_AGGREGATE_COLUMNS,
     AIConversationAggregates,
@@ -103,6 +103,18 @@ AI_CONVERSATIONS_QUERY_PARAM = OpenApiParameter(
     ),
 )
 
+AI_CONVERSATIONS_SORT_PARAM = OpenApiParameter(
+    name="sort",
+    location="query",
+    required=False,
+    type=str,
+    enum=[sort for field in AI_CONVERSATIONS_SORT_FIELDS for sort in (field, f"-{field}")],
+    description=(
+        "The field to sort conversations by. Prefix it with `-` to sort in descending order. "
+        "Defaults to `-conversation.age`, most recent first."
+    ),
+)
+
 AI_CONVERSATIONS_PER_PAGE_PARAM = OpenApiParameter(
     name="per_page",
     location="query",
@@ -154,6 +166,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.START,
             GlobalParams.END,
             AI_CONVERSATIONS_QUERY_PARAM,
+            AI_CONVERSATIONS_SORT_PARAM,
             CursorQueryParam,
             AI_CONVERSATIONS_PER_PAGE_PARAM,
         ],
