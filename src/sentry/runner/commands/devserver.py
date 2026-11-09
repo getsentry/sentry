@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import threading
 from collections.abc import MutableSequence, Sequence
 from pathlib import Path
@@ -299,6 +300,24 @@ def devserver(
                 click.echo("--ingest was provided, implicitly enabling --workers")
                 workers = True
 
+        if settings.SENTRY_USE_FAKE_SLACK and silo != "region":
+            daemons.append(
+                (
+                    "fake-slack",
+                    [
+                        sys.executable,
+                        "-m",
+                        "sentry.testutils.fake_slack",
+                        "--host",
+                        host,
+                        "--port",
+                        str(settings.SENTRY_FAKE_SLACK_PORT),
+                        "--state-file",
+                        ".artifacts/fake-slack.json",
+                    ],
+                )
+            )
+
         if task_scheduler and silo != "control":
             daemons.append(_get_daemon("taskworker-scheduler"))
 
@@ -444,7 +463,6 @@ def devserver(
         if not daemons and not silo:
             server.run()
 
-        import sys
         from subprocess import list2cmdline
 
         from honcho.manager import Manager
