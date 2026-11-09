@@ -7,7 +7,9 @@ import {CategorizedStoryTree} from './storyTree';
 jest.mock('sentry/stories/storyManifest.generated', () => ({
   storyFiles: [
     'app/components/core/avatar/avatar.mdx',
+    'app/components/core/tabs/tabs.mdx',
     'packages/scraps/src/drawer/drawer.mdx',
+    'packages/scraps/src/link/link.mdx',
     'gsApp/components/upsellModal/upsellModal.stories.tsx',
   ],
   storyFrontmatterIndex: {
@@ -15,9 +17,17 @@ jest.mock('sentry/stories/storyManifest.generated', () => ({
       category: 'display',
       title: 'Avatar',
     },
+    'app/components/core/tabs/tabs.mdx': {
+      category: 'navigation',
+      title: 'Tabs',
+    },
     'packages/scraps/src/drawer/drawer.mdx': {
       category: 'overlays',
       title: 'GlobalDrawer',
+    },
+    'packages/scraps/src/link/link.mdx': {
+      category: 'navigation',
+      title: 'Link',
     },
   },
 }));
@@ -49,6 +59,16 @@ describe('CategorizedStoryTree', () => {
       'href',
       expect.stringContaining('/scraps/core/drawer/')
     );
+  });
+
+  it('sorts app and Scraps package docs together by component', async () => {
+    render(<CategorizedStoryTree />);
+
+    await userEvent.click(screen.getByText('Navigation'));
+
+    expect(
+      screen.getAllByRole('link', {name: /^(Link|Tabs)$/}).map(link => link.textContent)
+    ).toEqual(['Link', 'Tabs']);
   });
 
   it('lists gsApp stories in their own section', async () => {
