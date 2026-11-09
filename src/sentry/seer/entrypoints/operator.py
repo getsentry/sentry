@@ -28,6 +28,7 @@ from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_automation_handoff
+from sentry.seer.credits import SeerOperation, can_run_seer_operation
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
@@ -161,7 +162,8 @@ class SeerAutofixOperator[CachePayloadT]:
     def can_trigger_autofix(cls, *, group: Group) -> bool:
         """
         Checks if a group is permitted to trigger autofix.
-        Validates Seer access for the organization, the issue category, and autofix quota.
+        Validates Seer access for the organization, the issue category, autofix quota, and
+        Seer credits for the root cause step.
         """
         from sentry import quotas
         from sentry.seer.autofix.utils import is_free_cohort_org, is_issue_category_eligible
@@ -176,6 +178,7 @@ class SeerAutofixOperator[CachePayloadT]:
                     data_category=DataCategory.SEER_AUTOFIX,
                 )
             )
+            and can_run_seer_operation(group.organization, SeerOperation.AUTOFIX_ROOT_CAUSE)
         )
 
     def trigger_autofix(
