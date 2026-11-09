@@ -20,6 +20,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+    outputs:
+      spec-artifact-id: ${{ steps.upload-spec.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -51,6 +53,15 @@ jobs:
         run: |
           make build-api-docs
 
+      - name: Upload OpenAPI Derefed JSON
+        id: upload-spec
+        if: steps.changes.outputs.api_docs == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: openapi-derefed
+          path: tests/apidocs/openapi-derefed.json
+          retention-days: 1
+
       - name: Compare OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
         run: |
@@ -72,3 +83,52 @@ jobs:
             ghcr.io/getsentry/image-mirror-tufin-oasdiff:v1.33.0 \
             breaking sentry-api-schema/rpc_method_schema.json ./rpc_method_schema.json \
             --fail-on WARN --format githubactions
+
+  # getsentry/sentry-api-schema publishes this schema as @sentry/api. Build it
+  # here so a schema change that breaks the client fails on the PR rather than
+  # on sentry-api-schema's main branch after merge.
+  client-build:
+    name: (Optional) Builds the @sentry/api client from the dev schema
+    needs: check-diff
+    if: ${{ !cancelled() && needs.check-diff.outputs.spec-artifact-id != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: sentry-api-schema
+    steps:
+      - name: Checkout getsentry/sentry-api-schema
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          ref: 'main'
+          repository: getsentry/sentry-api-schema
+          path: sentry-api-schema
+
+      - name: Download OpenAPI Derefed JSON
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: openapi-derefed
+          path: sentry-api-schema
+
+      # Node 22 is the oldest version @sentry/api supports, and the version its
+      # release artifact is built with.
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version: '22'
+
+      - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
+        with:
+          package_json_file: sentry-api-schema/package.json
+          cache: true
+          cache_dependency_path: sentry-api-schema/pnpm-lock.yaml
+
+      # The same steps as sentry-api-schema's Build workflow.
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
