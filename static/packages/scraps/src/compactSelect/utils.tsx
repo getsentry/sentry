@@ -361,6 +361,29 @@ export function getSortedItems<Value extends SelectKey>(
 }
 
 /**
+ * Keys of the options that match `search` and can be selected, in the order
+ * they're displayed (best match first).
+ */
+export function getSelectableKeys<Value extends SelectKey>(
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
+  search: string,
+  isOptionDisabled?: (opt: SelectOptionWithKey<Value>) => boolean,
+  searchMatcher?: (
+    option: SelectOptionWithKey<Value>,
+    search: string
+  ) => SearchMatchResult
+): SelectKey[] {
+  const {hidden, scores} = getHiddenOptions(items, search, Infinity, searchMatcher);
+  const disabled = new Set(getDisabledOptions(items, isOptionDisabled));
+  const sortedItems = scores.size > 0 ? getSortedItems(items, scores) : items;
+
+  return sortedItems
+    .flatMap(item => ('options' in item ? item.options : [item]))
+    .filter(option => !hidden.has(option.key) && !disabled.has(option.key))
+    .map(option => option.key);
+}
+
+/**
  * Toggles (select/unselect) all provided options. If none/some of the options are
  * selected, then this function selects all of them. If all of the options are selected,
  * then this function unselects all of them.

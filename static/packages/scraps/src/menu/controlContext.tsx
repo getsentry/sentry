@@ -5,6 +5,25 @@ import type {FormSize} from '@sentry/scraps/theme';
 
 import type {SearchMatchResult, SelectKey, SelectOptionWithKey} from './selectTypes';
 
+/**
+ * A list inside the control that can act on the search query, so the control
+ * can handle Enter in its search input without reading the rendered options.
+ */
+export interface SearchSubmitTarget {
+  /**
+   * Moves focus to the option with this key.
+   */
+  focus: (key: SelectKey) => void;
+  /**
+   * Keys of the options that match `search` and can be selected, in display order.
+   */
+  getSelectableKeys: (search: string) => SelectKey[];
+  /**
+   * Selects the option with this key, as if it had been clicked.
+   */
+  select: (key: SelectKey) => void;
+}
+
 interface ControlContextValue {
   overlayIsOpen: boolean;
   /**
@@ -26,6 +45,11 @@ interface ControlContextValue {
    * selector.
    */
   overlayState?: OverlayTriggerState;
+  /**
+   * Registers a list to handle Enter in the search input. Returns an unregister
+   * function.
+   */
+  registerSearchSubmitTarget?: (target: SearchSubmitTarget) => () => void;
   /**
    * Custom function to determine whether an option matches the search query.
    */

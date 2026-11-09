@@ -1,12 +1,12 @@
 import type * as React from 'react';
-import {Fragment, useContext, useId, useMemo} from 'react';
+import {Fragment, useContext, useId, useLayoutEffect, useMemo, useRef} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import type {ListProps} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 
-import {ControlContext} from '@sentry/scraps/menu';
+import {ControlContext, type SearchSubmitTarget} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 
 import {GridList} from './gridList';
@@ -23,6 +23,7 @@ import {
   getDisabledOptions,
   getEscapedKey,
   getHiddenOptions,
+  getSelectableKeys,
   getSelectedOptions,
   getSortedItems,
   HiddenSectionToggle,
@@ -167,8 +168,14 @@ export function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
-    useContext(ControlContext);
+  const {
+    overlayState,
+    search,
+    searchable,
+    overlayIsOpen,
+    searchMatcher,
+    registerSearchSubmitTarget,
+  } = useContext(ControlContext);
 
   const hasSections = useMemo(() => items.some(item => 'options' in item), [items]);
   // Searchable flat menus can build their initial React Aria collection from only the
@@ -269,6 +276,48 @@ export function List<Value extends SelectKey>({
     ...listStateProps,
     items: collectionItems,
   });
+
+  // Let the control handle Enter in its search input. It calls these with the
+  // typed query, which can be ahead of `search` while filtering runs in a transition,
+  // so they work from props rather than the rendered (possibly stale) collection.
+  const searchSubmitTarget = useRef<SearchSubmitTarget>(null);
+  useLayoutEffect(() => {
+    searchSubmitTarget.current = {
+      getSelectableKeys: query =>
+        getSelectableKeys(items, query, isOptionDisabled, searchMatcher),
+      select: key => {
+        // Same selection a click on the option would make
+        const next = new Set(listState.selectionManager.selectedKeys);
+        if (multiple) {
+          if (next.has(key)) {
+            next.delete(key);
+          } else {
+            next.add(key);
+          }
+        } else if (clearable && next.has(key)) {
+          next.clear();
+        } else {
+          next.clear();
+          next.add(key);
+        }
+        listStateProps.onSelectionChange?.(next);
+      },
+      focus: key => {
+        listState.selectionManager.setFocused(true);
+        listState.selectionManager.setFocusedKey(key);
+      },
+    };
+  });
+  useLayoutEffect(
+    () =>
+      registerSearchSubmitTarget?.({
+        getSelectableKeys: query =>
+          searchSubmitTarget.current?.getSelectableKeys(query) ?? [],
+        select: key => searchSubmitTarget.current?.select(key),
+        focus: key => searchSubmitTarget.current?.focus(key),
+      }),
+    [registerSearchSubmitTarget]
+  );
 
   // In composite selects, focus should seamlessly move from one region (list) to
   // another when the ArrowUp/Down key is pressed

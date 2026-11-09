@@ -3,7 +3,7 @@ import {Fragment, useRef, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {act, render, screen, waitFor, within} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
@@ -594,6 +594,44 @@ describe('CompactSelect', () => {
       expect(screen.queryByPlaceholderText('Search here…')).not.toBeInTheDocument();
     });
 
+    it('selects the only match when Enter is pressed before filtering commits', async () => {
+      function Component() {
+        const [value, setValue] = useState<string>();
+
+        return (
+          <CompactSelect
+            search
+            options={[
+              {value: 'opt_one', label: 'Option One'},
+              {value: 'opt_two', label: 'Option Two'},
+              {value: 'opt_three', label: 'Option Three'},
+            ]}
+            value={value}
+            onChange={option => setValue(option.value)}
+          />
+        );
+      }
+
+      render(<Component />, {wrapper: ThemeWrapper});
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      // Matches "Option Two" and "Option Three"
+      await userEvent.type(searchInput, 'Option T');
+
+      // Narrow to a single match and press Enter in the same act, so the
+      // filter transition hasn't committed when Enter is handled.
+      act(() => {
+        fireEvent.change(searchInput, {target: {value: 'Option Tw'}});
+        fireEvent.keyDown(searchInput, {key: 'Enter'});
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Option Two'})).toBeInTheDocument();
+      });
+      expect(screen.queryByPlaceholderText('Search…')).not.toBeInTheDocument();
+    });
+
     it('moves focus to the option list when Enter is pressed with multiple matches', async () => {
       render(
         <CompactSelect
@@ -682,31 +720,6 @@ describe('CompactSelect', () => {
       await userEvent.keyboard('{Enter}');
 
       expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
-      expect(onChange).not.toHaveBeenCalled();
-    });
-
-    it('does not auto-select based on the rendered virtualized options', async () => {
-      const onChange = jest.fn();
-      render(
-        <CompactSelect
-          search
-          virtualizeThreshold={1}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
-          value={undefined}
-          onChange={onChange}
-        />,
-        {wrapper: ThemeWrapper}
-      );
-
-      await userEvent.click(screen.getByRole('button'));
-      const searchInput = screen.getByPlaceholderText('Search…');
-      await waitFor(() => expect(searchInput).toHaveFocus());
-      await userEvent.keyboard('{Enter}');
-
-      expect(screen.getByRole('listbox')).toHaveFocus();
       expect(onChange).not.toHaveBeenCalled();
     });
 
@@ -2034,6 +2047,37 @@ describe('CompactSelect', () => {
         label: `${section} ${i}`,
       })),
     }));
+
+    it.each([
+      ['list box', undefined, 'option'],
+      ['grid', 'grid', 'row'],
+    ] as const)(
+      'moves focus to the first match of a %s when Enter is pressed with several matches',
+      async (_, mode, optionRole) => {
+        const onChange = jest.fn();
+        render(
+          <CompactSelect
+            search
+            mode={mode}
+            menuWidth={300}
+            options={sections}
+            value={undefined}
+            onChange={onChange}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+        const searchInput = screen.getByPlaceholderText('Search…');
+        await waitFor(() => expect(searchInput).toHaveFocus());
+        await userEvent.keyboard('{Enter}');
+
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus()
+        );
+        expect(onChange).not.toHaveBeenCalled();
+      }
+    );
 
     it.each([
       ['list box', undefined, 'group', 'option'],
