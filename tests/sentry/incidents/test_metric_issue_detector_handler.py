@@ -290,7 +290,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             detector_trigger=self.critical_detector_trigger,
             priority=self.critical_detector_trigger.condition_result,
         )
-        assert title == "Detected an anomaly in the query for Number of errors"
+        assert title == "Detected an anomaly in the query for number of errors"
 
         self.snuba_query.aggregate = "p95(transaction.duration)"
         title = self.handler.construct_title(
@@ -304,12 +304,12 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         self.detector.config.update({"detection_type": "dynamic"})
         self.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
         for event_type, aggregate, expected in (
-            (SnubaQueryEventType.EventType.TRACE_ITEM_LOG, "count(message)", "Number of logs"),
-            (SnubaQueryEventType.EventType.TRACE_ITEM_LOG, "count()", "Number of logs"),
+            (SnubaQueryEventType.EventType.TRACE_ITEM_LOG, "count(message)", "number of logs"),
+            (SnubaQueryEventType.EventType.TRACE_ITEM_LOG, "count()", "number of logs"),
             (
                 SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
                 "count(span.duration)",
-                "Number of spans",
+                "number of spans",
             ),
             (
                 SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
@@ -333,6 +333,9 @@ class TestConstructTitle(TestEvaluateMetricDetector):
 
     def test_title_transactions(self) -> None:
         self.snuba_query.dataset = Dataset.Transactions.value
+        self.snuba_query.snubaqueryeventtype_set.update(
+            type=SnubaQueryEventType.EventType.TRANSACTION.value
+        )
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
             detector_trigger=self.critical_detector_trigger,

@@ -42,12 +42,13 @@ logger = logging.getLogger(__name__)
 COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
 COMPARISON_DELTA_CHOICES.append(None)
 
+# Lowercase so they read correctly mid-sentence; titles capitalize them where they lead.
 QUERY_AGGREGATION_DISPLAY = {
-    "count_unique(tags[sentry:user])": "Number of users affected",
-    "percentage(sessions_crashed, sessions)": "Crash free session rate",
-    "percentage(users_crashed, users)": "Crash free user rate",
-    "failure_rate()": "Failure rate",
-    "apdex()": "Apdex score",
+    "count_unique(tags[sentry:user])": "number of users affected",
+    "percentage(sessions_crashed, sessions)": "crash free session rate",
+    "percentage(users_crashed, users)": "crash free user rate",
+    "failure_rate()": "failure rate",
+    "apdex()": "apdex score",
 }
 
 
@@ -168,21 +169,23 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
     ) -> str:
         comparison_delta = self.detector.config.get("comparison_delta")
         detection_type = self.detector.config.get("detection_type")
-        agg_display_key = snuba_query.aggregate
+        agg_display_key = snuba_query.aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[
+            0
+        ].strip()
 
+        display_name: str | None = None
         if is_mri_field(agg_display_key):
             aggregate = format_mri_field(agg_display_key)
         elif is_equation(agg_display_key):
             aggregate = strip_equation(agg_display_key)
-        elif CRASH_RATE_ALERT_AGGREGATE_ALIAS in agg_display_key:
-            agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[
-                0
-            ].strip()
-            aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
-        elif counted_noun := get_counted_noun(snuba_query, agg_display_key):
-            aggregate = f"Number of {counted_noun}"
         else:
-            aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
+            counted_noun = get_counted_noun(snuba_query, agg_display_key)
+            display_name = (
+                f"number of {counted_noun}"
+                if counted_noun
+                else QUERY_AGGREGATION_DISPLAY.get(agg_display_key)
+            )
+            aggregate = display_name or agg_display_key
 
         if detection_type == "dynamic":
             return f"Detected an anomaly in the query for {aggregate}"
@@ -212,7 +215,8 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         template = "{label}: {metric} in the last {time_window} {higher_or_lower} {comparison}"
         return template.format(
             label=label.capitalize(),
-            metric=aggregate,
+            # Raw aggregates such as p95(span.duration) keep their case.
+            metric=aggregate[0].upper() + aggregate[1:] if display_name else aggregate,
             higher_or_lower=higher_or_lower,
             comparison=comparison,
             time_window=time_window,

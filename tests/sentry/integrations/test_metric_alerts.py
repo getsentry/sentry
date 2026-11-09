@@ -48,35 +48,46 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
         )
 
     def test_names_what_a_count_counts(self) -> None:
-        for dataset, event_type, aggregate, expected in (
-            (Dataset.Events, SnubaQueryEventType.EventType.ERROR, "count()", "14 errors"),
+        for dataset, event_types, aggregate, expected in (
+            (
+                Dataset.Events,
+                [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
+                "count()",
+                "14 errors",
+            ),
             (
                 Dataset.Transactions,
-                SnubaQueryEventType.EventType.TRANSACTION,
+                [SnubaQueryEventType.EventType.TRANSACTION],
                 "count()",
                 "14 transactions",
             ),
             (
                 Dataset.EventsAnalyticsPlatform,
-                SnubaQueryEventType.EventType.TRACE_ITEM_LOG,
+                [SnubaQueryEventType.EventType.TRACE_ITEM_LOG],
                 "count(message)",
                 "14 logs",
             ),
             (
                 Dataset.EventsAnalyticsPlatform,
-                SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
+                [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
                 "count(span.duration)",
                 "14 spans",
             ),
             (
                 Dataset.EventsAnalyticsPlatform,
-                SnubaQueryEventType.EventType.TRACE_ITEM_METRIC,
+                [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
+                "count(span.op)",
+                "14 count(span.op)",
+            ),
+            (
+                Dataset.EventsAnalyticsPlatform,
+                [SnubaQueryEventType.EventType.TRACE_ITEM_METRIC],
                 "count(value,metric_name,counter,-)",
                 "14 count(value,metric_name,counter,-)",
             ),
         ):
             alert_rule = self.create_alert_rule(
-                dataset=dataset, event_types=[event_type], aggregate=aggregate
+                dataset=dataset, event_types=event_types, aggregate=aggregate
             )
             assert (
                 get_incident_status_text(

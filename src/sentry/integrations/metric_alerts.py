@@ -17,7 +17,6 @@ from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils.assets import get_asset_url
@@ -32,30 +31,34 @@ QUERY_AGGREGATION_DISPLAY = {
     "failure_rate()": "% failure rate",
 }
 
-_TRANSACTION_DATASETS = {Dataset.Transactions.value, Dataset.PerformanceMetrics.value}
+_EventType = SnubaQueryEventType.EventType
+
+# What one item of each event type is called, and an attribute every item of that type has,
+# so that `count(<attribute>)` counts all items just like `count()`. Error monitors query
+# ERROR and DEFAULT together, and the product calls both "errors".
+_COUNTED_ITEMS: dict[_EventType, tuple[str, str | None]] = {
+    _EventType.ERROR: ("errors", None),
+    _EventType.DEFAULT: ("errors", None),
+    _EventType.TRANSACTION: ("transactions", None),
+    _EventType.TRACE_ITEM_SPAN: ("spans", "span.duration"),
+    _EventType.TRACE_ITEM_LOG: ("logs", "message"),
+}
 
 
 def get_counted_noun(snuba_query: SnubaQuery, aggregate: str) -> str | None:
     """
-    Plural noun for what a count aggregate counts on this query's dataset, e.g. "errors"
-    or "logs". `count()` alone can't say, and EAP queries are only told apart by their
-    event types.
+    Plural noun for what a count aggregate counts, e.g. "errors" or "logs", based on the
+    query's event types. None when the aggregate doesn't count whole items.
     """
-    if snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value:
-        event_types = snuba_query.event_types
-        if SnubaQueryEventType.EventType.TRACE_ITEM_LOG in event_types:
-            return "logs" if aggregate in ("count()", "count(message)") else None
-        if SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
-            return None
-        return "spans" if aggregate in ("count()", "count(span.duration)") else None
+    items = {_COUNTED_ITEMS.get(event_type) for event_type in snuba_query.event_types}
+    item = items.pop() if len(items) == 1 else None
+    if item is None:
+        return "events" if aggregate == "count()" else None
 
-    if aggregate != "count()":
-        return None
-    if snuba_query.dataset == Dataset.Events.value:
-        return "errors"
-    if snuba_query.dataset in _TRANSACTION_DATASETS:
-        return "transactions"
-    return "events"
+    noun, always_present = item
+    if aggregate == "count()" or (always_present and aggregate == f"count({always_present})"):
+        return noun
+    return None
 
 
 # These should be the same as the options in the frontend
