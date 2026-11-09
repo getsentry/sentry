@@ -53,8 +53,11 @@ interface InputSectionProps {
   notice?: React.ReactNode;
   questionActions?: QuestionActions;
   runId?: SeerExplorerRunId | null;
-  /** Shown next to the send button, for example the organization's credit usage. */
-  usageMeter?: React.ReactNode;
+  /**
+   * Shown in the toolbar under the editor, before the send or interrupt button.
+   * The chat puts the organization's credit usage here.
+   */
+  toolbarItems?: React.ReactNode;
 }
 
 export function InputSection({
@@ -75,7 +78,7 @@ export function InputSection({
   questionActions,
   runId,
   isSingleRun,
-  usageMeter,
+  toolbarItems,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
   // Autofix single runs and ask-seer-create-pr runs open PRs, so show links to them.
@@ -301,7 +304,7 @@ export function InputSection({
             background="primary"
             radius="0 0 lg lg"
           >
-            {usageMeter}
+            {toolbarItems}
             {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
               <Button
                 icon={<IconPause />}

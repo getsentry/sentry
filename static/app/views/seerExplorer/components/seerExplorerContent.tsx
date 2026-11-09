@@ -948,7 +948,7 @@ export function SeerExplorerContent({
               </Container>
             ) : undefined
           }
-          usageMeter={<SeerCreditUsageMeter hasEnoughCredits={hasEnoughCredits} />}
+          toolbarItems={<SeerCreditUsageMeter hasEnoughCredits={hasEnoughCredits} />}
           interruptState={interruptState}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}

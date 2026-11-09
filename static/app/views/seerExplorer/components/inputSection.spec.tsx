@@ -107,35 +107,37 @@ describe('InputSection', () => {
     expect(screen.queryByText('Out of credits')).not.toBeInTheDocument();
   });
 
-  it('shows the usage meter between the composer and the send button', () => {
-    render(<InputSection {...makeProps({usageMeter: 'Credit usage'})} />);
+  it('shows toolbar items between the composer and the send button', () => {
+    render(<InputSection {...makeProps({toolbarItems: 'Toolbar item'})} />);
 
-    const meter = screen.getByText('Credit usage');
+    const item = screen.getByText('Toolbar item');
     expect(
-      screen.getByTestId('seer-explorer-input').compareDocumentPosition(meter) &
+      screen.getByTestId('seer-explorer-input').compareDocumentPosition(item) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(
-      meter.compareDocumentPosition(screen.getByRole('button', {name: 'Send message'})) &
+      item.compareDocumentPosition(screen.getByRole('button', {name: 'Send message'})) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
   });
 
-  it('keeps the usage meter while Seer is responding', () => {
+  it('keeps toolbar items while Seer is responding', () => {
     render(
       <InputSection
-        {...makeProps({usageMeter: 'Credit usage', interruptState: 'can-interrupt'})}
+        {...makeProps({toolbarItems: 'Toolbar item', interruptState: 'can-interrupt'})}
       />
     );
 
-    expect(screen.getByText('Credit usage')).toBeInTheDocument();
+    expect(screen.getByText('Toolbar item')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Interrupt button'})).toBeInTheDocument();
   });
 
-  it('leaves the usage meter out of a read-only conversation', () => {
-    render(<InputSection {...makeProps({usageMeter: 'Credit usage', enabled: false})} />);
+  it('leaves toolbar items out of a read-only conversation', () => {
+    render(
+      <InputSection {...makeProps({toolbarItems: 'Toolbar item', enabled: false})} />
+    );
 
-    expect(screen.queryByText('Credit usage')).not.toBeInTheDocument();
+    expect(screen.queryByText('Toolbar item')).not.toBeInTheDocument();
   });
 
   describe('with ask-seer-create-pr', () => {
