@@ -15,11 +15,12 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
-import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+import {ArtifactCard} from './artifactCard';
+import {artifactToMarkdown} from './utils';
 
 interface PullRequestsCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;

@@ -2,30 +2,31 @@ from __future__ import annotations
 
 import contextlib
 from collections import defaultdict
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
+from datetime import datetime
 from typing import Any
 
 from django.utils import timezone
 
 from sentry.users.models.user import User
 
-from .base import Newsletter
+from .base import Newsletter, SubscriptionRecord
 
 
 class NewsletterSubscription:
     def __init__(
         self,
-        user,
-        list_id,
-        list_name=None,
-        list_description=None,
-        email=None,
-        verified=None,
-        subscribed=False,
-        subscribed_date=None,
-        unsubscribed_date=None,
-        **kwargs,
-    ):
+        user: User,
+        list_id: int,
+        list_name: str | None = None,
+        list_description: str | None = None,
+        email: str | None = None,
+        verified: bool | None = None,
+        subscribed: bool = False,
+        subscribed_date: datetime | None = None,
+        unsubscribed_date: datetime | None = None,
+        **kwargs: object,
+    ) -> None:
         from sentry.users.models.useremail import UserEmail
 
         self.email = user.email or email
@@ -38,20 +39,27 @@ class NewsletterSubscription:
         )
         # are they subscribed to ``list_id``
         self.subscribed = subscribed
+        self.subscribed_date: datetime | None = None
+        self.unsubscribed_date: datetime | None = None
         if subscribed:
             self.subscribed_date = subscribed_date or timezone.now()
         elif subscribed is False:
             self.unsubscribed_date = unsubscribed_date or timezone.now()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> object:
         return getattr(self, key)
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: object = None) -> object:
         return getattr(self, key, default)
 
     def update(
-        self, verified=None, subscribed=None, subscribed_date=None, unsubscribed_date=None, **kwargs
-    ):
+        self,
+        verified: bool | None = None,
+        subscribed: bool | None = None,
+        subscribed_date: datetime | None = None,
+        unsubscribed_date: datetime | None = None,
+        **kwargs: object,
+    ) -> None:
         if verified is not None:
             self.verified = verified
         if subscribed is not None:
@@ -84,13 +92,13 @@ class DummyNewsletter(Newsletter):
         finally:
             self._enabled = False
 
-    def clear(self):
+    def clear(self) -> None:
         self._subscriptions = defaultdict(dict)
 
-    def is_enabled(self):
+    def is_enabled(self) -> bool:
         return self._enabled
 
-    def get_subscriptions(self, user: User):
+    def get_subscriptions(self, user: User) -> Mapping[str, Sequence[SubscriptionRecord]]:
         return {"subscriptions": list((self._subscriptions.get(user) or {}).values())}
 
     def update_subscription(
@@ -117,7 +125,7 @@ class DummyNewsletter(Newsletter):
         list_ids: Sequence[int] | None = None,
         create: bool | None = False,
         **kwargs: Any,
-    ):
+    ) -> dict[int, NewsletterSubscription]:
         if not list_ids:
             list_ids = self.get_default_list_ids()
 

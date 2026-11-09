@@ -3,11 +3,6 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {
-  eventHasSyntheticTrace,
-  isWebVitalsEvent,
-  TRACE_WATERFALL_PREFERENCES_KEY,
-} from 'sentry/components/events/interfaces/performance/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {LazyRender} from 'sentry/components/lazyRender';
@@ -33,6 +28,11 @@ import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTrac
 import {useTraceStateAnalytics} from 'sentry/views/performance/traceDetails/useTraceStateAnalytics';
 
 import {TraceLinkedIssues} from './traceLinkedIssues';
+import {
+  eventHasSyntheticTrace,
+  isWebVitalsEvent,
+  TRACE_WATERFALL_PREFERENCES_KEY,
+} from './utils';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {

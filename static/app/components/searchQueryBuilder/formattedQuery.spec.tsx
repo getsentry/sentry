@@ -2,11 +2,10 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {triggerResizeObservers} from 'sentry-test/resizeObserver';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {
-  FormattedQuery,
-  type FormattedQueryProps,
-} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {TagCollection} from 'sentry/types/group';
+import {getFieldDefinition} from 'sentry/utils/fields';
+
+import {FormattedQuery, type FormattedQueryProps} from './formattedQuery';
 
 const FILTER_KEYS: TagCollection = {
   lastSeen: {
@@ -41,6 +40,19 @@ describe('FormattedQuery', () => {
     render(<FormattedQuery {...defaultProps} query="count():>1" />);
 
     expect(screen.getByText(textWithMarkupMatcher('count() > 1'))).toBeInTheDocument();
+  });
+
+  it('renders aggregate size filters when only the argument has a size definition', () => {
+    render(
+      <FormattedQuery
+        query="avg(http.response_content_length):>1kb"
+        fieldDefinitionGetter={key => getFieldDefinition(key, 'span')}
+      />
+    );
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('avg(http.response_content_length) > 1kb'))
+    ).toBeInTheDocument();
   });
 
   it('renders filters with multiple values correctly', () => {

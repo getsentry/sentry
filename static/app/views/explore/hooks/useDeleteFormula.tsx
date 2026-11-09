@@ -3,7 +3,8 @@ import {useMutation} from '@tanstack/react-query';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useInvalidateSavedFormulas} from 'sentry/views/explore/hooks/useGetSavedFormulas';
+
+import {useInvalidateSavedFormulas} from './useGetSavedFormulas';
 
 export function useDeleteFormula() {
   const organization = useOrganization();

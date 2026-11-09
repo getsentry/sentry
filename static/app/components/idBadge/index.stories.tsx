@@ -69,7 +69,6 @@ export default Storybook.story('IdBadge', story => {
       expired: false,
       id: '0',
       inviteStatus: 'approved',
-      invite_link: null,
       inviterName: null,
       isOnlyOwner: false,
       name: user.name,

@@ -158,3 +158,29 @@ class OAuthDeviceAuthorizationTest(TestCase):
         assert resp.status_code == 200
         data = json.loads(resp.content)
         assert "device_code" in data
+
+    def test_login_hint_is_stored(self) -> None:
+        resp = self.client.post(
+            self.path,
+            {"client_id": self.application.client_id, "login_hint": " user@example.com "},
+        )
+        assert resp.status_code == 200
+        device_code = ApiDeviceCode.objects.get(device_code=json.loads(resp.content)["device_code"])
+        assert device_code.login_hint == "user@example.com"
+
+    def test_blank_login_hint_is_ignored(self) -> None:
+        resp = self.client.post(
+            self.path, {"client_id": self.application.client_id, "login_hint": "  "}
+        )
+        assert resp.status_code == 200
+        device_code = ApiDeviceCode.objects.get(device_code=json.loads(resp.content)["device_code"])
+        assert device_code.login_hint is None
+
+    def test_login_hint_too_long(self) -> None:
+        resp = self.client.post(
+            self.path,
+            {"client_id": self.application.client_id, "login_hint": f"{'a' * 200}@example.com"},
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content)["error"] == "invalid_request"
+        assert not ApiDeviceCode.objects.filter(application=self.application).exists()

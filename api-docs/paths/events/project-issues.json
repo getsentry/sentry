@@ -291,14 +291,85 @@
               "required": ["isPublic", "status", "statusDetails"],
               "properties": {
                 "isPublic": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "description": "Whether the issues are shared publicly."
                 },
                 "status": {
                   "type": "string",
+                  "description": "The new status of the issues.",
                   "enum": ["resolved", "unresolved", "ignored"]
                 },
                 "statusDetails": {
-                  "type": "object"
+                  "type": "object",
+                  "description": "Details of the new status, such as the release that resolves the issues or when an ignore expires. Empty when the new status has no details.",
+                  "properties": {
+                    "ignoreCount": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Number of additional events after which the issues stop being ignored."
+                    },
+                    "ignoreUntil": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "description": "When the issues stop being ignored."
+                    },
+                    "ignoreUserCount": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Number of additional affected users after which the issues stop being ignored."
+                    },
+                    "ignoreUserWindow": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Time window in minutes for ignoreUserCount."
+                    },
+                    "ignoreWindow": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Time window in minutes for ignoreCount."
+                    },
+                    "ignoreUntilEscalating": {
+                      "type": "boolean",
+                      "description": "Whether the issues stay ignored until they escalate."
+                    },
+                    "actor": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "User who ignored or resolved the issues.",
+                      "properties": {
+                        "id": { "type": "string", "description": "ID of the user." },
+                        "name": { "type": "string", "description": "Name of the user." },
+                        "username": { "type": "string", "description": "Username of the user." },
+                        "email": { "type": "string", "description": "Email address of the user." }
+                      }
+                    },
+                    "inNextRelease": {
+                      "type": "boolean",
+                      "description": "Whether the issues are resolved in the next release."
+                    },
+                    "inRelease": {
+                      "type": "string",
+                      "description": "Version of the release the issues are resolved in."
+                    },
+                    "inCommit": {
+                      "type": "object",
+                      "description": "Commit the issues are resolved in.",
+                      "properties": {
+                        "id": { "type": "string", "description": "Commit SHA." },
+                        "message": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Commit message."
+                        },
+                        "dateCreated": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "When the commit was made."
+                        }
+                      }
+                    }
+                  }
                 }
               }
             },

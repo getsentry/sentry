@@ -9,13 +9,14 @@ import type {
   RawFeedback,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
 import * as Storybook from 'sentry/stories';
 import type {User} from 'sentry/types/user';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+
+import {CodeChangesCard} from './codeChangesCard';
 
 // The Feedback section is gated behind this feature flag; the wrapper below
 // injects it so every example renders it.
@@ -100,15 +101,33 @@ function makeFeedbackBlock(
   };
 }
 
+/**
+ * The agent's closing reply. The card shows the last one when a step ends
+ * without a diff.
+ */
+function makeAssistantBlock(
+  id: string,
+  content: string
+): AutofixSection['blocks'][number] {
+  return {
+    id,
+    timestamp: '2026-07-20T00:00:00Z',
+    message: {role: 'assistant', content},
+  };
+}
+
 function makeSection(
   status: AutofixSection['status'],
-  blocks: AutofixSection['blocks']
+  blocks: AutofixSection['blocks'],
+  artifacts: AutofixSection['artifacts'] = [
+    [makePatch('org/repo', 'src/handlers/user.py')],
+  ]
 ): AutofixSection {
   return {
     step: 'code_changes',
     status,
     blocks,
-    artifacts: [[makePatch('org/repo', 'src/handlers/user.py')]],
+    artifacts,
   };
 }
 
@@ -133,7 +152,7 @@ function makeAutofix(
     isPolling: false,
     isProcessing: false,
     // Async no-ops — none of these are invoked by the static examples below.
-    startStep: () => Promise.resolve(0),
+    startStep: () => Promise.resolve({runId: 0, isSingleRun: false}),
     createPR: () => Promise.resolve(),
     reset: noop,
     triggerCodingAgentHandoff: () => Promise.resolve(),
@@ -363,6 +382,73 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
           ])}
         />
       </FeatureWrapper>
+    );
+  });
+
+  story('PR iteration without a code change', () => {
+    return (
+      <Stack gap="xl">
+        <Text size="sm" variant="muted">
+          Seer can finish a PR iteration on purpose without changing the code, for example
+          when the failing check has nothing to do with the PR. The card then shows only
+          the agent's reply. It doesn't say the fix failed, and there's no{' '}
+          <code>Add context & retry</code> button. The header reset icon still opens the
+          PR iteration form.
+        </Text>
+
+        <StatusExample label="No change after PR iteration: the latest step is a PR iteration with no diff, so only the agent's reply shows.">
+          <FeatureWrapper>
+            <CodeChangesCard
+              groupId="1"
+              autofix={makeAutofix([], {
+                repo_pr_states: {
+                  'org/repo': {
+                    repo_name: 'org/repo',
+                    branch_name: 'seer/fix-null-user',
+                    commit_sha: 'abc1234',
+                    pr_number: 42,
+                    pr_id: 42,
+                    pr_url: 'https://github.com/org/repo/pull/42',
+                    title: 'Guard against a null user',
+                    pr_creation_status: 'completed',
+                    pr_creation_error: null,
+                  },
+                },
+              })}
+              section={makeSection(
+                'completed',
+                [
+                  makeFeedbackBlock(0, checkSuiteFeedback()),
+                  makeAssistantBlock(
+                    'block-reply-0',
+                    "I looked into the failing `CI` check. It fails in `tests/test_billing.py::test_invoice_rounding`, which this PR doesn't touch, and the same test fails on `main`. So I left the code as it is."
+                  ),
+                ],
+                []
+              )}
+            />
+          </FeatureWrapper>
+        </StatusExample>
+
+        <StatusExample label="For comparison, no diff from the code changes step: Seer meant to change the code and couldn't, so the card offers a retry.">
+          <FeatureWrapper>
+            <CodeChangesCard
+              groupId="1"
+              autofix={makeAutofix()}
+              section={makeSection(
+                'completed',
+                [
+                  makeAssistantBlock(
+                    'block-reply-0',
+                    "The fix belongs in `src/handlers/user.py`, but that file isn't in any repository connected to this project."
+                  ),
+                ],
+                []
+              )}
+            />
+          </FeatureWrapper>
+        </StatusExample>
+      </Stack>
     );
   });
 

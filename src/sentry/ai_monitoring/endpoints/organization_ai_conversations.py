@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
 
-from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
+from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS, AI_CONVERSATIONS_SORT_FIELDS
 from sentry.ai_monitoring.conversation_aggregates import (
     CONVERSATION_AGGREGATE_COLUMNS,
     AIConversationAggregates,
@@ -39,7 +39,9 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -57,28 +59,36 @@ type QueryRow = Mapping[str, Any]
 
 
 class UserResponse(TypedDict):
-    id: str | None
-    email: str | None
-    username: str | None
-    ip_address: str | None
+    id: Annotated[str | None, ApiDescription("ID of the user who started the conversation")]
+    email: Annotated[str | None, ApiDescription("Email of the user")]
+    username: Annotated[str | None, ApiDescription("Username of the user")]
+    ip_address: Annotated[str | None, ApiDescription("IP address of the user")]
 
 
 class AIConversationData(AIConversationAggregates):
-    conversationId: str
-    timeSpan: float
-    title: str | None
-    projectId: int | None
-    flow: list[str]
-    traceCount: int
-    traceIds: list[str]
-    firstInput: str | None
-    lastOutput: str | None
-    user: UserResponse | None
+    conversationId: Annotated[str, ApiDescription("ID of the conversation")]
+    timeSpan: Annotated[
+        float, ApiDescription("Elapsed time between the first and last AI spans in milliseconds")
+    ]
+    title: Annotated[
+        str | None, ApiDescription("Stored title of the conversation. Null when it has none yet")
+    ]
+    projectId: Annotated[
+        int | None, ApiDescription("ID of the project the conversation belongs to")
+    ]
+    flow: Annotated[list[str], ApiDescription("Names of the agents in the conversation")]
+    traceCount: Annotated[int, ApiDescription("Number of traces in the conversation")]
+    traceIds: Annotated[list[str], ApiDescription("IDs of the traces in the conversation")]
+    firstInput: Annotated[str | None, ApiDescription("First input message of the conversation")]
+    lastOutput: Annotated[str | None, ApiDescription("Last output message of the conversation")]
+    user: Annotated[UserResponse | None, ApiDescription("User who started the conversation")]
 
 
 class AIConversationResponse(AIConversationData):
-    projects: list[ConversationProject]
-    webUrl: str
+    projects: Annotated[
+        list[ConversationProject], ApiDescription("Projects the conversation's spans belong to")
+    ]
+    webUrl: Annotated[Url, ApiDescription("URL of the conversation in Sentry")]
 
 
 AI_CONVERSATIONS_QUERY_PARAM = OpenApiParameter(
@@ -90,6 +100,18 @@ AI_CONVERSATIONS_QUERY_PARAM = OpenApiParameter(
         "Sentry search syntax matched against spans. A conversation is returned when any "
         "span in it matches. Summary fields include all spans in selected projects and time "
         "range, not only matching spans."
+    ),
+)
+
+AI_CONVERSATIONS_SORT_PARAM = OpenApiParameter(
+    name="sort",
+    location="query",
+    required=False,
+    type=str,
+    enum=[sort for field in AI_CONVERSATIONS_SORT_FIELDS for sort in (field, f"-{field}")],
+    description=(
+        "The field to sort conversations by. Prefix it with `-` to sort in descending order. "
+        "Defaults to `-conversation.age`, most recent first."
     ),
 )
 
@@ -131,7 +153,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.AGENT_TRACING
 
     @extend_schema(
         operation_id="listOrganizationAIConversations",
@@ -144,6 +166,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.START,
             GlobalParams.END,
             AI_CONVERSATIONS_QUERY_PARAM,
+            AI_CONVERSATIONS_SORT_PARAM,
             CursorQueryParam,
             AI_CONVERSATIONS_PER_PAGE_PARAM,
         ],
@@ -273,13 +296,15 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         response: list[AIConversationResponse] = []
         for conversation in conversations:
             project_id = conversation["projectId"]
-            project = projects_by_id.get(project_id)
+            project = projects_by_id.get(project_id) if project_id is not None else None
             response.append(
                 {
                     **conversation,
                     "projects": [serialize_conversation_project(project)] if project else [],
-                    "webUrl": get_conversation_url(
-                        organization, conversation["conversationId"], project_id
+                    "webUrl": absolute_url(
+                        get_conversation_url(
+                            organization, conversation["conversationId"], project_id
+                        )
                     ),
                 }
             )

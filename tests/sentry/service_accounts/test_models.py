@@ -18,6 +18,7 @@ from sentry.service_accounts.models import (
     ServiceAccountProject,
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
+    ServiceAccountToken,
     validate_grantable_scopes,
 )
 from sentry.service_accounts.services.service_account import service_account_service
@@ -169,16 +170,18 @@ class ServiceAccountReplicationTest(TestCase):
         assert replica.name == "seer-autofix"
         assert replica.scope_list == ["org:read", "project:read"]
         assert replica.is_active
+        assert not replica.all_projects
         assert self.get_replica_project_ids() == {project.id for project in self.projects}
 
     def test_update_replicates(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            self.service_account.update(is_active=False, scope_list=["org:read"])
+            self.service_account.update(is_active=False, scope_list=["org:read"], all_projects=True)
 
         replica = self.get_replica()
         assert replica is not None
         assert not replica.is_active
         assert replica.scope_list == ["org:read"]
+        assert replica.all_projects
 
     def test_project_link_changes_replicate(self) -> None:
         new_project = self.create_project(organization=self.organization)
@@ -333,3 +336,37 @@ class ServiceAccountReplicationTest(TestCase):
 
         assert self.get_replica() is None
         assert self.get_replica_project_ids() == set()
+
+
+@control_silo_test
+class ServiceAccountTokenTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.service_account = ServiceAccount.objects.create(
+            organization_id=self.organization.id,
+            name="ci",
+            scope_list=["org:read", "project:read"],
+        )
+
+    def build_token(self, **kwargs: object) -> ServiceAccountToken:
+        return ServiceAccountToken(
+            service_account=self.service_account,
+            organization_id=self.organization.id,
+            name="deploys",
+            token_hashed="hashed-token",
+            token_last_characters="abcd",
+            **kwargs,
+        )
+
+    def test_scope_list_rejects_non_grantable_scope(self) -> None:
+        token = self.build_token(scope_list=["project:read", "openid"])
+        with pytest.raises(ValidationError) as excinfo:
+            token.full_clean()
+        assert "scope_list" in excinfo.value.message_dict
+
+    def test_repr_omits_token_hash(self) -> None:
+        token = self.build_token(scope_list=["project:read"])
+        token.save()
+
+        assert "hashed-token" not in repr(token)

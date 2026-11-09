@@ -1,39 +1,22 @@
-import hashlib
-import json  # noqa: S003
 import logging
 from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
-from django.core import signing
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
 
-from sentry import features
 from sentry.ai_monitoring.conversation_aggregates import (
     CONVERSATION_AGGREGATE_COLUMNS,
     AIConversationAggregates,
     parse_conversation_aggregates,
 )
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
-from sentry.ai_monitoring.transcript.builder import (
-    TranscriptContextError,
-    TranscriptContextReadError,
-)
-from sentry.ai_monitoring.transcript.cursor import decode_cursor, encode_cursor
-from sentry.ai_monitoring.transcript.models import TranscriptMessageResponse
-from sentry.ai_monitoring.transcript.pagination import (
-    StreamPosition,
-    TranscriptPosition,
-    TranscriptWorkLimitError,
-    paginate_transcript,
-)
-from sentry.ai_monitoring.transcript.source import ConversationTranscriptSource
 from sentry.ai_monitoring.utils import (
     ConversationProject,
     get_conversation_url,
@@ -51,7 +34,9 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -64,7 +49,6 @@ from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import SpanIssueMeta, get_issues_by_span_for_traces
 from sentry.utils import metrics
-from sentry.utils.cursors import CursorResult, StringCursor
 from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
@@ -164,8 +148,6 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.request.model",
     "gen_ai.response.model",
     "gen_ai.agent.name",
-    # Distinguishes ingest sources; the transcript uses it to recognize Anthropic
-    # OTel conversations, whose messages live only on the invoke_agent span.
     "origin",
     "user.id",
     "user.email",
@@ -175,31 +157,39 @@ AI_CONVERSATION_ATTRIBUTES = [
 
 
 class AIConversationModelUsage(TypedDict):
-    model: str | None
-    llmCalls: int
-    inputTokens: int
-    outputTokens: int
-    totalTokens: int
-    cacheReadTokens: int
-    cacheWriteTokens: int
-    reasoningTokens: int
-    inputCost: float
-    outputCost: float
-    cacheReadCost: float
-    cacheWriteCost: float
-    reasoningCost: float
-    totalCost: float
+    model: Annotated[str | None, ApiDescription("Name of the model")]
+    llmCalls: Annotated[int, ApiDescription("Number of LLM calls to the model")]
+    inputTokens: Annotated[
+        int, ApiDescription("Number of input tokens, including cache-read and cache-write tokens")
+    ]
+    outputTokens: Annotated[int, ApiDescription("Number of output tokens")]
+    totalTokens: Annotated[int, ApiDescription("Total number of tokens")]
+    cacheReadTokens: Annotated[int, ApiDescription("Number of input tokens read from the cache")]
+    cacheWriteTokens: Annotated[int, ApiDescription("Number of input tokens written to the cache")]
+    reasoningTokens: Annotated[int, ApiDescription("Number of reasoning tokens")]
+    inputCost: Annotated[
+        float, ApiDescription("Cost of input tokens, including cache-read and cache-write costs")
+    ]
+    outputCost: Annotated[float, ApiDescription("Cost of output tokens, including reasoning cost")]
+    cacheReadCost: Annotated[float, ApiDescription("Cost of cache-read tokens")]
+    cacheWriteCost: Annotated[float, ApiDescription("Cost of cache-write tokens")]
+    reasoningCost: Annotated[float, ApiDescription("Cost of reasoning tokens")]
+    totalCost: Annotated[float, ApiDescription("Total cost")]
 
 
 class AIConversationStats(AIConversationAggregates):
-    cacheReadTokens: int
-    cacheWriteTokens: int
-    errorToolNames: list[str]
-    reasoningTokens: int
-    cacheReadCost: float
-    cacheWriteCost: float
-    reasoningCost: float
-    usageByModel: list[AIConversationModelUsage]
+    cacheReadTokens: Annotated[int, ApiDescription("Number of input tokens read from the cache")]
+    cacheWriteTokens: Annotated[int, ApiDescription("Number of input tokens written to the cache")]
+    errorToolNames: Annotated[
+        list[str], ApiDescription("Names of the tools used by spans with errors")
+    ]
+    reasoningTokens: Annotated[int, ApiDescription("Number of reasoning tokens")]
+    cacheReadCost: Annotated[float, ApiDescription("Cost of cache-read tokens")]
+    cacheWriteCost: Annotated[float, ApiDescription("Cost of cache-write tokens")]
+    reasoningCost: Annotated[float, ApiDescription("Cost of reasoning tokens")]
+    usageByModel: Annotated[
+        list[AIConversationModelUsage], ApiDescription("Token usage and cost per model")
+    ]
 
 
 class AIConversationQueryResult(TypedDict):
@@ -211,23 +201,22 @@ class AIConversationQueryResult(TypedDict):
 class AIConversationDetailsResponse(TypedDict):
     """Span page plus conversation-level metadata."""
 
-    conversationId: str
-    title: str | None
-    projects: list[ConversationProject]
-    webUrl: str
-    spans: list[dict[str, Any]]
-    stats: AIConversationStats | None
-
-
-class AIConversationTranscriptResponse(TypedDict):
-    conversationId: str
-    title: str | None
-    projects: list[ConversationProject]
-    webUrl: str
-    stats: AIConversationStats | None
-    transcript: list[TranscriptMessageResponse]
-    complete: bool
-    sourceSpanCount: int
+    conversationId: Annotated[str, ApiDescription("ID of the conversation")]
+    title: Annotated[
+        str | None, ApiDescription("Stored title of the conversation. Null when it has none yet")
+    ]
+    projects: Annotated[
+        list[ConversationProject], ApiDescription("Projects the conversation's spans belong to")
+    ]
+    webUrl: Annotated[Url, ApiDescription("URL of the conversation in Sentry")]
+    spans: Annotated[
+        list[dict[str, Any]],
+        ApiDescription("Spans recorded for the conversation, in start-time order"),
+    ]
+    stats: Annotated[
+        AIConversationStats | None,
+        ApiDescription("Aggregate stats for the conversation. Only returned on the first page"),
+    ]
 
 
 def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationStats:
@@ -322,7 +311,7 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
 @cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.AGENT_TRACING
 
     @extend_schema(
         operation_id="retrieveOrganizationAIConversation",
@@ -337,18 +326,10 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.END,
             CursorQueryParam,
             AI_CONVERSATION_DETAILS_PER_PAGE_PARAM,
-            OpenApiParameter(
-                name="view",
-                location="query",
-                type=str,
-                enum=["timeline", "transcript"],
-                description="Defaults to timeline (paginated raw spans). Transcript returns paginated normalized messages; requires feature access. Transcript timestamps and durations are seconds.",
-            ),
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "RetrieveOrganizationAIConversationResponse",
-                AIConversationDetailsResponse | AIConversationTranscriptResponse,
+                "RetrieveOrganizationAIConversationResponse", AIConversationDetailsResponse
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -359,11 +340,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     )
     def get(
         self, request: Request, organization: Organization, conversation_id: str
-    ) -> (
-        Response[AIConversationDetailsResponse | AIConversationTranscriptResponse]
-        | Response[DetailResponse]
-        | Response[None]
-    ):
+    ) -> Response[AIConversationDetailsResponse] | Response[DetailResponse] | Response[None]:
         """Return spans recorded for one AI conversation in start-time order.
 
         Message, tool, and response attributes contain their recorded string values.
@@ -375,20 +352,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         Stats are returned on the first page only. Without an explicit range, Sentry widens
         the search across available retention. A missing conversation returns an empty `spans` list.
         """
-        view = request.GET.get("view", "timeline")
-        if view not in ("timeline", "transcript"):
-            return Response(
-                DetailResponse(detail="view must be timeline or transcript"), status=400
-            )
-        if view == "transcript":
-            if not features.has(
-                "organizations:gen-ai-conversations-backend-transcript",
-                organization,
-                actor=request.user,
-            ):
-                return Response(
-                    DetailResponse(detail="Conversation transcript is not available"), status=404
-                )
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -411,39 +374,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 return Response(error, status=400)
 
         with handle_query_errors():
-            scope = hashlib.sha256(
-                json.dumps(
-                    {
-                        "organization": organization.id,
-                        "conversation": conversation_id,
-                        "projects": sorted(project.id for project in snuba_params.projects),
-                        "query": sorted(
-                            (key, sorted(values))
-                            for key, values in request.GET.lists()
-                            if key not in ("cursor", "per_page")
-                        ),
-                    },
-                    sort_keys=True,
-                ).encode()
-            ).hexdigest()
-            position = None
-            cursor = (
-                self.get_cursor_from_request(request, StringCursor)
-                if view == "transcript"
-                else None
-            )
-            if cursor is not None:
-                try:
-                    if cursor.is_prev or cursor.offset != 0 or not isinstance(cursor.value, str):
-                        raise ValueError("Invalid transcript pagination direction")
-                    start, end, position = decode_cursor(cursor.value, scope)
-                except (signing.BadSignature, ValueError, TypeError):
-                    return Response(
-                        DetailResponse(detail="Invalid or expired transcript pagination cursor"),
-                        status=400,
-                    )
-                resolved_params = replace(snuba_params, start=start, end=end)
-            elif has_explicit_range:
+            if has_explicit_range:
                 resolved_params = snuba_params
             else:
                 resolved_params = self._resolve_time_window(
@@ -457,13 +388,10 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
             def on_results(
                 query_result: AIConversationQueryResult,
-                *,
-                prepare: bool = True,
             ) -> AIConversationDetailsResponse:
                 spans = query_result["data"]
-                if prepare:
-                    self._repair_parent_links(spans, resolved_params, conversation_id)
-                    self._annotate_issues(spans, resolved_params, organization)
+                self._repair_parent_links(spans, resolved_params, conversation_id)
+                self._annotate_issues(spans, resolved_params, organization)
                 # Treat conversations as single-project for now. Multi-project conversations are
                 # an edge case, so this response exposes only one of their projects.
                 project_id = next(
@@ -471,92 +399,17 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     None,
                 )
                 projects_by_id = {project.id: project for project in resolved_params.projects}
-                project = projects_by_id.get(project_id)
+                project = projects_by_id.get(project_id) if project_id is not None else None
                 return {
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),
                     "projects": [serialize_conversation_project(project)] if project else [],
-                    "webUrl": get_conversation_url(organization, conversation_id, project_id),
+                    "webUrl": absolute_url(
+                        get_conversation_url(organization, conversation_id, project_id)
+                    ),
                     "spans": spans,
                     "stats": query_result["stats"],
                 }
-
-            if view == "transcript":
-                assert resolved_params.start is not None and resolved_params.end is not None
-                first_page = position is None
-                if position is None:
-                    initial = StreamPosition(resolved_params.start.timestamp())
-                    position = TranscriptPosition(initial, initial)
-
-                parent_cache: dict[SpanKey, SpanRow] = {}
-                fetched_parent_keys: set[SpanKey] = set()
-
-                def prepare(spans: list[SpanRow]) -> None:
-                    self._repair_parent_links(
-                        spans,
-                        resolved_params,
-                        conversation_id,
-                        parent_cache=parent_cache,
-                        fetched_parent_keys=fetched_parent_keys,
-                        strict=True,
-                    )
-
-                def annotate(spans: list[SpanRow]) -> None:
-                    self._annotate_issues(spans, resolved_params, organization)
-
-                source = ConversationTranscriptSource(
-                    resolved_params,
-                    conversation_id,
-                    AI_CONVERSATION_ATTRIBUTES,
-                    prepare,
-                    MAX_PARENT_REPAIR_DEPTH,
-                )
-                try:
-                    page = paginate_transcript(
-                        source, position, self.get_per_page(request, 100, 1000), annotate=annotate
-                    )
-                except (TranscriptWorkLimitError, TranscriptContextReadError) as error:
-                    return Response(DetailResponse(detail=str(error)), status=503)
-                except TranscriptContextError as error:
-                    return Response(DetailResponse(detail=str(error)), status=400)
-                metadata = (
-                    self._fetch_spans_and_aggregates(resolved_params, conversation_id, 0, 1)
-                    if first_page
-                    else AIConversationQueryResult(data=[], stats=None)
-                )
-                emitted = [dict(row) for row in page.source_rows]
-                raw = on_results(
-                    AIConversationQueryResult(
-                        data=emitted or metadata["data"], stats=metadata["stats"]
-                    ),
-                    prepare=False,
-                )
-                transcript_response = AIConversationTranscriptResponse(
-                    conversationId=raw["conversationId"],
-                    title=raw["title"],
-                    projects=raw["projects"],
-                    webUrl=raw["webUrl"],
-                    stats=raw["stats"],
-                    transcript=list(page.items),
-                    complete=not page.has_more,
-                    sourceSpanCount=len(page.source_rows),
-                )
-                response = Response[
-                    AIConversationDetailsResponse | AIConversationTranscriptResponse
-                ](transcript_response)
-                token = encode_cursor(
-                    scope, resolved_params.start, resolved_params.end, page.position
-                )
-                self.add_cursor_headers(
-                    request,
-                    response,
-                    CursorResult(
-                        results=[transcript_response],
-                        next=StringCursor(token, 0, False, page.has_more),
-                        prev=StringCursor("", 0, True, False),
-                    ),
-                )
-                return response
 
             return self.paginate(
                 request=request,
@@ -744,14 +597,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
     @traces.trace
     def _repair_parent_links(
-        self,
-        spans: list[SpanRow],
-        snuba_params: SnubaParams,
-        conversation_id: str,
-        *,
-        parent_cache: dict[SpanKey, SpanRow] | None = None,
-        fetched_parent_keys: set[SpanKey] | None = None,
-        strict: bool = False,
+        self, spans: list[SpanRow], snuba_params: SnubaParams, conversation_id: str
     ) -> None:
         anchors: set[SpanKey] = set()
         for span in spans:
@@ -776,9 +622,8 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             ):
                 pending[child_key] = (span, parent_key, {child_key})
 
-        cache = parent_cache if parent_cache is not None else {}
-        cache.update({key: span for span in spans if (key := self._span_key(span)) is not None})
-        fetched_keys = fetched_parent_keys if fetched_parent_keys is not None else set()
+        cache = {key: span for span in spans if (key := self._span_key(span)) is not None}
+        fetched_keys: set[SpanKey] = set()
         for depth in range(1, MAX_PARENT_REPAIR_DEPTH + 1):
             if not pending:
                 break
@@ -789,12 +634,8 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             fetched_keys.update(missing_keys)
             try:
                 cache.update(self._fetch_parent_spans(snuba_params, missing_keys))
-            except Exception as error:
+            except Exception:
                 logger.exception("Failed to repair AI conversation span parents")
-                if strict:
-                    raise TranscriptContextReadError(
-                        "Unable to read transcript parent context"
-                    ) from error
                 return
             next_pending: dict[SpanKey, tuple[SpanRow, SpanKey, set[SpanKey]]] = {}
 

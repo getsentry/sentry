@@ -30,10 +30,10 @@ class GroupValue:
     def empty(cls) -> "GroupValue":
         return GroupValue(series=[], totals=None)
 
-    def add_series_entry(self, time: str, aggregate_value: ResultValue):
+    def add_series_entry(self, time: str, aggregate_value: ResultValue) -> None:
         self.series.append((time, self._transform_aggregate_value(aggregate_value)))
 
-    def add_totals(self, aggregate_value: ResultValue):
+    def add_totals(self, aggregate_value: ResultValue) -> None:
         self.totals = self._transform_aggregate_value(aggregate_value)
 
     def _transform_aggregate_value(self, aggregate_value: ResultValue) -> ResultValue:
@@ -66,11 +66,11 @@ class QueryMeta:
 
     meta: dict[str, Any]
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: object) -> None:
         self.meta = kwargs
         self._transform_meta()
 
-    def _transform_meta(self):
+    def _transform_meta(self) -> None:
         """
         Transforms the medata of the query after initialization.
 

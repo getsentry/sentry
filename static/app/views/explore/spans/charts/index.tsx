@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
@@ -11,12 +11,11 @@ import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {hasDroppedData} from 'sentry/components/droppedData/buckets';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -46,16 +45,15 @@ import {
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
 import {
   groupVisualizes,
-  isVisualizeFunction,
   serializeVisualizes,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
-import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
-import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
@@ -73,6 +71,8 @@ import {
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {ConfidenceFooter} from './confidenceFooter';
 
 interface ExploreChartsProps {
   extrapolate: boolean;
@@ -189,7 +189,7 @@ function getChartInfo({
   const series = getTimeSeriesForQuery(
     timeseriesResult.data,
     visualize.yAxis,
-    isVisualizeFunction(visualize) ? visualize.transformations : []
+    visualize.transformations
   );
 
   let confidenceSeries = series;
@@ -295,17 +295,16 @@ function Chart({
   const organization = useOrganization();
   const showTransformationControls =
     visualize.visible &&
-    isVisualizeFunction(visualize) &&
     visualize.chartType !== ChartType.HEATMAP &&
     organization.features.includes('explore-interpolation-and-smoothing');
   const {chartSelection, setChartSelection} = useChartSelection();
+  const [tab] = useTab();
+  const isAttributeBreakdown = tab === Tab.ATTRIBUTE_BREAKDOWNS;
+  const {selection} = usePageFilters();
+  const groupBys = useQueryParamsGroupBys();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval});
-  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer({dataset});
-  const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
-  const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
+  const droppedData = useDroppedDataLayer({dataset, interval});
 
   const {
     dismiss: dismissChartSelectionAlert,
@@ -372,12 +371,8 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {canShowDroppedData ? (
-        <DroppedDataLayerControl
-          dataset={dataset}
-          showDroppedData={isDroppedDataLayerOn}
-          onChange={setIsDroppedDataLayerOn}
-        />
+      {droppedData.layerControl ? (
+        <DroppedDataLayerControl {...droppedData.layerControl} />
       ) : null}
       <Tooltip
         title={
@@ -447,6 +442,11 @@ function Chart({
   const initialChartSelection =
     chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
+  // ECharts keeps its toolbox zoom window and brush across option merges, so
+  // the chart needs a fresh instance whenever the queried range or data changes.
+  const {period, start, end} = selection.datetime;
+  const chartRemountKey = `${isAttributeBreakdown ? 'attribute-breakdown' : 'zoom'}|${period}|${start}|${end}|${query}|${chartType}|${interval}|${topEvents}|${groupBys.join(',')}`;
+
   return (
     <ChartWrapper ref={chartWrapperRef} border="primary" radius="md" background="primary">
       <Widget
@@ -456,85 +456,89 @@ function Chart({
         Visualization={
           visualize.visible && (
             <ChartVisualization
+              key={chartRemountKey}
               chartInfo={chartInfo}
               chartRef={chartRef}
               plottables={plottables}
-              tooltipLimit={
-                hasMultiAggregateCharts(organization) ? MAX_TOOLTIP_SERIES : undefined
-              }
-              droppedData={
-                showDroppedDataBand
+              tooltipLimit={MAX_TOOLTIP_SERIES}
+              droppedData={droppedData.band}
+              chartXRangeSelection={
+                isAttributeBreakdown
                   ? {
-                      dataset,
-                      droppedEvents,
-                      acceptedEvents,
-                      onClick: openDroppedDataDrawer,
+                      initialSelection: initialChartSelection,
+                      onSelectionEnd: () => {
+                        if (!isChartSelectionAlertDismissed) {
+                          dismissChartSelectionAlert();
+                        }
+                      },
+                      onInsideSelectionClick: params => {
+                        if (!params.selectionState) {
+                          return;
+                        }
+
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: true,
+                        });
+                      },
+                      onOutsideSelectionClick: params => {
+                        if (!params.selectionState?.isActionMenuVisible) {
+                          return;
+                        }
+
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: false,
+                        });
+                      },
+                      onClearSelection: () => {
+                        setChartSelection(null);
+                      },
+                      disabled: false,
+                      actionMenuRenderer: params => {
+                        return <FloatingTrigger chartIndex={index} params={params} />;
+                      },
                     }
                   : undefined
               }
-              chartXRangeSelection={{
-                initialSelection: initialChartSelection,
-                onSelectionEnd: () => {
-                  if (!isChartSelectionAlertDismissed) {
-                    dismissChartSelectionAlert();
-                  }
-                },
-                onInsideSelectionClick: params => {
-                  if (!params.selectionState) {
-                    return;
-                  }
-
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: true,
-                  });
-                },
-                onOutsideSelectionClick: params => {
-                  if (!params.selectionState?.isActionMenuVisible) {
-                    return;
-                  }
-
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: false,
-                  });
-                },
-                onClearSelection: () => {
-                  setChartSelection(null);
-                },
-                disabled: false,
-                actionMenuRenderer: params => {
-                  return <FloatingTrigger chartIndex={index} params={params} />;
-                },
-              }}
             />
           )
         }
         Footer={
           visualize.visible && (
-            <Flex align="center" justify="between" gap="sm" wrap="wrap">
-              <ConfidenceFooter
-                extrapolate={extrapolate}
-                sampleCount={chartInfo.sampleCount}
-                isLoading={chartInfo.timeseriesResult?.isPending || false}
-                isSampled={chartInfo.isSampled}
-                confidence={chartInfo.confidence}
-                topEvents={
-                  topEvents
-                    ? Math.min(topEvents, chartInfos[0]!.series.length)
-                    : undefined
-                }
-                dataScanned={chartInfo.dataScanned}
-                rawSpanCounts={rawSpanCounts}
-                userQuery={query.trim()}
-              />
-              <Flex align="center" gap="md">
-                {showDroppedDataBand ? (
-                  <DroppedDataFilterNote
-                    dataset={dataset}
-                    hasUserQuery={!!query.trim()}
+            <Container containerType="inline-size">
+              <Flex align="center" justify="between" gap="md">
+                <Flex
+                  flex="1"
+                  minWidth="0"
+                  direction={{zero: 'column', xl: 'row'}}
+                  align={{zero: 'start', xl: 'center'}}
+                  justify="between"
+                  gap={{zero: 'xs', xl: 'md'}}
+                >
+                  <ConfidenceFooter
+                    extrapolate={extrapolate}
+                    sampleCount={chartInfo.sampleCount}
+                    isLoading={chartInfo.timeseriesResult?.isPending || false}
+                    isSampled={chartInfo.isSampled}
+                    confidence={chartInfo.confidence}
+                    topEvents={
+                      topEvents
+                        ? Math.min(topEvents, chartInfos[0]!.series.length)
+                        : undefined
+                    }
+                    dataScanned={chartInfo.dataScanned}
+                    rawSpanCounts={rawSpanCounts}
+                    userQuery={query.trim()}
                   />
-                ) : null}
+                  {droppedData.filterNote ? (
+                    <DroppedDataFilterNote
+                      {...droppedData.filterNote}
+                      hasUserQuery={!!query.trim()}
+                      showIcon={{zero: false, xl: true}}
+                    />
+                  ) : null}
+                </Flex>
                 {showTransformationControls ? (
                   <AddTransformationButton
                     traceItemDataset={TraceItemDataset.SPANS}
@@ -543,7 +547,7 @@ function Chart({
                   />
                 ) : null}
               </Flex>
-            </Flex>
+            </Container>
           )
         }
         height={chartHeight}

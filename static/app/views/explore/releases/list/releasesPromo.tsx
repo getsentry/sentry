@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
 import emailImage from 'sentry-images/spot/releases-tour-email.svg';
@@ -8,7 +8,7 @@ import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {
   CompactSelect,
   MenuComponents,
@@ -17,8 +17,8 @@ import {
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import {sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -33,7 +33,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
@@ -103,7 +104,15 @@ export function ReleasesPromo({organization, project}: Props) {
     sentryAppsApiOptions({orgSlug: organization.slug, status: 'internal'})
   );
 
-  const api = useApi();
+  const {mutateAsync: createToken} = useMutation({
+    mutationFn: (sentryAppSlug: string) =>
+      fetchMutation<NewInternalAppApiToken>({
+        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/', {
+          path: {sentryAppIdOrSlug: sentryAppSlug},
+        }),
+        method: 'POST',
+      }),
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const [tokenForApp, setTokenForApp] = useState<{slug: string; token: string} | null>(
     null
@@ -175,7 +184,7 @@ export function ReleasesPromo({organization, project}: Props) {
         return;
       }
       const app = apps.find(a => a.slug === sentryAppSlug);
-      addErrorMessage(
+      toast.error(
         tct('Unable to generate token for [name].', {name: app?.name ?? sentryAppSlug})
       );
       setSelectedApp(null);
@@ -183,12 +192,7 @@ export function ReleasesPromo({organization, project}: Props) {
   };
 
   const generateToken = async (sentryAppSlug: string) => {
-    const newToken: NewInternalAppApiToken = await api.requestPromise(
-      `/sentry-apps/${sentryAppSlug}/api-tokens/`,
-      {
-        method: 'POST',
-      }
-    );
+    const newToken = await createToken(sentryAppSlug);
     return newToken.token;
   };
 

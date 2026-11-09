@@ -13,6 +13,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.project import Project
 from sentry.models.team import Team
 
 
@@ -38,7 +39,7 @@ class ProjectTeamsEndpoint(ProjectEndpoint):
         },
         examples=TeamExamples.LIST_PROJECT_TEAMS,
     )
-    def get(self, request: Request, project) -> Response[list[BaseTeamSerializerResponse]]:
+    def get(self, request: Request, project: Project) -> Response[list[BaseTeamSerializerResponse]]:
         """
         Return a list of teams that have access to this project.
         """

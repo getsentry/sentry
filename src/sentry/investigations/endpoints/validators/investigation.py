@@ -4,29 +4,15 @@ from typing import Any
 
 from rest_framework import serializers
 
-from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationSourceField,
     validate_agentic_source,
 )
-from sentry.investigations.models import InvestigationStatus
+from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.notebooks.models import NotebookStatus
 
 
 class InvestigationCreateValidator(StrictCamelSnakeValidator):
-    template_key = serializers.CharField(
-        max_length=128,
-        required=False,
-        help_text="Template key for template-based creation. Requires templateVersion and source; cannot be combined with projectIds or filters.",
-    )
-    template_version = serializers.IntegerField(
-        min_value=1,
-        required=False,
-        help_text="Template version, required when templateKey is supplied.",
-    )
-    parameters = serializers.JSONField(
-        required=False,
-        help_text="Parameter values for template-based creation only. Keys must match the template parameter definitions.",
-    )
     title = serializers.CharField(
         max_length=255,
         required=False,
@@ -34,7 +20,7 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
     )
     source = InvestigationSourceField(
         required=False,
-        help_text="Manual prompt or metric open-period reference. With templateKey, supplies the template source; otherwise starts an agentic investigation. Omit to create a blank notebook. Agentic sources have a maximum serialized size of 200,000 bytes.",
+        help_text="Manual prompt or metric open-period reference. Starts an agentic investigation. Omit to create a blank notebook. Agentic sources have a maximum serialized size of 200,000 bytes.",
     )  # type: ignore[assignment]
     project_ids = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
@@ -46,39 +32,10 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
     )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        has_key = "template_key" in attrs
-        has_version = "template_version" in attrs
-        has_source = "source" in attrs
-        if has_key != has_version:
-            raise serializers.ValidationError(
-                {"template_key": "templateKey and templateVersion must be provided together."}
-            )
-        if has_key:
-            if "source" not in attrs:
-                raise serializers.ValidationError({"source": "This field is required."})
-            if not isinstance(attrs["source"], dict):
-                raise serializers.ValidationError({"source": "Must be an object."})
-            if not isinstance(attrs.get("parameters", {}), dict):
-                raise serializers.ValidationError({"parameters": "Must be an object."})
-            forbidden = set(attrs).intersection({"project_ids", "filters"})
-            if forbidden:
-                raise serializers.ValidationError(
-                    {field: "Template creation controls this field." for field in forbidden}
-                )
-        elif has_source:
+        if "source" in attrs:
             validate_agentic_source(attrs["source"])
-            if "parameters" in attrs:
-                raise serializers.ValidationError(
-                    {"parameters": "Agentic investigations do not use template parameters."}
-                )
-        else:
-            if "title" not in attrs:
-                raise serializers.ValidationError({"title": "This field is required."})
-            forbidden = set(attrs).intersection({"parameters"})
-            if forbidden:
-                raise serializers.ValidationError(
-                    {field: "Requires a template." for field in forbidden}
-                )
+        elif "title" not in attrs:
+            raise serializers.ValidationError({"title": "This field is required."})
         project_ids = attrs.get("project_ids", [])
         if len(project_ids) != len(set(project_ids)):
             raise serializers.ValidationError({"project_ids": "Project IDs must be unique."})
@@ -91,12 +48,6 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
 
 
 class InvestigationCandidatesValidator(StrictCamelSnakeValidator):
-    template_key = serializers.CharField(
-        max_length=128, help_text="Registered template key used to resolve matching investigations."
-    )
-    template_version = serializers.IntegerField(
-        min_value=1, help_text="Registered version of the selected template."
-    )
     sources = serializers.ListField(
         child=serializers.JSONField(),
         min_length=1,
@@ -121,7 +72,7 @@ class InvestigationUpdateValidator(StrictCamelSnakeValidator):
         help_text="New investigation title. A manual edit stops automatic title generation.",
     )
     status = serializers.ChoiceField(
-        choices=InvestigationStatus.choices,
+        choices=NotebookStatus.choices,
         required=False,
         help_text="Set active to restore a manual notebook, or archived to archive. Archiving must be the only changed field.",
     )
@@ -161,9 +112,3 @@ class PermissionsUpdateValidator(StrictCamelSnakeValidator):
         if len(value) != len(set(value)):
             raise serializers.ValidationError("Team IDs must be unique.")
         return value
-
-
-class FavoriteUpdateValidator(StrictCamelSnakeValidator):
-    should_favorite = serializers.BooleanField(
-        help_text="Whether this investigation is a favorite for the authenticated user."
-    )

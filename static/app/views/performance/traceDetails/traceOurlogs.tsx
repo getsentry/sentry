@@ -23,8 +23,9 @@ import {
   createErrorLogRow,
   getLogsUrl,
 } from 'sentry/views/explore/logs/utils';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+
+import type {TraceTree} from './traceModels/traceTree';
+import {useTraceQueryParams} from './useTraceQueryParams';
 
 type PageDataProviderProps = {
   children: React.ReactNode;

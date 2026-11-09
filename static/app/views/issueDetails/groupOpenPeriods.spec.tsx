@@ -7,7 +7,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, within, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import {getShortEventId} from 'sentry/utils/events';
-import GroupOpenPeriods from 'sentry/views/issueDetails/groupOpenPeriods';
+
+import {GroupIdProvider} from './groupIdContext';
+import GroupOpenPeriods from './groupOpenPeriods';
 
 describe('GroupOpenPeriods', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
@@ -59,7 +61,12 @@ describe('GroupOpenPeriods', () => {
       match: [MockApiClient.matchQuery({groupId, per_page: 10})],
     });
 
-    render(<GroupOpenPeriods />, {organization, initialRouterConfig});
+    render(
+      <GroupIdProvider groupId={groupId}>
+        <GroupOpenPeriods />
+      </GroupIdProvider>,
+      {organization, initialRouterConfig}
+    );
 
     expect(await screen.findByText('All Open Periods')).toBeInTheDocument();
     for (const column of ['Open Period', 'Event ID', 'Description', 'Start', 'End']) {
@@ -127,10 +134,12 @@ describe('GroupOpenPeriods', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
 
-    render(<GroupOpenPeriods />, {
-      organization: featureOrganization,
-      initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={groupId}>
+        <GroupOpenPeriods />
+      </GroupIdProvider>,
+      {organization: featureOrganization, initialRouterConfig}
+    );
 
     expect(await screen.findByText('Investigation')).toBeInTheDocument();
     expect(await screen.findByRole('link', {name: '4567'})).toHaveAttribute(
@@ -141,8 +150,6 @@ describe('GroupOpenPeriods', () => {
       expect.anything(),
       expect.objectContaining({
         data: {
-          templateKey: 'breached_metric',
-          templateVersion: 1,
           sources: [
             {
               type: 'metric_open_period',

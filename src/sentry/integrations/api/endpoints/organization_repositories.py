@@ -136,7 +136,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             count_hits=True,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
         provider_id = request.data.get("provider")

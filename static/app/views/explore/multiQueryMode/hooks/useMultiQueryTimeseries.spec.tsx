@@ -5,9 +5,10 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {useMultiQueryTimeseries} from './useMultiQueryTimeseries';
 
 jest.mock('sentry/views/explore/multiQueryMode/locationUtils');
 

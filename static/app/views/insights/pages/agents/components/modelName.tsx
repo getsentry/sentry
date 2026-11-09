@@ -73,7 +73,7 @@ export function getModelPlatform(modelId: string | null) {
     {keywords: ['perplexity'], platform: 'perplexity'},
     {keywords: ['amazon.titan', 'amazon/titan'], platform: 'amazon'},
     {keywords: ['typesafe', 'jev-'], platform: 'typesafe-ai'},
-    {keywords: ['cloudflare', 'clef'], platform: 'cloudflare'},
+    {keywords: ['cloudflare', 'clef', 'clairic'], platform: 'cloudflare'},
   ];
 
   const matchedProvider = providerMap.find(({keywords}) =>

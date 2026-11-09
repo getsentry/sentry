@@ -16,7 +16,7 @@ from django.db.models import (
     When,
 )
 from django.db.models.functions import Coalesce
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -132,6 +132,11 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         return args, kwargs
 
 
+class BulkUpdateAlertsSerializer(DetectorWorkflowMutationValidator):
+    # Redeclared for this endpoint's wording.
+    enabled = serializers.BooleanField(help_text="Whether to enable or disable the alerts")
+
+
 @cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
@@ -141,6 +146,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationWorkflowPermission,)
 
@@ -205,21 +211,25 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                         # TODO: What about unrecognized keys?
                         pass
 
-        # Use include_all_accessible=True to get all projects the user can access,
-        # not just those explicitly requested. This filter is ALWAYS applied to ensure
-        # users with no project access only see org-level workflows.
-        projects = self.get_projects(request, organization, include_all_accessible=True)
-        accessible_workflows = Q(detectorworkflow__detector__project__in=projects)
-        # Detached workflows are organization-level and do not match a specific
-        # project filter. ID filters take precedence over project filters, and the
-        # all-project sentinels are equivalent to no project filter.
+        # This filter is ALWAYS applied so users with no project access only see
+        # org-level workflows. A request without project params means "My Projects",
+        # so it is scoped to the user's member projects like other organization
+        # endpoints. ID and detector lookups target specific workflows, so they
+        # search every project the user can access.
         requested_projects = self.get_requested_project_params_unchecked(request)
-        has_specific_project_filter = (
-            not request.GET.getlist("id")
-            and requested_projects.has_values
-            and not requested_projects.has_all_projects_sentinel
+        include_all_accessible = (
+            requested_projects.has_values
+            or bool(request.GET.getlist("id"))
+            or bool(request.GET.getlist("detector"))
         )
-        if not has_specific_project_filter:
+        projects = self.get_projects(
+            request, organization, include_all_accessible=include_all_accessible
+        )
+        accessible_workflows = Q(detectorworkflow__detector__project__in=projects)
+        # Detached workflows aren't connected to any project, so they only match
+        # requests that aren't scoped to projects: ID lookups and the all-projects
+        # sentinels. A request without project params is scoped to member projects.
+        if request.GET.getlist("id") or requested_projects.has_all_projects_sentinel:
             accessible_workflows |= Q(detectorworkflow__isnull=True)
         all_projects_detector = get_all_projects_detector(organization.id)
         if all_projects_detector:
@@ -411,14 +421,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        request=inline_serializer(
-            name="BulkUpdateAlerts",
-            fields={
-                "enabled": serializers.BooleanField(
-                    help_text="Whether to enable or disable the alerts"
-                )
-            },
-        ),
+        request=BulkUpdateAlertsSerializer,
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
     def put(
@@ -441,7 +444,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        validator = DetectorWorkflowMutationValidator(data=request.data)
+        validator = BulkUpdateAlertsSerializer(data=request.data)
         validator.is_valid(raise_exception=True)
         enabled = validator.validated_data["enabled"]
 

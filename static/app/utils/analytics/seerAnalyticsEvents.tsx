@@ -5,6 +5,13 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
+type InvestigationActionRequestEvent = {
+  action_kind: string;
+  action_request_id: string;
+  investigation_id: string;
+  state: string;
+};
+
 // Pipeline stage a run is bucketed into on the Autofix Overview page. Mirrors
 // the `AutofixStateKey` union in the overview view without importing across the
 // utils -> views layer boundary.
@@ -264,6 +271,11 @@ export type SeerAnalyticsEventsParameters = {
   'seer.explorer.update_slack_clicked': {
     num_configurations: number;
   };
+  'seer.investigation.action_request.applied': InvestigationActionRequestEvent;
+  'seer.investigation.action_request.link_clicked': InvestigationActionRequestEvent & {
+    link: string;
+  };
+  'seer.investigation.action_request.shown': InvestigationActionRequestEvent;
 };
 
 type SeerAnalyticsEventKey = keyof SeerAnalyticsEventsParameters;
@@ -311,4 +323,9 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'seer.explorer.suggestions_shown': 'Seer Explorer: Suggestions Shown',
   'seer.explorer.timed_out': 'Seer Explorer: Timed Out',
   'seer.explorer.update_slack_clicked': 'Seer Explorer: Update Slack Clicked',
+  'seer.investigation.action_request.applied':
+    'Seer Investigation: Action Request Applied',
+  'seer.investigation.action_request.link_clicked':
+    'Seer Investigation: Action Request Link Clicked',
+  'seer.investigation.action_request.shown': 'Seer Investigation: Action Request Shown',
 };

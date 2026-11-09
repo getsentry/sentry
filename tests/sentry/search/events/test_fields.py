@@ -8,6 +8,7 @@ from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import (
     COMBINATORS,
     FUNCTIONS,
+    Combinator,
     FunctionDetails,
     get_json_meta_type,
     parse_arguments,
@@ -15,6 +16,7 @@ from sentry.search.events.fields import (
     parse_function,
     resolve_datetime64,
 )
+from sentry.search.events.types import SelectType
 from sentry.snuba.dataset import Dataset
 
 
@@ -110,9 +112,12 @@ from sentry.snuba.dataset import Dataset
         ),
     ],
 )
-def test_get_json_meta_type(field_alias, snuba_type, function, expected) -> None:
+def test_get_json_meta_type(
+    field_alias: str, snuba_type: str, function: FunctionDetails | None, expected: str
+) -> None:
     qb = UnresolvedQuery(dataset=Dataset.Discover, params={})
-    qb.function_alias_map[field_alias] = function
+    if function is not None:
+        qb.function_alias_map[field_alias] = function
     assert get_json_meta_type(field_alias, snuba_type, qb) == expected, field_alias
 
 
@@ -191,7 +196,7 @@ def test_get_json_meta_type(field_alias, snuba_type, function, expected) -> None
         ),
     ],
 )
-def test_parse_function(function, expected) -> None:
+def test_parse_function(function: str, expected: tuple[str, list[str], str | None]) -> None:
     assert parse_function(function) == expected
 
 
@@ -210,7 +215,7 @@ def test_parse_function(function, expected) -> None:
         ("count_if", 'a, b,","', ["a", "b", '","']),
     ],
 )
-def test_parse_arguments(function, columns, result) -> None:
+def test_parse_arguments(function: str, columns: str, result: list[str]) -> None:
     assert parse_arguments(function, columns) == result
 
 
@@ -223,11 +228,11 @@ def test_parse_arguments(function, columns, result) -> None:
         pytest.param("func_array", ("func_array", None), id="does not accept snake case"),
     ],
 )
-def test_parse_combinator(function, expected) -> None:
+def test_parse_combinator(function: str, expected: tuple[str, str | None]) -> None:
     assert parse_combinator(function) == expected
 
 
-def resolve_snql_fieldlist(fields):
+def resolve_snql_fieldlist(fields: list[str]) -> list[SelectType]:
     return UnresolvedQuery(Dataset.Discover, {}).resolve_select(fields, [])
 
 
@@ -291,16 +296,17 @@ def resolve_snql_fieldlist(fields):
         ),
     ],
 )
-def test_range_funtions(field, expected) -> None:
+def test_range_funtions(field: str, expected: SelectType) -> None:
     fields = resolve_snql_fieldlist([field])
     assert len(fields) == 1
     assert fields[0] == expected
 
 
 @pytest.mark.parametrize("combinator", COMBINATORS)
-def test_combinator_names_are_reserved(combinator) -> None:
+def test_combinator_names_are_reserved(combinator: Combinator) -> None:
     fields = UnresolvedQuery(dataset=Dataset.Discover, params={})
     for function in fields.function_converter:
+        assert combinator.kind is not None
         assert not function.endswith(combinator.kind), (
             f"Cannot name function `{function}` because `-{combinator.kind}` suffix is reserved for combinators"
         )
@@ -344,5 +350,7 @@ def test_combinator_names_are_reserved(combinator) -> None:
         ),
     ],
 )
-def test_resolve_datetime64(value, expected) -> None:
+def test_resolve_datetime64(
+    value: datetime | str | float | None, expected: Function | None
+) -> None:
     assert resolve_datetime64(value) == expected

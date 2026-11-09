@@ -22,6 +22,7 @@ class ProjectGroupEventBase(APIDocsTestCase):
         for timestamp in last_release.values():
             event = self.create_event("c", release="1.0a", timestamp=timestamp.isoformat())
 
+        assert event.group is not None
         self.group_id = event.group.id
 
         self.login_as(user=self.user)
@@ -50,4 +51,12 @@ class ProjectGroupEventDetailsDocs(ProjectGroupEventBase):
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
+        self.validate_schema(request, response)
+
+    def test_get_collapse_adjacent_events(self) -> None:
+        response = self.client.get(self.url, {"collapse": "adjacentEvents"})
+        request = RequestFactory().get(self.url, {"collapse": "adjacentEvents"})
+
+        assert response.data["nextEventID"] is None
+        assert response.data["previousEventID"] is None
         self.validate_schema(request, response)

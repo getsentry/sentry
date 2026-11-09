@@ -7,7 +7,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from 'sentry/utils/discover/teamKeyTransactionField';
+
+import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from './teamKeyTransactionField';
 
 describe('TeamKeyTransactionField', () => {
   const organization = OrganizationFixture();

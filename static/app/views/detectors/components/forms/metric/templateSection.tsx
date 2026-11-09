@@ -9,15 +9,16 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
-import {METRIC_TEMPLATE_OPTIONS} from 'sentry/views/detectors/components/forms/metric/metricTemplateOptions';
-import {sanitizeDetectorQuery} from 'sentry/views/detectors/components/forms/metric/sanitizeDetectorQuery';
-import {useDatasetChoices} from 'sentry/views/detectors/components/forms/metric/useDatasetChoices';
-import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
-import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+} from './metricFormFields';
+import {METRIC_TEMPLATE_OPTIONS} from './metricTemplateOptions';
+import {sanitizeDetectorQuery} from './sanitizeDetectorQuery';
+import {useDatasetChoices} from './useDatasetChoices';
 
 const DATASET_LABELS: Record<DetectorDataset, string> = {
   [DetectorDataset.ERRORS]: t('Errors'),

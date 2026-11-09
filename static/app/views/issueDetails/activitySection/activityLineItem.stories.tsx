@@ -7,16 +7,14 @@ import {GroupActivityType, IssueCategory, PriorityLevel} from 'sentry/types/grou
 import type {Commit, PullRequest, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {useUser} from 'sentry/utils/useUser';
-import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+
 import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {
-  ActivityLineNote,
-  isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
-import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+} from './activityLineItem/activityFeedItem';
+import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
+import {ActivityLine} from './activityLineItem';
+import {Timeline} from './timeline';
 
 const user = {
   id: '1',
@@ -258,6 +256,20 @@ const issueActivities = [
     provider: 'GitHub',
     title: '#5678',
     new: false,
+  }),
+  activity(GroupActivityType.UNLINK_EXTERNAL_ISSUE, {
+    external_issue_key: 'example/repository#1234',
+    provider: 'github',
+  }),
+  activity(GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE, {
+    display_name: 'example#APP-42',
+    service_type: 'linear',
+    web_url: 'https://linear.app/example/issue/APP-42',
+  }),
+  activity(GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE, {
+    display_name: 'example#APP-43',
+    service_type: 'example',
+    web_url: '',
   }),
   activity(GroupActivityType.MERGE, {issues: [{id: '2'}, {id: '3'}]}),
   activity(GroupActivityType.UNMERGE_SOURCE, {

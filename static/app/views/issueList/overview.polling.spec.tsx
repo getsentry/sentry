@@ -10,7 +10,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {StreamGroup} from 'sentry/components/stream/group';
 import {TagStore} from 'sentry/stores/tagStore';
 import type {Group} from 'sentry/types/group';
-import IssueList from 'sentry/views/issueList/overview';
+
+import IssueList from './overview';
 
 jest.mock('sentry/views/issueList/filters', () => ({
   IssueListFilters: jest.fn(() => null),
@@ -80,18 +81,6 @@ describe('IssueList -> Polling', () => {
       body: [{}],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [
-        {
-          project: 'test-project',
-          numIssues: 1,
-          hasIssues: true,
-          lastSeen: '2019-01-16T15:39:11.081Z',
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: TagsFixture(),
@@ -129,7 +118,7 @@ describe('IssueList -> Polling', () => {
     });
 
     jest.mocked(StreamGroup).mockClear();
-    TagStore.init();
+    TagStore.reset();
   });
 
   it('toggles polling for new issues', async () => {

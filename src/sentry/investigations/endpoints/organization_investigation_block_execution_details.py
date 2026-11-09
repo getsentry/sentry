@@ -13,23 +13,26 @@ from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.agent import interrupt_run, synchronize_execution
-from sentry.investigations.endpoints.base import OrganizationInvestigationBlockEndpoint
 from sentry.investigations.endpoints.serializers.responses import (
     InvestigationExecutionDetailsResponse,
 )
-from sentry.investigations.endpoints.validators import BlockExecutionResumeValidator
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlock,
-    InvestigationBlockExecution,
-    InvestigationBlockKind,
+from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationInvestigationBlockEndpoint,
+    require_authenticated_user,
 )
-from sentry.investigations.services import (
+from sentry.notebooks.endpoints.validators import BlockExecutionResumeValidator
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookBlock,
+    NotebookBlockExecution,
+    NotebookBlockKind,
+)
+from sentry.notebooks.services import (
     mark_block_execution_cancelled,
     mark_block_execution_resumed,
     mark_block_execution_stopping,
 )
-from sentry.models.organization import Organization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import AgentUpdateRequest, make_agent_update_request
 
@@ -46,14 +49,12 @@ class OrganizationInvestigationBlockExecutionDetailsEndpoint(
         "DELETE": ApiPublishStatus.PRIVATE,
     }
 
-    def _execution(
-        self, block: InvestigationBlock, execution_id: str
-    ) -> InvestigationBlockExecution:
+    def _execution(self, block: NotebookBlock, execution_id: str) -> NotebookBlockExecution:
         try:
-            return InvestigationBlockExecution.objects.select_related("seer_run").get(
+            return NotebookBlockExecution.objects.select_related("seer_run").get(
                 id=execution_id, block=block
             )
-        except (InvestigationBlockExecution.DoesNotExist, ValueError):
+        except (NotebookBlockExecution.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
     @extend_schema(
@@ -80,8 +81,8 @@ class OrganizationInvestigationBlockExecutionDetailsEndpoint(
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
-        block: InvestigationBlock,
+        investigation: Notebook,
+        block: NotebookBlock,
         execution_id: str,
     ) -> Response:
         """
@@ -100,7 +101,7 @@ class OrganizationInvestigationBlockExecutionDetailsEndpoint(
             synchronize_execution(execution, state)
             execution.refresh_from_db()
             pending = state.pending_user_input.dict() if state.pending_user_input else None
-            if block.kind == InvestigationBlockKind.TEXT:
+            if block.kind == NotebookBlockKind.TEXT:
                 partial_markdown = next(
                     (
                         state_block.message.content
@@ -150,16 +151,18 @@ class OrganizationInvestigationBlockExecutionDetailsEndpoint(
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
-        block: InvestigationBlock,
+        investigation: Notebook,
+        block: NotebookBlock,
         execution_id: str,
     ) -> Response:
         """
         Answer pending user input using inputId from execution polling. responseData may be any
         JSON value, including null. Returns 202 without a body; poll for progress. Returns 409
-        before the run starts, or 502 if the agent rejects the resume request. Requires the
-        organizations:investigations feature and open organization membership.
+        before the run starts, or 502 if the agent rejects the resume request. Requires an
+        authenticated user. Requires the organizations:investigations feature and open
+        organization membership.
         """
+        require_authenticated_user(request)
         execution = self._execution(block, execution_id)
         if not execution.seer_run or not execution.seer_run.seer_run_state_id:
             return Response({"detail": "The run has not started."}, status=status.HTTP_409_CONFLICT)
@@ -207,15 +210,17 @@ class OrganizationInvestigationBlockExecutionDetailsEndpoint(
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
-        block: InvestigationBlock,
+        investigation: Notebook,
+        block: NotebookBlock,
         execution_id: str,
     ) -> Response:
         """
         Cancel a queued execution immediately (204), or interrupt a started agent run and mark
-        the execution cancelled (202). Both responses have no body. Requires the
-        organizations:investigations feature and open organization membership.
+        the execution cancelled (202). Both responses have no body. Requires an authenticated
+        user. Requires the organizations:investigations feature and open organization
+        membership.
         """
+        require_authenticated_user(request)
         execution = self._execution(block, execution_id)
         if not execution.seer_run or not execution.seer_run.seer_run_state_id:
             mark_block_execution_cancelled(execution)

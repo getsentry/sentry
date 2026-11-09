@@ -2,8 +2,9 @@ import {css, useTheme, type Theme} from '@emotion/react';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'zxcv... Remove this comment to see the full error message
 import zxcvbn from 'zxcvbn';
 
-import {ProgressRing} from 'sentry/components/progressRing';
 import {t} from 'sentry/locale';
+
+import {ProgressRing} from './progressRing';
 
 /**
  * The maximum score that zxcvbn reports

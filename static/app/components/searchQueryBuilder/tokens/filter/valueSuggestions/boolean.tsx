@@ -1,4 +1,4 @@
-import type {SuggestionSection} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
+import type {SuggestionSection} from './types';
 
 export const DEFAULT_BOOLEAN_SUGGESTIONS: SuggestionSection[] = [
   {

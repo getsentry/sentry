@@ -12,13 +12,13 @@ import type {Event, Frame} from 'sentry/types/event';
 import type {TagWithTopValues} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useUser} from 'sentry/utils/useUser';
-import {OwnerInput} from 'sentry/views/settings/project/projectOwnership/ownerInput';
+
+import {OwnerInput} from './ownerInput';
 
 type IssueOwnershipResponse = {
   autoAssignment: boolean;
@@ -134,15 +134,14 @@ export function ProjectOwnershipModal({
     data: ownership,
     isPending: isOwnershipPending,
     isError: isOwnershipError,
-  } = useApiQuery<IssueOwnershipResponse>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/', {
+  } = useQuery(
+    apiOptions.as<IssueOwnershipResponse>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/',
+      {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
+        staleTime: 0,
+      }
+    )
   );
 
   if (isOwnershipPending || isUrlTagDataPending) {
@@ -164,6 +163,8 @@ export function ProjectOwnershipModal({
     ? urlTagData.topValues
         .sort((a, b) => a.count - b.count)
         .map(i => i.value)
+        // Events without a URL come back as an empty value
+        .filter((url): url is string => !!url)
         .slice(0, 5)
     : [];
   const paths = getFrameSuggestions(eventData);

@@ -260,21 +260,20 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 if change.get("diff"):
                     change_mrkdwn.append(f"```{change['diff']}```")
                 blocks.append(SectionBlock(text=MarkdownTextObject(text="\n".join(change_mrkdwn))))
-        if data.pull_requests:
-            action_id = encode_action_id(
-                action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
-                organization_id=data.organization_id,
-                project_id=data.project_id,
-            )
-            for pr in data.pull_requests[:MAX_PRS]:
-                action_elements.append(
-                    LinkButtonElement(
-                        text=f"View PR (#{pr['pr_number']})",
-                        style="primary",
-                        url=link_decorator.decorate_url(pr["pr_url"]),
-                        action_id=f"{action_id}::{pr['pr_number']}",
-                    )
+        for pr in data.pull_requests[:MAX_PRS]:
+            action_elements.append(
+                LinkButtonElement(
+                    text=f"View PR (#{pr['pr_number']})",
+                    style="primary",
+                    url=link_decorator.decorate_url(pr["pr_url"]),
+                    action_id=encode_action_id(
+                        action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+                        organization_id=data.organization_id,
+                        project_id=data.project_id,
+                        suffix=str(pr["pr_number"]),
+                    ),
                 )
+            )
 
         if action_elements:
             blocks.append(ActionsBlock(elements=action_elements))
@@ -374,7 +373,18 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_investigation_conclusion(
         cls, data: SeerInvestigationConclusion, link_decorator: NotificationLinkDecorator
     ) -> SlackRenderable:
-        blocks: list[Block] = [MarkdownBlock(text=section) for section in data.sections]
+        from sentry.integrations.slack.utils.escape import escape_slack_text
+
+        text = f"*{escape_slack_text(data.summary)}*"
+        if data.summary_description:
+            text += f"\n{escape_slack_text(data.summary_description)}"
+        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=text))]
+        if data.next_step:
+            next_step = (
+                f"*Suggested next step:* {escape_slack_text(data.next_step['title'])}\n"
+                f"{escape_slack_text(data.next_step['rationale'])}"
+            )
+            blocks.append(SectionBlock(text=MarkdownTextObject(text=next_step)))
         blocks.append(DividerBlock())
         blocks.append(
             ActionsBlock(

@@ -65,7 +65,6 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
 from sentry.seer.endpoints.seer_rpc import (
     get_attributes_for_span,
-    get_github_enterprise_integration_config,
     get_organization_features,
     get_organization_projects,
     get_organization_slug,
@@ -107,7 +106,6 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     "get_organization_projects": seer_rpc(map_org_id_param(get_organization_projects)),
     "get_organization_slug": seer_rpc(map_org_id_param(get_organization_slug)),
     "get_organization_features": seer_rpc(map_org_id_param(get_organization_features)),
-    "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
     #
     # Bug prediction
     "has_repo_code_mappings": seer_rpc(has_repo_code_mappings),

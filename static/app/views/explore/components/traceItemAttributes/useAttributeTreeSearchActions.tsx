@@ -1,9 +1,10 @@
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {t} from 'sentry/locale';
-import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {isNumericAttribute} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {useAddSearchFilter} from 'sentry/views/explore/queryParams/context';
+
+import type {AttributesTreeContent} from './attributesTree';
+import {isNumericAttribute} from './utils';
 
 export function useAttributeTreeSearchActions() {
   const addSearchFilter = useAddSearchFilter();
