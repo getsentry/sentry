@@ -217,6 +217,24 @@ describe('useBootstrapTeamsQuery', () => {
     expect(TeamStore.getState().teams).toEqual([]);
   });
 
+  it('reports and ignores an empty 204 response', async () => {
+    jest.mocked(Sentry.captureException).mockClear();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/teams/`,
+      statusCode: 204,
+      body: '',
+    });
+
+    const {result} = renderHookWithProviders(() => useBootstrapTeamsQuery(orgSlug));
+
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(result.current.data?.teams).toEqual([]);
+    expect(TeamStore.getState().teams).toEqual([]);
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      new Error('Bootstrap teams response is not an array')
+    );
+  });
+
   it('does not fetch when orgSlug is null', () => {
     const {result} = renderHookWithProviders(() => useBootstrapTeamsQuery(null));
     expect(result.current.data).toBeUndefined();

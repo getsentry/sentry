@@ -133,11 +133,29 @@ function createTeamsObject(response: ApiResult): {
   hasMore: boolean;
   teams: Team[];
 } {
-  const teams = response[0];
-  const paginationObject = parseLinkHeader(response[2]!.getResponseHeader('Link'));
+  const [data, , responseMeta] = response;
+  if (!Array.isArray(data)) {
+    // The teams endpoint should always return a JSON array. An empty body
+    // (e.g. a 204 response) resolves as an empty string, which would crash
+    // the TeamStore. Report the unexpected response and fall back to no teams.
+    Sentry.withScope(scope => {
+      scope.setExtras({
+        status: responseMeta?.status,
+        statusText: responseMeta?.statusText,
+        responseType: typeof data,
+        responseText: String(responseMeta?.responseText ?? '').slice(0, 500),
+      });
+      Sentry.captureException(new Error('Bootstrap teams response is not an array'));
+    });
+    return {teams: [], hasMore: false, cursor: null};
+  }
+
+  const paginationObject = parseLinkHeader(
+    responseMeta?.getResponseHeader('Link') ?? null
+  );
   const hasMore = paginationObject?.next?.results ?? false;
-  const cursor = paginationObject.next?.cursor ?? null;
-  return {teams, hasMore, cursor};
+  const cursor = paginationObject?.next?.cursor ?? null;
+  return {teams: data, hasMore, cursor};
 }
 
 export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
