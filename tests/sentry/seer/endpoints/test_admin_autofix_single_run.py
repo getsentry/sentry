@@ -1,11 +1,17 @@
+from concurrent.futures import Future
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.local.backend import LocalBroker
+from arroyo.backends.local.storages.memory import MemoryMessageStorage
+from arroyo.types import BrokerValue
 from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.eventstream.base import GroupState
+from sentry.eventstream.kafka.backend import KafkaEventStream
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.investigations.services.breached_metrics import resolve_breached_metric_sources
 from sentry.models.group import Group
@@ -193,7 +199,6 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         assert occurrence.evidence_data["synthetic"] is True
         assert occurrence.evidence_data["conditions"]
         assert publish.call_args.args[2].is_new is True
-        assert publish.call_args.kwargs["confirmed"] is True
         assert not DetectorState.objects.filter(detector=self.detector).exists()
 
     def test_rejects_invalid_input(self) -> None:
@@ -306,6 +311,24 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         group = Group.objects.get(id=response.data["issueId"])
         assert response.data["issueUrl"] == group.get_absolute_url()
         assert "workflow submission failed" in response.data["detail"]
+
+    def test_delivery_failure_returns_created_issue(self) -> None:
+        broker = LocalBroker(MemoryMessageStorage[KafkaPayload]())
+        producer = broker.get_producer()
+        failure: Future[BrokerValue[KafkaPayload]] = Future()
+        failure.set_exception(RuntimeError("Delivery failed"))
+        backend = KafkaEventStream()
+        with (
+            patch("sentry.issues.ingest.eventstream.backend", backend),
+            patch.object(backend, "get_producer", return_value=producer),
+            patch.object(producer, "produce", return_value=failure) as produce,
+        ):
+            response = self.get_success_response(
+                organizationId=self.organization.id, monitorId=self.detector.id, status_code=201
+            )
+        group = Group.objects.get(id=response.data["issueId"])
+        assert response.data["issueUrl"] == group.get_absolute_url()
+        produce.assert_called_once()
 
     @patch("sentry.seer.workflows.synthetic_breaches.send_issue_occurrence_to_eventstream")
     def test_dispatches_through_connected_workflows(self, publish: MagicMock) -> None:

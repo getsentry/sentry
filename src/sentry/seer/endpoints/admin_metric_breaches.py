@@ -107,11 +107,12 @@ class SeerAdminMetricBreachesEndpoint(Endpoint):
         | Response[SyntheticMetricBreachValidationResponse]
         | Response[DetailResponse]
     ):
-        """Create a fresh test metric issue and submit its first-seen event to workflows.
+        """Create a fresh test metric issue and attempt first-seen publication to workflows.
 
         Each POST is independent. Matching actions can execute asynchronously, including
-        non-Seer actions. A successful response confirms issue creation and event submission,
-        not Seer execution. A publication failure includes the persisted issue link.
+        non-Seer actions. A successful response confirms issue creation only; event delivery
+        and Seer execution are not guaranteed. A propagated publication exception returns
+        an error with the persisted issue link.
         """
         serializer = SyntheticMetricBreachRequest(data=request.data)
         if not serializer.is_valid():

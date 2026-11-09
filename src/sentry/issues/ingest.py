@@ -378,13 +378,10 @@ def save_issue_from_occurrence(
 
 @traces.trace
 def send_issue_occurrence_to_eventstream(
-    event: Event, occurrence: IssueOccurrence, group_info: GroupInfo, *, confirmed: bool = False
+    event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
 ) -> None:
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
-    publish_options: dict[str, Any] = (
-        {"asynchronous": False, "raise_on_error": True} if confirmed else {}
-    )
 
     eventstream.backend.insert(
         event=group_event,
@@ -402,5 +399,4 @@ def send_issue_occurrence_to_eventstream(
                 "is_new_group_environment": group_info.is_new_group_environment,
             }
         ],
-        **publish_options,
     )

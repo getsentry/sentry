@@ -209,7 +209,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
-        raise_on_error: bool = False,
     ) -> None:
         if headers is None:
             headers = {}
@@ -231,7 +230,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         try:
             if isinstance(producer, FutureTrackingProducer):
-                confirmed_delivery: Future[Future[BrokerValue[KafkaPayload]]] = Future()
                 producer.produce(
                     dest=ArroyoTopic(real_topic),
                     payload=KafkaPayload(
@@ -243,13 +241,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
                         ),
                         headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
                     ),
-                    callbacks=[self._on_produce_future_done, confirmed_delivery.set_result]
-                    if raise_on_error
-                    else [self._on_produce_future_done],
-                    asynchronous=True if raise_on_error else asynchronous,
+                    callbacks=[self._on_produce_future_done],
+                    asynchronous=asynchronous,
                 )
-                if raise_on_error:
-                    confirmed_delivery.result(timeout=5).result()
             else:
                 produce_future = producer.produce(
                     destination=ArroyoTopic(real_topic),
@@ -268,17 +262,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     self._on_produce_future_done
                 )
         except Exception as error:
-            if raise_on_error:
-                raise
             logger.exception("Could not publish message: %s", error)
             return
 
         if not asynchronous and not isinstance(producer, FutureTrackingProducer):
             try:
-                produce_future.result(timeout=5 if raise_on_error else None)
+                produce_future.result()  # Wait for the message to be delivered to Kafka
             except Exception as error:
-                if raise_on_error:
-                    raise
                 logger.exception("Could not wait for message delivery: %s", error)
 
     def requires_post_process_forwarder(self) -> bool:

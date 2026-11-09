@@ -202,7 +202,7 @@ def create_synthetic_breach(context: SyntheticBreachContext) -> tuple[Group, str
         raise SyntheticBreachError("Issue creation was prevented by ingestion controls.", 429)
     try:
         event = lookup_event(saved_occurrence.project_id, saved_occurrence.event_id)
-        send_issue_occurrence_to_eventstream(event, saved_occurrence, group_info, confirmed=True)
+        send_issue_occurrence_to_eventstream(event, saved_occurrence, group_info)
     except Exception:
         logger.exception("seer.synthetic_metric_breach.publication_failed")
         raise SyntheticBreachError(
