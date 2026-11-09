@@ -81,9 +81,8 @@ class TraceItemAttributeContext(TypedDict):
         Annotated[
             TraceItemAttributeUnit,
             ApiDescription(
-                "Unit of a number attribute, from Sentry's attribute definitions and "
-                "conventions. Applies in every dataset, so an attribute Sentry defines a unit "
-                "for gets it wherever it appears"
+                "Unit of a number attribute, from the dataset's Sentry-defined attributes or "
+                "from Sentry conventions, which apply in every dataset"
             ),
         ]
     ]
