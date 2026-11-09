@@ -2,16 +2,21 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, call, patch
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from sentry.cadence.api import ScheduledTriggerType, TriggerFiring, get_schedules
 from sentry.cadence.tasks import cadence_tick
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowRun,
+    SeerWorkflowRunExecution,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer.workflows.scheduled import (
+    SCHEDULED_EXECUTION_FEATURE,
+    ScheduledSeerWorkflow,
     enqueue_scheduled_automation_runs,
     record_scheduled_automation_run,
     trigger_key_for,
@@ -69,7 +74,7 @@ class EnqueueScheduledAutomationRunsTest(TestCase):
         ]
 
 
-@with_feature("organizations:seer-automations")
+@with_feature(["organizations:seer-automations", SCHEDULED_EXECUTION_FEATURE])
 class RecordScheduledAutomationRunTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -96,26 +101,35 @@ class RecordScheduledAutomationRunTest(TestCase):
             target_ids=[config_id],
         )
 
-    def test_records_a_cron_run(self) -> None:
+    @patch.object(ScheduledSeerWorkflow, "_dispatch_run")
+    def test_admits_a_cron_run_and_delegates_dispatch(self, mock_dispatch: MagicMock) -> None:
         self.run_task()
 
         (run,) = self.runs()
         assert run.trigger_key == "cron:2024-03-10T10:00"
-        assert run.status == SeerWorkflowRunStatus.COMPLETE
+        assert run.status == SeerWorkflowRunStatus.RUNNING
+        assert run.date_completed is None
+        assert not run.executions.exists()
+        mock_dispatch.assert_called_once_with(
+            SeerWorkflowRunLifecycle(run_id=run.id, organization_id=run.organization_id)
+        )
         snapshot = SeerWorkflowRunLifecycle(
             run_id=run.id, organization_id=run.organization_id
         ).extras.snapshot
         assert snapshot.strategy == SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
         assert snapshot.inputs == {"source": "cron", "scheduled_for": "2024-03-10T10:00:00+00:00"}
 
-    def test_duplicate_delivery_records_one_run(self) -> None:
+    @patch.object(ScheduledSeerWorkflow, "_dispatch_run")
+    def test_duplicate_delivery_records_one_run(self, mock_dispatch: MagicMock) -> None:
         self.run_task()
         self.run_task()
 
         assert len(self.runs()) == 1
+        mock_dispatch.assert_called_once()
 
     @patch("sentry.seer.workflows.scheduled.metrics.incr")
-    def test_records_outcome(self, mock_incr: MagicMock) -> None:
+    @patch.object(ScheduledSeerWorkflow, "_dispatch_run")
+    def test_records_outcome(self, mock_dispatch: MagicMock, mock_incr: MagicMock) -> None:
         self.run_task()
         self.run_task()
 
@@ -133,6 +147,41 @@ class RecordScheduledAutomationRunTest(TestCase):
                 sample_rate=1.0,
             ),
         ]
+
+    def test_unimplemented_dispatch_rolls_back_admission(self) -> None:
+        with pytest.raises(NotImplementedError, match="dispatch is not implemented"):
+            self.run_task()
+
+        assert self.runs() == []
+        assert not SeerWorkflowRunExecution.objects.filter(
+            run__organization_id=self.organization.id
+        ).exists()
+        assert self.is_scheduled()
+
+    @patch.object(ScheduledSeerWorkflow, "_dispatch_run")
+    def test_failed_dispatch_can_retry_admission(self, mock_dispatch: MagicMock) -> None:
+        mock_dispatch.side_effect = RuntimeError("dispatch failed")
+        with pytest.raises(RuntimeError, match="dispatch failed"):
+            self.run_task()
+        assert self.runs() == []
+
+        mock_dispatch.side_effect = None
+        self.run_task()
+
+        (run,) = self.runs()
+        assert run.status == SeerWorkflowRunStatus.RUNNING
+        assert mock_dispatch.call_count == 2
+
+    @patch.object(ScheduledSeerWorkflow, "record_run")
+    def test_execution_disabled_keeps_schedule_without_admitting_a_run(
+        self, mock_record_run: MagicMock
+    ) -> None:
+        with self.feature({SCHEDULED_EXECUTION_FEATURE: False}):
+            self.run_task()
+
+        mock_record_run.assert_not_called()
+        assert self.runs() == []
+        assert self.is_scheduled()
 
     def test_quota_exceeded_rejects_the_run(self) -> None:
         with patch.object(SeerWorkflow, "has_quota_available", return_value=False):
@@ -183,7 +232,10 @@ class RecordScheduledAutomationRunTest(TestCase):
 
 @with_feature("organizations:seer-automations")
 class ScheduledAutomationEndToEndTest(TestCase):
-    def test_cadence_tick_records_the_due_run(self) -> None:
+    @patch("sentry.seer.workflows.scheduled.logger.info")
+    def test_cadence_tick_reaches_disabled_execution_without_creating_history(
+        self, mock_log: MagicMock
+    ) -> None:
         with freeze_time(SCHEDULED_FOR - timedelta(hours=1)):
             config = Factories.create_seer_workflow_config(
                 self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
@@ -198,9 +250,21 @@ class ScheduledAutomationEndToEndTest(TestCase):
         ):
             cadence_tick()
 
-        (run,) = SeerWorkflowRun.objects.filter(workflow_config_id=config.id)
-        assert run.trigger_key == "cron:2024-03-10T10:00"
-        assert run.status == SeerWorkflowRunStatus.COMPLETE
+        assert not SeerWorkflowRun.objects.filter(workflow_config_id=config.id).exists()
+        assert not SeerWorkflowRunExecution.objects.filter(
+            run__workflow_config_id=config.id
+        ).exists()
+        mock_log.assert_called_once_with(
+            "seer.workflow.scheduled_run",
+            extra={
+                "organization_id": self.organization.id,
+                "config_id": config.id,
+                "scheduled_for": SCHEDULED_FOR.isoformat(),
+                "outcome": "ignored",
+                "reason": "execution_disabled",
+                "run_id": None,
+            },
+        )
         (info,) = get_schedules(
             organization_id=self.organization.id,
             trigger_type=ScheduledTriggerType.SEER_WORKFLOW,

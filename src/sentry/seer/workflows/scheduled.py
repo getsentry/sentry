@@ -1,8 +1,9 @@
 """
-Records runs of Seer automations on their configs' schedules, using sentry.cadence.
+Connects Seer automation schedules to sentry.cadence.
 
-Scheduling only: runs are recorded but no work is sent to Seer yet. See the placeholder in
-ScheduledSeerWorkflow.record_run.
+Firings reach the task, but scheduled execution is separately gated off while Seer dispatch
+is unimplemented. Admission and lifecycle handling remain available for that integration.
+No run history is created while the execution flag is off.
 """
 
 from __future__ import annotations
@@ -24,10 +25,10 @@ from sentry.cadence.api import (
 )
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
-    SeerWorkflowExecutionExtras,
     SeerWorkflowRun,
     WorkflowRunError,
 )
+from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer.workflows.schedule import schedule_for
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.silo.base import SiloMode
@@ -36,6 +37,8 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+SCHEDULED_EXECUTION_FEATURE = "organizations:seer-scheduled-automations"
 
 
 class ScheduledRunInputs(BaseModel):
@@ -114,6 +117,10 @@ def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> Sched
     # Entitlement can come back, so keep the schedule and do nothing this time.
     if not features.has("organizations:seer-automations", config.organization):
         return ScheduledRunOutcome("ignored", reason="feature_disabled")
+    # Scheduling and stale-registration cleanup stay active while execution is disabled.
+    # Firings consumed during this stage are not replayed when execution is enabled later.
+    if not features.has(SCHEDULED_EXECUTION_FEATURE, config.organization):
+        return ScheduledRunOutcome("ignored", reason="execution_disabled")
     return ScheduledSeerWorkflow(
         config_id=config.id, organization_id=config.organization_id
     ).record_run(scheduled_for)
@@ -121,7 +128,7 @@ def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> Sched
 
 class ScheduledSeerWorkflow(SeerWorkflow):
     def record_run(self, scheduled_for: datetime) -> ScheduledRunOutcome:
-        """Record the run scheduled for `scheduled_for`, once per config."""
+        """Admit and dispatch the run scheduled for `scheduled_for`, once per config."""
         try:
             with self._lock_config() as config:
                 if not config.enabled:
@@ -143,15 +150,15 @@ class ScheduledSeerWorkflow(SeerWorkflow):
                     return ScheduledRunOutcome("rejected", reason="quota_exceeded", run=run)
 
                 lifecycle.start()
-                # TODO: PLACEHOLDER, NOT SEER INTEGRATION. Nothing is sent to Seer: this
-                # records one empty execution and completes the run immediately, so every
-                # scheduled run reports COMPLETE without doing any work. Replace it with the
-                # strategy's planning and dispatch (select candidates, one execution per
-                # batch, start_feature_run per execution), and complete executions when
-                # Seer delivers their results rather than here.
-                (execution,) = lifecycle.create_executions([SeerWorkflowExecutionExtras()])
-                lifecycle.start_execution(execution.id)
-                lifecycle.complete_execution(execution.id)
+                self._dispatch_run(lifecycle)
                 return ScheduledRunOutcome("accepted", run=lifecycle.get_run())
         except SeerWorkflowConfig.DoesNotExist:
             return ScheduledRunOutcome("ignored", reason="configuration_unavailable")
+
+    def _dispatch_run(self, lifecycle: SeerWorkflowRunLifecycle) -> None:
+        """Persist the strategy's execution plan and durable dispatch before admission commits.
+
+        Seer result/status delivery must complete those executions. Raising here rolls back
+        admission if the execution flag is enabled before this implementation is supplied.
+        """
+        raise NotImplementedError("Scheduled Seer automation dispatch is not implemented")
