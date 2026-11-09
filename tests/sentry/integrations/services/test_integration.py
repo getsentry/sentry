@@ -716,6 +716,13 @@ class GetAccessTokenTest(TestCase):
             },
         )
 
+    def age_past_forced_refresh_reuse_window(self, integration: Integration) -> None:
+        """Make the stored credentials look older than FORCED_REFRESH_REUSE_WINDOW."""
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Integration.objects.filter(id=integration.id).update(
+                date_updated=datetime(2025, 1, 1, 5, 21, tzinfo=timezone.utc)
+            )
+
     @responses.activate
     def test_linear_reuses_valid_token(self) -> None:
         integration = self.create_linear()
@@ -747,6 +754,7 @@ class GetAccessTokenTest(TestCase):
     @responses.activate
     def test_linear_replaces_rejected_unexpired_token(self) -> None:
         integration = self.create_linear()
+        self.age_past_forced_refresh_reuse_window(integration)
         self.mock_linear_token()
 
         token = integration_service.get_access_token(
@@ -758,6 +766,30 @@ class GetAccessTokenTest(TestCase):
         assert token is not None
         assert token.token == "linear-token-2"
         assert self.get_token(integration) == token
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_linear_concurrent_forced_refreshes_reuse_replaced_token(self) -> None:
+        # Tool calls holding the same rejected token force refreshes one after another;
+        # only the first one rotates the credentials.
+        integration = self.create_linear()
+        self.age_past_forced_refresh_reuse_window(integration)
+        self.mock_linear_token()
+
+        first = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+        second = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+
+        assert first is not None
+        assert first.token == "linear-token-2"
+        assert second == first
         assert len(responses.calls) == 1
 
     @responses.activate
@@ -802,6 +834,7 @@ class GetAccessTokenTest(TestCase):
         integration = self.create_linear(expires_at=None)
         self.mock_linear_token()
         assert self.get_token(integration) is not None
+        self.age_past_forced_refresh_reuse_window(integration)
         responses.add(
             responses.POST,
             LINEAR_TOKEN_URL,

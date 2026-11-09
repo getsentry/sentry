@@ -40,6 +40,12 @@ LINEAR_ERROR_MESSAGE = (
 
 _WORKSPACE_QUERY = "query SentrySeerConnectionCheck { organization { id name } viewer { id } }"
 
+# How long a just-written token satisfies a forced refresh. Concurrent callers whose shared
+# token was rejected serialize on the lock below; the first one's refresh (or a concurrent
+# reauthorization) already replaced the rejected token, so the rest reuse it instead of
+# rotating the credentials once per caller.
+FORCED_REFRESH_REUSE_WINDOW = timedelta(seconds=30)
+
 
 class LinearWorkspace(TypedDict):
     id: str
@@ -244,12 +250,17 @@ class LinearClient:
                 expires_at = datetime.fromisoformat(raw_expires_at) if raw_expires_at else None
             except (TypeError, ValueError):
                 expires_at = None
-            if (
-                not force_refresh
-                and access_token
+            stored_token_usable = (
+                access_token
                 and expires_at is not None
                 and expires_at.tzinfo is not None
                 and expires_at > datetime.now(UTC) + minimum_validity
+            )
+            # Every credential write bumps date_updated, so a recent bump means the rejected
+            # token a forcing caller saw is already gone.
+            if stored_token_usable and (
+                not force_refresh
+                or integration.date_updated > timezone.now() - FORCED_REFRESH_REUSE_WINDOW
             ):
                 return {"access_token": access_token, "expires_at": raw_expires_at}
 
