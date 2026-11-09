@@ -23,7 +23,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/{version}/",
     "/api/0/users/{user_id}/emails/confirm/",
     "/api/0/users/{user_id}/identities/",
-    "/api/0/",
     "/api/0/organizations/{organization_id_or_slug}/avatar/",
     "/api/0/projects/",
     "/api/0/sentry-apps/{sentry_app_id_or_slug}/stats/",

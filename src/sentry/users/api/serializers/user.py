@@ -86,9 +86,10 @@ class _SerializedStacktraceOrder(int, Enum):
 
 
 class _UserOptions(TypedDict):
-    # TODO: enum/literal for theme options
-    theme: Annotated[str, ApiDescription("UI theme: light, dark or system")]
-    language: Annotated[str, ApiDescription("UI language code, such as en")]
+    theme: Annotated[  # TODO: enum/literal for theme options
+        str, ApiDescription('UI theme: "light", "dark" or "system". Defaults to "system"')
+    ]
+    language: Annotated[str, ApiDescription("UI language code, such as `en`")]
     stacktraceOrder: Annotated[
         _SerializedStacktraceOrder,
         ApiDescription(
@@ -97,21 +98,23 @@ class _UserOptions(TypedDict):
     ]
     defaultIssueEvent: Annotated[
         str,
-        ApiDescription("Event shown first on an issue: recommended, latest or oldest"),
+        ApiDescription(
+            'Event shown by default on issue details: "recommended", "latest" or "oldest"'
+        ),
     ]
-    timezone: Annotated[str, ApiDescription("Time zone name, such as UTC or America/New_York")]
-    clock24Hours: Annotated[bool, ApiDescription("Whether times are shown on a 24-hour clock")]
+    timezone: Annotated[str, ApiDescription("Time zone for displayed dates, such as `UTC`")]
+    clock24Hours: Annotated[bool, ApiDescription("Whether times are shown in 24-hour format")]
     prefersIssueDetailsStreamlinedUI: Annotated[
         bool | None,
         ApiDescription(
-            "Whether the user prefers the streamlined issue details page, or null if they haven't chosen"
+            "Whether the user prefers the streamlined issue details UI, or null if they haven't chosen"
         ),
     ]
 
 
 class _UserFlags(TypedDict):
     newsletter_consent_prompt: Annotated[
-        bool, ApiDescription("Whether Sentry should ask the user for newsletter consent")
+        bool, ApiDescription("Whether to ask the user for newsletter consent")
     ]
 
 
@@ -191,8 +194,8 @@ class UserSerializerResponse(UserSerializerResponseOptional):
 
 
 class UserSerializerResponseSelf(UserSerializerResponse):
-    options: _UserOptions
-    flags: _UserFlags
+    options: Annotated[_UserOptions, ApiDescription("Preferences of the user")]
+    flags: Annotated[_UserFlags, ApiDescription("Account flags of the user")]
 
 
 @register(User)
