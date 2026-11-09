@@ -17,6 +17,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.locks import locks
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import control_silo_function
+from sentry.utils.locking import UnableToAcquireLock
 
 if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcIntegration
@@ -222,6 +223,33 @@ def validate_linear_access_token(access_token: str) -> LinearWorkspace:
     return workspace
 
 
+def _reusable_stored_token(
+    integration: Integration, minimum_validity: timedelta, force_refresh: bool
+) -> LinearAccessToken | None:
+    """Return the stored token if it's valid for long enough and, when the caller's copy
+    was rejected, has been replaced since."""
+    metadata = integration.metadata
+    access_token = metadata.get("access_token")
+    raw_expires_at = metadata.get("expires_at")
+    try:
+        expires_at = datetime.fromisoformat(raw_expires_at) if raw_expires_at else None
+    except (TypeError, ValueError):
+        expires_at = None
+    stored_token_usable = (
+        access_token
+        and expires_at is not None
+        and expires_at.tzinfo is not None
+        and expires_at > datetime.now(UTC) + minimum_validity
+    )
+    # Every credential write bumps date_updated, so a recent bump means the rejected
+    # token a forcing caller saw is already gone.
+    if stored_token_usable and (
+        not force_refresh or integration.date_updated > timezone.now() - FORCED_REFRESH_REUSE_WINDOW
+    ):
+        return {"access_token": access_token, "expires_at": raw_expires_at}
+    return None
+
+
 class LinearClient:
     def __init__(self, integration: Integration | RpcIntegration) -> None:
         self.integration = integration
@@ -237,32 +265,30 @@ class LinearClient:
         lock = locks.get(
             f"linear:access-token:{self.integration.id}", duration=30, name="linear_access_token"
         )
-        with lock.blocking_acquire(initial_delay=0.1, timeout=5):
+        try:
+            acquired = lock.blocking_acquire(initial_delay=0.1, timeout=5)
+        except UnableToAcquireLock:
+            # The holder's token request can outlast this wait. If it already stored a
+            # usable replacement, hand that out instead of failing.
+            integration = Integration.objects.filter(
+                id=self.integration.id, status=ObjectStatus.ACTIVE
+            ).first()
+            if integration is None:
+                return None
+            token = _reusable_stored_token(integration, minimum_validity, force_refresh)
+            if token is None:
+                raise
+            return token
+        with acquired:
             integration = Integration.objects.filter(
                 id=self.integration.id, status=ObjectStatus.ACTIVE
             ).first()
             if integration is None:
                 return None
             metadata = integration.metadata
-            access_token = metadata.get("access_token")
-            raw_expires_at = metadata.get("expires_at")
-            try:
-                expires_at = datetime.fromisoformat(raw_expires_at) if raw_expires_at else None
-            except (TypeError, ValueError):
-                expires_at = None
-            stored_token_usable = (
-                access_token
-                and expires_at is not None
-                and expires_at.tzinfo is not None
-                and expires_at > datetime.now(UTC) + minimum_validity
-            )
-            # Every credential write bumps date_updated, so a recent bump means the rejected
-            # token a forcing caller saw is already gone.
-            if stored_token_usable and (
-                not force_refresh
-                or integration.date_updated > timezone.now() - FORCED_REFRESH_REUSE_WINDOW
-            ):
-                return {"access_token": access_token, "expires_at": raw_expires_at}
+            stored = _reusable_stored_token(integration, minimum_validity, force_refresh)
+            if stored is not None:
+                return stored
 
             refresh_token = metadata.get("refresh_token")
             if not refresh_token:

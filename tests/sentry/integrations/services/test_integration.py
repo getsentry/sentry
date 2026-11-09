@@ -34,6 +34,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.locking import UnableToAcquireLock
 
 
 class BaseIntegrationServiceTest(TestCase):
@@ -791,6 +792,66 @@ class GetAccessTokenTest(TestCase):
         assert first.token == "linear-token-2"
         assert second == first
         assert len(responses.calls) == 1
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_reuses_stored_token(self, mock_acquire: MagicMock) -> None:
+        # Another caller's refresh holds the lock longer than the wait, but the stored
+        # token is still valid, so the waiter hands it out instead of failing.
+        integration = self.create_linear()
+
+        assert self.get_token(integration) == RpcAccessToken(
+            token="linear-token", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_forced_refresh_reuses_recent_replacement(
+        self, mock_acquire: MagicMock
+    ) -> None:
+        # The lock holder just replaced the rejected token; a forcing waiter that timed
+        # out on the lock reuses the replacement instead of reporting a failed refresh.
+        integration = self.create_linear()
+
+        token = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+
+        assert token is not None
+        assert token.token == "linear-token"
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_forced_refresh_without_replacement_fails(
+        self, mock_acquire: MagicMock
+    ) -> None:
+        # The stored credentials predate the reuse window, so they're the ones the
+        # forcing caller saw rejected; without the lock there's nothing safe to hand out.
+        integration = self.create_linear()
+        self.age_past_forced_refresh_reuse_window(integration)
+
+        token = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+
+        assert token is None
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_with_expiring_token_fails(self, mock_acquire: MagicMock) -> None:
+        # The stored token is about to expire (that's what the lock holder is fixing),
+        # so the waiter can't use it and reports the token unavailable.
+        integration = self.create_linear(expires_at="2025-01-01T05:25:00+00:00")
+
+        assert self.get_token(integration) is None
+        assert len(responses.calls) == 0
 
     @responses.activate
     def test_linear_missing_expiry_obtains_new_token(self) -> None:
