@@ -746,9 +746,9 @@ describe('ExploreCharts', () => {
         await asyncDelay;
       });
 
-      const chartValues = await screen.findByLabelText('Chart values');
-      expect(chartValues).toHaveTextContent('[1729796400000,10]');
-      expect(chartValues).toHaveTextContent('"value":[0,0]');
+      expect(await screen.findByLabelText('Chart values')).toHaveTextContent(
+        '[[[1729796400000,10]],[[0,0]]]'
+      );
     });
 
     it('notes that dropped spans ignore the search while the layer is on', async () => {
