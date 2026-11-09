@@ -1,13 +1,8 @@
 import styled from '@emotion/styled';
-import {isMac} from '@react-aria/utils';
-import {
-  formatForDisplay,
-  type CanonicalModifier,
-  type HotkeyChord,
-} from '@tanstack/react-hotkeys';
 
 import {Kbd} from '@sentry/scraps/hotkey/kbd';
 
+import {getHotkeyParts, type HotkeyValue} from './formatHotkey';
 import {resolveKeyGlyph} from './keyMappings';
 
 interface HotkeyProps {
@@ -27,21 +22,17 @@ interface HotkeyProps {
    * <Hotkey value={['Mod+Backspace', 'Delete']} />
    * ```
    */
-  value: HotkeyChord | CanonicalModifier | 'Mod' | readonly HotkeyChord[];
+  value: HotkeyValue;
   variant?: 'embossed' | 'debossed';
 }
 
 export function Hotkey({value, variant}: HotkeyProps) {
-  const hotkey = typeof value === 'string' ? value : value[0];
-  if (!hotkey) {
+  const parts = getHotkeyParts(value);
+  if (parts.length === 0) {
     return null;
   }
 
-  const finalKeys = formatForDisplay(hotkey, {
-    platform: isMac() ? 'mac' : 'linux',
-    parts: true,
-    keyLabels: {Delete: 'Del', Tab: 'Tab', Space: 'Space'},
-  }).map(resolveKeyGlyph);
+  const finalKeys = parts.map(resolveKeyGlyph);
 
   return (
     <WrapperKbd variant={variant}>

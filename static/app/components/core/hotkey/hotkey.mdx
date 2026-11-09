@@ -128,6 +128,18 @@ Both `<Hotkey>` and `<Kbd>` accept a `variant` prop. The default `embossed` vari
 <Kbd variant="debossed">Esc</Kbd>
 ```
 
+## formatHotkey
+
+`formatHotkey()` resolves a shortcut with the same platform mapping as `<Hotkey>`, but returns a plain string instead of styled key caps. Use it where a hotkey must render as text, such as a navigation label. Mac shortcuts use symbol characters (`⌘K`), and other platforms use space-separated key names (`Ctrl K`).
+
+```jsx
+import {formatHotkey} from '@sentry/scraps/hotkey';
+
+formatHotkey('Mod+K'); // "⌘K" on Mac, "Ctrl K" elsewhere
+```
+
+Text produced by `formatHotkey()` isn't a descriptive accessible name. Give the surrounding control an `aria-label` that describes its action.
+
 ## Kbd
 
 `<Kbd>` renders a single styled key cap. Use it for standalone key references in prose or documentation.
