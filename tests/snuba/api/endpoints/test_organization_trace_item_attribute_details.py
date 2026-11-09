@@ -18,6 +18,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
+from sentry import options
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import (
     APITestCase,
@@ -485,6 +486,29 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["stats"]["spans"]["lastSeen"] == timestamp.isoformat()
 
+    def test_returns_table_last_seen_when_a_full_rollup_response_lacks_the_name(self) -> None:
+        timestamp = before_now(minutes=10).replace(microsecond=0)
+        self._store_span({"cart": "a"}, timestamp=timestamp)
+        limit = options.get("explore.trace-items.keys.max")
+
+        with mock.patch(
+            f"{STATS_MODULE}.attribute_names_rpc",
+            return_value=names_response(
+                [(f"cart.{index}", before_now(hours=1)) for index in range(limit)]
+            ),
+        ):
+            response = self.do_request(
+                query={
+                    "attributeName": "cart",
+                    "attributeType": "string",
+                    "dataset": "spans",
+                    "statsPeriod": "14d",
+                }
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["lastSeen"] == timestamp.isoformat()
+
     def test_returns_table_last_seen_when_the_names_rpc_raises(self) -> None:
         timestamp = before_now(minutes=10).replace(microsecond=0)
         self._store_span({"cart": "a"}, timestamp=timestamp)
@@ -728,10 +752,23 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         }
         assert response.data["lastSeen"] == span_timestamp.isoformat()
 
-    def test_returns_modified_count_when_relay_modified_some_values(self) -> None:
-        self._store_span({"cart": "a" * 10, f"{META_PREFIX}.cart": RELAY_META})
-        self._store_span({"cart": "b" * 10, f"{META_PREFIX}.cart": RELAY_META})
-        self._store_span({"cart": "c"})
+    def test_returns_unextrapolated_modified_count_when_relay_modified_sampled_values(
+        self,
+    ) -> None:
+        sampled = {"client_sample_rate": {"value": 0.1}}
+        self.store_spans(
+            [
+                self.create_span(
+                    {"tags": {"cart": "a" * 10, f"{META_PREFIX}.cart": RELAY_META}},
+                    measurements=sampled,
+                ),
+                self.create_span(
+                    {"tags": {"cart": "b" * 10, f"{META_PREFIX}.cart": RELAY_META}},
+                    measurements=sampled,
+                ),
+                self.create_span({"tags": {"cart": "c"}}, measurements=sampled),
+            ]
+        )
 
         response = self.do_request(
             query={
@@ -744,6 +781,21 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
 
         assert response.status_code == 200, response.content
         assert response.data["stats"]["spans"]["modifiedCount"] == 2
+
+    def test_returns_modified_count_when_relay_modified_a_number_attribute(self) -> None:
+        self._store_span({f"{META_PREFIX}.cart.total": RELAY_META}, measurements={"cart.total": 5})
+
+        response = self.do_request(
+            query={
+                "attributeName": "cart.total",
+                "attributeType": "number",
+                "dataset": "spans",
+                "statsPeriod": "14d",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["modifiedCount"] == 1
 
     def test_returns_modified_count_when_relay_renamed_the_attribute(self) -> None:
         self._store_span({f"{META_PREFIX}.sentry.raw_description": RELAY_META})
