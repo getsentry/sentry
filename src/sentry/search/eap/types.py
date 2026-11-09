@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Annotated, Literal, NotRequired, TypedDict
 
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode, Reliability
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.search.events.types import EventsResponse
 
 if TYPE_CHECKING:
@@ -97,10 +98,25 @@ ScalarValueType = float | bool | str
 
 
 class TraceItemAttribute(TypedDict):
-    name: str
-    rawName: NotRequired[str]
-    type: ScalarType | Literal["array"]
-    value: str | int | float | bool | list[str | int | float | bool] | None
+    name: Annotated[
+        str,
+        ApiDescription(
+            "The public name of the attribute, such as `severity`. A custom number or "
+            "boolean attribute is named `tags[<name>,number]` or `tags[<name>,boolean]`"
+        ),
+    ]
+    rawName: NotRequired[Annotated[str, ApiDescription("The name the attribute is stored under")]]
+    type: Annotated[
+        ScalarType | Literal["array"],
+        ApiDescription("The type of the attribute value: `str`, `int`, `float`, `bool` or `array`"),
+    ]
+    value: Annotated[
+        ScalarValueType | list[ScalarValueType],
+        ApiDescription(
+            "The attribute value. An `int` value is a string, so 64-bit integers keep "
+            "their precision. An `array` value is a list of values of one type"
+        ),
+    ]
 
 
 class EAPResponse(EventsResponse):
