@@ -354,6 +354,63 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["context"]["unit"] == "byte"
 
+    def test_returns_changelog_without_missing_fields_when_the_attribute_is_a_convention(
+        self,
+    ) -> None:
+        self._store_span({"http.route": "/users/:id"})
+
+        response = self.do_request(
+            query={"attributeName": "http.route", "attributeType": "string", "dataset": "spans"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["changelog"][-3:] == [
+            {
+                "version": "0.19.0",
+                "prs": [505, 521],
+                "description": "Added multiple examples, removed alias to `url.template`, added additional context",
+            },
+            {"version": "0.1.0", "prs": [127]},
+            {"version": "0.0.0"},
+        ]
+
+    def test_returns_changelog_when_the_convention_is_keyed_by_the_internal_name(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(minutes=10).replace(microsecond=0),
+            op="http.client",
+        )
+
+        response = self.do_request(
+            query={"attributeName": "span.op", "attributeType": "string", "dataset": "spans"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["changelog"][-1:] == [{"version": "0.0.0"}]
+
+    def test_omits_changelog_when_the_attribute_type_differs_from_the_convention(self) -> None:
+        self._store_span(measurements={"http.route": 1})
+
+        response = self.do_request(
+            query={"attributeName": "http.route", "attributeType": "number", "dataset": "spans"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert "changelog" not in response.data
+
+    def test_omits_changelog_when_the_attribute_is_not_a_convention(self) -> None:
+        self._store_span({"cart": "a"})
+
+        response = self.do_request(
+            query={"attributeName": "cart", "attributeType": "string", "dataset": "spans"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert "changelog" not in response.data
+
     def test_returns_rollup_last_seen_when_the_name_has_like_wildcards_and_quotes(self) -> None:
         name = 'it\'s "odd": [x] 50%_off\\'
         last_seen = before_now(hours=1).replace(microsecond=0)
