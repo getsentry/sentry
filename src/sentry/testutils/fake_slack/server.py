@@ -24,6 +24,7 @@ DEFAULT_CHANNELS = {
     "C0SEER": "seer",
 }
 VIEWER = Path(__file__).with_name("viewer.html")
+MAX_UNSUPPORTED_CALLS = 100
 
 Response = dict[str, Any]
 
@@ -48,12 +49,12 @@ class FakeSlack:
 
     def _load(self) -> dict[str, Any]:
         if self.state_file and self.state_file.exists():
-            return json.loads(self.state_file.read_text())
+            return {**self._empty(), **json.loads(self.state_file.read_text())}
         return self._empty()
 
     @staticmethod
     def _empty() -> dict[str, Any]:
-        return {"channels": dict(DEFAULT_CHANNELS), "messages": []}
+        return {"channels": dict(DEFAULT_CHANNELS), "messages": [], "unsupported": []}
 
     def _save(self) -> None:
         if self.state_file:
@@ -69,16 +70,19 @@ class FakeSlack:
         with self.lock:
             return {"team": TEAM, **copy.deepcopy(self.state)}
 
-    def _channel_id(self, channel: str) -> str:
+    def _existing_channel_id(self, channel: str) -> str | None:
         channel = channel.lstrip("#")
         channels: dict[str, str] = self.state["channels"]
         if channel in channels:
             return channel
-        for channel_id, name in channels.items():
-            if name == channel:
-                return channel_id
-        channel_id = "C" + hashlib.sha1(channel.encode()).hexdigest()[:9].upper()
-        channels[channel_id] = channel
+        return next((cid for cid, name in channels.items() if name == channel), None)
+
+    def _channel_id(self, channel: str) -> str:
+        if channel_id := self._existing_channel_id(channel):
+            return channel_id
+        name = channel.lstrip("#")
+        channel_id = "C" + hashlib.sha1(name.encode()).hexdigest()[:9].upper()
+        self.state["channels"][channel_id] = name
         return channel_id
 
     def _next_ts(self) -> str:
@@ -96,9 +100,26 @@ class FakeSlack:
         with self.lock:
             handler = getattr(self, "_" + method.replace(".", "_"), None)
             if handler is None:
+                self._record_unsupported(method, args)
                 return {"ok": True, "fake_slack": f"{method} is not simulated"}
             result: Response = handler(args)
             return result
+
+    def _record_unsupported(self, method: str, args: Mapping[str, Any]) -> None:
+        channel = self._existing_channel_id(args.get("channel") or "")
+        ts = args.get("ts") or args.get("timestamp") or args.get("thread_ts") or ""
+        message = self._find(channel, ts) if channel else None
+        calls = self.state["unsupported"]
+        calls.append(
+            {
+                "method": method,
+                "at": time.time(),
+                "channel": channel if message else None,
+                "ts": ts if message else None,
+            }
+        )
+        del calls[:-MAX_UNSUPPORTED_CALLS]
+        self._save()
 
     def _chat_postMessage(self, args: Mapping[str, Any], ephemeral: bool = False) -> Response:
         channel = self._channel_id(args.get("channel") or "general")

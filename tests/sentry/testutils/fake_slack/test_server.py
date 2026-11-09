@@ -1,6 +1,7 @@
 import threading
 from collections.abc import Generator
 from pathlib import Path
+from unittest import mock
 from urllib.request import Request, urlopen
 
 import pytest
@@ -60,6 +61,10 @@ class FakeSlackServerTest(TestCase):
                     scheduled_message_id=scheduled["scheduled_message_id"],
                 )
             unsimulated = client.api_call("views.open", json={"trigger_id": "1"})
+            client.api_call(
+                "reactions.add",
+                json={"channel": "#alerts", "timestamp": posted["ts"], "name": "eyes"},
+            )
             with pytest.raises(SlackApiError, match="message_not_found"):
                 client.chat_update(channel="#alerts", ts="1.0", text="Missing")
 
@@ -80,9 +85,14 @@ class FakeSlackServerTest(TestCase):
         assert root["edited"] is not None
         assert thread_reply["thread_ts"] == posted["ts"]
         assert hello["channel"] == new_channel["channel"]
+        assert state["unsupported"] == [
+            {"method": "views.open", "at": mock.ANY, "channel": None, "ts": None},
+            {"method": "reactions.add", "at": mock.ANY, "channel": "C0ALERTS", "ts": posted["ts"]},
+        ]
         assert FakeSlack(self.state_file, self.url).snapshot() == state
 
         with urlopen(self.url) as response:
             assert b"<title>Fake Slack</title>" in response.read()
         urlopen(Request(f"{self.url}/reset", method="POST")).close()
         assert self.slack.snapshot()["messages"] == []
+        assert self.slack.snapshot()["unsupported"] == []

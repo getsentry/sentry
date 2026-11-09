@@ -82,6 +82,11 @@
   blockquote { border-left: 4px solid #ddd; margin: 4px 0; padding-left: 10px; color: var(--muted); }
   .mrkdwn { white-space: normal; overflow-wrap: anywhere; }
   .raw { font-family: monospace; font-size: 11px; color: var(--muted); }
+  .unsupported { background: #fdecec; border-bottom: 1px solid #f3b3b3; padding: 6px 16px; font-size: 13px; }
+  .unsupported[hidden], .toast[hidden] { display: none; }
+  .unsupported code { font-size: 12px; }
+  [data-unsupported] { cursor: pointer; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #1d1c1d; color: #fff; padding: 10px 16px; border-radius: 6px; font-size: 13px; max-width: 90vw; box-shadow: 0 4px 12px rgba(0,0,0,.25); z-index: 20; }
   @media (max-width: 800px) {
     .sidebar { display: none; }
     .thread { position: fixed; inset: 0; width: auto; max-width: none; background: var(--bg); z-index: 10; top: 33px; }
@@ -93,6 +98,7 @@
   <span>🧪 <b>Fake Slack.</b> Every message this Sentry devserver sends to Slack lands here instead of a real workspace.</span>
   <button id="reset" title="Delete all messages">Clear messages</button>
 </div>
+<div class="unsupported" id="unsupported" hidden></div>
 <div class="app">
   <nav class="sidebar">
     <div class="workspace" id="workspace">Slack</div>
@@ -187,11 +193,11 @@ function element(el) {
   if (el.type === 'button') {
     const cls = `btn ${esc(el.style)}`;
     return el.url ? `<a class="${cls}" ${linkAttrs(el.url)}>${esc(el.text?.text)}</a>`
-      : `<span class="${cls}" title="Buttons don't do anything in Fake Slack yet">${esc(el.text?.text)}</span>`;
+      : `<span class="${cls}" data-unsupported="button">${esc(el.text?.text)}</span>`;
   }
   if (el.type === 'image') return `<img src="${esc(el.image_url)}" alt="${esc(el.alt_text)}">`;
   if (el.type === 'mrkdwn' || el.type === 'plain_text') return `<span class="mrkdwn">${textObj(el)}</span>`;
-  if (el.type === 'static_select' || el.type === 'overflow' || el.type === 'external_select') return `<span class="btn">${esc(el.placeholder?.text ?? 'Select…')} ▾</span>`;
+  if (el.type === 'static_select' || el.type === 'overflow' || el.type === 'external_select') return `<span class="btn" data-unsupported="menu">${esc(el.placeholder?.text ?? 'Select…')} ▾</span>`;
   return '';
 }
 
@@ -274,8 +280,42 @@ function route() {
   openThread = thread || null; focusTs = ts || thread || null;
 }
 
+const UNSUPPORTED_CLICKS = {
+  button: "Fake Slack doesn't support button clicks yet. In Slack, this would send Sentry a block_actions request.",
+  menu: "Fake Slack doesn't support menus yet.",
+};
+
+function renderUnsupportedCalls() {
+  const byMethod = new Map();
+  for (const call of state.unsupported ?? []) {
+    const entry = byMethod.get(call.method) ?? {count: 0, link: null};
+    entry.count += 1;
+    if (call.channel) {
+      const message = state.messages.find(m => m.channel === call.channel && m.ts === call.ts);
+      entry.link = `#${call.channel}/${message?.thread_ts || call.ts}/${call.ts}`;
+    }
+    byMethod.set(call.method, entry);
+  }
+  const banner = document.getElementById('unsupported');
+  banner.hidden = byMethod.size === 0;
+  banner.innerHTML = `⚠️ Sentry called Slack methods that Fake Slack doesn't simulate, so Slack may behave differently: ` +
+    [...byMethod].map(([method, {count, link}]) => {
+      const name = `<code>${esc(method)}</code> ×${count}`;
+      return link ? `<a href="${esc(link)}">${name}</a>` : name;
+    }).join(', ');
+}
+
+function showToast(text) {
+  const toast = document.getElementById('toast');
+  toast.textContent = text;
+  toast.hidden = false;
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => { toast.hidden = true; }, 4000);
+}
+
 function render() {
   route();
+  renderUnsupportedCalls();
   document.getElementById('workspace').textContent = state.team?.name ?? 'Slack';
   const roots = id => state.messages.filter(m => m.channel === id && (!m.thread_ts || m.thread_ts === m.ts || m.reply_broadcast));
   document.getElementById('channels').innerHTML = Object.entries(state.channels).map(([id, name]) => {
@@ -315,6 +355,8 @@ async function poll() {
 }
 
 document.addEventListener('click', e => {
+  const unsupported = e.target.closest('[data-unsupported]');
+  if (unsupported) { showToast(UNSUPPORTED_CLICKS[unsupported.dataset.unsupported]); return; }
   const ch = e.target.closest('[data-channel]');
   if (ch) { location.hash = ch.dataset.channel; return; }
   const th = e.target.closest('[data-thread]');
@@ -327,5 +369,6 @@ document.getElementById('reset').onclick = async () => {
 window.addEventListener('hashchange', () => { render(); focusTs = null; });
 poll();
 </script>
+<div class="toast" id="toast" role="status" hidden></div>
 </body>
 </html>
