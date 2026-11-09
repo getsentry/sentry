@@ -492,6 +492,13 @@ def _push_iteration_changes(
         )
     except SeerOutOfCreditsException:
         log_ctx.info("autofix.pr_iteration.push", outcome="failed", reason="out_of_credits")
+        # TODO(CW-3066): Resume after a top-up. Until then nothing retries the push, so pause
+        # the run so that new feedback is refused.
+        pause_pr_iteration(
+            run_id=run_id,
+            organization_id=group.organization.id,
+            reason=PauseReason.RUN_ERRORED,
+        )
         return False
     except Exception as e:
         log_ctx.error(
@@ -578,8 +585,9 @@ def _retry_push_on_moved_branch(
         )
     except SeerOutOfCreditsException:
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="out_of_credits")
-        # Not PR_CREATION_ERRORED, which pauses iteration for good. Credits can be topped up.
-        return PrIterationOutcome.PUSH_FAILED
+        # TODO(CW-3066): Resume after a top-up. Until then nothing retries this, so end the
+        # iteration as errored, and the caller pauses the run and records the outcome.
+        return PrIterationOutcome.PR_CREATION_ERRORED
     except Exception as e:
         # End the iteration as errored, so the caller pauses the run and records the outcome.
         log_ctx.error(
