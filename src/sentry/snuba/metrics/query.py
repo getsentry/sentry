@@ -357,6 +357,17 @@ class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
             raise InvalidParams("start must be before end")
 
     def validate_granularity(self) -> None:
+        # Metrics are stored at most at daily granularity. Serve multi-day rollups (e.g. 30d) by
+        # querying daily data and grouping the series into buckets of the requested size.
+        if (
+            self.interval is None
+            and self.granularity.granularity > ONE_DAY
+            and self.granularity.granularity % ONE_DAY == 0
+        ):
+            if self.include_series:
+                object.__setattr__(self, "interval", self.granularity.granularity)
+            object.__setattr__(self, "granularity", Granularity(ONE_DAY))
+
         # Logic specific to how we handle time series in discover in terms of granularity and interval
         if (
             self.use_case_id == UseCaseID.TRANSACTIONS
@@ -404,7 +415,8 @@ class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
 
     def validate_interval(self) -> None:
         if self.interval is not None:
-            if self.use_case_id is UseCaseID.SESSIONS or (
+            is_multi_day_series = self.include_series and self.interval > ONE_DAY
+            if (self.use_case_id is UseCaseID.SESSIONS and not is_multi_day_series) or (
                 self.use_case_id is UseCaseID.TRANSACTIONS and not self.include_series
             ):
                 raise InvalidParams("Interval is only supported for timeseries performance queries")

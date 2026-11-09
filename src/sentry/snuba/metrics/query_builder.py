@@ -1079,7 +1079,9 @@ class SnubaQueryBuilder:
             if self._metrics_query.max_limit:
                 series_limit = self._metrics_query.max_limit
 
-            if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
+            if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS] or (
+                self._use_case_id is UseCaseID.SESSIONS and self._metrics_query.interval is not None
+            ):
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     cast(int, self._metrics_query.interval)
                 )

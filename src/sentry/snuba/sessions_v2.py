@@ -340,6 +340,7 @@ class QueryDefinition:
         start, end, rollup = get_constrained_date_range(
             query,
             allowed_resolution=AllowedResolution.ten_seconds,
+            allow_multi_day_interval=True,
         )
         self.rollup = rollup
         self.start = start
@@ -452,6 +453,7 @@ def get_constrained_date_range(
     params: Mapping[str, Any],
     allowed_resolution: AllowedResolution = AllowedResolution.one_hour,
     max_points: int = MAX_POINTS,
+    allow_multi_day_interval: bool = False,
 ) -> tuple[datetime, datetime, int]:
     interval_td = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval_td is None else interval_td.total_seconds())
@@ -463,9 +465,11 @@ def get_constrained_date_range(
         )
 
     if interval > ONE_DAY:
-        raise InvalidParams("The interval has to be less than one day.")
-
-    if ONE_DAY % interval != 0:
+        if not allow_multi_day_interval:
+            raise InvalidParams("The interval has to be less than one day.")
+        if interval % ONE_DAY != 0:
+            raise InvalidParams("Intervals longer than one day have to be a whole number of days.")
+    elif ONE_DAY % interval != 0:
         raise InvalidParams("The interval should divide one day without a remainder.")
 
     start, end = get_date_range_from_params(params)

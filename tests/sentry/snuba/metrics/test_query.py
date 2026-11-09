@@ -693,3 +693,26 @@ def test_start_end_interval_greater_than_interval_is_successful(
     metrics_query_dict = metrics_query.to_metrics_query_dict()
     mq = DeprecatingMetricsQuery(**metrics_query_dict)
     assert mq.granularity.granularity == expected_granularity
+
+
+@pytest.mark.parametrize(
+    "include_series, expected_interval",
+    [
+        pytest.param(True, 30 * 86400, id="series"),
+        pytest.param(False, None, id="totals only"),
+    ],
+)
+def test_multi_day_granularity_queries_daily_data(
+    include_series: bool, expected_interval: int | None
+) -> None:
+    metrics_query = (
+        MetricsQueryBuilder()
+        .with_include_series(include_series)
+        .with_granularity(Granularity(30 * 86400))
+    )
+    assert metrics_query.end is not None
+    metrics_query.start = metrics_query.end - timedelta(days=90)
+
+    mq = DeprecatingMetricsQuery(**metrics_query.to_metrics_query_dict())
+    assert mq.granularity.granularity == 86400
+    assert mq.interval == expected_interval
