@@ -117,10 +117,12 @@ def get_incident_status_text(
     aggregate = format_aggregate(snuba_query.aggregate)
     metric = describe_query_metric(snuba_query)
 
-    if is_mri_field(snuba_query.aggregate):
-        metric_value = format_mri_field_value(snuba_query.aggregate, metric_value)
-    elif aggregate == "failure_rate()" and not comparison_delta:
-        metric_value = f"{float(metric_value) * 100:.2f}"
+    # Percent-change values are already percentages, not values in the aggregate's unit.
+    if not comparison_delta:
+        if is_mri_field(snuba_query.aggregate):
+            metric_value = format_mri_field_value(snuba_query.aggregate, metric_value)
+        elif aggregate == "failure_rate()":
+            metric_value = f"{float(metric_value) * 100:.2f}"
 
     if aggregate in _PERCENT_AGGREGATES:
         metric_and_agg_text = f"{metric_value}% {metric}"

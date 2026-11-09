@@ -47,6 +47,18 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
             == "failure_rate() of errors 12.35% higher in the last 10 minutes compared to the same time one hour ago"
         )
 
+    def test_comparison_alert_skips_mri_unit_formatting(self) -> None:
+        alert_rule = self.create_alert_rule(
+            detection_type=AlertRuleDetectionType.PERCENT, comparison_delta=60
+        )
+        snuba_query = alert_rule.snuba_query
+        snuba_query.aggregate = "sum(d:spans/exclusive_time@millisecond)"
+
+        text = get_incident_status_text(
+            snuba_query, AlertRuleThresholdType.ABOVE, alert_rule.comparison_delta, "200"
+        )
+        assert " 200% higher in the last 10 minutes" in text
+
     def test_names_aggregate_and_telemetry(self) -> None:
         for dataset, event_types, aggregate, expected in (
             (
