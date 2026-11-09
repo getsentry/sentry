@@ -9,7 +9,13 @@ import {registerSubscriptionScopeTags} from 'getsentry/registerSubscriptionScope
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('registerSubscriptionScopeTags', () => {
-  const setTag = jest.mocked(Sentry.setTag);
+  const setTags = jest.mocked(Sentry.setTags);
+  const clearedTags = {
+    plan: undefined,
+    'plan.name': undefined,
+    'plan.max_members': undefined,
+    'plan.total_members': undefined,
+  };
   const organization = OrganizationFixture({slug: 'active-org'});
   const otherOrganization = OrganizationFixture({id: '2', slug: 'other-org'});
   let unregister: (() => void) | undefined;
@@ -33,10 +39,12 @@ describe('registerSubscriptionScopeTags', () => {
 
     unregister = registerSubscriptionScopeTags();
 
-    expect(setTag).toHaveBeenCalledWith('plan', 'am1_f');
-    expect(setTag).toHaveBeenCalledWith('plan.name', 'Developer');
-    expect(setTag).toHaveBeenCalledWith('plan.max_members', '1');
-    expect(setTag).toHaveBeenCalledWith('plan.total_members', '3');
+    expect(setTags).toHaveBeenCalledWith({
+      plan: 'am1_f',
+      'plan.name': 'Developer',
+      'plan.max_members': '1',
+      'plan.total_members': '3',
+    });
   });
 
   it('tags the subscription when it loads for the active organization', () => {
@@ -48,7 +56,9 @@ describe('registerSubscriptionScopeTags', () => {
       SubscriptionFixture({organization, plan: 'am3_business'})
     );
 
-    expect(setTag).toHaveBeenCalledWith('plan', 'am3_business');
+    expect(setTags).toHaveBeenLastCalledWith(
+      expect.objectContaining({plan: 'am3_business'})
+    );
   });
 
   it('tags the cached subscription when the active organization changes', () => {
@@ -61,7 +71,7 @@ describe('registerSubscriptionScopeTags', () => {
 
     OrganizationStore.onUpdate(otherOrganization, {replace: true});
 
-    expect(setTag).toHaveBeenCalledWith('plan', 'am3_team');
+    expect(setTags).toHaveBeenLastCalledWith(expect.objectContaining({plan: 'am3_team'}));
   });
 
   it('does not tag when a subscription loads for an inactive organization', () => {
@@ -70,24 +80,38 @@ describe('registerSubscriptionScopeTags', () => {
 
     SubscriptionStore.set(
       otherOrganization.slug,
-      SubscriptionFixture({organization: otherOrganization})
+      SubscriptionFixture({organization: otherOrganization, plan: 'am3_team'})
     );
 
-    expect(setTag).not.toHaveBeenCalled();
+    expect(setTags).not.toHaveBeenCalledWith(expect.objectContaining({plan: 'am3_team'}));
   });
 
-  it('does not tag when the active organization subscription has no plan', () => {
+  it('clears tags when the active organization changes to one without a subscription', () => {
+    SubscriptionStore.set(
+      organization.slug,
+      SubscriptionFixture({organization, plan: 'am3_team'})
+    );
+    OrganizationStore.onUpdate(organization, {replace: true});
+    unregister = registerSubscriptionScopeTags();
+
+    OrganizationStore.onUpdate(otherOrganization, {replace: true});
+
+    expect(setTags).toHaveBeenLastCalledWith(clearedTags);
+  });
+
+  it('clears tags when the active organization subscription has no plan', () => {
     OrganizationStore.onUpdate(organization, {replace: true});
     unregister = registerSubscriptionScopeTags();
 
     SubscriptionStore.set(organization.slug, {hasDismissedTrialEndingNotice: true});
 
-    expect(setTag).not.toHaveBeenCalled();
+    expect(setTags).toHaveBeenLastCalledWith(clearedTags);
   });
 
   it('does not tag when store changes after unregistering', () => {
     OrganizationStore.onUpdate(organization, {replace: true});
     registerSubscriptionScopeTags()();
+    setTags.mockClear();
 
     SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
     SubscriptionStore.set(
@@ -96,6 +120,6 @@ describe('registerSubscriptionScopeTags', () => {
     );
     OrganizationStore.onUpdate(otherOrganization, {replace: true});
 
-    expect(setTag).not.toHaveBeenCalled();
+    expect(setTags).not.toHaveBeenCalled();
   });
 });
