@@ -45,17 +45,28 @@ def get_conversation_url(
     )
 
 
+# Relative periods whose length decides how far back a range reaches. `timeframe*`
+# are aliases that `get_date_range_from_params` maps onto `statsPeriod*`.
+_RELATIVE_PERIOD_PARAMS = ("statsPeriod", "timeframe", "statsPeriodStart", "timeframeStart")
+_TIME_RANGE_PARAMS = (*_RELATIVE_PERIOD_PARAMS, "statsPeriodEnd", "timeframeEnd", "start", "end")
+
+
+def has_time_range_params(request: Request) -> bool:
+    return any(request.GET.get(param) for param in _TIME_RANGE_PARAMS)
+
+
 def get_time_range_error(request: Request, snuba_params: SnubaParams, now: datetime) -> str | None:
     """Describe why the requested range reaches past conversation retention, if it does."""
     max_retention = timedelta(days=MAX_RETENTION_DAYS)
-    stats_period = request.GET.get("statsPeriod")
-    if stats_period:
-        period = parse_stats_period(stats_period)
-        if period is not None and period > max_retention:
-            return f"statsPeriod cannot be longer than {MAX_RETENTION_DAYS} days"
+    relative_params = [param for param in _RELATIVE_PERIOD_PARAMS if request.GET.get(param)]
+    if relative_params:
+        for param in relative_params:
+            period = parse_stats_period(request.GET[param])
+            if period is not None and period > max_retention:
+                return f"{param} cannot be longer than {MAX_RETENTION_DAYS} days"
         return None
 
-    # Compare explicit bounds only: a statsPeriod start is computed before `now`, so a
+    # Compare explicit bounds only: a relative start is computed before `now`, so a
     # 30d period would land a few microseconds past the cutoff.
     if request.GET.get("start") or request.GET.get("end"):
         cutoff = now - max_retention

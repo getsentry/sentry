@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping, Sequence
+from datetime import timedelta
 from typing import Annotated, Any, TypedDict
 
 import sentry_sdk
@@ -22,11 +23,13 @@ from sentry.ai_monitoring.conversation_query import (
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
 from sentry.ai_monitoring.utils import (
+    MAX_RETENTION_DAYS,
     ConversationProject,
     get_aggregated_first_input,
     get_aggregated_last_output,
     get_conversation_url,
     get_time_range_error,
+    has_time_range_params,
     serialize_conversation_project,
 )
 from sentry.api.api_owners import ApiOwner
@@ -233,8 +236,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        if time_range_error := get_time_range_error(request, snuba_params, timezone.now()):
+        now = timezone.now()
+        if time_range_error := get_time_range_error(request, snuba_params, now):
             return Response(DetailResponse(detail=time_range_error), status=400)
+        # The shared API default is 90 days; keep the list inside what details can load.
+        if not has_time_range_params(request) and snuba_params.start:
+            snuba_params.start = max(snuba_params.start, now - timedelta(days=MAX_RETENTION_DAYS))
 
         serializer = OrganizationAIConversationsSerializer(data=request.GET)
         if not serializer.is_valid():

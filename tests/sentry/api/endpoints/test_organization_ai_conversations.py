@@ -258,6 +258,11 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         cases = [
             ({"statsPeriod": "31d"}, "statsPeriod cannot be longer than 30 days"),
             ({"statsPeriod": "90d"}, "statsPeriod cannot be longer than 30 days"),
+            ({"timeframe": "90d"}, "timeframe cannot be longer than 30 days"),
+            (
+                {"statsPeriodStart": "60d", "statsPeriodEnd": "40d"},
+                "statsPeriodStart cannot be longer than 30 days",
+            ),
             (
                 {"start": (now - timedelta(days=31)).isoformat(), "end": now.isoformat()},
                 "start time cannot be older than 30 days",
@@ -271,6 +276,22 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     def test_accepts_30_day_stats_period(self) -> None:
         response = self.do_request({"project": [self.project.id], "statsPeriod": "30d"})
         assert response.status_code == 200, response.data
+
+    def test_default_range_is_30_days(self) -> None:
+        # The test client adds a 29d statsPeriod to EAP requests; turn that off to hit the
+        # API's 90d default.
+        with (
+            patch(
+                "sentry.testutils.helpers.eap.apply_eap_default_stats_period",
+                side_effect=lambda query, **kwargs: query,
+            ),
+            patch.object(Spans, "get_resolver", wraps=Spans.get_resolver) as get_resolver,
+        ):
+            response = self.do_request({"project": [self.project.id]})
+
+        assert response.status_code == 200, response.data
+        snuba_params = get_resolver.call_args.args[0]
+        assert snuba_params.end - snuba_params.start <= timedelta(days=30)
 
     def test_no_conversations(self) -> None:
         """Test endpoint returns empty list when there are no spans with gen_ai.conversation.id"""
