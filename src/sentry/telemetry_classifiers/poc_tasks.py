@@ -40,6 +40,7 @@ _MAX_INPUT_CHARS = 32_000
 _CLASSIFIER = "user_frustration"
 _ONESHOT_ID = "conversation_user_frustration"
 _MESSAGE_FIELD = "gen_ai.input.messages"
+_POC_RETENTION_DAYS = 30
 _POC_USER_FRUSTRATION_ATTRIBUTE = "sentry.enrichment.poc_user_frustration"
 
 
@@ -287,6 +288,7 @@ def _classify_user_frustration(
         ),
         trace_id=trace_id,
         timestamp=datetime.fromtimestamp(conversation_context["last_span_timestamp"], tz=UTC),
+        retention_days=_POC_RETENTION_DAYS,
         conversation_id=conversation_context["conversation_id"],
         attributes={_POC_USER_FRUSTRATION_ATTRIBUTE: probability},
         client_sample_rate=client_sample_rate,

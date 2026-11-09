@@ -224,6 +224,7 @@ class ClassifyConversationTest(TestCase):
             idempotency_key="\0".join(("user_frustration", "conversation", "1735689600.0")),
             trace_id="1" * 32,
             timestamp=datetime(2025, 1, 1, tzinfo=UTC),
+            retention_days=30,
             conversation_id="conversation",
             attributes={"sentry.enrichment.poc_user_frustration": 0.9},
             client_sample_rate=0.25,

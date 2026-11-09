@@ -28,6 +28,7 @@ class ProduceEnrichmentAttributesTest(TestCase):
     def _produce(
         self,
         *,
+        retention_days: int = 45,
         client_sample_rate: float = 1.0,
         server_sample_rate: float = 1.0,
     ) -> tuple[TraceItem, KafkaPayload]:
@@ -59,6 +60,7 @@ class ProduceEnrichmentAttributesTest(TestCase):
                 idempotency_key="classifier:conversation:version",
                 trace_id="1" * 32,
                 timestamp=datetime(2020, 1, 1, tzinfo=UTC),
+                retention_days=retention_days,
                 attributes={"sentry.enrichment.test": 0.75},
                 conversation_id="conversation-id",
                 client_sample_rate=client_sample_rate,
@@ -79,8 +81,8 @@ class ProduceEnrichmentAttributesTest(TestCase):
         assert trace_item.conversation_id == "conversation-id"
         assert trace_item.timestamp.ToDatetime(tzinfo=UTC) == datetime(2020, 1, 1, tzinfo=UTC)
         assert trace_item.received.ToDatetime(tzinfo=UTC) == datetime(2020, 1, 2, tzinfo=UTC)
-        assert trace_item.retention_days == 30
-        assert trace_item.downsampled_retention_days == 30
+        assert trace_item.retention_days == 45
+        assert trace_item.downsampled_retention_days == 45
         assert trace_item.client_sample_rate == 1.0
         assert trace_item.server_sample_rate == 1.0
         assert trace_item.attributes["sentry.enrichment.test"].double_value == 0.75
@@ -113,6 +115,7 @@ class ProduceEnrichmentAttributesTest(TestCase):
                 idempotency_key="key",
                 trace_id="1" * 32,
                 timestamp=datetime(2020, 1, 1, tzinfo=UTC),
+                retention_days=30,
                 attributes={"sentry.enrichment.test": True},
                 client_sample_rate=0.0,
             )
@@ -124,6 +127,7 @@ class ProduceEnrichmentAttributesTest(TestCase):
             idempotency_key="key",
             trace_id="1" * 32,
             timestamp=datetime(2020, 1, 1, tzinfo=UTC),
+            retention_days=30,
             attributes={"sentry.enrichment.test": True},
         )
 

@@ -30,7 +30,6 @@ type EnrichmentAttributeValue = (
 # idempotency; it provides collision isolation, not security.
 ENRICHMENT_NAMESPACE = uuid.UUID("98bf1b4e-0a58-426f-81f5-fe27689fde74")
 _EAP_WRITE_ENABLED = "telemetry-classifiers.eap-write.enabled"
-_RETENTION_DAYS = 30
 _SNUBA_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 _snuba_items_topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
 
@@ -68,6 +67,7 @@ def produce_enrichment_attributes(
     idempotency_key: str,
     trace_id: str,
     timestamp: datetime,
+    retention_days: int,
     attributes: Mapping[str, EnrichmentAttributeValue],
     conversation_id: str | None = None,
     client_sample_rate: float = 1.0,
@@ -99,8 +99,8 @@ def produce_enrichment_attributes(
         received=_timestamp(timezone.now()),
         trace_id=normalized_trace_id,
         conversation_id=conversation_id or "",
-        retention_days=_RETENTION_DAYS,
-        downsampled_retention_days=_RETENTION_DAYS,
+        retention_days=retention_days,
+        downsampled_retention_days=retention_days,
         attributes={key: anyvalue(value) for key, value in attributes.items()},
         client_sample_rate=_sample_rate("client_sample_rate", client_sample_rate),
         server_sample_rate=_sample_rate("server_sample_rate", server_sample_rate),
