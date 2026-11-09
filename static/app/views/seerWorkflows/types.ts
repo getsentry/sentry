@@ -42,12 +42,26 @@ type SeerWorkflowExecution = SeerWorkflowExecutionBase &
   );
 
 /**
- * What started a run, e.g. the monitor whose breach triggered it
+ * The metric monitor breach that started a run
  */
-export type WorkflowTrigger = {
-  id: string;
-  type: string;
+type MetricBreachTrigger = {
+  /**
+   * The monitor may have since been deleted
+   */
+  detectorId: string;
+  environment: string | null;
+  eventId: string;
+  groupId: string;
+  observedAt: string;
+  occurrenceId: string;
+  projectId: string;
+  type: 'breached_metric';
 };
+
+/**
+ * What started a run. Discriminated by `type`; add new trigger variants to this union.
+ */
+export type WorkflowTrigger = MetricBreachTrigger;
 
 type SeerAutomationRunBase = {
   configId: string;
@@ -58,7 +72,8 @@ type SeerAutomationRunBase = {
   id: string;
   strategy: string;
   /**
-   * Not returned by the backend yet
+   * Null for runs not started by a metric monitor. Optional until the backend
+   * returns it (getsentry/sentry#130512).
    */
   trigger?: WorkflowTrigger | null;
 };
