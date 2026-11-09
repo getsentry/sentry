@@ -104,6 +104,11 @@ export type LogsAnalyticsEventParameters = {
     log_id: string;
     organization: Organization;
   };
+  'logs.table.row_viewed_in_context': {
+    context: 'trace' | 'time';
+    log_id: string;
+    organization: Organization;
+  };
   'logs.timestamp_tooltip.add_timezone_clicked': {
     organization: Organization;
   };
@@ -152,4 +157,5 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.table.pinned_row_scrolled_to': 'Logs Pinned Row Scrolled To',
   'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
   'logs.table.row_link_copied': 'Logs Row Link Copied',
+  'logs.table.row_viewed_in_context': 'Logs Row Viewed in Context',
 };

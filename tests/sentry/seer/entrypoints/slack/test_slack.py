@@ -70,6 +70,7 @@ from sentry.seer.entrypoints.slack.investigation_status import (
     MAX_SUMMARY_DESCRIPTION_LENGTH,
 )
 from sentry.seer.entrypoints.slack.messaging import (
+    edit_thread_message,
     process_thread_update,
     schedule_all_thread_updates,
     send_thread_update,
@@ -940,6 +941,54 @@ class SlackAgentEntrypointTest(TestCase):
         assert payload["thread"]["thread_ts"] == self.thread_ts
         assert payload["thread"]["channel_id"] == self.channel_id
         assert payload["slack_user_id"] == self.slack_user_id
+
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AGENT_RESPONSE]})
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    def test_edit_thread_message_records_sent(
+        self, mock_update_message: MagicMock, mock_record_sent: MagicMock
+    ) -> None:
+        data = SeerAgentResponse(
+            run_id=MOCK_RUN_ID, organization_id=self.organization.id, summary="Done."
+        )
+
+        edit_thread_message(
+            install=self._get_entrypoint().install,
+            channel_id=self.channel_id,
+            message_ts="1.1",
+            data=data,
+        )
+
+        mock_update_message.assert_called_once()
+        mock_record_sent.assert_called_once_with(
+            NotificationTrackingContext(
+                source=NotificationSource.SEER_AGENT_RESPONSE,
+                provider=NotificationProviderKey.SLACK,
+                category=NotificationCategory.SEER,
+                notification_uuid=data.notification_uuid,
+                organization_id=self.organization.id,
+            ),
+            links=set(),
+        )
+
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.update_message",
+        side_effect=IntegrationResourceNotFoundError,
+    )
+    def test_edit_thread_message_to_deleted_message_does_not_record_sent(
+        self, _mock_update_message: MagicMock, mock_record_sent: MagicMock
+    ) -> None:
+        edit_thread_message(
+            install=self._get_entrypoint().install,
+            channel_id=self.channel_id,
+            message_ts="1.1",
+            data=SeerAgentResponse(
+                run_id=MOCK_RUN_ID, organization_id=self.organization.id, summary="Done."
+            ),
+        )
+
+        mock_record_sent.assert_not_called()
 
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message",

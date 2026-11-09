@@ -105,7 +105,7 @@ class GetNewIssueCountTest(TestCase):
             "start": self.now - timedelta(hours=1),
             "end": self.now,
             "date_added": self.now,
-            "environment": {"name": "canary"},
+            "environment": serialize(self.canary_environment),
             "is_healthy": False,
             "key": "",
             "project": serialize(self.project1),

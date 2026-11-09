@@ -35,6 +35,7 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
@@ -54,6 +55,8 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 import {NavigationMenuHeader} from './navigationMenuHeader';
 
 const QUICK_ACCESS_PROJECT_LIMIT = 5;
+
+type OrgMenuProjectSource = 'quick_access' | 'all_projects';
 
 interface OrganizationDropdownProps {
   /**
@@ -109,15 +112,39 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     },
   });
 
-  const makeBookmarkAction = (project: Project): MenuItemTrailingAction => {
+  const makeBookmarkAction = (
+    project: Project,
+    source: OrgMenuProjectSource
+  ): MenuItemTrailingAction => {
     const isBookmarked = pendingBookmarks[project.id] ?? project.isBookmarked;
     return {
       icon: <BookmarkStarIcon isBookmarked={isBookmarked} />,
       label: isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
       busy: project.id in pendingBookmarks,
-      onAction: () => toggleBookmark({project, isBookmarked: !isBookmarked}),
+      onAction: () => {
+        trackAnalytics('settings.org_menu.project_bookmark_toggled', {
+          organization,
+          bookmarked: !isBookmarked,
+          source,
+        });
+        toggleBookmark({project, isBookmarked: !isBookmarked});
+      },
     };
   };
+
+  const makeSettingsProjectMenuItem = (
+    project: Project,
+    source: OrgMenuProjectSource
+  ): MenuItemProps => ({
+    ...makeProjectMenuItem(
+      project,
+      organization,
+      makeBookmarkAction(project, source),
+      source === 'quick_access' ? 'quick-access-project' : 'project'
+    ),
+    onAction: () =>
+      trackAnalytics('settings.org_menu.project_clicked', {organization, source}),
+  });
 
   const avatarProps = getOrganizationAvatarProps(organization);
 
@@ -226,6 +253,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     label: t('Settings'),
                     leadingItems: <IconSettings />,
                     to: `/settings/${organization.slug}/`,
+                    onAction: () =>
+                      trackAnalytics('settings.entry_point_clicked', {
+                        organization,
+                        entry_point: 'org_menu',
+                      }),
                     hidden:
                       props.hideCurrentOrganizationLinks ||
                       !organization.access?.includes('org:read'),
@@ -266,12 +298,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 hidden: props.hideCurrentOrganizationLinks,
                 children: [
                   ...quickAccessProjects.map(project =>
-                    makeProjectMenuItem(
-                      project,
-                      organization,
-                      makeBookmarkAction(project),
-                      'quick-access-project'
-                    )
+                    makeSettingsProjectMenuItem(project, 'quick_access')
                   ),
                   {
                     key: 'view-all-projects',
@@ -281,7 +308,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                       title: t('All Projects'),
                       emptyMessage: t('No projects found'),
                       search: {placeholder: t('Search')},
-                      maxHeight: 240,
                       maxWidth: 258,
                     },
                     hidden: projects.length === 0,
@@ -291,11 +317,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                         label: t('My Projects'),
                         hidden: memberProjects.length === 0,
                         children: memberProjects.map(project =>
-                          makeProjectMenuItem(
-                            project,
-                            organization,
-                            makeBookmarkAction(project)
-                          )
+                          makeSettingsProjectMenuItem(project, 'all_projects')
                         ),
                       },
                       {
@@ -303,11 +325,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                         label: t('Other Projects'),
                         hidden: otherProjects.length === 0,
                         children: otherProjects.map(project =>
-                          makeProjectMenuItem(
-                            project,
-                            organization,
-                            makeBookmarkAction(project)
-                          )
+                          makeSettingsProjectMenuItem(project, 'all_projects')
                         ),
                       },
                     ],
@@ -363,6 +381,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     key: 'organization-settings',
                     label: t('Organization Settings'),
                     to: `/settings/${organization.slug}/`,
+                    onAction: () =>
+                      trackAnalytics('settings.entry_point_clicked', {
+                        organization,
+                        entry_point: 'org_menu',
+                      }),
                     hidden: !organization.access?.includes('org:read'),
                   },
                   {
