@@ -14,6 +14,7 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     POSSIBLE_ATTRIBUTE_TYPES,
     SCALAR_ATTRIBUTE_TYPES,
     OrganizationTraceItemAttributesEndpoint,
+    StoredRef,
     StoredRefs,
     adjust_start_end_window,
     attach_custom_attribute_context,
@@ -152,7 +153,10 @@ def list_attributes_by_dataset(
     attribute_types: Collection[str] | None,
     substring_match: str,
     include_context: bool,
-) -> tuple[dict[str, list[TraceItemAttributeKey]], dict[str, StoredRefs]]:
+) -> tuple[
+    dict[str, list[TraceItemAttributeKey]],
+    dict[str, dict[tuple[ColumnType, str], list[StoredRef]]],
+]:
     selected_datasets = [
         dataset for dataset in MERGEABLE_DATASETS if not datasets or dataset in datasets
     ]
@@ -201,7 +205,9 @@ def list_attributes_by_dataset(
     attributes_by_dataset: dict[str, list[TraceItemAttributeKey]] = {
         dataset: [] for dataset in selected_datasets
     }
-    stored_refs_by_dataset: dict[str, StoredRefs] = {dataset: {} for dataset in selected_datasets}
+    stored_refs_by_dataset: dict[str, dict[tuple[ColumnType, str], list[StoredRef]]] = {
+        dataset: {} for dataset in selected_datasets
+    }
     with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__,
         max_workers=max(min(len(tasks), MAX_QUERY_WORKERS), 1),
@@ -224,12 +230,12 @@ def list_attributes_by_dataset(
                 include_internal_convention_attributes=include_internal_convention_attributes,
                 stored_refs=task_stored_refs,
             )
-            futures.append((dataset, task_stored_refs, future))
-        for dataset, task_stored_refs, future in futures:
+            futures.append((dataset, attribute_type, task_stored_refs, future))
+        for dataset, attribute_type, task_stored_refs, future in futures:
             result_attributes, _ = future.result()
             attributes_by_dataset[dataset].extend(result_attributes)
             for key, refs in task_stored_refs.items():
-                stored_refs_by_dataset[dataset].setdefault(key, []).extend(refs)
+                stored_refs_by_dataset[dataset].setdefault((attribute_type, key), []).extend(refs)
 
     if include_custom_context:
         project_ids = [project.id for project in snuba_params.projects]
