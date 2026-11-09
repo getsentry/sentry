@@ -11,15 +11,23 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  # Shared by the jobs below: where the build job puts the baseline schemas.
+  BASELINE_DIR: .artifacts/openapi-baseline
 
 jobs:
-  check-diff:
-    name: (Optional) Shows the difference between the prod and dev schema
+  # Builds this PR's public spec and RPC schema, and fetches the ones on master
+  # where the PR branched off, for the jobs below to compare.
+  build:
+    name: Build the API schemas to compare
     runs-on: ubuntu-26.04-arm
     timeout-minutes: 90
     permissions:
+      # Artifacts of the openapi workflow on master hold the baselines.
+      actions: read
       contents: read
       pull-requests: read
+    outputs:
+      api_docs: ${{ steps.changes.outputs.api_docs }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -36,39 +44,78 @@ jobs:
           mode: migrations
         if: steps.changes.outputs.api_docs == 'true'
 
-      - name: Checkout getsentry/sentry-api-schema
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        if: steps.changes.outputs.api_docs == 'true'
-        with:
-          ref: 'main'
-          repository: getsentry/sentry-api-schema
-          path: sentry-api-schema
-
       - uses: ./.github/actions/setup-node-pnpm
+        if: steps.changes.outputs.api_docs == 'true'
 
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
-        run: |
-          make build-api-docs
+        run: make build-api-docs
 
-      - name: Compare OpenAPI Derefed JSON
+      - name: Build RPC method schema
         if: steps.changes.outputs.api_docs == 'true'
-        run: |
-          npx json-diff@0.5.4 --color sentry-api-schema/openapi-derefed.json tests/apidocs/openapi-derefed.json
+        run: make build-rpc-schema
 
-      - name: Dump RPC schema for new version
-        id: newschema
+      - name: Fetch the merge-base's schemas
         if: steps.changes.outputs.api_docs == 'true'
-        run: |
-          mkdir schemas
-          sentry rpcschema --loglevel=WARNING > rpc_method_schema.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: .github/workflows/scripts/openapi-diff.sh baseline "$BASELINE_DIR"
 
-      # Runs oasdiff directly from the getsentry/image-mirror copy instead of
-      # oasdiff/oasdiff-action, which builds FROM tufin/oasdiff:main on Docker Hub.
-      - name: Output RPC schema comparison
+      - name: Upload the schemas to compare
         if: steps.changes.outputs.api_docs == 'true'
-        run: |
-          docker run --rm -v "$PWD:$PWD" -w "$PWD" \
-            ghcr.io/getsentry/image-mirror-tufin-oasdiff:v1.33.0 \
-            breaking sentry-api-schema/rpc_method_schema.json ./rpc_method_schema.json \
-            --fail-on WARN --format githubactions
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: openapi-diff
+          path: |
+            tests/apidocs/openapi-derefed.json
+            .artifacts/rpc_method_schema.json
+            ${{ env.BASELINE_DIR }}/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  changelog:
+    name: Public API changelog
+    needs: build
+    if: needs.build.outputs.api_docs == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          sparse-checkout: .github/workflows/scripts
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: openapi-diff
+
+      # Writes the changelog to the job summary. It is information for the
+      # author and reviewers, so it never fails the build.
+      - name: Summarize public API changes
+        run: .github/workflows/scripts/openapi-diff.sh changelog "$BASELINE_DIR/openapi-derefed.json" tests/apidocs/openapi-derefed.json
+
+  rpc-breaking:
+    name: RPC schema breaking changes
+    needs: build
+    if: needs.build.outputs.api_docs == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          sparse-checkout: .github/workflows/scripts
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: openapi-diff
+
+      # Control and cell silos deploy separately, so an RPC change must keep
+      # working with callers built from the merge-base.
+      - name: Check RPC schema for breaking changes
+        run: .github/workflows/scripts/openapi-diff.sh rpc-breaking "$BASELINE_DIR/rpc_method_schema.json" .artifacts/rpc_method_schema.json

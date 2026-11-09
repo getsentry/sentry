@@ -48,6 +48,11 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
 	pnpm run deref-api-docs
 
+# The internal RPC method schema, which CI's openapi-diff checks for breaking changes.
+build-rpc-schema:
+	@mkdir -p .artifacts
+	sentry rpcschema --loglevel=WARNING > .artifacts/rpc_method_schema.json
+
 # Opt-in private schema for local review; never included in the public docs build.
 build-investigation-api-docs: build-deprecated-docs
 	@mkdir -p .artifacts/investigation-api-docs
@@ -63,9 +68,13 @@ api-owner-map:
 watch-api-docs:
 	@cd api-docs/ && node ./watch.ts
 
+# Compares tests/apidocs/openapi-derefed.json (from build-api-docs) with the
+# master spec where this branch started, the same way CI's openapi-diff does.
+# Needs gh (logged in) and docker.
 diff-api-docs:
-	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
-	pnpm run diff-docs
+	@echo "--> diffing local api docs against the merge-base's spec"
+	.github/workflows/scripts/openapi-diff.sh baseline .artifacts/openapi-baseline
+	.github/workflows/scripts/openapi-diff.sh changelog .artifacts/openapi-baseline/openapi-derefed.json tests/apidocs/openapi-derefed.json
 
 build: locale
 

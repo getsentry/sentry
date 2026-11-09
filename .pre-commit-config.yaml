@@ -167,3 +167,7 @@ repos:
         types: [file]
         files: ^\.envrc$
         args: [--external-sources]
+      - id: shellcheck
+        name: shellcheck (POSIX sh)
+        files: ^\.github/workflows/scripts/openapi-diff\.sh$
+        args: [--shell=sh, --enable=check-extra-masked-returns]
