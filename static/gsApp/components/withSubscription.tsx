@@ -121,7 +121,7 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
       }
     }
 
-    getOrgSlug() {
+    getOrgSlug(): string | null {
       if (this.props.params?.orgId) {
         return this.props.params.orgId;
       }
