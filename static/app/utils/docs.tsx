@@ -1,5 +1,6 @@
 import type {AvatarProject} from 'sentry/types/project';
-import {isReactNativePlatform} from 'sentry/utils/platform';
+
+import {isReactNativePlatform} from './platform';
 
 const platforms = [
   'dotnet',
