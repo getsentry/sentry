@@ -48,6 +48,7 @@ class SlackNotifyServiceForm(forms.Form):
             or self.data.get("input_channel_id")
             or self.data.get("channel_id")
         )
+        channel_name = str(self.data.get("channel") or "").strip()
         if channel_id:
             logger.info(
                 "rule.slack.provide_channel_id",
@@ -56,7 +57,7 @@ class SlackNotifyServiceForm(forms.Form):
                     "channel_id": self.data.get("channel_id"),
                 },
             )
-        elif not self.data.get("channel"):
+        elif not channel_name:
             raise forms.ValidationError(
                 self._format_slack_error_message("Channel name or channel ID is required."),
                 code="invalid",
@@ -74,7 +75,7 @@ class SlackNotifyServiceForm(forms.Form):
 
         if channel_id:
             try:
-                if self.data.get("channel"):
+                if channel_name:
                     validate_slack_entity_id(
                         integration_id=workspace,
                         input_name=self.data["channel"],

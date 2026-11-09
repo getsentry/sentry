@@ -112,10 +112,11 @@ def get_slack_entity_name(*, integration_id: int, input_id: str) -> str:
     Lets API callers provide only the ID, without a name to validate against.
     """
     if is_input_a_user_id(input_id):
+        user = _get_user_info(integration_id=integration_id, input_user_id=input_id).get("user", {})
         user_name = (
-            _get_user_info(integration_id=integration_id, input_user_id=input_id)
-            .get("user", {})
-            .get("name")
+            user.get("name")
+            or user.get("profile", {}).get("display_name")
+            or user.get("profile", {}).get("display_name_normalized")
         )
         if not user_name:
             raise ValidationError("Did not receive user name from API results")
