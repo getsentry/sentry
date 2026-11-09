@@ -1,11 +1,12 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Literal, TypedDict, cast
+from typing import Annotated, Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.principal import has_user
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.explore.models import (
@@ -27,44 +28,61 @@ ExploreSavedQueryMode = Literal["samples", "aggregate"]
 
 
 class MetricResponseTypeOptional(TypedDict, total=False):
-    unit: str | None
+    unit: Annotated[str | None, ApiDescription("Unit of the metric. Null when it has none")]
 
 
 class MetricResponseType(MetricResponseTypeOptional):
-    name: str
-    type: Literal["counter", "gauge", "distribution"]
+    name: Annotated[str, ApiDescription("Name of the metric")]
+    type: Annotated[
+        Literal["counter", "gauge", "distribution"], ApiDescription("Type of the metric")
+    ]
 
 
 class VisualizeResponseTypeOptional(TypedDict, total=False):
-    chartType: int
-    transformations: list[str]
+    chartType: Annotated[int, ApiDescription("Chart type used to plot the aggregates")]
+    transformations: Annotated[
+        list[str], ApiDescription("Transformations applied to the plotted series")
+    ]
 
 
 class VisualizeResponseType(VisualizeResponseTypeOptional):
-    yAxes: list[str]
+    yAxes: Annotated[list[str], ApiDescription("Aggregates to plot")]
 
 
 class AggregateFieldResponseType(TypedDict, total=False):
-    chartType: int
-    yAxes: list[str]
-    groupBy: str
-    transformations: list[str]
+    chartType: Annotated[int, ApiDescription("Chart type used to plot the aggregates")]
+    yAxes: Annotated[list[str], ApiDescription("Aggregates to plot")]
+    groupBy: Annotated[str, ApiDescription("Field to group the aggregates by")]
+    transformations: Annotated[
+        list[str], ApiDescription("Transformations applied to the plotted series")
+    ]
 
 
 class QueryResponseTypeOptional(TypedDict, total=False):
-    fields: list[str] | None
-    orderby: str | None
-    groupby: list[str] | None
-    query: str | None
-    visualize: list[VisualizeResponseType] | None
-    aggregateField: list[AggregateFieldResponseType] | None
-    aggregateOrderby: str | None
-    metric: MetricResponseType | None
-    caseInsensitive: bool
+    fields: Annotated[list[str] | None, ApiDescription("Fields shown in the samples table")]
+    orderby: Annotated[str | None, ApiDescription("Field the samples are sorted by")]
+    groupby: Annotated[list[str] | None, ApiDescription("Fields the aggregates are grouped by")]
+    query: Annotated[str | None, ApiDescription("Search query that filters the results")]
+    visualize: Annotated[
+        list[VisualizeResponseType] | None, ApiDescription("Charts shown for the query")
+    ]
+    aggregateField: Annotated[
+        list[AggregateFieldResponseType] | None,
+        ApiDescription("Aggregates and group-by fields shown in aggregate mode"),
+    ]
+    aggregateOrderby: Annotated[
+        str | None, ApiDescription("Field the aggregate results are sorted by")
+    ]
+    metric: Annotated[
+        MetricResponseType | None, ApiDescription("Metric the query reads, for metric queries")
+    ]
+    caseInsensitive: Annotated[bool, ApiDescription("Whether the search query ignores letter case")]
 
 
 class QueryResponseType(QueryResponseTypeOptional):
-    mode: ExploreSavedQueryMode
+    mode: Annotated[
+        ExploreSavedQueryMode, ApiDescription("Whether the query shows samples or aggregates")
+    ]
 
 
 class CrossEventResponseTypeOptional(TypedDict, total=False):
@@ -89,9 +107,15 @@ class ExploreSavedQueryResponseOptional(TypedDict, total=False):
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):
-    orderby: list[dict[str, str]] | None
-    equations: list[dict[str, str | list[str]]] | None
-    columns: list[str]
+    orderby: Annotated[
+        list[dict[str, str]] | None,
+        ApiDescription("Sort orders dropped when the query was migrated. Null when none were"),
+    ]
+    equations: Annotated[
+        list[dict[str, str | list[str]]] | None,
+        ApiDescription("Equations dropped when the query was migrated. Null when none were"),
+    ]
+    columns: Annotated[list[str], ApiDescription("Columns dropped when the query was migrated")]
 
 
 class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
