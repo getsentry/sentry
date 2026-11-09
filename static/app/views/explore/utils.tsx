@@ -2,9 +2,10 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
+
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';

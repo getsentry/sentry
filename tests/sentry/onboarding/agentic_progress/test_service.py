@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone as django_timezone
 
 from sentry.onboarding.agentic_progress.model import (
+    OnboardingRun,
     OnboardingRunTerminal,
     ProgressUpdate,
     RunStatus,
@@ -19,7 +20,6 @@ from sentry.onboarding.agentic_progress.service import (
     CLIENT_CLAIM_RETRIES,
     RUN_LIFETIME,
     OnboardingProgressService,
-    RegisteredRun,
     RunNotFound,
     RunOwnershipMismatch,
 )
@@ -62,13 +62,15 @@ def create_run(
     organization_id: int,
     client_run_id: str,
     onboarding_code: str = "abcdefghij",
-) -> RegisteredRun:
-    return service.create_or_resume(
+) -> tuple[OnboardingRun, str]:
+    run, code = service.create_or_resume(
         user_id=user_id,
         organization_id=organization_id,
         client_run_id=client_run_id,
         onboarding_code=onboarding_code,
     )
+    assert code is not None
+    return run, code
 
 
 def test_create_get_and_resume(service: OnboardingProgressService) -> None:
@@ -458,3 +460,74 @@ def test_compare_and_set(service: OnboardingProgressService) -> None:
     # The key is gone, so a writer that expected a value loses.
     assert service._compare_and_set(key, b"second", "third", 30) is False
     assert service.redis.get(key) is None
+
+
+def test_initialize_run_without_reporting_code(service: OnboardingProgressService) -> None:
+    created, code = service.create_or_resume(
+        user_id=1, organization_id=2, client_run_id="browser-session"
+    )
+    resumed, resumed_code = service.create_or_resume(
+        user_id=1, organization_id=2, client_run_id="browser-session"
+    )
+
+    assert code is None
+    assert created.token_hash is None
+    assert resumed == created
+    assert resumed_code is None
+    assert service.get(run_id=created.run_id, user_id=1, organization_id=2) == created
+
+
+def test_resume_with_code_requires_existing_matching_code(
+    service: OnboardingProgressService,
+) -> None:
+    service.create_or_resume(user_id=1, organization_id=2, client_run_id="browser-session")
+
+    with pytest.raises(RunOwnershipMismatch):
+        create_run(service, user_id=1, organization_id=2, client_run_id="browser-session")
+
+
+def test_issue_stable_reporting_code(service: OnboardingProgressService) -> None:
+    run, _ = service.create_or_resume(user_id=1, organization_id=2, client_run_id="browser")
+    code = service.issue_reporting_code(run_id=run.run_id, user_id=1, organization_id=2)
+    assert len(code) == 10
+    assert code.isascii() and code.isalnum()
+    assert service.issue_reporting_code(run_id=run.run_id, user_id=1, organization_id=2) == code
+    active = service.get(run_id=run.run_id, user_id=1, organization_id=2)
+    assert active is not None
+    assert active.token_hash == service._hash_token(code)
+    assert active.expires_at == run.expires_at
+    updated, changed, _ = service.update(
+        token=code,
+        user_id=1,
+        organization_id=2,
+        update=ProgressUpdate(stage=Stage.ANALYZE_PROJECT, status=StageStatus.ACTIVE),
+    )
+    assert changed
+    assert updated.run_id == run.run_id
+
+
+@pytest.mark.parametrize("user_id,organization_id", [(9, 2), (1, 9)])
+def test_reporting_code_requires_run_ownership(
+    service: OnboardingProgressService, user_id: int, organization_id: int
+) -> None:
+    run, _ = service.create_or_resume(user_id=1, organization_id=2, client_run_id="browser")
+    with pytest.raises(RunNotFound):
+        service.issue_reporting_code(
+            run_id=run.run_id, user_id=user_id, organization_id=organization_id
+        )
+
+
+def test_reporting_code_rejects_cancelled_run(service: OnboardingProgressService) -> None:
+    run, _ = service.create_or_resume(user_id=1, organization_id=2, client_run_id="browser")
+    service.cancel(run_id=run.run_id, user_id=1, organization_id=2)
+    with pytest.raises(OnboardingRunTerminal):
+        service.issue_reporting_code(run_id=run.run_id, user_id=1, organization_id=2)
+
+
+def test_reporting_code_rejects_expired_run(
+    service: OnboardingProgressService, frozen_time: Any
+) -> None:
+    run, _ = service.create_or_resume(user_id=1, organization_id=2, client_run_id="browser")
+    frozen_time.shift(RUN_LIFETIME)
+    with pytest.raises(RunNotFound):
+        service.issue_reporting_code(run_id=run.run_id, user_id=1, organization_id=2)

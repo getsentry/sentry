@@ -6,6 +6,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Confirm} from '@sentry/scraps/confirm';
 import {
   AutoSaveForm,
   defaultFormOptions,
@@ -26,7 +27,6 @@ import {
   transferProject,
 } from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup as SettingsFieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';

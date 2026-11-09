@@ -32,8 +32,7 @@ class SeerWorkflowActionHandler(ActionHandler):
     @override
     def execute(invocation: ActionInvocation) -> None:
         event = invocation.event_data.event
-        state = invocation.event_data.group_state
-        if not isinstance(event, GroupEvent) or state is None or not state["is_new"]:
+        if not isinstance(event, GroupEvent):
             return
         group = invocation.event_data.group
         extra: dict[str, object] = {

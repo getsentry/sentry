@@ -19,7 +19,11 @@ import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSumma
 import {crossIconPath} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/symbol';
 
 import {createBaselineMarkLine} from './baselineMarkline';
-import type {Plottable, PlottableTimeSeriesValueType} from './plottable';
+import type {
+  Plottable,
+  PlottableConfidence,
+  PlottableTimeSeriesValueType,
+} from './plottable';
 
 type ScatterPlotDatum = [timestamp: string, value: number, id: string];
 
@@ -131,6 +135,13 @@ export class Samples implements Plottable {
     return this.sampleTableData.data.every(
       sample => sample[this.config.attributeName] === null
     );
+  }
+
+  /**
+   * Samples are individual events, not aggregates, so they're never extrapolated.
+   */
+  get confidence(): PlottableConfidence {
+    return 'full';
   }
 
   get needsColor(): boolean {

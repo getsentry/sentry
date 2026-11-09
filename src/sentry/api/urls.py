@@ -6,6 +6,9 @@ from django.urls import URLPattern, URLResolver, re_path
 from sentry.agent_handoff.endpoints.organization_agent_handoff import (
     OrganizationAgentHandoffEndpoint,
 )
+from sentry.agent_handoff.endpoints.organization_agent_handoff_preview import (
+    OrganizationAgentHandoffPreviewEndpoint,
+)
 from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
@@ -316,12 +319,6 @@ from sentry.investigations.endpoints.organization_investigation_action_request_r
 from sentry.investigations.endpoints.organization_investigation_action_request_retry_follow_up import (
     OrganizationInvestigationActionRequestRetryFollowUpEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
-    OrganizationInvestigationBlockExecutionDetailsEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_block_executions import (
-    OrganizationInvestigationBlockExecutionsEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_block_order import (
     OrganizationInvestigationBlockOrderEndpoint,
 )
@@ -340,9 +337,6 @@ from sentry.investigations.endpoints.organization_investigation_index import (
 from sentry.investigations.endpoints.organization_investigation_orchestration import (
     OrganizationInvestigationOrchestrationCommandsEndpoint,
     OrganizationInvestigationOrchestrationEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_title_generation import (
-    OrganizationInvestigationTitleGenerationEndpoint,
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
@@ -474,6 +468,12 @@ from sentry.monitors.endpoints.project_processing_errors_index import (
 from sentry.notebooks.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
 )
+from sentry.notebooks.endpoints.organization_investigation_block_execution_details import (
+    OrganizationInvestigationBlockExecutionDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_block_executions import (
+    OrganizationInvestigationBlockExecutionsEndpoint,
+)
 from sentry.notebooks.endpoints.organization_investigation_block_index import (
     OrganizationInvestigationBlocksEndpoint,
 )
@@ -491,6 +491,9 @@ from sentry.notebooks.endpoints.organization_investigation_favorite import (
 )
 from sentry.notebooks.endpoints.organization_investigation_presence import (
     OrganizationInvestigationPresenceEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_title_generation import (
+    OrganizationInvestigationTitleGenerationEndpoint,
 )
 from sentry.notifications.api.endpoints.notification_actions_available import (
     NotificationActionsAvailableEndpoint,
@@ -2678,6 +2681,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/onboarding-tasks/$",
         OrganizationOnboardingTaskEndpoint.as_view(),
         name="sentry-api-0-organization-onboardingtasks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agent-handoff/prompts-preview/$",
+        OrganizationAgentHandoffPreviewEndpoint.as_view(),
+        name="sentry-api-0-organization-agent-handoff-preview",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/agent-handoff/prompts/$",

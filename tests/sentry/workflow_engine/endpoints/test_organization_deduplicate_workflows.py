@@ -6,8 +6,11 @@ import pytest
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import cell_silo_test
+from sentry.workflow_engine.endpoints.organization_deduplicate_workflows import (
+    deduplicate_workflows,
+)
 from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models import (
     Action,
@@ -380,3 +383,24 @@ class OrganizationDeduplicateWorkflowsTest(APITestCase):
 
     def test_deduplication__disabled(self) -> None:
         self.run_configuration(idx=11)
+
+
+@cell_silo_test
+class DeduplicateWorkflowsTypeTest(TestCase):
+    def test_hidden_workflow_not_merged_with_identical_alert(self) -> None:
+        alert_workflow = self.create_workflow(organization=self.organization)
+
+        identical_alert_workflow = self.create_workflow(organization=self.organization)
+
+        hidden_workflow = self.create_workflow(
+            organization=self.organization, type=Workflow.Type.INBOX
+        )
+
+        deduplicate_workflows(self.organization)
+
+        assert Workflow.objects.filter(id=hidden_workflow.id).exists()
+
+        assert (
+            Workflow.objects.filter(id__in=[alert_workflow.id, identical_alert_workflow.id]).count()
+            == 1
+        )

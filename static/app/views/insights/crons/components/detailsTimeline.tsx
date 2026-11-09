@@ -6,6 +6,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {createSerializer, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Table, type TableColumnConfig} from '@sentry/scraps/table';
@@ -22,7 +23,6 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';

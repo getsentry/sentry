@@ -20,9 +20,17 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
-import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ChartVisualization,
+  useChartVisualizationPlottables,
+} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ExtrapolationConfidenceFooter,
+  hasLowConfidencePlottables,
+} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
@@ -88,6 +96,9 @@ export function MultiQueryModeChart({
       samplingMode: undefined,
     };
   }, [chartType, isTopN, timeseriesResult, yAxes]);
+
+  const plottables = useChartVisualizationPlottables(chartInfo);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const organization = useOrganization();
   const {addToDashboard} = useAddCompareQueryToDashboard(queryParts);
@@ -230,16 +241,23 @@ export function MultiQueryModeChart({
         ),
       ]}
       revealActions="always"
-      Visualization={<ChartVisualization chartInfo={chartInfo} />}
+      Visualization={<ChartVisualization chartInfo={chartInfo} plottables={plottables} />}
       Footer={
-        <ConfidenceFooter
-          sampleCount={chartInfo.sampleCount}
-          isLoading={chartInfo.timeseriesResult?.isPending || false}
-          isSampled={chartInfo.isSampled}
-          confidence={chartInfo.confidence}
-          topEvents={isTopN ? chartInfo.series.length : undefined}
-          dataScanned={chartInfo.dataScanned}
-        />
+        hasExtrapolationConfidenceFooter ? (
+          !chartInfo.timeseriesResult?.isPending &&
+          hasLowConfidencePlottables(plottables) && (
+            <ExtrapolationConfidenceFooter plottables={plottables} />
+          )
+        ) : (
+          <ConfidenceFooter
+            sampleCount={chartInfo.sampleCount}
+            isLoading={chartInfo.timeseriesResult?.isPending || false}
+            isSampled={chartInfo.isSampled}
+            confidence={chartInfo.confidence}
+            topEvents={isTopN ? chartInfo.series.length : undefined}
+            dataScanned={chartInfo.dataScanned}
+          />
+        )
       }
     />
   );

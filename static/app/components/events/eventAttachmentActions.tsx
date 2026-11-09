@@ -3,10 +3,10 @@ import {IconDownload} from '@sentry/icons/download';
 import {IconShow} from '@sentry/icons/show';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Grid} from '@sentry/scraps/layout';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import {Confirm} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
