@@ -217,7 +217,7 @@ export function ToolbarSaveAs() {
   });
 
   const shouldHighlightSaveButton = useMemo(() => {
-    if (isLoadingSavedQuery || savedQuery === undefined || savedQuery?.isPrebuilt) {
+    if (isLoadingSavedQuery || !savedQuery || savedQuery.isPrebuilt) {
       return false;
     }
     // The non comparison trace explorer view only supports a single query

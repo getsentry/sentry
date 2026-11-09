@@ -277,8 +277,7 @@ export default function OrganizationRepositories() {
     }
     return integrationsQuery.data.filter(
       i =>
-        i !== null &&
-        i.organizationIntegrationStatus === 'active' &&
+        i?.organizationIntegrationStatus === 'active' &&
         i.status === 'active' &&
         scmProviderKeys.includes(i.provider.key)
     );

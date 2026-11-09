@@ -47,7 +47,7 @@ function resolvePathParam(
   value: string,
   organization: Organization | null
 ): string {
-  if (name === 'organization_id_or_slug' && organization && value === organization.id) {
+  if (name === 'organization_id_or_slug' && value === organization?.id) {
     return organization.slug;
   }
   if (name === 'project_id_or_slug') {
