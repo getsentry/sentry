@@ -1,4 +1,13 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  startTransition,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme, css} from '@emotion/react';
@@ -223,7 +232,9 @@ export function Control<Value extends SelectKey>({
     normalizedSearch?.onChange?.(newValue);
     setSearchInputValue(newValue);
     if (normalizedSearch?.filter !== false) {
-      setSearch(newValue);
+      // Filter in a transition: the search field updates as soon as a key is
+      // typed, and React can interrupt filtering a long list for the next key.
+      startTransition(() => setSearch(newValue));
     }
   };
 
@@ -464,9 +475,29 @@ export function Control<Value extends SelectKey>({
     return true;
   }, [value]);
 
+  // React Stately returns a new overlay state on every render, with new methods,
+  // since `setOpen` changes with its `onOpenChange`. In the context, that would
+  // re-render every option on each keystroke in the search field. Consumers only
+  // call the methods from event handlers, so keep one object per open state
+  // whose methods call the latest state.
+  const latestOverlayState = useRef(overlayState);
+  useLayoutEffect(() => {
+    latestOverlayState.current = overlayState;
+  });
+  const stableOverlayState = useMemo<OverlayTriggerState>(
+    () => ({
+      isOpen: overlayIsOpen,
+      setOpen: isOpenNext => latestOverlayState.current.setOpen(isOpenNext),
+      open: () => latestOverlayState.current.open(),
+      close: () => latestOverlayState.current.close(),
+      toggle: () => latestOverlayState.current.toggle(),
+    }),
+    [overlayIsOpen]
+  );
+
   const contextValue = useMemo(() => {
     return {
-      overlayState,
+      overlayState: stableOverlayState,
       overlayIsOpen,
       search,
       searchable: searchEnabled,
@@ -476,7 +507,7 @@ export function Control<Value extends SelectKey>({
       highlightSearch,
     };
   }, [
-    overlayState,
+    stableOverlayState,
     overlayIsOpen,
     search,
     searchEnabled,
