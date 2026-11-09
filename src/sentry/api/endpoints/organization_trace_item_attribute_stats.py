@@ -28,7 +28,6 @@ from sentry.apidocs.descriptions import ApiDescription
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import anyvalue_to_python, or_trace_item_filters
-from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import ColumnType, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
@@ -73,10 +72,12 @@ class TraceItemAttributeDatasetStats(TypedDict):
     ]
 
 
-def _resolver(dataset: str, snuba_params: SnubaParams) -> SearchResolver:
+def _resolver(
+    dataset: str, snuba_params: SnubaParams, config: SearchResolverConfig | None = None
+) -> SearchResolver:
     return SearchResolver(
         params=snuba_params,
-        config=SearchResolverConfig(),
+        config=config or SearchResolverConfig(),
         definitions=get_column_definitions(SupportedTraceItemType(dataset)),
     )
 
@@ -217,7 +218,7 @@ def query_modified_count(refs: Sequence[StoredRef], snuba_params: SnubaParams) -
                 limit=1,
                 referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_MODIFIED_COUNT.value,
                 name=name,
-                # Relay writes the meta under the stored name, untyped and as a string.
+                # Meta is stored as a string under the stored name, whatever the attribute's type.
                 extra_conditions=_exists_filter(
                     AttributeKey(
                         name=f"{constants.META_ATTRIBUTE_PREFIX}.{ref.name}",
@@ -226,10 +227,10 @@ def query_modified_count(refs: Sequence[StoredRef], snuba_params: SnubaParams) -
                     for ref in refs
                 ),
                 sampling_mode="HIGHEST_ACCURACY",
-                resolver=SearchResolver(
-                    params=snuba_params,
-                    config=SearchResolverConfig(disable_aggregate_extrapolation=True),
-                    definitions=SPAN_DEFINITIONS,
+                resolver=_resolver(
+                    SupportedTraceItemType.SPANS.value,
+                    snuba_params,
+                    SearchResolverConfig(disable_aggregate_extrapolation=True),
                 ),
             )
         ]
