@@ -10,6 +10,7 @@ WORKFLOW_RUNS_RESPONSE = [
                     "configId": "10",
                     "strategy": "breached_metric_investigation",
                     "trigger": {
+                        "type": "breached_metric",
                         "detectorId": "401",
                         "environment": "production",
                         "eventId": "9f2d4c1b8a7e4f6d9c3b2a1e0f9d8c7b",
@@ -17,7 +18,6 @@ WORKFLOW_RUNS_RESPONSE = [
                         "observedAt": "2025-01-01T09:59:30Z",
                         "occurrenceId": "3b1e6f0a-2c4d-4e8f-9a1b-7c6d5e4f3a2b",
                         "projectId": "42",
-                        "type": "breached_metric",
                     },
                     "status": "complete",
                     "dateAdded": "2025-01-01T10:00:00Z",

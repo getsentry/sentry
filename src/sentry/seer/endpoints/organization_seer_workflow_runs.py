@@ -105,7 +105,8 @@ SeerWorkflowExecutionResponse = (
 )
 
 
-class TriggerResponse(TypedDict):
+class MetricBreachTriggerResponse(TypedDict):
+    type: Literal["breached_metric"]
     detectorId: str
     environment: str | None
     eventId: str
@@ -113,7 +114,10 @@ class TriggerResponse(TypedDict):
     observedAt: datetime
     occurrenceId: str
     projectId: str
-    type: Literal["breached_metric"]
+
+
+# Discriminated by `type`; add new trigger variants to this union.
+TriggerResponse = MetricBreachTriggerResponse
 
 
 class SeerWorkflowRunResponseBase(TypedDict):
@@ -317,6 +321,7 @@ def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
         if snapshot.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
             trigger = MetricBreachTrigger.parse_obj(snapshot.inputs)
             return {
+                "type": "breached_metric",
                 "detectorId": str(trigger.detector_id),
                 "environment": trigger.environment,
                 "eventId": trigger.event_id,
@@ -324,7 +329,6 @@ def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
                 "observedAt": trigger.observed_at,
                 "occurrenceId": trigger.occurrence_id,
                 "projectId": str(trigger.project_id),
-                "type": "breached_metric",
             }
     except ValidationError:
         logger.exception("seer.workflow_run.invalid_trigger", extra={"run_id": run.id})

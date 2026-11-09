@@ -504,6 +504,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         (serialized_run,) = response.data["runs"]
         assert serialized_run["id"] == str(run.id)
         assert serialized_run["trigger"] == {
+            "type": "breached_metric",
             "detectorId": str(detector.id),
             "environment": "production",
             "eventId": "a" * 32,
@@ -511,7 +512,6 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             "observedAt": datetime(2025, 1, 1, 10, tzinfo=UTC),
             "occurrenceId": "abc",
             "projectId": str(self.project.id),
-            "type": "breached_metric",
         }
 
     def test_trigger_is_null_for_other_strategies(self) -> None:
