@@ -1,10 +1,17 @@
+import {Fragment} from 'react';
+import {useTheme, type Theme} from '@emotion/react';
+
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {
   defineSeerEmbed,
   type EmbedOutput,
 } from 'sentry/components/seer/markdown/embeds/utils';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {t} from 'sentry/locale';
+import {escape} from 'sentry/utils';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
@@ -13,10 +20,13 @@ import type {
   CategoricalSeries,
   TimeSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
+import {describeChartPointProvenance, isDerivedChartPoint} from './chartProvenance';
+import {TransformedLine} from './chartTransformedLine';
 import type {ChartUnit} from './chartTypes';
 import {SeerEmbedBlock} from './seerEmbedBlock';
 
@@ -58,15 +68,184 @@ function getSeriesLabel(series: {label: string} | {name: string}): string {
   return 'label' in series ? series.label : series.name;
 }
 
+/**
+ * A smoothed series carries no observed value at all, so its legend entry says
+ * so rather than reading as the raw measurement.
+ */
+function getSeriesAlias(series: EmbedOutput<'chart'>['series'][number]): string {
+  const label = getSeriesLabel(series);
+  const valued = series.data.filter(point => point.y !== null);
+  return valued.length > 0 && valued.every(point => point.smoothed)
+    ? t('%s (smoothed)', label)
+    : label;
+}
+
+/**
+ * Only a time-axis line can mark derived values (as dashes) and gaps (as
+ * breaks) in the plot itself. Bars have no dashed form, a missing bar looks like
+ * a zero one, and an area stacks a derived run onto the observed values below
+ * it, so those charts list their points instead.
+ */
+function shouldRenderTable({
+  series,
+  visualization,
+  x_axis: xAxis,
+}: EmbedOutput<'chart'>): boolean {
+  const points = series.flatMap(item => item.data);
+  if (xAxis === 'category') {
+    return points.some(point => point.y === null || isDerivedChartPoint(point));
+  }
+  return visualization !== 'line' && points.some(isDerivedChartPoint);
+}
+
+/**
+ * Lists every point when the chart cannot draw it faithfully. Each cell says
+ * whether its value was observed, filled, smoothed, or reported as missing; a
+ * series with no point at a row's x at all shows a dash.
+ */
+function ChartTable({
+  data: {series, x_axis: xAxis, y_axis_unit: yAxisUnit},
+}: {
+  data: EmbedOutput<'chart'>;
+}) {
+  const getKey = (x: string | number) =>
+    xAxis === 'time' ? parseTimestamp(x) : String(x);
+  const rowKeys = [
+    ...new Set(series.flatMap(item => item.data.map(point => getKey(point.x)))),
+  ];
+  if (xAxis === 'time') {
+    rowKeys.sort((left, right) => Number(left) - Number(right));
+  }
+  const pointsBySeries = series.map(
+    item => new Map(item.data.map(point => [getKey(point.x), point]))
+  );
+  const {valueType, valueUnit} = UNIT_METADATA[yAxisUnit];
+
+  return (
+    <SimpleTable
+      columns={[
+        {key: 'x', width: 'minmax(0, 1fr)'},
+        ...series.map((_, index) => ({key: `series-${index}`, width: 'minmax(0, 1fr)'})),
+      ]}
+      data-test-id="seer-chart-table"
+      density="compressed"
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>
+            {xAxis === 'time' ? t('Time') : t('Category')}
+          </SimpleTable.HeaderCell>
+          {series.map((item, index) => (
+            <SimpleTable.HeaderCell key={index}>
+              {getSeriesLabel(item)}
+            </SimpleTable.HeaderCell>
+          ))}
+        </SimpleTable.HeaderRow>
+      }
+      maxHeight="320px"
+    >
+      {rowKeys.map(rowKey => (
+        <SimpleTable.Row key={rowKey}>
+          <SimpleTable.RowCell>
+            {typeof rowKey === 'number' ? <DateTime date={rowKey} /> : rowKey}
+          </SimpleTable.RowCell>
+          {pointsBySeries.map((points, index) => {
+            const point = points.get(rowKey);
+            const provenance = point ? describeChartPointProvenance(point) : null;
+
+            return (
+              <SimpleTable.RowCell key={index}>
+                {point === undefined ? (
+                  '—'
+                ) : point.y === null ? (
+                  <Text variant="muted">{t('No data')}</Text>
+                ) : (
+                  <Text>
+                    {formatTooltipValue(
+                      normalizeValue(point.y, yAxisUnit),
+                      valueType,
+                      valueUnit ?? undefined
+                    )}
+                    {provenance ? (
+                      <Fragment>
+                        {' '}
+                        <Text variant="muted">({provenance})</Text>
+                      </Fragment>
+                    ) : null}
+                  </Text>
+                )}
+              </SimpleTable.RowCell>
+            );
+          })}
+        </SimpleTable.Row>
+      ))}
+    </SimpleTable>
+  );
+}
+
+/**
+ * Says, under the values in a tooltip, which of them a transformation filled in
+ * or smoothed. Series are keyed by the ECharts name each plottable is given.
+ */
+function getProvenanceTooltipDetails(
+  series: EmbedOutput<'chart'>['series'],
+  theme: Theme
+): (seriesNames: string[], timestamp: number) => string {
+  const provenanceBySeries = new Map(
+    series.map((item, index) => [
+      `seer-chart-series-${index}`,
+      {
+        label: getSeriesAlias(item),
+        byTimestamp: new Map(
+          item.data.flatMap(point => {
+            const provenance = describeChartPointProvenance(point);
+            return provenance ? [[parseTimestamp(point.x), provenance] as const] : [];
+          })
+        ),
+      },
+    ])
+  );
+  const style = [
+    `border-top: solid 1px ${theme.tokens.border.secondary}`,
+    `margin: ${theme.space.md} calc(-1 * ${theme.space.xl}) 0`,
+    `padding: ${theme.space.md} ${theme.space.xl} 0`,
+    `color: ${theme.tokens.content.secondary}`,
+  ].join('; ');
+
+  return (seriesNames, timestamp) => {
+    const lines = seriesNames.flatMap(name => {
+      const entry = provenanceBySeries.get(name);
+      const provenance = entry?.byTimestamp.get(timestamp);
+      return entry && provenance
+        ? [`<div>${escape(t('%s: %s value', entry.label, provenance))}</div>`]
+        : [];
+    });
+    return lines.length > 0 ? `<div style="${style}">${lines.join('')}</div>` : '';
+  };
+}
+
 export function ChartContent({
-  data: {title, subtitle, visualization, x_axis: xAxis, y_axis_unit: yAxisUnit, series},
+  data,
   showHeader = true,
 }: {
   data: EmbedOutput<'chart'>;
   showHeader?: boolean;
 }) {
+  const {
+    title,
+    subtitle,
+    visualization,
+    x_axis: xAxis,
+    y_axis_unit: yAxisUnit,
+    series,
+  } = data;
+  const theme = useTheme();
   const metadata = UNIT_METADATA[yAxisUnit];
+  const renderTable = shouldRenderTable(data);
+  const hasDerivedPoints = series.some(item => item.data.some(isDerivedChartPoint));
 
+  const renderTooltipSeriesDetails = hasDerivedPoints
+    ? getProvenanceTooltipDetails(series, theme)
+    : undefined;
   // The categorical visualization only draws bars, so a category line or area
   // chart falls back to bars rather than dropping the agent's data.
   const visualizationComponent =
@@ -78,7 +257,7 @@ export function ChartContent({
             meta: metadata,
             values: item.data.map(point => ({
               category: point.x,
-              value: normalizeValue(point.y, yAxisUnit),
+              value: point.y === null ? null : normalizeValue(point.y, yAxisUnit),
             })),
           };
           return new CategoricalBars(categoricalSeries, {
@@ -109,12 +288,13 @@ export function ChartContent({
         }}
         plottables={series
           .map((item, index) => {
-            const values = item.data
-              .map(point => ({
-                timestamp: parseTimestamp(point.x),
-                value: normalizeValue(point.y, yAxisUnit),
-              }))
+            const points = item.data
+              .map(point => ({point, timestamp: parseTimestamp(point.x)}))
               .toSorted((left, right) => left.timestamp - right.timestamp);
+            const values = points.map(({point, timestamp}) => ({
+              timestamp,
+              value: point.y === null ? null : normalizeValue(point.y, yAxisUnit),
+            }));
             const timeSeries: TimeSeries = {
               yAxis: `seer-chart-series-${index}`,
               meta: {
@@ -123,16 +303,27 @@ export function ChartContent({
               },
               values,
             };
-            return createPlottableFromTimeSeries(
-              DISPLAY_TYPES[visualization],
-              timeSeries,
-              {
-                alias: getSeriesLabel(item),
-                name: `seer-chart-series-${index}`,
-              }
+            const config = {
+              alias: getSeriesAlias(item),
+              name: `seer-chart-series-${index}`,
+            };
+            const derivedTimestamps = new Set(
+              points
+                .filter(({point}) => isDerivedChartPoint(point))
+                .map(({timestamp}) => timestamp)
             );
+            // Only reached for line charts: `shouldRenderTable` sends any
+            // other visualization with derived values to the table.
+            return derivedTimestamps.size > 0
+              ? new TransformedLine(timeSeries, derivedTimestamps, config)
+              : createPlottableFromTimeSeries(
+                  DISPLAY_TYPES[visualization],
+                  timeSeries,
+                  config
+                );
           })
           .filter((plottable): plottable is Plottable => plottable !== null)}
+        renderTooltipSeriesDetails={renderTooltipSeriesDetails}
         showReleaseAs="none"
         // An embed's chart is as wide as the card it sits in, which is narrow
         // and clips. Left to size itself to a model-written series name, the
@@ -155,21 +346,41 @@ export function ChartContent({
           ) : null}
         </Stack>
       ) : null}
-      {/*
-        Inline-size containment: without it a wide legend sets this box's
-        min-content width, which no ancestor can shrink below, and the chart
-        overflows its container. Containment computes the width as if the box
-        were empty, so the legend measures against the container instead of
-        dictating it.
-      */}
-      <Container
-        containerType="inline-size"
-        data-test-id="seer-chart-content"
-        height="220px"
-        width="100%"
-      >
-        {visualizationComponent}
-      </Container>
+      {renderTable ? (
+        <Stack gap="sm" data-test-id="seer-chart-content" width="100%">
+          <Text size="sm" variant="muted">
+            {t(
+              'Shown as a table so missing, filled, and smoothed values are not mistaken for observed ones.'
+            )}
+          </Text>
+          <ChartTable data={data} />
+        </Stack>
+      ) : (
+        <Fragment>
+          {/*
+            Inline-size containment: without it a wide legend sets this box's
+            min-content width, which no ancestor can shrink below, and the chart
+            overflows its container. Containment computes the width as if the box
+            were empty, so the legend measures against the container instead of
+            dictating it.
+          */}
+          <Container
+            containerType="inline-size"
+            data-test-id="seer-chart-content"
+            height="220px"
+            width="100%"
+          >
+            {visualizationComponent}
+          </Container>
+          {hasDerivedPoints ? (
+            <Text size="sm" variant="muted">
+              {t(
+                'Dashed lines are values a transformation filled in or smoothed, not observed measurements.'
+              )}
+            </Text>
+          ) : null}
+        </Fragment>
+      )}
     </Stack>
   );
 }
