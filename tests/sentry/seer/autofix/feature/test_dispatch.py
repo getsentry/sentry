@@ -6,7 +6,11 @@ import pytest
 from sentry.constants import DataCategory
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
-from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
+from sentry.seer.autofix.feature.dispatch import (
+    AutofixFeatureArgs,
+    continue_single_run,
+    trigger_autofix_feature,
+)
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     LEGACY_FEATURE_ID,
@@ -540,3 +544,67 @@ class TestSingleRunStart(TestCase):
             "agent_run_options"
         ]
         assert "enable_write_pull_request" not in options
+
+
+@django_db_all
+class TestContinueSingleRun(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+        self.seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.agent_run = self.create_seer_agent_run(
+            run=self.seer_run,
+            source=SINGLE_RUN_FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
+        self.organization.update_option("sentry:enable_seer_coding", True)
+
+    def _reply(self, *, can_publish: bool = True) -> MagicMock:
+        with patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls:
+            mock_client_cls.return_value.continue_feature_run.return_value = self.seer_run
+            continue_single_run(
+                self.agent_run,
+                self.group,
+                "make a code fix",
+                user=self.user,
+                can_publish=can_publish,
+                referrer=AutofixReferrer.SEER_EXPLORER,
+            )
+        return mock_client_cls
+
+    def _continue_kwargs(self, mock_client_cls: MagicMock) -> dict[str, Any]:
+        return mock_client_cls.return_value.continue_feature_run.call_args.kwargs
+
+    def test_sends_reply_and_run_id(self) -> None:
+        kwargs = self._continue_kwargs(self._reply())
+
+        assert kwargs["payload"]["reply"] == "make a code fix"
+        assert kwargs["payload"]["existing_run_id"] == 123
+        assert kwargs["existing_agent_run"] == self.agent_run
+
+    def test_unlocks_code_and_pr_past_the_stopping_point(self) -> None:
+        mock_client_cls = self._reply()
+        kwargs = self._continue_kwargs(mock_client_cls)
+
+        assert mock_client_cls.call_args.kwargs["enable_coding"] is True
+        assert kwargs["agent_run_options"]["enable_coding"] is True
+        assert kwargs["agent_run_options"]["enable_write_pull_request"] is True
+        assert kwargs["payload"]["pr_internal_settings"] is not None
+
+    def test_without_publish_gets_no_pr_tool(self) -> None:
+        kwargs = self._continue_kwargs(self._reply(can_publish=False))
+
+        assert kwargs["agent_run_options"]["enable_coding"] is True
+        assert kwargs["agent_run_options"]["enable_write_pull_request"] is False
+        assert kwargs["payload"]["pr_internal_settings"] is None
+
+    def test_respects_org_coding_opt_out(self) -> None:
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        kwargs = self._continue_kwargs(self._reply())
+
+        assert kwargs["agent_run_options"]["enable_coding"] is False
+        assert kwargs["agent_run_options"]["enable_write_pull_request"] is False
+        assert kwargs["payload"]["pr_internal_settings"] is None

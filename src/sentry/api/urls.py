@@ -48,9 +48,6 @@ from sentry.api.endpoints.organization_releases import (
 from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
     OrganizationSamplingEffectiveSampleRateEndpoint,
 )
-from sentry.api.endpoints.organization_sampling_project_span_counts import (
-    OrganizationSamplingProjectSpanCountsEndpoint,
-)
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attribute_context import (
     OrganizationTraceItemAttributeContextEndpoint,
@@ -703,6 +700,15 @@ from sentry.service_accounts.endpoints.organization_service_accounts import (
 )
 from sentry.synapse.endpoints.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.synapse.endpoints.project_key_cell_mappings import ProjectKeyCellMappingsEndpoint
+from sentry.telemetry_classifiers.endpoints.organization_prebuilt_telemetry_classifiers import (
+    OrganizationPrebuiltTelemetryClassifiersEndpoint,
+)
+from sentry.telemetry_classifiers.endpoints.organization_telemetry_classifier_details import (
+    OrganizationTelemetryClassifierDetailsEndpoint,
+)
+from sentry.telemetry_classifiers.endpoints.organization_telemetry_classifiers import (
+    OrganizationTelemetryClassifiersEndpoint,
+)
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
@@ -853,7 +859,6 @@ from .endpoints.organization_projects_sent_first_event import (
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
-from .endpoints.organization_sampling_project_rates import OrganizationSamplingProjectRatesEndpoint
 from .endpoints.organization_sdk_deprecations import OrganizationSdkDeprecationsEndpoint
 from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
@@ -1737,16 +1742,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-config-integrations",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-rates/$",
-        OrganizationSamplingProjectRatesEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-project-rates",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-root-counts/$",
-        OrganizationSamplingProjectSpanCountsEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-root-counts",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/effective-sample-rate/$",
         OrganizationSamplingEffectiveSampleRateEndpoint.as_view(),
         name="sentry-api-0-organization-sampling-effective-sample-rate",
@@ -1865,6 +1860,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/agents/conversations/(?P<conversation_id>[^/]+)/$",
         OrganizationAIConversationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-agent-conversation-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/classifiers/$",
+        OrganizationTelemetryClassifiersEndpoint.as_view(),
+        name="sentry-api-0-organization-telemetry-classifiers",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/classifiers/prebuilt/$",
+        OrganizationPrebuiltTelemetryClassifiersEndpoint.as_view(),
+        name="sentry-api-0-organization-prebuilt-telemetry-classifiers",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/classifiers/(?P<classifier_id>[^/]+)/$",
+        OrganizationTelemetryClassifierDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-telemetry-classifier-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/$",

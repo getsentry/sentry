@@ -104,7 +104,7 @@ import {
   handleUpdateHomepageQuery,
   handleUpdateQuery as handleUpdateSavedQuery,
 } from './savedQuery/utils';
-import Table from './table';
+import {Table} from './table';
 import {
   canCreateAlerts,
   generateTitle,
@@ -1370,31 +1370,29 @@ function SaveQueryButton({
     });
   }
 
-  if (organization.features.includes('dashboards-edit')) {
-    items.push({
-      key: 'add-to-dashboard',
-      label: t('Dashboard widget'),
-      textValue: t('Dashboard widget'),
-      disabled: deprecatingTransactionsDataset,
-      tooltip: deprecationTooltip,
-      onAction: () => {
-        handleAddQueryToDashboard({
-          organization,
-          location,
-          eventView,
-          query: savedQuery,
-          yAxis,
-          widgetType: hasDatasetSelector(organization)
-            ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre...
-              SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
-                getSavedQueryDataset(organization, location, savedQuery)
-              ]
-            : undefined,
-          source: DashboardWidgetSource.DISCOVERV2,
-        });
-      },
-    });
-  }
+  items.push({
+    key: 'add-to-dashboard',
+    label: t('Dashboard widget'),
+    textValue: t('Dashboard widget'),
+    disabled: deprecatingTransactionsDataset,
+    tooltip: deprecationTooltip,
+    onAction: () => {
+      handleAddQueryToDashboard({
+        organization,
+        location,
+        eventView,
+        query: savedQuery,
+        yAxis,
+        widgetType: hasDatasetSelector(organization)
+          ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre...
+            SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+              getSavedQueryDataset(organization, location, savedQuery)
+            ]
+          : undefined,
+        source: DashboardWidgetSource.DISCOVERV2,
+      });
+    },
+  });
 
   return (
     <DropdownMenu

@@ -236,7 +236,7 @@ class WorkflowEngineExamples:
                     ],
                     "actions": [],
                 },
-                "config": {"detectionType": "dynamic", "comparisonDelta": None},
+                "config": {"detectionType": "dynamic"},
                 "enabled": True,
                 "latestGroup": {
                     "id": "123456789",
@@ -441,6 +441,8 @@ class WorkflowEngineExamples:
                                 "intervalSeconds": 60,
                                 "timeoutMs": 5000,
                                 "traceSampling": False,
+                                "responseCaptureEnabled": True,
+                                "assertion": None,
                             },
                         }
                     ],
@@ -532,7 +534,7 @@ class WorkflowEngineExamples:
                         ],
                         "actions": [],
                     },
-                    "config": {"detectionType": "static", "comparisonDelta": None},
+                    "config": {"detectionType": "static"},
                     "enabled": True,
                     "latestGroup": None,
                 },

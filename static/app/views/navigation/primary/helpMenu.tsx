@@ -6,9 +6,9 @@ import {IconDocs} from '@sentry/icons/docs';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconGithub} from '@sentry/icons/github';
 import {IconGroup} from '@sentry/icons/group';
+import {IconInfo} from '@sentry/icons/info';
 import {IconMegaphone} from '@sentry/icons/megaphone';
 import {IconOpen} from '@sentry/icons/open';
-import {IconQuestion} from '@sentry/icons/question';
 import {IconSentry} from '@sentry/icons/sentry';
 import {IconSupport} from '@sentry/icons/support';
 import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
@@ -52,7 +52,7 @@ export function PrimaryNavigationHelpMenu({
       submenu: true,
       leadingItems: (
         <MenuIcon>
-          <IconQuestion />
+          <IconInfo />
         </MenuIcon>
       ),
       children: [
@@ -92,7 +92,7 @@ export function PrimaryNavigationHelpMenu({
           externalHref: 'https://www.sentry.help/',
           leadingItems: (
             <MenuIcon>
-              <IconQuestion />
+              <IconInfo />
             </MenuIcon>
           ),
         },

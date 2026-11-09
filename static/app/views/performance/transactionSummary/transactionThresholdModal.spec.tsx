@@ -10,13 +10,15 @@ import {
   ModalBody,
   ModalFooter,
 } from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 
-import TransactionThresholdModal, {
+import {
   TransactionThresholdMetric,
+  TransactionThresholdModal,
 } from './transactionThresholdModal';
 
 function mountModal(
@@ -61,6 +63,7 @@ describe('TransactionThresholdModal', () => {
   let postTransactionThresholdMock: any;
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error');
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     postTransactionThresholdMock = MockApiClient.addMockResponse({
@@ -88,6 +91,26 @@ describe('TransactionThresholdModal', () => {
         })
       );
     });
+    await waitFor(() => expect(onApply).toHaveBeenCalledWith('1000', 'lcp'));
+  });
+
+  it('shows the API error when applying fails', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'POST',
+      statusCode: 400,
+      body: {threshold: ['Ensure this value is less than or equal to 60000.']},
+    });
+    mountModal(eventView, organization, onApply);
+
+    await userEvent.click(await screen.findByTestId('apply-threshold'));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'Ensure this value is less than or equal to 60000.'
+      )
+    );
+    expect(onApply).not.toHaveBeenCalled();
   });
 
   it('can update metric', async () => {
@@ -138,5 +161,6 @@ describe('TransactionThresholdModal', () => {
     await waitFor(() => {
       expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
     });
+    await waitFor(() => expect(onApply).toHaveBeenCalledWith('200', 'duration'));
   });
 });
