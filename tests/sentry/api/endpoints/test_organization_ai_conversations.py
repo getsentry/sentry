@@ -253,6 +253,25 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         response = self.do_request()
         assert response.status_code == 404
 
+    def test_rejects_time_range_older_than_30_days(self) -> None:
+        now = before_now().replace(microsecond=0)
+        cases = [
+            ({"statsPeriod": "31d"}, "statsPeriod cannot be longer than 30 days"),
+            ({"statsPeriod": "90d"}, "statsPeriod cannot be longer than 30 days"),
+            (
+                {"start": (now - timedelta(days=31)).isoformat(), "end": now.isoformat()},
+                "start time cannot be older than 30 days",
+            ),
+        ]
+        for time_range, detail in cases:
+            response = self.do_request({"project": [self.project.id], **time_range})
+            assert response.status_code == 400, time_range
+            assert response.data == {"detail": detail}, time_range
+
+    def test_accepts_30_day_stats_period(self) -> None:
+        response = self.do_request({"project": [self.project.id], "statsPeriod": "30d"})
+        assert response.status_code == 200, response.data
+
     def test_no_conversations(self) -> None:
         """Test endpoint returns empty list when there are no spans with gen_ai.conversation.id"""
         now = before_now(days=10).replace(microsecond=0)
@@ -882,7 +901,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_conversation_spanning_multiple_traces(self) -> None:
         """Test a conversation with spans across multiple traces"""
-        now = before_now(days=30).replace(microsecond=0)
+        now = before_now(days=29).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id_1 = uuid4().hex
         trace_id_2 = uuid4().hex

@@ -1,8 +1,10 @@
 import re
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated, Any, TypedDict
 from urllib.parse import quote, urlencode
+
+from rest_framework.request import Request
 
 from sentry.ai_monitoring.message_normalizer import (
     FILTERED,
@@ -14,6 +16,10 @@ from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.relay.config.ai_model_costs import AIModelCost, AIModelMetadataConfig
+from sentry.search.events.types import SnubaParams
+from sentry.utils.dates import parse_stats_period
+
+MAX_RETENTION_DAYS = 30
 
 
 class ConversationProject(TypedDict):
@@ -37,6 +43,27 @@ def get_conversation_url(
         f"{quote(conversation_id, safe='')}/",
         query=query,
     )
+
+
+def get_time_range_error(request: Request, snuba_params: SnubaParams, now: datetime) -> str | None:
+    """Describe why the requested range reaches past conversation retention, if it does."""
+    max_retention = timedelta(days=MAX_RETENTION_DAYS)
+    stats_period = request.GET.get("statsPeriod")
+    if stats_period:
+        period = parse_stats_period(stats_period)
+        if period is not None and period > max_retention:
+            return f"statsPeriod cannot be longer than {MAX_RETENTION_DAYS} days"
+        return None
+
+    # Compare explicit bounds only: a statsPeriod start is computed before `now`, so a
+    # 30d period would land a few microseconds past the cutoff.
+    if request.GET.get("start") or request.GET.get("end"):
+        cutoff = now - max_retention
+        if snuba_params.start and snuba_params.start < cutoff:
+            return f"start time cannot be older than {MAX_RETENTION_DAYS} days"
+        if snuba_params.end and snuba_params.end < cutoff:
+            return f"end time cannot be older than {MAX_RETENTION_DAYS} days"
+    return None
 
 
 def timestamp_to_float(value: Any) -> float:
