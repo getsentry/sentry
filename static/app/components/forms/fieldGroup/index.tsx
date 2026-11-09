@@ -1,4 +1,4 @@
-import {useStackedLayout} from '@sentry/scraps/formPresentation';
+import {useStackedLayout} from '@sentry/scraps/form';
 
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 

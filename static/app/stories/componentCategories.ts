@@ -54,17 +54,28 @@ export function isComponentCategory(value: unknown): value is ComponentCategory 
   return typeof value === 'string' && Object.hasOwn(COMPONENT_CATEGORY_CONFIG, value);
 }
 
-const CORE_COMPONENT_PREFIX = 'components/core/';
+/**
+ * Story files are keyed by their path relative to `static/`. Scraps docs live
+ * next to their components in the package, while core components that have not
+ * moved yet, and the overview, pattern, and principle pages, live in the app.
+ */
+const APP_CORE_PREFIX = 'app/components/core/';
+const SCRAPS_STORY_PREFIX = 'packages/scraps/src/';
 const CORE_DOCUMENTATION_PREFIXES = [
-  `${CORE_COMPONENT_PREFIX}overview/`,
-  `${CORE_COMPONENT_PREFIX}patterns/`,
-  `${CORE_COMPONENT_PREFIX}principles/`,
+  `${APP_CORE_PREFIX}overview/`,
+  `${APP_CORE_PREFIX}patterns/`,
+  `${APP_CORE_PREFIX}principles/`,
 ];
+
+export function isScrapsStoryFile(file: string) {
+  return file.startsWith(SCRAPS_STORY_PREFIX);
+}
 
 export function validateComponentCategory(file: string, value: unknown) {
   const isCoreComponentDoc =
-    file.startsWith(CORE_COMPONENT_PREFIX) &&
-    !CORE_DOCUMENTATION_PREFIXES.some(prefix => file.startsWith(prefix));
+    isScrapsStoryFile(file) ||
+    (file.startsWith(APP_CORE_PREFIX) &&
+      !CORE_DOCUMENTATION_PREFIXES.some(prefix => file.startsWith(prefix)));
 
   if (isCoreComponentDoc && !isComponentCategory(value)) {
     throw new Error(
