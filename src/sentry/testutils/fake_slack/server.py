@@ -9,6 +9,7 @@ import copy
 import hashlib
 import itertools
 import json  # noqa: S003
+import os
 import sys
 import threading
 import time
@@ -27,6 +28,10 @@ VIEWER = Path(__file__).with_name("viewer.html")
 MAX_UNSUPPORTED_CALLS = 100
 
 Response = dict[str, Any]
+
+
+def viewer_url(port: int) -> str:
+    return os.environ.get("FAKE_SLACK_PUBLIC_URL") or f"http://localhost:{port}"
 
 
 def _maybe_json(value: Any) -> Any:
