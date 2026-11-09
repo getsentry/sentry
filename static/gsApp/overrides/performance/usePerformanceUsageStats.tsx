@@ -1,8 +1,9 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 type PerformanceStatsGroup = {
   by: {
@@ -27,9 +28,6 @@ export function usePerformanceUsageStats({
   projectIds: PageFilters['projects'];
 }) {
   const {start, end, period} = dateRange;
-  const pathname = getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-    path: {organizationIdOrSlug: organization.slug},
-  });
 
   const endpointOptions = {
     query: {
@@ -46,13 +44,16 @@ export function usePerformanceUsageStats({
     },
   };
 
-  const results = useApiQuery<PartialUsageStats>([pathname, endpointOptions], {
-    staleTime: Infinity,
-  });
+  const {data} = useQuery(
+    apiOptions.as<PartialUsageStats>()('/organizations/$organizationIdOrSlug/stats_v2/', {
+      path: {organizationIdOrSlug: organization.slug},
+      ...endpointOptions,
+      staleTime: Infinity,
+    })
+  );
 
   return {
-    ...results,
-    data: results.data?.groups?.find(group =>
+    data: data?.groups?.find(group =>
       [
         'transaction_usage_exceeded',
         'span_usage_exceeded',

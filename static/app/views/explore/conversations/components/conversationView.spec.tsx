@@ -120,6 +120,10 @@ describe('ConversationViewContent', () => {
       PageFiltersStore.init();
     });
     mockConversation();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
   });
 
   afterAll(() => {

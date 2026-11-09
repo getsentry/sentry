@@ -192,7 +192,7 @@ class OrganizationEventsEndpointTest(APITestCase):
     ) -> Response:
         """Issue an external API-token request, which forces the referrer to
         `api.auth-token.events` (the "external API request" branch of the
-        blocked-org warning)."""
+        legacy dataset warning)."""
         api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
         features.update(self.features)
         url = self.reverse_url()
@@ -206,7 +206,7 @@ class OrganizationEventsEndpointTest(APITestCase):
 
     @mock.patch("sentry.api.endpoints.organization_events.sdk_logger")
     @mock.patch("sentry.snuba.discover.query")
-    def test_blocked_org_log_fires_for_discover(
+    def test_legacy_dataset_log_fires_for_discover(
         self, mock_query: mock.MagicMock, mock_sdk_logger: mock.MagicMock
     ) -> None:
         mock_query.return_value = {}
@@ -226,6 +226,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert kwargs["attributes"] == {
             "org_id": self.organization.id,
             "org_slug": self.organization.slug,
+            "is_blocked": True,
             # no dataset param was passed, so the requested value is empty
             "requested_dataset": "",
             # but the default dataset is used
@@ -235,7 +236,7 @@ class OrganizationEventsEndpointTest(APITestCase):
 
     @mock.patch("sentry.api.endpoints.organization_events.sdk_logger")
     @mock.patch("sentry.snuba.transactions.query")
-    def test_blocked_org_log_fires_for_transactions(
+    def test_legacy_dataset_log_fires_for_transactions(
         self, mock_query: mock.MagicMock, mock_sdk_logger: mock.MagicMock
     ) -> None:
         mock_query.return_value = {}
@@ -256,7 +257,7 @@ class OrganizationEventsEndpointTest(APITestCase):
 
     @mock.patch("sentry.api.endpoints.organization_events.sdk_logger")
     @mock.patch("sentry.snuba.discover.query")
-    def test_blocked_org_log_not_fired_when_flag_off(
+    def test_legacy_dataset_log_fires_for_allowlisted_org(
         self, mock_query: mock.MagicMock, mock_sdk_logger: mock.MagicMock
     ) -> None:
         mock_query.return_value = {}
@@ -270,11 +271,13 @@ class OrganizationEventsEndpointTest(APITestCase):
             },
         )
 
-        mock_sdk_logger.warning.assert_not_called()
+        mock_sdk_logger.warning.assert_called_once()
+        _, kwargs = mock_sdk_logger.warning.call_args
+        assert kwargs["attributes"]["is_blocked"] is False
 
     @mock.patch("sentry.api.endpoints.organization_events.sdk_logger")
     @mock.patch("sentry.snuba.discover.query")
-    def test_blocked_org_log_not_fired_for_non_external_request(
+    def test_legacy_dataset_log_not_fired_for_non_external_request(
         self, mock_query: mock.MagicMock, mock_sdk_logger: mock.MagicMock
     ) -> None:
         mock_query.return_value = {}
@@ -293,7 +296,7 @@ class OrganizationEventsEndpointTest(APITestCase):
 
     @mock.patch("sentry.api.endpoints.organization_events.sdk_logger")
     @mock.patch("sentry.snuba.errors.query")
-    def test_blocked_org_log_not_fired_for_non_legacy_dataset(
+    def test_legacy_dataset_log_not_fired_for_non_legacy_dataset(
         self, mock_query: mock.MagicMock, mock_sdk_logger: mock.MagicMock
     ) -> None:
         mock_query.return_value = {}

@@ -1,9 +1,8 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Event, Frame} from 'sentry/types/event';
 import type {StacktraceLinkResult} from 'sentry/types/integrations';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {isUnlinkableFilename} from './utils';
 
@@ -46,32 +45,32 @@ export function buildStacktraceLinkQuery(
   return query;
 }
 
-const stacktraceLinkQueryKey = (
+const stacktraceLinkOptions = (
   orgSlug: string,
   projectSlug: string | undefined,
   query: StacktraceLinkQuery
-): ApiQueryKey => [
-  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-link/', {
-    path: {
-      organizationIdOrSlug: orgSlug,
-      projectIdOrSlug: projectSlug!,
-    },
-  }),
-  {query},
-];
+) =>
+  apiOptions.as<StacktraceLinkResult>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-link/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug!,
+      },
+      query,
+      staleTime: Infinity,
+    }
+  );
 
 export function useStacktraceLink(
   {event, frame, orgSlug, projectSlug}: UseStacktraceLinkProps,
-  options: Partial<UseApiQueryOptions<StacktraceLinkResult>> = {}
+  options: {enabled?: boolean} = {}
 ) {
   const query = buildStacktraceLinkQuery(event, frame);
-  return useApiQuery<StacktraceLinkResult>(
-    stacktraceLinkQueryKey(orgSlug, projectSlug, query),
-    {
-      staleTime: Infinity,
-      retry: false,
-      ...options,
-      enabled: (options.enabled ?? true) && !isUnlinkableFilename(frame.filename ?? ''),
-    }
-  );
+  return useQuery({
+    ...stacktraceLinkOptions(orgSlug, projectSlug, query),
+    retry: false,
+    ...options,
+    enabled: (options.enabled ?? true) && !isUnlinkableFilename(frame.filename ?? ''),
+  });
 }

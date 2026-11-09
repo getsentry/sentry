@@ -24,11 +24,7 @@ FEATURE_NAMES = [
     "organizations:performance-view",
     "organizations:discover-basic",
     "organizations:discover-query",
-    "organizations:dashboards-basic",
 ]
-
-EDIT_FEATURE = ["organizations:dashboards-edit"]
-
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -72,7 +68,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         DashboardWidgetQuery.objects.create(
             widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+        with self.feature(FEATURE_NAMES):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -100,7 +96,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             aggregates=["count_unique(issue)"],
             order=0,
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+        with self.feature(FEATURE_NAMES):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -128,7 +124,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             aggregates=["count_unique(issue)"],
             order=0,
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+        with self.feature(FEATURE_NAMES):
             self.page.visit_dashboard_detail()
 
             # Hover over the widget to show widget actions
@@ -169,7 +165,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             )
             for widget in existing_widgets
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+        with self.feature(FEATURE_NAMES):
             self.page.visit_dashboard_detail()
 
             # Hover over the widget to show widget actions

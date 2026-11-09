@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from functools import partial
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.db import router, transaction
 from django.db.models import QuerySet, Value
@@ -28,6 +28,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.response_types import (
@@ -68,24 +69,36 @@ parse_search_query = partial(base_parse_search_query, config=search_config)
 
 
 class BranchOverrideResponse(TypedDict):
-    id: str
-    tagName: str
-    tagValue: str
-    branchName: str
+    id: Annotated[str, ApiDescription("ID of the branch override")]
+    tagName: Annotated[str, ApiDescription("Event tag key to match")]
+    tagValue: Annotated[str, ApiDescription("Event tag value to match")]
+    branchName: Annotated[
+        str, ApiDescription("Branch Seer uses for issues whose events have this tag value")
+    ]
 
 
 class ProjectRepoResponse(TypedDict):
-    id: str
-    repositoryId: str
-    organizationId: str
-    provider: str
-    owner: str
-    name: str
-    externalId: str
-    integrationId: str | None
-    branchName: str | None
-    branchOverrides: list[BranchOverrideResponse]
-    instructions: str | None
+    id: Annotated[str, ApiDescription("ID of the link between the project and the repository")]
+    repositoryId: Annotated[str, ApiDescription("ID of the repository")]
+    organizationId: Annotated[str, ApiDescription("ID of the organization")]
+    provider: Annotated[
+        str, ApiDescription("Provider of the repository, such as integrations:github")
+    ]
+    owner: Annotated[str, ApiDescription("Owner of the repository")]
+    name: Annotated[str, ApiDescription("Name of the repository, without the owner")]
+    externalId: Annotated[str, ApiDescription("ID of the repository in the provider")]
+    integrationId: Annotated[str | None, ApiDescription("ID of the repository's integration")]
+    branchName: Annotated[
+        str | None,
+        ApiDescription("Branch Seer uses instead of the default branch. Null when not set"),
+    ]
+    branchOverrides: Annotated[
+        list[BranchOverrideResponse],
+        ApiDescription("Deprecated. Branches Seer uses for issues with matching event tags"),
+    ]
+    instructions: Annotated[
+        str | None, ApiDescription("Instructions Seer follows when working with the repository")
+    ]
 
 
 def _serialize_project_repo(

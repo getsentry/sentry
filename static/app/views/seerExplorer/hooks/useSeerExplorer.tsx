@@ -741,6 +741,7 @@ export const useSeerExplorer = () => {
 
   return {
     sessionData: processedSessionData,
+    featureId: apiData?.feature_id ?? null,
     isPolling,
     isError,
     /** The session itself came back errored with nothing to render. */

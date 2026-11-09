@@ -4,11 +4,13 @@ from urllib.parse import urlencode
 from django.http import HttpResponse
 
 from sentry.agent_handoff.codes import (
+    HandoffFlow,
     _get_redis_client,
     _handoff_key,
     consume_handoff,
     issue_handoff,
 )
+from sentry.agent_handoff.flows import HandoffMode
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apisetupcode import ApiSetupCode
@@ -32,19 +34,23 @@ class AgentHandoffViewTest(TestCase):
             )
         )
 
-    def issue(self) -> str:
+    def issue(self, ip_address: str = "127.0.0.1", *, disable_ip_pinning: bool = False) -> str:
         return issue_handoff(
+            flow=HandoffFlow.ONBOARDING,
             user_id=self.user.id,
             organization_id=self.organization.id,
             application_id=self.application.id,
             scope_list=["org:read"],
+            ip_address=ip_address,
+            disable_ip_pinning=disable_ip_pinning,
         ).code
 
-    def claim(self, code: str) -> HttpResponse:
+    def claim(self, code: str, ip_address: str = "127.0.0.1") -> HttpResponse:
         return self.client.post(
-            "/agents/",
+            "/agent-handoff/",
             urlencode({"handoff_code": code}),
             content_type="application/x-www-form-urlencoded",
+            REMOTE_ADDR=ip_address,
         )
 
     def test_claim_mints_once_and_returns_the_private_guide(self) -> None:
@@ -52,7 +58,7 @@ class AgentHandoffViewTest(TestCase):
         response = self.claim(code)
         assert response.status_code == 200
         assert "SENTRY_SETUP_CODE=sntryc_" in response.content.decode()
-        assert "Now ask the user" in response.content.decode()
+        assert "agent-setup/get-started.md" in response.content.decode()
         assert "no-store" in response["Cache-Control"]
         assert response["Referrer-Policy"] == "no-referrer"
         assert response["Content-Type"] == "text/markdown; charset=utf-8"
@@ -68,6 +74,22 @@ class AgentHandoffViewTest(TestCase):
         )
         assert self.claim(code).status_code == 410
         assert ApiSetupCode.objects.filter(user_id=self.user.id).count() == 1
+
+    def test_claim_dispatches_flow_with_authorized_handoff_context(self) -> None:
+        with patch(
+            "sentry.agent_handoff.claims.get_flow_instructions",
+            return_value="Follow the onboarding guide.",
+        ) as instructions:
+            response = self.claim(self.issue())
+
+        assert response.status_code == 200
+        assert response.content.decode().rstrip().endswith("Follow the onboarding guide.")
+        instructions.assert_called_once_with(
+            HandoffFlow.ONBOARDING,
+            mode=HandoffMode.CLAIMED,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
 
     def test_organization_scoped_application_retains_selected_organization(self) -> None:
         self.application.update(requires_org_level_access=True, scopes=["org:read"])
@@ -147,10 +169,10 @@ class AgentHandoffViewTest(TestCase):
 
     def test_preview_is_public_and_preserves_the_code(self) -> None:
         code = self.issue()
-        response = self.client.get(f"/agents/#{code}")
+        response = self.client.get("/agent-handoff/")
         assert response.status_code == 200
-        assert "original guide URL" in response.content.decode()
-        assert consume_handoff(code) is not None
+        assert "secret token supplied alongside the instructions URL" in response.content.decode()
+        assert consume_handoff(code, ip_address="127.0.0.1") is not None
 
     def test_missing_code_is_rejected(self) -> None:
         assert self.claim("").status_code == 400
@@ -167,4 +189,28 @@ class AgentHandoffViewTest(TestCase):
             response = self.claim(code)
         assert response.status_code == 429
         assert response["Retry-After"] == "60"
-        assert consume_handoff(code) is not None
+        assert consume_handoff(code, ip_address="127.0.0.1") is not None
+
+    def test_ip_mismatch_explains_recovery_and_preserves_handoff(self) -> None:
+        code = self.issue(ip_address="192.0.2.1")
+        with patch("sentry.agent_handoff.views.metrics.incr") as incr:
+            response = self.claim(code, ip_address="192.0.2.2")
+
+        incr.assert_any_call("agent_handoff.claim.ip_mismatch", sample_rate=1.0)
+        assert response.status_code == 403
+        assert response["Content-Type"] == "text/markdown; charset=utf-8"
+        assert "no-store" in response["Cache-Control"]
+        body = response.content.decode()
+        assert "different IP address" in body
+        assert "advanced options" in body
+        assert '"Disable IP pinning"' in body
+        assert "copy a new handoff prompt" in body
+        assert "192.0.2.1" not in body
+        assert code not in body
+        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+        assert not ApiAuthorization.objects.filter(user_id=self.user.id).exists()
+        assert self.claim(code, ip_address="192.0.2.1").status_code == 200
+
+    def test_unpinned_handoff_accepts_remote_agent(self) -> None:
+        code = self.issue(disable_ip_pinning=True)
+        assert self.claim(code, ip_address="192.0.2.2").status_code == 200

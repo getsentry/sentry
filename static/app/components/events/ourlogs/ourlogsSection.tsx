@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
@@ -40,15 +39,7 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {OurlogsDrawer} from './ourlogsDrawer';
 import {useEventLogsUrl} from './useEventLogsUrl';
 
-export function OurlogsSection({
-  event,
-  project,
-  group,
-}: {
-  event: Event;
-  group: Group;
-  project: Project;
-}) {
+export function OurlogsSection({event, group}: {event: Event; group: Group}) {
   const location = useLocation();
   const organization = useOrganization();
   const traceId = event.contexts?.trace?.trace_id;
@@ -113,12 +104,7 @@ export function OurlogsSection({
         freeze={freeze}
       >
         <LogsPageDataProvider disabled={false} staleTime={EXPLORE_FIVE_MIN_STALE_TIME}>
-          <OurlogsSectionContent
-            event={event}
-            group={group}
-            project={project}
-            freeze={freeze}
-          />
+          <OurlogsSectionContent event={event} freeze={freeze} />
         </LogsPageDataProvider>
       </LogsQueryParamsProvider>
     </LazyRender>
@@ -127,14 +113,10 @@ export function OurlogsSection({
 
 function OurlogsSectionContent({
   event,
-  project,
-  group,
   freeze,
 }: {
   event: Event;
   freeze: LogsFrozenContextProviderProps;
-  group: Group;
-  project: Project;
 }) {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -195,9 +177,7 @@ function OurlogsSectionContent({
               staleTime={EXPLORE_FIVE_MIN_STALE_TIME}
             >
               <OurlogsDrawer
-                group={group}
                 event={event}
-                project={project}
                 embeddedOptions={
                   expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
                 }
@@ -233,7 +213,7 @@ function OurlogsSectionContent({
       );
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [location.query, freeze, group, event, project, openDrawer, navigate, location]);
+  }, [location.query, freeze, event, openDrawer, navigate, location]);
   if (!feature) {
     return null;
   }

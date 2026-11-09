@@ -93,7 +93,6 @@ function useMultiQueryTableAggregateModeImpl({
     initialData: [],
     limit: 10,
     referrer: 'api.explore.multi-query-spans-table',
-    trackResponseAnalytics: false,
     queryExtras,
   });
 
@@ -164,7 +163,6 @@ function useMultiQueryTableSampleModeImpl({
     initialData: [],
     limit: 10,
     referrer: 'api.explore.multi-query-spans-table',
-    trackResponseAnalytics: false,
     queryExtras,
   });
 
