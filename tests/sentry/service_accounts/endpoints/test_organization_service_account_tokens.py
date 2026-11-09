@@ -30,6 +30,7 @@ from sentry.service_accounts.tokens import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 FEATURE_FLAG = "organizations:service-accounts"
@@ -404,6 +405,108 @@ class OrganizationServiceAccountTokenIndexTest(ServiceAccountTokenTestCase):
         with self.feature(FEATURE_FLAG):
             self.get_error_response(
                 self.organization.slug, self.service_account.id, status_code=404
+            )
+
+
+@control_silo_test
+class OrganizationServiceAccountTokenDetailsTest(ServiceAccountTokenTestCase):
+    endpoint = "sentry-api-0-organization-service-account-token-details"
+    method = "delete"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.token = self.create_token()
+
+    def test_revoke(self) -> None:
+        with (
+            self.feature(FEATURE_FLAG),
+            outbox_runner(),
+            mock.patch.object(ServiceAccountToken, "handle_async_replication") as replicate,
+        ):
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, self.token.id, status_code=204
+            )
+
+        self.token.refresh_from_db()
+        assert self.token.date_deactivated is not None
+        # Revoking keeps the row, and its outbox carries the revocation to the cell.
+        replicate.assert_called_once()
+
+        entry = AuditLogEntry.objects.get(
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE")
+        )
+        assert entry.actor_id == self.user.id
+        assert entry.target_object == self.token.id
+        assert entry.data == {
+            "name": "deploys",
+            "scopes": ["project:read"],
+            "service_account_id": self.service_account.id,
+            "service_account_name": "ci",
+        }
+
+    def test_revoked_token_returns_404(self) -> None:
+        with self.feature(FEATURE_FLAG):
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, self.token.id, status_code=204
+            )
+            self.get_error_response(
+                self.organization.slug, self.service_account.id, self.token.id, status_code=404
+            )
+
+        assert (
+            AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE")
+            ).count()
+            == 1
+        )
+
+    def test_token_of_other_account_returns_404(self) -> None:
+        other_account = self.create_service_account(organization=self.organization, name="other")
+
+        with self.feature(FEATURE_FLAG):
+            self.get_error_response(
+                self.organization.slug, other_account.id, self.token.id, status_code=404
+            )
+
+        self.token.refresh_from_db()
+        assert self.token.date_deactivated is None
+
+    def test_token_of_other_org_returns_404(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_organization = self.create_organization(owner=self.user)
+        other_account = self.create_service_account(organization=other_organization, name="ci")
+        other_token = self.create_token(service_account=other_account)
+
+        with self.feature(FEATURE_FLAG):
+            # The URL's org owns neither the account nor the token.
+            self.get_error_response(
+                self.organization.slug, other_account.id, other_token.id, status_code=404
+            )
+            # The URL's account is in the org, but the token isn't.
+            self.get_error_response(
+                self.organization.slug, self.service_account.id, other_token.id, status_code=404
+            )
+
+        other_token.refresh_from_db()
+        assert other_token.date_deactivated is None
+
+    def test_revoke_requires_service_account_write(self) -> None:
+        self.login_as_role("member")
+
+        with self.feature(FEATURE_FLAG):
+            self.get_error_response(
+                self.organization.slug, self.service_account.id, self.token.id, status_code=403
+            )
+
+        self.token.refresh_from_db()
+        assert self.token.date_deactivated is None
+
+    def test_manager_can_revoke(self) -> None:
+        self.login_as_role("manager")
+
+        with self.feature(FEATURE_FLAG):
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, self.token.id, status_code=204
             )
 
 

@@ -800,3 +800,11 @@ default_manager.add(
         template="added token {name} to service account {service_account_name}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=227,
+        name="SERVICE_ACCOUNT_TOKEN_REMOVE",
+        api_name="service-account-token.remove",
+        template="revoked token {name} of service account {service_account_name}",
+    )
+)
