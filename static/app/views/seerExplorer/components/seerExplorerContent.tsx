@@ -359,12 +359,16 @@ export function SeerExplorerContent({
   // waits on an answer to a message it already has.
   const isComposerShown =
     !readOnly && !showLoadError && !showFileApprovalBar && !showQuestionBar;
-  const {hasEnoughCredits, isPending: isCheckingCredits} = useSeerCreditCheck(
+  const {hasEnoughCredits, hasCheckedSinceMount} = useSeerCreditCheck(
     'agent_chat_message',
     {enabled: isComposerShown}
   );
   const isOutOfCredits = !hasEnoughCredits;
-  // A question forwarded from elsewhere waits for the first check (see the
+  // Each forward remounts the panel, so an answer cached by an earlier panel can
+  // be out of date: a billing member may have topped up since. Only this
+  // panel's own check counts.
+  const isCheckingCredits = !hasCheckedSinceMount;
+  // A question forwarded from elsewhere waits for that check (see the
   // auto-submit below) and goes first. Until it does, the user's own sends wait
   // too, or one would land ahead of it and the forwarded question would be
   // dropped, or sent after it.
