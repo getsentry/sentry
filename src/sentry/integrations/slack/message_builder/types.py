@@ -33,6 +33,7 @@ class SlackAction(StrEnum):
     SEER_AGENT_WRITE_APPROVE = "seer_agent_write_approve"
     SEER_AGENT_WRITE_REJECT = "seer_agent_write_reject"
     SEER_INVESTIGATION_START = "seer_investigation_start"
+    SEER_VIEW_BILLING = "seer_view_billing"
 
 
 INCIDENT_COLOR_MAPPING = {

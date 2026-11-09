@@ -150,18 +150,20 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data, link_decorator)
         elif isinstance(data, SeerAutofixOutOfCredits):
-            return SlackRenderable(
-                blocks=[SectionBlock(text=AUTOFIX_OUT_OF_CREDITS_MESSAGE)],
-                text=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+            return cls._render_out_of_credits(
+                message=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+                organization_id=data.organization_id,
+                link_decorator=link_decorator,
             )
         elif isinstance(data, SeerAgentError):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
             return cls._render_agent_response(data, link_decorator)
         elif isinstance(data, SeerAgentOutOfCredits):
-            return SlackRenderable(
-                blocks=[SectionBlock(text=AGENT_OUT_OF_CREDITS_MESSAGE)],
-                text=AGENT_OUT_OF_CREDITS_MESSAGE,
+            return cls._render_out_of_credits(
+                message=AGENT_OUT_OF_CREDITS_MESSAGE,
+                organization_id=data.organization_id,
+                link_decorator=link_decorator,
             )
         elif isinstance(data, SeerInvestigationStarted):
             return cls._render_investigation_started(data)
@@ -216,6 +218,47 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 project_id=project_id,
             ),
         )
+
+    @classmethod
+    def _render_out_of_credits(
+        cls,
+        *,
+        message: str,
+        organization_id: int,
+        link_decorator: NotificationLinkDecorator,
+    ) -> SlackRenderable:
+        from sentry.integrations.slack.message_builder.routing import encode_action_id
+        from sentry.integrations.slack.message_builder.types import SlackAction
+        from sentry.models.organization import Organization
+
+        blocks: list[Block] = [SectionBlock(text=message)]
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+        except Organization.DoesNotExist:
+            organization = None
+        if organization is not None:
+            # There is no top-up or request-credits page yet, so send everyone
+            # to billing, where billing members can set up auto top up.
+            billing_url = organization.absolute_url(
+                f"/settings/{organization.slug}/billing/overview/"
+            )
+            blocks.append(
+                ActionsBlock(
+                    elements=[
+                        LinkButtonElement(
+                            text="Manage Seer credits",
+                            style="primary",
+                            url=link_decorator.decorate_url(billing_url),
+                            action_id=encode_action_id(
+                                action=SlackAction.SEER_VIEW_BILLING.value,
+                                organization_id=organization_id,
+                                project_id=None,
+                            ),
+                        )
+                    ]
+                )
+            )
+        return SlackRenderable(blocks=blocks, text=message)
 
     @classmethod
     def _render_autofix_error(cls, data: SeerAutofixError) -> SlackRenderable:

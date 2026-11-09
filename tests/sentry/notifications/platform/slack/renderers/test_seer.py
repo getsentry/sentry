@@ -379,35 +379,66 @@ class SeerSlackRendererTest(TestCase):
         assert isinstance(actions_block.elements[0], LinkButtonElement)
 
 
+def assert_out_of_credits_renderable(
+    renderable: SlackRenderable, *, message: str, organization_id: int, billing_slug: str
+) -> None:
+    assert renderable["text"] == message
+    blocks = renderable["blocks"]
+    assert len(blocks) == 2
+    assert isinstance(blocks[0], SectionBlock)
+    assert blocks[0].text is not None
+    assert blocks[0].text.text == message
+
+    assert isinstance(blocks[1], ActionsBlock)
+    assert len(blocks[1].elements) == 1
+    button = blocks[1].elements[0]
+    assert isinstance(button, LinkButtonElement)
+    assert button.text is not None
+    assert button.text.text == "Manage Seer credits"
+    assert button.url is not None
+    assert f"/settings/{billing_slug}/billing/overview/" in button.url
+    assert button.action_id is not None
+    routing = decode_action_id(button.action_id)
+    assert routing.action == SlackAction.SEER_VIEW_BILLING.value
+    assert routing.organization_id == organization_id
+
+
 class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
     def test_render_out_of_credits(self) -> None:
         for started in (False, True):
-            data = SeerAutofixOutOfCredits(organization_id=1, started=started)
+            data = SeerAutofixOutOfCredits(organization_id=self.organization.id, started=started)
             renderable = render_seer(
                 data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
             )
+            assert_out_of_credits_renderable(
+                renderable,
+                message=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+                organization_id=self.organization.id,
+                billing_slug=self.organization.slug,
+            )
 
-            assert renderable["text"] == AUTOFIX_OUT_OF_CREDITS_MESSAGE
-            blocks = renderable["blocks"]
-            assert len(blocks) == 1
-            assert isinstance(blocks[0], SectionBlock)
-            assert blocks[0].text is not None
-            assert blocks[0].text.text == AUTOFIX_OUT_OF_CREDITS_MESSAGE
+    def test_render_out_of_credits_missing_organization(self) -> None:
+        data = SeerAutofixOutOfCredits(organization_id=0, started=False)
+        renderable = render_seer(
+            data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
+        )
+        assert renderable["text"] == AUTOFIX_OUT_OF_CREDITS_MESSAGE
+        assert len(renderable["blocks"]) == 1
+        assert isinstance(renderable["blocks"][0], SectionBlock)
 
 
 class SeerSlackRendererAgentOutOfCreditsTest(TestCase):
     def test_render_out_of_credits(self) -> None:
-        data = SeerAgentOutOfCredits(organization_id=1)
+        data = SeerAgentOutOfCredits(organization_id=self.organization.id)
         renderable = render_seer(
             data=data, rendered_template=SeerAgentOutOfCreditsTemplate().render(data)
         )
-
-        assert renderable["text"] == AGENT_OUT_OF_CREDITS_MESSAGE
-        blocks = renderable["blocks"]
-        assert len(blocks) == 1
-        assert isinstance(blocks[0], SectionBlock)
-        assert blocks[0].text is not None
-        assert blocks[0].text.text == AGENT_OUT_OF_CREDITS_MESSAGE
+        assert_out_of_credits_renderable(
+            renderable,
+            message=AGENT_OUT_OF_CREDITS_MESSAGE,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
 
 
 class SeerSlackRendererAgentErrorTest(TestCase):
