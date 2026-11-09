@@ -136,19 +136,24 @@ export default function OrganizationServiceAccountsNew() {
           throw error;
         }
         const detail = getErrorDetail(error);
-        if (detail && typeof detail === 'object') {
+        if (typeof detail === 'string') {
+          toast.error(detail);
+          return;
+        }
+        const nameError = detail?.name?.[0];
+        const projectIdsError = detail?.projectIds?.[0];
+        if (nameError || projectIdsError) {
           setFieldErrors(formApi, {
-            ...(detail.name?.[0] ? {name: {message: detail.name[0]}} : {}),
-            ...(detail.projectIds?.[0]
-              ? {projectIds: {message: detail.projectIds[0]}}
-              : {}),
+            ...(nameError ? {name: {message: nameError}} : {}),
+            ...(projectIdsError ? {projectIds: {message: projectIdsError}} : {}),
           });
         }
-        toast.error(
-          typeof detail === 'string'
-            ? detail
-            : (detail?.scopes?.[0] ?? t('Failed to create the service account.'))
-        );
+        const scopesError = detail?.scopes?.[0];
+        if (scopesError) {
+          toast.error(scopesError);
+        } else if (!nameError && !projectIdsError) {
+          toast.error(t('Failed to create the service account.'));
+        }
       }
     },
   });

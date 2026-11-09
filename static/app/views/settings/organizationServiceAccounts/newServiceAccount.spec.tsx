@@ -3,6 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import OrganizationServiceAccountsNew from './newServiceAccount';
@@ -12,6 +14,7 @@ describe('OrganizationServiceAccountsNew', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    jest.spyOn(toast, 'error');
     act(() =>
       ProjectsStore.loadInitialData([
         ProjectFixture({id: '2', slug: 'backend', isMember: true}),
@@ -120,5 +123,6 @@ describe('OrganizationServiceAccountsNew', () => {
     expect(
       await screen.findByText('A service account with this name already exists.')
     ).toBeInTheDocument();
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });
