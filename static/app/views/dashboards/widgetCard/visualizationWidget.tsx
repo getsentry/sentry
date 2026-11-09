@@ -50,7 +50,9 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
@@ -262,6 +264,7 @@ function VisualizationWidgetContent({
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
   const location = useLocation();
   const {selection} = usePageFilters();
 
@@ -491,19 +494,26 @@ function VisualizationWidgetContent({
     return <TimeSeriesWidgetVisualization.NoData />;
   }
 
-  const confidenceFooter = showConfidenceWarning ? (
-    <WidgetCardConfidenceFooter
-      confidence={confidence}
-      dataScanned={dataScanned}
-      isSampled={isSampled}
-      loading={loading}
-      sampleCount={sampleCount}
-      series={timeseriesResults.map(({timeSeries}) => timeSeries)}
-      timeseriesResults={timeseriesResults}
-      widget={widget}
-      yAxis={widget.queries[0]?.aggregates[0] ?? ''}
-    />
-  ) : null;
+  let confidenceFooter: React.ReactNode = null;
+  if (showConfidenceWarning && hasExtrapolationConfidenceFooter) {
+    confidenceFooter = loading ? null : (
+      <ExtrapolationConfidenceFooter plottables={plottables} />
+    );
+  } else if (showConfidenceWarning) {
+    confidenceFooter = (
+      <WidgetCardConfidenceFooter
+        confidence={confidence}
+        dataScanned={dataScanned}
+        isSampled={isSampled}
+        loading={loading}
+        sampleCount={sampleCount}
+        series={timeseriesResults.map(({timeSeries}) => timeSeries)}
+        timeseriesResults={timeseriesResults}
+        widget={widget}
+        yAxis={widget.queries[0]?.aggregates[0] ?? ''}
+      />
+    );
+  }
 
   if (showBreakdownData) {
     return (

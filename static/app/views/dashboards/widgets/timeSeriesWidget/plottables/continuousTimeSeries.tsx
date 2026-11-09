@@ -1,5 +1,6 @@
 import type {SeriesOption} from 'echarts';
 
+import {defined} from 'sentry/utils/defined';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
@@ -13,7 +14,7 @@ import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesW
 import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
-import type {PlottableTimeSeriesValueType} from './plottable';
+import type {PlottableConfidence, PlottableTimeSeriesValueType} from './plottable';
 
 export type ContinuousTimeSeriesConfig = {
   /**
@@ -88,6 +89,17 @@ export abstract class ContinuousTimeSeries<
 
   get isEmpty(): boolean {
     return this.timeSeries.values.every(datum => datum.value === null);
+  }
+
+  get confidence(): PlottableConfidence {
+    const values = this.timeSeries.values.filter(datum => datum.value !== null);
+    const lowCount = values.filter(isLowConfidenceDataPoint).length;
+
+    if (lowCount > 0) {
+      return lowCount === values.length ? 'low' : 'mixed';
+    }
+
+    return values.some(isExtrapolated) ? 'high' : 'full';
   }
 
   get needsColor(): boolean {
@@ -170,4 +182,8 @@ function getCompleteness(
   }
 
   return item.incomplete ? 'incomplete' : 'complete';
+}
+
+function isExtrapolated(datum: TimeSeriesItem): boolean {
+  return defined(datum.sampleRate) && datum.sampleRate < 1;
 }
