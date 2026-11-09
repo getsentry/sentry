@@ -34,6 +34,10 @@ SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset(
     {SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION}
 )
 
+# Configurable strategies whose runs are started on a schedule. Each run's trigger_key is
+# the scheduled fire time.
+SEER_CRON_WORKFLOW_STRATEGIES = frozenset({SeerWorkflowStrategy.AGENTIC_TRIAGE_V2})
+
 # Soft bound on configs per organization. Actual count could go over a bit from concurrent writes.
 MAX_WORKFLOW_CONFIGS_PER_ORG = 50
 

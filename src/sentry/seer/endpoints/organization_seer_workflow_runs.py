@@ -28,6 +28,7 @@ from sentry.notebooks.access import has_investigations_access
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+    SEER_CRON_WORKFLOW_STRATEGIES,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -117,8 +118,14 @@ class MetricBreachTriggerResponse(TypedDict):
     projectId: str
 
 
+class CronTriggerResponse(TypedDict):
+    # TODO: Include triggeredAt (parsed from trigger_key) once cron strategies such as
+    # AGENTIC_TRIAGE_V2 start creating runs.
+    type: Literal["cron"]
+
+
 # Discriminated by `type`; add new trigger variants to this union.
-TriggerResponse = MetricBreachTriggerResponse
+TriggerResponse = MetricBreachTriggerResponse | CronTriggerResponse
 
 
 class SeerWorkflowRunResponseBase(TypedDict):
@@ -208,9 +215,10 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
           and each failed execution carries its own ``error``.
 
         Missing error details use code ``unknown``. Historical rows without lifecycle
-        tracking retain a null status. ``trigger`` describes the metric breach that started
-        the run (detector, event, occurrence, issue, and project), or is null for runs not
-        started by a metric monitor. The detector may have since been deleted. ``seerRunId`` is the linked Seer UUID or null.
+        tracking retain a null status. ``trigger`` describes what started the run, discriminated
+        by ``type``: ``breached_metric`` (detector, event, occurrence, issue, and project;
+        the detector may have since been deleted) or ``cron`` (scheduled run). It is
+        null for other runs. ``seerRunId`` is the linked Seer UUID or null.
         Each execution's ``outputs`` lists linked investigations by type, ID, and title
         when the viewer has investigation access, including archived investigations.
         The same investigation can be linked to multiple executions.
@@ -315,6 +323,8 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
 
 
 def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
+    if getattr(run, "strategy") in SEER_CRON_WORKFLOW_STRATEGIES:
+        return {"type": "cron"}
     if not get_path(run.extras, "snapshot", "inputs"):
         return None
     try:

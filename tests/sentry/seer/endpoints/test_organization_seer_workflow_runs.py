@@ -514,13 +514,13 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             "projectId": str(self.project.id),
         }
 
-    def test_trigger_is_null_for_other_strategies(self) -> None:
+    def test_returns_cron_trigger_for_scheduled_runs(self) -> None:
         self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
-        self.create_run(inputs={"foo": "bar"})
+        self.create_run(trigger_key="2026-11-09T03:00")
 
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data["runs"][0]["trigger"] is None
+        assert response.data["runs"][0]["trigger"] == {"type": "cron"}
 
     def test_trigger_is_null_without_a_snapshot(self) -> None:
         self.create_run(extras={})
