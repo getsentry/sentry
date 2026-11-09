@@ -215,7 +215,7 @@ describe('useSaveAsItems', () => {
     expect(alertItem?.children).toHaveLength(1);
   });
 
-  it('preserves the selected chart type and pipeline when adding a dashboard widget', () => {
+  it('preserves the selected chart type and transformations when adding a dashboard widget', () => {
     const {result, router} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: Wrapper,
       organization,

@@ -12,8 +12,9 @@ import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, TypedDict, Union
+from typing import Annotated, Any, Literal, TypedDict, Union
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.issues.formatting.limits import Limits
 from sentry.issues.formatting.models import EventObject
 from sentry.utils import json
@@ -333,8 +334,8 @@ class FormattedResponse(TypedDict):
     response shape is the same whichever format a caller asks for.
     """
 
-    format: Format
-    content: str
+    format: Annotated[Format, ApiDescription("Format of the content: markdown, xml or json")]
+    content: Annotated[str, ApiDescription("Response rendered in the requested format, as text")]
 
 
 _FORMATTERS: dict[Format, type[Formatter]] = {

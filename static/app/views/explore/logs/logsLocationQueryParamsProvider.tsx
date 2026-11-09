@@ -12,6 +12,7 @@ import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 import {
+  dropLogAnchorIfQueryChanged,
   getLogsQueryParamsUpdates,
   getReadableLogsQueryParams,
   isDefaultLogsFields,
@@ -53,6 +54,7 @@ export function LogsLocationQueryParamsProvider({
     <ExploreQueryParamsProvider
       frozenParams={frozenParams}
       getQueryParamsUpdates={getLogsQueryParamsUpdates}
+      getTarget={dropLogAnchorIfQueryChanged}
       getReadableQueryParams={getReadableLogsQueryParams}
       isDefaultFields={isDefaultLogsFields}
       onSetWritableQueryParams={onSetWritableQueryParams}

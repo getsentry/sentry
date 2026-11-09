@@ -59,6 +59,8 @@ def _is_untyped(schema: Mapping[str, Any]) -> bool:
     """`Any` (`{}`), `dict[str, Any]`, and an object without properties are untyped.
 
     A recursive TypedDict leaves its fields out where it repeats, so that object is typed.
+    So is an object with `maxProperties: 0`, which a TypedDict without fields produces:
+    it can only be `{}`.
     """
     schema = _unwrap(schema)
     if (
@@ -72,6 +74,8 @@ def _is_untyped(schema: Mapping[str, Any]) -> bool:
     if kind is None:
         return True
     if kind == "object":
+        if schema.get("maxProperties") == 0:
+            return False
         values = schema.get("additionalProperties")
         return not schema.get("properties") and not (isinstance(values, dict) and values)
     return False

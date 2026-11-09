@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from functools import partial
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.types import OpenApiTypes
@@ -24,6 +24,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -42,10 +43,20 @@ from sentry.utils.snuba import raw_query
 
 
 class GroupHashesResult(TypedDict):
-    id: str
-    latestEvent: EventSerializerResponse | SimpleEventSerializerResponse | None
-    mergedBySeer: bool
-    seerMatchDistance: float | None
+    id: Annotated[str, ApiDescription("Fingerprint hash")]
+    latestEvent: Annotated[
+        EventSerializerResponse | SimpleEventSerializerResponse | None,
+        ApiDescription("Latest event with the hash. Null when the event isn't found"),
+    ]
+    mergedBySeer: Annotated[
+        bool, ApiDescription("Whether Seer merged the hash into the issue as a similar error")
+    ]
+    seerMatchDistance: Annotated[
+        float | None,
+        ApiDescription(
+            "Distance between the hash's stack trace and the issue's when Seer merged them. Null when Seer didn't merge the hash"
+        ),
+    ]
 
 
 @extend_schema(tags=["Events"])
