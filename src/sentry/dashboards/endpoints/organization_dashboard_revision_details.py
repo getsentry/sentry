@@ -26,7 +26,7 @@ from sentry.models.organization import Organization
 @cell_silo_endpoint
 class OrganizationDashboardRevisionDetailsEndpoint(OrganizationDashboardBase):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.DASHBOARDS
 
