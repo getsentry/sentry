@@ -21,8 +21,10 @@ from sentry.models.organization import Organization
 @cell_silo_endpoint
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    # Validation only; nothing is saved, so a resend returns the same result.
+    idempotent_methods = frozenset({"POST"})
     owner = ApiOwner.DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
