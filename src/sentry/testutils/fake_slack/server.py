@@ -10,6 +10,7 @@ accept it. It uses only the standard library, so it starts without loading Sentr
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json  # noqa: S003
 import sys
 import threading
@@ -45,6 +46,8 @@ class FakeSlack:
         self.public_url = public_url.rstrip("/")
         self.lock = threading.Lock()
         self.state: dict[str, Any] = self._load()
+        self.scheduled: dict[str, str] = {}
+        self._scheduled_ids = itertools.count(1)
 
     def _load(self) -> dict[str, Any]:
         if self.state_file and self.state_file.exists():
@@ -123,8 +126,24 @@ class FakeSlack:
         return self._chat_postMessage(args, ephemeral=True)
 
     def _chat_scheduleMessage(self, args: Mapping[str, Any]) -> Response:
-        result = self._chat_postMessage(args)
-        return {**result, "scheduled_message_id": "Q" + result["ts"].replace(".", "")}
+        channel = self._channel_id(args.get("channel") or "general")
+        scheduled_message_id = f"Q{next(self._scheduled_ids):09d}"
+        self.scheduled[scheduled_message_id] = channel
+        self._save()
+        return {
+            "ok": True,
+            "channel": channel,
+            "scheduled_message_id": scheduled_message_id,
+            "post_at": args.get("post_at"),
+        }
+
+    def _chat_deleteScheduledMessage(self, args: Mapping[str, Any]) -> Response:
+        channel = self._channel_id(args.get("channel") or "")
+        scheduled_message_id = args.get("scheduled_message_id") or ""
+        if self.scheduled.get(scheduled_message_id) != channel:
+            return {"ok": False, "error": "invalid_scheduled_message_id"}
+        del self.scheduled[scheduled_message_id]
+        return {"ok": True}
 
     def _chat_update(self, args: Mapping[str, Any]) -> Response:
         channel = self._channel_id(args.get("channel") or "")

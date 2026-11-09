@@ -49,10 +49,21 @@ class FakeSlackServerTest(TestCase):
             client.chat_update(channel="#alerts", ts=posted["ts"], text="Issue resolved")
             permalink = client.chat_getPermalink(channel="#alerts", message_ts=reply["ts"])
             new_channel = client.chat_postMessage(channel="#new-channel", text="Hello")
+            scheduled = client.chat_scheduleMessage(channel="#seer", text="Check", post_at=1)
+            client.chat_deleteScheduledMessage(
+                channel=scheduled["channel"],
+                scheduled_message_id=scheduled["scheduled_message_id"],
+            )
+            with pytest.raises(SlackApiError, match="invalid_scheduled_message_id"):
+                client.chat_deleteScheduledMessage(
+                    channel=scheduled["channel"],
+                    scheduled_message_id=scheduled["scheduled_message_id"],
+                )
             with pytest.raises(SlackApiError, match="message_not_found"):
                 client.chat_update(channel="#alerts", ts="1.0", text="Missing")
 
         assert posted["channel"] == "C0ALERTS"
+        assert scheduled["channel"] == "C0SEER"
         assert permalink["permalink"] == (
             f"https://fake-slack.example.com/#C0ALERTS/{posted['ts']}/{reply['ts']}"
         )
