@@ -171,7 +171,7 @@ function makeAutofix(
     isPolling: false,
     isProcessing: false,
     // Async no-ops: the stories only show which triggers are on offer.
-    startStep: () => Promise.resolve(0),
+    startStep: () => Promise.resolve({runId: 0, isSingleRun: false}),
     createPR: () => Promise.resolve(),
     reset: noop,
     triggerCodingAgentHandoff: () => Promise.resolve(),
