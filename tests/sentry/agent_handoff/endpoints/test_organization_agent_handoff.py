@@ -49,13 +49,14 @@ class OrganizationAgentHandoffTest(APITestCase):
             f"Fetch and follow the instructions at {response.data['guideUrl']}. "
             f"Your secret token is `{code}`."
         )
-        record = consume_handoff(code)
+        record = consume_handoff(code, ip_address="127.0.0.1")
         assert record is not None
         assert record.flow is HandoffFlow.GUIDED_NEXT_STEPS
         assert record.user_id == self.user.id
         assert record.organization_id == self.organization.id
         assert record.application_id == self.application.id
         assert record.scope_list == HANDOFF_SCOPES
+        assert record.ip_address == "127.0.0.1"
         assert not ApiSetupCode.objects.filter(user=self.user).exists()
         assert "no-store" in response["Cache-Control"]
         assert "private" in response["Cache-Control"]
@@ -65,7 +66,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, flow="guided_next_steps", status_code=201
         )
-        handoff = consume_handoff(response.data["prompt"].split("`")[1])
+        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="127.0.0.1")
         assert handoff is not None
         assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
 
@@ -73,7 +74,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, flow="onboarding", status_code=201
         )
-        handoff = consume_handoff(response.data["prompt"].split("`")[1])
+        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="127.0.0.1")
         assert handoff is not None
         assert handoff.flow is HandoffFlow.ONBOARDING
 
@@ -162,3 +163,29 @@ class OrganizationAgentHandoffTest(APITestCase):
             extra_headers={"HTTP_X_CSRFTOKEN": csrf_token},
             status_code=201,
         )
+
+    def test_pins_to_request_ip(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            extra_headers={"REMOTE_ADDR": "192.0.2.1"},
+            ipAddress="192.0.2.2",
+            status_code=201,
+        )
+        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="192.0.2.1")
+        assert handoff is not None
+        assert handoff.ip_address == "192.0.2.1"
+
+    def test_disable_ip_pinning(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, disableIpPinning=True, status_code=201
+        )
+        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="192.0.2.2")
+        assert handoff is not None
+        assert handoff.ip_address == "127.0.0.1"
+        assert handoff.disable_ip_pinning
+
+    def test_rejects_invalid_disable_ip_pinning(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, disableIpPinning="invalid", status_code=400
+        )
+        assert "disableIpPinning" in response.data

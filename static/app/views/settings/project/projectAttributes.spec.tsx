@@ -174,6 +174,7 @@ describe('ProjectAttributes', () => {
 
     await waitFor(() => expect(router.location.query.dataset).toBe('logs'));
     expect(router.location.query.cursor).toBeUndefined();
+    expect(router.historyAction).toBe('PUSH');
     expect(request).toHaveBeenLastCalledWith(
       attributesEndpoint,
       expect.objectContaining({query: expect.objectContaining({dataset: 'logs'})})
@@ -224,6 +225,32 @@ describe('ProjectAttributes', () => {
     expect(request).toHaveBeenLastCalledWith(
       attributesEndpoint,
       expect.objectContaining({query: expect.objectContaining({search: 'cart'})})
+    );
+  });
+
+  it('links each attribute to its details page when attributes are listed', async () => {
+    MockApiClient.addMockResponse({
+      url: attributesEndpoint,
+      body: [
+        {
+          name: 'http/route',
+          attributeType: 'string',
+          attributeSource: {source_type: 'user'},
+          datasets: ['spans'],
+          context: {},
+        },
+      ],
+    });
+
+    render(<ProjectAttributes />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByRole('link', {name: 'http/route'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/projects/${project.slug}/attributes/string/http%2Froute/?source=user`
     );
   });
 

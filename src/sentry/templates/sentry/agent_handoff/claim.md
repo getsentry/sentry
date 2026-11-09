@@ -5,10 +5,15 @@ It is a private, single-use handoff code. Keep it out of HTTP request URLs, logs
 conversation output.
 Fetching this page does not claim it.
 
-Replace HANDOFF_CODE with that token and run this explicit claim command. Follow
-the Markdown returned by the command:
+Detect the operating system and shell where commands will run. Use the Unix command
+for macOS, Linux, and WSL, or PowerShell for native Windows.
 
-{{ claim_command }}
+Replace HANDOFF_CODE with the secret token and run only the matching claim command once.
+Follow the Markdown returned by the command.
+
+{{ unix_claim_command }}
+
+{{ windows_claim_command }}
 
 If the user's prompt has no secret token, ask the user to generate a private prompt in
 Sentry. If the claim response is lost or the code is unavailable, request a new prompt.

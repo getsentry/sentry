@@ -21,6 +21,7 @@ import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
+import {SINGLE_RUN_FEATURE_ID} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   AutofixChatProvider,
   type SendMessageOptions,
@@ -220,6 +221,7 @@ export function SeerExplorerContent({
   const {
     runId,
     sessionData,
+    featureId,
     isPolling,
     isError,
     hasSessionLoadError,
@@ -891,6 +893,7 @@ export function SeerExplorerContent({
           onSend={handleSend}
           repoPRStates={repoPRStates}
           runId={runId}
+          isSingleRun={featureId === SINGLE_RUN_FEATURE_ID}
           composerRef={composerRef}
           fileApprovalActions={
             isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches

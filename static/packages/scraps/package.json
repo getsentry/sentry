@@ -295,6 +295,10 @@
       "types": "./dist/useVirtualRows.d.ts",
       "import": "./dist/useVirtualRows.js"
     },
+    "./useVirtualCollection": {
+      "types": "./dist/useVirtualCollection.d.ts",
+      "import": "./dist/useVirtualCollection.js"
+    },
     "./modal": {
       "types": "./dist/modal/index.d.ts",
       "import": "./dist/modal/index.js"
