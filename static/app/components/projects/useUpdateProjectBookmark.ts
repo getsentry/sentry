@@ -2,11 +2,12 @@ import {useMutation} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {update} from 'sentry/actionCreators/projects';
 import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 interface UpdateProjectBookmarkVariables {
   isBookmarked: boolean;
@@ -28,10 +29,16 @@ interface UseUpdateProjectBookmarkOptions {
  * Sets a project's bookmark and updates the projects store on success.
  * Shows an error toast when the request fails.
  *
- * Uses the legacy `update` action creator instead of `fetchMutation` on
- * purpose: `update` writes the response into `ProjectsStore`, which the
- * callers read their final bookmark state from. `persistInFlight` keeps the
- * request alive when the calling component unmounts, e.g. a closing menu.
+ * Why not `useUpdateProject`:
+ * - It binds the project when the hook is created. Here the project is a
+ *   mutation variable, so a single hook can serve a whole list of projects
+ *   (e.g. the org menu) instead of one hook per row.
+ * - It writes the change to `ProjectsStore` before the request finishes and
+ *   then invalidates the detailed-project query. Callers here already keep
+ *   their own pending state (local state in `BookmarkStar`, pending bookmarks
+ *   in the org menu), so the early store write would duplicate it, and the
+ *   invalidation would refetch the detailed project after every star click
+ *   for no benefit.
  */
 export function useUpdateProjectBookmark({
   organization,
@@ -39,19 +46,17 @@ export function useUpdateProjectBookmark({
   onMutate,
   onSettled,
 }: UseUpdateProjectBookmarkOptions) {
-  const api = useApi({persistInFlight: true});
-
   return useMutation({
-    mutationFn: ({
-      project,
-      isBookmarked,
-    }: UpdateProjectBookmarkVariables): Promise<Project> =>
-      update(api, {
-        orgId: organization.slug,
-        projectId: project.slug,
+    mutationFn: ({project, isBookmarked}: UpdateProjectBookmarkVariables) =>
+      fetchMutation<Project>({
+        method: 'PUT',
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }),
         data: {isBookmarked},
       }),
     onMutate: variables => onMutate?.(variables),
+    onSuccess: project => ProjectsStore.onUpdateSuccess(project),
     onError: (_error, variables) => {
       toast.error(t('Unable to toggle bookmark for %s', variables.project.slug));
       onError?.(variables);
