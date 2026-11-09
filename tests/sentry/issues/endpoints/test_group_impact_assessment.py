@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
-from uuid import uuid4
 
 from django.test import override_settings
 
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.issues.impact.types import IMPACT_FEATURE_ID
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.testutils.cases import APITestCase
 
 
@@ -19,17 +21,36 @@ class GroupImpactAssessmentEndpointTest(APITestCase):
         )
         self.login_as(self.user)
 
-    @patch("sentry.issues.endpoints.group_impact_assessment.assess_impact_for_group")
-    def test_starts_impact_assessment(self, mock_assess: MagicMock) -> None:
-        run_uuid = uuid4()
-        mock_assess.return_value = SimpleNamespace(uuid=run_uuid)
+    def test_starts_impact_assessment(self) -> None:
+        event = self.store_event(
+            data={"message": "Impact assessment test", "fingerprint": ["impact"]},
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group is not None
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/impact/assess/"
 
         with self.feature("organizations:seer-impact-assessment"):
-            response = self.client.post(self.url, format="json")
+            response = self.client.post(url, format="json")
 
         assert response.status_code == 202, response.content
-        assert response.data == {"runId": str(run_uuid)}
-        mock_assess.assert_called_once_with(self.group)
+        run = SeerRun.objects.get(organization=self.organization, type=SeerRunType.FEATURE_RUN)
+        assert response.data == {"runId": str(run.uuid)}
+        assert run.user_id == self.user.id
+
+        agent_run = SeerAgentRun.objects.get(run=run)
+        assert agent_run.source == IMPACT_FEATURE_ID
+        assert agent_run.group_id == group.id
+        assert agent_run.project_id == self.project.id
+
+        outbox = CellOutbox.objects.get(
+            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.id
+        )
+        assert outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["feature_id"] == IMPACT_FEATURE_ID
+        assert body["payload"]["group_id"] == group.id
+        assert body["payload"]["source_event_id"] == event.event_id
 
     @patch("sentry.issues.impact.assessment.SeerAgentClient")
     def test_requires_feature(self, mock_client: MagicMock) -> None:

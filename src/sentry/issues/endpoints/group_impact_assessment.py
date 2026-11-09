@@ -66,7 +66,7 @@ class GroupImpactAssessmentEndpoint(GroupAiEndpoint):
     )
     def post(self, request: Request, group: Group) -> Response:
         try:
-            run = assess_impact_for_group(group)
+            run = assess_impact_for_group(group, user=request.user)
         except ImpactAssessmentDisabled as error:
             return Response({"detail": str(error)}, status=status.HTTP_403_FORBIDDEN)
         except ImpactAssessmentEventNotFound as error:

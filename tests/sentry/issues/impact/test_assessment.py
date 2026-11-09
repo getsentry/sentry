@@ -32,7 +32,7 @@ class AssessImpactForGroupTest(TestCase):
 
         assert result is expected_run
         mock_client_cls.assert_called_once_with(
-            self.organization, project=self.project, group=event.group
+            self.organization, user=None, project=self.project, group=event.group
         )
         call = mock_client_cls.return_value.start_feature_run.call_args.kwargs
         assert call["feature_id"] == IMPACT_FEATURE_ID

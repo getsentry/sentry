@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sentry import features
+from sentry.auth.principal import RequestPrincipal
 from sentry.issues.impact.types import IMPACT_FEATURE_ID, AvailableImpactCitation
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
@@ -15,7 +16,7 @@ class ImpactAssessmentEventNotFound(ValueError):
     pass
 
 
-def assess_impact_for_group(group: Group) -> SeerRun:
+def assess_impact_for_group(group: Group, user: RequestPrincipal | None = None) -> SeerRun:
     if not features.has("organizations:seer-impact-assessment", organization=group.organization):
         raise ImpactAssessmentDisabled(
             "Seer Impact assessment is not enabled for this organization"
@@ -36,7 +37,7 @@ def assess_impact_for_group(group: Group) -> SeerRun:
             reference=f"entire-event:{source_event_id}",
         )
     ]
-    client = SeerAgentClient(group.organization, project=group.project, group=group)
+    client = SeerAgentClient(group.organization, user=user, project=group.project, group=group)
     return client.start_feature_run(
         feature_id=IMPACT_FEATURE_ID,
         payload={
