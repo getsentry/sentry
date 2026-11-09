@@ -687,6 +687,13 @@ def get_file_info(file: AssembleRequestFile) -> tuple[str, str | None, list[str]
     return name, debug_id, chunks
 
 
+def _cached_dif_lacks_shader_group(file: AssembleRequestFile, detail: object) -> bool:
+    if not file.get("shader_group"):
+        return False
+    data = detail.get("data") if isinstance(detail, Mapping) else None
+    return not (isinstance(data, Mapping) and data.get("shader_group"))
+
+
 def batch_assemble(
     project: Project, files: AssembleRequestPayload
 ) -> dict[str, DifAssembleFileResponse]:
@@ -705,11 +712,11 @@ def batch_assemble(
         requested_debug_id = _get_requested_debug_id(file)
         cached_debug_id = detail.get("uuid") if isinstance(detail, Mapping) else None
 
-        # A request carrying a shader group goes through the database lookup
-        # below so the group can be stored on an already assembled file.
+        # A shader group the cached file lacks goes through the database lookup
+        # below, so it can be stored on the already assembled file.
         if (
             state == ChunkFileState.OK
-            and not file.get("shader_group")
+            and not _cached_dif_lacks_shader_group(file, detail)
             and not _is_proguard_reupload_clone_request(
                 file=file,
                 requested_debug_id=requested_debug_id,

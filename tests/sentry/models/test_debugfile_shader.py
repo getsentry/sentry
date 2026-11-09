@@ -6,7 +6,9 @@ from unittest import mock
 
 import pytest
 
+from sentry.api.endpoints import debug_files
 from sentry.api.endpoints.debug_files import batch_assemble
+from sentry.api.serializers import serialize
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.models.debugfile import (
     DIF_MIMETYPES,
@@ -199,3 +201,35 @@ def test_assemble_backfills_shader_group_despite_cached_ok_status(
     assert response[first.checksum]["state"] == ChunkFileState.OK
     first.refresh_from_db()
     assert first.data["shader_group"] == "Group A"
+
+
+@django_db_all
+def test_assemble_reuses_cached_ok_status_when_group_is_stored(
+    default_project: Project, tmp_path: Path
+) -> None:
+    first, _ = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group A")
+    assert first.checksum is not None
+    set_assemble_status(
+        AssembleTask.DIF, default_project.id, first.checksum, ChunkFileState.OK, serialize(first)
+    )
+
+    with mock.patch.object(
+        debug_files,
+        "_find_existing_debug_files",
+        wraps=debug_files._find_existing_debug_files,
+    ) as find_existing:
+        response = batch_assemble(
+            default_project,
+            {
+                first.checksum: {
+                    "name": "a.dxil",
+                    "debug_id": DEBUG_ID,
+                    "chunks": [first.checksum],
+                    "code_id": AFTERMATH_HASH,
+                    "shader_group": "Group A",
+                }
+            },
+        )
+
+    assert response[first.checksum]["state"] == ChunkFileState.OK
+    assert list(find_existing.call_args.kwargs["checksums"]) == []
