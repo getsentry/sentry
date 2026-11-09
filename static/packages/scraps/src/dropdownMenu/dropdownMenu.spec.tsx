@@ -1,12 +1,19 @@
 import {Fragment} from 'react';
 import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
+import {useMenuItem} from '@react-aria/menu';
 import {IconStar} from '@sentry/icons/star';
 import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {lightTheme} from '@sentry/scraps/theme';
+
+// Wraps useMenuItem so a test can count how often menu items render.
+jest.mock('@react-aria/menu', () => {
+  const actual = jest.requireActual('@react-aria/menu');
+  return {...actual, useMenuItem: jest.fn(actual.useMenuItem)};
+});
 
 describe('DropdownMenu', () => {
   it('filters a searchable root menu', async () => {
@@ -1119,6 +1126,21 @@ describe('DropdownMenu', () => {
       expect(
         screen.getByRole('menuitemradio', {name: 'Item 0 (bookmarked)'})
       ).toBeInTheDocument();
+    });
+
+    it('does not re-render mounted items when the menu scrolls', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      const mountedCount = screen.getAllByRole('menuitemradio').length;
+      jest.mocked(useMenuItem).mockClear();
+
+      scrollMenuTo(10);
+
+      // Only rows that newly scrolled into view render, not every mounted row.
+      expect(jest.mocked(useMenuItem).mock.calls.length).toBeLessThan(mountedCount);
     });
 
     it('reaches items outside the window with the keyboard', async () => {

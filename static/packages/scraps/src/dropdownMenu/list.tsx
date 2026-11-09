@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import {
+  memo,
   startTransition,
   useCallback,
   useContext,
@@ -146,7 +147,11 @@ interface DropdownMenuCollectionItemProps extends Omit<
   rowRef?: VirtualRowProps['ref'];
 }
 
-function DropdownMenuCollectionItem({
+/**
+ * Memoized, so a row whose props did not change is skipped when the
+ * virtualizer re-renders `DropdownMenuRows` on scroll.
+ */
+const DropdownMenuCollectionItem = memo(function DropdownMenuCollectionItem({
   node,
   rowIndex,
   rowRef,
@@ -189,7 +194,7 @@ function DropdownMenuCollectionItem({
       closeOnSelect={closeOnSelect}
     />
   );
-}
+});
 
 /** Height (px) of `DropdownMenuSeparator`, also used to estimate unmounted rows. */
 const SEPARATOR_HEIGHT = 8;
