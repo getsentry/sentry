@@ -214,6 +214,7 @@ class SnubaProtocolEventStream(EventStream):
             asynchronous=kwargs.get("asynchronous", True),
             skip_semantic_partitioning=skip_semantic_partitioning,
             event_type=event_type,
+            **({"raise_on_error": True} if kwargs.get("raise_on_error") else {}),
         )
 
         if in_rollout_group("eventstream.eap_forwarding_rate", event.project_id):
@@ -445,6 +446,7 @@ class SnubaProtocolEventStream(EventStream):
         headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
+        raise_on_error: bool = False,
     ) -> None:
         raise NotImplementedError
 
@@ -462,6 +464,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
+        raise_on_error: bool = False,
     ) -> None:
         if headers is None:
             headers = {}

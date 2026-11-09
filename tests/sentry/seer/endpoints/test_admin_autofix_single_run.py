@@ -1,13 +1,49 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+from django.utils import timezone
 from rest_framework.response import Response
 
+from sentry.eventstream.base import GroupState
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.investigations.services.breached_metrics import resolve_breached_metric_sources
+from sentry.models.group import Group
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.endpoints.admin_metric_breaches import (
+    FEATURE,
+    SyntheticMetricBreachRequest,
+)
+from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+from sentry.workflow_engine.models import DetectorState
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors.workflow import process_workflows
+from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
+from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {},
+        {"organizationId": True, "monitorId": 1},
+        {"organizationId": 1, "monitorId": 1.5},
+        {"organizationId": "1", "monitorId": 1},
+        {"organizationId": 1, "monitorId": 1, "requestId": "unused"},
+        {"organizationId": 1, "monitorId": 2**63},
+    ],
+)
+def test_synthetic_breach_request_validation(body: dict[str, Any]) -> None:
+    assert not SyntheticMetricBreachRequest(data=body).is_valid()
 
 
 @patch("sentry.seer.endpoints.admin_autofix_single_run.trigger_autofix_agent")
@@ -106,3 +142,209 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
 
         assert response.status_code == 403
         mock_trigger.assert_not_called()
+
+
+@with_feature(FEATURE)
+@with_feature("organizations:seer-automations")
+class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
+    endpoint = "sentry-admin-seer-metric-breaches"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=self.user, role="owner")
+        self.login_as(self.user)
+        self.detector.update(config={"detection_type": AlertRuleDetectionType.STATIC.value})
+        self.config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            monitors=[self.detector],
+        )
+
+    def get_response(self, *args: Any, **params: Any) -> Response:
+        with patch("sentry.api.permissions.is_active_staff", return_value=True):
+            return super().get_response(*args, **params)
+
+    @patch("sentry.seer.workflows.synthetic_breaches.send_issue_occurrence_to_eventstream")
+    def test_creates_fresh_issues_with_resolvable_context(self, publish: MagicMock) -> None:
+        first = self.get_success_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=201
+        )
+        second = self.get_success_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=201
+        )
+        assert first.data["issueId"] != second.data["issueId"]
+        assert first.data["eventId"] != second.data["eventId"]
+        group = Group.objects.get(id=first.data["issueId"])
+        assert first.data["issueUrl"] == group.get_absolute_url()
+        assert "[Test breach]" in group.title
+        period = get_latest_open_period(group)
+        assert period is not None
+        assert 899 <= (timezone.now() - period.date_started).total_seconds() <= 905
+        source = resolve_breached_metric_sources(
+            organization=self.organization,
+            source_refs=[(group.id, period.id)],
+            accessible_project_ids={self.project.id},
+        )[(group.id, period.id)]
+        assert source.source["snapshot"]["monitor"]["id"] == str(self.detector.id)
+        occurrence = publish.call_args.args[1]
+        assert occurrence.evidence_data["synthetic"] is True
+        assert occurrence.evidence_data["conditions"]
+        assert publish.call_args.args[2].is_new is True
+        assert publish.call_args.kwargs["confirmed"] is True
+        assert not DetectorState.objects.filter(detector=self.detector).exists()
+
+    def test_rejects_invalid_input(self) -> None:
+        response = self.get_response(organizationId=True, monitorId=self.detector.id)
+        assert response.status_code == 400
+        assert "detail" in response.data
+        assert not Group.objects.filter(type=8001).exists()
+
+    def test_requires_staff(self) -> None:
+        with patch("sentry.api.permissions.is_active_staff", return_value=False):
+            response = self.client.post(
+                "/api/0/internal/seer/metric-breaches/",
+                {"organizationId": self.organization.id, "monitorId": self.detector.id},
+            )
+        assert response.status_code == 403
+
+    def test_requires_flag(self) -> None:
+        with self.feature({FEATURE: False}):
+            self.get_error_response(
+                organizationId=self.organization.id, monitorId=self.detector.id, status_code=404
+            )
+
+    def test_flag_exposed_in_organization_response(self) -> None:
+        response = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/", {"include_feature_flags": "1"}
+        )
+        assert response.status_code == 200
+        assert "seer-admin-synthetic-metric-breaches" in response.data["features"]
+
+    def test_monitor_scoped_to_organization(self) -> None:
+        other = self.create_organization(owner=self.user)
+        self.get_error_response(
+            organizationId=other.id, monitorId=self.detector.id, status_code=404
+        )
+
+    def test_disabled_monitor(self) -> None:
+        self.detector.update(enabled=False)
+        self.get_error_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=409
+        )
+        assert not Group.objects.filter(type=8001).exists()
+
+    @patch("sentry.seer.workflows.synthetic_breaches.send_issue_occurrence_to_eventstream")
+    def test_preserves_existing_breached_monitor_state(self, publish: MagicMock) -> None:
+        state = self.create_detector_state(
+            detector=self.detector,
+            is_triggered=True,
+            state=DetectorPriorityLevel.HIGH,
+            activation_id=123,
+        )
+        previous = DetectorState.objects.filter(id=state.id).values().get()
+        self.get_success_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=201
+        )
+        assert DetectorState.objects.filter(id=state.id).values().get() == previous
+        self.critical_detector_trigger.refresh_from_db()
+        assert self.critical_detector_trigger.comparison == 5
+
+    def test_missing_query(self) -> None:
+        self.query_subscription.delete()
+        self.get_error_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=409
+        )
+
+    def test_environment_incompatible_automation(self) -> None:
+        self.config.update(filters={"environments": ["other-environment"]})
+        self.get_error_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=409
+        )
+
+    def test_disabled_automation(self) -> None:
+        self.config.update(enabled=False)
+        self.get_error_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=409
+        )
+        assert not Group.objects.filter(type=8001).exists()
+
+    @patch("sentry.seer.workflows.synthetic_breaches.send_issue_occurrence_to_eventstream")
+    def test_anomaly_monitor_bypasses_evaluation(self, publish: MagicMock) -> None:
+        self.detector.update(config={"detection_type": AlertRuleDetectionType.DYNAMIC.value})
+        self.critical_detector_trigger.update(
+            type=Condition.ANOMALY_DETECTION,
+            comparison={"sensitivity": "high", "seasonality": "auto", "threshold_type": 0},
+        )
+        with patch(
+            "sentry.incidents.grouptype.MetricIssueDetectorHandler.evaluate",
+            side_effect=AssertionError("Synthetic breaches must not evaluate the monitor"),
+        ):
+            self.get_success_response(
+                organizationId=self.organization.id, monitorId=self.detector.id, status_code=201
+            )
+        assert publish.call_args.args[1].evidence_data["synthetic"] is True
+
+    @patch("sentry.issues.occurrence_consumer.is_rate_limited", return_value=True)
+    def test_ingestion_rate_limit(self, limit: MagicMock) -> None:
+        response = self.get_error_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=429
+        )
+        assert "issueUrl" not in response.data
+        assert not Group.objects.filter(type=8001).exists()
+
+    @patch(
+        "sentry.seer.workflows.synthetic_breaches.send_issue_occurrence_to_eventstream",
+        side_effect=RuntimeError("Publication unavailable"),
+    )
+    def test_publication_failure_returns_existing_issue(self, publish: MagicMock) -> None:
+        response = self.get_error_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=503
+        )
+        group = Group.objects.get(id=response.data["issueId"])
+        assert response.data["issueUrl"] == group.get_absolute_url()
+        assert "workflow submission failed" in response.data["detail"]
+
+    @patch("sentry.seer.workflows.synthetic_breaches.send_issue_occurrence_to_eventstream")
+    def test_dispatches_through_connected_workflows(self, publish: MagicMock) -> None:
+        with outbox_runner():
+            account = self.create_service_account(
+                organization=self.organization, project_ids=[self.project.id]
+            )
+        self.config.update(service_account_id=account.id)
+        notebook = self.create_notebook(self.organization, title="Test metric investigation")
+        response = self.get_success_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=201
+        )
+        event, occurrence, info = publish.call_args.args
+        group_event = event.for_group(info.group)
+        group_event.occurrence = occurrence
+        with (
+            self.tasks(),
+            patch(
+                "sentry.seer.workflows.breached_metrics.create_agentic_breached_metric_investigation",
+                return_value=(notebook, True),
+            ) as investigate,
+        ):
+            process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=group_event,
+                    group=info.group,
+                    group_state=GroupState(
+                        id=info.group.id,
+                        is_new=info.is_new,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                group_event.datetime,
+            )
+        run = SeerWorkflowRun.objects.get(workflow_config=self.config)
+        assert run.extras["snapshot"]["inputs"]["group_id"] == int(response.data["issueId"])
+        investigate.assert_called_once()
+        assert investigate.call_args.kwargs["resolved_source"].source["snapshot"]["monitor"][
+            "id"
+        ] == str(self.detector.id)

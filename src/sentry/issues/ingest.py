@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 @traces.trace
 def save_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, event: Event
+    occurrence_data: IssueOccurrenceData, event: Event, *, publish: bool = True
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
     occurrence = IssueOccurrence.from_dict(occurrence_data)
     if occurrence.event_id != event.event_id:
@@ -73,7 +73,8 @@ def save_issue_occurrence(
         _increment_release_associated_counts(event.project, environment, release, [group_info])
         _get_or_create_group_release(environment, release, event, [group_info])
 
-        send_issue_occurrence_to_eventstream(event, occurrence, group_info)
+        if publish:
+            send_issue_occurrence_to_eventstream(event, occurrence, group_info)
     return occurrence, group_info
 
 
@@ -377,10 +378,13 @@ def save_issue_from_occurrence(
 
 @traces.trace
 def send_issue_occurrence_to_eventstream(
-    event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
+    event: Event, occurrence: IssueOccurrence, group_info: GroupInfo, *, confirmed: bool = False
 ) -> None:
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
+    publish_options: dict[str, Any] = (
+        {"asynchronous": False, "raise_on_error": True} if confirmed else {}
+    )
 
     eventstream.backend.insert(
         event=group_event,
@@ -398,4 +402,5 @@ def send_issue_occurrence_to_eventstream(
                 "is_new_group_environment": group_info.is_new_group_environment,
             }
         ],
+        **publish_options,
     )

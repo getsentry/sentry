@@ -112,6 +112,7 @@ class EventStream(Service):
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
         eventstream_type: str | None = None,
+        **kwargs: Any,
     ) -> None:
         self._dispatch_post_process_group_task(
             event.event_id,

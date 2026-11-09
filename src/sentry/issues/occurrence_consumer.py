@@ -49,6 +49,14 @@ class EventLookupError(Exception):
     pass
 
 
+class OccurrenceRateLimited(Exception):
+    pass
+
+
+class OccurrenceIngestionDisabled(Exception):
+    pass
+
+
 def create_rate_limit_key(project_id: int, fingerprint: str) -> str:
     rate_limit_key = f"occurrence_rate_limit:{project_id}-{fingerprint}"
     return rate_limit_key
@@ -110,7 +118,7 @@ def lookup_event(project_id: int, event_id: str) -> Event:
 
 @traces.trace
 def process_event_and_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
+    occurrence_data: IssueOccurrenceData, event_data: dict[str, Any], *, publish: bool = True
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
     if occurrence_data["event_id"] != event_data["event_id"]:
         raise ValueError(
@@ -122,7 +130,7 @@ def process_event_and_issue_occurrence(
         "occurrence_consumer._process_message.save_issue_occurrence",
         tags={"method": "process_event_and_issue_occurrence"},
     ):
-        return save_issue_occurrence(occurrence_data, event)
+        return save_issue_occurrence(occurrence_data, event, publish=publish)
 
 
 @traces.trace
@@ -308,7 +316,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 @traces.trace
 @metrics.wraps("occurrence_consumer.process_occurrence_message")
 def process_occurrence_message(
-    message: Mapping[str, Any], span: StreamedSpan
+    message: Mapping[str, Any],
+    span: StreamedSpan,
+    *,
+    publish: bool = True,
+    raise_on_drop: bool = False,
 ) -> tuple[IssueOccurrence, GroupInfo | None] | None:
     with metrics.timer("occurrence_consumer._process_message._get_kwargs"):
         kwargs = _get_kwargs(message)
@@ -337,6 +349,8 @@ def process_occurrence_message(
             tags=metric_tags,
         )
         span.set_attribute("result", "dropped_feature_disabled")
+        if raise_on_drop:
+            raise OccurrenceIngestionDisabled
         return None
 
     if is_rate_limited(project.id, fingerprint=occurrence_data["fingerprint"][0]):
@@ -346,6 +360,8 @@ def process_occurrence_message(
             tags=metric_tags,
         )
         span.set_attribute("result", "dropped_rate_limited")
+        if raise_on_drop:
+            raise OccurrenceRateLimited
         return None
 
     if "event_data" in kwargs:
@@ -355,7 +371,7 @@ def process_occurrence_message(
             tags=metric_tags,
         ):
             return process_event_and_issue_occurrence(
-                kwargs["occurrence_data"], kwargs["event_data"]
+                kwargs["occurrence_data"], kwargs["event_data"], publish=publish
             )
     else:
         span.set_attribute("result", "success")

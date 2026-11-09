@@ -35,7 +35,7 @@ class BreachedMetricSource:
     source: dict[str, Any]
 
 
-def _code_mode_dataset(
+def code_mode_dataset(
     dataset: Dataset, event_types: list[SnubaQueryEventType.EventType]
 ) -> str | None:
     if dataset == Dataset.Events:
@@ -218,8 +218,8 @@ def resolve_breached_metric_sources(
             dataset = Dataset(snuba_query.dataset)
         except ValueError:
             continue
-        code_mode_dataset = _code_mode_dataset(dataset, snuba_query.event_types)
-        if code_mode_dataset is None:
+        resolved_dataset = code_mode_dataset(dataset, snuba_query.event_types)
+        if resolved_dataset is None:
             continue
         condition_group = detector.workflow_condition_group
         if condition_group is None:
@@ -237,7 +237,7 @@ def resolve_breached_metric_sources(
             "monitor": {
                 "id": str(detector.id),
                 "name": detector.name,
-                "dataset": code_mode_dataset,
+                "dataset": resolved_dataset,
                 "query": snuba_query.query,
                 "aggregate": snuba_query.aggregate,
                 "groupBy": snuba_query.group_by or [],
@@ -263,7 +263,7 @@ def resolve_breached_metric_sources(
         }
         resolved[source_ref] = BreachedMetricSource(
             project_id=group.project_id,
-            dataset=code_mode_dataset,
+            dataset=resolved_dataset,
             source=source,
         )
     return resolved

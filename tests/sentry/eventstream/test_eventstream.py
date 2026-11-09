@@ -3,6 +3,7 @@ import threading
 import time
 import uuid
 from collections.abc import Generator, MutableSequence, Sequence
+from concurrent.futures import Future
 from datetime import datetime, timedelta
 from typing import Any, cast
 from unittest import mock
@@ -151,6 +152,31 @@ def test_future_tracking_producer_waits_for_synchronous_send(
 
     produce.assert_called_once()
     assert produce.call_args.kwargs["asynchronous"] is False
+
+
+@pytest.mark.parametrize("rollout", [0.0, 1.0])
+def test_confirmed_send_propagates_delivery_failure(
+    isolated_eventstream_producers: None, rollout: float
+) -> None:
+    with override_options({"tasks.producer.eventstream.rollout": rollout}):
+        eventstream = KafkaEventStream()
+        producer = eventstream.get_producer(Topic.EVENTS)
+        transport = producer._get() if isinstance(producer, FutureTrackingProducer) else producer
+        failure: Future[Any] = Future()
+        failure.set_exception(RuntimeError("Delivery failed"))
+        with patch.object(transport, "produce", return_value=failure):
+            with pytest.raises(RuntimeError, match="Delivery failed"):
+                eventstream._send(1, "insert", asynchronous=False, raise_on_error=True)
+            eventstream._send(1, "insert", asynchronous=False)
+
+
+@pytest.mark.parametrize("rollout", [0.0, 1.0])
+def test_confirmed_send_delivers_to_local_broker(
+    isolated_eventstream_producers: None, rollout: float
+) -> None:
+    with override_options({"tasks.producer.eventstream.rollout": rollout}):
+        eventstream = KafkaEventStream()
+        eventstream._send(1, "insert", asynchronous=False, raise_on_error=True)
 
 
 class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
