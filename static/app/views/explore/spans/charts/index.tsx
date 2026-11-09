@@ -462,6 +462,7 @@ function Chart({
               plottables={plottables}
               tooltipLimit={MAX_TOOLTIP_SERIES}
               droppedData={droppedData.band}
+              isDroppedDataLoading={droppedData.isLoading}
               chartXRangeSelection={
                 isAttributeBreakdown
                   ? {

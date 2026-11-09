@@ -5,6 +5,7 @@ import {createSerializer, parseAsString, useQueryStates} from 'nuqs';
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -20,43 +21,23 @@ import {t, tct} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseCursor} from 'sentry/utils/cursor';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {FieldValueType} from 'sentry/utils/fields';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {encodeSort} from 'sentry/utils/queryString';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import type {
-  TraceItemAttribute,
-  TraceItemAttributeType,
-} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {
+  ATTRIBUTE_VALUE_TYPES,
+  ATTRIBUTES_STATS_PERIOD,
+  type Attribute,
+  type AttributeDataset,
+} from './projectAttributesCommon';
 import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
-type AttributeDataset = 'spans' | 'logs' | 'tracemetrics';
-
-interface Attribute extends Pick<
-  TraceItemAttribute,
-  'attributeSource' | 'attributeType' | 'name'
-> {
-  datasets: AttributeDataset[];
-  context?: {
-    brief?: string;
-    isDeprecated?: boolean;
-  };
-}
-
-const ATTRIBUTE_VALUE_TYPES: Record<TraceItemAttributeType, FieldValueType> = {
-  string: FieldValueType.STRING,
-  number: FieldValueType.NUMBER,
-  boolean: FieldValueType.BOOLEAN,
-  array: FieldValueType.ARRAY,
-};
-
 const ATTRIBUTES_PER_PAGE = 25;
-const ATTRIBUTES_STATS_PERIOD = '14d';
 
 const DATASET_LABELS: Record<AttributeDataset, string> = {
   spans: t('Spans'),
@@ -276,13 +257,23 @@ function SortableHeaderCell({
 }
 
 function AttributeRow({attribute}: {attribute: Attribute}) {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell>
         <Flex align="center" gap="sm" wrap="wrap">
-          <Text monospace wordBreak="break-all">
-            {attribute.name}
-          </Text>
+          <Link
+            to={{
+              pathname: `/settings/${organization.slug}/projects/${project.slug}/attributes/${attribute.attributeType}/${encodeURIComponent(attribute.name)}/`,
+              query: {source: attribute.attributeSource.source_type},
+            }}
+          >
+            <Text monospace variant="inherit" wordBreak="break-all">
+              {attribute.name}
+            </Text>
+          </Link>
           {attribute.attributeSource.source_type === 'sentry' && (
             <Tooltip title={t('Added by Sentry')} skipWrapper>
               <IconSentry size="xs" aria-label={t('Added by Sentry')} />
