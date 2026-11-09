@@ -32,9 +32,8 @@ class GroupRelease(Model):
 
     project_id = BoundedBigIntegerField(db_index=True)
     group_id = BoundedBigIntegerField()
-    # TODO: Should be BoundedBigIntegerField
-    release_id = BoundedPositiveIntegerField(db_index=True)
-    new_release_id = BoundedBigIntegerField()
+    release_id = BoundedBigIntegerField(db_index=True)
+    new_release_id = BoundedPositiveIntegerField(db_index=True, null=True)
     environment = models.CharField(max_length=64, default="")
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now)
@@ -48,7 +47,7 @@ class GroupRelease(Model):
     __repr__ = sane_repr("group_id", "release_id")
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        # Dual-write: new_release_id is the int8 shadow of release_id until the column swap.
+        # Dual-write: new_release_id mirrors release_id until the narrow column is dropped.
         self.new_release_id = self.release_id
         super().save(*args, **kwargs)
 
