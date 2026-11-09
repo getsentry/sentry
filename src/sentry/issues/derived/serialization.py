@@ -34,15 +34,36 @@ from sentry.utils import metrics
 
 
 class GroupDerivedDataResponse(TypedDict):
-    blocker: str
-    progress: str
-    status: str
-    viewCount: int
-    hasOpenFixPr: bool
-    isAssigned: bool
-    hasRootCause: bool
-    lastCompletedAutofixStep: str
-    lastProgressedAt: datetime | None
+    blocker: Annotated[
+        str,
+        ApiDescription(
+            "Action that blocks progress on the issue: none, approve_root_cause, approve_plan, approve_code_changes or merge_pr"
+        ),
+    ]
+    progress: Annotated[
+        str,
+        ApiDescription(
+            "How far the issue is toward resolution: identified, assigned, diagnosed, fix_proposed or fix_applied"
+        ),
+    ]
+    status: Annotated[
+        str, ApiDescription("Status of the issue from its action log: open or closed")
+    ]
+    viewCount: Annotated[int, ApiDescription("Number of times the issue was viewed")]
+    hasOpenFixPr: Annotated[
+        bool, ApiDescription("Whether an open pull request is linked to the issue")
+    ]
+    isAssigned: Annotated[bool, ApiDescription("Whether the issue has an assignee")]
+    hasRootCause: Annotated[bool, ApiDescription("Whether a root cause was found for the issue")]
+    lastCompletedAutofixStep: Annotated[
+        str,
+        ApiDescription(
+            "Furthest Autofix step completed: none, root_cause, solution, code_changes, pr_created or pr_iteration"
+        ),
+    ]
+    lastProgressedAt: Annotated[
+        datetime | None, ApiDescription("When the issue's progress last advanced (ISO 8601)")
+    ]
     # Will become required once generally available
     impact: NotRequired[
         Annotated[

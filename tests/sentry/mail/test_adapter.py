@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
+from sentry.api.serializers.models.userreport_with_group import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.grouptype import (

@@ -112,6 +112,38 @@ describe('DropdownMenu', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Project'})).toBeInTheDocument();
   });
 
+  it('keeps a busy trailing action focusable and ignores its activation', async () => {
+    const onTrailingClick = jest.fn();
+
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'project',
+            label: 'Project',
+            trailingAction: {
+              icon: <IconStar />,
+              label: 'Bookmark',
+              busy: true,
+              onAction: onTrailingClick,
+            },
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    await userEvent.keyboard('{ArrowRight}');
+    const bookmark = screen.getByRole('button', {name: 'Bookmark'});
+    expect(bookmark).toHaveFocus();
+    expect(bookmark).toHaveAttribute('aria-busy', 'true');
+    await userEvent.keyboard('{Enter}');
+
+    expect(onTrailingClick).not.toHaveBeenCalled();
+  });
+
   it('moves keyboard focus between a menu item and its trailing action', async () => {
     const onAction = jest.fn();
     const onTrailingClick = jest.fn();

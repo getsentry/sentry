@@ -19,13 +19,13 @@ def get_new_issue_counts(
     """
     queryset: QuerySet[Group, dict[str, Any]] | None = None
     for t in thresholds:
-        env: dict[str, Any] = t.get("environment") or {}
+        env = t.get("environment")
         query = Q(
             project__organization__id=organization_id,
             project__id=t["project_id"],
             groupenvironment__first_release__version=t["release"],
             groupenvironment__first_seen__range=(t["start"], t["end"]),
-            groupenvironment__environment__name=env.get("name", ""),
+            groupenvironment__environment__name=env["name"] if env else "",
         )
         qs = (
             Group.objects.filter(query)

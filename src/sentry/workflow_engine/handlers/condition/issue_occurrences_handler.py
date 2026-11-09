@@ -1,6 +1,5 @@
-from typing import Any
-
 from sentry.tasks.post_process import fetch_buffered_group_stats
+from sentry.workflow_engine.generated_schema_types import IssueOccurrencesComparison
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -27,7 +26,9 @@ class IssueOccurrencesConditionHandler(ActionFilterDataConditionHandler[Workflow
     }
 
     @staticmethod
-    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+    def evaluate_value(
+        event_data: WorkflowEventData, comparison: IssueOccurrencesComparison
+    ) -> bool:
         try:
             value = int(comparison["value"])
         except (TypeError, ValueError, KeyError):

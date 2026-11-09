@@ -49,7 +49,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
-from sentry.utils.redis import clusters
+from sentry.utils.redis import redis_clusters
 from sentry.web.frontend.signup_email_verification import (
     PENDING_EXPIRY_TEXT_SESSION_KEY,
     PENDING_VERIFICATION_SESSION_KEY,
@@ -991,7 +991,7 @@ class AuthHelperTest(TestCase):
             "provider_key": None,
             "referrer": referrer,
         }
-        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client = redis_clusters.get_binary("default")
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
@@ -1047,7 +1047,7 @@ class AuthHelperTest(TestCase):
             "provider_key": None,
             "referrer": None,
         }
-        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client = redis_clusters.get_binary("default")
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
@@ -1093,7 +1093,7 @@ class AuthHelperTest(TestCase):
             "provider_key": None,
             "referrer": None,
         }
-        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client = redis_clusters.get_binary("default")
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
@@ -1295,7 +1295,7 @@ class ProviderMismatchTest(TestCase):
             "config": {},
             "data": {"provider_key": provider_key} if provider_key else {},
         }
-        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client = redis_clusters.get_binary("default")
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
@@ -1396,7 +1396,7 @@ class SetupPipelineIdentityLinkingTest(TestCase, HybridCloudTestMixin):
             "provider_key": self.provider,
             "referrer": None,
         }
-        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client = redis_clusters.get_binary("default")
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)

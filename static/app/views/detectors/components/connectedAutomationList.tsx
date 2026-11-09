@@ -8,6 +8,7 @@ import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
@@ -84,6 +85,9 @@ export function ConnectedAutomationsList({
   const {data, isLoading, isError, isSuccess} = useQuery({
     ...automationsApiOptions(organization, {
       ids: automationIds ?? undefined,
+      // Without a project filter the API only returns alerts in the user's member
+      // projects and leaves out alerts that aren't connected to any monitor.
+      projects: automationIds === null ? [ALL_ACCESS_PROJECTS] : undefined,
       limit: limit ?? undefined,
       cursor,
       query,
