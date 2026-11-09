@@ -19,6 +19,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
@@ -38,6 +39,7 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
+import {canManageIntegrations} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -144,6 +146,32 @@ function IntegrationAction({
   organization: Organization;
   provider: IntegrationProvider;
 }) {
+  const {startFlow} = useAddIntegration();
+
+  if (provider.key === 'linear') {
+    return (
+      <Button
+        onClick={() =>
+          startFlow({
+            provider,
+            organization,
+            // The default toast says the integration was "added", but this
+            // flow refreshes an existing workspace connection.
+            suppressSuccessMessage: true,
+            onInstall: () => {
+              toast.success(t('%s reconnected', provider.name));
+              onUpdateIntegration();
+            },
+          })
+        }
+        disabled={!canManageIntegrations(organization)}
+        size="sm"
+      >
+        {t('Reconnect Linear')}
+      </Button>
+    );
+  }
+
   if (provider.key === 'pagerduty') {
     return (
       <PagerdutyAddServicesButton
