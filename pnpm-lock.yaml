@@ -1236,6 +1236,9 @@ importers:
       '@tanstack/react-hotkeys':
         specifier: 0.18.0
         version: 0.18.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-pacer':
+        specifier: ^0.22.1
+        version: 0.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tanstack/react-virtual':
         specifier: 3.14.6
         version: 3.14.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1309,6 +1312,9 @@ importers:
       '@tanstack/react-form':
         specifier: 1.28.6
         version: 1.28.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-query':
+        specifier: 5.101.4
+        version: 5.101.4(react@19.3.0)
       '@testing-library/dom':
         specifier: 10.4.1
         version: 10.4.1
@@ -1354,6 +1360,9 @@ importers:
       typescript:
         specifier: npm:@typescript/typescript6@6.0.2
         version: '@typescript/typescript6@6.0.2'
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
 
   static/packages/search-syntax:
     devDependencies:

@@ -15,6 +15,7 @@ from sentry.workflow_engine.registry import action_handler_registry
     [
         response_schemas.condition_comparison_schema,
         response_schemas.action_config_schema,
+        response_schemas.action_data_schema,
         response_schemas.detector_config_schema,
         response_schemas.workflow_config_schema,
     ],

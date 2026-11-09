@@ -5,6 +5,7 @@ from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 
 from sentry.api.serializers import serialize
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.group import GroupStatus
@@ -224,6 +225,29 @@ class TestDetectorSerializer(TestCase):
         )
         result = serialize(detector)
         assert result["config"]["detectionType"] == "static"
+
+    def test_serialize_error_detector_project_options(self) -> None:
+        # Shift the detector ids so they can't match the project ids by accident.
+        self.create_detector(project=self.project, type=MetricIssue.slug)
+        projects = [self.create_project(), self.create_project()]
+        detectors = [
+            self.create_detector(project=project, type=ErrorGroupType.slug) for project in projects
+        ]
+        assert all(detector.id != project.id for detector, project in zip(detectors, projects))
+        projects[0].update_option("sentry:resolve_age", 24)
+        projects[1].update_option("sentry:resolve_age", 48)
+        projects[1].update_option("sentry:fingerprinting_rules", "message:foo -> bar")
+        # A detector of another type in the same project keeps its own config.
+        metric_detector = self.create_detector(project=projects[0], type=MetricIssue.slug)
+
+        result = serialize([*detectors, metric_detector])
+
+        assert result[0]["config"] == {"sentry:resolveAge": 24}
+        assert result[1]["config"] == {
+            "sentry:resolveAge": 48,
+            "sentry:fingerprintingRules": "message:foo -> bar",
+        }
+        assert result[2]["config"] == {"detectionType": "static"}
 
     def test_serialize_bulk(self) -> None:
         detectors = [

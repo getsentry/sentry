@@ -1,5 +1,7 @@
+import type * as React from 'react';
+
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
-import {FieldMeta} from '@sentry/scraps/formPresentation';
+import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {BaseField, type BaseFieldProps} from './baseField';

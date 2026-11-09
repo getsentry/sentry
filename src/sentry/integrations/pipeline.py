@@ -124,7 +124,10 @@ def ensure_integration(
         provider=key, external_id=data["external_id"], defaults=defaults
     )
     if not created and (overwrite_existing_integration or not _has_live_installations(integration)):
-        integration.update(**defaults)
+        # Model.update() does not bump date_updated (the pre_save signal only fires on
+        # save()). Token-refresh code uses date_updated as a version stamp to detect
+        # concurrent reauthorizations, so bump it explicitly to make this write visible.
+        integration.update(date_updated=timezone.now(), **defaults)
 
     return integration
 
