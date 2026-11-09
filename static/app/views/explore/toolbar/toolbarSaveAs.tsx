@@ -6,14 +6,9 @@ import * as Sentry from '@sentry/react';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -26,6 +21,7 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -82,6 +78,9 @@ export function ToolbarSaveAs() {
     () => dedupeArray(visualizeFunctions.map(v => v.yAxis)),
     [visualizeFunctions]
   );
+  const yAxes = visualizes.map(visualize => visualize.yAxis);
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({query, yAxes, groupBys, mode});
 
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
@@ -133,16 +132,16 @@ export function ToolbarSaveAs() {
       label: <span>{t('Existing Query')}</span>,
       onAction: async () => {
         try {
-          addLoadingMessage(t('Updating query...'));
+          toast.loading(t('Updating query...'));
           await updateQuery();
-          addSuccessMessage(t('Query updated successfully'));
+          toast.success(t('Query updated successfully'));
           trackAnalytics('trace_explorer.save_as', {
             save_type: 'update_query',
             ui_source: 'toolbar',
             organization,
           });
         } catch (error) {
-          addErrorMessage(t('Failed to update query'));
+          toast.error(t('Failed to update query'));
           Sentry.captureException(error);
         }
       },
@@ -168,26 +167,23 @@ export function ToolbarSaveAs() {
     },
   });
 
-  items.push(getSaveAsAlertMenuItem({alertsUrls, submenu: true}));
-
-  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+  items.push({
+    ...getSaveAsAlertMenuItem({
+      alertsUrls,
+      submenu: true,
+      disabled: hasTransformations,
+    }),
+    details: alertCaseDetails,
+  });
 
   const chartOptions = useMemo(() => {
-    return visualizeYAxes.map((yAxis, index) => {
-      const dedupedYAxes = [yAxis];
-      const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(withReadableConditionalFilter(yaxis));
-        return func ? prettifyParsedFunction(func) : undefined;
-      });
+    return visualizes.map((visualize, index) => {
+      const func = parseFunction(withReadableConditionalFilter(visualize.yAxis));
 
       return {
         key: String(index),
-        label: formattedYAxes.filter(Boolean).join(', '),
+        label: func ? prettifyParsedFunction(func) : visualize.yAxis,
         onAction: () => {
-          if (disableAddToDashboard) {
-            return;
-          }
-
           trackAnalytics('trace_explorer.save_as', {
             save_type: 'dashboard',
             ui_source: 'toolbar',
@@ -197,25 +193,17 @@ export function ToolbarSaveAs() {
         },
       };
     });
-  }, [addToDashboard, disableAddToDashboard, organization, visualizeYAxes]);
+  }, [addToDashboard, organization, visualizes]);
 
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Dashboard widget'),
+    details: dashboardCaseDetails,
     submenu: chartOptions.length > 1 ? true : false,
-    label: (
-      <Feature
-        overrideName="feature-disabled:dashboards-edit"
-        features="organizations:dashboards-edit"
-        renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
-      >
-        {t('Dashboard widget')}
-      </Feature>
-    ),
-    disabled: disableAddToDashboard,
+    label: t('Dashboard widget'),
     children: chartOptions.length > 1 ? chartOptions : undefined,
     onAction: () => {
-      if (disableAddToDashboard || chartOptions.length > 1) {
+      if (chartOptions.length > 1) {
         return;
       }
 
@@ -290,12 +278,6 @@ export function ToolbarSaveAs() {
               {...mergeProps(triggerProps, containerProps)}
               showChevron={false}
               variant="primary"
-              disabled={hasTransformations}
-              tooltipProps={
-                hasTransformations
-                  ? {title: t('Queries with transformations cannot be saved yet.')}
-                  : undefined
-              }
               aria-label={t('Save as')}
             >
               {shouldHighlightSaveButton ? t('Save') : t('Save as')}
@@ -306,10 +288,6 @@ export function ToolbarSaveAs() {
     />
   );
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;
 
 export const SaveStyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};

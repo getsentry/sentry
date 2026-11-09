@@ -6,8 +6,9 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {useExpandedState} from 'sentry/components/structuredEventData/useExpandedState';
 import {t, tn} from 'sentry/locale';
+
+import {useExpandedState} from './useExpandedState';
 
 interface Props {
   children: ReactNode;

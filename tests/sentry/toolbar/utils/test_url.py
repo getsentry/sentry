@@ -26,7 +26,7 @@ def test_url_matches_scheme(referrer: str, target: str) -> None:
         ("https://example.com", "http://example.com"),
     ],
 )
-def test_url_matches_rejects_mispatched_scheme(referrer, target) -> None:
+def test_url_matches_rejects_mispatched_scheme(referrer: str, target: str) -> None:
     assert not url_matches(urlparse(referrer), target)
 
 

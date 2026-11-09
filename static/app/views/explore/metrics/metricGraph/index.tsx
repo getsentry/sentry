@@ -1,13 +1,11 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {hasDroppedData} from 'sentry/components/droppedData/buckets';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -178,14 +176,6 @@ function Graph({
     normalModeExtrapolated: true,
   });
   const [interval] = useChartInterval();
-  const {droppedEvents, acceptedEvents} = useDroppedData({
-    dataset: DiscoverDatasets.TRACEMETRICS,
-    interval,
-  });
-  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer({
-    dataset: DiscoverDatasets.TRACEMETRICS,
-  });
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);
@@ -271,9 +261,10 @@ function Graph({
         chartInfo.dataScanned
       )
     : null;
-  const isDroppedDataLoaded = showChart && defined(droppedEvents);
-  const canShowDroppedData = showChart && hasDroppedData(droppedEvents, acceptedEvents);
-  const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
+  const droppedData = useDroppedDataLayer(
+    {dataset: DiscoverDatasets.TRACEMETRICS, interval},
+    {enabled: showChart}
+  );
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 
   // ECharts keeps its toolbox zoom window across option merges, so a chart that
@@ -297,13 +288,8 @@ function Graph({
         }
         Actions={
           <Fragment>
-            {isDroppedDataLoaded ? (
-              <DroppedDataLayerControl
-                dataset={DiscoverDatasets.TRACEMETRICS}
-                hasDroppedData={canShowDroppedData}
-                showDroppedData={isDroppedDataLayerOn}
-                onChange={setIsDroppedDataLayerOn}
-              />
+            {droppedData.layerControl ? (
+              <DroppedDataLayerControl {...droppedData.layerControl} />
             ) : null}
             {actions}
           </Fragment>
@@ -331,16 +317,8 @@ function Graph({
             <ChartVisualization
               key={chartRemountKey}
               chartInfo={chartInfo}
-              droppedData={
-                showDroppedDataBand
-                  ? {
-                      dataset: DiscoverDatasets.TRACEMETRICS,
-                      droppedEvents,
-                      acceptedEvents,
-                      onClick: openDroppedDataDrawer,
-                    }
-                  : undefined
-              }
+              droppedData={droppedData.band}
+              isDroppedDataLoading={droppedData.isLoading}
             />
           ) : undefined
         }
@@ -366,9 +344,9 @@ function Graph({
                       rawMetricCounts={rawMetricCounts}
                     />
                   ) : null}
-                  {showDroppedDataBand ? (
+                  {droppedData.filterNote ? (
                     <DroppedDataFilterNote
-                      dataset={DiscoverDatasets.TRACEMETRICS}
+                      {...droppedData.filterNote}
                       hasUserQuery={!!userQuery}
                       showIcon={{zero: false, xl: true}}
                     />

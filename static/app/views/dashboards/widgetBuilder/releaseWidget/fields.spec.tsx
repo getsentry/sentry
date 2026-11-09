@@ -1,7 +1,4 @@
-import {
-  generateReleaseWidgetFieldOptions,
-  SESSIONS_FIELDS,
-} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {generateReleaseWidgetFieldOptions, SESSIONS_FIELDS} from './fields';
 
 describe('generateReleaseWidgetFieldOptions', () => {
   const fields = Object.values(SESSIONS_FIELDS);

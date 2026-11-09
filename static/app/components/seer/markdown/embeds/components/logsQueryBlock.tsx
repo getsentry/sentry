@@ -1,20 +1,5 @@
 import {IconList} from '@sentry/icons/list';
 
-import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
-import {
-  chartUnitFromTimeSeries,
-  QueryEmbedChart,
-  seriesFromTimeSeries,
-} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedChart';
-import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
-import {useQueryEmbedEventsTable} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedQueries';
-import {
-  eventColumns,
-  eventRowKey,
-  QueryEmbedTable,
-  type QueryEmbedColumn,
-} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
-import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -24,6 +9,20 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 import {LogSeverityDot, LogTimestamp} from './log/logRowParts';
+import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
+import {
+  chartUnitFromTimeSeries,
+  QueryEmbedChart,
+  seriesFromTimeSeries,
+} from './queryEmbed/queryEmbedChart';
+import {QUERY_EMBED_ROW_LIMIT} from './queryEmbed/queryEmbedConstants';
+import {useQueryEmbedEventsTable} from './queryEmbed/queryEmbedQueries';
+import {
+  eventColumns,
+  eventRowKey,
+  QueryEmbedTable,
+  type QueryEmbedColumn,
+} from './queryEmbed/queryEmbedTable';
 import {getLogsQueryTitle} from './logsQueryLink';
 import {
   buildLogsEventView,
@@ -34,6 +33,7 @@ import {
   resolveLogsYAxes,
   type LogsQueryData,
 } from './logsQueryUtils';
+import {toPageFilters} from './queryEmbedParams';
 
 type LogRow = Record<string, unknown>;
 

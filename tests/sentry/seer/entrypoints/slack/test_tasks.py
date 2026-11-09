@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
 
 from django.test import override_settings
@@ -28,7 +33,7 @@ from sentry.testutils.helpers.analytics import (
     assert_not_analytics_event,
 )
 
-TASK_KWARGS = {
+TASK_KWARGS: dict[str, Any] = {
     "integration_id": 123,
     "channel_id": "C1234567890",
     "ts": "1234567890.654321",
@@ -46,8 +51,8 @@ _SEER_SLACK_FEATURES = {
 
 
 class ProcessMentionForSlackTest(TestCase):
-    def _run_task(self, **overrides):
-        kwargs = {
+    def _run_task(self, **overrides: object) -> None:
+        kwargs: dict[str, Any] = {
             **TASK_KWARGS,
             "organization_id": self.organization.id,
             **overrides,
@@ -61,12 +66,12 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
     def test_happy_path(
         self,
-        mock_resolve_user,
-        mock_agent_cls,
-        mock_operator_cls,
-        mock_count_linked,
-        mock_record,
-    ):
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_count_linked: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
         mock_user = MagicMock(id=self.user.id, username="alice")
         mock_resolve_user.return_value = mock_user
 
@@ -115,7 +120,9 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    def test_org_not_found(self, mock_agent_cls, mock_operator_cls, mock_record):
+    def test_org_not_found(
+        self, mock_agent_cls: MagicMock, mock_operator_cls: MagicMock, mock_record: MagicMock
+    ) -> None:
         self._run_task(organization_id=999999999)
 
         mock_operator_cls.has_access.assert_not_called()
@@ -126,7 +133,9 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    def test_no_agent_access(self, mock_agent_cls, mock_operator_cls, mock_record):
+    def test_no_agent_access(
+        self, mock_agent_cls: MagicMock, mock_operator_cls: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_operator_cls.has_access.return_value = False
 
         self._run_task()
@@ -138,7 +147,9 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    def test_integration_not_found(self, mock_agent_cls, mock_operator_cls, mock_record):
+    def test_integration_not_found(
+        self, mock_agent_cls: MagicMock, mock_operator_cls: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_operator_cls.has_access.return_value = True
         mock_agent_cls.side_effect = EntrypointSetupError("not found")
 
@@ -154,12 +165,12 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
     def test_identity_not_linked(
         self,
-        mock_resolve_user,
-        mock_agent_cls,
-        mock_operator_cls,
-        mock_send_halt,
-        mock_record,
-    ):
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_send_halt: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
         mock_resolve_user.return_value = None
 
         mock_operator_cls.has_access.return_value = True
@@ -186,12 +197,12 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
     def test_user_not_org_member(
         self,
-        mock_resolve_user,
-        mock_agent_cls,
-        mock_operator_cls,
-        mock_send_not_member,
-        mock_record,
-    ):
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_send_not_member: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
         other_org = self.create_organization(name="Other Org")
         mock_user = MagicMock(id=self.create_user().id)
         mock_resolve_user.return_value = mock_user
@@ -224,12 +235,12 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
     def test_with_thread_context(
         self,
-        mock_resolve_user,
-        mock_agent_cls,
-        mock_operator_cls,
-        mock_count_linked,
-        mock_record,
-    ):
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_count_linked: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
         mock_resolve_user.return_value = MagicMock(id=self.user.id, username="alice")
 
         mock_operator_cls.has_access.return_value = True
@@ -293,7 +304,9 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_without_thread_context(self, mock_resolve_user, mock_agent_cls, mock_operator_cls):
+    def test_without_thread_context(
+        self, mock_resolve_user: MagicMock, mock_agent_cls: MagicMock, mock_operator_cls: MagicMock
+    ) -> None:
         mock_resolve_user.return_value = MagicMock(id=self.user.id)
 
         mock_operator_cls.has_access.return_value = True
@@ -318,12 +331,12 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
     def test_top_level_mention_analytics(
         self,
-        mock_resolve_user,
-        mock_agent_cls,
-        mock_operator_cls,
-        mock_count_linked,
-        mock_record,
-    ):
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_count_linked: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
         mock_resolve_user.return_value = MagicMock(id=self.user.id, username="alice")
 
         mock_operator_cls.has_access.return_value = True
@@ -366,8 +379,12 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
     def test_skips_analytics_when_trigger_agent_fails(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, mock_record
-    ):
+        self,
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
         mock_resolve_user.return_value = MagicMock(id=self.user.id)
 
         mock_operator_cls.has_access.return_value = True
@@ -389,7 +406,7 @@ class LinkedMessagesContextTest(TestCase):
 
     LINKED_PERMALINK = "https://acme.slack.com/archives/C9999LINKED/p1700000000222222"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.mock_resolve_user = self._start_patch(
             patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
@@ -407,7 +424,7 @@ class LinkedMessagesContextTest(TestCase):
 
         self._build_mocks()
 
-    def _start_patch(self, p):
+    def _start_patch(self, p: mock._patch[MagicMock]) -> MagicMock:
         mock = p.start()
         self.addCleanup(p.stop)
         return mock
@@ -415,9 +432,9 @@ class LinkedMessagesContextTest(TestCase):
     def _build_mocks(
         self,
         *,
-        thread_history_side_effect=None,
-        conversations_info_side_effect=None,
-    ):
+        thread_history_side_effect: Callable[..., object] | None = None,
+        conversations_info_side_effect: Callable[..., object] | None = None,
+    ) -> None:
         self.mock_user = MagicMock(id=self.user.id, username="alice")
         self.mock_entrypoint = MagicMock()
         self.mock_entrypoint.thread_ts = "1234567890.123456"
@@ -446,8 +463,8 @@ class LinkedMessagesContextTest(TestCase):
         self.mock_agent_cls.return_value = self.mock_entrypoint
         self.mock_operator_cls.return_value = self.mock_operator
 
-    def _run(self, *, text, **overrides):
-        kwargs = {
+    def _run(self, *, text: str, **overrides: object) -> None:
+        kwargs: dict[str, Any] = {
             **TASK_KWARGS,
             "organization_id": self.organization.id,
             "text": text,
@@ -455,8 +472,8 @@ class LinkedMessagesContextTest(TestCase):
         }
         process_mention_for_slack(**kwargs)
 
-    def test_top_level_permalink_fetches_single_message(self):
-        def history(*, channel_id, thread_ts, **kwargs):
+    def test_top_level_permalink_fetches_single_message(self) -> None:
+        def history(*, channel_id: str, thread_ts: str, **kwargs: object) -> list[dict[str, str]]:
             if channel_id == "C9999LINKED":
                 return [{"user": "ULINK", "text": "linked body", "ts": "1700000000.222222"}]
             return []
@@ -480,7 +497,7 @@ class LinkedMessagesContextTest(TestCase):
         assert "User linked a Slack message in <#C9999LINKED>:" in on_page_context
         assert "<@ULINK>: linked body" in on_page_context
 
-    def test_threaded_permalink_fetches_only_the_linked_reply(self):
+    def test_threaded_permalink_fetches_only_the_linked_reply(self) -> None:
         """A permalink into a thread reply must NOT pull the whole thread —
         we only ship the single targeted reply to Seer.
 
@@ -488,7 +505,7 @@ class LinkedMessagesContextTest(TestCase):
         so we filter client-side.
         """
 
-        def history(*, channel_id, thread_ts, **kwargs):
+        def history(*, channel_id: str, thread_ts: str, **kwargs: object) -> list[dict[str, str]]:
             if channel_id == "C9999LINKED" and thread_ts == "1700000000.111111":
                 # Slack returned the parent + the requested reply — we should
                 # filter to the reply and drop the parent.
@@ -520,7 +537,7 @@ class LinkedMessagesContextTest(TestCase):
         # The thread parent must be filtered out client-side.
         assert "UPARENT" not in on_page_context
 
-    def test_unfurl_attachment_short_circuits_api_call(self):
+    def test_unfurl_attachment_short_circuits_api_call(self) -> None:
         """If the inbound app_mention event already includes the unfurled
         message as an attachment, we use it directly — no Slack API calls."""
         attachments = [
@@ -549,7 +566,7 @@ class LinkedMessagesContextTest(TestCase):
         assert "User linked a Slack message in <#C9999LINKED>:" in on_page_context
         assert "<@ULINK>: linked body" in on_page_context
 
-    def test_unfurl_attachment_with_blocks_preserves_rich_text(self):
+    def test_unfurl_attachment_with_blocks_preserves_rich_text(self) -> None:
         """Rich-text blocks on the unfurl attachment are preferred over flat text."""
         attachments = [
             {
@@ -591,11 +608,11 @@ class LinkedMessagesContextTest(TestCase):
         assert "<@ULINK>: rich body" in on_page_context
         assert "fallback flat text" not in on_page_context
 
-    def test_attachment_for_other_link_falls_through_to_api(self):
+    def test_attachment_for_other_link_falls_through_to_api(self) -> None:
         """When the attachment's (channel_id, ts) doesn't match any link in
         the message, we fall through to the API path."""
 
-        def history(*, channel_id, thread_ts, **kwargs):
+        def history(*, channel_id: str, thread_ts: str, **kwargs: object) -> list[dict[str, str]]:
             if channel_id == "C9999LINKED":
                 return [{"user": "UFETCH", "text": "fetched body", "ts": "1700000000.222222"}]
             return []
@@ -630,7 +647,7 @@ class LinkedMessagesContextTest(TestCase):
         assert "<@UFETCH>: fetched body" in on_page_context
         assert "irrelevant" not in on_page_context
 
-    def test_private_channel_skipped_and_user_notified(self):
+    def test_private_channel_skipped_and_user_notified(self) -> None:
         self._build_mocks(
             conversations_info_side_effect=lambda **_: {"channel": {"is_private": True}}
         )
@@ -650,7 +667,7 @@ class LinkedMessagesContextTest(TestCase):
         assert "private channels" in renderable_text
         assert "<#C9999LINKED>" in renderable_text
 
-    def test_unresolved_link_yields_no_block_and_sends_ephemeral(self):
+    def test_unresolved_link_yields_no_block_and_sends_ephemeral(self) -> None:
         # get_thread_history returns [] → simulates missing scope or deleted message.
         self._run(
             text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>",
@@ -675,8 +692,8 @@ class LinkedMessagesContextTest(TestCase):
         assert "<#C9999LINKED>" in renderable_text
         assert "need to be invited" in renderable_text
 
-    def test_partial_resolution_still_sends_ephemeral_for_unresolved(self):
-        def history(*, channel_id, thread_ts, **kwargs):
+    def test_partial_resolution_still_sends_ephemeral_for_unresolved(self) -> None:
+        def history(*, channel_id: str, thread_ts: str, **kwargs: object) -> list[dict[str, str]]:
             if channel_id == "C0OK":
                 return [{"user": "UOK", "text": "ok", "ts": "1700000000.111111"}]
             return []
@@ -700,7 +717,7 @@ class LinkedMessagesContextTest(TestCase):
         assert "C0BAD" in renderable_text
         assert "C0OK" not in renderable_text
 
-    def test_multiple_unresolved_channels_listed_in_ephemeral(self):
+    def test_multiple_unresolved_channels_listed_in_ephemeral(self) -> None:
         text = (
             "<@U0BOT> "
             "<https://acme.slack.com/archives/C0AAA/p1700000000111111> and "
@@ -714,8 +731,8 @@ class LinkedMessagesContextTest(TestCase):
         assert "C0AAA" in renderable_text
         assert "C0BBB" in renderable_text
 
-    def test_linked_block_precedes_in_thread_context(self):
-        def history(*, channel_id, thread_ts, **kwargs):
+    def test_linked_block_precedes_in_thread_context(self) -> None:
+        def history(*, channel_id: str, thread_ts: str, **kwargs: object) -> list[dict[str, str]]:
             # Permalink fetch (narrowed by latest/oldest)
             if channel_id == "C9999LINKED":
                 return [{"user": "ULINK", "text": "linked body", "ts": "1700000000.222222"}]
@@ -740,7 +757,7 @@ class LinkedMessagesContextTest(TestCase):
         assert "<@ULINK>: linked body" in on_page_context
         assert "<@UTHREAD>: earlier in thread" in on_page_context
 
-    def test_other_workspace_link_is_skipped(self):
+    def test_other_workspace_link_is_skipped(self) -> None:
         # domain_name is "acme.slack.com"; this link targets "other.slack.com".
         url = "https://other.slack.com/archives/C9999OTHER/p1700000000222222"
         self._run(text=f"<@U0BOT> ignore <{url}>", thread_ts=None)
@@ -796,7 +813,7 @@ class BuildInaccessibleLinksRenderableTest(TestCase):
         assert "<#C0PRIV>" in renderable["text"]
 
 
-REACTION_TASK_KWARGS = {
+REACTION_TASK_KWARGS: dict[str, Any] = {
     "channel_id": "C1234567890",
     "message_ts": "1234567890.654321",
     "reaction": "+1",
@@ -806,7 +823,7 @@ REACTION_TASK_KWARGS = {
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 class ProcessReactionForSlackTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.integration = self.create_integration(
@@ -821,7 +838,7 @@ class ProcessReactionForSlackTest(TestCase):
             identity_provider=self.idp,
             external_id=REACTION_TASK_KWARGS["reactor_slack_user_id"],
         )
-        self.defaults = {
+        self.defaults: dict[str, Any] = {
             **REACTION_TASK_KWARGS,
             "integration_id": self.integration.id,
             "organization_id": self.organization.id,
@@ -835,10 +852,10 @@ class ProcessReactionForSlackTest(TestCase):
     )
     def test_happy_path(
         self,
-        mock_cache_get,
-        mock_record,
-        mock_chat_ephemeral,
-    ):
+        mock_cache_get: MagicMock,
+        mock_record: MagicMock,
+        mock_chat_ephemeral: MagicMock,
+    ) -> None:
         with self.feature(_SEER_SLACK_FEATURES):
             process_reaction_for_slack(**self.defaults)
 
@@ -873,10 +890,10 @@ class ProcessReactionForSlackTest(TestCase):
     )
     def test_thumbs_down_records_negative(
         self,
-        mock_cache_get,
-        mock_record,
-        mock_chat_ephemeral,
-    ):
+        mock_cache_get: MagicMock,
+        mock_record: MagicMock,
+        mock_chat_ephemeral: MagicMock,
+    ) -> None:
         with self.feature(_SEER_SLACK_FEATURES):
             process_reaction_for_slack(**{**self.defaults, "reaction": "-1::skin-tone-5"})
 
@@ -899,10 +916,10 @@ class ProcessReactionForSlackTest(TestCase):
     @patch("sentry.analytics.record")
     def test_thread_not_found_records_halt(
         self,
-        mock_record,
-        mock_lifecycle_record,
-        mock_cache_get,
-    ):
+        mock_record: MagicMock,
+        mock_lifecycle_record: MagicMock,
+        mock_cache_get: MagicMock,
+    ) -> None:
         with self.feature(_SEER_SLACK_FEATURES):
             process_reaction_for_slack(**self.defaults)
 
@@ -917,10 +934,10 @@ class ProcessReactionForSlackTest(TestCase):
     @patch("sentry.analytics.record")
     def test_unlinked_identity_records_halt(
         self,
-        mock_record,
-        mock_lifecycle_record,
-        mock_cache_get,
-    ):
+        mock_record: MagicMock,
+        mock_lifecycle_record: MagicMock,
+        mock_cache_get: MagicMock,
+    ) -> None:
         with self.feature(_SEER_SLACK_FEATURES):
             process_reaction_for_slack(**{**self.defaults, "reactor_slack_user_id": "UXXXXXXX2"})
 
@@ -933,9 +950,9 @@ class ProcessReactionForSlackTest(TestCase):
     @override_settings(SENTRY_SELF_HOSTED=True)
     def test_no_agent_access_records_halt(
         self,
-        mock_record,
-        mock_lifecycle_record,
-    ):
+        mock_record: MagicMock,
+        mock_lifecycle_record: MagicMock,
+    ) -> None:
         process_reaction_for_slack(**self.defaults)
 
         assert_not_analytics_event(mock_record, SlackSeerAgentFeedback)
@@ -945,9 +962,9 @@ class ProcessReactionForSlackTest(TestCase):
     @patch("sentry.analytics.record")
     def test_unsupported_reaction_records_halt(
         self,
-        mock_record,
-        mock_lifecycle_record,
-    ):
+        mock_record: MagicMock,
+        mock_lifecycle_record: MagicMock,
+    ) -> None:
         process_reaction_for_slack(**{**self.defaults, "reaction": "heart"})
 
         assert_not_analytics_event(mock_record, SlackSeerAgentFeedback)
@@ -957,9 +974,9 @@ class ProcessReactionForSlackTest(TestCase):
     @patch("sentry.analytics.record")
     def test_org_not_found_records_failure(
         self,
-        mock_record,
-        mock_lifecycle_record,
-    ):
+        mock_record: MagicMock,
+        mock_lifecycle_record: MagicMock,
+    ) -> None:
         process_reaction_for_slack(**{**self.defaults, "organization_id": -1})
 
         assert_not_analytics_event(mock_record, SlackSeerAgentFeedback)

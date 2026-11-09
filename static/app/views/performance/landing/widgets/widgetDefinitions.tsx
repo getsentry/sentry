@@ -1,4 +1,4 @@
-import type {Theme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
@@ -62,12 +62,22 @@ export enum PerformanceWidgetSetting {
   HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = 'highest_cache__miss_rate_transactions',
 }
 
-export const WIDGET_DEFINITIONS: ({
+export function useWidgetDefinitions(): Record<
+  PerformanceWidgetSetting,
+  ChartDefinition
+> {
+  const theme = useTheme();
+  const useEap = useInsightsEap();
+  return getWidgetDefinitions({theme, useEap});
+}
+
+function getWidgetDefinitions({
   theme,
+  useEap,
 }: {
   theme: Theme;
-}) => Record<PerformanceWidgetSetting, ChartDefinition> = ({theme}: {theme: Theme}) => {
-  const useEap = useInsightsEap();
+  useEap: boolean;
+}): Record<PerformanceWidgetSetting, ChartDefinition> {
   const durationField = useEap ? 'span.duration' : 'transaction.duration';
 
   return {
@@ -288,4 +298,4 @@ export const WIDGET_DEFINITIONS: ({
       dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_WARM_START,
     },
   };
-};
+}

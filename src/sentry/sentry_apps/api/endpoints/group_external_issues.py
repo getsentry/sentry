@@ -12,6 +12,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParam
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.models.group import Group
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializerResponse,
 )
@@ -48,7 +49,7 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
         url_names=["sentry-api-0-group-external-issues"],
     )
     def get(
-        self, request: Request, group
+        self, request: Request, group: Group
     ) -> Response[list[PlatformExternalIssueSerializerResponse]]:
         """
         Retrieve custom integration issue links for the given Sentry issue

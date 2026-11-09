@@ -9,18 +9,19 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useDetectorTypeQueryState} from 'sentry/views/detectors/components/detectorTypeForm';
-import {NewDetectorForm} from 'sentry/views/detectors/components/forms';
-import {useInitialDetectorDraft} from 'sentry/views/detectors/components/forms/common/detectorDraft';
-import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
+
+import {useDetectorTypeQueryState} from './components/detectorTypeForm';
+import {NewDetectorForm} from './components/forms';
+import {useInitialDetectorDraft} from './components/forms/common/detectorDraft';
+import {DetectorFormProvider} from './components/forms/context';
 import {
   detectorTypeIsAvailableForCreation,
   getDetectorTypeLabel,
   isValidDetectorType,
-} from 'sentry/views/detectors/utils/detectorTypeConfig';
-import {getNoPermissionToCreateMonitorsTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
-import {useCanCreateDetector} from 'sentry/views/detectors/utils/useCanCreateDetector';
-import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
+} from './utils/detectorTypeConfig';
+import {getNoPermissionToCreateMonitorsTooltip} from './utils/monitorAccessMessages';
+import {useCanCreateDetector} from './utils/useCanCreateDetector';
+import {useCanEditDetector} from './utils/useCanEditDetector';
 
 export default function DetectorNewSettings() {
   const organization = useOrganization();

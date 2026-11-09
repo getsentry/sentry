@@ -162,7 +162,7 @@ function InboxIssueActivity({group}: Pick<InboxIssueSectionProps, 'group'>) {
 
 function InboxIssueTelemetry({group, project, event}: InboxIssueSectionProps) {
   return (
-    <IssueDetailsContextProvider>
+    <IssueDetailsContextProvider scrollContext="pane">
       <Stack background="secondary">
         <EventDetailsHeader
           group={group}

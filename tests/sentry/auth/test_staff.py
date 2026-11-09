@@ -1,9 +1,13 @@
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from enum import Enum, auto
+from typing import cast
 from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
+from django.http import HttpRequest
 from django.utils import timezone
 
 from sentry.auth import staff
@@ -28,7 +32,16 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.utils.auth import mark_sso_complete
 
-UNSET = object()
+
+class _Unset(Enum):
+    UNSET = auto()
+
+
+class _StaffRequest(HttpRequest):
+    staff: Staff
+
+
+UNSET = _Unset.UNSET
 
 BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=UTC)
 
@@ -38,7 +51,7 @@ VALID_TIME = BASETIME + timedelta(minutes=1)
 
 
 @contextmanager
-def override_org_id(new_org_id: int):
+def override_org_id(new_org_id: int) -> Iterator[None]:
     """
     ORG_ID in staff.py is loaded from STAFF_ORG_ID in settings. This happens at
     the module level, but we cannot override module level variables using
@@ -63,16 +76,16 @@ class StaffTestCase(TestCase):
 
     def build_request(
         self,
-        cookie_token=UNSET,
-        session_token=UNSET,
-        expires=UNSET,
-        uid=UNSET,
-        session_data=True,
-        user=None,
-    ):
+        cookie_token: str | None | _Unset = UNSET,
+        session_token: str | _Unset = UNSET,
+        expires: datetime | _Unset = UNSET,
+        uid: int | _Unset = UNSET,
+        session_data: bool = True,
+        user: User | None = None,
+    ) -> _StaffRequest:
         if user is None:
             user = self.staff_user
-        request = self.make_request(user=user)
+        request = cast(_StaffRequest, self.make_request(user=user))
         if cookie_token is not None:
             request.COOKIES[COOKIE_NAME] = signing.get_cookie_signer(
                 salt=COOKIE_NAME + COOKIE_SALT
@@ -295,7 +308,7 @@ class StaffTestCase(TestCase):
 
     def test_is_active_staff_sys_token(self) -> None:
         request = self.build_request()
-        request.auth = SystemToken()
+        setattr(request, "auth", SystemToken())
         assert is_active_staff(request)
 
     def test_is_active_staff(self) -> None:
@@ -313,5 +326,5 @@ class StaffTestCase(TestCase):
     @mock.patch.object(Staff, "is_active", return_value=True)
     def test_is_active_staff_from_request(self, mock_is_active: mock.MagicMock) -> None:
         request = self.build_request()
-        request.staff = None
+        setattr(request, "staff", None)
         assert is_active_staff(request)

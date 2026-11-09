@@ -6,6 +6,7 @@ from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Prefetch, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -26,6 +27,8 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.schemas import WorkflowRunSource
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class SeerAgenticTriageRunResultResponse(TypedDict):
@@ -59,7 +62,11 @@ class SeerWorkflowRunExecutionResponse(TypedDict):
 
 class SeerWorkflowRunExecutionSerializer(Serializer[SeerWorkflowRunExecutionResponse]):
     def serialize(
-        self, obj: SeerWorkflowRunExecution, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: SeerWorkflowRunExecution,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> SeerWorkflowRunExecutionResponse:
         return {"seerRunId": str(obj.seer_run.uuid) if obj.seer_run is not None else None}
 
@@ -84,7 +91,7 @@ class SeerAgenticTriageRunSerializer(Serializer[SeerAgenticTriageRunResponse]):
     def get_attrs(
         self,
         item_list: Sequence[SeerWorkflowRun],
-        user: Any,
+        user: User | RpcUser | AnonymousUser,
         accessible_project_ids: Collection[int] | None = None,
         **kwargs: Any,
     ) -> dict[SeerWorkflowRun, dict[str, Any]]:
@@ -181,7 +188,7 @@ class SeerAgenticTriageRunSerializer(Serializer[SeerAgenticTriageRunResponse]):
         self,
         obj: SeerWorkflowRun,
         attrs: Mapping[str, Any],
-        user: Any,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> SeerAgenticTriageRunResponse:
         blocked_group_ids = attrs.get("blocked_group_ids", ())

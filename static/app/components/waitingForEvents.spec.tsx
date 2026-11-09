@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import WaitingForEvents from 'sentry/components/waitingForEvents';
+import WaitingForEvents from './waitingForEvents';
 
 describe('WaitingForEvents', () => {
   let getIssues: jest.Func;

@@ -1,87 +1,75 @@
 import isEqual from 'lodash/isEqual';
-import {createStore} from 'reflux';
+import {createStore} from 'zustand/vanilla';
 
 import type {Group} from 'sentry/types/group';
 
-import type {StrictStoreDefinition} from './types';
-
 /**
- * The type here doesn't really matter it just needs to be compared via isEqual
+ * The issue list request params, only ever compared with `isEqual`
  */
-type LooseParamsType = Record<string, any>;
+type IssueListCacheParams = Readonly<Record<string, unknown>>;
 
 interface IssueListCache {
-  groups: Group[];
-  pageLinks: string;
-  queryCount: number;
-  queryMaxCount: number;
+  readonly groups: Group[];
+  readonly pageLinks: string;
+  readonly queryCount: number;
+  readonly queryMaxCount: number;
 }
 
-interface IssueListCacheState {
+interface IssueListCacheEntry {
   /**
    * The data that was cached
    */
-  cache: IssueListCache;
+  readonly cache: IssueListCache;
   /**
-   * Do not use this directly, use `getFromCache` instead
+   * When the entry stops being served, in milliseconds since epoch
    */
-  expiration: number;
+  readonly expiration: number;
   /**
    * The params that were used to generate the cache
    * eg - {query: 'Some query'}
    */
-  params: LooseParamsType;
+  readonly params: IssueListCacheParams;
+}
+
+interface IssueListCacheState {
+  readonly entry: IssueListCacheEntry | null;
 }
 
 // 30 seconds
 const CACHE_EXPIRATION = 30 * 1000;
 
-interface IssueListCacheStoreDefinition extends StrictStoreDefinition<IssueListCacheState | null> {
-  getFromCache(params: LooseParamsType): IssueListCache | null;
-  markGroupAsSeen(groupId: string): void;
-  reset(): void;
-  save(params: LooseParamsType, data: IssueListCache): void;
-}
+const store = createStore<IssueListCacheState>()(() => ({entry: null}));
 
-const storeConfig: IssueListCacheStoreDefinition = {
-  state: null,
-
-  init() {},
-
-  reset() {
-    this.state = null;
+export const IssueListCacheStore = {
+  reset(): void {
+    store.setState({entry: null});
   },
 
-  save(params: LooseParamsType, data: IssueListCache) {
-    this.state = {
-      params,
-      cache: data,
-      expiration: Date.now() + CACHE_EXPIRATION,
-    };
+  save(params: IssueListCacheParams, data: IssueListCache): void {
+    store.setState({
+      entry: {
+        params,
+        cache: data,
+        expiration: Date.now() + CACHE_EXPIRATION,
+      },
+    });
   },
 
-  getFromCache(params: LooseParamsType) {
-    if (
-      this.state &&
-      this.state.expiration > Date.now() &&
-      isEqual(this.state?.params, params)
-    ) {
-      return this.state.cache;
+  getFromCache(params: IssueListCacheParams): IssueListCache | null {
+    const {entry} = store.getState();
+    if (entry && entry.expiration > Date.now() && isEqual(entry.params, params)) {
+      return entry.cache;
     }
 
     return null;
   },
 
-  getState() {
-    return this.state;
-  },
-
-  markGroupAsSeen(groupId: string) {
-    const matchingGroup = this.state?.cache.groups.find(group => group.id === groupId);
+  markGroupAsSeen(groupId: string): void {
+    const matchingGroup = store
+      .getState()
+      .entry?.cache.groups.find(group => group.id === groupId);
     if (matchingGroup) {
       matchingGroup.hasSeen = true;
     }
   },
 };
-
-export const IssueListCacheStore = createStore(storeConfig);

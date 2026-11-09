@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -49,7 +49,10 @@ from sentry.utils.math import ExponentialMovingAverage
         ),
     ],
 )
-def test_moving_average_detector_state_to_redis_dict(state, expected) -> None:
+def test_moving_average_detector_state_to_redis_dict(
+    state: MovingAverageDetectorState,
+    expected: Mapping[str | bytes, bytes | float | int | str],
+) -> None:
     assert state.to_redis_dict() == expected
 
 
@@ -103,7 +106,10 @@ def test_moving_average_detector_state_to_redis_dict(state, expected) -> None:
         ),
     ],
 )
-def test_moving_average_detector_state_from_redis_dict(data, expected) -> None:
+def test_moving_average_detector_state_from_redis_dict(
+    data: Mapping[str | bytes, bytes | float | int | str],
+    expected: MovingAverageDetectorState,
+) -> None:
     assert MovingAverageDetectorState.from_redis_dict(data) == expected
 
 
@@ -183,7 +189,9 @@ def test_moving_average_detector_state_from_redis_dict(data, expected) -> None:
         ),
     ],
 )
-def test_moving_average_detector_state_from_redis_dict_error(data, error) -> None:
+def test_moving_average_detector_state_from_redis_dict_error(
+    data: Mapping[str | bytes, bytes | float | int | str], error: type[Exception]
+) -> None:
     with pytest.raises(error):
         MovingAverageDetectorState.from_redis_dict(data)
 
@@ -199,8 +207,8 @@ def test_moving_average_detector_state_from_redis_dict_error(data, error) -> Non
     ],
 )
 def test_moving_average_detector_state_should_auto_resolve(
-    baseline, avg, rel_threshold, auto_resolve
-):
+    baseline: float, avg: float, rel_threshold: float, auto_resolve: bool
+) -> None:
     state = MovingAverageDetectorState(
         timestamp=datetime(2023, 8, 31, 11, 28, 52),
         count=10,
@@ -224,8 +232,13 @@ def test_moving_average_detector_state_should_auto_resolve(
     ],
 )
 def test_moving_average_detector_state_should_escalate(
-    baseline, regressed, avg, min_change, rel_threshold, escalate
-):
+    baseline: float,
+    regressed: float,
+    avg: float,
+    min_change: float,
+    rel_threshold: float,
+    escalate: bool,
+) -> None:
     state = MovingAverageDetectorState(
         timestamp=datetime(2023, 8, 31, 11, 28, 52),
         count=10,
@@ -276,14 +289,14 @@ def test_moving_average_detector_state_should_escalate(
     ],
 )
 def test_moving_average_relative_change_detector(
-    min_data_points,
-    moving_avg_long_factory,
-    moving_avg_short_factory,
-    threshold,
-    values,
-    regressed_indices,
-    improved_indices,
-):
+    min_data_points: int,
+    moving_avg_long_factory: Callable[[], ExponentialMovingAverage],
+    moving_avg_short_factory: Callable[[], ExponentialMovingAverage],
+    threshold: float,
+    values: list[float],
+    regressed_indices: list[int],
+    improved_indices: list[int],
+) -> None:
     all_regressed = []
     all_improved = []
 

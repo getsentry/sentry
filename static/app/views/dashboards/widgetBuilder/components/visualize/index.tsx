@@ -30,25 +30,6 @@ import {correctDragOverlayOffset} from 'sentry/views/dashboards/widgetBuilder/co
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {SortableVisualizeFieldWrapper} from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
-import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
-import {SelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
-import {buildTraceItemColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceItemColumnOptions';
-import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
-import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
-import {
-  NONE,
-  _sortFn,
-  getColumnOptions,
-  getAggregateValueKey,
-  renderTag,
-  LegendAliasInput,
-  ParameterRefinements,
-  FieldBar,
-  FieldRow,
-  FieldExtras,
-  StyledArithmeticInput,
-} from 'sentry/views/dashboards/widgetBuilder/components/visualize/utils';
-import {VisualizeGhostField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
@@ -71,6 +52,26 @@ import {
   supportsConditionalAggregateFilter,
   withBaseConditionalAggregateField,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+
+import {MetricSelectRow} from './traceMetrics/metricSelectRow';
+import {MetricsEquationVisualize} from './traceMetrics/metricsEquationVisualize';
+import {AggregateParameterField} from './aggregateParameterField';
+import {SelectRow} from './selectRow';
+import {buildTraceItemColumnOptions} from './traceItemColumnOptions';
+import {
+  NONE,
+  _sortFn,
+  getColumnOptions,
+  getAggregateValueKey,
+  renderTag,
+  LegendAliasInput,
+  ParameterRefinements,
+  FieldBar,
+  FieldRow,
+  FieldExtras,
+  StyledArithmeticInput,
+} from './utils';
+import {VisualizeGhostField} from './visualizeGhostField';
 
 const NONE_AGGREGATE = {
   textValue: t('field'),

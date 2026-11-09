@@ -6,10 +6,11 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+
+import {getApiUrl} from './api/getApiUrl';
+import {makeDetailedProjectApiOptions} from './project/useDetailedProject';
+import {RequestError} from './requestError/requestError';
+import {useApiQuery} from './queryClient';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 

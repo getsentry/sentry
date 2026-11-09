@@ -5,7 +5,8 @@ import {
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
-import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
+
+import {FileDiffViewer} from './fileDiffViewer';
 
 const patch: FilePatch = {
   path: 'src/app.py',

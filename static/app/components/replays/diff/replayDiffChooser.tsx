@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 import {Grid} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
-import {ReplayMutationTree} from 'sentry/components/replays/diff/replayMutationTree';
-import {ReplaySideBySideImageDiff} from 'sentry/components/replays/diff/replaySideBySideImageDiff';
-import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff';
-import {ReplayTextDiff} from 'sentry/components/replays/diff/replayTextDiff';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {ReplayMutationTree} from './replayMutationTree';
+import {ReplaySideBySideImageDiff} from './replaySideBySideImageDiff';
+import {ReplaySliderDiff} from './replaySliderDiff';
+import {ReplayTextDiff} from './replayTextDiff';
 
 const enum DiffType {
   HTML = 'html',

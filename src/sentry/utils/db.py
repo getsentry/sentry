@@ -1,13 +1,19 @@
 import logging
-from collections.abc import Generator, Sequence
+from collections.abc import Callable, Generator, Sequence
 from contextlib import ExitStack, contextmanager
 from datetime import timedelta
 from functools import wraps
+from types import TracebackType
+from typing import ParamSpec, TypeVar, cast
 
 from django.db import DEFAULT_DB_ALIAS, connections, router, transaction
+from django.db.models import Model
 from django.db.utils import OperationalError, ProgrammingError
 from sentry_sdk import traces
 from sentry_sdk.integrations import Integration
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 @contextmanager
@@ -29,9 +35,11 @@ def statement_timeout(alias: str, timeout: timedelta) -> Generator[None]:
         yield
 
 
-def handle_db_failure(func, model, wrap_in_transaction: bool = True):
+def handle_db_failure(
+    func: Callable[P, R], model: type[Model], wrap_in_transaction: bool = True
+) -> Callable[P, R | None]:
     @wraps(func)
-    def wrapped(*args, **kwargs):
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> R | None:
         try:
             if wrap_in_transaction:
                 with transaction.atomic(router.db_for_write(model)):
@@ -40,7 +48,7 @@ def handle_db_failure(func, model, wrap_in_transaction: bool = True):
                 return func(*args, **kwargs)
         except (ProgrammingError, OperationalError):
             logging.exception("Failed processing signal %s", func.__name__)
-            return
+            return None
 
     return wrapped
 
@@ -71,33 +79,40 @@ class DjangoAtomicIntegration(Integration):
     identifier = "django_atomic"
 
     @staticmethod
-    def setup_once():
+    def setup_once() -> None:
         from django.db.transaction import Atomic
 
         original_enter = Atomic.__enter__
         original_exit = Atomic.__exit__
 
-        def _enter(self):
-            self._sentry_sdk_span = traces.start_span(
+        def _enter(self: Atomic) -> None:
+            span = traces.start_span(
                 name="transaction.atomic",
                 attributes={
                     "sentry.op": "transaction.atomic",
-                    "using": self.using,
+                    "using": cast(str, self.using),
                 },
             )
-            self._sentry_sdk_span.__enter__()
+            span.__enter__()
+            setattr(self, "_sentry_sdk_span", span)
             return original_enter(self)
 
-        def _exit(self, exc_type, exc_value, traceback):
+        def _exit(
+            self: Atomic,
+            exc_type: type[BaseException] | None,
+            exc_value: BaseException | None,
+            traceback: TracebackType | None,
+        ) -> None:
             rv = original_exit(self, exc_type, exc_value, traceback)
-            if hasattr(self, "_sentry_sdk_span"):
-                self._sentry_sdk_span.__exit__(exc_type, exc_value, traceback)
-                del self._sentry_sdk_span
+            span = getattr(self, "_sentry_sdk_span", None)
+            if span is not None:
+                span.__exit__(exc_type, exc_value, traceback)
+                delattr(self, "_sentry_sdk_span")
             return rv
 
         Atomic.__enter__ = _enter  # type: ignore[method-assign]
         Atomic.__exit__ = _exit  # type: ignore[method-assign]
 
 
-def table_exists(name, using=DEFAULT_DB_ALIAS):
+def table_exists(name: str, using: str = DEFAULT_DB_ALIAS) -> bool:
     return name in connections[using].introspection.table_names()

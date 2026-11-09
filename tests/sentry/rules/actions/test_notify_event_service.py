@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -106,8 +106,11 @@ class NotifyEventServiceWebhookActionTest(RuleTestCase, BaseWorkflowTest):
 class NotifyEventServiceSentryAppActionTest(RuleTestCase, BaseWorkflowTest):
     rule_cls = NotifyEventServiceAction
 
+    def get_rule(self, **kwargs: Any) -> NotifyEventServiceAction:
+        return cast(NotifyEventServiceAction, super().get_rule(**kwargs))
+
     def test_applies_correctly_for_sentry_apps(self) -> None:
-        event = self.get_event()
+        event = self.get_group_event()
 
         self.create_sentry_app(
             organization=event.organization, name="Test Application", is_alertable=True
@@ -165,7 +168,7 @@ class TestSendIncidentAlertNotification(TestCase):
         self.incident_serialized_response = cast(IncidentSerializerResponse, {})
         self.notification_context = NotificationContext(
             id=1,
-            sentry_app_id=self.sentry_app.id,
+            sentry_app_id=str(self.sentry_app.id),
         )
         self.notification_uuid = str(uuid4())
 

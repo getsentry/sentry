@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
+from enum import StrEnum
 from typing import Any, ClassVar, TypedDict
 
 from django.conf import settings
@@ -31,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class WorkflowSnapshot(TypedDict):
     id: int
+    type: Workflow.Type
     enabled: bool
     environment_id: int | None
     status: int
@@ -50,7 +52,12 @@ class WorkflowManager(BaseManager["Workflow"]):
 class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     """
     A workflow is a way to execute actions in a specified order.
-    Workflows are initiated after detectors have been processed, driven by changes to their state.
+
+    Workflows are triggered by other systems. For example, alert workflows are triggered
+    after detectors have been processed.
+
+    Not every workflow is user-facing. The `type` field says what the workflow is for, and the public
+    API only exposes workflows with a type in `VISIBLE_WORKFLOW_TYPES`
     """
 
     __relocation_scope__ = RelocationScope.Organization
@@ -58,8 +65,22 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     objects: ClassVar[WorkflowManager] = WorkflowManager()
     objects_for_deletion: ClassVar[BaseManager[Workflow]] = BaseManager()
 
+    class Type(StrEnum):
+        # A user-configured alert
+        ALERT = "alert"
+
+        # A hidden workflow to support inbox notifications
+        INBOX = "inbox"
+
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
+
+    type = models.CharField(
+        max_length=256,
+        choices=[(t.value, t.value) for t in Type],
+        default=Type.ALERT,
+        db_default=Type.ALERT,
+    )
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
     enabled = models.BooleanField(db_default=True)
@@ -128,6 +149,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 name="workflow_engine_workflow_single_creator",
             ),
         ]
+        indexes = [
+            models.Index(fields=["type", "organization"], name="workflow_type_org_idx"),
+        ]
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
@@ -138,7 +162,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return super().normalize_before_relocation_import(pk_map, scope, flags)
 
     def get_audit_log_data(self) -> dict[str, Any]:
-        return {"name": self.name}
+        return {"name": self.name, "type": self.type}
 
     def get_snapshot(self) -> WorkflowSnapshot:
         when_condition_group = None
@@ -151,6 +175,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return {
             "id": self.id,
+            "type": Workflow.Type(self.type),
             "enabled": self.enabled,
             "environment_id": environment_id,
             "status": self.status,
@@ -220,6 +245,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             group, workflow_event_data, when_data_conditions
         )
         return group_evaluation, remaining_conditions
+
+
+VISIBLE_WORKFLOW_TYPES = frozenset({Workflow.Type.ALERT})
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:
