@@ -761,6 +761,42 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
                 "config": [ErrorDetail(string=error_message, code="invalid")]
             }
 
+    def test_null_comparison_delta_is_not_stored(self) -> None:
+        data = {
+            **self.valid_data,
+            "config": {
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+                "comparisonDelta": None,
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            detector = validator.save()
+
+        detector.refresh_from_db()
+        assert detector.config == {"detection_type": AlertRuleDetectionType.STATIC.value}
+
+    def test_unknown_config_keys_are_not_stored(self) -> None:
+        data = {
+            **self.valid_data,
+            "config": {
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+                "thresholdPeriod": 1,
+                "sensitivity": "medium",
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            detector = validator.save()
+
+        detector.refresh_from_db()
+        # Only the valid key is kept
+        assert detector.config == {"detection_type": AlertRuleDetectionType.STATIC.value}
+
 
 class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
     def setUp(self) -> None:
@@ -2015,3 +2051,41 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             assert update_validator.errors == {
                 "config": [ErrorDetail(string=error_message, code="invalid")]
             }
+
+    def test_null_comparison_delta_is_not_stored(self) -> None:
+        detector = self.create_percent_detector()
+        update_data = {
+            "config": {
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+                "comparisonDelta": None,
+            },
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+
+        update_validator.save()
+
+        detector.refresh_from_db()
+        assert detector.config == {"detection_type": AlertRuleDetectionType.STATIC.value}
+
+    def test_unknown_config_keys_are_not_stored(self) -> None:
+        detector = self.create_percent_detector()
+        update_data = {
+            "config": {
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+                "thresholdPeriod": 1,
+                "sensitivity": "medium",
+            },
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+
+        update_validator.save()
+
+        detector.refresh_from_db()
+        # Only the valid key is kept
+        assert detector.config == {"detection_type": AlertRuleDetectionType.STATIC.value}

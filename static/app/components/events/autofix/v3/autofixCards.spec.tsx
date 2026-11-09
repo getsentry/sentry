@@ -320,6 +320,52 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     });
 
+    it('starts a new single run from Re-run', async () => {
+      const startStepMock = jest.fn().mockResolvedValue({runId: 777, isSingleRun: true});
+      render(
+        <RootCauseCard
+          autofix={{
+            ...mockAutofix,
+            startStep: startStepMock,
+            runState: {
+              run_id: 776,
+              feature_id: 'autofix_single_run',
+              status: 'completed',
+              updated_at: '2026-01-01T00:00:00Z',
+              blocks: [],
+            },
+          }}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [])}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+
+      expect(startStepMock).toHaveBeenCalledWith('root_cause');
+    });
+
+    it('renders the cause under the headline', () => {
+      const artifact = makeRootCauseArtifact({
+        one_line_description: 'Divides by an empty weight',
+        cause: 'total_weight is 0 for projects with no tasks.',
+        five_whys: [],
+      });
+
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
+      );
+
+      expect(screen.getByText('Divides by an empty weight')).toBeInTheDocument();
+      expect(
+        screen.getByText('total_weight is 0 for projects with no tasks.')
+      ).toBeInTheDocument();
+    });
+
     it('renders unclosed embed syntax in the description as literal text', () => {
       const description =
         "Users clicking 'Ask Seer' trigger Seer chat that emits {% autofix %} embeds.";

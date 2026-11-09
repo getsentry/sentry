@@ -55,6 +55,62 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert legacy_result["source"] == "mcp:claude"
         assert current_result["source"] == "mcp:claude-code"
 
+    def test_impact_assessment_entry(self) -> None:
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.IMPACT_ASSESSMENT,
+            data={
+                "score": 73.5,
+                "description": "Users cannot submit an order.",
+                "citations": [
+                    {
+                        "reference": "entire-event:event-id",
+                        "claim": "The request failed before order creation.",
+                        "source": "event",
+                    }
+                ],
+                "source_event_id": "event-id",
+            },
+        )
+
+        result = serialize(entry, self.user)
+
+        assert result["type"] == "impact_assessment"
+        assert result["data"] == {
+            "score": 73.5,
+            "level": "high",
+            "description": "Users cannot submit an order.",
+            "citations": [
+                {
+                    "reference": "entire-event:event-id",
+                    "claim": "The request failed before order creation.",
+                    "source": "event",
+                }
+            ],
+            "sourceEventId": "event-id",
+        }
+
+    def test_impact_assessment_is_in_activity(self) -> None:
+        self.create_group_action_log_entry(
+            type=GroupActionType.IMPACT_ASSESSMENT,
+            data={
+                "score": 73.5,
+                "description": "Users cannot submit an order.",
+                "citations": [
+                    {
+                        "reference": "entire-event:event-id",
+                        "claim": "The request failed before order creation.",
+                        "source": "event",
+                    }
+                ],
+                "source_event_id": "event-id",
+            },
+        )
+
+        assert [item["type"] for item in self._activity_items()] == [
+            "impact_assessment",
+            "first_seen",
+        ]
+
     def test_pull_request_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
         user = self.create_user()

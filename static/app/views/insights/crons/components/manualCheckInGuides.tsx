@@ -102,15 +102,15 @@ export function CLICronQuickStart(props: QuickStartProps) {
 
   const script = `# Example for a Python script:
 export SENTRY_DSN=${dsnKey}
-sentry-cli monitors run ${slug} -- python path/to/file`;
+sentry monitor run ${slug} -- python path/to/file`;
 
   return (
     <Fragment>
       <div>
         {tct(
-          'Make sure to [installLink:install the Sentry CLI] (min v2.16.1), then instrument your monitor:',
+          'Make sure to [installLink:install the Sentry CLI] (min v0.36.0), then instrument your monitor:',
           {
-            installLink: <ExternalLink href="https://docs.sentry.io/cli/installation/" />,
+            installLink: <ExternalLink href="https://cli.sentry.dev/getting-started/" />,
           }
         )}
       </div>

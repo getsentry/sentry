@@ -37,7 +37,7 @@ describe('useLogsTimeseriesRequest', () => {
   });
 
   it.each([false, true])(
-    'deduplicates pipelines and adds a raw count with the feature enabled=%s',
+    'deduplicates transformations and adds a raw count with the feature enabled=%s',
     enabled => {
       const {result} = renderHookWithProviders(
         () => useLogsTimeseriesRequest({enabled: true, timeseriesIngestDelay: 0n}),

@@ -3,7 +3,7 @@ from django.views.decorators.debug import sensitive_variables
 from sentry import options
 from sentry.agent_handoff.applications import get_handoff_application
 from sentry.agent_handoff.codes import consume_handoff
-from sentry.agent_handoff.flows import get_flow_instructions
+from sentry.agent_handoff.flows import HandoffMode, get_flow_instructions
 from sentry.agent_handoff.runbook import render_agent_runbook
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
@@ -17,9 +17,9 @@ from sentry.users.models.user import User
 
 
 @sensitive_variables()
-def claim_handoff(code: str) -> str | None:
+def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
     """Consume a handoff and render credentials after revalidating its authorization."""
-    handoff = consume_handoff(code)
+    handoff = consume_handoff(code, ip_address=ip_address)
     if handoff is None:
         return None
 
@@ -57,5 +57,10 @@ def claim_handoff(code: str) -> str | None:
         sentry_url=options.get("system.url-prefix"),
         client_id=application.client_id,
         setup_code=setup_code,
-        flow_instructions=get_flow_instructions(handoff),
+        flow_instructions=get_flow_instructions(
+            handoff.flow,
+            mode=HandoffMode.CLAIMED,
+            user_id=user.id,
+            organization_id=context.organization.id,
+        ),
     )
