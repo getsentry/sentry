@@ -1097,6 +1097,30 @@ describe('DropdownMenu', () => {
       expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toBeInTheDocument();
     });
 
+    it('updates a mounted item when its props change', async () => {
+      // Rows that did not change are not re-rendered while scrolling. A row whose
+      // item changed, such as a project that was just bookmarked, must still update.
+      const {rerender} = render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      scrollMenuTo(10);
+
+      rerender(
+        <DropdownMenu
+          triggerLabel="Menu"
+          items={manyItems.map(item =>
+            item.key === 'item-0' ? {...item, label: 'Item 0 (bookmarked)'} : item
+          )}
+        />
+      );
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Item 0 (bookmarked)'})
+      ).toBeInTheDocument();
+    });
+
     it('reaches items outside the window with the keyboard', async () => {
       render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
         wrapper: ThemeWrapper,

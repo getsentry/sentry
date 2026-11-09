@@ -35,7 +35,6 @@ import {
   flattenSections,
   useVirtualCollection,
   VirtualRows,
-  type VirtualCollection,
   type VirtualRowProps,
 } from '@sentry/scraps/useVirtualCollection';
 
@@ -121,19 +120,31 @@ interface DropdownMenuCollectionItemProps extends Omit<
   'collection' | 'separatorProps'
 > {
   node: Node<MenuItemProps>;
-  /** Measurement props for the item's row when the menu is virtualized. */
-  rowProps?: VirtualRowProps;
+  /**
+   * Measurement props for the item's row when the menu is virtualized, passed
+   * as separate values rather than a `VirtualRowProps` object. The virtualizer
+   * builds a new object on every scroll, which would re-render every mounted
+   * row. With stable values, a row that did not change is not re-rendered.
+   */
+  rowIndex?: number;
+  rowRef?: VirtualRowProps['ref'];
 }
 
 function DropdownMenuCollectionItem({
   node,
-  rowProps,
+  rowIndex,
+  rowRef,
   closeOnSelect,
   disableTextSelection,
   onClose,
   size,
   state,
 }: DropdownMenuCollectionItemProps): React.ReactNode {
+  const rowProps: VirtualRowProps | undefined =
+    rowIndex === undefined || rowRef === undefined
+      ? undefined
+      : {'data-index': rowIndex, ref: rowRef};
+
   if (node.value?.submenu) {
     if (!node.value.children) {
       return null;
@@ -183,7 +194,15 @@ function DropdownMenuSeparator({
 }
 
 interface DropdownMenuRowsProps extends DropdownMenuCollectionProps {
-  virtual: VirtualCollection<MenuItemProps>;
+  /** Whether the menu's width has been locked, see `onLockWidth`. */
+  isWidthLocked: boolean;
+  /** The menu's scroll element. */
+  menuRef: React.RefObject<HTMLUListElement | null>;
+  /** Called once with the width to keep for a virtualized menu. */
+  onLockWidth: (width: number) => void;
+  virtualized: boolean;
+  /** A row to keep mounted, so the menu's width fits it. */
+  widestKey: Key | undefined;
 }
 
 /**
@@ -196,11 +215,53 @@ interface DropdownMenuRowsProps extends DropdownMenuCollectionProps {
  * after a section, so it is part of the virtualized scroll offsets.
  */
 function DropdownMenuRows({
-  virtual,
   collection,
   separatorProps,
+  isWidthLocked,
+  menuRef,
+  onLockWidth,
+  virtualized,
+  widestKey,
   ...itemProps
 }: DropdownMenuRowsProps) {
+  const theme = useTheme();
+  // The virtualizer re-renders the component that calls it on every scroll.
+  // Calling it here, rather than in `DropdownMenuList`, keeps those re-renders
+  // to the rows: the list's state and handlers keep their identity, so a row
+  // that did not change is not re-rendered.
+  const virtual = useVirtualCollection({
+    collection,
+    enabled: virtualized,
+    size: itemProps.size ?? 'md',
+    scrollRef: menuRef,
+    focusedKey: itemProps.state.selectionManager.focusedKey,
+    widestKey,
+    // The space items in a section get from `spaceAbove`.
+    sectionRowSpace: parseFloat(theme.space[SECTION_ITEM_SPACE]),
+  });
+
+  // A virtualized menu only mounts some of its rows, so its natural width would
+  // change as rows scroll in and out. Measure it once, when the `widestKey` row
+  // has mounted, and keep that width until the menu closes, including while a
+  // search filters the items. A label that does not fit is truncated.
+  //
+  // The virtualizer mounts no rows on its first render, so measuring earlier
+  // would lock the width of an empty list. Measure the rows' own width
+  // (`max-content`) rather than the menu's current one, which its container
+  // may still be squeezing before the overlay is positioned.
+  const isWidestRowMounted = virtual.rows.some(row => row.node.key === widestKey);
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (!virtualized || !isWidestRowMounted || isWidthLocked || !menu) {
+      return;
+    }
+    const {width} = menu.style;
+    menu.style.width = 'max-content';
+    // Round up, so a fractional width does not cut off the widest label.
+    onLockWidth(Math.ceil(menu.getBoundingClientRect().width));
+    menu.style.width = width;
+  }, [virtualized, isWidestRowMounted, isWidthLocked, menuRef, onLockWidth]);
+
   const itemsAfterSections = useMemo(
     () =>
       new Set(
@@ -223,7 +284,12 @@ function DropdownMenuRows({
             </SectionList>
           </SectionGroup>
         ) : (
-          <DropdownMenuCollectionItem node={node} rowProps={props} {...itemProps} />
+          <DropdownMenuCollectionItem
+            node={node}
+            rowIndex={props?.['data-index']}
+            rowRef={props?.ref}
+            {...itemProps}
+          />
         )
       }
       renderSection={(section, rows) => (
@@ -306,39 +372,8 @@ function DropdownMenuList({
         : undefined,
     [items, virtualized]
   );
-  const virtual = useVirtualCollection({
-    collection: stateCollection,
-    enabled: virtualized,
-    size: size ?? 'md',
-    scrollRef: menuRef,
-    focusedKey: state.selectionManager.focusedKey,
-    widestKey,
-    // The space items in a section get from `spaceAbove`.
-    sectionRowSpace: parseFloat(theme.space[SECTION_ITEM_SPACE]),
-  });
-
-  // A virtualized menu only mounts some of its rows, so its natural width would
-  // change as rows scroll in and out. Measure it once, when the `widestKey` row
-  // has mounted, and keep that width until the menu closes, including while a
-  // search filters the items. A label that does not fit is truncated.
-  //
-  // The virtualizer mounts no rows on its first render, so measuring earlier
-  // would lock the width of an empty list. Measure the rows' own width
-  // (`max-content`) rather than the menu's current one, which its container
-  // may still be squeezing before the overlay is positioned.
-  const isWidestRowMounted = virtual.rows.some(row => row.node.key === widestKey);
+  // The width a virtualized menu keeps until it closes, see `DropdownMenuRows`.
   const [lockedWidth, setLockedWidth] = useState<number>();
-  useLayoutEffect(() => {
-    const menu = menuRef.current;
-    if (!virtualized || !isWidestRowMounted || lockedWidth !== undefined || !menu) {
-      return;
-    }
-    const {width} = menu.style;
-    menu.style.width = 'max-content';
-    // Round up, so a fractional width does not cut off the widest label.
-    setLockedWidth(Math.ceil(menu.getBoundingClientRect().width));
-    menu.style.width = width;
-  }, [virtualized, isWidestRowMounted, lockedWidth]);
 
   /**
    * Moves focus to an item by key. Items outside a virtualized window are not
@@ -523,8 +558,12 @@ function DropdownMenuList({
                 >
                   <ReserveLeadingSlot reserve={hasLeadingItems}>
                     <DropdownMenuRows
-                      virtual={virtual}
                       collection={stateCollection}
+                      isWidthLocked={lockedWidth !== undefined}
+                      menuRef={menuRef}
+                      onLockWidth={setLockedWidth}
+                      virtualized={virtualized}
+                      widestKey={widestKey}
                       closeOnSelect={closeOnSelect}
                       disableTextSelection={disableTextSelection}
                       onClose={onClose}
