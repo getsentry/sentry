@@ -508,21 +508,16 @@ export function SeerExplorerContent({
 
   const showReauth = isReauthPending && isReauthEnabled(organization);
 
-  // A send refused for credits gets the credits notice, not the generic error. Once
-  // the recheck agrees, the notice above the composer covers it.
-  const requestErrorAlert = requestError?.isOutOfCredits ? (
-    isOutOfCredits ? null : (
-      <Container padding="0 xl" data-test-id="seer-explorer-send-out-of-credits">
-        <SeerOutOfCreditsCta reason="agent-chat" />
+  // A send refused for credits shows no error of its own. The recheck brings up the
+  // credits notice above the composer instead.
+  const requestErrorAlert =
+    requestError && !requestError.isOutOfCredits ? (
+      <Container padding="0 xl">
+        <Alert variant="danger">
+          <Text>{t('There was an error sending your message, wait and try again.')}</Text>
+        </Alert>
       </Container>
-    )
-  ) : requestError ? (
-    <Container padding="0 xl">
-      <Alert variant="danger">
-        <Text>{t('There was an error sending your message, wait and try again.')}</Text>
-      </Alert>
-    </Container>
-  ) : null;
+    ) : null;
 
   // - Topbar, menu, and slash command handlers -------------------------------
   const copySessionEnabled = runId !== null && !!organization?.slug;
