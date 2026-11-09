@@ -407,7 +407,7 @@ def check_field_cardinality(
     max_cardinality: int,
     is_task: bool = False,
     widget_query: DashboardWidgetQuery | None = None,
-) -> dict[str, str]:
+) -> dict[str, bool]:
     if not features.has("organizations:on-demand-metrics-extraction-widgets", organization):
         return {}
 
