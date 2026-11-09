@@ -441,6 +441,8 @@ class WorkflowEngineExamples:
                                 "intervalSeconds": 60,
                                 "timeoutMs": 5000,
                                 "traceSampling": False,
+                                "responseCaptureEnabled": True,
+                                "assertion": None,
                             },
                         }
                     ],

@@ -12,6 +12,7 @@ from django.db.models import Count
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import NumericId, Slug, hex_id, numeric_id, slug
 from sentry.app import env
 from sentry.auth.access import (
     Access,
@@ -141,8 +142,8 @@ class _TeamSerializerResponseOptional(TypedDict, total=False):
 
 
 class BaseTeamSerializerResponse(TypedDict):
-    id: Annotated[str, ApiDescription("Team ID")]
-    slug: Annotated[str, ApiDescription("Team slug, unique within the organization")]
+    id: Annotated[NumericId, ApiDescription("Team ID")]
+    slug: Annotated[Slug, ApiDescription("Team slug, unique within the organization")]
     name: Annotated[str, ApiDescription("Display name of the team")]
     dateCreated: Annotated[datetime | None, ApiDescription("When the team was created (ISO 8601)")]
     isMember: Annotated[bool, ApiDescription("Whether the requesting user is a member of the team")]
@@ -326,15 +327,15 @@ class BaseTeamSerializer(Serializer):
             is_upload = avatar_obj.get_avatar_type_display() == "upload"
             avatar: SerializedAvatarFields = {
                 "avatarType": avatar_obj.get_avatar_type_display(),
-                "avatarUuid": avatar_obj.ident if is_upload else None,
+                "avatarUuid": hex_id(avatar_obj.ident) if is_upload else None,
                 "avatarUrl": avatar_obj.absolute_url() if is_upload else None,
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
 
         return {
-            "id": str(obj.id),
-            "slug": obj.slug,
+            "id": numeric_id(obj.id),
+            "slug": slug(obj.slug),
             "name": obj.name,
             "dateCreated": obj.date_added,
             "isMember": attrs["is_member"],

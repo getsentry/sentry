@@ -132,7 +132,9 @@ class GroupTagValue(TagType):
 
 
 class TagKeySerializerResponseOptional(TypedDict, total=False):
-    uniqueValues: int | None
+    uniqueValues: Annotated[
+        int | None, ApiDescription("Number of distinct values seen for the tag key")
+    ]
     totalValues: Annotated[
         int | None,
         ApiDescription(
@@ -147,8 +149,10 @@ class TagKeySerializerResponseOptional(TypedDict, total=False):
 
 
 class TagKeySerializerResponse(TagKeySerializerResponseOptional):
-    key: str
-    name: str
+    key: Annotated[
+        str, ApiDescription("Tag key, with the `sentry:` prefix removed from built-in keys")
+    ]
+    name: Annotated[str, ApiDescription("Display label of the tag key")]
 
 
 @register(GroupTagKey)
@@ -177,17 +181,37 @@ class TagKeySerializer(Serializer[TagKeySerializerResponse]):
 
 
 class TagValueSerializerResponseOptional(TypedDict, total=False):
-    query: str | None
+    query: Annotated[
+        str | None,
+        ApiDescription(
+            "Search query that matches events with the tag value. Only set for the user tag"
+        ),
+    ]
 
 
 class TagValueSerializerResponse(TagValueSerializerResponseOptional):
-    key: str
-    name: str | None
-    value: str | None
+    key: Annotated[
+        str, ApiDescription("Tag key, with the `sentry:` prefix removed from built-in keys")
+    ]
+    name: Annotated[
+        str | None,
+        ApiDescription(
+            "Display label of the tag value. For the user tag, the `id:`, `email:`, `username:` or `ip:` prefix is removed"
+        ),
+    ]
+    value: Annotated[str | None, ApiDescription("Tag value")]
     # Empty values do not have counts, last seen or first seen timestamps.
-    count: int | None
-    lastSeen: datetime | None
-    firstSeen: datetime | None
+    count: Annotated[
+        int | None, ApiDescription("Number of events with the tag value. Null for an empty value")
+    ]
+    lastSeen: Annotated[
+        datetime | None,
+        ApiDescription("When the tag value was last seen (ISO 8601). Null for an empty value"),
+    ]
+    firstSeen: Annotated[
+        datetime | None,
+        ApiDescription("When the tag value was first seen (ISO 8601). Null for an empty value"),
+    ]
 
 
 @register(GroupTagValue)

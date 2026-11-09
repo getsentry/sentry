@@ -1,7 +1,8 @@
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.workflow_engine.generated_schema_types import ActionConfigResponse
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
 
@@ -11,7 +12,7 @@ class ActionSerializerResponse(TypedDict):
     type: str
     integrationId: str | None
     data: dict[str, Any]
-    config: dict[str, Any]
+    config: ActionConfigResponse
     status: str
 
 
@@ -33,6 +34,8 @@ class ActionSerializer(Serializer[ActionSerializerResponse]):
             "type": obj.type,
             "integrationId": str(obj.integration_id) if obj.integration_id else None,
             "data": action_handler.serialize_data(obj.data),
-            "config": convert_dict_key_case(config, snake_to_camel_case),
+            "config": cast(
+                ActionConfigResponse, convert_dict_key_case(config, snake_to_camel_case)
+            ),
             "status": obj.get_status_display(),
         }

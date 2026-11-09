@@ -36,6 +36,7 @@ from sentry.snuba.tasks import (
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
     recheck_broken_subscription,
+    schedule_broken_subscription_rechecks,
     subscription_checker,
     update_subscription_in_snuba,
 )
@@ -1451,3 +1452,30 @@ class RecheckBrokenSubscriptionTest(TestCase):
         sub.refresh_from_db()
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         self.metrics.incr.assert_not_called()
+
+
+class ScheduleBrokenSubscriptionRechecksTest(TestCase):
+    @patch("sentry.snuba.tasks.recheck_broken_subscription")
+    def test_dispatches_broken(self, mock_recheck: Mock) -> None:
+        snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset=Dataset.Events.value,
+            aggregate="count()",
+            query="hello",
+            time_window=60,
+            resolution=60,
+        )
+        broken = QuerySubscription.objects.create(
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.BROKEN.value,
+            project=self.project,
+            type="something",
+        )
+        QuerySubscription.objects.create(
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
+            project=self.project,
+            type="something",
+        )
+        schedule_broken_subscription_rechecks()
+        mock_recheck.delay.assert_called_once_with(broken.id)

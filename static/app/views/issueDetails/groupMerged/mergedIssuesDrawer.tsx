@@ -1,14 +1,9 @@
-import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {DrawerHeader} from '@sentry/scraps/drawer';
 
 import {
-  CrumbContainer,
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
-  EventNavigator,
-  Header,
-  NavigationCrumbs,
-  ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -18,24 +13,13 @@ import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
 export function MergedIssuesDrawer({group, project}: {group: Group; project: Project}) {
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: t('Merged Issues')},
-          ]}
+      <DrawerHeader>
+        <DrawerBreadcrumbs
+          current={{
+            label: t('Merged Issues'),
+          }}
         />
-      </EventDrawerHeader>
-      <EventNavigator>
-        <Header>{t('Merged Issues')}</Header>
-      </EventNavigator>
+      </DrawerHeader>
       <EventDrawerBody>
         <GroupMergedView project={project} groupId={group.id} />
       </EventDrawerBody>

@@ -17,10 +17,12 @@ from sentry.api.serializers.release_details_types import (
     LastDeploy,
     NonMappableUser,
     VersionInfo,
+    VersionInfoVersion,
 )
 from sentry.api.serializers.release_details_types import Project as SerializedProject
 from sentry.api.serializers.types import (
     GroupEventReleaseSerializerResponse,
+    ReleaseCurrentProjectMetaResponse,
     ReleaseSerializerResponse,
 )
 from sentry.auth.principal import RequestPrincipal
@@ -44,6 +46,7 @@ from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
+    from sentry.api.serializers.models.commit import CommitSerializerResponse
     from sentry.tagstore.types import TagValue
 
 
@@ -60,7 +63,7 @@ def expose_version_info(info: Mapping[str, object] | None) -> VersionInfo | None
     if info is None:
         return None
     version_parsed = cast("_ParsedVersion | None", info["version_parsed"])
-    version: dict[str, object] = {"raw": info["version_raw"]}
+    version: VersionInfoVersion = {"raw": cast(str, info["version_raw"])}
     if version_parsed:
         version.update(
             {
@@ -120,8 +123,10 @@ def _expose_project(project: _ProjectDict) -> SerializedProject:
     return rv
 
 
-def _expose_current_project_meta(current_project_meta: dict[str, object]) -> dict[str, object]:
-    rv: dict[str, object] = {}
+def _expose_current_project_meta(
+    current_project_meta: Mapping[str, Any],
+) -> ReleaseCurrentProjectMetaResponse:
+    rv: ReleaseCurrentProjectMetaResponse = {}
     if "sessions_lower_bound" in current_project_meta:
         rv["sessionsLowerBound"] = current_project_meta["sessions_lower_bound"]
     if "sessions_upper_bound" in current_project_meta:
@@ -441,14 +446,14 @@ def get_users_for_authors(
 
 
 class _ReleaseAttrs(TypedDict):
-    owner: dict[str, object] | None
+    owner: UserSerializerResponse | None
     new_groups: int
     projects: list[_ProjectDict]
     first_seen: datetime.datetime | None
     last_seen: datetime.datetime | None
     adoption_stages: NotRequired[dict[str, AdoptionStage] | None]
     authors: NotRequired[list[Author]]
-    last_commit: NotRequired[dict[str, object] | None]
+    last_commit: NotRequired[CommitSerializerResponse | None]
     last_deploy: NotRequired[LastDeploy | None]
 
 
@@ -660,7 +665,7 @@ class ReleaseSerializer(Serializer):
                 issue_counts_by_release,
             ) = self.__get_release_data_with_environments(release_project_envs)
 
-        owners: dict[str, object] = {}
+        owners: dict[str, UserSerializerResponse] = {}
         owner_ids = [i.owner_id for i in item_list if i.owner_id]
         if owner_ids:
             owners = {
@@ -803,7 +808,7 @@ class ReleaseSerializer(Serializer):
             "firstEvent": typed_attrs["first_seen"],
             "lastEvent": typed_attrs["last_seen"],
             "currentProjectMeta": _expose_current_project_meta(
-                cast(dict[str, object], kwargs.get("current_project_meta", {}))
+                cast(Mapping[str, Any], kwargs.get("current_project_meta", {}))
             ),
             "userAgent": obj.user_agent,
         }
@@ -854,7 +859,7 @@ class GroupEventReleaseSerializer(Serializer):
             "dateReleased": obj.date_released,
             "deployCount": cast(int, obj.total_deploys),
             "ref": obj.ref,
-            "lastCommit": cast(dict[str, object] | None, attrs.get("last_commit")),
+            "lastCommit": cast("CommitSerializerResponse | None", attrs.get("last_commit")),
             "lastDeploy": cast(LastDeploy | None, attrs.get("last_deploy")),
             "status": ReleaseStatus.to_string(obj.status),
             "url": obj.url,
