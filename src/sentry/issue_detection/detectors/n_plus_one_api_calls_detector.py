@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 from collections import defaultdict
 from datetime import timedelta
@@ -166,10 +165,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return
 
         if self.stored_problems.get(fingerprint):
-            logging.info(
-                "Multiple occurrences detected for fingerprint",
-                extra={"detector": self.settings_key},
-            )
+            self.duplicate_fingerprints += 1
             return
 
         offender_span_ids = [span["span_id"] for span in self.spans]

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import random
 from abc import ABC, abstractmethod
 from datetime import timedelta
@@ -67,6 +68,8 @@ class PerformanceDetector(ABC):
         self._event = event
         self.stored_problems: dict[str, PerformanceProblem] = {}
         self.detector_id = detector_id
+        # Problems skipped because an earlier one in this event had the same fingerprint.
+        self.duplicate_fingerprints = 0
 
     def find_span_prefix(self, settings: dict[str, Any], span_op: str) -> str | bool:
         allowed_span_ops = settings.get("allowed_span_ops", [])
@@ -98,6 +101,14 @@ class PerformanceDetector(ABC):
 
     def on_complete(self) -> None:
         pass
+
+    def log_duplicate_fingerprints(self) -> None:
+        """Log, once per event, how many problems repeated an earlier problem's fingerprint."""
+        if self.duplicate_fingerprints:
+            logging.info(
+                "Multiple occurrences detected for fingerprint",
+                extra={"detector": self.settings_key, "occurrences": self.duplicate_fingerprints},
+            )
 
     @classmethod
     def is_detection_allowed_for_system(cls) -> bool:
