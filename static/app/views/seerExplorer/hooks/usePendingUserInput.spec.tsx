@@ -1,10 +1,11 @@
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {
   PendingUserInput,
   RespondToUserInputOptions,
 } from 'sentry/views/seerExplorer/types';
+
+import {usePendingUserInput} from './usePendingUserInput';
 
 function makeFileApproval(id: string, patchCount: number): PendingUserInput {
   return {

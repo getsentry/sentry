@@ -3,8 +3,8 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
+import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {featureFlag} from './featureFlag';
 import {logs} from './logs';

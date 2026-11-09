@@ -6,6 +6,7 @@ from jwt import (
     InvalidAlgorithmError,
     InvalidKeyError,
     InvalidSignatureError,
+    MissingRequiredClaimError,
 )
 from rest_framework import status
 from rest_framework.request import Request
@@ -38,7 +39,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
     Webhook hit by Jira whenever someone installs the Sentry integration in their Jira instance.
     """
 
-    def post(self, request: Request, *args, **kwargs) -> Response:
+    def post(self, request: Request, *args: object, **kwargs: object) -> Response:
         with IntegrationPipelineViewEvent(
             interaction_type=IntegrationPipelineViewType.VERIFY_INSTALLATION,
             domain=IntegrationDomain.PROJECT_MANAGEMENT,
@@ -94,6 +95,11 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 lifecycle.record_halt(halt_reason="JWT signed with unexpected algorithm")
                 return self.respond(
                     {"detail": "Invalid algorithm"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            except MissingRequiredClaimError:
+                lifecycle.record_halt(halt_reason="JWT is missing required claim")
+                return self.respond(
+                    {"detail": "Missing required claim"}, status=status.HTTP_400_BAD_REQUEST
                 )
             except DecodeError:
                 lifecycle.record_halt(halt_reason="Could not decode JWT token")

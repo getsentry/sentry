@@ -1,4 +1,5 @@
 import logging
+from typing import TypedDict
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -11,29 +12,30 @@ from sentry.tasks.beacon import send_beacon_metric
 
 logger = logging.getLogger(__name__)
 
-# These is an arbitrarily picked limit for both the # of batched metrics supported,
-# as well as the size of the dict for each metric
-MAX_LENGTH = 20
+MAX_BATCH_METRIC_COUNT = 20
+MAX_FIELDS_PER_METRIC = 20
 
 
-class MetricsSerializer(serializers.Serializer):
+class _MetricsData(TypedDict):
+    batch_data: list[dict[str, str]]
+
+
+class MetricsSerializer(serializers.Serializer[None, _MetricsData]):
     batch_data = serializers.ListField(
         child=serializers.DictField(
-            # This is intentionally a bit restrictive to limit the size of payloads (and abuse)
-            # These metrics should not be sending complex payloads anyway
             child=serializers.CharField(max_length=1024),
             allow_empty=False,
         ),
-        max_length=MAX_LENGTH,
+        max_length=MAX_BATCH_METRIC_COUNT,
     )
 
-    def validate(self, attrs):
+    def validate(self, attrs: _MetricsData) -> _MetricsData:
         attrs = super().validate(attrs)
 
-        for metric in attrs.get("batch_data"):
-            if len(metric) > MAX_LENGTH:
+        for metric in attrs["batch_data"]:
+            if len(metric) > MAX_FIELDS_PER_METRIC:
                 raise serializers.ValidationError(
-                    {"batch_data": f"Dict size must be less than {MAX_LENGTH}"}
+                    {"batch_data": f"Dict size must be less than {MAX_FIELDS_PER_METRIC}"}
                 )
         return attrs
 

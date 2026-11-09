@@ -1,13 +1,14 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack, Grid} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -21,16 +22,14 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
-import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
-import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
-import {MessageType} from 'sentry/views/settings/project/tempest/types';
-import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
+import {useFetchTempestCredentials} from './hooks/useFetchTempestCredentials';
+import {useHasTempestWriteAccess} from './utils/access';
+import {AddCredentialsButton} from './addCredentialsButton';
+import {ConfigForm} from './configForm';
 import {CredentialRow} from './CredentialRow';
 import {EmptyState} from './EmptyState';
+import {MessageType} from './types';
 
 interface Props {
   organization: Organization;
@@ -47,8 +46,10 @@ const CREDENTIAL_COLUMNS: TableColumnConfig[] = [
 
 export function PlayStationSettings({organization, project}: Props) {
   const hasWriteAccess = useHasTempestWriteAccess(project);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [setupInstructions, setSetupInstructions] = useQueryState(
+    'setupInstructions',
+    parseAsBoolean
+  );
 
   const {
     data: tempestCredentials,
@@ -76,7 +77,7 @@ export function PlayStationSettings({organization, project}: Props) {
         ),
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Removed the credentials.'));
+      toast.success(t('Removed the credentials.'));
       trackAnalytics('tempest.credentials.removed', {
         organization,
         project_slug: project.slug,
@@ -86,7 +87,7 @@ export function PlayStationSettings({organization, project}: Props) {
     onError: error => {
       const message = t('Failed to remove the credentials.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -107,7 +108,7 @@ export function PlayStationSettings({organization, project}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credentialErrors]);
 
-  const isSetupInstructionsOpen = location.query.setupInstructions === 'true';
+  const isSetupInstructionsOpen = setupInstructions ?? false;
   const hasCredentials = (tempestCredentials ?? []).length > 0;
   const showEmptyState = isSetupInstructionsOpen || !hasCredentials;
 
@@ -139,12 +140,7 @@ export function PlayStationSettings({organization, project}: Props) {
               <Button
                 size="sm"
                 onClick={() => {
-                  navigate({
-                    query: {
-                      ...location.query,
-                      setupInstructions: !isSetupInstructionsOpen,
-                    },
-                  });
+                  setSetupInstructions(!isSetupInstructionsOpen, {history: 'push'});
                 }}
               >
                 {isSetupInstructionsOpen

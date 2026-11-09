@@ -3,26 +3,29 @@ import {useTheme} from '@emotion/react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
+import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
+import {parseJsonWithFix} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
+
 import {
   detectAIContentType,
   parseXmlTagSegments,
   preprocessInlineXmlTags,
   tryParsePythonDict,
-} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
-import {fenceContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentFencing';
-import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
-import {parseJsonWithFix} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
+} from './aiContentDetection';
+import {fenceContent} from './aiContentFencing';
 
 // Sensible defaults for JSON embedded in a larger message, distinct from a
 // whole-message JSON payload (which threads its own depth/collapse settings).
 const EMBEDDED_JSON_MAX_DEPTH = 2;
 const EMBEDDED_JSON_AUTO_COLLAPSE_LIMIT = 5;
+
+const HEADING_SIZES = ['md', 'md', 'sm', 'sm', 'xs', 'xs'] as const;
 
 const STRUCTURED_DATA_CONFIG = {
   isString: (v: unknown) => typeof v === 'string',
@@ -88,6 +91,11 @@ const markdownComponents: MarkdownProps['components'] = {
     }
     return <Default lang={lang}>{children}</Default>;
   },
+  Heading: ({children, level}) => (
+    <Heading as={`h${level}`} size={HEADING_SIZES[level - 1]}>
+      {children}
+    </Heading>
+  ),
 };
 
 /** Fences raw AI content and renders it. Memoized since fencing scans the whole string. */

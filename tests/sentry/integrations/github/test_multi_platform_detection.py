@@ -459,7 +459,7 @@ def _make_client(
     client = mock.MagicMock()
     client.get_languages.return_value = languages
 
-    def get_side_effect(path: str, params: dict | None = None) -> Any:
+    def get_side_effect(path: str, params: dict[str, Any] | None = None) -> Any:
         if "/git/trees/" in path:
             return {"tree": tree, "truncated": truncated}
         raise ApiError("Not Found", code=404)
@@ -679,7 +679,7 @@ class TestDetectPlatformsMultiConcurrency:
         client = mock.MagicMock()
         client.get_languages.return_value = {"Python": 80_000}
 
-        def get_side_effect(path: str, params: dict | None = None) -> Any:
+        def get_side_effect(path: str, params: dict[str, Any] | None = None) -> Any:
             if "/git/trees/" in path:
                 return {"tree": tree, "truncated": False}
             raise ApiError("Not Found", code=404)

@@ -5,6 +5,9 @@ import type {
   PrebuiltWidget,
   PrebuiltDashboard,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
 import {
   APP_START_TABLE_CONDITION,
   AVG_COLD_START,
@@ -18,13 +21,8 @@ import {
   TTFD_CONDITION,
   TTID_CONDITION,
   WARM_START_CONDITION,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
-import {
-  DASHBOARD_DESCRIPTION,
-  DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+} from './constants';
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE} from './settings';
 
 const COLD_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'cold-start-big-number',

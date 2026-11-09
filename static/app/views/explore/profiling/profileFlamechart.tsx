@@ -1,5 +1,4 @@
 import {useEffect, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 import type * as qs from 'query-string';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -26,8 +25,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
 
+import {ProfileGroupProvider} from './profileGroupProvider';
 import {useProfiles, useProfileTransaction} from './profilesProvider';
 
 function ProfileFlamegraph(): React.ReactElement {
@@ -114,14 +113,14 @@ export default function ProfileFlamegraphWrapper() {
           <FlamegraphThemeProvider>
             <FlamegraphStateQueryParamSync />
             <FlamegraphStateLocalStorageSync />
-            <FlamegraphContainer>
+            <Stack flex="1 1 100%">
               {profiles.type === 'loading' || transactionResult.isLoading ? (
                 <Stack justify="center" width="100%" height="100%" position="absolute">
                   <LoadingIndicator />
                 </Stack>
               ) : null}
               <ProfileFlamegraph />
-            </FlamegraphContainer>
+            </Stack>
           </FlamegraphThemeProvider>
         </ProfileGroupTypeProvider>
       </FlamegraphStateProvider>
@@ -153,9 +152,3 @@ function ProfileGroupTypeProvider({
     </ProfileGroupProvider>
   );
 }
-
-const FlamegraphContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
-`;

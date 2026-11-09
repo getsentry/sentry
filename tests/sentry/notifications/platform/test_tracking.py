@@ -8,14 +8,19 @@ from sentry.analytics.events.notification_tracking import (
     NotificationTrackingEngagementEvent,
     NotificationTrackingSentEvent,
 )
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.tracking import (
+    _LEGACY_ALERT_REFERRERS,
+    _LEGACY_METRICS_KEY_SOURCES,
     NotificationEngagementMechanism,
     NotificationLink,
     NotificationLinkDecorator,
+    NotificationReferrer,
     NotificationTrackingContext,
     classify_link,
     is_tracking_enabled,
+    parse_referrer,
     record_engagement,
     record_sent,
 )
@@ -107,22 +112,9 @@ class RecordSentTest(TestCase):
                 source="activity-seer-rca-completed",
                 category="activity",
                 provider="email",
-                stage=None,
                 links=["issue", "seer"],
             ),
         )
-
-    @override_options(ENABLED_OPTIONS)
-    def test_stage_tag(self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock) -> None:
-        record_sent(replace(CONTEXT, stage="root_cause"))
-
-        tags = {
-            "source": "activity-seer-rca-completed",
-            "provider": "email",
-            "category": "activity",
-            "stage": "root_cause",
-        }
-        mock_incr.assert_called_once_with("notifications.tracking.sent", tags=tags, sample_rate=1.0)
 
     def test_disabled(self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock) -> None:
         record_sent(CONTEXT, links=["issue"])
@@ -177,7 +169,6 @@ class RecordEngagementTest(TestCase):
                 source="activity-seer-rca-completed",
                 category="activity",
                 provider="email",
-                stage=None,
                 link="issue",
                 mechanism="page_load",
                 user_id=2,
@@ -250,7 +241,7 @@ class RecordEngagementTest(TestCase):
             NotificationLink.SEER_AGENT_RUN,
         ),
         (
-            "https://acme.sentry.io/explore/investigations/1/",
+            "https://acme.sentry.io/seer/investigations/1/",
             NotificationLink.INVESTIGATION,
         ),
     ],
@@ -274,6 +265,97 @@ def test_classify_link_logs_unclassified_sentry_pages(url: str) -> None:
     mock_logger.error.assert_called_once_with(
         "notifications.tracking.unclassified_link", extra={"path": "/dashboards/1/"}
     )
+
+
+@pytest.mark.parametrize(
+    ("referrer", "expected"),
+    [
+        (
+            "activity-seer-rca-completed-email",
+            NotificationReferrer(
+                NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
+                NotificationCategory.ACTIVITY,
+                ExternalProviderEnum.EMAIL,
+            ),
+        ),
+        (
+            "metric-alert-slack_staging",
+            NotificationReferrer(
+                NotificationSource.METRIC_ALERT,
+                NotificationCategory.METRIC_ALERT,
+                ExternalProviderEnum.SLACK_STAGING,
+            ),
+        ),
+        (
+            "slack",
+            NotificationReferrer(
+                NotificationSource.ISSUE, NotificationCategory.ISSUE, ExternalProviderEnum.SLACK
+            ),
+        ),
+        (
+            "alert_email",
+            NotificationReferrer(
+                NotificationSource.ISSUE, NotificationCategory.ISSUE, ExternalProviderEnum.EMAIL
+            ),
+        ),
+        (
+            "metric_alert_msteams",
+            NotificationReferrer(
+                NotificationSource.METRIC_ALERT,
+                NotificationCategory.METRIC_ALERT,
+                ExternalProviderEnum.MSTEAMS,
+            ),
+        ),
+        (
+            "issue_alert-email",
+            NotificationReferrer(
+                NotificationSource.ISSUE, NotificationCategory.ISSUE, ExternalProviderEnum.EMAIL
+            ),
+        ),
+        (
+            "assigned_activity-slack-user",
+            NotificationReferrer(
+                NotificationSource.ACTIVITY_ASSIGNED,
+                NotificationCategory.ACTIVITY,
+                ExternalProviderEnum.SLACK,
+            ),
+        ),
+        (
+            "release_activity-email-team",
+            NotificationReferrer(
+                NotificationSource.DEPLOY_RELEASE,
+                NotificationCategory.DEPLOY,
+                ExternalProviderEnum.EMAIL,
+            ),
+        ),
+    ],
+)
+def test_parse_referrer(referrer: str, expected: NotificationReferrer) -> None:
+    assert parse_referrer(referrer) == expected
+
+
+@pytest.mark.parametrize(
+    "referrer",
+    [
+        "",
+        "activity_notification",
+        "unknown-source-email",
+        "metric-alert-carrier",
+        "metric_alert_carrier",
+        "assigned_activity-carrier-user",
+        "regression_activity",
+        "resolved_in_pull_request_activity-slack",
+    ],
+)
+def test_parse_referrer_unrecognized(referrer: str) -> None:
+    assert parse_referrer(referrer) is None
+
+
+def test_parse_referrer_recognizes_every_legacy_referrer() -> None:
+    for metrics_key in _LEGACY_METRICS_KEY_SOURCES:
+        assert parse_referrer(f"{metrics_key}-email") is not None, metrics_key
+    for referrer in _LEGACY_ALERT_REFERRERS:
+        assert parse_referrer(referrer) is not None, referrer
 
 
 class RegisteredTemplateLinksTest(TestCase):

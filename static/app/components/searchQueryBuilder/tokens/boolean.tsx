@@ -8,20 +8,13 @@ import type {Node} from '@react-types/shared';
 import {IconClose} from '@sentry/icons/close';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
-import {
-  BaseGridCell,
-  FilterWrapper,
-} from 'sentry/components/searchQueryBuilder/tokens/components';
-import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
-import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import type {
   ParseResultToken,
   Token,
@@ -29,6 +22,11 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+
+import {UnstyledButton} from './filter/unstyledButton';
+import {useFilterButtonProps} from './filter/useFilterButtonProps';
+import {BaseGridCell, FilterWrapper} from './components';
+import {GridInvalidTokenTooltip} from './invalidTokenTooltip';
 
 type SearchQueryBuilderBooleanProps = {
   item: Node<ParseResultToken>;

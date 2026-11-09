@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {ConversationTrace} from 'sentry/views/explore/conversations/components/conversationTraceLink';
-import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
+import type {ConversationTrace} from './conversationTraceLink';
+import {ConversationTraceLink} from './conversationTraceLink';
 
 describe('ConversationTraceLink', () => {
   const organization = OrganizationFixture();
@@ -22,6 +22,20 @@ describe('ConversationTraceLink', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('links to all traces while loaded spans are incomplete', () => {
+    render(
+      <ConversationTraceLink
+        conversationId="conversation-1"
+        traces={makeTraces(1)}
+        hasMoreSpans
+      />,
+      {organization}
+    );
+
+    expect(screen.getByRole('link', {name: 'View all traces'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: '00000000'})).not.toBeInTheDocument();
   });
 
   it('links a single trace straight to the trace view', () => {

@@ -2,7 +2,7 @@
 source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "7eb77a6781dde25799f955a0b9f1aa77"
+  hash: "b1bcdf7355443041394a45279217c6c1"
   contributing component: exception
   hint: None
   root_component:
@@ -17,6 +17,11 @@ app:
               "main.mm"
             function*
               "main"
+          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            filename*
+              "main.mm"
+            function*
+              "-[UnityFramework runUIApplicationMainWithArgc:argv:]"
           frame (non app frame)
             function*
               "UIApplicationMain"
@@ -71,7 +76,7 @@ app:
           "Attempted to dereference null pointer."
 --------------------------------------------------------------------------
 system:
-  hash: "ebc0b0fd747d0339916308cc175666f7"
+  hash: "458a27b32da3cf5c5043160391caa919"
   contributing component: exception
   hint: None
   root_component:
@@ -86,6 +91,11 @@ system:
               "main.mm"
             function*
               "main"
+          frame*
+            filename*
+              "main.mm"
+            function*
+              "-[UnityFramework runUIApplicationMainWithArgc:argv:]"
           frame (ignored by built-in stacktrace rule (category:indirection -group))
             function*
               "UIApplicationMain"

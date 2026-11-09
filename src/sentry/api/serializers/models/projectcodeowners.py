@@ -1,6 +1,9 @@
 import logging
+from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import Annotated, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.projectownership import (
@@ -9,6 +12,7 @@ from sentry.api.serializers.models.projectownership import (
     OwnershipSchemaResponse,
 )
 from sentry.api.validators.project_codeowners import CodeOwnersErrors, build_codeowners_associations
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
     RepositoryProjectPathConfigSerializerResponse,
@@ -17,6 +21,8 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.issues.ownership.grammar import OwnershipSchema, convert_schema_to_rules_text
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -52,21 +58,55 @@ class EmptyOwnershipSchemaResponse(TypedDict):
 
 
 class ProjectCodeOwnersResponseOptional(TypedDict, total=False):
-    codeMapping: RepositoryProjectPathConfigSerializerResponse
-    ownershipSyntax: str
-    errors: CodeOwnersErrors
-    schema: OwnershipSchemaResponse | EmptyOwnershipSchemaResponse
-    codeOwnersUrl: str
+    codeMapping: Annotated[
+        RepositoryProjectPathConfigSerializerResponse,
+        ApiDescription(
+            "Code mapping of the CODEOWNERS file. Only set when expand includes codeMapping"
+        ),
+    ]
+    ownershipSyntax: Annotated[
+        str,
+        ApiDescription(
+            "CODEOWNERS rules translated to Sentry ownership rules. Only set when expand includes ownershipSyntax"
+        ),
+    ]
+    errors: Annotated[
+        CodeOwnersErrors,
+        ApiDescription(
+            "Owners that couldn't be associated, by reason. Only set when expand includes errors"
+        ),
+    ]
+    schema: Annotated[
+        OwnershipSchemaResponse | EmptyOwnershipSchemaResponse,
+        ApiDescription(
+            "Parsed rules of the CODEOWNERS file. Only set when expand includes hasTargetingContext"
+        ),
+    ]
+    codeOwnersUrl: Annotated[
+        str,
+        ApiDescription(
+            "URL of the CODEOWNERS file in the repository, or unknown. Only set when expand includes hasTargetingContext"
+        ),
+    ]
 
 
 class ProjectCodeOwnersResponse(ProjectCodeOwnersResponseOptional):
-    id: str
-    raw: str
-    dateCreated: datetime
-    dateUpdated: datetime
-    dateSynced: datetime | None
-    codeMappingId: str
-    provider: str
+    id: Annotated[str, ApiDescription("ID of the CODEOWNERS record")]
+    raw: Annotated[str, ApiDescription("Contents of the CODEOWNERS file")]
+    dateCreated: Annotated[
+        datetime, ApiDescription("When the CODEOWNERS file was added (ISO 8601)")
+    ]
+    dateUpdated: Annotated[datetime, ApiDescription("When the record was last updated (ISO 8601)")]
+    dateSynced: Annotated[
+        datetime | None,
+        ApiDescription(
+            "When the file was last synced from the repository (ISO 8601). Null when it was never synced"
+        ),
+    ]
+    codeMappingId: Annotated[str, ApiDescription("ID of the code mapping of the CODEOWNERS file")]
+    provider: Annotated[
+        str, ApiDescription("Provider of the repository's integration, such as github, or unknown")
+    ]
 
 
 DEFAULT_CODEOWNERS_EXPAND = ("errors", "hasTargetingContext")
@@ -76,12 +116,17 @@ DEFAULT_CODEOWNERS_EXPAND = ("errors", "hasTargetingContext")
 class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
     def __init__(
         self,
-        expand=None,
-    ):
+        expand: Collection[str] | None = None,
+    ) -> None:
         self.expand = expand or []
 
-    def get_attrs(self, item_list, user, **kwargs):
-        attrs = {}
+    def get_attrs(
+        self,
+        item_list: Sequence[ProjectCodeOwners],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[ProjectCodeOwners, dict[str, object]]:
+        attrs: dict[ProjectCodeOwners, dict[str, object]] = {}
         integrations = {
             i.id: i
             for i in integration_service.get_integrations(
@@ -120,7 +165,13 @@ class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
 
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs) -> ProjectCodeOwnersResponse:
+    def serialize(
+        self,
+        obj: ProjectCodeOwners,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ProjectCodeOwnersResponse:
         data: ProjectCodeOwnersResponse = {
             "id": str(obj.id),
             "raw": obj.raw,
@@ -128,7 +179,7 @@ class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
             "dateUpdated": obj.date_updated,
             "dateSynced": obj.date_synced,
             "codeMappingId": str(obj.repository_project_path_config_id),
-            "provider": attrs.get("provider", "unknown"),
+            "provider": cast(str, attrs.get("provider", "unknown")),
         }
 
         if "codeMapping" in self.expand:
@@ -153,6 +204,6 @@ class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
 
         if "hasTargetingContext" in self.expand:
             data["schema"] = _serialize_ownership_schema(obj.schema) if obj.schema else obj.schema
-            data["codeOwnersUrl"] = attrs.get("codeOwnersUrl", "unknown")
+            data["codeOwnersUrl"] = cast(str, attrs.get("codeOwnersUrl", "unknown"))
 
         return data

@@ -6,10 +6,10 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {readFileAsBase64} from 'sentry/utils/readFileAsBase64';
@@ -66,6 +66,7 @@ export function PolicyFormModal({
   initialVersion = '',
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chooseFileButtonRef = useRef<HTMLButtonElement>(null);
   const [isReadingFile, setIsReadingFile] = useState(false);
   const mutation = useMutation({
     mutationFn: fetchMutation<Policy | PolicyRevision>,
@@ -80,7 +81,7 @@ export function PolicyFormModal({
       ) {
         return;
       }
-      addErrorMessage('Unable to save the policy.');
+      toast.error('Unable to save the policy.');
     },
   });
   const form = useScrapsForm({
@@ -98,7 +99,7 @@ export function PolicyFormModal({
     validators: {onDynamic: isNewPolicy ? policySchema : revisionSchema},
     onSubmit: ({value}) => {
       if (isReadingFile) {
-        addErrorMessage('Please wait for the selected file to finish loading.');
+        toast.error('Please wait for the selected file to finish loading.');
         return;
       }
       return mutation
@@ -213,60 +214,69 @@ export function PolicyFormModal({
                 label="File"
                 hintText="Upload a PDF instead of entering a URL."
               >
-                <Flex align="center" gap="md">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf"
-                    hidden
-                    style={{display: 'none'}}
-                    onChange={event => {
-                      const file = event.target.files?.[0];
-                      if (!file) {
-                        field.handleChange(null);
-                        return;
-                      }
-                      setIsReadingFile(true);
-                      readFileAsBase64(
-                        file,
-                        content => {
-                          field.handleChange([file.name, content ?? '']);
-                          setIsReadingFile(false);
-                        },
-                        () => {
-                          setIsReadingFile(false);
-                          addErrorMessage('Unable to read the selected file.');
-                        }
-                      );
-                    }}
-                  />
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={mutation.isPending}
-                  >
-                    Choose File
-                  </Button>
-                  <Text variant="muted" ellipsis>
-                    {isReadingFile
-                      ? 'Reading file…'
-                      : (field.state.value?.[0] ?? 'No file selected')}
-                  </Text>
-                  {field.state.value && (
-                    <Button
-                      variant="transparent"
-                      size="xs"
-                      icon={<IconClose size="xs" aria-hidden />}
-                      aria-label="Remove file"
-                      disabled={mutation.isPending}
-                      onClick={() => {
-                        if (fileInputRef.current) {
-                          fileInputRef.current.value = '';
-                        }
-                        field.handleChange(null);
-                      }}
-                    />
+                <field.Base<HTMLButtonElement>
+                  ref={chooseFileButtonRef}
+                  disabled={mutation.isPending}
+                >
+                  {(baseProps, {indicator}) => (
+                    <Flex align="center" gap="md">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf"
+                        hidden
+                        disabled={baseProps.disabled}
+                        onChange={event => {
+                          const file = event.target.files?.[0];
+                          if (!file) {
+                            field.handleChange(null);
+                            return;
+                          }
+                          setIsReadingFile(true);
+                          readFileAsBase64(
+                            file,
+                            content => {
+                              field.handleChange([file.name, content ?? '']);
+                              setIsReadingFile(false);
+                            },
+                            () => {
+                              setIsReadingFile(false);
+                              toast.error('Unable to read the selected file.');
+                            }
+                          );
+                        }}
+                      />
+                      <Button
+                        {...baseProps}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Choose File
+                      </Button>
+                      <Text variant="muted" ellipsis>
+                        {isReadingFile
+                          ? 'Reading file…'
+                          : (field.state.value?.[0] ?? 'No file selected')}
+                      </Text>
+                      {field.state.value && (
+                        <Button
+                          variant="transparent"
+                          size="xs"
+                          icon={<IconClose size="xs" aria-hidden />}
+                          aria-label="Remove file"
+                          disabled={baseProps.disabled}
+                          onClick={() => {
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = '';
+                            }
+                            field.handleChange(null);
+                            chooseFileButtonRef.current?.focus();
+                          }}
+                        />
+                      )}
+                      {indicator}
+                    </Flex>
                   )}
-                </Flex>
+                </field.Base>
               </field.Layout.Stack>
             )}
           </form.AppField>

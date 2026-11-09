@@ -17,8 +17,8 @@ class TestIncludeTokenFlag(TestApiTokenSerializer):
     def setUp(self) -> None:
         super().setUp()
         attrs = self._serializer.get_attrs(item_list=[self._token], user=self._user)
-        attrs["application"] = None
-        self._attrs = attrs
+        attrs[self._token]["application"] = None
+        self._attrs = attrs[self._token]
 
     def test_when_no_flag_is_passed(self) -> None:
         serialized_object = self._serializer.serialize(
@@ -45,8 +45,8 @@ class TestRefreshTokens(TestApiTokenSerializer):
     def setUp(self) -> None:
         super().setUp()
         attrs = self._serializer.get_attrs(item_list=[self._token], user=self._user)
-        attrs["application"] = None
-        self._attrs = attrs
+        attrs[self._token]["application"] = None
+        self._attrs = attrs[self._token]
 
     def test_no_refresh_token_on_user_token(self) -> None:
         serialized_object = self._serializer.serialize(
@@ -70,9 +70,10 @@ class TestRefreshTokens(TestApiTokenSerializer):
 class TestLastTokenCharacters(TestApiTokenSerializer):
     def test_field_is_returned(self) -> None:
         attrs = self._serializer.get_attrs(item_list=[self._token], user=self._user)
-        attrs["application"] = None
+        per_item_attrs = attrs[self._token]
+        per_item_attrs["application"] = None
         serialized_object = self._serializer.serialize(
-            obj=self._token, user=self._user, attrs=attrs
+            obj=self._token, user=self._user, attrs=per_item_attrs
         )
         assert "tokenLastCharacters" in serialized_object
         assert serialized_object["tokenLastCharacters"] == self._token.token[-4:]

@@ -46,12 +46,12 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -267,7 +267,7 @@ class GitHubIntegration(
     # RepositoryIntegration methods
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+        return url_is_under(url, f"https://{self.model.metadata['domain_name']}")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         # Must format the url ourselves since `check_file` is a head request
@@ -370,14 +370,14 @@ class GitHubIntegration(
             return False
         return True
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: Any) -> dict[str, Any]:
         if query is None:
             query = ""
         resp = self.get_client().search_issues(query)
         assert isinstance(resp, dict)
         return resp
 
-    def get_account_id(self):
+    def get_account_id(self) -> str | int:
         installation_metadata = self.model.metadata
         github_account_id = installation_metadata.get("account_id")
 
@@ -417,7 +417,7 @@ class GitHubIntegration(
 
         return False
 
-    def get_config_data(self):
+    def get_config_data(self) -> dict[str, Any]:
         config = self.org_integration.config
         project_mappings = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id
@@ -836,7 +836,7 @@ def get_install_app_url() -> str:
     return f"https://github.com/apps/{slugify(name)}"
 
 
-def record_event(event: IntegrationPipelineViewType):
+def record_event(event: IntegrationPipelineViewType) -> IntegrationPipelineViewEvent:
     return IntegrationPipelineViewEvent(
         event, IntegrationDomain.SOURCE_CODE_MANAGEMENT, GitHubIntegrationProvider.key
     )
@@ -1044,15 +1044,13 @@ def validate_github_installation(
             status=ObjectStatus.ACTIVE,
         )
     except Integration.DoesNotExist:
-        # The installation.created webhook from GitHub normally creates the
-        # Integration record (with sender metadata) before the user reaches
-        # this point. If it doesn't exist yet, the webhook likely hasn't
-        # been processed. We proceed without the sender validation that the
-        # existing-integration path provides below. In theory an attacker
-        # could race the webhook to link an installation they don't own,
-        # but the window is extremely narrow (they'd need to predict the
-        # installation_id before the webhook arrives).
-        return installation_id
+        if chosen_installation_id is not None:
+            # This installation was validated against the OAuth user's eligible
+            # installations before reaching this point.
+            return installation_id
+
+        metrics.incr("integrations.github.installation.missing_integration")
+        raise GitHubPipelineError(GitHubInstallationError.MISSING_INTEGRATION)
 
     if (
         chosen_installation_id is None
@@ -1064,7 +1062,11 @@ def validate_github_installation(
     return installation_id
 
 
-class InitialDataSerializer(CamelSnakeSerializer):
+class InitialDataValidatedData(TypedDict):
+    installation_id: NotRequired[str]
+
+
+class InitialDataSerializer(CamelSnakeSerializer[InitialDataValidatedData]):
     """Validates initial data for provider-initiated GitHub installs.
 
     When a user installs the GitHub App directly from GitHub, the redirect
@@ -1085,7 +1087,7 @@ class OAuthLoginValidatedData(TypedDict):
     installation_id: NotRequired[str]
 
 
-class OAuthLoginSerializer(CamelSnakeSerializer):
+class OAuthLoginSerializer(CamelSnakeSerializer[OAuthLoginValidatedData]):
     code = CharField(required=True)
     state = CharField(required=True)
     # GitHub includes installation_id in the OAuth callback URL when the user
@@ -1168,7 +1170,7 @@ class OrgSelectionValidatedData(TypedDict):
     installation_id: NotRequired[str]
 
 
-class OrgSelectionSerializer(CamelSnakeSerializer):
+class OrgSelectionSerializer(CamelSnakeSerializer[OrgSelectionValidatedData]):
     chosen_installation_id = CharField(required=False, allow_blank=True)
     installation_id = CharField(required=False)
 

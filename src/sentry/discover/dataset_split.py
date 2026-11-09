@@ -120,7 +120,7 @@ def _save_split_decision_for_query(
     saved_query: DiscoverSavedQuery,
     split_decision: int | None,
     dataset_source: DatasetSourcesTypes | None,
-):
+) -> None:
     if split_decision is not None:
         saved_query.dataset = split_decision
     if dataset_source is not None:
@@ -129,7 +129,9 @@ def _save_split_decision_for_query(
     saved_query.save()
 
 
-def _get_top_level_filter_conditions(builder: ErrorsQueryBuilder | DiscoverQueryBuilder):
+def _get_top_level_filter_conditions(
+    builder: ErrorsQueryBuilder | DiscoverQueryBuilder,
+) -> list[Condition | BooleanCondition]:
     top_level_conditions: list[Condition | BooleanCondition] = []
     for cond in builder.where:
         if isinstance(cond, And) or isinstance(cond, Or):
@@ -195,7 +197,7 @@ def _check_column_matches_dataset(
     return False
 
 
-def _check_event_type_condition(cond: Condition, dataset: Dataset):
+def _check_event_type_condition(cond: Condition, dataset: Dataset) -> bool:
     op = cond.op
     rhs = cond.rhs
     if dataset == Dataset.Events and (
@@ -226,7 +228,7 @@ def _check_condition_matches_dataset(
 def _check_top_level_conditions_match_dataset(
     builder: ErrorsQueryBuilder | DiscoverQueryBuilder,
     dataset: Dataset,
-):
+) -> bool:
     top_level_conditions = _get_top_level_filter_conditions(builder)
     for cond in top_level_conditions:
         if isinstance(cond, Condition):
@@ -239,7 +241,7 @@ def _check_top_level_conditions_match_dataset(
 def _check_selected_columns_match_dataset(
     builder: ErrorsQueryBuilder | DiscoverQueryBuilder,
     dataset: Dataset,
-):
+) -> bool:
     for select_col in builder.columns:
         if isinstance(select_col, Column):
             if _check_column_matches_dataset(select_col, dataset):
@@ -259,7 +261,7 @@ def _check_selected_columns_match_dataset(
     return False
 
 
-def _check_event_type_filter(errors_builder) -> SplitDataset | None:
+def _check_event_type_filter(errors_builder: ErrorsQueryBuilder) -> SplitDataset | None:
     top_level_conditions = _get_top_level_filter_conditions(errors_builder)
 
     for cond in top_level_conditions:

@@ -38,8 +38,8 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
             migrate_debug_file(self.debug_file)
 
         self.debug_file.refresh_from_db()
-        assert self.debug_file.file_id is None
-        assert self.debug_file.storage_path is not None
+        assert not self.debug_file.file_id
+        assert self.debug_file.storage_path
         assert self.debug_file.file_size == len(b"debug-file-contents")
         assert self.debug_file.content_type == "application/x-mach-binary"
         assert self.debug_file.date_created is not None
@@ -66,8 +66,8 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
             extra={"debug_file_id": self.debug_file.id, "file_id": file.id},
         )
         self.debug_file.refresh_from_db()
-        assert self.debug_file.file_id is None
-        assert self.debug_file.storage_path is not None
+        assert not self.debug_file.file_id
+        assert self.debug_file.storage_path
         assert self.debug_file.checksum == expected_checksum
 
     @requires_objectstore
@@ -76,7 +76,7 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
         assert file is not None
         expected_size = file.size
         assert expected_size is not None
-        file.size = None
+        setattr(file, "size", None)
         file.save(update_fields=["size"])
 
         with (
@@ -90,8 +90,8 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
             extra={"debug_file_id": self.debug_file.id, "file_id": file.id},
         )
         self.debug_file.refresh_from_db()
-        assert self.debug_file.file_id is None
-        assert self.debug_file.storage_path is not None
+        assert not self.debug_file.file_id
+        assert self.debug_file.storage_path
         assert self.debug_file.file_size == expected_size
 
     def test_integrity_failure_does_not_cut_over(self) -> None:
@@ -158,7 +158,7 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
         commit(self.debug_file.id, metadata, source_file_id=source_file_id)
         self.debug_file.refresh_from_db()
         assert self.debug_file.storage_path == "already-migrated"
-        assert self.debug_file.file_id is None
+        assert not self.debug_file.file_id
 
         other_file = self.create_file(
             name="other.dSYM",
@@ -196,6 +196,6 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
 
         self.debug_file.refresh_from_db()
         other.refresh_from_db()
-        assert self.debug_file.file_id is None
+        assert not self.debug_file.file_id
         assert other.file_id == file_id
         assert File.objects.filter(id=file_id).exists()

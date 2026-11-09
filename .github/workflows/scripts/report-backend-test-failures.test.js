@@ -238,6 +238,34 @@ describe('parseFailures', () => {
 
     assert.equal(parseFailures([file1, file2], mockCore()).length, 2);
   });
+
+  it('uses failed subtests instead of the parent summary', () => {
+    const file = createArtifactFile(
+      'pytest-results-backend-111-0',
+      'pytest.json',
+      makePytestJson([
+        {
+          nodeid: 'tests/a.py::test_a',
+          outcome: 'failed',
+          call: {outcome: 'failed', longrepr: 'contains 1 failed subtest'},
+          subtests: [
+            {outcome: 'passed', context: {msg: null, kwargs: {n: '1'}}},
+            {
+              outcome: 'failed',
+              longrepr: 'AssertionError: boom',
+              context: {msg: 'm', kwargs: {f: '<function f>', n: '2'}},
+            },
+          ],
+        },
+      ])
+    );
+
+    const [failure] = parseFailures([file], mockCore());
+    assert.equal(
+      failure.longrepr,
+      'SUBFAILED [m] (f=<function f>, n=2)\nAssertionError: boom'
+    );
+  });
 });
 
 describe('extractNodeids', () => {

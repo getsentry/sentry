@@ -13,7 +13,7 @@ from snuba_sdk import Column, Function
 from sentry.replays.usecases.query.conditions.activity import aggregate_activity
 
 
-def any_if(column_name):
+def any_if(column_name: str) -> Function:
     return Function(
         "anyIf", parameters=[Column(column_name), Function("notEmpty", [Column(column_name)])]
     )

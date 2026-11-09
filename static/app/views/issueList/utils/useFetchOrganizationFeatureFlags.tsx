@@ -2,8 +2,6 @@ import {
   useFetchOrganizationTags,
   type FetchOrganizationTagsParams,
 } from 'sentry/actionCreators/tags';
-import type {Tag} from 'sentry/types/group';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 /**
@@ -15,7 +13,7 @@ export function useFetchOrganizationFeatureFlags(
     useCache = true,
     ...params
   }: Omit<FetchOrganizationTagsParams, 'dataset' | 'useFlagsBackend'>,
-  options: Partial<UseApiQueryOptions<Tag[]>>
+  options: Parameters<typeof useFetchOrganizationTags>[1]
 ) {
   return useFetchOrganizationTags(
     {

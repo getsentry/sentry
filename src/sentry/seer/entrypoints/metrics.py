@@ -59,11 +59,14 @@ class SeerOperatorEventLifecycleMetric(EventLifecycleMetric):
 
 class SlackEntrypointInteractionType(StrEnum):
     SEND_THREAD_UPDATE = "send_thread_update"
+    EDIT_THREAD_MESSAGE = "edit_thread_message"
     PROCESS_THREAD_UPDATE = "process_thread_update"
     SCHEDULE_ALL_THREAD_UPDATES = "schedule_all_thread_updates"
     UPDATE_EXISTING_MESSAGE = "update_existing_message"
     PROCESS_MENTION = "process_mention"
     PROCESS_REACTION = "process_reaction"
+    UPDATE_INVESTIGATION_STATUS = "update_investigation_status"
+    SEND_INVESTIGATION_CONCLUSION = "send_investigation_conclusion"
 
 
 @dataclass

@@ -4,13 +4,9 @@ import type {QueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import type {ResponsiveKey} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tct, tn} from 'sentry/locale';
@@ -20,9 +16,10 @@ import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
+import {BULK_LIMIT, BULK_LIMIT_STR} from './constants';
 import {ExtraDescription} from './extraDescription';
 
 export enum ConfirmAction {
@@ -212,7 +209,7 @@ export function invalidateIssueQueries({
   organizationSlug: string;
   queryClient: QueryClient;
 }) {
-  if (itemIds?.length) {
+  if (itemIds !== undefined) {
     for (const itemId of itemIds) {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${organizationSlug}/issues/${itemId}/`],
@@ -250,6 +247,7 @@ export async function performBulkUpdate({
   organizationSlug,
   query,
   selection,
+  sort,
   onSuccess,
 }: {
   api: Client;
@@ -258,13 +256,14 @@ export async function performBulkUpdate({
   organizationSlug: string;
   query: string;
   selection: PageFilters;
+  sort: IssueSortOptions;
   onSuccess?: (itemIds: string[] | undefined) => void;
 }) {
   const projectConstraints = {
     project: getSelectedProjectIds({selectedGroupIds: itemIds, selection}),
   };
 
-  addLoadingMessage(t('Saving changes…'));
+  toast.loading(t('Saving changes…'));
 
   try {
     await bulkUpdate(api, {
@@ -272,15 +271,16 @@ export async function performBulkUpdate({
       itemIds,
       data,
       query,
+      sort,
       environment: selection.environments,
       failSilently: true,
       ...projectConstraints,
       ...selection.datetime,
     });
-    clearIndicators();
+    toast.dismiss();
     onSuccess?.(itemIds);
   } catch (error) {
-    clearIndicators();
-    addErrorMessage(getBulkUpdateErrorMessage(error));
+    toast.dismiss();
+    toast.error(getBulkUpdateErrorMessage(error));
   }
 }

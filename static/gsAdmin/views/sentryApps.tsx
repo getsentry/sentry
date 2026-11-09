@@ -4,25 +4,26 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
 const getRow = (row: any) => [
-  <td key="name">
+  <SimpleTable.RowCell key="name">
     <Flex align="center" gap="md">
       <SentryAppAvatar size={16} sentryApp={row} />
       <strong>
         <Link to={`/_admin/sentry-apps/${row.slug}/`}>{row.name}</Link>
       </strong>
     </Flex>
-  </td>,
+  </SimpleTable.RowCell>,
 
-  <td key="owner" style={{textAlign: 'center'}}>
+  <SimpleTable.RowCell key="owner" justify="center">
     <strong>
       <Link to={`/_admin/customers/${row.owner.slug}/`}>{row.owner.slug}</Link>
     </strong>
-  </td>,
-  <td key="status" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="status" justify="end">
     <Tag
       variant={
         row.status === 'unpublished'
@@ -34,7 +35,7 @@ const getRow = (row: any) => [
     >
       {row.status}
     </Tag>
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function SentryApps() {
@@ -47,13 +48,9 @@ export function SentryApps() {
         path="/_admin/sentry-apps/"
         endpoint="/sentry-apps/"
         columns={[
-          <th key="name">Name</th>,
-          <th key="owner" style={{width: 200, textAlign: 'center'}}>
-            Owner
-          </th>,
-          <th key="status" style={{width: 150, textAlign: 'right'}}>
-            Status
-          </th>,
+          {key: 'name', label: 'Name'},
+          {key: 'owner', label: 'Owner', width: 200, align: 'center'},
+          {key: 'status', label: 'Status', width: 150, align: 'right'},
         ]}
         columnsForRow={getRow}
       />

@@ -38,11 +38,6 @@ import {
   useQueryParamsTitle,
   useQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
-import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
-import {ReplayIndexContainer} from 'sentry/views/explore/replays/list/replayIndexContainer';
-import {ReplayListControls} from 'sentry/views/explore/replays/list/replayListControls';
-import {ReplayOnboardingPanel} from 'sentry/views/explore/replays/list/replayOnboardingPanel';
-import {ReplayQueryParamsProvider} from 'sentry/views/explore/replays/list/replayQueryParamsProvider';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -50,6 +45,12 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+
+import {useAllMobileProj} from './detail/useAllMobileProj';
+import {ReplayIndexContainer} from './list/replayIndexContainer';
+import {ReplayListControls} from './list/replayListControls';
+import {ReplayOnboardingPanel} from './list/replayOnboardingPanel';
+import {ReplayQueryParamsProvider} from './list/replayQueryParamsProvider';
 
 const ReplayListPageHeaderHook = OverrideOrDefault({
   overrideName: 'component:replay-list-page-header',
@@ -102,9 +103,11 @@ function ReplaysHeader() {
 }
 
 function useReplayListLLMContextData({
+  onboarding,
   showDeadRageClickCards,
   widgetIsOpen,
 }: {
+  onboarding: boolean;
   showDeadRageClickCards: boolean;
   widgetIsOpen: boolean;
 }) {
@@ -115,6 +118,9 @@ function useReplayListLLMContextData({
   useLLMContext({
     contextHint:
       'Sentry session replay list page. Users search and filter recorded browser sessions by attributes like error count, rage clicks, dead clicks, browser, OS, and user. You can search events with a replays filter to find sessions matching specific criteria, or look up an individual replay by its ID for full session details. ' +
+      (onboarding
+        ? 'The page shows Session Replay setup instructions instead of the list, because the selected projects have not sent any replays or the plan does not include Session Replay. '
+        : '') +
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery,
@@ -159,8 +165,10 @@ function ReplaysListBody() {
     true
   );
   const toggleWidgets = () => setWidgetIsOpen(isOpen => !isOpen);
+  const showReplayList = hasSessionReplay && hasSentReplays.hasSentOneReplay;
 
   useReplayListLLMContextData({
+    onboarding: !hasSentReplays.fetching && !showReplayList,
     showDeadRageClickCards: showDeadRageClickWidgets,
     widgetIsOpen,
   });
@@ -187,7 +195,7 @@ function ReplaysListBody() {
         <ExploreBodyContent>
           <ExploreContentSection gap="xl">
             <ReplayListPageHeaderHook />
-            {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
+            {showReplayList ? (
               <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
                 <ReplayIndexContainer
                   showDeadRageClickCards={showDeadRageClickCards}

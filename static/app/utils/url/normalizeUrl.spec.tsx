@@ -1,6 +1,7 @@
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+
+import {normalizeUrl} from './normalizeUrl';
 
 describe('normalizeUrl', () => {
   let configState: Config;
@@ -84,6 +85,8 @@ describe('normalizeUrl', () => {
       ['/checkout/acme/?query=value', '/checkout/?query=value'],
 
       ['/organizations/new/', '/organizations/new/'],
+      ['/organizations/new-moray/issues/', '/issues/'],
+      ['/organizations/newco/', '/'],
       ['/organizations/albertos-organizations/issues/', '/issues/'],
       [
         '/organizations/albertos-organizations/issues/?_q=all#hash',

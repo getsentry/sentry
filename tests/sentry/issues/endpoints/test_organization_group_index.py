@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from django.db import connection
 from django.db.utils import OperationalError
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -32,6 +33,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
+from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group, GroupStatus
@@ -78,6 +80,7 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 from sentry.utils.snuba import SnubaQueryParams
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -98,6 +101,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         return links
 
     def get_response(self, *args: Organization, **kwargs: Any) -> Response:
+        org: str | Organization
         if not args:
             org = self.project.organization.slug
         else:
@@ -110,7 +114,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"event_id": "a" * 32, "timestamp": before_now(seconds=1).isoformat()},
             project_id=self.project.id,
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
         self.login_as(user=self.user)
 
         response = self.get_success_response(sort_by="date", query="is:unresolved")
@@ -122,7 +128,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"event_id": "a" * 32, "timestamp": before_now(seconds=1).isoformat()},
             project_id=self.project.id,
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
         group.status = GroupStatus.IGNORED
         group.substatus = None
         group.save()
@@ -140,6 +148,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         ).group
+        assert group is not None
         self.store_event(
             data={
                 "timestamp": before_now(seconds=10).isoformat(),
@@ -162,6 +171,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         ).group
+        assert group_2 is not None
         self.store_event(
             data={
                 "timestamp": before_now(hours=13).isoformat(),
@@ -199,10 +209,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         ).group
+        assert group_1 is not None
         group_2 = self.store_event(
             data={"timestamp": before_now(hours=1).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         ).group
+        assert group_2 is not None
         self.create_group_derived_data(group=group_2, progress="diagnosed")
         self.login_as(user=self.user)
 
@@ -217,10 +229,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         ).group
+        assert group_1 is not None
         group_2 = self.store_event(
             data={"timestamp": before_now(hours=1).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         ).group
+        assert group_2 is not None
         # group_2 is older (loses recency) but fix_applied (wins progress).
         self.create_group_derived_data(group=group_2, progress="fix_applied")
         self.login_as(user=self.user)
@@ -236,10 +250,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         ).group
+        assert group_1 is not None
         group_2 = self.store_event(
             data={"timestamp": before_now(hours=1).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         ).group
+        assert group_2 is not None
         group_2.update(substatus=GroupSubStatus.REGRESSED)
         self.login_as(user=self.user)
 
@@ -268,6 +284,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         ).group
+        assert group_1 is not None
         inbox_1 = add_group_to_inbox(group_1, GroupInboxReason.NEW)
         group_2 = self.store_event(
             data={
@@ -277,6 +294,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         ).group
+        assert group_2 is not None
         inbox_2 = add_group_to_inbox(group_2, GroupInboxReason.NEW)
         inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
 
@@ -303,6 +321,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         ).group
+        assert group_1 is not None
         inbox_1 = add_group_to_inbox(group_1, GroupInboxReason.NEW)
         group_2 = self.store_event(
             data={
@@ -312,6 +331,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         ).group
+        assert group_2 is not None
         inbox_2 = add_group_to_inbox(group_2, GroupInboxReason.NEW)
         inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
         GroupOwner.objects.create(
@@ -329,6 +349,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         ).group
+        assert owner_by_other is not None
         inbox_3 = add_group_to_inbox(owner_by_other, GroupInboxReason.NEW)
         inbox_3.update(date_added=inbox_1.date_added - timedelta(hours=1))
         other_user = self.create_user()
@@ -348,6 +369,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         ).group
+        assert owned_me_assigned_to_other is not None
         inbox_4 = add_group_to_inbox(owned_me_assigned_to_other, GroupInboxReason.NEW)
         inbox_4.update(date_added=inbox_1.date_added - timedelta(hours=1))
         GroupAssignee.objects.assign(owned_me_assigned_to_other, other_user)
@@ -367,6 +389,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         ).group
+        assert unowned_assigned_to_other is not None
         inbox_5 = add_group_to_inbox(unowned_assigned_to_other, GroupInboxReason.NEW)
         inbox_5.update(date_added=inbox_1.date_added - timedelta(hours=1))
         GroupAssignee.objects.assign(unowned_assigned_to_other, other_user)
@@ -378,6 +401,63 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             limit=10,
         )
         assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
+
+    def test_sort_by_inbox_my_teams_without_teams(self) -> None:
+        group = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        assert group is not None
+        add_group_to_inbox(group, GroupInboxReason.NEW)
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, role="owner", teams=[])
+        self.login_as(user=user)
+
+        query = "is:unresolved is:for_review"
+        project = [self.project.id]
+        response = self.get_success_response(sort="inbox", query=query, project=project)
+        assert [item["id"] for item in response.data] == [str(group.id)]
+
+        response = self.get_success_response(
+            sort="inbox", query=f"{query} assigned_or_suggested:my_teams", project=project
+        )
+        assert response.data == []
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_has_no_teams_or_self_to_search_by(self) -> None:
+        group = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        assert group is not None
+        GroupAssignee.objects.assign(group, self.team)
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["event:read"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        def search(query: str) -> list[str]:
+            response = self.client.get(
+                reverse(self.endpoint, args=[self.organization.slug]),
+                {"query": query, "project": [self.project.id]},
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+            assert response.status_code == 200, response.content
+            return [item["id"] for item in response.data]
+
+        assert search("is:unresolved") == [str(group.id)]
+        assert search("assigned:my_teams") == []
+        assert search("!assigned:my_teams") == [str(group.id)]
+        assert search("assigned:me") == []
 
     def test_trace_search(self) -> None:
         event = self.store_event(
@@ -397,6 +477,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
         response = self.get_success_response(
@@ -469,12 +550,16 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event1.group is not None
         group1 = event1.group
+        assert group1 is not None
         event2 = self.store_event(
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
+        assert event2.group is not None
         group2 = event2.group
+        assert group2 is not None
         self.login_as(user=self.user)
         response = self.get_success_response(sort_by="date", limit=1)
         assert len(response.data) == 1
@@ -577,6 +662,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
         assert group_info is not None
         perf_group = group_info.group
+        assert perf_group is not None
         self.login_as(user=self.user)
         response = self.get_success_response(
             query=f"issue.type:{PerformanceNPlusOneGroupType.slug}"
@@ -593,7 +679,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert event1.group is not None
         group_without_seer = event1.group
+        assert group_without_seer is not None
 
         event2 = self.store_event(
             data={
@@ -602,7 +690,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert event2.group is not None
         group_with_legacy_seer = event2.group
+        assert group_with_legacy_seer is not None
         group_with_legacy_seer.update(seer_autofix_last_triggered=timezone.now())
 
         event3 = self.store_event(
@@ -612,7 +702,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert event3.group is not None
         group_with_explorer_seer = event3.group
+        assert group_with_explorer_seer is not None
         group_with_explorer_seer.update(seer_explorer_autofix_last_triggered=timezone.now())
 
         event4 = self.store_event(
@@ -622,7 +714,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert event4.group is not None
         group_with_stale_explorer_seer = event4.group
+        assert group_with_stale_explorer_seer is not None
         group_with_stale_explorer_seer.update(
             seer_explorer_autofix_last_triggered=before_now(days=31)
         )
@@ -667,6 +761,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
 
@@ -686,6 +781,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         other_project = self.create_project(teams=[self.team])
         user = self.create_user()
@@ -704,6 +800,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
         response = self.get_success_response(query="  {}  ".format("c" * 32))
@@ -735,6 +832,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"event_id": event_id, "timestamp": before_now(seconds=1).isoformat()},
             project_id=self.project.id,
         ).group
+        assert group is not None
         short_id = group.qualified_short_id
 
         self.login_as(user=self.user)
@@ -750,10 +848,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=2).isoformat()},
             project_id=project.id,
         )
+        assert event.group is not None
         event2 = self.store_event(
             data={"timestamp": before_now(seconds=1).isoformat()},
             project_id=project2.id,
         )
+        assert event2.group is not None
         response = self.get_success_response(
             query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
             shortIdLookup=1,
@@ -844,6 +944,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
 
+    def test_lookup_by_group_id_invalid(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_error_response(group="not-an-int", status_code=400)
+        assert "group" in response.data
+        response = self.get_error_response(group="782672999178267162297826713017", status_code=400)
+        assert "group" in response.data
+        response = self.get_error_response(group="-1", status_code=400)
+        assert "group" in response.data
+
     def test_lookup_by_group_id_no_perms(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -865,10 +974,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"release": release.version, "timestamp": before_now(seconds=2).isoformat()},
             project_id=project.id,
         )
+        assert event.group is not None
         event2 = self.store_event(
             data={"release": release.version, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project2.id,
         )
+        assert event2.group is not None
 
         response = self.get_success_response(**{"query": 'first-release:"%s"' % release.version})
         issues = json.loads(response.content)
@@ -894,6 +1005,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event.group is not None
 
         response = self.get_success_response(release=release.version)
         issues = json.loads(response.content)
@@ -918,6 +1030,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event1.group is not None
         event2 = self.store_event(
             data={
                 "release": release2.version,
@@ -926,6 +1039,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event2.group is not None
         self.store_event(
             data={
                 "release": release3.version,
@@ -953,6 +1067,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event.group is not None
 
         response = self.get_success_response(release=release.version[:3] + "*")
         issues = json.loads(response.content)
@@ -970,6 +1085,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event.group is not None
         record_group_history(event.group, GroupHistoryStatus.REGRESSED, release=release)
         response = self.get_success_response(query=f"regressed_in_release:{release.version}")
         issues = json.loads(response.content)
@@ -988,15 +1104,23 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                     project_id=self.project.id,
                 )
             )
-        events[0].group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
-        events[2].group.update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
-        events[3].group.update(status=GroupStatus.PENDING_MERGE, substatus=None)
+        pending_delete_group = events[0].group
+        assert pending_delete_group is not None
+        pending_delete_group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
+        deletion_in_progress_group = events[2].group
+        assert deletion_in_progress_group is not None
+        deletion_in_progress_group.update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
+        pending_merge_group = events[3].group
+        assert pending_merge_group is not None
+        pending_merge_group.update(status=GroupStatus.PENDING_MERGE, substatus=None)
 
         self.login_as(user=self.user)
 
         response = self.get_success_response()
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(events[1].group.id)
+        visible_group = events[1].group
+        assert visible_group is not None
+        assert response.data[0]["id"] == str(visible_group.id)
 
     def test_filters_based_on_retention(self) -> None:
         self.login_as(user=self.user)
@@ -1028,7 +1152,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
 
         def api_request() -> Response:
-            return self.client.get(
+            response: Response[Any] = self.client.get(
                 reverse(
                     "sentry-api-0-organization-group-index",
                     args=[self.project.organization.slug],
@@ -1037,6 +1161,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 data={"query": "is:unresolved"},
                 HTTP_AUTHORIZATION=f"Bearer {token.token}",
             )
+            return response
 
         # API (bearer token) requests get the api-specific referrer...
         response = api_request()
@@ -1053,7 +1178,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             event = self.store_event(
                 data={"timestamp": before_now(hours=5).isoformat()}, project_id=self.project.id
             )
+            assert event.group is not None
             group = event.group
+            assert group is not None
 
             self.login_as(user=self.user)
 
@@ -1114,6 +1241,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 },
                 project_id=self.project.id,
             ).group
+            assert group is not None
             groups.append(group)
 
         assigned_groups = groups[:2]
@@ -1174,6 +1302,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 },
                 project_id=self.project.id,
             )
+            assert event.group is not None
             groups.append(event.group)
 
         # Mock calculate_hits to return an overestimate (simulating sampling inaccuracy)
@@ -1204,6 +1333,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 },
                 project_id=self.project.id,
             ).group
+            assert group is not None
             groups.append(group)
 
         assigned_groups = groups[:2]
@@ -1233,7 +1363,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now_300_seconds, "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
+        assert event2.group is not None
         group2 = event2.group
+        assert group2 is not None
         group2.first_seen = datetime.fromisoformat(before_now_350_seconds)
         group2.times_seen = 55
         group2.save()
@@ -1337,7 +1469,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert release_1_e_1.group is not None
         group_1 = release_1_e_1.group
+        assert group_1 is not None
 
         release_2_e_1 = self.store_event(
             data={
@@ -1414,6 +1548,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         self.store_event(
             data={
@@ -1459,6 +1594,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         event1 = self.store_event(
             data={
                 "timestamp": before_now(seconds=185).isoformat(),
@@ -1467,6 +1603,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert event1.group is not None
         event2 = self.store_event(
             data={
                 "timestamp": before_now(seconds=190).isoformat(),
@@ -1475,6 +1612,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert event2.group is not None
 
         assigned_event = self.store_event(
             data={
@@ -1483,6 +1621,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert assigned_event.group is not None
 
         assigned_to_other_event = self.store_event(
             data={
@@ -1491,6 +1630,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert assigned_to_other_event.group is not None
 
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
@@ -1634,54 +1774,66 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release_2 = self.create_release(version="test@1.2.4")
         release_3 = self.create_release(version="test@1.2.5")
 
-        release_1_g_1 = self.store_event(
+        release_1_g_1_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
             project_id=self.project.id,
-        ).group.id
-        release_1_g_2 = self.store_event(
+        )
+        assert release_1_g_1_event.group is not None
+        release_1_g_1 = release_1_g_1_event.group.id
+        release_1_g_2_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": release_1.version,
             },
             project_id=self.project.id,
-        ).group.id
-        release_2_g_1 = self.store_event(
+        )
+        assert release_1_g_2_event.group is not None
+        release_1_g_2 = release_1_g_2_event.group.id
+        release_2_g_1_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": release_2.version,
             },
             project_id=self.project.id,
-        ).group.id
-        release_2_g_2 = self.store_event(
+        )
+        assert release_2_g_1_event.group is not None
+        release_2_g_1 = release_2_g_1_event.group.id
+        release_2_g_2_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=4).isoformat(),
                 "fingerprint": ["group-4"],
                 "release": release_2.version,
             },
             project_id=self.project.id,
-        ).group.id
-        release_3_g_1 = self.store_event(
+        )
+        assert release_2_g_2_event.group is not None
+        release_2_g_2 = release_2_g_2_event.group.id
+        release_3_g_1_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=5).isoformat(),
                 "fingerprint": ["group-5"],
                 "release": release_3.version,
             },
             project_id=self.project.id,
-        ).group.id
-        release_3_g_2 = self.store_event(
+        )
+        assert release_3_g_1_event.group is not None
+        release_3_g_1 = release_3_g_1_event.group.id
+        release_3_g_2_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=6).isoformat(),
                 "fingerprint": ["group-6"],
                 "release": release_3.version,
             },
             project_id=self.project.id,
-        ).group.id
+        )
+        assert release_3_g_2_event.group is not None
+        release_3_g_2 = release_3_g_2_event.group.id
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:>1.2.3")
         assert response.status_code == 200, response.content
@@ -1734,7 +1886,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
-        adopted_release_g_1 = self.store_event(
+        adopted_release_g_1_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
@@ -1742,8 +1894,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 "environment": self.environment.name,
             },
             project_id=self.project.id,
-        ).group.id
-        adopted_release_g_2 = self.store_event(
+        )
+        assert adopted_release_g_1_event.group is not None
+        adopted_release_g_1 = adopted_release_g_1_event.group.id
+        adopted_release_g_2_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
@@ -1751,8 +1905,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 "environment": self.environment.name,
             },
             project_id=self.project.id,
-        ).group.id
-        replaced_release_g_1 = self.store_event(
+        )
+        assert adopted_release_g_2_event.group is not None
+        adopted_release_g_2 = adopted_release_g_2_event.group.id
+        replaced_release_g_1_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
@@ -1760,8 +1916,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 "environment": self.environment.name,
             },
             project_id=self.project.id,
-        ).group.id
-        replaced_release_g_2 = self.store_event(
+        )
+        assert replaced_release_g_1_event.group is not None
+        replaced_release_g_1 = replaced_release_g_1_event.group.id
+        replaced_release_g_2_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=4).isoformat(),
                 "fingerprint": ["group-4"],
@@ -1769,7 +1927,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 "environment": self.environment.name,
             },
             project_id=self.project.id,
-        ).group.id
+        )
+        assert replaced_release_g_2_event.group is not None
+        replaced_release_g_2 = replaced_release_g_2_event.group.id
 
         self.login_as(user=self.user)
         response = self.get_response(
@@ -1828,30 +1988,36 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test2@1.2.4")
 
-        release_1_g_1 = self.store_event(
+        release_1_g_1_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
             project_id=self.project.id,
-        ).group.id
-        release_1_g_2 = self.store_event(
+        )
+        assert release_1_g_1_event.group is not None
+        release_1_g_1 = release_1_g_1_event.group.id
+        release_1_g_2_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": release_1.version,
             },
             project_id=self.project.id,
-        ).group.id
-        release_2_g_1 = self.store_event(
+        )
+        assert release_1_g_2_event.group is not None
+        release_1_g_2 = release_1_g_2_event.group.id
+        release_2_g_1_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": release_2.version,
             },
             project_id=self.project.id,
-        ).group.id
+        )
+        assert release_2_g_1_event.group is not None
+        release_2_g_1 = release_2_g_1_event.group.id
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_PACKAGE_ALIAS}:test")
         assert response.status_code == 200, response.content
@@ -1872,30 +2038,36 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release_1 = self.create_release(version="test@1.2.3+123")
         release_2 = self.create_release(version="test2@1.2.4+124")
 
-        release_1_g_1 = self.store_event(
+        release_1_g_1_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
             project_id=self.project.id,
-        ).group.id
-        release_1_g_2 = self.store_event(
+        )
+        assert release_1_g_1_event.group is not None
+        release_1_g_1 = release_1_g_1_event.group.id
+        release_1_g_2_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": release_1.version,
             },
             project_id=self.project.id,
-        ).group.id
-        release_2_g_1 = self.store_event(
+        )
+        assert release_1_g_2_event.group is not None
+        release_1_g_2 = release_1_g_2_event.group.id
+        release_2_g_1_event = self.store_event(
             data={
                 "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": release_2.version,
             },
             project_id=self.project.id,
-        ).group.id
+        )
+        assert release_2_g_1_event.group is not None
+        release_2_g_1 = release_2_g_1_event.group.id
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:123")
         assert response.status_code == 200, response.content
@@ -1932,6 +2104,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.store_event(
             data={
                 "timestamp": before_now(seconds=200).isoformat(),
@@ -1959,6 +2132,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
         query = "status:unresolved"
         self.login_as(user=self.user)
@@ -1993,6 +2167,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
         query = "status:unresolved"
         self.login_as(user=self.user)
@@ -2025,6 +2200,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
         query = "status:unresolved"
         self.login_as(user=self.user)
@@ -2041,6 +2217,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         query = "status:unresolved"
         self.login_as(user=self.user)
         response = self.get_response(
@@ -2100,8 +2277,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             for index in range(3)
         ]
+        event_0, event_1, event_2 = events
+        assert event_0.group is not None
+        assert event_1.group is not None
+        assert event_2.group is not None
         integration = self.create_integration(
-            organization=events[0].group.organization,
+            organization=event_0.group.organization,
             provider="jira",
             external_id="jira_external_id",
             name="Jira",
@@ -2115,7 +2296,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 title=f"jira issue {index}",
                 description="this is an example description",
             )
-            for index, event in enumerate(events[:2])
+            for index, event in enumerate([event_0, event_1])
         ]
         self.login_as(user=self.user)
 
@@ -2130,9 +2311,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert response.status_code == 200
         issues_by_group = {int(group["id"]): group["integrationIssues"] for group in response.data}
-        assert issues_by_group[events[0].group.id][0]["title"] == issues[0].title
-        assert issues_by_group[events[1].group.id][0]["title"] == issues[1].title
-        assert issues_by_group[events[2].group.id] == []
+        assert issues_by_group[event_0.group.id][0]["title"] == issues[0].title
+        assert issues_by_group[event_1.group.id][0]["title"] == issues[1].title
+        assert issues_by_group[event_2.group.id] == []
         assert len([query for query in queries if "sentry_grouplink" in query["sql"]]) == 1
         assert len([query for query in queries if "sentry_externalissue" in query["sql"]]) == 1
 
@@ -2147,6 +2328,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             for index in range(3)
         ]
+        event_0, event_1, event_2 = events
+        assert event_0.group is not None
+        assert event_1.group is not None
+        assert event_2.group is not None
         jira_a = self.create_integration(
             organization=self.organization,
             provider="jira",
@@ -2160,11 +2345,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             metadata={"base_url": "https://b.example.com"},
         )
         shared_issue = self.create_integration_external_issue(
-            group=events[0].group, integration=jira_a, key="A-1"
+            group=event_0.group, integration=jira_a, key="A-1"
         )
-        self.create_integration_external_issue(group=events[0].group, integration=jira_b, key="B-1")
+        self.create_integration_external_issue(group=event_0.group, integration=jira_b, key="B-1")
         self.create_group_link(
-            group=events[1].group,
+            group=event_1.group,
             linked_id=shared_issue.id,
             linked_type=GroupLink.LinkedType.issue,
         )
@@ -2175,14 +2360,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert response.status_code == 200
         annotations_by_group = {int(group["id"]): group["annotations"] for group in response.data}
-        assert sorted(annotations_by_group[events[0].group.id], key=lambda a: a["url"]) == [
+        assert sorted(annotations_by_group[event_0.group.id], key=lambda a: a["url"]) == [
             {"url": "https://a.example.com/browse/A-1", "displayName": "A-1"},
             {"url": "https://b.example.com/browse/B-1", "displayName": "B-1"},
         ]
-        assert annotations_by_group[events[1].group.id] == [
+        assert annotations_by_group[event_1.group.id] == [
             {"url": "https://a.example.com/browse/A-1", "displayName": "A-1"},
         ]
-        assert annotations_by_group[events[2].group.id] == []
+        assert annotations_by_group[event_2.group.id] == []
         assert len([query for query in queries if "sentry_grouplink" in query["sql"]]) == 1
         assert len([query for query in queries if "sentry_externalissue" in query["sql"]]) == 1
 
@@ -2197,27 +2382,30 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             for index in range(2)
         ]
+        event_0, event_1 = events
+        assert event_0.group is not None
+        assert event_1.group is not None
         integration = self.create_integration(
-            organization=events[0].group.organization,
+            organization=event_0.group.organization,
             provider="jira",
             external_id="jira_external_id",
             name="Jira",
             metadata={"base_url": "https://example.com", "domain_name": "test/"},
         )
         issue = self.create_integration_external_issue(
-            group=events[0].group,
+            group=event_0.group,
             integration=integration,
             key="APP-1",
             title="jira issue",
             description="this is an example description",
         )
         self.create_group_link(
-            group=events[0].group,
+            group=event_0.group,
             linked_id=issue.id,
             linked_type=GroupLink.LinkedType.commit,
         )
         self.create_group_link(
-            group=events[1].group,
+            group=event_1.group,
             linked_id=issue.id,
             linked_type=GroupLink.LinkedType.commit,
         )
@@ -2233,15 +2421,16 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert response.status_code == 200
         issues_by_group = {int(group["id"]): group["integrationIssues"] for group in response.data}
-        assert len(issues_by_group[events[0].group.id]) == 1
-        assert issues_by_group[events[0].group.id][0]["title"] == issue.title
-        assert issues_by_group[events[1].group.id] == []
+        assert len(issues_by_group[event_0.group.id]) == 1
+        assert issues_by_group[event_0.group.id][0]["title"] == issue.title
+        assert issues_by_group[event_1.group.id] == []
 
     def test_expand_sentry_app_issues(self) -> None:
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         query = "status:unresolved"
         self.login_as(user=self.user)
         response = self.get_response(
@@ -2302,15 +2491,19 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             for index in range(3)
         ]
+        event_0, event_1, event_2 = events
+        assert event_0.group is not None
+        assert event_1.group is not None
+        assert event_2.group is not None
         issues = [
             PlatformExternalIssue.objects.create(
-                group_id=event.group.id,
-                project_id=event.group.project.id,
+                group_id=group.id,
+                project_id=group.project.id,
                 service_type=f"sentry-app-{index}",
                 display_name=f"App#issue-{index}",
                 web_url=f"https://example.com/app/issues/{index}",
             )
-            for index, event in enumerate(events[:2])
+            for index, group in enumerate((event_0.group, event_1.group))
         ]
         self.login_as(user=self.user)
 
@@ -2325,9 +2518,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert response.status_code == 200
         issues_by_group = {int(group["id"]): group["sentryAppIssues"] for group in response.data}
-        assert issues_by_group[events[0].group.id][0]["displayName"] == issues[0].display_name
-        assert issues_by_group[events[1].group.id][0]["displayName"] == issues[1].display_name
-        assert issues_by_group[events[2].group.id] == []
+        assert issues_by_group[event_0.group.id][0]["displayName"] == issues[0].display_name
+        assert issues_by_group[event_1.group.id][0]["displayName"] == issues[1].display_name
+        assert issues_by_group[event_2.group.id] == []
         platform_issue_queries = [
             query for query in queries if "sentry_platformexternalissue" in query["sql"]
         ]
@@ -2339,6 +2532,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         query = "status:unresolved"
         self.login_as(user=self.user)
         response = self.get_response(
@@ -2388,10 +2582,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             for index in range(3)
         ]
+        event_0, event_1, event_2 = events
+        assert event_0.group is not None
+        assert event_1.group is not None
+        assert event_2.group is not None
         EventAttachment.objects.create(
-            group_id=events[0].group.id,
-            event_id=events[0].event_id,
-            project_id=events[0].project_id,
+            group_id=event_0.group.id,
+            event_id=event_0.event_id,
+            project_id=event_0.project_id,
             name="hello.png",
             content_type="image/png",
         )
@@ -2410,9 +2608,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             int(group["id"]): group["latestEventHasAttachments"] for group in response.data
         }
         assert attachments_by_group == {
-            events[0].group.id: True,
-            events[1].group.id: False,
-            events[2].group.id: False,
+            event_0.group.id: True,
+            event_1.group.id: False,
+            event_2.group.id: False,
         }
         attachment_queries = [
             query for query in queries if "sentry_eventattachment" in query["sql"]
@@ -2436,6 +2634,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert old_event.group is not None
         latest_first_project_event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -2444,6 +2643,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
+        assert latest_first_project_event.group is not None
         second_project_event = self.store_event(
             data={
                 "event_id": shared_event_id,
@@ -2452,6 +2652,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=other_project.id,
         )
+        assert second_project_event.group is not None
         EventAttachment.objects.create(
             group_id=old_event.group.id,
             event_id=old_event.event_id,
@@ -2500,6 +2701,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         query = "status:unresolved"
         self.login_as(user=self.user)
         # Test with no owner
@@ -2561,10 +2763,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event1.group is not None
         event2 = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
+        assert event2.group is not None
         event2.group.update(status=GroupStatus.RESOLVED, substatus=None)
 
         self.login_as(user=self.user)
@@ -2577,6 +2781,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", expand="inbox", collapse="stats"
@@ -2597,6 +2802,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse="lifetime"
@@ -2616,6 +2822,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse="filtered"
@@ -2635,6 +2842,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["filtered", "lifetime"]
@@ -2654,6 +2862,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["base"]
@@ -2678,6 +2887,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         GroupSnooze.objects.create(
             group=event.group,
             user_count=10,
@@ -2699,6 +2909,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["unhandled"]
@@ -2713,6 +2924,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         event.group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         self.login_as(user=self.user)
 
@@ -2767,6 +2979,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         event.group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         self.login_as(user=self.user)
 
@@ -2818,12 +3031,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
 
         event2 = self.store_event(
             data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
+        assert event2.group is not None
         assert event2.group.id != group.id
 
         detector_id = 12345  # intentionally multi-digit
@@ -2858,12 +3074,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
 
         event2 = self.store_event(
             data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
+        assert event2.group is not None
         assert event2.group.id != group.id
 
         detector_id = 12345  # intentionally multi-digit
@@ -2956,7 +3175,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event1.group is not None
         group1 = event1.group
+        assert group1 is not None
         GroupBookmark.objects.create(user_id=self.user.id, group=group1, project_id=project.id)
 
         event2 = self.store_event(
@@ -2967,7 +3188,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event2.group is not None
         group2 = event2.group
+        assert group2 is not None
         GroupBookmark.objects.create(user_id=user2.id, group=group2, project_id=project.id)
 
         # Filter by bookmarked_by the first user
@@ -2993,7 +3216,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event1.group is not None
         group1 = event1.group
+        assert group1 is not None
         GroupLink.objects.create(
             group_id=group1.id,
             project=project,
@@ -3008,7 +3233,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event2.group is not None
         group2 = event2.group
+        assert group2 is not None
 
         # Filter by linked issues
         response = self.get_success_response(query="is:linked")
@@ -3033,7 +3260,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event1.group is not None
         group1 = event1.group
+        assert group1 is not None
         GroupSubscription.objects.create(
             user_id=self.user.id,
             group=group1,
@@ -3073,6 +3302,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event.group is not None
 
         response = self.get_success_response(query="release.build:123")
         issues = json.loads(response.content)
@@ -3104,6 +3334,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event1.group is not None
         # Simulate sending an event with main_thread set to false
         event2 = self.store_event(
             data={
@@ -3122,6 +3353,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=project.id,
         )
+        assert event2.group is not None
 
         # Query for events where main_thread is true
         response = self.get_success_response(query="error.main_thread:true")
@@ -3427,10 +3659,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             data={"fingerprint": ["older"], "timestamp": before_now(days=2).isoformat()},
             project_id=self.project.id,
         ).group
+        assert older_group is not None
         recent_group = self.store_event(
             data={"fingerprint": ["recent"], "timestamp": before_now(minutes=30).isoformat()},
             project_id=self.project.id,
         ).group
+        assert recent_group is not None
         self.login_as(user=self.user)
 
         self.get_success_response(qs_params={"query": "", "statsPeriod": "1h"}, status="resolved")
@@ -3452,7 +3686,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         event = self.store_event(
             data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             OrganizationIntegration.objects.filter(
@@ -3638,6 +3874,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         ).group
+        assert group is not None
 
         self.login_as(user=self.user)
 
@@ -3650,6 +3887,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         # The current_release_version should be to the latest (in semver) release associated with
         # a group
         grp_resolution = GroupResolution.objects.get(group=group)
+        assert grp_resolution.group is not None
 
         assert grp_resolution.current_release_version == release_21_1_2.version
 
@@ -3696,6 +3934,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         ).group
+        assert group is not None
 
         self.login_as(user=self.user)
 
@@ -3745,6 +3984,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         ).group
+        assert group is not None
 
         # Call this function to cache the `last_seen` release to release_1
         # i.e. Set the first last observed by Sentry
@@ -3803,6 +4043,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         ).group
+        assert group is not None
 
         self.login_as(user=self.user)
 
@@ -3813,6 +4054,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["inNextRelease"]
 
         grp_resolution = GroupResolution.objects.get(group=group)
+        assert grp_resolution.group is not None
 
         assert grp_resolution.current_release_version == release_1.version
         assert grp_resolution.release.id == release_2.id
@@ -3951,6 +4193,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         ).group
+        assert group is not None
 
         self.login_as(user=self.user)
 
@@ -4296,6 +4539,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 },
                 project_id=self.project.id,
             )
+            assert event.group is not None
 
         assert event.group is not None
         group = Group.objects.get(id=event.group.id)
@@ -4359,6 +4603,42 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         bookmark4 = GroupBookmark.objects.filter(group=group4, user_id=self.user.id)
         assert not bookmark4.exists()
+
+    def test_bookmark_without_user(self) -> None:
+        group = self.create_group()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["event:write"]
+            )
+
+        response = self.client.put(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={group.id}&project=-1",
+            data={"isBookmarked": "true"},
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert not GroupBookmark.objects.filter(group=group).exists()
+
+    def test_subscribe_without_user(self) -> None:
+        group = self.create_group()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["event:write"]
+            )
+
+        response = self.client.put(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={group.id}&project=-1",
+            data={"isSubscribed": "true"},
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert not GroupSubscription.objects.filter(group=group).exists()
 
     def test_subscription(self) -> None:
         group1 = self.create_group()
@@ -4609,9 +4889,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not Group.objects.filter(id=group1.id).exists()
         assert Group.objects.filter(id=group2.id).exists()
         assert GroupHash.objects.filter(id=group_hash.id).exists()
-        tombstone = GroupTombstone.objects.get(
-            id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id
-        )
+        group_tombstone_id = GroupHash.objects.get(id=group_hash.id).group_tombstone_id
+        assert group_tombstone_id is not None
+        tombstone = GroupTombstone.objects.get(id=group_tombstone_id)
         assert tombstone.message == group1.message
         assert tombstone.culprit == group1.culprit
         assert tombstone.project == group1.project
@@ -4848,14 +5128,17 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             data={"fingerprint": ["older"], "timestamp": before_now(hours=3).isoformat()},
             project_id=self.project.id,
         ).group
+        assert older_group is not None
         matching_group = self.store_event(
             data={"fingerprint": ["matching"], "timestamp": before_now(minutes=90).isoformat()},
             project_id=self.project.id,
         ).group
+        assert matching_group is not None
         newer_group = self.store_event(
             data={"fingerprint": ["newer"], "timestamp": before_now(minutes=30).isoformat()},
             project_id=self.project.id,
         ).group
+        assert newer_group is not None
         self.login_as(user=self.user)
 
         with self.tasks():

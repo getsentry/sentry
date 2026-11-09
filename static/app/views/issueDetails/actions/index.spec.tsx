@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
+import * as modalActions from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
 import {
@@ -26,7 +27,6 @@ import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/colle
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {ModalStore} from 'sentry/stores/modalStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, IssueCategory, PriorityLevel, type Group} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
@@ -133,12 +133,9 @@ describe('GroupActions', () => {
 
   describe('render()', () => {
     it('renders correctly', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
     });
   });
@@ -154,12 +151,9 @@ describe('GroupActions', () => {
     });
 
     it('can subscribe', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
 
       expect(issuesApi).toHaveBeenCalledWith(
@@ -183,12 +177,9 @@ describe('GroupActions', () => {
     });
 
     it('can bookmark', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
 
       await userEvent.click(screen.getByLabelText('More Actions'));
 
@@ -210,12 +201,9 @@ describe('GroupActions', () => {
         platform: 'native',
       });
 
-      render(
-        <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={event} />, {
+        organization,
+      });
 
       await userEvent.click(screen.getByLabelText('More Actions'));
 
@@ -228,14 +216,11 @@ describe('GroupActions', () => {
         platform: 'native',
       });
 
-      render(
-        <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={event} />, {
+        organization,
+      });
 
-      const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
+      const onReprocessEventFunc = jest.spyOn(modalActions, 'openModal');
 
       await userEvent.click(screen.getByLabelText('More Actions'));
 
@@ -271,7 +256,7 @@ describe('GroupActions', () => {
       const {router} = render(
         <Fragment>
           <GlobalModal />
-          <GroupActions group={group} project={project} disabled={false} event={null} />
+          <GroupActions group={group} project={project} event={null} />
         </Fragment>,
         {
           organization: org,
@@ -312,7 +297,7 @@ describe('GroupActions', () => {
       const {router} = render(
         <Fragment>
           <GlobalModal />
-          <GroupActions group={group} project={project} disabled={false} event={null} />
+          <GroupActions group={group} project={project} event={null} />
         </Fragment>,
         {
           organization: org,
@@ -363,7 +348,7 @@ describe('GroupActions', () => {
           <GroupActions
             group={issuePlatformGroup}
             project={project}
-            disabled={false}
+
             event={null}
           />
         </Fragment>,
@@ -401,7 +386,7 @@ describe('GroupActions', () => {
     });
 
     const {rerender} = render(
-      <GroupActions group={group} project={project} disabled={false} event={null} />,
+      <GroupActions group={group} project={project} event={null} />,
       {organization}
     );
 
@@ -424,7 +409,7 @@ describe('GroupActions', () => {
       <GroupActions
         group={{...group, status: GroupStatus.RESOLVED, statusDetails: {}}}
         project={project}
-        disabled={false}
+
         event={null}
       />
     );
@@ -439,6 +424,36 @@ describe('GroupActions', () => {
     );
   });
 
+  it('reports the alert params from the URL when resolving', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      body: {...group, status: 'resolved'},
+    });
+
+    render(<GroupActions group={group} project={project} event={null} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {alert_date: '1700000000000', alert_rule_id: '123', alert_type: 'email'},
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'issue_details.action_clicked',
+      expect.objectContaining({
+        action_type: 'resolved',
+        alert_date: '2023-11-14T22:13:20',
+        alert_rule_id: '123',
+        alert_type: 'email',
+      })
+    );
+  });
+
   it('does not report success when resolving fails', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project/issues/`,
@@ -448,7 +463,7 @@ describe('GroupActions', () => {
 
     render(
       <Fragment>
-        <GroupActions group={group} project={project} disabled={false} event={null} />
+        <GroupActions group={group} project={project} event={null} />
       </Fragment>,
       {organization}
     );
@@ -480,9 +495,7 @@ describe('GroupActions', () => {
         return <div>Loading...</div>;
       }
 
-      return (
-        <GroupActions group={groupData} project={project} disabled={false} event={null} />
-      );
+      return <GroupActions group={groupData} project={project} event={null} />;
     }
 
     render(
@@ -507,12 +520,9 @@ describe('GroupActions', () => {
       body: {...group, status: 'resolved'},
     });
 
-    render(
-      <GroupActions group={group} project={project} disabled={false} event={null} />,
-      {
-        organization,
-      }
-    );
+    render(<GroupActions group={group} project={project} event={null} />, {
+      organization,
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
 
@@ -556,9 +566,7 @@ describe('GroupActions', () => {
         return <div>Loading...</div>;
       }
 
-      return (
-        <GroupActions group={groupData} project={project} disabled={false} event={null} />
-      );
+      return <GroupActions group={groupData} project={project} event={null} />;
     }
 
     render(<GroupActionsWrapper />, {organization});
@@ -607,7 +615,7 @@ describe('GroupActions', () => {
           <GroupActions
             group={commandGroup}
             project={project}
-            disabled={false}
+
             event={null}
           />
           <SlotOutlets />

@@ -1,37 +1,71 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.constants import ObjectStatusName
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class RepositorySettingsSerializerResponse(TypedDict):
-    enabledCodeReview: bool
-    codeReviewTriggers: list[str]
+    enabledCodeReview: Annotated[
+        bool, ApiDescription("Whether AI code review is on for the repository")
+    ]
+    codeReviewTriggers: Annotated[
+        list[str],
+        ApiDescription(
+            "Pull request events that start a code review: on_new_commit or on_ready_for_review"
+        ),
+    ]
 
 
 class RepositorySerializerResponseOptional(TypedDict, total=False):
-    url: str | None
-    provider: dict[str, str]
-    status: str
-    integrationId: str | None
-    externalSlug: str | None
-    externalId: str | None
-    settings: RepositorySettingsSerializerResponse | None
+    url: Annotated[str | None, ApiDescription("URL of the repository")]
+    provider: Annotated[
+        dict[str, str], ApiDescription("Provider of the repository, with its id and name")
+    ]
+    status: Annotated[ObjectStatusName, ApiDescription("Status of the repository")]
+    integrationId: Annotated[
+        str | None,
+        ApiDescription(
+            "ID of the repository's integration. Null for repositories added without an integration"
+        ),
+    ]
+    externalSlug: Annotated[
+        str | None,
+        ApiDescription("Identifier of the repository in the provider, such as owner/name"),
+    ]
+    externalId: Annotated[str | None, ApiDescription("ID of the repository in the provider")]
+    settings: Annotated[
+        RepositorySettingsSerializerResponse | None,
+        ApiDescription(
+            "Settings of the repository. Only set when expand includes settings. Null when it has none"
+        ),
+    ]
 
 
 class RepositorySerializerResponse(RepositorySerializerResponseOptional):
-    id: str
-    name: str
-    dateCreated: datetime
+    id: Annotated[str, ApiDescription("ID of the repository")]
+    name: Annotated[str, ApiDescription("Name of the repository, such as owner/name")]
+    dateCreated: Annotated[
+        datetime, ApiDescription("When the repository was added to Sentry (ISO 8601)")
+    ]
 
 
 @register(RepositorySettings)
 class RepositorySettingsSerializer(Serializer[RepositorySettingsSerializerResponse]):
     def serialize(
-        self, obj: RepositorySettings, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: RepositorySettings,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> RepositorySettingsSerializerResponse:
         return {
             "enabledCodeReview": obj.enabled_code_review,
@@ -49,7 +83,10 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
         return key in self.expand
 
     def get_attrs(
-        self, item_list: Sequence[Repository], user: Any, **kwargs: Any
+        self,
+        item_list: Sequence[Repository],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> dict[Repository, dict[str, Any]]:
         result: dict[Repository, dict[str, Any]] = {repo: {} for repo in item_list}
 
@@ -65,14 +102,18 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
         return result
 
     def serialize(
-        self, obj: Repository, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: Repository,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> RepositorySerializerResponse:
         external_slug = None
         integration_id = None
         if obj.integration_id:
             integration_id = str(obj.integration_id)
         repo_provider = obj.get_provider() if obj.provider else None
-        if repo_provider is not None:
+        if repo_provider is not None and obj.provider is not None:
             provider = {"id": obj.provider, "name": repo_provider.name}
             external_slug = repo_provider.repository_external_slug(obj)
         else:
@@ -83,7 +124,7 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
             "name": obj.config.get("pending_deletion_name", obj.name),
             "url": obj.url,
             "provider": provider,
-            "status": obj.get_status_display(),
+            "status": cast(ObjectStatusName, obj.get_status_display()),
             "dateCreated": obj.date_added,
             "integrationId": integration_id,
             "externalSlug": external_slug,
@@ -91,7 +132,7 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
         }
 
         if self._expand("settings"):
-            settings = attrs.get("settings")
+            settings = cast(RepositorySettings | None, attrs.get("settings"))
             if settings:
                 data["settings"] = RepositorySettingsSerializer().serialize(settings, {}, user)
             else:

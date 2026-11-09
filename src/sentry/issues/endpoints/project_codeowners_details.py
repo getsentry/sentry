@@ -13,7 +13,7 @@ from sentry import analytics
 from sentry.analytics.events.codeowners_updated import CodeOwnersUpdated
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.projectcodeowners import (
@@ -21,6 +21,7 @@ from sentry.api.serializers.models.projectcodeowners import (
     ProjectCodeOwnersResponse,
     ProjectCodeOwnersSerializer,
 )
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -55,11 +56,13 @@ CODEOWNERS_ID_PARAM = OpenApiParameter(
 @extend_schema(tags=["Projects"])
 class ProjectCodeOwnersDetailsEndpoint(ProjectCodeOwnersBase):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
 
     def convert_args(
         self,
@@ -75,7 +78,8 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectCodeOwnersBase):
         )
         try:
             kwargs["codeowners"] = ProjectCodeOwners.objects.get(
-                id=codeowners_id, project=kwargs["project"]
+                id=to_valid_int_id("codeowners_id", codeowners_id, raise_404=True),
+                project=kwargs["project"],
             )
         except ProjectCodeOwners.DoesNotExist:
             raise ResourceDoesNotExist

@@ -3,10 +3,11 @@ from collections.abc import Iterator
 from datetime import datetime, timedelta
 from heapq import nlargest
 from itertools import chain
-from typing import TypedDict
+from typing import Any, TypedDict, cast
 
-from django.db.models import Count, DateTimeField, F, Func, Q
+from django.db.models import Count, DateTimeField, F, Func, Manager, Q, QuerySet
 from django.db.models.functions import Extract
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,21 +16,83 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.endpoints.timeseries import StatsMeta
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, IssueParams, OrganizationParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 
+class TimeSeries(TypedDict):
+    timestamp: float
+    value: float
+
+
+class TimeSeriesResultMeta(TypedDict):
+    interval: float
+    isOther: bool
+    order: int
+    valueType: str
+    valueUnit: str | None
+
+
+class TimeSeriesResult(TypedDict):
+    axis: str
+    groupBy: list[str]
+    meta: TimeSeriesResultMeta
+    values: list[TimeSeries]
+
+
+class OrganizationIssueMetricsResponse(TypedDict):
+    timeseries: list[TimeSeriesResult]
+    meta: StatsMeta
+
+
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class OrganizationIssueMetricsEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.DATA_BROWSING
 
+    @extend_schema(
+        operation_id="Retrieve Issue Metrics for an Organization",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            IssueParams.STATS_CATEGORY,
+            IssueParams.METRICS_INTERVAL,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationIssueMetricsResponse", OrganizationIssueMetricsResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
-        """Stats bucketed by time."""
+        """
+        Return issue counts bucketed by time. The response always contains the
+        `new_issues_count`, `resolved_issues_count` and `new_issues_count_by_release` axes;
+        an axis split into more than four groups folds the remainder into an `other` series.
+        Timestamps are in seconds. Only the first `environment` is applied.
+        """
         environments = [e.id for e in get_environments(request, organization)]
         projects = self.get_projects(request, organization)
         start, end = get_date_range_from_params(request.GET)
@@ -72,12 +135,12 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint):
             raise ParseError("The specified granularity is too precise. Increase your interval.")
 
         def gen_ts(
-            qs,
+            qs: QuerySet[Group] | Manager[Group],
             group_by: list[str],
             date_column_name: str,
             axis: str,
-        ):
-            qs = make_timeseries_query(
+        ) -> list[TimeSeriesResult]:
+            rows = make_timeseries_query(
                 qs,
                 projects,
                 environments,
@@ -91,7 +154,7 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint):
 
             grouped_counter: collections.defaultdict[str, int] = collections.defaultdict(int)
             grouped_series: dict[str, list[TimeSeries]] = collections.defaultdict(list)
-            for row in qs:
+            for row in cast(Any, rows):
                 grouping = [row[g] for g in group_by]
                 key = "||||".join(grouping)
                 grouped_counter[key] += row["value"]
@@ -149,9 +212,9 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint):
                 for i, (key, series) in enumerate(new_grouped_series.items())
             ]
 
-        return Response(
-            {
-                "timeseries": chain(
+        response: OrganizationIssueMetricsResponse = {
+            "timeseries": list(
+                chain(
                     gen_ts(
                         Group.objects,
                         axis="new_issues_count",
@@ -170,39 +233,19 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint):
                         date_column_name="first_seen",
                         group_by=["first_release__version"],
                     ),
-                ),
-                "meta": {
-                    "dataset": "issues",
-                    "end": end.timestamp(),
-                    "start": start.timestamp(),
-                },
+                )
+            ),
+            "meta": {
+                "dataset": "issues",
+                "end": end.timestamp(),
+                "start": start.timestamp(),
             },
-            status=200,
-        )
-
-
-class TimeSeries(TypedDict):
-    timestamp: float
-    value: float
-
-
-class TimeSeriesResultMeta(TypedDict):
-    interval: float
-    isOther: bool
-    order: int
-    valueType: str
-    valueUnit: str | None
-
-
-class TimeSeriesResult(TypedDict):
-    axis: str
-    groupBy: list[str]
-    meta: TimeSeriesResultMeta
-    values: list[TimeSeries]
+        }
+        return Response(response, status=200)
 
 
 def make_timeseries_query(
-    qs,
+    qs: QuerySet[Group] | Manager[Group],
     projects: list[Project],
     environments: list[int],
     type_filter: Q,
@@ -211,7 +254,7 @@ def make_timeseries_query(
     source: str,
     start: datetime,
     end: datetime,
-):
+) -> QuerySet[Group, dict[str, str | int | float]]:
     environment_filter = (
         Q(groupenvironment__environment_id=environments[0]) if environments else Q()
     )
@@ -238,7 +281,7 @@ def make_timeseries_query(
     order_by.append("timestamp")
     values.append("timestamp")
 
-    qs = (
+    rows = (
         qs.filter(
             environment_filter,
             type_filter,
@@ -250,7 +293,7 @@ def make_timeseries_query(
         .values(*values)
         .annotate(value=Count("id"))
     )
-    return qs
+    return rows
 
 
 def make_timeseries_result(

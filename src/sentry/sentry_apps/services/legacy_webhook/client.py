@@ -1,7 +1,6 @@
-from requests import Response
-
 from sentry.sentry_apps.services.legacy_webhook.service import LegacyWebhookPayload
 from sentry.shared_integrations.client.base import BaseApiClient
+from sentry.shared_integrations.response.base import BaseApiResponse
 
 
 class LegacyWebhookClient(BaseApiClient):
@@ -14,7 +13,7 @@ class LegacyWebhookClient(BaseApiClient):
         self.data = data
         super().__init__(verify_ssl=False)
 
-    def request(self, url: str) -> Response:
+    def request(self, url: str, *args: object, **kwargs: object) -> BaseApiResponse:
         return self._request(
             path=url,
             method="post",

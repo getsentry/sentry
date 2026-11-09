@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
+import {useCustomMeasurements} from './useCustomMeasurements';
 
 function TestComponent({other}: {other: string}) {
   const {customMeasurements} = useCustomMeasurements();

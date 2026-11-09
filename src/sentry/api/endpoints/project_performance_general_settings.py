@@ -40,8 +40,9 @@ class ProjectPerformanceGeneralSettingsSerializer(serializers.Serializer):
 @cell_silo_endpoint
 class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
     """
-    Kept private: these settings only control what the Sentry UI displays (e.g. image
-    previews on resource spans) and aren't useful outside of it.
+    This endpoint is kept private (excluded from the public API docs) because these
+    settings only control what the Sentry UI displays (e.g. image previews on resource
+    spans) and aren't useful outside of it.
     """
 
     owner = ApiOwner.DATA_BROWSING
@@ -64,7 +65,7 @@ class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Return the general performance settings for a project.
         """
@@ -107,16 +108,17 @@ class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
         self.update_settings(project, request.data)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def has_feature(self, project, request) -> bool:
+    def has_feature(self, project: Project, request: Request) -> bool:
         return features.has(
             "organizations:performance-view", project.organization, actor=request.user
         )
 
-    def get_current_settings(self, project: Project):
-        return project.get_option(
+    def get_current_settings(self, project: Project) -> dict[str, object]:
+        settings = project.get_option(
             SETTINGS_PROJECT_OPTION_KEY, DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS
         )
+        return settings
 
-    def update_settings(self, project: Project, new_settings: dict):
+    def update_settings(self, project: Project, new_settings: dict[str, object]) -> None:
         current_settings = self.get_current_settings(project)
         project.update_option(SETTINGS_PROJECT_OPTION_KEY, {**current_settings, **new_settings})

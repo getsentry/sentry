@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Any
 from uuid import uuid4
 
-import rb
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
+from sentry import options
+from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
 from sentry.utils.locking.backends import LockBackend
 
@@ -16,7 +17,7 @@ delete_lock = redis.load_redis_script("utils/locking/delete_lock.lua")
 class BaseRedisLockBackend(LockBackend):
     def __init__(
         self,
-        cluster: rb.Cluster | RedisCluster[str] | StrictRedis[str],
+        cluster: RedisCluster[str] | StrictRedis[str],
         prefix: str = "l:",
         uuid: str | None = None,
     ):
@@ -47,35 +48,20 @@ class BaseRedisLockBackend(LockBackend):
         return client.get(self.prefix_key(key)) is not None
 
 
-class RedisBlasterLockBackend(BaseRedisLockBackend):
-    cluster: rb.Cluster
-
-    def __init__(self, cluster: str | rb.Cluster, prefix: str = "l:", uuid: str | None = None):
-        if isinstance(cluster, str):
-            cluster = redis.clusters.get(cluster)
-        super().__init__(cluster, prefix=prefix, uuid=uuid)
-
-    def get_client(self, key: str, routing_key: int | str | None = None) -> rb.clients.LocalClient:
-        # This is a bit of an abstraction leak, but if an integer is provided
-        # we use that value to determine placement rather than the cluster
-        # router. This leaking allows us us to have more fine-grained control
-        # when data is already placed within partitions where the router
-        # wouldn't have placed it based on the key hash, and maintain data
-        # locality and failure isolation within those partitions. (For example,
-        # the entirety of a digest is bound to a specific partition by the
-        # *digest* key, even though a digest is composed of multiple values at
-        # different keys that would otherwise be placed on different
-        # partitions.)
-        if isinstance(routing_key, int):
-            index = routing_key % len(self.cluster.hosts)
-            return self.cluster.get_local_client(index)
-
-        if routing_key is not None:
-            key = routing_key
-        else:
-            key = self.prefix_key(key)
-
-        return self.cluster.get_local_client_for_key(key)
+def _get_redis_cluster_for_locks(cluster_name: str) -> RedisCluster[str] | StrictRedis[str]:
+    try:
+        return redis.redis_clusters.get(cluster_name)
+    except KeyError as e:
+        if cluster_name not in options.get("redis.clusters"):
+            raise
+        # This is here specifically to inform self-hosted folks about what's going
+        # on when they have 2+ hosts but no is_redis_cluster. Without the nicer error
+        # the process fails with a KeyError that isn't helpful
+        raise InvalidConfiguration(
+            f"Redis cluster {cluster_name!r} cannot be used by RedisClusterLockBackend. "
+            "The lock backend needs a cluster with exactly one host, or a cluster "
+            "with is_redis_cluster set to True."
+        ) from e
 
 
 class RedisClusterLockBackend(BaseRedisLockBackend):
@@ -88,7 +74,7 @@ class RedisClusterLockBackend(BaseRedisLockBackend):
         uuid: str | None = None,
     ):
         if isinstance(cluster, str):
-            cluster = redis.redis_clusters.get(cluster)
+            cluster = _get_redis_cluster_for_locks(cluster)
         super().__init__(cluster, prefix=prefix, uuid=uuid)
 
     def get_client(
@@ -97,4 +83,6 @@ class RedisClusterLockBackend(BaseRedisLockBackend):
         return self.cluster
 
 
-RedisLockBackend = RedisBlasterLockBackend
+# Old configs name this path. On a single host it uses the same server and keys as the old
+# redis-blaster backend.
+RedisLockBackend = RedisClusterLockBackend

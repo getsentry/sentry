@@ -1,5 +1,4 @@
-// eslint-disable-next-line @sentry/scraps/no-core-import -- SSR snapshot needs direct import to avoid barrel re-exports with heavy deps
-import {Badge, type BadgeProps} from 'sentry/components/core/badge/badge';
+import {Badge, type BadgeProps} from '@sentry/scraps/badge';
 
 describe('Badge', () => {
   it.snapshot.each<BadgeProps['variant']>([

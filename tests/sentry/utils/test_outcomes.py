@@ -1,8 +1,10 @@
 import types
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
+from pytest_django.fixtures import SettingsWrapper
 
 from sentry.constants import DataCategory
 from sentry.testutils.helpers.datetime import freeze_time
@@ -11,7 +13,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 
 
 @pytest.fixture(autouse=True)
-def setup():
+def setup() -> Iterator[types.SimpleNamespace]:
     with mock.patch.object(outcomes.outcomes_producer, "produce") as mck_outcomes:
         with mock.patch.object(outcomes.billing_producer, "produce") as mck_billing:
             yield types.SimpleNamespace(
@@ -64,7 +66,7 @@ def test_outcome_parse_invalid_name() -> None:
         Outcome.parse("nonexistent_outcome")
 
 
-def test_track_outcome_default(setup) -> None:
+def test_track_outcome_default(setup: types.SimpleNamespace) -> None:
     """
     Asserts an outcomes serialization roundtrip with defaults.
     """
@@ -96,7 +98,7 @@ def test_track_outcome_default(setup) -> None:
     }
 
 
-def test_track_outcome_billing(setup) -> None:
+def test_track_outcome_billing(setup: types.SimpleNamespace) -> None:
     """
     Checks that outcomes are routed to the DEDICATED topic within the same cluster
     in default configuration.
@@ -114,7 +116,7 @@ def test_track_outcome_billing(setup) -> None:
     assert arroyo_topic.name == "outcomes-billing"
 
 
-def test_track_outcome_billing_topic(setup) -> None:
+def test_track_outcome_billing_topic(setup: types.SimpleNamespace) -> None:
     """
     Checks that outcomes are routed to the DEDICATED billing topic within the
     same cluster in default configuration.
@@ -131,7 +133,9 @@ def test_track_outcome_billing_topic(setup) -> None:
     assert arroyo_topic.name == "outcomes-billing"
 
 
-def test_track_outcome_billing_cluster(settings, setup) -> None:
+def test_track_outcome_billing_cluster(
+    settings: SettingsWrapper, setup: types.SimpleNamespace
+) -> None:
     """
     Checks that outcomes are routed to the dedicated cluster and topic.
     """
@@ -157,7 +161,7 @@ def test_outcome_api_name() -> None:
         assert outcome.api_name() == outcome.name.lower()
 
 
-def test_track_outcome_with_quantity(setup) -> None:
+def test_track_outcome_with_quantity(setup: types.SimpleNamespace) -> None:
     """
     Tests that `track_outcome` handles different `quantity` values correctly.
     """
@@ -177,7 +181,7 @@ def test_track_outcome_with_quantity(setup) -> None:
     assert data["quantity"] == 5
 
 
-def test_track_outcome_with_event_id(setup) -> None:
+def test_track_outcome_with_event_id(setup: types.SimpleNamespace) -> None:
     """
     Tests that `track_outcome` includes `event_id` in the payload.
     """
@@ -206,7 +210,7 @@ def test_track_outcome_with_event_id(setup) -> None:
         DataCategory.DEFAULT,
     ],
 )
-def test_track_outcome_with_category(setup, category: DataCategory) -> None:
+def test_track_outcome_with_category(setup: types.SimpleNamespace, category: DataCategory) -> None:
     """
     Tests that `track_outcome` correctly includes different `category` values in the payload.
     """
@@ -258,7 +262,7 @@ def test_track_outcome_with_invalid_inputs() -> None:
         )
 
 
-def test_track_outcome_with_provided_timestamp(setup) -> None:
+def test_track_outcome_with_provided_timestamp(setup: types.SimpleNamespace) -> None:
     """
     Tests that `track_outcome` uses the provided `timestamp` instead of the current time.
     """
@@ -277,7 +281,7 @@ def test_track_outcome_with_provided_timestamp(setup) -> None:
     assert data["timestamp"] == "2021-01-01T12:00:00.000000Z"
 
 
-def test_track_outcome_late(setup) -> None:
+def test_track_outcome_late(setup: types.SimpleNamespace) -> None:
     """
     Tests that we emit metrics when an outcome is later than 1 day.
     """
@@ -320,7 +324,7 @@ def test_track_outcome_late(setup) -> None:
         )
 
 
-def test_track_outcome_with_none_key_id(setup) -> None:
+def test_track_outcome_with_none_key_id(setup: types.SimpleNamespace) -> None:
     """
     Tests that `track_outcome` handles `key_id=None` correctly in the payload.
     """
@@ -336,7 +340,7 @@ def test_track_outcome_with_none_key_id(setup) -> None:
     assert data["key_id"] is None
 
 
-def test_track_outcome_with_none_reason(setup) -> None:
+def test_track_outcome_with_none_reason(setup: types.SimpleNamespace) -> None:
     """
     Tests that `track_outcome` handles `reason=None` correctly in the payload.
     """
@@ -353,7 +357,7 @@ def test_track_outcome_with_none_reason(setup) -> None:
     assert data["reason"] is None
 
 
-def test_track_outcome_with_none_category(setup) -> None:
+def test_track_outcome_with_none_category(setup: types.SimpleNamespace) -> None:
     """
     Tests that `track_outcome` handles `category=None` correctly in the payload.
     """
@@ -371,7 +375,9 @@ def test_track_outcome_with_none_category(setup) -> None:
 
 
 @pytest.mark.parametrize("quantity", [0, -1, -100])
-def test_track_outcome_with_non_positive_quantity(setup, quantity: int) -> None:
+def test_track_outcome_with_non_positive_quantity(
+    setup: types.SimpleNamespace, quantity: int
+) -> None:
     """
     Tests that `track_outcome` handles non-positive `quantity` values.
     """
@@ -388,7 +394,7 @@ def test_track_outcome_with_non_positive_quantity(setup, quantity: int) -> None:
     assert data["quantity"] == quantity
 
 
-def test_metrics_incr_called_with_correct_tags_and_quantity(setup) -> None:
+def test_metrics_incr_called_with_correct_tags_and_quantity(setup: types.SimpleNamespace) -> None:
     """
     Tests that `metrics.incr` is called with the correct arguments.
     """
@@ -416,7 +422,7 @@ def test_metrics_incr_called_with_correct_tags_and_quantity(setup) -> None:
         )
 
 
-def test_track_outcome_routes_to_outcomes_producer(setup) -> None:
+def test_track_outcome_routes_to_outcomes_producer(setup: types.SimpleNamespace) -> None:
     """
     When the billing and outcomes topics share a cluster, billing outcomes
     are routed through the outcomes producer (to the billing topic name).
@@ -432,7 +438,9 @@ def test_track_outcome_routes_to_outcomes_producer(setup) -> None:
     setup.mock_billing_produce.assert_not_called()
 
 
-def test_track_outcome_routes_to_billing_producer_when_clusters_differ(settings, setup) -> None:
+def test_track_outcome_routes_to_billing_producer_when_clusters_differ(
+    settings: SettingsWrapper, setup: types.SimpleNamespace
+) -> None:
     """
     When the billing topic lives on a different cluster from the outcomes
     topic, billing outcomes use the billing producer and non-billing outcomes

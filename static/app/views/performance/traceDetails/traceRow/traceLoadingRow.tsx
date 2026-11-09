@@ -4,13 +4,14 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
+
 import {
   TRACE_COUNT_FORMATTER,
   TRACE_RIGHT_COLUMN_EVEN_CLASSNAME,
   TRACE_RIGHT_COLUMN_ODD_CLASSNAME,
   TraceChildrenButton,
   TraceRowConnectors,
-} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+} from './traceRow';
 
 function randomBetween(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1) + min);

@@ -1,19 +1,20 @@
 import styled from '@emotion/styled';
 
-import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
-import {JsonViewer} from 'sentry/components/events/attachmentViewers/jsonViewer';
-import {LogFileViewer} from 'sentry/components/events/attachmentViewers/logFileViewer';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import type {IssueAttachment} from 'sentry/types/group';
+
+import {ImageViewer} from './imageViewer';
+import {JsonViewer} from './jsonViewer';
+import {LogFileViewer} from './logFileViewer';
 import {
   imageMimeTypes,
   jsonMimeTypes,
   logFileMimeTypes,
   nonPreviewableExtensions,
   webmMimeTypes,
-} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
-import {RRWebJsonViewer} from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
-import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
-import {PanelItem} from 'sentry/components/panels/panelItem';
-import type {IssueAttachment} from 'sentry/types/group';
+} from './previewAttachmentTypes';
+import {RRWebJsonViewer} from './rrwebJsonViewer';
+import {VideoViewer} from './videoViewer';
 
 interface AttachmentViewerProps {
   attachment: IssueAttachment;

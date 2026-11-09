@@ -1,5 +1,6 @@
 import type {EntryException, ExceptionValue} from 'sentry/types/event';
-import {defined} from 'sentry/utils/defined';
+
+import {defined} from './defined';
 
 type ExceptionGroupTreeItem = {
   children: ExceptionGroupTreeItem[];
