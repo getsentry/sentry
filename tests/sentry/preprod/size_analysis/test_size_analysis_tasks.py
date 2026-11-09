@@ -2,7 +2,7 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import connection, router, transaction
@@ -125,7 +125,9 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
 
     @patch("sentry.preprod.size_analysis.tasks.create_preprod_size_pr_comment_task.apply_async")
     @patch("sentry.preprod.size_analysis.tasks.create_preprod_status_check_task.apply_async")
-    def test_runs_every_comparison_then_dispatches_follow_ups(self, status_check, pr_comment):
+    def test_runs_every_comparison_then_dispatches_follow_ups(
+        self, status_check: MagicMock, pr_comment: MagicMock
+    ) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         main_head, main_base = pairs[0]
         leftover = self.create_preprod_artifact_size_comparison(
@@ -147,7 +149,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         pr_comment.assert_called_once_with(kwargs=expected)
 
     @patch("sentry.preprod.size_analysis.tasks.create_preprod_status_check_task.apply_async")
-    def test_interrupted_run_leaves_nothing_behind(self, status_check):
+    def test_interrupted_run_leaves_nothing_behind(self, status_check: MagicMock) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         main_head, main_base = pairs[0]
         leftover = self.create_preprod_artifact_size_comparison(
@@ -170,7 +172,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         assert self._result_files() == []
         status_check.assert_not_called()
 
-    def test_failed_upload_leaves_nothing_behind(self):
+    def test_failed_upload_leaves_nothing_behind(self) -> None:
         head_artifact, _ = self._create_comparable_pair()
         with patch.object(File, "putfile", side_effect=OSError("bucket unreachable")):
             with pytest.raises(OSError):
@@ -179,7 +181,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         assert not PreprodArtifactSizeComparison.objects.exists()
         assert self._result_files() == []
 
-    def test_missing_analysis_file_fails_only_that_comparison(self):
+    def test_missing_analysis_file_fails_only_that_comparison(self) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         main_head, _ = pairs[0]
         watch_head, _ = pairs[1]
@@ -194,7 +196,9 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         assert watch.file_id is None
 
     @patch("sentry.preprod.size_analysis.tasks.create_preprod_status_check_task.apply_async")
-    def test_comparison_recorded_by_another_run_is_left_alone(self, status_check):
+    def test_comparison_recorded_by_another_run_is_left_alone(
+        self, status_check: MagicMock
+    ) -> None:
         head_artifact, _ = self._create_comparable_pair()
 
         def compare_after_another_run_recorded_it(**kwargs: Any) -> Any:
@@ -218,7 +222,9 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         status_check.assert_called_once()
 
     @patch("sentry.preprod.size_analysis.tasks.create_preprod_status_check_task.apply_async")
-    def test_comparison_deleted_before_it_is_recorded_is_skipped(self, status_check):
+    def test_comparison_deleted_before_it_is_recorded_is_skipped(
+        self, status_check: MagicMock
+    ) -> None:
         head_artifact, _ = self._create_comparable_pair()
 
         with patch.object(PreprodArtifactSizeComparison.objects, "bulk_create"):
@@ -228,7 +234,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         assert self._result_files() == []
         status_check.assert_called_once()
 
-    def test_cleanup_keeps_result_files_a_comparison_references(self):
+    def test_cleanup_keeps_result_files_a_comparison_references(self) -> None:
         head_artifact, _ = self._create_comparable_pair()
         self._run_task(head_artifact)
         recorded_files = self._result_files()
@@ -238,7 +244,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
 
         assert self._result_files() == recorded_files
 
-    def test_rows_are_recorded_in_one_order_whatever_the_input_order(self):
+    def test_rows_are_recorded_in_one_order_whatever_the_input_order(self) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         reversed_pairs = list(reversed(pairs))
         comparisons = [
@@ -257,7 +263,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
             head_metric.id for head_metric, _ in pairs
         ]
 
-    def test_rerun_does_not_redo_finished_comparisons(self):
+    def test_rerun_does_not_redo_finished_comparisons(self) -> None:
         head_artifact, _ = self._create_comparable_pair()
         self._run_task(head_artifact)
 
@@ -267,12 +273,12 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         compare.assert_not_called()
         assert len(self._result_files()) == 2
 
-    def test_manual_comparison_does_not_overwrite_one_recorded_meanwhile(self):
+    def test_manual_comparison_does_not_overwrite_one_recorded_meanwhile(self) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         self._create_pending_rows(pairs)
         real_getfile = File.getfile
 
-        def getfile_while_another_run_records(self_, *args, **kwargs):
+        def getfile_while_another_run_records(self_: File, *args: Any, **kwargs: Any) -> Any:
             pending_rows = PreprodArtifactSizeComparison.objects.filter(
                 state=PreprodArtifactSizeComparison.State.PENDING
             )
@@ -290,7 +296,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         compare.assert_not_called()
         assert self._result_files() == []
 
-    def test_manual_comparison_failed_success_write_leaves_no_file(self):
+    def test_manual_comparison_failed_success_write_leaves_no_file(self) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         self._create_pending_rows(pairs)
 
@@ -302,7 +308,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
 
         assert self._result_files() == []
 
-    def test_manual_comparison_failed_upload_leaves_no_file(self):
+    def test_manual_comparison_failed_upload_leaves_no_file(self) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         self._create_pending_rows(pairs)
 
@@ -319,7 +325,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
 
 
 class ComparePreprodArtifactSizeAnalysisTransactionTest(_CompareTaskHelpers, TransactionTestCase):
-    def test_file_io_runs_outside_any_transaction(self):
+    def test_file_io_runs_outside_any_transaction(self) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         in_atomic_block: list[bool] = []
         using = router.db_for_write(PreprodArtifactSizeComparison)
@@ -330,15 +336,15 @@ class ComparePreprodArtifactSizeAnalysisTransactionTest(_CompareTaskHelpers, Tra
         real_getfile = File.getfile
         real_putfile = File.putfile
 
-        def spy_getfile(self_, *args, **kwargs):
+        def spy_getfile(self_: File, *args: Any, **kwargs: Any) -> Any:
             record()
             return real_getfile(self_, *args, **kwargs)
 
-        def spy_putfile(self_, *args, **kwargs):
+        def spy_putfile(self_: File, *args: Any, **kwargs: Any) -> Any:
             record()
             return real_putfile(self_, *args, **kwargs)
 
-        def spy_compare(*args, **kwargs):
+        def spy_compare(*args: Any, **kwargs: Any) -> Any:
             record()
             return compare_size_analysis(*args, **kwargs)
 
@@ -361,13 +367,13 @@ class ComparePreprodArtifactSizeAnalysisTransactionTest(_CompareTaskHelpers, Tra
         states = list(PreprodArtifactSizeComparison.objects.values_list("state", flat=True))
         assert states == [PreprodArtifactSizeComparison.State.SUCCESS] * 2
 
-    def test_manual_upload_runs_outside_any_transaction(self):
+    def test_manual_upload_runs_outside_any_transaction(self) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         in_atomic_block: list[bool] = []
         using = router.db_for_write(PreprodArtifactSizeComparison)
         real_putfile = File.putfile
 
-        def spy_putfile(self_, *args, **kwargs):
+        def spy_putfile(self_: File, *args: Any, **kwargs: Any) -> Any:
             in_atomic_block.append(transaction.get_connection(using).in_atomic_block)
             return real_putfile(self_, *args, **kwargs)
 
