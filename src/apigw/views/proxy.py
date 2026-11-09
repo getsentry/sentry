@@ -142,6 +142,7 @@ proxy.route(
         "/organizations/<str:org>/payments(/<any:subp>)?",
         "/organizations/<str:org>/projects/<str:p1>/events/<str:p2>",
         "/organizations/<str:org>/projects/<str:p1>/issues/<str:p2>/tags/<str:p3>/export",
+        "/organizations/<str:org>/tr/<any:subp>",
         "/plugins/bitbucket/organizations/<str:org>/webhook",
         "/plugins/github/organizations/<str:org>/webhook",
         "/team-avatar/<str:org>(/<any:subp>)?",
