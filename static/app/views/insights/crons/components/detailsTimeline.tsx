@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
-import pick from 'lodash/pick';
+import {createSerializer, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Table, type TableColumnConfig} from '@sentry/scraps/table';
@@ -22,12 +23,12 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {getNextCheckInEnv} from 'sentry/utils/monitor/cron';
 import {setApiQueryData} from 'sentry/utils/queryClient';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useApi} from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,6 +50,8 @@ const ENVIRONMENT_COLUMN_WIDTH = 135;
 
 const MAX_SHOWN_ENVIRONMENTS = 4;
 
+const serializePageFilters = createSerializer(pageFilterParsers);
+
 const COLUMNS: TableColumnConfig[] = [
   {key: 'environment', width: `${ENVIRONMENT_COLUMN_WIDTH}px`},
   {key: 'timeline', width: '1fr'},
@@ -69,6 +72,7 @@ interface Props {
 export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: Props) {
   const organization = useOrganization();
   const location = useLocation();
+  const [{start, end, statsPeriod, environment}] = useQueryStates(pageFilterParsers);
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -92,9 +96,7 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
     organization,
     monitor.project.slug,
     monitor.slug,
-    {
-      environment: location.query.environment,
-    }
+    {environment}
   );
 
   const {data: monitorStats, isPending} = useMonitorStats({
@@ -114,8 +116,6 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
   const environments = isExpanded
     ? monitor.environments
     : monitor.environments.slice(0, MAX_SHOWN_ENVIRONMENTS);
-
-  const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
 
   const handleDeleteEnvironment = async (env: string) => {
     const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
@@ -202,10 +202,12 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
                 {
                   key: 'view',
                   label: t('View Environment'),
-                  to: {
-                    pathname: location.pathname,
-                    query: {...query, environment: env.name},
-                  },
+                  to: serializePageFilters(location.pathname, {
+                    start,
+                    end,
+                    statsPeriod,
+                    environment: [env.name],
+                  }),
                 },
                 {
                   key: 'mute',

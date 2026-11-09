@@ -14,7 +14,8 @@ import {t, tct} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {ProjectRouteContext} from 'sentry/views/projects/projectRouteContext';
+
+import {ProjectRouteContext} from './projects/projectRouteContext';
 
 interface RouteErrorProps {
   error?: Error;

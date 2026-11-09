@@ -1,6 +1,7 @@
 import {isNonEmptyArray} from 'sentry/utils/array/isNonEmptyArray';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
+
+import {intervalToMilliseconds} from './intervalToMilliseconds';
 
 /**
  * Converts a millisecond value to the closest valid interval string.

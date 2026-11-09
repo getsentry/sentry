@@ -2,9 +2,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Form} from 'sentry/components/forms/form';
 import type {Permissions} from 'sentry/types/integrations';
-import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {RESOURCE_EVENTS} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+
+import type {WebhookSubscription} from './constants';
+import {RESOURCE_EVENTS} from './constants';
+import {Subscriptions} from './resourceSubscriptions';
 
 const basePermissions: Permissions = {
   Event: 'read',

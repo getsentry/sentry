@@ -9,6 +9,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_safe
 from django.views.generic import RedirectView
 
+from sentry.agent_handoff.views import AgentHandoffView
 from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
@@ -171,6 +172,7 @@ urlpatterns += [
         JavaScriptSdkLoader.as_view(),
         name="sentry-js-sdk-loader",
     ),
+    re_path(r"^agent-handoff/$", AgentHandoffView.as_view(), name="sentry-agent-handoff"),
     # docs reference this for acquiring the sentry cli
     re_path(r"^get-cli/$", get_cli, name="get_cli_script"),
     re_path(

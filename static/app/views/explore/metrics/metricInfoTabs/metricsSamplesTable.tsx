@@ -13,13 +13,6 @@ import {
 } from 'sentry/views/explore/metrics/constants';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {TRACE_METRICS_INGESTION_DELAY_SECONDS} from 'sentry/views/explore/metrics/ingestionDelay';
-import {
-  LoadingMaskRow,
-  StyledSimpleTable,
-  TransparentLoadingMask,
-} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
-import {MetricsSamplesTableHeader} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTableHeader';
-import {SampleTableRow} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTableRow';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
@@ -30,6 +23,14 @@ import {
 } from 'sentry/views/explore/metrics/types';
 import {mapMetricUnitToFieldType} from 'sentry/views/explore/metrics/utils';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
+
+import {
+  LoadingMaskRow,
+  StyledSimpleTable,
+  TransparentLoadingMask,
+} from './metricInfoTabStyles';
+import {MetricsSamplesTableHeader} from './metricsSamplesTableHeader';
+import {SampleTableRow} from './metricsSamplesTableRow';
 
 const RESULT_LIMIT = 50;
 const EMBEDDED_RESULT_LIMIT = 100;

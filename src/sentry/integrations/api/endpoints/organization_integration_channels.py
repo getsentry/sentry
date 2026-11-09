@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -29,18 +30,24 @@ logger = logging.getLogger(__name__)
 
 
 class IntegrationChannel(TypedDict):
-    id: str
-    name: str
-    display: str
-    type: str
+    id: Annotated[str, ApiDescription("ID of the channel in the provider")]
+    name: Annotated[str, ApiDescription("Name of the channel")]
+    display: Annotated[str, ApiDescription("Name to show for the channel, such as #general")]
+    type: Annotated[
+        str, ApiDescription("Type of the channel in the provider, such as public, private or text")
+    ]
 
 
 class IntegrationChannelsResponseOptional(TypedDict, total=False):
-    warning: str
+    warning: Annotated[
+        str, ApiDescription("Why the channels couldn't be listed, such as an unsupported provider")
+    ]
 
 
 class IntegrationChannelsResponse(IntegrationChannelsResponseOptional):
-    results: list[IntegrationChannel]
+    results: Annotated[
+        list[IntegrationChannel], ApiDescription("Channels of the integration's workspace")
+    ]
 
 
 def _slack_list_channels(*, integration_id: int) -> list[IntegrationChannel]:

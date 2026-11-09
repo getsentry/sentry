@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from django.urls import reverse
 
+from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.types import ExternalProviders
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
@@ -76,14 +77,22 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
             MessageAction(
                 name="Approve",
                 style="primary",
-                action_id="approve_request",
+                action_id=encode_action_id(
+                    action="approve_request",
+                    organization_id=self.organization.id,
+                    project_id=None,
+                ),
                 value="approve_member",
                 label="Approve",
             ),
             MessageAction(
                 name="Reject",
                 style="danger",
-                action_id="reject_request",
+                action_id=encode_action_id(
+                    action="reject_request",
+                    organization_id=self.organization.id,
+                    project_id=None,
+                ),
                 value="reject_member",
                 label="Reject",
             ),

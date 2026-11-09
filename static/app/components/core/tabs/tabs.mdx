@@ -13,6 +13,8 @@ resources:
 ---
 
 import {Fragment, useState} from 'react';
+import {useLocation} from 'react-router';
+import {createSerializer, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
@@ -347,6 +349,97 @@ Resize the demo to see tabs move into and out of the overflow menu.
     <TabPanels.Item key="settings">Settings content</TabPanels.Item>
   </TabPanels>
 </Tabs>
+```
+
+## Linked tabs
+
+Set `to` on `TabList.Item` to render a link. Derive `Tabs.value` from the current route so navigation selects the matching tab, including links in the overflow menu.
+
+Arrow keys move focus between links. Press Enter or Space, or click a link, to navigate. Automatic selection does not navigate to a link.
+
+This demo uses `nuqs` to read the `linkedTab` query parameter and build link URLs that keep navigation on this page. Resize the demo to test overflow. Ctrl-click or Command-click a link to open it in a new browser tab.
+
+export function LinkedTabsDemo() {
+  const location = useLocation();
+  const tabs = [
+    {key: 'overview', label: 'Overview'},
+    {key: 'activity', label: 'Activity'},
+    {key: 'feedback', label: 'User Feedback'},
+    {key: 'attachments', label: 'Attachments'},
+    {key: 'settings', label: 'Settings'},
+  ];
+  const parser = parseAsStringLiteral(tabs.map(({key}) => key)).withDefault('overview');
+  const [value] = useQueryState('linkedTab', parser);
+  const serialize = createSerializer({linkedTab: parser});
+  return (
+    <Tabs value={value}>
+      <TabList aria-label="Linked tabs">
+        {tabs.map(({key, label}) => (
+          <TabList.Item
+            key={key}
+            to={{
+              search: serialize(location.search, {linkedTab: key}),
+              hash: location.hash,
+            }}
+          >
+            {label}
+          </TabList.Item>
+        ))}
+      </TabList>
+      <TabPanels>
+        {tabs.map(({key, label}) => (
+          <TabPanels.Item key={key}>{label} content</TabPanels.Item>
+        ))}
+      </TabPanels>
+    </Tabs>
+  );
+}
+
+<Storybook.Demo resizable>
+  <LinkedTabsDemo />
+</Storybook.Demo>
+
+```jsx
+import {useLocation} from 'react-router';
+import {createSerializer, parseAsStringLiteral, useQueryState} from 'nuqs';
+
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+
+function LinkedTabsDemo() {
+  const location = useLocation();
+  const tabs = [
+    {key: 'overview', label: 'Overview'},
+    {key: 'activity', label: 'Activity'},
+    {key: 'feedback', label: 'User Feedback'},
+    {key: 'attachments', label: 'Attachments'},
+    {key: 'settings', label: 'Settings'},
+  ];
+  const parser = parseAsStringLiteral(tabs.map(({key}) => key)).withDefault('overview');
+  const [value] = useQueryState('linkedTab', parser);
+  const serialize = createSerializer({linkedTab: parser});
+  return (
+    <Tabs value={value}>
+      <TabList aria-label="Linked tabs">
+        {tabs.map(({key, label}) => (
+          <TabList.Item
+            key={key}
+            to={{
+              search: serialize(location.search, {linkedTab: key}),
+              hash: location.hash,
+            }}
+          >
+            {label}
+          </TabList.Item>
+        ))}
+      </TabList>
+      <TabPanels>
+        {tabs.map(({key, label}) => (
+          <TabPanels.Item key={key}>{label} content</TabPanels.Item>
+        ))}
+      </TabPanels>
+    </Tabs>
+  );
+}
 ```
 
 ## Keyboard Navigation

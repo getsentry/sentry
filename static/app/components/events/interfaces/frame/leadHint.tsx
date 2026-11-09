@@ -1,6 +1,7 @@
-import {getLeadHint} from 'sentry/components/events/interfaces/frame/utils';
 import type {Event, Frame} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
+
+import {getLeadHint} from './utils';
 
 type Props = {
   event: Event;

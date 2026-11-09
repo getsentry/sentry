@@ -3,6 +3,7 @@ from collections.abc import Collection, Iterable, Sequence
 from datetime import timedelta
 
 from django.db import router, transaction
+from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.project import Project
@@ -20,6 +21,10 @@ from sentry.snuba.tasks import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _set_status(subscription: QuerySubscription, status: QuerySubscription.Status) -> None:
+    subscription.update(status=status.value, date_updated=timezone.now())
 
 
 def create_snuba_query(
@@ -250,7 +255,7 @@ def update_snuba_subscription(
     :return: The QuerySubscription representing the subscription
     """
     with transaction.atomic(router.db_for_write(QuerySubscription)):
-        subscription.update(status=QuerySubscription.Status.UPDATING.value)
+        _set_status(subscription, QuerySubscription.Status.UPDATING)
 
         transaction.on_commit(
             lambda: update_subscription_in_snuba.delay(
@@ -283,7 +288,7 @@ def delete_snuba_subscription(subscription: QuerySubscription) -> None:
     :param subscription: The subscription to delete
     :return:
     """
-    subscription.update(status=QuerySubscription.Status.DELETING.value)
+    _set_status(subscription, QuerySubscription.Status.DELETING)
 
     transaction.on_commit(
         lambda: delete_subscription_from_snuba.delay(query_subscription_id=subscription.id),
@@ -308,7 +313,7 @@ def disable_snuba_subscription(subscription: QuerySubscription) -> None:
     :param subscription: The subscription to disable
     :return:
     """
-    subscription.update(status=QuerySubscription.Status.DISABLED.value)
+    _set_status(subscription, QuerySubscription.Status.DISABLED)
 
     transaction.on_commit(
         lambda: delete_subscription_from_snuba.delay(query_subscription_id=subscription.id),
@@ -333,7 +338,7 @@ def enable_snuba_subscription(subscription: QuerySubscription) -> None:
     :param subscription: The subscription to enable
     :return:
     """
-    subscription.update(status=QuerySubscription.Status.CREATING.value)
+    _set_status(subscription, QuerySubscription.Status.CREATING)
 
     transaction.on_commit(
         lambda: create_subscription_in_snuba.delay(query_subscription_id=subscription.id),

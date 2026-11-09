@@ -95,6 +95,7 @@ describe('getExpandedProjectIds', () => {
     {returned: [], selected: [1, 2]},
     {returned: [1, 2], selected: [1, 2]},
     {returned: [1], selected: [1, 2]},
+    {returned: [1, 2, 3], selected: [-1]},
   ])(
     'returns undefined when $returned does not expand beyond $selected',
     ({returned, selected}) => {

@@ -3,11 +3,9 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicator from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
 import {useSyncRepositories} from './useSyncRepositories';
-
-jest.mock('sentry/actionCreators/indicator');
 
 describe('useSyncRepositories', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
@@ -17,6 +15,9 @@ describe('useSyncRepositories', () => {
   });
 
   beforeEach(() => {
+    jest.spyOn(toast, 'success');
+    jest.spyOn(toast, 'loading');
+    jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/123/',
       body: integration,
@@ -125,9 +126,7 @@ describe('useSyncRepositories', () => {
 
     await waitFor(() => expect(result.current.isSyncing).toBe(false));
 
-    expect(indicator.addSuccessMessage).toHaveBeenCalledWith(
-      'Repositories synced successfully'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Repositories synced successfully');
     expect(onSynced).toHaveBeenCalled();
   });
 
@@ -156,7 +155,7 @@ describe('useSyncRepositories', () => {
 
     jest.useRealTimers();
 
-    expect(indicator.addLoadingMessage).toHaveBeenCalledWith(
+    expect(toast.loading).toHaveBeenCalledWith(
       'Repositories still syncing, this may take a few minutes'
     );
     expect(result.current.isSyncing).toBe(true);
@@ -191,7 +190,7 @@ describe('useSyncRepositories', () => {
       expect(result.current.isSyncing).toBe(false);
     });
 
-    expect(indicator.addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'Repositories still syncing — giving up polling. Come back later to check.'
     );
   });

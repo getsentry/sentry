@@ -6,13 +6,11 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {
-  shouldTriggerHighAccuracy,
-  useExploreTimeseries,
-} from 'sentry/views/explore/hooks/useExploreTimeseries';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+
+import {shouldTriggerHighAccuracy, useExploreTimeseries} from './useExploreTimeseries';
+import {SAMPLING_MODE} from './useProgressiveQuery';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -248,7 +246,7 @@ describe('shouldTriggerHighAccuracy', () => {
     {sampleCount: 0, expected: true},
     {sampleCount: 4, expected: false},
   ])(
-    'uses the visible pipeline sample count ($sampleCount)',
+    'uses the sample count after visible transformations ($sampleCount)',
     ({sampleCount, expected}) => {
       const transformed = TimeSeriesFixture({
         yAxis: 'count(span.duration)',

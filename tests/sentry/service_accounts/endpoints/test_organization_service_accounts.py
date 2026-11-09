@@ -11,6 +11,7 @@ from sentry.auth import access
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.dashboard import Dashboard
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.impl import DatabaseBackedOrganizationService
 from sentry.service_accounts.endpoints.organization_service_accounts import (
@@ -64,7 +65,8 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             scope_list=["project:read", "org:read"],
             project_ids=[projects[1].id, projects[0].id],
         )
-        second = self.create_service_account(
+        # Deleted accounts are left out.
+        self.create_service_account(
             organization=self.organization, name="nightly-triage", is_active=False
         )
         self.create_service_account(organization=other_organization, name="seer-autofix")
@@ -82,17 +84,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
                 "scopes": ["org:read", "project:read"],
                 "projectIds": [str(project.id) for project in sorted(projects, key=lambda p: p.id)],
                 "allProjects": False,
-                "isActive": True,
                 "dateCreated": first.date_added,
-            },
-            {
-                "id": str(second.id),
-                "name": "nightly-triage",
-                "scopes": ["org:read"],
-                "projectIds": [],
-                "allProjects": False,
-                "isActive": False,
-                "dateCreated": second.date_added,
             },
         ]
 
@@ -163,7 +155,6 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             "scopes": ["event:read", "project:read"],
             "projectIds": [str(project.id)],
             "allProjects": False,
-            "isActive": True,
             "dateCreated": service_account.date_added,
         }
 
@@ -176,22 +167,28 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             "scopes": ["event:read", "project:read"],
             "project_ids": [str(project.id)],
             "all_projects": False,
-            "is_active": True,
         }
 
-    def test_create_inactive(self) -> None:
+    def test_create_reuses_deleted_account_name(self) -> None:
+        deleted = self.create_service_account(organization=self.organization, name="nightly-triage")
+        deleted.deactivate()
+
         with self.feature(FEATURE_FLAG):
             response = self.get_success_response(
                 self.organization.slug,
                 method="post",
                 name="nightly-triage",
                 scopes=["event:read"],
-                isActive=False,
                 status_code=201,
             )
 
-        assert response.data["isActive"] is False
-        assert not ServiceAccount.objects.get(id=response.data["id"]).is_active
+        assert response.data["id"] != str(deleted.id)
+        assert (
+            ServiceAccount.objects.filter(
+                organization_id=self.organization.id, name="nightly-triage"
+            ).count()
+            == 2
+        )
 
     def test_create_duplicate_name(self) -> None:
         self.create_service_account(organization=self.organization, name="nightly-triage")
@@ -514,7 +511,6 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             "scopes": ["org:read", "project:read"],
             "projectIds": [str(self.projects[0].id)],
             "allProjects": False,
-            "isActive": True,
             "dateCreated": self.service_account.date_added,
         }
 
@@ -549,13 +545,11 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
                 method="put",
                 name="seer-autofix-v2",
                 scopes=["event:read"],
-                isActive=False,
             )
 
         self.service_account.refresh_from_db()
         assert self.service_account.name == "seer-autofix-v2"
         assert self.service_account.scope_list == ["event:read"]
-        assert not self.service_account.is_active
         # Leaving out `projectIds` keeps the projects.
         assert project_ids_for(self.service_account) == [self.projects[0].id]
         assert response.data["projectIds"] == [str(self.projects[0].id)]
@@ -567,7 +561,6 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             "scopes": ["event:read"],
             "project_ids": [str(self.projects[0].id)],
             "all_projects": False,
-            "is_active": False,
         }
 
     def test_update_replaces_projects(self) -> None:
@@ -776,7 +769,7 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             **kwargs: Any,
         ) -> tuple[tuple[Any, ...], dict[str, Any]]:
             args, kwargs = convert_args(endpoint, request, *args, **kwargs)
-            ServiceAccount.objects.get(id=service_account_id).delete()
+            ServiceAccount.objects.get(id=service_account_id).deactivate()
             return args, kwargs
 
         with (
@@ -796,7 +789,9 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
                 status_code=404,
             )
 
-        assert not ServiceAccount.objects.filter(id=service_account_id).exists()
+        service_account = ServiceAccount.objects.get(id=service_account_id)
+        assert service_account.name == "seer-autofix"
+        assert not service_account.is_active
         assert not AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SERVICE_ACCOUNT_EDIT")
         ).exists()
@@ -854,14 +849,94 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
                 self.organization.slug, service_account_id, method="delete", status_code=204
             )
 
-        assert not ServiceAccount.objects.filter(id=service_account_id).exists()
+        # The row stays, turned off, so references to the account stay set.
+        service_account = ServiceAccount.objects.get(id=service_account_id)
+        assert not service_account.is_active
+        assert service_account.name == "seer-autofix"
+        assert service_account.scope_list == ["org:read", "project:read"]
         assert not ServiceAccountProject.objects.filter(
             service_account_id=service_account_id
         ).exists()
 
         entry = AuditLogEntry.objects.get(event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE"))
         assert entry.target_object == service_account_id
-        assert entry.data["name"] == "seer-autofix"
+        # The entry describes the account before the delete.
+        assert entry.data == {
+            "name": "seer-autofix",
+            "scopes": ["org:read", "project:read"],
+            "project_ids": [str(self.projects[0].id)],
+            "all_projects": False,
+        }
+
+    def test_delete_clears_all_projects(self) -> None:
+        self.service_account.update(all_projects=True)
+
+        with self.feature(FEATURE_FLAG):
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, method="delete", status_code=204
+            )
+
+        self.service_account.refresh_from_db()
+        assert not self.service_account.all_projects
+        assert not self.service_account.is_active
+
+    def test_deleted_account_returns_404(self) -> None:
+        with self.feature(FEATURE_FLAG):
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, method="delete", status_code=204
+            )
+
+            self.get_error_response(
+                self.organization.slug, self.service_account.id, status_code=404
+            )
+            self.get_error_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="put",
+                name="renamed",
+                status_code=404,
+            )
+            self.get_error_response(
+                self.organization.slug, self.service_account.id, method="delete", status_code=404
+            )
+
+        assert (
+            AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE")
+            ).count()
+            == 1
+        )
+
+    def test_delete_after_concurrent_delete_returns_404(self) -> None:
+        convert_args = OrganizationServiceAccountDetailsEndpoint.convert_args
+        service_account_id = self.service_account.id
+
+        def convert_args_then_delete(
+            endpoint: OrganizationServiceAccountDetailsEndpoint,
+            request: Request,
+            *args: Any,
+            **kwargs: Any,
+        ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+            args, kwargs = convert_args(endpoint, request, *args, **kwargs)
+            ServiceAccount.objects.get(id=service_account_id).deactivate()
+            return args, kwargs
+
+        with (
+            mock.patch.object(
+                OrganizationServiceAccountDetailsEndpoint,
+                "convert_args",
+                autospec=True,
+                side_effect=convert_args_then_delete,
+            ),
+            self.feature(FEATURE_FLAG),
+        ):
+            self.get_error_response(
+                self.organization.slug, service_account_id, method="delete", status_code=404
+            )
+
+        assert not AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE")
+        ).exists()
 
     def test_delete_requires_service_account_write(self) -> None:
         member = self.create_user()
@@ -875,7 +950,7 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
 
         assert ServiceAccount.objects.filter(id=self.service_account.id).exists()
 
-    def test_delete_removes_cell_replica(self) -> None:
+    def test_delete_keeps_cell_replica_turned_off(self) -> None:
         service_account_id = self.service_account.id
 
         with self.feature(FEATURE_FLAG), outbox_runner():
@@ -885,6 +960,24 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
 
         with self.tasks(), assume_test_silo_mode(SiloMode.CELL):
             schedule_hybrid_cloud_foreign_key_jobs()
-            assert not ServiceAccountReplica.objects.filter(
-                service_account_id=service_account_id
-            ).exists()
+            replica = ServiceAccountReplica.objects.get(service_account_id=service_account_id)
+            assert not replica.is_active
+            assert not ServiceAccountProjectReplica.objects.filter(service_account=replica).exists()
+
+    def test_delete_keeps_attribution(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            dashboard = Dashboard.objects.create(
+                organization=self.organization,
+                title="Triage",
+                created_by_service_account_id=self.service_account.id,
+            )
+
+        with self.feature(FEATURE_FLAG), outbox_runner():
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, method="delete", status_code=204
+            )
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.CELL):
+            schedule_hybrid_cloud_foreign_key_jobs()
+            dashboard.refresh_from_db()
+            assert dashboard.created_by_service_account_id == self.service_account.id

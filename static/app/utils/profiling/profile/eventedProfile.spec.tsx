@@ -1,8 +1,8 @@
 import {Frame} from 'sentry/utils/profiling/frame';
-import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
-import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
+import {EventedProfile} from './eventedProfile';
 import {firstCallee, makeTestingBoilerplate} from './testUtils';
+import {createFrameIndex} from './utils';
 
 describe('EventedProfile', () => {
   it('imports the base properties', () => {

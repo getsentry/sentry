@@ -6,10 +6,6 @@ import type {
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  AI_AGENTS_OVERVIEW_DASHBOARD_DESCRIPTION,
-  AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
-import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
@@ -20,6 +16,11 @@ import {
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {
+  AI_AGENTS_OVERVIEW_DASHBOARD_DESCRIPTION,
+  AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
+} from './settings';
 
 const AGENT_FILTER = getAgentRunsFilter();
 const AI_CLIENT_FILTER = getAiClientSpansFilter();

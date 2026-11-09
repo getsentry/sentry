@@ -11,11 +11,8 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useTimeout} from 'sentry/utils/useTimeout';
-import {
-  ReplaySummaryStatus,
-  ReplaySummaryTemp,
-  type SummaryResponse,
-} from 'sentry/views/explore/replays/detail/ai/utils';
+
+import {ReplaySummaryStatus, ReplaySummaryTemp, type SummaryResponse} from './utils';
 
 const POLL_INTERVAL_MS = 500;
 const ERROR_POLL_INTERVAL_MS = 5000;

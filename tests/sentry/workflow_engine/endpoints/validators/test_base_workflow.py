@@ -900,7 +900,7 @@ class TestWorkflowValidatorUpdate(TestCase):
             {
                 "actions": [
                     {
-                        "type": Action.Type.SLACK,
+                        "type": "slack",
                         "config": {
                             "targetIdentifier": "bar",
                             "targetDisplay": "baz",
@@ -1066,7 +1066,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         self.valid_saved_data["actionFilters"][0]["actions"] = [
             {
                 "id": str(action.id),
-                "type": Action.Type.EMAIL,
+                "type": "email",
                 "config": {
                     "targetIdentifier": str(self.user.id),
                     "targetType": "user",

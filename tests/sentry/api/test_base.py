@@ -4,6 +4,7 @@ from typing import Any, cast
 from unittest import mock
 from unittest.mock import MagicMock
 
+import sentry_sdk
 from django.http import QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
@@ -14,6 +15,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint, EndpointSiloLimit, StatsMixin
 from sentry.api.exceptions import SuperuserRequired
 from sentry.api.paginator import GenericOffsetPaginator
@@ -117,6 +119,32 @@ class DummyErroringEndpoint(Endpoint):
         return super().handle_exception_with_details(
             request, exc, self.handler_context_arg, self.scope_arg
         )
+
+
+def _current_owner_tag() -> str | None:
+    return sentry_sdk.get_current_scope()._tags.get("endpoint_owner")
+
+
+class DummyOwnerTagInnerEndpoint(Endpoint):
+    owner = ApiOwner.ISSUES
+    permission_classes = ()
+    seen_owner_tags: list[str | None] = []
+
+    def get(self, request: Request) -> Response:
+        self.seen_owner_tags.append(_current_owner_tag())
+        return Response(status=200)
+
+
+class DummyOwnerTagOuterEndpoint(Endpoint):
+    owner = ApiOwner.ALERTS_MONITORS
+    permission_classes = ()
+    seen_owner_tags: list[str | None] = []
+
+    def get(self, request: Request) -> Response:
+        self.seen_owner_tags.append(_current_owner_tag())
+        DummyOwnerTagInnerEndpoint.as_view(seen_owner_tags=self.seen_owner_tags)(request._request)
+        self.seen_owner_tags.append(_current_owner_tag())
+        return Response(status=200)
 
 
 class DummyPaginationEndpoint(Endpoint):
@@ -564,6 +592,47 @@ class EndpointHandleExceptionTest(APITestCase):
                 assert isinstance(capture_exception_scope_kwarg, Scope)
                 assert capture_exception_scope_kwarg._contexts == expected_scope_contexts
                 assert capture_exception_scope_kwarg._tags == expected_scope_tags
+
+
+class EndpointOwnerTagTest(APITestCase):
+    def test_tag_is_scoped_to_dispatch(self) -> None:
+        seen: list[str | None] = []
+        view = DummyOwnerTagInnerEndpoint.as_view(seen_owner_tags=seen)
+
+        view(self.make_request(method="GET"))
+
+        assert seen == [ApiOwner.ISSUES.value]
+        assert _current_owner_tag() is None
+        assert "endpoint_owner" not in sentry_sdk.get_isolation_scope()._tags
+
+    def test_nested_dispatch_restores_outer_owner(self) -> None:
+        seen: list[str | None] = []
+        view = DummyOwnerTagOuterEndpoint.as_view(seen_owner_tags=seen)
+
+        view(self.make_request(method="GET"))
+
+        assert seen == [
+            ApiOwner.ALERTS_MONITORS.value,
+            ApiOwner.ISSUES.value,
+            ApiOwner.ALERTS_MONITORS.value,
+        ]
+        assert _current_owner_tag() is None
+
+    @mock.patch("rest_framework.views.APIView.handle_exception", reraise)
+    @mock.patch("sys.stderr.write")
+    def test_tag_applies_to_captured_endpoint_errors(self, _mock_stderr: MagicMock) -> None:
+        seen: list[str | None] = []
+        view = DummyErroringEndpoint.as_view(error=Exception("nope"))
+
+        with mock.patch(
+            "sentry.api.base.capture_exception",
+            side_effect=lambda *args, **kwargs: seen.append(_current_owner_tag()),
+        ):
+            response = view(self.make_request(method="GET"))
+
+        assert response.status_code == 500
+        assert seen == [ApiOwner.UNOWNED.value]
+        assert _current_owner_tag() is None
 
 
 class CursorGenerationTest(APITestCase):

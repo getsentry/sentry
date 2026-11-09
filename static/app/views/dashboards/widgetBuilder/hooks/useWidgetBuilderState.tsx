@@ -51,7 +51,6 @@ import {
   type WidgetBuilderStateLocalParams,
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/constants';
-import {useSeededQueryState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSeededQueryState';
 import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
@@ -72,6 +71,8 @@ import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/de
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {useSeededQueryState} from './useSeededQueryState';
 
 export {
   MAX_NUM_Y_AXES,
@@ -1029,8 +1030,8 @@ export function useWidgetBuilderState(): {
                 : (action.sourceIndices?.[index] ?? index)
             );
             setTransformations(
-              transformations.map(pipelines =>
-                remapTransformations(pipelines, sourceIndices)
+              transformations.map(queryTransformations =>
+                remapTransformations(queryTransformations, sourceIndices)
               ),
               options
             );
@@ -1060,16 +1061,16 @@ export function useWidgetBuilderState(): {
           setTransformations(action.payload, options);
           break;
         case BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS: {
-          const {index, transformations: pipeline} = action.payload;
+          const {index, transformations: aggregateTransformations} = action.payload;
           setTransformations(
             (query?.length ? query : ['']).map((_, queryIndex) => {
-              const pipelines = {...transformations?.[queryIndex]};
-              if (pipeline.length) {
-                pipelines[index] = [...pipeline];
+              const queryTransformations = {...transformations?.[queryIndex]};
+              if (aggregateTransformations.length) {
+                queryTransformations[index] = [...aggregateTransformations];
               } else {
-                delete pipelines[index];
+                delete queryTransformations[index];
               }
-              return pipelines;
+              return queryTransformations;
             }),
             options
           );
@@ -1303,8 +1304,8 @@ export function useWidgetBuilderState(): {
                 yAxis?.flatMap((_, index) => (index === deleteIndex ? [] : [index])) ??
                 [];
               setTransformations(
-                transformations.map(pipelines =>
-                  remapTransformations(pipelines, sourceIndices)
+                transformations.map(queryTransformations =>
+                  remapTransformations(queryTransformations, sourceIndices)
                 ),
                 options
               );

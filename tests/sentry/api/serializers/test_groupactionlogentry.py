@@ -55,6 +55,62 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert legacy_result["source"] == "mcp:claude"
         assert current_result["source"] == "mcp:claude-code"
 
+    def test_impact_assessment_entry(self) -> None:
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.IMPACT_ASSESSMENT,
+            data={
+                "score": 73.5,
+                "description": "Users cannot submit an order.",
+                "citations": [
+                    {
+                        "reference": "entire-event:event-id",
+                        "claim": "The request failed before order creation.",
+                        "source": "event",
+                    }
+                ],
+                "source_event_id": "event-id",
+            },
+        )
+
+        result = serialize(entry, self.user)
+
+        assert result["type"] == "impact_assessment"
+        assert result["data"] == {
+            "score": 73.5,
+            "level": "high",
+            "description": "Users cannot submit an order.",
+            "citations": [
+                {
+                    "reference": "entire-event:event-id",
+                    "claim": "The request failed before order creation.",
+                    "source": "event",
+                }
+            ],
+            "sourceEventId": "event-id",
+        }
+
+    def test_impact_assessment_is_in_activity(self) -> None:
+        self.create_group_action_log_entry(
+            type=GroupActionType.IMPACT_ASSESSMENT,
+            data={
+                "score": 73.5,
+                "description": "Users cannot submit an order.",
+                "citations": [
+                    {
+                        "reference": "entire-event:event-id",
+                        "claim": "The request failed before order creation.",
+                        "source": "event",
+                    }
+                ],
+                "source_event_id": "event-id",
+            },
+        )
+
+        assert [item["type"] for item in self._activity_items()] == [
+            "impact_assessment",
+            "first_seen",
+        ]
+
     def test_pull_request_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
         user = self.create_user()
@@ -356,6 +412,67 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
 
         result = serialize(entry, user)
         assert result["data"] == {"issues": [{"id": "2"}, {"id": "3"}]}
+
+    def test_unmerge_entries_expand_the_other_issue(self) -> None:
+        user = self.create_user()
+        source = self.create_group(status=GroupStatus.UNRESOLVED)
+        destinations = [self.create_group(status=GroupStatus.UNRESOLVED) for _ in range(2)]
+        entries = [
+            self.create_group_action_log_entry(
+                group=source,
+                type=GroupActionType.UNMERGE_SOURCE,
+                data={"destination_id": destination.id, "fingerprints": ["a"]},
+            )
+            for destination in destinations
+        ]
+        entries.append(
+            self.create_group_action_log_entry(
+                group=destinations[0],
+                type=GroupActionType.UNMERGE_DESTINATION,
+                data={"source_id": source.id, "fingerprints": ["a"]},
+            )
+        )
+
+        with CaptureQueriesContext(connections[router.db_for_read(GroupActionLogEntry)]) as queries:
+            result = serialize(entries, user)
+
+        assert [item["data"]["fingerprints"] for item in result] == [["a"], ["a"], ["a"]]
+        assert [result[0]["data"]["destination"]["id"], result[1]["data"]["destination"]["id"]] == [
+            str(destination.id) for destination in destinations
+        ]
+        assert result[0]["data"]["destination"]["shortId"] == destinations[0].qualified_short_id
+        assert result[2]["data"]["source"]["id"] == str(source.id)
+        assert "destination_id" not in result[0]["data"]
+        # One query loads all the issues, however many entries refer to them.
+        group_queries = [q["sql"] for q in queries if 'FROM "sentry_groupedmessage"' in q["sql"]]
+        assert len(group_queries) == 1
+
+    def test_unmerge_entry_with_deleted_issue(self) -> None:
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.UNMERGE_SOURCE,
+            data={"destination_id": 0, "fingerprints": ["a"]},
+        )
+
+        assert serialize(entry, self.user)["data"] == {"fingerprints": ["a"], "destination": None}
+
+    def test_seer_pr_entry_written_with_a_string_pr_number(self) -> None:
+        pull_request = {"pr_number": "42", "pr_url": "https://github.com/o/r/pull/42"}
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.SEER_PR_CREATED,
+            data={
+                "run_id": 1,
+                "pull_requests": [
+                    {"provider": "github", "repo_name": "o/r", "pull_request": pull_request}
+                ],
+            },
+        )
+
+        result = serialize(entry, self.user)
+
+        assert result["data"]["pull_requests"][0]["pull_request"] == {
+            "pr_number": 42,
+            "pr_url": "https://github.com/o/r/pull/42",
+        }
 
     def test_comment_entry_serializes_its_own_id_and_comment_reference(self) -> None:
         user = self.create_user()

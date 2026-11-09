@@ -14,7 +14,8 @@ import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/datasetConfi
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+
+import {getWidgetStaleTime} from './getStaleTime';
 
 function getReleasesQuery(releases: Release[]): {
   releaseQueryString: string;

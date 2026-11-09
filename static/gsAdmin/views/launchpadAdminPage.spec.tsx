@@ -7,8 +7,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {closeModal} from '@sentry/scraps/modal';
+
 import {ConfigStore} from 'sentry/stores/configStore';
-import {ModalStore} from 'sentry/stores/modalStore';
 
 import {LaunchpadAdminPage} from 'admin/views/launchpadAdminPage';
 
@@ -17,7 +18,7 @@ describe('LaunchpadAdminPage', () => {
 
   beforeEach(() => {
     ConfigStore.set('localities', [{name: 'us', url: 'https://us.test'}]);
-    ModalStore.reset();
+    closeModal();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     Object.assign(navigator, {clipboard: {writeText}});

@@ -1,10 +1,6 @@
 import type {Actor} from 'sentry/types/core';
 import type {SimpleGroup} from 'sentry/types/group';
 import type {
-  DataConditionGroupLogicType,
-  DataConditionType,
-} from 'sentry/types/workflowEngine/dataConditions';
-import type {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   Dataset,
@@ -20,6 +16,8 @@ import type {
   MetricType as PreprodMeasurement,
   MeasurementType as PreprodThresholdType,
 } from 'sentry/views/settings/project/preprod/types';
+
+import type {DataConditionGroupLogicType, DataConditionType} from './dataConditions';
 
 export type {PreprodMeasurement, PreprodThresholdType};
 
