@@ -4,14 +4,27 @@ from typing import Any
 from uuid import uuid4
 
 from redis.client import StrictRedis
+from redis.exceptions import ResponseError
 from sentry_redis_tools.clients import RedisCluster
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
+from sentry.utils.locking import LockNotOwned
 from sentry.utils.locking.backends import LockBackend
 
 delete_lock = redis.load_redis_script("utils/locking/delete_lock.lua")
+
+
+def _delete_refused(error: ResponseError) -> bool:
+    """True when delete_lock.lua refused because this token does not own the key.
+
+    redis-py 3.4.1 strips a leading ``ERR`` before it builds ``ResponseError``.
+    A message that still has the prefix matches too. A connection failure has
+    neither prefix, and that token can still delete the key.
+    """
+    message = str(error).removeprefix("ERR ")
+    return message.startswith(("NOLOCK", "LOCKHELD"))
 
 
 class BaseRedisLockBackend(LockBackend):
@@ -27,24 +40,34 @@ class BaseRedisLockBackend(LockBackend):
         self.uuid = uuid
         self.cluster = cluster
 
-    def get_client(self, key: str, routing_key: int | str | None = None) -> Any:
+    def get_client(self, key: str) -> Any:
         raise NotImplementedError
 
     def prefix_key(self, key: str) -> str:
         return f"{self.prefix}{key}"
 
-    def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
-        client = self.get_client(key, routing_key)
+    def acquire(self, key: str, duration: int, token: str | None = None) -> None:
+        client = self.get_client(key)
         full_key = self.prefix_key(key)
-        if client.set(full_key, self.uuid, ex=duration, nx=True) is not True:
+        # ``token`` fences this acquisition. Without it, the process-wide uuid
+        # is reused and a stale release can delete a newer hold in this process.
+        # An empty token is a real value and must stay empty.
+        value = self.uuid if token is None else token
+        if client.set(full_key, value, ex=duration, nx=True) is not True:
             raise Exception(f"Could not set key: {full_key!r}")
 
-    def release(self, key: str, routing_key: str | None = None) -> None:
-        client = self.get_client(key, routing_key)
-        delete_lock((self.prefix_key(key),), (self.uuid,), client)
+    def release(self, key: str, token: str | None = None) -> None:
+        client = self.get_client(key)
+        value = self.uuid if token is None else token
+        try:
+            delete_lock((self.prefix_key(key),), (value,), client)
+        except ResponseError as error:
+            if _delete_refused(error):
+                raise LockNotOwned(str(error)) from error
+            raise
 
-    def locked(self, key: str, routing_key: str | None = None) -> bool:
-        client = self.get_client(key, routing_key)
+    def locked(self, key: str) -> bool:
+        client = self.get_client(key)
         return client.get(self.prefix_key(key)) is not None
 
 
@@ -77,9 +100,7 @@ class RedisClusterLockBackend(BaseRedisLockBackend):
             cluster = _get_redis_cluster_for_locks(cluster)
         super().__init__(cluster, prefix=prefix, uuid=uuid)
 
-    def get_client(
-        self, key: str, routing_key: int | str | None = None
-    ) -> RedisCluster[str] | StrictRedis[str]:
+    def get_client(self, key: str) -> RedisCluster[str] | StrictRedis[str]:
         return self.cluster
 
 

@@ -339,6 +339,8 @@ export interface MenuItemTrailingAction {
   /** Accessible name for the button, also shown as its tooltip. */
   label: string;
   onAction: () => void;
+  /** Shows a loading indicator in place of the icon while the action runs. */
+  busy?: boolean;
 }
 
 export type ListItemProps = {
@@ -615,6 +617,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
             icon={trailingAction.icon}
             aria-label={trailingAction.label}
             tooltipProps={{title: trailingAction.label}}
+            busy={trailingAction.busy}
             onClick={trailingAction.onAction}
           />
         </Flex>

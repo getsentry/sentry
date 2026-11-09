@@ -5,9 +5,10 @@ from django.conf import settings
 from django.test import override_settings
 from rest_framework.test import APIClient
 
-from sentry.agent_handoff.codes import HandoffFlow, consume_handoff
+from sentry.agent_handoff.codes import HandoffFlow, OnboardingHandoffContext, consume_handoff
 from sentry.agent_handoff.endpoints.organization_agent_handoff import HANDOFF_SCOPES
 from sentry.models.apiapplication import ApiApplicationStatus
+from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apisetupcode import ApiSetupCode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.impersonation import simulate_impersonation
@@ -49,13 +50,14 @@ class OrganizationAgentHandoffTest(APITestCase):
             f"Fetch and follow the instructions at {response.data['guideUrl']}. "
             f"Your secret token is `{code}`."
         )
-        record = consume_handoff(code)
+        record = consume_handoff(code, ip_address="127.0.0.1")
         assert record is not None
         assert record.flow is HandoffFlow.GUIDED_NEXT_STEPS
         assert record.user_id == self.user.id
         assert record.organization_id == self.organization.id
         assert record.application_id == self.application.id
         assert record.scope_list == HANDOFF_SCOPES
+        assert record.ip_address == "127.0.0.1"
         assert not ApiSetupCode.objects.filter(user=self.user).exists()
         assert "no-store" in response["Cache-Control"]
         assert "private" in response["Cache-Control"]
@@ -65,17 +67,70 @@ class OrganizationAgentHandoffTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, flow="guided_next_steps", status_code=201
         )
-        handoff = consume_handoff(response.data["prompt"].split("`")[1])
+        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="127.0.0.1")
         assert handoff is not None
         assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
 
     def test_select_onboarding_flow(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, flow="onboarding", status_code=201
+        with patch(
+            "sentry.agent_handoff.flows.onboarding.organization_service.has_active_onboarding_run",
+            return_value=True,
+        ) as validate:
+            response = self.get_success_response(
+                self.organization.slug,
+                flow="onboarding",
+                context={"runId": "a" * 32},
+                status_code=201,
+            )
+        validate.assert_called_once_with(
+            organization_id=self.organization.id, user_id=self.user.id, run_id="a" * 32
         )
-        handoff = consume_handoff(response.data["prompt"].split("`")[1])
+        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="127.0.0.1")
         assert handoff is not None
         assert handoff.flow is HandoffFlow.ONBOARDING
+        assert handoff.context == OnboardingHandoffContext(run_id="a" * 32)
+
+    def test_onboarding_requires_run_context(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, flow="onboarding", status_code=400
+        )
+        assert "context" in response.data
+
+    def test_guided_next_steps_rejects_run_context(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            flow="guided_next_steps",
+            context={"runId": "a" * 32},
+            status_code=400,
+        )
+        assert "context" in response.data
+
+    def test_onboarding_rejects_unavailable_run(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.onboarding.organization_service.has_active_onboarding_run",
+            return_value=False,
+        ):
+            response = self.get_error_response(
+                self.organization.slug,
+                flow="onboarding",
+                context={"runId": "a" * 32},
+                status_code=400,
+            )
+        assert response.data == {"context": {"runId": ["Onboarding run is unavailable."]}}
+
+    def test_rejects_invalid_run_identifier(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, flow="onboarding", context={"runId": "invalid"}, status_code=400
+        )
+        assert response.data == {
+            "context": {"runId": ["This value does not match the required pattern."]}
+        }
+
+    def test_onboarding_requires_run_identifier(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, flow="onboarding", context={}, status_code=400
+        )
+        assert response.data == {"context": {"runId": ["This field is required."]}}
 
     def test_unknown_flow(self) -> None:
         response = self.get_error_response(
@@ -162,3 +217,110 @@ class OrganizationAgentHandoffTest(APITestCase):
             extra_headers={"HTTP_X_CSRFTOKEN": csrf_token},
             status_code=201,
         )
+
+    def test_pins_to_request_ip(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            extra_headers={"REMOTE_ADDR": "192.0.2.1"},
+            ipAddress="192.0.2.2",
+            status_code=201,
+        )
+        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="192.0.2.1")
+        assert handoff is not None
+        assert handoff.ip_address == "192.0.2.1"
+
+    def test_disable_ip_pinning(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, disableIpPinning=True, status_code=201
+        )
+        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="192.0.2.2")
+        assert handoff is not None
+        assert handoff.ip_address == "127.0.0.1"
+        assert handoff.disable_ip_pinning
+
+    def test_rejects_invalid_disable_ip_pinning(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, disableIpPinning="invalid", status_code=400
+        )
+        assert "disableIpPinning" in response.data
+
+
+@control_silo_test
+class OrganizationAgentHandoffPreviewTest(APITestCase):
+    endpoint = "sentry-api-0-organization-agent-handoff-preview"
+    method = "get"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = self.create_api_application(client_secret=None)
+        self.organization = self.create_organization(owner=self.user)
+        self.login_as(self.user)
+        self.enterContext(
+            self.options(
+                {
+                    "onboarding.agent-handoff.client-id": self.application.client_id,
+                    "oauth.setup-code.allowed-client-ids": [self.application.client_id],
+                }
+            )
+        )
+
+    def test_preview_uses_placeholder_credentials(self) -> None:
+        with patch(
+            "sentry.agent_handoff.endpoints.organization_agent_handoff.issue_handoff"
+        ) as issue:
+            response = self.get_success_response(self.organization.slug)
+
+        markdown = response.data["markdown"]
+        assert markdown.startswith("# Set Up Sentry Access")
+        assert "<setup-code>" in markdown
+        assert "sentry auth bootstrap" in markdown
+        assert "no-store" in response["Cache-Control"]
+        assert "private" in response["Cache-Control"]
+        issue.assert_not_called()
+        assert not ApiSetupCode.objects.exists()
+        assert not ApiAuthorization.objects.exists()
+
+    def test_selected_flow(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.onboarding.OnboardingFlow.preview",
+            return_value="Preview the onboarding flow.",
+        ) as preview:
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"flow": "onboarding"}
+            )
+
+        preview.assert_called_once_with()
+        assert response.data["markdown"].rstrip().endswith("Preview the onboarding flow.")
+
+    def test_unknown_flow(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"flow": "unsupported"}, status_code=400
+        )
+        assert "flow" in response.data
+
+    def test_requires_session(self) -> None:
+        self.client.logout()
+        self.get_error_response(self.organization.slug, status_code=403)
+
+    def test_requires_membership(self) -> None:
+        other = self.create_organization(owner=self.create_user())
+        self.get_error_response(other.slug, status_code=403)
+
+    def test_rejects_bearer_even_with_session(self) -> None:
+        token = self.create_user_auth_token(user=self.user)
+        self.get_error_response(
+            self.organization.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=403,
+        )
+
+    def test_preview_during_impersonation(self) -> None:
+        with simulate_impersonation(self.create_user(is_superuser=True)):
+            self.get_success_response(self.organization.slug)
+
+    def test_missing_client(self) -> None:
+        with self.options({"onboarding.agent-handoff.client-id": ""}):
+            self.get_error_response(self.organization.slug, status_code=503)
+
+    def test_post_is_not_allowed(self) -> None:
+        self.get_error_response(self.organization.slug, method="post", status_code=405)

@@ -466,13 +466,12 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             call.kwargs["extra"]["deduplicated"] for call in logger.info.call_args_list
         ) == [False, False, True]
 
-    def test_action_ignores_existing_issue_without_first_seen_condition(self) -> None:
-        self.workflow.update(when_condition_group=None)
+    def test_backing_workflow_ignores_existing_issue(self) -> None:
         event = self.breach_event(detector_id=self.detector.id)
 
         result = self.process_breach_workflow(event, is_new=False)
 
-        assert result.has_triggered_actions()
+        assert not result.has_triggered_actions()
         assert not SeerWorkflowRun.objects.exists()
         assert not SeerWorkflowRunExecution.objects.exists()
 

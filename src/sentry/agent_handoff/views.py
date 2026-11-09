@@ -9,8 +9,10 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.generic import View
 
 from sentry.agent_handoff.claims import claim_handoff
-from sentry.agent_handoff.runbook import render_claim_runbook
+from sentry.agent_handoff.codes import HandoffIPMismatch
+from sentry.agent_handoff.runbook import render_claim_runbook, render_ip_mismatch_runbook
 from sentry.ratelimits import backend as ratelimiter
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import control_silo_view
 
@@ -67,7 +69,11 @@ class AgentHandoffView(View):
         if not _HANDOFF_CODE.fullmatch(code):
             return _markdown(_UNAVAILABLE, status=400)
 
-        guide = claim_handoff(code)
+        try:
+            guide = claim_handoff(code, ip_address=request.META.get("REMOTE_ADDR"))
+        except HandoffIPMismatch:
+            metrics.incr("agent_handoff.claim.ip_mismatch", sample_rate=1.0)
+            return _markdown(render_ip_mismatch_runbook(), status=403)
         if guide is None:
             return _markdown(_UNAVAILABLE, status=410)
         return _markdown(guide)

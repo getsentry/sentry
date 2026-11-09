@@ -337,6 +337,30 @@ describe('useSeerExplorer', () => {
       });
     });
 
+    it('flags a send refused for credits', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        statusCode: 402,
+        body: {detail: 'Not enough credits'},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test query');
+      });
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({
+          query: 'Test query',
+          isOutOfCredits: true,
+        });
+      });
+    });
+
     it('keeps the existing chat and exposes the failed query when sending fails', async () => {
       const runId = 'run-with-history';
       const existingBlocks = [
@@ -381,7 +405,10 @@ describe('useSeerExplorer', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Second question'});
+        expect(result.current.requestError).toEqual({
+          query: 'Second question',
+          isOutOfCredits: false,
+        });
       });
       expect(postMock).toHaveBeenCalled();
       expect(result.current.sessionData?.status).toBe('completed');
@@ -399,7 +426,10 @@ describe('useSeerExplorer', () => {
       act(() => {
         result.current.sendMessage('Second question');
       });
-      expect(result.current.requestError).toEqual({query: 'Second question'});
+      expect(result.current.requestError).toEqual({
+        query: 'Second question',
+        isOutOfCredits: false,
+      });
       await waitFor(() => {
         expect(result.current.requestError).toBeNull();
       });
@@ -608,7 +638,10 @@ describe('useSeerExplorer', () => {
         result.current.sendMessage('Question');
       });
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Question'});
+        expect(result.current.requestError).toEqual({
+          query: 'Question',
+          isOutOfCredits: false,
+        });
       });
 
       expect(getApiQueryData<SeerExplorerResponse>(queryClient, queryKey)).toEqual(
@@ -662,7 +695,10 @@ describe('useSeerExplorer', () => {
         result.current.sendMessage('Second question');
       });
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Second question'});
+        expect(result.current.requestError).toEqual({
+          query: 'Second question',
+          isOutOfCredits: false,
+        });
       });
 
       // Let the first request succeed and its callbacks run to completion.
@@ -673,7 +709,10 @@ describe('useSeerExplorer', () => {
         }
       });
 
-      expect(result.current.requestError).toEqual({query: 'Second question'});
+      expect(result.current.requestError).toEqual({
+        query: 'Second question',
+        isOutOfCredits: false,
+      });
     });
 
     // TanStack only calls per-call `mutate` callbacks for an observer's latest mutation, so
@@ -783,7 +822,10 @@ describe('useSeerExplorer', () => {
         result.current.sendMessage('Will fail');
       });
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Will fail'});
+        expect(result.current.requestError).toEqual({
+          query: 'Will fail',
+          isOutOfCredits: false,
+        });
       });
 
       act(() => {

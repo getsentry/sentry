@@ -1,10 +1,11 @@
 import re
-from typing import TypedDict, cast
+from typing import Annotated, TypedDict, cast
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.project import Project
 from sentry.utils.platform_categories import MOBILE
 
@@ -33,8 +34,11 @@ class HighlightContextField(
 
 
 class HighlightPreset(TypedDict):
-    tags: list[str]
-    context: dict[str, list[str]]
+    tags: Annotated[list[str], ApiDescription("Tag keys to highlight by default")]
+    context: Annotated[
+        dict[str, list[str]],
+        ApiDescription("Context keys to highlight by default, by context name"),
+    ]
 
 
 DEFAULT_HIGHLIGHT_TAGS = ["handled", "level", "transaction"]

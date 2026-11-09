@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'query-string';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -11,7 +12,6 @@ import {
   openAddToDashboardModal,
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

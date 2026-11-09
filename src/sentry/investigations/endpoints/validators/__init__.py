@@ -8,7 +8,6 @@ __all__ = (
     "InvestigationOrchestrationCommandValidator",
     "InvestigationOrchestrationEventValidator",
     "InvestigationUpdateValidator",
-    "PermissionsUpdateValidator",
 )
 
 
@@ -22,7 +21,6 @@ from .investigation import (
     InvestigationCreateValidator,
     InvestigationDeleteValidator,
     InvestigationUpdateValidator,
-    PermissionsUpdateValidator,
 )
 from .orchestration import (
     InvestigationOrchestrationCommandValidator,

@@ -51,7 +51,7 @@ export const preferFakeTimers = defineRule({
     function binding(node: ESTree.IdentifierReference | ESTree.BindingIdentifier) {
       let scope = context.sourceCode.getScope(node);
       while (scope) {
-        const variable = scope.variables.find(value => value.name === node.name);
+        const variable = scope.set.get(node.name);
         if (variable) {
           return variable;
         }

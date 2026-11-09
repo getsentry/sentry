@@ -257,8 +257,11 @@ class CadenceTickTest(CadenceTickTestCase):
             ),
             (("cadence.tick.claimed", 2), {}),
         ]
-        ((timing_args, _),) = cadence_metric_calls(mock_timing)
-        assert timing_args[0] == "cadence.trigger.dispatch_duration"
+        ((timing_args, _),) = [
+            c
+            for c in cadence_metric_calls(mock_timing)
+            if c[0][0] == "cadence.trigger.dispatch_duration"
+        ]
         assert timing_args[3] == {"trigger_type": "seer_workflow", "result": "success"}
 
     @freeze_time(NOW)

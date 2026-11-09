@@ -200,6 +200,28 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "displayType" in response.data, response.data
         assert "preprod-app-size" in str(response.data["displayType"])
 
+    def test_bar_display_type_for_preprod_app_size(self) -> None:
+        data = {
+            "title": "Bar on preprod-app-size",
+            "displayType": "bar",
+            "widgetType": "preprod-app-size",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["max(install_size)"],
+                    "columns": [],
+                    "aggregates": ["max(install_size)"],
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
     def test_invalid_equation(self) -> None:
         data = {
             "title": "Invalid query",

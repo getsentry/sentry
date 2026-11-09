@@ -451,6 +451,37 @@ class FixIssueRoutesTest(TestCase):
         }
         assert custom_postprocessing_hook(BEFORE, None) == AFTER
 
+    def test_shared_issue_route_fixes(self) -> None:
+        operation = {
+            "tags": ["Events"],
+            "description": "Get a shared issue",
+            "operationId": "get shared issue",
+            "parameters": [
+                {
+                    "in": "path",
+                    "name": "var",
+                    "schema": {"type": "string"},
+                    "description": "Issues or groups",
+                    "required": True,
+                },
+            ],
+        }
+        BEFORE = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/organizations/{organization_id_or_slug}/shared/{var}/{share_id}/": {
+                    "get": operation
+                },
+            },
+        }
+
+        result = custom_postprocessing_hook(BEFORE, None)
+
+        assert list(result["paths"]) == [
+            "/api/0/organizations/{organization_id_or_slug}/shared/issues/{share_id}/"
+        ]
+        assert next(iter(result["paths"].values()))["get"]["parameters"] == []
+
 
 class UnannotatedRoutingEndpoint(Endpoint):
     owner = ApiOwner.CRONS
