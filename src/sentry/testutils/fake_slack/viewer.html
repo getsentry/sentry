@@ -185,7 +185,7 @@ function textObj(obj) {
 function element(el) {
   if (!el) return '';
   if (el.type === 'button') {
-    const cls = `btn ${el.style ?? ''}`;
+    const cls = `btn ${esc(el.style)}`;
     return el.url ? `<a class="${cls}" ${linkAttrs(el.url)}>${esc(el.text?.text)}</a>`
       : `<span class="${cls}" title="Buttons don't do anything in Fake Slack yet">${esc(el.text?.text)}</span>`;
   }
@@ -255,7 +255,7 @@ function renderMessage(m, {inThread}) {
   const blocks = (m.blocks ?? []).map(block).join('');
   const body = blocks || (m.text ? `<div class="mrkdwn">${mrkdwn(m.text)}</div>` : '');
   const isNew = initialized && !seen.has(m.ts);
-  return `<div class="msg${isNew || m.ts === focusTs ? ' flash' : ''}" id="m-${m.ts.replace('.', '-')}">
+  return `<div class="msg${isNew || m.ts === focusTs ? ' flash' : ''}" id="m-${esc(m.ts).replace('.', '-')}">
     <div class="avatar">S</div>
     <div class="body">
       <div class="meta"><span class="name">Sentry</span><span class="app-tag">APP</span><span class="time">${fmtTime(m.ts)}</span>${m.edited ? '<span class="edited">(edited)</span>' : ''}</div>
@@ -263,7 +263,7 @@ function renderMessage(m, {inThread}) {
       ${m.reply_broadcast && inThread !== 'root' ? '<div class="ephemeral">Also sent to the channel</div>' : ''}
       ${body}
       ${(m.attachments ?? []).map(attachment).join('')}
-      ${!inThread && replies.length ? `<div class="replies" data-thread="${m.ts}">💬 ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'} <span class="last">Last reply ${fmtTime(replies[replies.length - 1].ts)}</span></div>` : ''}
+      ${!inThread && replies.length ? `<div class="replies" data-thread="${esc(m.ts)}">💬 ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'} <span class="last">Last reply ${fmtTime(replies[replies.length - 1].ts)}</span></div>` : ''}
     </div>
   </div>`;
 }
@@ -280,7 +280,7 @@ function render() {
   const roots = id => state.messages.filter(m => m.channel === id && (!m.thread_ts || m.thread_ts === m.ts || m.reply_broadcast));
   document.getElementById('channels').innerHTML = Object.entries(state.channels).map(([id, name]) => {
     const count = state.messages.filter(m => m.channel === id).length;
-    return `<div class="channel${id === current ? ' active' : ''}" data-channel="${id}"><span># ${esc(name)}</span>${count ? `<span class="count">${count}</span>` : ''}</div>`;
+    return `<div class="channel${id === current ? ' active' : ''}" data-channel="${esc(id)}"><span># ${esc(name)}</span>${count ? `<span class="count">${count}</span>` : ''}</div>`;
   }).join('');
   document.getElementById('channel-header').innerHTML = `# ${esc(state.channels[current] ?? '')}<span class="sub">${state.messages.filter(m => m.channel === current).length} messages from Sentry</span>`;
   const feed = document.getElementById('feed');
