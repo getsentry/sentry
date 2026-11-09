@@ -42,7 +42,7 @@ function ProjectAttributeDetailsSettings() {
         title={{
           type: 'page-title',
           label: attributeName,
-          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+          trailingActions: {type: 'badge', element: <FeatureBadge type="beta" />},
         }}
       />
       {isAttributeType(attributeType) ? (

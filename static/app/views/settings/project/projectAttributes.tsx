@@ -154,7 +154,7 @@ function ProjectAttributesSettings() {
         title={{
           type: 'page-title',
           label: t('Attributes'),
-          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+          trailingActions: {type: 'badge', element: <FeatureBadge type="beta" />},
         }}
         subtitle={t(
           'Browse the attributes sent with your logs, metrics, and spans in the last 14 days.'
