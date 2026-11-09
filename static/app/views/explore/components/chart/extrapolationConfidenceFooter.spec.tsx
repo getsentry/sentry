@@ -6,7 +6,10 @@ import type {TimeSeriesItem} from 'sentry/views/dashboards/widgets/common/types'
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 
-import {ExtrapolationConfidenceFooter} from './extrapolationConfidenceFooter';
+import {
+  ExtrapolationConfidenceFooter,
+  hasLowConfidencePlottables,
+} from './extrapolationConfidenceFooter';
 
 describe('ExtrapolationConfidenceFooter', () => {
   it('renders nothing when no data is extrapolated', () => {
@@ -49,6 +52,21 @@ describe('ExtrapolationConfidenceFooter', () => {
     );
 
     expect(screen.getByText('Low confidence data')).toBeInTheDocument();
+  });
+});
+
+describe('hasLowConfidencePlottables', () => {
+  it('is true only when some plottable has low confidence data', () => {
+    expect(hasLowConfidencePlottables([])).toBe(false);
+    expect(
+      hasLowConfidencePlottables([makeLine([{sampleRate: 0.5, confidence: 'high'}])])
+    ).toBe(false);
+    expect(
+      hasLowConfidencePlottables([
+        makeLine([{sampleRate: 0.5, confidence: 'high'}]),
+        makeLine([{sampleRate: 0.01, confidence: 'low'}]),
+      ])
+    ).toBe(true);
   });
 });
 

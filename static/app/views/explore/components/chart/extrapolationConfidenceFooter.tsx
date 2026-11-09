@@ -16,11 +16,7 @@ interface ExtrapolationConfidenceFooterProps {
 export function ExtrapolationConfidenceFooter({
   plottables,
 }: ExtrapolationConfidenceFooterProps) {
-  const hasLowConfidence = plottables.some(
-    plottable => plottable.confidence === 'low' || plottable.confidence === 'mixed'
-  );
-
-  if (!hasLowConfidence) {
+  if (!hasLowConfidencePlottables(plottables)) {
     return null;
   }
 
@@ -31,5 +27,14 @@ export function ExtrapolationConfidenceFooter({
         {t('Low confidence data')}
       </Text>
     </Flex>
+  );
+}
+
+/**
+ * Whether `ExtrapolationConfidenceFooter` would render anything. Lets callers skip the footer slot entirely, since an empty slot still draws its chrome.
+ */
+export function hasLowConfidencePlottables(plottables: Plottable[]): boolean {
+  return plottables.some(
+    plottable => plottable.confidence === 'low' || plottable.confidence === 'mixed'
   );
 }

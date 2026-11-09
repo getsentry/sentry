@@ -24,7 +24,10 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
-import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
+import {
+  ExtrapolationConfidenceFooter,
+  hasLowConfidencePlottables,
+} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
@@ -241,7 +244,8 @@ export function MultiQueryModeChart({
       Visualization={<ChartVisualization chartInfo={chartInfo} plottables={plottables} />}
       Footer={
         hasExtrapolationConfidenceFooter ? (
-          !chartInfo.timeseriesResult?.isPending && (
+          !chartInfo.timeseriesResult?.isPending &&
+          hasLowConfidencePlottables(plottables) && (
             <ExtrapolationConfidenceFooter plottables={plottables} />
           )
         ) : (
