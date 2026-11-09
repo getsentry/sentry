@@ -17,20 +17,47 @@ from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 QUERY_AGGREGATION_DISPLAY = {
-    "count()": "events",
     "count_unique(tags[sentry:user])": "users affected",
     "percentage(sessions_crashed, sessions)": "% sessions crash free rate",
     "percentage(users_crashed, users)": "% users crash free rate",
     "failure_rate()": "% failure rate",
 }
+
+_TRANSACTION_DATASETS = {Dataset.Transactions.value, Dataset.PerformanceMetrics.value}
+
+
+def get_counted_noun(snuba_query: SnubaQuery, aggregate: str) -> str | None:
+    """
+    Plural noun for what a count aggregate counts on this query's dataset, e.g. "errors"
+    or "logs". `count()` alone can't say, and EAP queries are only told apart by their
+    event types.
+    """
+    if snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value:
+        event_types = snuba_query.event_types
+        if SnubaQueryEventType.EventType.TRACE_ITEM_LOG in event_types:
+            return "logs" if aggregate in ("count()", "count(message)") else None
+        if SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
+            return None
+        return "spans" if aggregate in ("count()", "count(span.duration)") else None
+
+    if aggregate != "count()":
+        return None
+    if snuba_query.dataset == Dataset.Events.value:
+        return "errors"
+    if snuba_query.dataset in _TRANSACTION_DATASETS:
+        return "transactions"
+    return "events"
+
+
 # These should be the same as the options in the frontend
 # COMPARISON_DELTA_OPTIONS
 TEXT_COMPARISON_DELTA = {
@@ -79,6 +106,8 @@ def get_incident_status_text(
     if is_mri_field(agg_display_key):
         metric_value = format_mri_field_value(agg_display_key, metric_value)
         agg_text = format_mri_field(agg_display_key)
+    elif counted_noun := get_counted_noun(snuba_query, agg_display_key):
+        agg_text = counted_noun
     else:
         agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, snuba_query.aggregate)
 

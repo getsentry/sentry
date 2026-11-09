@@ -9,6 +9,8 @@ from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.metric_alerts import get_incident_status_text, incident_attachment_info
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -44,6 +46,44 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
             )
             == "Failure rate 12.35% higher in the last 10 minutes compared to the same time one hour ago"
         )
+
+    def test_names_what_a_count_counts(self) -> None:
+        for dataset, event_type, aggregate, expected in (
+            (Dataset.Events, SnubaQueryEventType.EventType.ERROR, "count()", "14 errors"),
+            (
+                Dataset.Transactions,
+                SnubaQueryEventType.EventType.TRANSACTION,
+                "count()",
+                "14 transactions",
+            ),
+            (
+                Dataset.EventsAnalyticsPlatform,
+                SnubaQueryEventType.EventType.TRACE_ITEM_LOG,
+                "count(message)",
+                "14 logs",
+            ),
+            (
+                Dataset.EventsAnalyticsPlatform,
+                SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
+                "count(span.duration)",
+                "14 spans",
+            ),
+            (
+                Dataset.EventsAnalyticsPlatform,
+                SnubaQueryEventType.EventType.TRACE_ITEM_METRIC,
+                "count(value,metric_name,counter,-)",
+                "14 count(value,metric_name,counter,-)",
+            ),
+        ):
+            alert_rule = self.create_alert_rule(
+                dataset=dataset, event_types=[event_type], aggregate=aggregate
+            )
+            assert (
+                get_incident_status_text(
+                    alert_rule.snuba_query, AlertRuleThresholdType.ABOVE, None, "14"
+                )
+                == f"{expected} in the last 10 minutes"
+            )
 
 
 class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
@@ -102,7 +142,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
 
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "123 events in the last 10 minutes"
+        assert data["text"] == "123 errors in the last 10 minutes"
         # We still build the link using the alert_rule_id and the incident identifier
         assert (
             data["title_link"]

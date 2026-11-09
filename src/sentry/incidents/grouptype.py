@@ -16,7 +16,7 @@ from sentry.incidents.utils.types import (
     AnomalyDetectionValues,
     ProcessedSubscriptionUpdate,
 )
-from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA
+from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA, get_counted_noun
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.snuba.metrics import format_mri_field, is_mri_field
@@ -43,7 +43,6 @@ COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in Compari
 COMPARISON_DELTA_CHOICES.append(None)
 
 QUERY_AGGREGATION_DISPLAY = {
-    "count()": "Number of events",
     "count_unique(tags[sentry:user])": "Number of users affected",
     "percentage(sessions_crashed, sessions)": "Crash free session rate",
     "percentage(users_crashed, users)": "Crash free user rate",
@@ -180,6 +179,8 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 0
             ].strip()
             aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
+        elif counted_noun := get_counted_noun(snuba_query, agg_display_key):
+            aggregate = f"Number of {counted_noun}"
         else:
             aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
 
