@@ -912,6 +912,41 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.tool.call.result.size"] == 4096
         assert "gen_ai.tool.output" not in span
 
+    def test_returns_scrubbing_meta(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        span = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            operation_type="ai_client",
+            input_messages=[{"role": "user", "content": "Find [email]"}],
+            output_messages=[{"role": "assistant", "content": "Found it"}],
+            user_email="[email]",
+            store=False,
+        )
+
+        meta = {"meta": {"value": {"": {"rem": [["@email:replace", "s", 0, 7]], "len": 20}}}}
+        prefix = "sentry._meta.fields.attributes"
+        span["data"][f"{prefix}.gen_ai.input.messages"] = json.dumps(meta)
+        span["data"][f"{prefix}.sentry.user.email"] = json.dumps(meta)
+        span["data"][f"{prefix}.gen_ai.output.messages"] = "not json"
+        self.store_spans([span])
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 1
+
+        span = response.data["spans"][0]
+        assert span["meta"] == {"gen_ai.input.messages": meta, "user.email": meta}
+        assert [key for key in span if prefix in key] == []
+
     def test_returns_embeddings_attributes(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         trace_id = uuid4().hex
@@ -1002,6 +1037,24 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 1
         assert response.data["spans"][0]["gen_ai.conversation.id"] == conversation_id
+
+    def test_rejects_stats_period_longer_than_30_days(self) -> None:
+        response = self.do_request(
+            uuid4().hex, {"project": [self.project.id], "statsPeriod": "90d"}
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "statsPeriod cannot be longer than 30 days"}
+
+    def test_rejects_start_older_than_30_days(self) -> None:
+        now = before_now().replace(microsecond=0)
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(days=31)).isoformat(),
+            "end": now.isoformat(),
+        }
+        response = self.do_request(uuid4().hex, query)
+        assert response.status_code == 400
+        assert response.data == {"detail": "start time cannot be older than 30 days"}
 
     def test_tokens_on_multiple_span_types(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -1263,7 +1316,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         }
         return self.store_event(error_data, project_id=project.id)
 
-    def test_spans_without_issues_have_empty_arrays(self) -> None:
+    def test_spans_without_issues_or_scrubbing_have_empty_defaults(self) -> None:
         now = before_now(days=10).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
@@ -1285,8 +1338,11 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 1
-        assert response.data["spans"][0]["errors"] == []
-        assert response.data["spans"][0]["occurrences"] == []
+        span = response.data["spans"][0]
+        assert span["errors"] == []
+        assert span["occurrences"] == []
+        assert span["meta"] == {}
+        assert [key for key in span if "sentry._meta" in key] == []
 
     def test_links_error_issue_to_span(self) -> None:
         now = before_now(days=10).replace(microsecond=0)

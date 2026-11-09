@@ -360,7 +360,7 @@ function SourceFact({path}: {path: string}) {
 /**
  * The end of an entry's TTL, which starts at the fill. Without `cache.ttl`
  * there is no expiry to show. The conventions list when SDKs omit it:
- * https://getsentry.github.io/sentry-conventions/attributes/cache/#cache-ttl
+ * https://conventions.sentry.dev/attributes/cache/#cache-ttl
  */
 interface CacheExpiry {
   /** Seconds between this span and the expiry. */

@@ -100,6 +100,7 @@
     "./performance/initializePerformanceData": "./sentry-test/performance/initializePerformanceData.ts",
     "./performance/utils": "./sentry-test/performance/utils.ts",
     "./platformExternalIssue": "./fixtures/platformExternalIssue.ts",
+    "./prebuiltClassifier": "./fixtures/prebuiltClassifier.ts",
     "./preprod": "./fixtures/preprod.ts",
     "./preProdAppSize": "./fixtures/preProdAppSize.ts",
     "./profiling/utils": "./sentry-test/profiling/utils.tsx",

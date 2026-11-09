@@ -19,6 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
@@ -92,6 +93,14 @@ export function MultiQueryModeChart({
   const {addToDashboard} = useAddCompareQueryToDashboard(queryParts);
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({
+      query: queryParts.query,
+      yAxes,
+      groupBys: queryParts.groupBys,
+      mode,
+      caseInsensitive: queryParts.caseInsensitive === '1',
+    });
 
   const Title = (
     <Fragment>
@@ -116,8 +125,8 @@ export function MultiQueryModeChart({
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   if (defined(yAxes[0])) {
-    items.push(
-      getSaveAsAlertMenuItem({
+    items.push({
+      ...getSaveAsAlertMenuItem({
         to: getAlertsUrl({
           project,
           query: queryParts.query,
@@ -134,13 +143,15 @@ export function MultiQueryModeChart({
             organization,
           });
         },
-      })
-    );
+      }),
+      details: alertCaseDetails,
+    });
   }
 
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Add to Dashboard'),
+    details: dashboardCaseDetails,
     label: t('Add to Dashboard'),
     onAction: () => {
       trackAnalytics('trace_explorer.save_as', {
