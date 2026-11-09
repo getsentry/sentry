@@ -1,6 +1,8 @@
 import type {User} from 'sentry/types/user';
 
-export type ClassifierDataset = 'conversation' | 'trace_spans';
+export const CLASSIFIER_DATASETS = ['conversation', 'trace_spans'] as const;
+
+export type ClassifierDataset = (typeof CLASSIFIER_DATASETS)[number];
 
 export interface TelemetryClassifier {
   createdBy: User | null;
@@ -16,4 +18,12 @@ export interface TelemetryClassifier {
   projectId: string;
   resultAttribute: string;
   status: 'disabled' | 'enabled';
+}
+
+export interface PrebuiltClassifier {
+  dataset: ClassifierDataset;
+  description: string;
+  key: string;
+  name: string;
+  resultAttribute: string;
 }
