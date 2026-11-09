@@ -934,7 +934,8 @@ export function SeerExplorerContent({
                   isFileApprovalPending ||
                   isAgentWriteApprovalPending ||
                   isQuestionPending ||
-                  showReauth
+                  showReauth ||
+                  (isAwaitingUserInput && pendingInput?.input_type === 'connect_scm')
                 }
                 pendingInput={pendingInput}
                 readOnly={readOnly}
