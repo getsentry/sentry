@@ -413,6 +413,9 @@ def check_field_cardinality(
 
     if not query_columns:
         return {}
+    # Widget columns can contain duplicates (e.g. the same tag selected twice). Dedupe them
+    # while preserving order so the cache bookkeeping below compares like with like.
+    query_columns = list(dict.fromkeys(query_columns))
     if is_task:
         cache_identifier = TASK_CACHE_KEY
         cache_ttl = _WIDGET_QUERY_CARDINALITY_TTL
@@ -430,7 +433,7 @@ def check_field_cardinality(
         cache_keys[column] = column_cache_key
     cardinality_map = cache.get_many(cache_keys.values())
     if len(cardinality_map) == len(query_columns):
-        return cardinality_map
+        return {key: cardinality_map[value] for key, value in cache_keys.items()}
 
     query_columns = [col for col, key in cache_keys.items() if key not in cardinality_map]
 
