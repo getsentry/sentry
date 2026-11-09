@@ -28,25 +28,6 @@ import {
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {AgentsCharts} from 'sentry/views/explore/conversations/components/agentsCharts';
-import {AgentsChartIntervalSelector} from 'sentry/views/explore/conversations/components/agentsChartsControls';
-import {
-  AGENTS_TABLE_TABS,
-  AgentsTable,
-  type AgentsTableTab,
-} from 'sentry/views/explore/conversations/components/agentsTable';
-import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {ErrorsOnlyToggle} from 'sentry/views/explore/conversations/components/errorsOnlyToggle';
-import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
-import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
-import {
-  CONVERSATION_FIELDS,
-  useConversations,
-  type Conversation,
-} from 'sentry/views/explore/conversations/hooks/useConversations';
-import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
-import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
-import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -55,6 +36,26 @@ import {
   FilterUrlParams,
   TableUrlParams,
 } from 'sentry/views/insights/pages/agents/utils/urlParams';
+
+import {AgentsCharts} from './components/agentsCharts';
+import {AgentsChartIntervalSelector} from './components/agentsChartsControls';
+import {
+  AGENTS_TABLE_TABS,
+  AgentsTable,
+  type AgentsTableTab,
+} from './components/agentsTable';
+import {ConversationMissingMessagesAlert} from './components/conversationMissingMessagesAlert';
+import {ErrorsOnlyToggle} from './components/errorsOnlyToggle';
+import {SaveConversationQueryButton} from './components/saveConversationQueryButton';
+import {useConversationDirectHitRedirect} from './hooks/useConversationDirectHitRedirect';
+import {
+  CONVERSATION_FIELDS,
+  useConversations,
+  type Conversation,
+} from './hooks/useConversations';
+import {useShowConversationOnboarding} from './hooks/useShowConversationOnboarding';
+import {Referrer} from './utils/referrers';
+import {MAX_PICKABLE_DAYS} from './settings';
 
 const CONVERSATION_FIELD_DEFINITIONS: Record<string, FieldDefinition> =
   Object.fromEntries(

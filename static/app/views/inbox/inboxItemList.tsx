@@ -12,15 +12,17 @@ import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {InboxItem} from 'sentry/views/inbox/types';
-import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from 'sentry/views/inbox/utils';
+
+import type {InboxFilters, InboxItem} from './types';
+import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from './utils';
 
 interface InboxItemListProps {
+  filters: InboxFilters;
   items: InboxItem[];
   selectedItemId: string | null;
 }
 
-export function InboxItemList({items, selectedItemId}: InboxItemListProps) {
+export function InboxItemList({items, selectedItemId, filters}: InboxItemListProps) {
   return (
     <Stack as="ul" padding="0" margin="0">
       {items.map(item => (
@@ -28,6 +30,7 @@ export function InboxItemList({items, selectedItemId}: InboxItemListProps) {
           key={item.id}
           item={item}
           isSelected={item.id === selectedItemId}
+          filters={filters}
         />
       ))}
     </Stack>
@@ -35,11 +38,12 @@ export function InboxItemList({items, selectedItemId}: InboxItemListProps) {
 }
 
 interface InboxItemListItemProps {
+  filters: InboxFilters;
   isSelected: boolean;
   item: InboxItem;
 }
 
-function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
+function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) {
   const organization = useOrganization();
   const checkboxState = useListItemCheckboxContext();
   const checkboxId = useId();
@@ -70,14 +74,19 @@ function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
               />
             </Flex>
             <Flex column="2" row="1">
-              {item.isUnread && <UnreadIndicator />}
+              {item.isUnread && (
+                <UnreadIndicator data-test-id="unread-inbox-item-indicator" />
+              )}
             </Flex>
             <Flex column="3" row="1" gap="md" align="center" justify="between">
               <Flex gap="sm" align="center" minWidth={0}>
                 {linkProps => (
                   <ItemLink
                     {...linkProps}
-                    to={getInboxItemPath(organization, item)}
+                    to={{
+                      pathname: getInboxItemPath(organization, item),
+                      query: {...filters},
+                    }}
                     aria-current={isSelected ? 'true' : undefined}
                   >
                     <SubjectIcon size="sm" />

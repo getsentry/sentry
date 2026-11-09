@@ -1,4 +1,4 @@
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from './types';
 
 export function getPrevReplayFrame({
   frames,

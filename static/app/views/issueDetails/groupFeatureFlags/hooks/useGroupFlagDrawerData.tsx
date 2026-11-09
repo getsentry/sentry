@@ -2,8 +2,9 @@ import {useMemo} from 'react';
 
 import {OrderBy} from 'sentry/components/events/featureFlags/utils';
 import type {Group} from 'sentry/types/group';
-import {useGroupFeatureFlags} from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFeatureFlags';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+
+import {useGroupFeatureFlags} from './useGroupFeatureFlags';
 
 interface Props {
   environments: string[];

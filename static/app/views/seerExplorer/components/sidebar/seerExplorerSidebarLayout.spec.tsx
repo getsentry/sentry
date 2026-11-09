@@ -12,12 +12,13 @@ import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import * as useDimensionsModule from 'sentry/utils/useDimensions';
 import type {OpenSeerExplorerDrawerOptions} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {SeerExplorerSidebarLayout} from './seerExplorerSidebarLayout';
 
 const POSITION_KEY = 'seer-explorer-sidebar-position';
 
@@ -25,6 +26,7 @@ const seerFeatures = ['seer-explorer'];
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
+  featureId: null,
   isPolling: false,
   isError: false,
   hasSessionLoadError: false,

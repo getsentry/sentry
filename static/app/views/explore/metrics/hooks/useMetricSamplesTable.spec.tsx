@@ -4,8 +4,9 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
-import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
+
+import {MockMetricQueryParamsContext} from './testUtils';
+import {useMetricSamplesTable} from './useMetricSamplesTable';
 
 describe('useMetricSamplesTable', () => {
   beforeEach(() => {

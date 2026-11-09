@@ -3,8 +3,8 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -72,7 +72,7 @@ export function CommentActions({
                   {
                     onSuccess: () => {
                       deleted = true;
-                      addSuccessMessage(t('Comment deleted.'));
+                      toast.success(t('Comment deleted.'));
                     },
                   }
                 ),

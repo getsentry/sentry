@@ -29,7 +29,12 @@ from sentry.api.event_search import (
     translate_wildcard_as_clickhouse_pattern,
 )
 from sentry.constants import MODULE_ROOT
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidFunctionArgumentQuery,
+    InvalidSearchQuery,
+    SearchQueryParseError,
+)
 from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     WILDCARD_OPERATOR_MAP,
@@ -2022,3 +2027,35 @@ def test_array_includes_filter_passes_through_comparison_operators(
     query: str, expected: list[SearchFilter]
 ) -> None:
     assert parse_search_query(query) == expected
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param("timestamp:>yesterday", id="invalid date"),
+        pytest.param("transaction.duration:>abc", id="invalid number"),
+        pytest.param("user.email:", id="empty value"),
+        pytest.param("is:foo", id="unsupported is"),
+    ],
+)
+def test_rejects_an_invalid_query_as_a_search_query_parse_error(query: str) -> None:
+    with pytest.raises(SearchQueryParseError):
+        parse_search_query(query)
+
+
+def test_rejects_an_incomplete_parse_as_a_search_query_parse_error() -> None:
+    with pytest.raises(SearchQueryParseError) as err:
+        parse_search_query("user.email:foo)")
+
+    assert err.value.extra == {"idx": 15}
+
+
+def test_keeps_an_invalid_function_argument_raised_while_parsing() -> None:
+    error = InvalidFunctionArgumentQuery(
+        "foo is invalid for parameter 1 in p75.", function="p75", argument="foo"
+    )
+    with patch("sentry.api.event_search.SearchVisitor.visit", side_effect=error):
+        with pytest.raises(InvalidFunctionArgumentQuery) as err:
+            parse_search_query("p75(foo):>1")
+
+    assert err.value is error

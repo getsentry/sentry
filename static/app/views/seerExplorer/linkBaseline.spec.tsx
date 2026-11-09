@@ -1,12 +1,8 @@
 import type {LocationDescriptor} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {
-  resolveLink,
-  subjectFromCallRecord,
-  subjectFromToolLink,
-} from 'sentry/views/seerExplorer/links';
-import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
+import {resolveLink, subjectFromCallRecord, subjectFromToolLink} from './links';
+import type {CallRecord, ToolLink} from './types';
 
 /**
  * Every link Code Mode resolves today, pinned to the exact URL it produces — and, for inputs that

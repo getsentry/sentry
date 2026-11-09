@@ -55,7 +55,7 @@ def test_scm_interaction_context_tracks_nested_lifecycles(_mock_record: MagicMoc
         provider_key="github",
     )
     inner = SCMIntegrationInteractionEvent(
-        interaction_type=SCMIntegrationInteractionType.GET_REPO_TREE,
+        interaction_type=SCMIntegrationInteractionType.GET_CODEOWNER_FILE,
         provider_key="github",
     )
 
@@ -65,7 +65,10 @@ def test_scm_interaction_context_tracks_nested_lifecycles(_mock_record: MagicMoc
             get_current_scm_interaction_type() == SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS
         )
         with inner.capture():
-            assert get_current_scm_interaction_type() == SCMIntegrationInteractionType.GET_REPO_TREE
+            assert (
+                get_current_scm_interaction_type()
+                == SCMIntegrationInteractionType.GET_CODEOWNER_FILE
+            )
         assert (
             get_current_scm_interaction_type() == SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS
         )

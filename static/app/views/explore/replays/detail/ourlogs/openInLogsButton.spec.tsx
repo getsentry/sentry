@@ -5,7 +5,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {OpenInLogsButton} from 'sentry/views/explore/replays/detail/ourlogs/openInLogsButton';
+
+import {OpenInLogsButton} from './openInLogsButton';
 
 function Wrapper({children}: {children: React.ReactNode}) {
   return (

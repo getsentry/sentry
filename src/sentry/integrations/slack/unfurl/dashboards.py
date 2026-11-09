@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from django.db.models import Prefetch
 from django.http.request import QueryDict
 
-from sentry import analytics, features, options
+from sentry import analytics, options
 from sentry.api.client import client
 from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.api.serializers import serialize
@@ -127,20 +127,12 @@ def _unfurl_dashboards(
     )
     orgs_by_slug = {org.slug: org for org in organizations}
 
-    enabled_orgs = {
-        slug: org
-        for slug, org in orgs_by_slug.items()
-        if features.has("organizations:dashboards-basic", org, actor=user)
-    }
-    if not enabled_orgs:
-        return {}
-
     unfurls = {}
 
     for link in links:
         args = cast(DashboardsUnfurlArgs, link.args)
         org_slug = args["org_slug"]
-        org = enabled_orgs.get(org_slug)
+        org = orgs_by_slug.get(org_slug)
 
         if not org:
             continue

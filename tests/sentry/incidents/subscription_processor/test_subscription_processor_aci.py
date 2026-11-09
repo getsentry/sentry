@@ -180,7 +180,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
     @cached_property
     def comparison_detector_above(self) -> Detector:
-        self.detector.config.update({"comparison_delta": 60 * 60})
+        self.detector.config.update({"detection_type": "percent", "comparison_delta": 60 * 60})
         self.detector.save()
         self.update_threshold(self.detector, DetectorPriorityLevel.HIGH, 150)
         self.update_threshold(self.detector, DetectorPriorityLevel.OK, 150)
@@ -190,7 +190,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
 
     @cached_property
     def comparison_detector_below(self) -> Detector:
-        self.detector.config.update({"comparison_delta": 60 * 60})
+        self.detector.config.update({"detection_type": "percent", "comparison_delta": 60 * 60})
         self.detector.save()
         DataCondition.objects.filter(
             condition_group=self.detector.workflow_condition_group
@@ -697,7 +697,7 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
 
         # update the detector to be dynamic
         detector = self.crash_rate_detector
-        detector.update(config={"detection_type": "dynamic", "comparison_delta": None})
+        detector.update(config={"detection_type": "dynamic"})
         detector.save()
 
         critical_detector_trigger = DataCondition.objects.get(
