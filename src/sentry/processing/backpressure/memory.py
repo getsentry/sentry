@@ -31,8 +31,6 @@ class NodeInfo:
 # Based on configuration, this could be:
 # - a `rediscluster` Cluster (actually `RetryingRedisCluster`)
 # - a `StrictRedis` client for a single host
-# The client can decode responses or not. This module reads only `INFO` and node addresses,
-# which work with both.
 Cluster = Union[RedisCluster, "StrictRedis[str]", "StrictRedis[bytes]"]
 
 

@@ -316,8 +316,6 @@ class TransactionCheckingRedisTest(SentryTestCase):
         assert f"{__name__}.{outer_caller.__qualname__}" in callers
 
 
-# The `type` statement evaluates its value only when it is used, so the clients are not subscripted
-# at runtime.
 type _StrClient = RedisCluster[str] | StrictRedis[str]
 type _BytesClient = RedisCluster[bytes] | StrictRedis[bytes]
 
@@ -361,7 +359,6 @@ def test_get_dynamic_cluster_from_options_decode_responses_false(
 
 
 def _get_dynamic_cluster(config: dict[str, object], decode_responses: bool) -> None:
-    # Each overload accepts only a literal, so call each one with a literal.
     if decode_responses:
         get_dynamic_cluster_from_options("SETTING", config, decode_responses=True)
     else:

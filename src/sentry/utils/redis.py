@@ -580,10 +580,11 @@ def get_dynamic_cluster_from_options(
     """
     Returns ``(is_redis_cluster, client, config)`` for the cluster that ``config`` names.
 
-    The caller chooses the response type: the client returns ``str`` for
-    ``decode_responses=True`` and ``bytes`` for ``decode_responses=False``. The type is the same
-    for a cluster with ``is_redis_cluster`` and for a single host. Use ``is_redis_cluster`` only
-    for behavior that is different between the two shapes, not to find the response type.
+    Response type is determined by each individual caller:
+    - ``str`` for ``decode_responses=True``
+    - ``bytes`` for ``decode_responses=False``
+
+    The type is the same for a cluster with ``is_redis_cluster`` and for a single host.
 
     A cluster without ``is_redis_cluster`` must have one host. For these, the ``cluster`` option
     is removed from the returned config.

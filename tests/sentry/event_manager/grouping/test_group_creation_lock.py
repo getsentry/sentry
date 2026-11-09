@@ -117,10 +117,6 @@ def test_lost_group_creation_race_updates_group_outside_transaction(
     ends. The buffer uses a Redis client that has the transaction check, so a Redis call inside the
     transaction makes this test fail.
     """
-    # In tests, every client from `redis_clusters` has the Redis-in-transaction check, on both
-    # shapes. So the buffer on the `default` single host is enough. Do not set `is_redis_cluster` on
-    # `default`: a client is cached by cluster name only, so the buffer can get a client of the
-    # wrong shape from the cache, or leave one there for later tests.
     with (
         patch(
             "sentry.grouping.ingest.hashing._calculate_event_grouping",
