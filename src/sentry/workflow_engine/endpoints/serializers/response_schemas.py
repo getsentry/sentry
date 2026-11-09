@@ -105,6 +105,42 @@ _ACTION_CONFIG_DESCRIPTIONS = {
     "target_display": "Display name of the target, such as a channel name",
 }
 
+_ACTION_DATA_DESCRIPTIONS = {
+    "settings": "Values of the Sentry App's alert rule settings form, each with a name and value",
+    "additional_fields.repo": "Repository to create the issue in, as owner/name",
+    "additional_fields.labels": "Labels to add to the issue",
+    "additional_fields.assignee": "User to assign the issue to",
+}
+
+# The data schemas leave these open. The ticket rule form and the legacy alert rule
+# actions that actions are migrated from pin them down, so the API schema does too.
+_TICKET_FORM_FIELD: dict[str, Any] = {
+    "type": "object",
+    "description": "A field of the ticket form, as the integration's issue config defines it",
+    "properties": {
+        "name": {"type": "string", "description": "Name of the field"},
+        "label": {"type": "string", "description": "Label of the field"},
+        "type": {"type": "string", "description": "Type of the field, such as select or text"},
+    },
+}
+_TICKET_FIELD_VALUE: dict[str, Any] = {
+    "anyOf": [
+        # Validators ignore `nullable` next to `anyOf`, so it sits on a branch.
+        {"type": "string", "nullable": True},
+        {"type": "number"},
+        {"type": "boolean"},
+        {"type": "array", "items": {"anyOf": [{"type": "string"}, {"type": "number"}]}},
+    ],
+    "description": "Value of the ticket form field with this name",
+}
+# Plugin and webhook actions have no data schema. They keep the string settings of the
+# legacy rule action they were migrated from, if any.
+_LEGACY_ACTION_DATA: dict[str, Any] = {
+    "type": "object",
+    "description": "Settings of the legacy alert rule action the action was migrated from",
+    "additionalProperties": {"type": "string"},
+}
+
 _DETECTOR_CONFIG_DESCRIPTIONS: dict[str, dict[str, str]] = {
     "issue_stream": {"organization_id": "ID of the organization"},
     "metric_issue": {
@@ -213,6 +249,33 @@ def action_config_schema() -> dict[str, Any]:
     return union_schema(
         to_response_schema(schema, descriptions=_ACTION_CONFIG_DESCRIPTIONS, camel_case=True)
         for _, schema in action_config_sources(api=True)
+    )
+
+
+def _pin_open_action_data(schema: dict[str, Any]) -> dict[str, Any]:
+    if not schema:
+        return _LEGACY_ACTION_DATA
+    properties = schema.get("properties", {})
+    if "dynamicFormFields" in properties:
+        properties["dynamicFormFields"] = {
+            **properties["dynamicFormFields"],
+            "items": _TICKET_FORM_FIELD,
+        }
+    additional_fields = properties.get("additionalFields")
+    if additional_fields is not None and not additional_fields.get("properties"):
+        properties["additionalFields"] = {
+            **additional_fields,
+            "additionalProperties": _TICKET_FIELD_VALUE,
+        }
+    return schema
+
+
+def action_data_schema() -> dict[str, Any]:
+    return union_schema(
+        _pin_open_action_data(
+            to_response_schema(schema, descriptions=_ACTION_DATA_DESCRIPTIONS, camel_case=True)
+        )
+        for _, schema in action_data_sources()
     )
 
 

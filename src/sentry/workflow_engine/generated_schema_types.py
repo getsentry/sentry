@@ -1046,6 +1046,11 @@ class EmailActionData(TypedDict):
     fallthrough_type: NotRequired[Literal["AllMembers", "ActiveMembers", "NoOne"]]
 
 
+# data_schema of the email action handler
+class EmailActionDataResponse(TypedDict):
+    fallthroughType: NotRequired[Literal["AllMembers", "ActiveMembers", "NoOne"]]
+
+
 # The schema allows keys that aren't listed here.
 class GithubActionDataAdditionalFields(TypedDict):
     """Additional fields that aren't part of standard fields"""
@@ -1062,6 +1067,15 @@ class GithubActionData(TypedDict):
     # The schema leaves this object open, so it can have any keys.
     dynamic_form_fields: NotRequired[list[dict[str, Any]]]
     additional_fields: GithubActionDataAdditionalFields
+
+
+# data_schema of the github action handler
+class GithubActionDataResponse(TypedDict):
+    """Schema for GitHub ticket creation action data blob"""
+
+    # The schema leaves this object open, so it can have any keys.
+    dynamicFormFields: NotRequired[list[dict[str, Any]]]
+    additionalFields: GithubActionDataAdditionalFields
 
 
 # The schema allows keys that aren't listed here.
@@ -1082,6 +1096,15 @@ class GithubEnterpriseActionData(TypedDict):
     additional_fields: GithubEnterpriseActionDataAdditionalFields
 
 
+# data_schema of the github_enterprise action handler
+class GithubEnterpriseActionDataResponse(TypedDict):
+    """Schema for GitHub ticket creation action data blob"""
+
+    # The schema leaves this object open, so it can have any keys.
+    dynamicFormFields: NotRequired[list[dict[str, Any]]]
+    additionalFields: GithubEnterpriseActionDataAdditionalFields
+
+
 # data_schema of the jira action handler
 class JiraActionData(TypedDict):
     """Schema for ticket creation action data blob"""
@@ -1092,6 +1115,16 @@ class JiraActionData(TypedDict):
     additional_fields: NotRequired[dict[str, Any]]
 
 
+# data_schema of the jira action handler
+class JiraActionDataResponse(TypedDict):
+    """Schema for ticket creation action data blob"""
+
+    # The schema leaves this object open, so it can have any keys.
+    dynamicFormFields: NotRequired[list[dict[str, Any]]]
+    # The schema leaves this object open, so it can have any keys.
+    additionalFields: NotRequired[dict[str, Any]]
+
+
 # data_schema of the jira_server action handler
 class JiraServerActionData(TypedDict):
     """Schema for ticket creation action data blob"""
@@ -1100,6 +1133,16 @@ class JiraServerActionData(TypedDict):
     dynamic_form_fields: NotRequired[list[dict[str, Any]]]
     # The schema leaves this object open, so it can have any keys.
     additional_fields: NotRequired[dict[str, Any]]
+
+
+# data_schema of the jira_server action handler
+class JiraServerActionDataResponse(TypedDict):
+    """Schema for ticket creation action data blob"""
+
+    # The schema leaves this object open, so it can have any keys.
+    dynamicFormFields: NotRequired[list[dict[str, Any]]]
+    # The schema leaves this object open, so it can have any keys.
+    additionalFields: NotRequired[dict[str, Any]]
 
 
 # data_schema of the msteams action handler
@@ -1159,6 +1202,16 @@ class VstsActionData(TypedDict):
     dynamic_form_fields: NotRequired[list[dict[str, Any]]]
     # The schema leaves this object open, so it can have any keys.
     additional_fields: NotRequired[dict[str, Any]]
+
+
+# data_schema of the vsts action handler
+class VstsActionDataResponse(TypedDict):
+    """Schema for ticket creation action data blob"""
+
+    # The schema leaves this object open, so it can have any keys.
+    dynamicFormFields: NotRequired[list[dict[str, Any]]]
+    # The schema leaves this object open, so it can have any keys.
+    additionalFields: NotRequired[dict[str, Any]]
 
 
 # data_schema of the webhook action handler
@@ -1225,6 +1278,27 @@ ActionData: TypeAlias = (
     | SlackActionData
     | SlackStagingActionData
     | VstsActionData
+    | WebhookActionData
+)
+
+
+# Any action's data, as the API returns it
+ActionDataResponse: TypeAlias = (
+    DiscordActionData
+    | EmailActionDataResponse
+    | GithubActionDataResponse
+    | GithubEnterpriseActionDataResponse
+    | JiraActionDataResponse
+    | JiraServerActionDataResponse
+    | MsteamsActionData
+    | OpsgenieActionData
+    | PagerdutyActionData
+    | PluginActionData
+    | SeerWorkflowActionData
+    | SentryAppActionData
+    | SlackActionData
+    | SlackStagingActionData
+    | VstsActionDataResponse
     | WebhookActionData
 )
 

@@ -535,7 +535,7 @@ def _workflow_engine_roots() -> list[Root | Union]:
     data = []
     for action, schema in response_schemas.action_data_sources():
         data.append(name := f"{_pascal(action)}ActionData")
-        roots.append(Root(name, schema, f"data_schema of the {action} action handler"))
+        roots.append(Root(name, schema, f"data_schema of the {action} action handler", "both"))
     roots += [
         Union("ActionConfig", actions, "stored", "Any action's config"),
         Union(
@@ -545,6 +545,7 @@ def _workflow_engine_roots() -> list[Root | Union]:
             "Any action's config, as the API returns it",
         ),
         Union("ActionData", data, "stored", "Any action's data"),
+        Union("ActionDataResponse", data, "response", "Any action's data, as the API returns it"),
     ]
 
     detectors = []

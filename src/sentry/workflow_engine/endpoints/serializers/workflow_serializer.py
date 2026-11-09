@@ -12,11 +12,13 @@ from sentry.constants import ObjectStatusName
 from sentry.types.actor import Actor
 from sentry.workflow_engine.endpoints.serializers.response_schemas import (
     action_config_schema,
+    action_data_schema,
     condition_comparison_schema,
     workflow_config_schema,
 )
 from sentry.workflow_engine.generated_schema_types import (
     ActionConfigResponse,
+    ActionDataResponse,
     ConditionComparisonResponse,
     WorkflowConfig,
 )
@@ -58,7 +60,9 @@ class ActionSerializerResponse(TypedDict, total=False):
         ApiDescription("ID of the integration the action uses. Null for actions without one"),
     ]
     data: Annotated[
-        dict[str, str], ApiDescription("Extra data for the action, which depends on its type")
+        ActionDataResponse,
+        ApiDescription("Extra data for the action, which depends on its type"),
+        ApiSchema(action_data_schema),
     ]
     config: Annotated[
         ActionConfigResponse,
