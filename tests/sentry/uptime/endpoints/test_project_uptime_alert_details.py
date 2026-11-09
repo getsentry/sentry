@@ -121,8 +121,8 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_sub.trace_sampling is False
 
     def test_update_without_environment(self) -> None:
-        detector = self.create_uptime_detector(env=None)
-        assert detector.config.get("environment") is None
+        detector = self.create_uptime_detector()
+        detector.update(config={**detector.config, "environment": None})
 
         self.get_success_response(
             self.organization.slug,
