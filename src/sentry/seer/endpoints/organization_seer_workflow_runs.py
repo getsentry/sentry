@@ -39,6 +39,7 @@ from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
 from sentry.seer.workflows.breached_metrics import MetricBreachTrigger
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -314,7 +315,7 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
 
 
 def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
-    if not run.extras.get("snapshot"):
+    if not get_path(run.extras, "snapshot", "inputs"):
         return None
     try:
         snapshot = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot

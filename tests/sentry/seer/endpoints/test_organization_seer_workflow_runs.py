@@ -516,7 +516,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
     def test_trigger_is_null_for_other_strategies(self) -> None:
         self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
-        self.create_run()
+        self.create_run(inputs={"foo": "bar"})
 
         response = self.get_success_response(self.organization.slug)
 
