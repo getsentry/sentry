@@ -113,8 +113,12 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
 
         return compare
 
-    @patch("sentry.preprod.size_analysis.comparison_run.create_preprod_size_pr_comment_task.apply_async")
-    @patch("sentry.preprod.size_analysis.comparison_run.create_preprod_status_check_task.apply_async")
+    @patch(
+        "sentry.preprod.size_analysis.comparison_run.create_preprod_size_pr_comment_task.apply_async"
+    )
+    @patch(
+        "sentry.preprod.size_analysis.comparison_run.create_preprod_status_check_task.apply_async"
+    )
     def test_runs_every_comparison_then_dispatches_follow_ups(
         self, status_check: MagicMock, pr_comment: MagicMock
     ) -> None:
@@ -138,7 +142,9 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         status_check.assert_called_once_with(kwargs=expected)
         pr_comment.assert_called_once_with(kwargs=expected)
 
-    @patch("sentry.preprod.size_analysis.comparison_run.create_preprod_status_check_task.apply_async")
+    @patch(
+        "sentry.preprod.size_analysis.comparison_run.create_preprod_status_check_task.apply_async"
+    )
     def test_interrupted_run_leaves_nothing_behind(self, status_check: MagicMock) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         main_head, main_base = pairs[0]
@@ -185,7 +191,9 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         assert watch.state == PreprodArtifactSizeComparison.State.FAILED
         assert watch.file_id is None
 
-    @patch("sentry.preprod.size_analysis.comparison_run.create_preprod_status_check_task.apply_async")
+    @patch(
+        "sentry.preprod.size_analysis.comparison_run.create_preprod_status_check_task.apply_async"
+    )
     def test_comparison_recorded_by_another_run_is_left_alone(
         self, status_check: MagicMock
     ) -> None:
@@ -211,7 +219,9 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         assert self._result_files() == []
         status_check.assert_called_once()
 
-    @patch("sentry.preprod.size_analysis.comparison_run.create_preprod_status_check_task.apply_async")
+    @patch(
+        "sentry.preprod.size_analysis.comparison_run.create_preprod_status_check_task.apply_async"
+    )
     def test_comparison_deleted_before_it_is_recorded_is_skipped(
         self, status_check: MagicMock
     ) -> None:
