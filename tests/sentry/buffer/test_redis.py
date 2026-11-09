@@ -265,6 +265,24 @@ class TestRedisBuffer:
         self.buf.process("foo")
         process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, True)
 
+    @mock.patch("sentry.buffer.base.Buffer.process")
+    def test_process_keeps_counts_when_pending_zrem_fails(self, process: mock.MagicMock) -> None:
+        client = self.buf.cluster
+        client.hmset(
+            "foo",
+            {
+                "f": '{"pk": ["i","1"]}',
+                "i+times_seen": "1",
+                "m": "unittest.mock.Mock",
+            },
+        )
+        # A non-sorted-set value makes ZREM fail, as a dead shard would.
+        client.set("b:p", "not-a-zset")
+
+        self.buf.process("foo")
+
+        process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, None)
+
     @django_db_all
     @freeze_time()
     def test_incr_uses_signal_only(

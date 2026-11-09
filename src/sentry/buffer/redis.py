@@ -486,9 +486,15 @@ class RedisBuffer(Buffer):
         try:
             pipe = self.get_redis_connection(transaction=False)
             pipe.hgetall(key)
-            pipe.zrem(self.pending_key, key)
             pipe.delete(key)
             values = pipe.execute()[0]
+
+            # Kept out of the pipeline so a ZREM failure can't discard counts DEL already removed.
+            try:
+                self.cluster.zrem(self.pending_key, key)
+            except Exception:
+                metrics.incr("buffer.zrem-failed", skip_internal=False)
+                logger.debug("buffer.zrem-failed", extra={"redis_key": key})
 
             # XXX(python3): In python2 this isn't as important since redis will
             # return string tyes (be it, byte strings), but in py3 we get bytes
