@@ -48,7 +48,7 @@ class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttribu
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
-            return Response({"detail": "Attribute not found."}, status=404)
+            return Response({"detail": "No projects available."}, status=404)
 
         serialized: dict[str, Any] = serializer.validated_data
         attribute_name = serialized["attribute_name"]
