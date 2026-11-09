@@ -467,6 +467,33 @@ class OrganizationInvestigationDetailsTest(APITestCase):
             investigation.refresh_from_db()
         return first, second
 
+    def test_a_source_type_without_a_producer_can_be_renamed_and_archived(self) -> None:
+        notebook = self.create_notebook(
+            organization=self.organization, created_by=self.user, title="Original"
+        )
+        Notebook.objects.filter(id=notebook.id).update(
+            source_type="unregistered", source_key="unregistered:1", source_revision=1
+        )
+        notebook.refresh_from_db()
+
+        renamed = self.client.put(
+            self.details_url(notebook),
+            data={"investigationVersion": notebook.version, "title": "Renamed"},
+            format="json",
+        )
+        assert renamed.status_code == 200, renamed.data
+        notebook.refresh_from_db()
+        assert notebook.title == "Renamed"
+
+        archived = self.client.put(
+            self.details_url(notebook),
+            data={"investigationVersion": notebook.version, "status": "archived"},
+            format="json",
+        )
+        assert archived.status_code == 200, archived.data
+        notebook.refresh_from_db()
+        assert notebook.status == NotebookStatus.ARCHIVED
+
     def test_archiving_a_source_investigation_via_put(self) -> None:
         first, second = self.lineage()
 

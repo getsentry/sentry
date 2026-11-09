@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any, cast
-from unittest.mock import patch
 
 from django.test import override_settings
 from django.urls import reverse
@@ -25,6 +24,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.notebooks.models import (
+    Notebook,
     NotebookActionRequest,
     NotebookActionRequestState,
     NotebookBlock,
@@ -36,7 +36,7 @@ from sentry.notebooks.services.action_kinds.base import (
     ActionStale,
     CannotApplyReason,
 )
-from sentry.notebooks.services.producer import PRODUCERS
+from sentry.notebooks.services.action_requests import complete_action_requests
 from sentry.seer import agent_token
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
@@ -317,10 +317,33 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             before={"highThreshold": 500}, changes={"highThreshold": 800.0}
         )
 
-        with patch.dict(PRODUCERS, clear=True):
-            response = self.apply(action_request)
+        Notebook.objects.filter(id=self.investigation.id).update(
+            source_type="unregistered", source_key="unregistered:1", source_revision=1
+        )
 
+        serialized = self.details_request()
+        response = self.apply(action_request)
+
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (
+            False,
+            "unsupported_action",
+        )
         assert response.status_code == 404, response.data
+        action_request.refresh_from_db()
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
+
+    def test_completing_skips_a_source_type_without_a_producer(self) -> None:
+        action_request = self.suggest()
+        Notebook.objects.filter(id=self.investigation.id).update(
+            source_type="unregistered", source_key="unregistered:1", source_revision=1
+        )
+
+        complete_action_requests(
+            NotebookActionRequest.objects.filter(id=action_request.id),
+            applied_by=self.user.id,
+            details={},
+        )
+
         action_request.refresh_from_db()
         assert action_request.state == NotebookActionRequestState.SUGGESTED
 

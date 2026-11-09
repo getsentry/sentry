@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any, cast
-from unittest.mock import patch
 from uuid import uuid4
 
 from django.db import connection
@@ -29,7 +28,6 @@ from sentry.notebooks.models import (
     NotebookStatus,
 )
 from sentry.notebooks.services.action_kinds import ACTION_KINDS
-from sentry.notebooks.services.producer import PRODUCERS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
@@ -100,8 +98,12 @@ class InvestigationSerializerTest(TestCase):
     def test_a_source_type_without_a_producer_has_no_orchestration_state(self) -> None:
         self.create_investigation_orchestration_run(investigation=self.investigation)
 
-        with patch.dict(PRODUCERS, clear=True):
-            result = serialize(self.investigation, self.user, InvestigationSerializer())
+        Notebook.objects.filter(id=self.investigation.id).update(
+            source_type="unregistered", source_key="unregistered:1", source_revision=1
+        )
+        self.investigation.refresh_from_db()
+
+        result = serialize(self.investigation, self.user, InvestigationSerializer())
 
         assert result["orchestration"] is None
 
@@ -410,8 +412,12 @@ class InvestigationActionRequestSerializationTest(TestCase):
     def test_a_source_type_without_a_producer_has_no_follow_up(self) -> None:
         self.add_followed_up_request()
 
-        with patch.dict(PRODUCERS, clear=True):
-            (serialized,) = self.serialize_requests()
+        Notebook.objects.filter(id=self.investigation.id).update(
+            source_type="unregistered", source_key="unregistered:1", source_revision=1
+        )
+        self.investigation.refresh_from_db()
+
+        (serialized,) = self.serialize_requests()
 
         assert serialized["followUp"] is None
 

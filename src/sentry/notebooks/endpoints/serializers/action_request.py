@@ -28,6 +28,7 @@ from sentry.notebooks.services.producer import (
     follow_up_rerun_hint,
     follow_up_status_hint,
     follow_ups,
+    get_producer,
 )
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
@@ -130,7 +131,10 @@ class InvestigationActionRequestSerializer(
         reasons: dict[int, CannotApplyReason | None] = {}
         by_kind: dict[str, list[NotebookActionRequest]] = defaultdict(list)
         for item in item_list:
-            reason = shared_cannot_apply_reason(investigations[item.notebook_id], item)
+            investigation = investigations[item.notebook_id]
+            reason = shared_cannot_apply_reason(investigation, item)
+            if reason is None and get_producer(investigation.source_type) is None:
+                reason = CannotApplyReason.UNSUPPORTED_ACTION
             if reason is not None:
                 reasons[item.id] = reason
             elif access is None:
