@@ -10,7 +10,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_conventions.attributes import ATTRIBUTE_METADATA
+from sentry_conventions.attributes import ATTRIBUTE_METADATA, AttributeMetadata
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
@@ -382,6 +382,23 @@ def _search_type_to_context_type(search_type: str) -> ColumnType:
     return "number"
 
 
+def get_sentry_convention_metadata(
+    public_name: str,
+    internal_name: str,
+    attribute_type: ColumnType | None = None,
+) -> AttributeMetadata | None:
+    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(internal_name)
+    if metadata is None:
+        return None
+
+    if attribute_type is not None:
+        expected_type = _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value)
+        if expected_type is not None and expected_type != attribute_type:
+            return None
+
+    return metadata
+
+
 def build_sentry_convention_context(
     public_name: str,
     internal_name: str,
@@ -405,14 +422,9 @@ def build_sentry_convention_context(
     expected type is compatible, so a custom attribute that merely shares a name
     with a convention but has a different type isn't treated as that convention.
     """
-    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(internal_name)
+    metadata = get_sentry_convention_metadata(public_name, internal_name, attribute_type)
     if metadata is None:
         return None
-
-    if attribute_type is not None:
-        expected_type = _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value)
-        if expected_type is not None and expected_type != attribute_type:
-            return None
 
     deprecation = metadata.deprecation
 

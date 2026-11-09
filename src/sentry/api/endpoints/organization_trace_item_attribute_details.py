@@ -1,4 +1,5 @@
-from typing import Annotated, Any
+from collections.abc import Mapping, Sequence
+from typing import Annotated, Any, NotRequired, TypedDict
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -15,6 +16,8 @@ from sentry.api.endpoints.organization_trace_item_attribute_stats import (
 from sentry.api.endpoints.organization_trace_item_attributes import (
     POSSIBLE_ATTRIBUTE_TYPES,
     OrganizationTraceItemAttributesEndpoint,
+    StoredRef,
+    get_sentry_convention_metadata,
 )
 from sentry.api.endpoints.organization_trace_item_attributes_merged import (
     MERGEABLE_DATASETS,
@@ -42,7 +45,32 @@ class OrganizationTraceItemAttributeDetailsEndpointSerializer(serializers.Serial
     dataset = serializers.MultipleChoiceField(choices=MERGEABLE_DATASETS, required=False)
 
 
-class TraceItemAttributeDetails(MergedTraceItemAttribute):
+class TraceItemAttributeChangelogEntry(TypedDict):
+    version: Annotated[
+        str, ApiDescription("Sentry conventions release version that included the change")
+    ]
+    prs: NotRequired[
+        Annotated[
+            list[int], ApiDescription("Sentry conventions pull request numbers for the change")
+        ]
+    ]
+    description: NotRequired[Annotated[str, ApiDescription("Description of the change")]]
+
+
+# Spread into the details literal: mypy rejects `{**match, ...}` unless a ** item declares `changelog`.
+class TraceItemAttributeConventionDetails(TypedDict):
+    changelog: NotRequired[
+        Annotated[
+            list[TraceItemAttributeChangelogEntry],
+            ApiDescription(
+                "Changes to the attribute's Sentry convention, newest first. Present only for "
+                "attributes that match a Sentry convention"
+            ),
+        ]
+    ]
+
+
+class TraceItemAttributeDetails(MergedTraceItemAttribute, TraceItemAttributeConventionDetails):
     stats: Annotated[
         dict[str, TraceItemAttributeDatasetStats],
         ApiDescription("Stats for the attribute in each dataset it was found in"),
@@ -51,6 +79,32 @@ class TraceItemAttributeDetails(MergedTraceItemAttribute):
         str | None,
         ApiDescription("When the attribute was last seen in any dataset within the time window"),
     ]
+
+
+def build_convention_details(
+    attribute: MergedTraceItemAttribute,
+    refs_by_dataset: Mapping[str, Sequence[StoredRef]],
+) -> TraceItemAttributeConventionDetails:
+    internal_names = list(
+        dict.fromkeys(ref.name for refs in refs_by_dataset.values() for ref in refs)
+    ) or [attribute["name"]]
+    candidates = (
+        get_sentry_convention_metadata(attribute["name"], internal_name, attribute["attributeType"])
+        for internal_name in internal_names
+    )
+    metadata = next((candidate for candidate in candidates if candidate is not None), None)
+    if metadata is None or not metadata.changelog:
+        return {}
+
+    changelog: list[TraceItemAttributeChangelogEntry] = []
+    for entry in metadata.changelog:
+        serialized: TraceItemAttributeChangelogEntry = {"version": entry.version}
+        if entry.prs is not None:
+            serialized["prs"] = list(entry.prs)
+        if entry.description is not None:
+            serialized["description"] = entry.description
+        changelog.append(serialized)
+    return {"changelog": changelog}
 
 
 @cell_silo_endpoint
@@ -123,5 +177,6 @@ class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttribu
             **match,
             "stats": stats,
             "lastSeen": last_seen.isoformat() if last_seen is not None else None,
+            **build_convention_details(match, refs_by_dataset),
         }
         return Response(details)
