@@ -278,7 +278,7 @@ function AttributeSidebar({attribute}: {attribute: AttributeDetailsResponse}) {
             <Fragment>
               <DescriptionList.Term>{t('Unit')}</DescriptionList.Term>
               <DescriptionList.Details>
-                {UNIT_LABELS[context.unit]}
+                {UNIT_LABELS[context.unit] ?? context.unit}
               </DescriptionList.Details>
             </Fragment>
           )}
@@ -290,8 +290,8 @@ function AttributeSidebar({attribute}: {attribute: AttributeDetailsResponse}) {
                   <InfoTip
                     size="xs"
                     title={t(
-                      '%s: spans where Relay truncated or scrubbed this attribute.',
-                      ATTRIBUTES_STATS_PERIOD_LABEL
+                      'Stored spans in the %s where Relay truncated or scrubbed this attribute.',
+                      ATTRIBUTES_STATS_PERIOD_LABEL.toLowerCase()
                     )}
                   />
                 </Flex>
@@ -323,7 +323,7 @@ function AttributeSidebar({attribute}: {attribute: AttributeDetailsResponse}) {
                       </ExternalLink>
                     ))}
                   </Flex>
-                  {entry.description && <Text variant="muted">{entry.description}</Text>}
+                  {entry.description && <Markdown raw={entry.description} />}
                 </Stack>
               ))}
             </Stack>
