@@ -53,11 +53,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
-        if not self._is_span_eligible(span):
-            return
-
+        # Check the op before `_is_span_eligible`, which parses the span's URL.
         op = span.get("op", None)
         if op not in self.settings.get("allowed_span_ops", []):
+            return
+
+        if not self._is_span_eligible(span):
             return
 
         previous_span = self.spans[-1] if len(self.spans) > 0 else None
@@ -283,7 +284,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
-        return (
+        return span_a["parent_span_id"] == span_b["parent_span_id"] and (
             self._get_parameterized_url(span_a) == self._get_parameterized_url(span_b)
-            and span_a["parent_span_id"] == span_b["parent_span_id"]
         )

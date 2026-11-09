@@ -82,10 +82,9 @@ class PerformanceDetector(ABC):
         if not op or not span_id:
             return None
 
-        span_duration = get_span_duration(span)
         op_prefix = self.find_span_prefix(self.settings, op)
         if op_prefix:
-            return op, span_id, op_prefix, span_duration, self.settings
+            return op, span_id, op_prefix, get_span_duration(span), self.settings
         return None
 
     def event(self) -> dict[str, Any]:
