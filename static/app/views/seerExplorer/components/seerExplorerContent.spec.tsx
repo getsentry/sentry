@@ -2386,6 +2386,102 @@ describe('SeerExplorerContent', () => {
       ).not.toBeInTheDocument();
     });
 
+    describe('an autofix card that cannot afford its next step', () => {
+      const groupId = '1';
+
+      beforeEach(() => {
+        jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+          ...defaultHookReturn,
+          runId: 123,
+          sessionData: {
+            blocks: [
+              {
+                id: 'msg-1',
+                message: {role: 'user', content: 'Why is JAVASCRIPT-1 happening?'},
+                timestamp: '2024-01-01T00:00:00Z',
+                loading: false,
+              },
+              {
+                id: 'msg-2',
+                message: {
+                  role: 'assistant',
+                  content: `{% autofixRef %}${JSON.stringify({id: groupId, shortId: 'JAVASCRIPT-1', runId: 42, step: 'root_cause'})}{% /autofixRef %}`,
+                },
+                timestamp: '2024-01-01T00:01:00Z',
+                loading: false,
+              },
+            ],
+            status: 'completed',
+            updated_at: '2024-01-01T00:01:00Z',
+          },
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${creditsOrganization.slug}/issues/${groupId}/autofix/`,
+          body: {
+            autofix: {
+              run_id: 42,
+              status: 'completed',
+              updated_at: '2024-01-01T00:01:00Z',
+              blocks: [
+                {
+                  id: 'block-0',
+                  timestamp: '2024-01-01T00:01:00Z',
+                  message: {
+                    role: 'assistant',
+                    content: 'Finished root_cause',
+                    metadata: {step: 'root_cause'},
+                  },
+                  artifacts: [
+                    {
+                      key: 'root_cause',
+                      reason: 'Done',
+                      data: {
+                        one_line_description: 'The cache key collides across orgs',
+                        five_whys: [],
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+          match: [MockApiClient.matchQuery({operation: 'autofix_solution'})],
+          body: {hasEnoughCredits: false},
+        });
+      });
+
+      it('shows the autofix CTA above the composer', async () => {
+        mockCreditCheck(true);
+
+        renderContent();
+
+        const cta = await screen.findByTestId('seer-explorer-autofix-out-of-credits');
+        const textarea = await getSeerExplorerInput();
+        expect(
+          cta.compareDocumentPosition(textarea) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy();
+        expect(
+          screen.queryByTestId('seer-explorer-out-of-credits')
+        ).not.toBeInTheDocument();
+      });
+
+      it('shows only the chat CTA when the chat is out of credits too', async () => {
+        mockCreditCheck(false);
+
+        renderContent();
+
+        await screen.findByTestId('seer-explorer-out-of-credits');
+        await waitFor(() =>
+          expect(
+            screen.queryByTestId('seer-explorer-autofix-out-of-credits')
+          ).not.toBeInTheDocument()
+        );
+      });
+    });
+
     describe('after running out', () => {
       // The test `rerender` mounts a new QueryClient, which would drop the credit
       // check these tests watch, so they keep their own.

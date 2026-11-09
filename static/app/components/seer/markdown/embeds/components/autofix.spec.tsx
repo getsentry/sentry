@@ -544,7 +544,7 @@ describe('AutofixRef embed', () => {
         operation: 'autofix_open_pr',
       },
     ] as const)(
-      'shows the CTA above a disabled $button',
+      'outside the Explorer chat, shows the CTA above a disabled $button',
       async ({step, button, operation}) => {
         mockRun(makeRunThrough(step));
         const creditCheck = MockApiClient.addMockResponse({
@@ -609,6 +609,60 @@ describe('AutofixRef embed', () => {
 
       await waitFor(() => expect(getButtons('Continue: Plan')[0]).toBeEnabled());
       expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+    });
+
+    it('leaves the CTA to the Explorer chat, where the composer shows it', async () => {
+      mockRun(makeRunThrough('root_cause'));
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+      const reportOutOfCredits = jest.fn();
+
+      const {unmount} = render(
+        <AutofixChatProvider
+          sendMessage={jest.fn()}
+          reportOutOfCredits={reportOutOfCredits}
+        >
+          <AutofixRefFor step="root_cause" />
+        </AutofixChatProvider>,
+        {organization: creditCheckOrganization}
+      );
+      await expandAll(1);
+
+      await waitFor(() =>
+        expect(reportOutOfCredits).toHaveBeenLastCalledWith(expect.any(String), true)
+      );
+      expect(getButtons('Continue: Plan')[0]).toBeDisabled();
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+
+      // A card that leaves the chat takes its report with it.
+      const [embedId] = reportOutOfCredits.mock.lastCall!;
+      unmount();
+      expect(reportOutOfCredits).toHaveBeenLastCalledWith(embedId, false);
+    });
+
+    it('reports nothing to the Explorer chat when the org can afford the step', async () => {
+      mockRun(makeRunThrough('root_cause'));
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: true},
+      });
+      const reportOutOfCredits = jest.fn();
+
+      render(
+        <AutofixChatProvider
+          sendMessage={jest.fn()}
+          reportOutOfCredits={reportOutOfCredits}
+        >
+          <AutofixRefFor step="root_cause" />
+        </AutofixChatProvider>,
+        {organization: creditCheckOrganization}
+      );
+      await expandAll(1);
+
+      await waitFor(() => expect(getButtons('Continue: Plan')[0]).toBeEnabled());
+      expect(reportOutOfCredits).not.toHaveBeenCalledWith(expect.any(String), true);
     });
 
     it('does not check credits in a read-only conversation', async () => {

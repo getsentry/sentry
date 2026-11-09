@@ -36,7 +36,10 @@ import {
 import {useRefreshAutofixProgressQueries} from 'sentry/components/events/autofix/useRefreshAutofixProgressQueries';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
+import {
+  useAutofixChat,
+  useReportAutofixOutOfCredits,
+} from 'sentry/components/seer/autofixChatContext';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t, tn} from 'sentry/locale';
@@ -308,6 +311,11 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   // Held disabled while checking, so a button is never clickable before the
   // answer arrives, and while the org can't afford the step.
   const canContinue = canAct && !creditCheck.isPending && creditCheck.hasEnoughCredits;
+  // In the Explorer chat the notice sits above the composer, where it stays in
+  // view as the chat scrolls. Anywhere else the card shows its own.
+  const showsOutOfCreditsNotice = useReportAutofixOutOfCredits(
+    showsNextAction && !creditCheck.hasEnoughCredits
+  );
 
   return (
     <AutofixBlock id={id} shortId={shortId} step={step}>
@@ -320,9 +328,8 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
             </Button>
           </Flex>
         )}
-        {/* Muted: the buttons it explains stay right below it, and the chat
-            panel's main alert sits above the composer. */}
-        {showsNextAction && !creditCheck.hasEnoughCredits && (
+        {/* Muted: the buttons it explains stay right below it. */}
+        {showsOutOfCreditsNotice && (
           <SeerOutOfCreditsCta reason="autofix-continue" variant="muted" />
         )}
         {showsNextAction && (

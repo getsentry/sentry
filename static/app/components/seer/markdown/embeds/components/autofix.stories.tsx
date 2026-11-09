@@ -22,9 +22,13 @@ import {
   type AutofixExplorerStep,
   type ExplorerAutofixState,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
+import {
+  AutofixChatProvider,
+  useAutofixOutOfCreditsEmbeds,
+} from 'sentry/components/seer/autofixChatContext';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import * as Storybook from 'sentry/stories';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -161,7 +165,7 @@ function Seer({raw}: {raw: string}) {
   );
 }
 
-function ChatShell({children}: {children: ReactNode}) {
+function ChatShell({children, notice}: {children: ReactNode; notice?: ReactNode}) {
   return (
     <Storybook.SizingWindow display="block">
       <Stack
@@ -176,7 +180,8 @@ function ChatShell({children}: {children: ReactNode}) {
         <Container flex="1" overflow="auto">
           {children}
         </Container>
-        <Container borderTop="primary" background="primary" padding="lg xl">
+        <Stack gap="lg" borderTop="primary" background="primary" padding="lg xl">
+          {notice}
           <InputGroup>
             <InputGroup.TextArea
               rows={1}
@@ -194,7 +199,7 @@ function ChatShell({children}: {children: ReactNode}) {
               />
             </InputGroup.TrailingItems>
           </InputGroup>
-        </Container>
+        </Stack>
       </Stack>
     </Storybook.SizingWindow>
   );
@@ -543,21 +548,28 @@ class CreditsQueryClient extends QueryClient {
 /**
  * A conversation in an org with credit checks on, out of credits unless
  * `hasEnoughCredits` is set, where the chat can still send, so each embed
- * offers its next step.
+ * offers its next step. Like the Explorer chat, it shows the out-of-credits
+ * notice above the composer.
  */
 function CreditsChat({
   children,
   description,
   run,
   hasEnoughCredits = false,
+  isBillingMember = false,
 }: {
   children: ReactNode;
   description: ReactNode;
   run: ExplorerAutofixState;
   hasEnoughCredits?: boolean;
+  /**
+   * Billing members configure auto-reload; everyone else contacts their admins.
+   */
+  isBillingMember?: boolean;
 }) {
   const organization = useOrganization();
   const [queryClient] = useState(() => new CreditsQueryClient(run, hasEnoughCredits));
+  const {isAutofixOutOfCredits, reportOutOfCredits} = useAutofixOutOfCreditsEmbeds();
 
   return (
     <Stack gap="md">
@@ -567,6 +579,9 @@ function CreditsChat({
       <OrganizationContext.Provider
         value={{
           ...organization,
+          access: isBillingMember
+            ? [...organization.access, 'org:billing']
+            : organization.access.filter(scope => scope !== 'org:billing'),
           features: [
             ...organization.features,
             'seer-credit-checks',
@@ -575,8 +590,19 @@ function CreditsChat({
         }}
       >
         <QueryClientProvider client={queryClient}>
-          <AutofixChatProvider sendMessage={() => {}}>
-            <ChatShell>{children}</ChatShell>
+          <AutofixChatProvider
+            sendMessage={() => {}}
+            reportOutOfCredits={reportOutOfCredits}
+          >
+            <ChatShell
+              notice={
+                isAutofixOutOfCredits ? (
+                  <SeerOutOfCreditsCta reason="autofix-continue" size="md" />
+                ) : null
+              }
+            >
+              {children}
+            </ChatShell>
           </AutofixChatProvider>
         </QueryClientProvider>
       </OrganizationContext.Provider>
@@ -637,8 +663,21 @@ export default Storybook.story('Autofix', story => {
 
   story('Out of credits: after the root cause', () => (
     <CreditsChat
-      description="Open the card. The root cause stays readable; the muted autofix-continue notice sits above Continue: Plan, which is disabled (autofix_solution)."
+      description="Open the card, seen by a member. The root cause stays readable and Continue: Plan is disabled (autofix_solution). The autofix-continue notice sits above the composer, where it stays in view as the chat scrolls."
       run={creditsRun([ROOT_CAUSE_BLOCK])}
+    >
+      <User>Why is {ISSUE.shortId} happening?</User>
+      <Seer
+        raw={`Here's the root cause:\n\n${autofixRefTag(ISSUE, 'root_cause', CREDITS_RUN_ID)}`}
+      />
+    </CreditsChat>
+  ));
+
+  story('Out of credits: after the root cause, billing member', () => (
+    <CreditsChat
+      description="The same chat for a billing member, who configures auto-reload instead of contacting an admin."
+      run={creditsRun([ROOT_CAUSE_BLOCK])}
+      isBillingMember
     >
       <User>Why is {ISSUE.shortId} happening?</User>
       <Seer
@@ -649,7 +688,7 @@ export default Storybook.story('Autofix', story => {
 
   story('Out of credits: after the plan', () => (
     <CreditsChat
-      description="Open the card. The plan stays readable; the notice sits above Continue: Code Changes, which is disabled (autofix_code_changes)."
+      description="Open the card. The plan stays readable and Continue: Code Changes is disabled (autofix_code_changes); the notice sits above the composer."
       run={creditsRun([ROOT_CAUSE_BLOCK, SOLUTION_BLOCK])}
     >
       <User>Plan a fix for {ISSUE.shortId}.</User>
@@ -661,7 +700,7 @@ export default Storybook.story('Autofix', story => {
 
   story('Out of credits: Create PR', () => (
     <CreditsChat
-      description="Open the Code Changes card. The diff stays readable; the notice sits above Draft a pull request, which is disabled (autofix_open_pr)."
+      description="Open the Code Changes card. The diff stays readable and Draft a pull request is disabled (autofix_open_pr); the notice sits above the composer."
       run={creditsRun([ROOT_CAUSE_BLOCK, SOLUTION_BLOCK, CODE_CHANGES_BLOCK])}
     >
       <User>Write the fix for {ISSUE.shortId}.</User>

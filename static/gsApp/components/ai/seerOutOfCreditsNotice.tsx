@@ -124,12 +124,15 @@ export interface SeerOutOfCreditsNoticeProps extends SeerOutOfCreditsCtaProps {
  */
 export function SeerOutOfCreditsNotice({
   reason,
+  size,
   variant = 'warning',
   escalation,
   autoReloadEnabled,
   ...actionProps
 }: SeerOutOfCreditsNoticeProps) {
   const NoticeAlert = variant === 'muted' ? MutedAlert : Alert;
+  // The chat has room for a full-size button; Autofix's spots are tighter.
+  const buttonSize = size ?? (reason === 'agent-chat' ? 'md' : 'sm');
 
   return (
     <NoticeAlert variant={variant} data-test-id="seer-out-of-credits">
@@ -144,9 +147,7 @@ export function SeerOutOfCreditsNotice({
               ? t('Turn on auto-reload')
               : t('Configure auto-reload')
           }
-          // The chat has room for a full-size button; Autofix's spots are
-          // tighter.
-          size={reason === 'agent-chat' ? 'md' : 'sm'}
+          size={buttonSize}
           {...actionProps}
         />
       </Stack>

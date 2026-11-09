@@ -34,7 +34,7 @@ function getEscalation(
 
 const TOP_UP_REQUESTED_PROMPT = 'seer_top_up_requested';
 
-export function SeerOutOfCreditsCta({reason, variant}: SeerOutOfCreditsCtaProps) {
+export function SeerOutOfCreditsCta({reason, size, variant}: SeerOutOfCreditsCtaProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const subscription = useSubscription();
@@ -88,6 +88,7 @@ export function SeerOutOfCreditsCta({reason, variant}: SeerOutOfCreditsCtaProps)
   return (
     <SeerOutOfCreditsNotice
       reason={reason}
+      size={size}
       variant={variant}
       escalation={escalation}
       autoReloadEnabled={autoTopUp?.enabled}
