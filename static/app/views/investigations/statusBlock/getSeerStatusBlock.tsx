@@ -85,8 +85,8 @@ const CURRENT_REASONING_RANK = (IN_FLIGHT_RANK.running ?? 0) + 1;
  */
 function rankEntries(activity: SeerStatusActivity[]) {
   let nextCallRank = CURRENT_REASONING_RANK;
-  return [...activity]
-    .reverse()
+  return activity
+    .toReversed()
     .map(entry => {
       const rank = isThought(entry) ? nextCallRank : (IN_FLIGHT_RANK[entry.status] ?? 0);
       nextCallRank = rank;

@@ -91,7 +91,7 @@ export function useCustomReleaseSorting({
     const isDescending = firstQuery.orderby.startsWith('-');
     return {
       releaseCondition: releaseQueryString,
-      releaseOrder: isDescending ? releasesUsed : [...releasesUsed].reverse(),
+      releaseOrder: isDescending ? releasesUsed : releasesUsed.toReversed(),
     };
   }, [firstQuery, isCustomReleaseSorting, releases]);
 
