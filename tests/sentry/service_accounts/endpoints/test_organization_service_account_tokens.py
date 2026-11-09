@@ -1,20 +1,31 @@
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
+from sentry import audit_log
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.seer.agent_token import AGENT_TOKEN_KIND
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.service_accounts.endpoints.organization_service_account_tokens import (
+    DisallowAgentTokenWrites,
     OrganizationServiceAccountTokenIndexEndpoint,
 )
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountToken
 from sentry.service_accounts.principal import ServiceAccountPrincipal
-from sentry.service_accounts.tokens import stored_token_fields
+from sentry.service_accounts.tokens import (
+    SERVICE_ACCOUNT_TOKEN_PREFIX,
+    parse_token,
+    stored_token_fields,
+)
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 FEATURE_FLAG = "organizations:service-accounts"
@@ -104,6 +115,163 @@ class OrganizationServiceAccountTokenIndexTest(ServiceAccountTokenTestCase):
 
         assert len(response.data) == 1
 
+    @freeze_time("2026-11-09 12:00:00")
+    def test_create(self) -> None:
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="post",
+                name="deploys",
+                scopes=["project:releases", "project:read", "project:read"],
+                status_code=201,
+            )
+
+        token = ServiceAccountToken.objects.get(id=response.data["id"])
+        plaintext = response.data["token"]
+        assert plaintext.startswith(SERVICE_ACCOUNT_TOKEN_PREFIX)
+        parsed = parse_token(plaintext)
+        assert parsed is not None
+        assert parsed["org"] == self.organization.slug
+        assert token.token_hashed == stored_token_fields(plaintext).token_hashed
+        assert token.token_hashed != plaintext
+        assert token.service_account_id == self.service_account.id
+        assert token.organization_id == self.organization.id
+        assert token.scope_list == ["project:read", "project:releases"]
+        assert token.created_by_id == self.user.id
+        assert token.date_expires == timezone.now() + timedelta(days=30)
+        assert token.date_deactivated is None
+        assert response.data == {
+            "id": str(token.id),
+            "name": "deploys",
+            "scopes": ["project:read", "project:releases"],
+            "tokenLastCharacters": plaintext[-4:],
+            "dateCreated": token.date_added,
+            "dateLastUsed": None,
+            "dateExpires": token.date_expires,
+            "token": plaintext,
+        }
+
+        entry = AuditLogEntry.objects.get(event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_ADD"))
+        assert entry.organization_id == self.organization.id
+        assert entry.actor_id == self.user.id
+        assert entry.target_object == token.id
+        assert entry.data == {
+            "name": "deploys",
+            "scopes": ["project:read", "project:releases"],
+            "service_account_id": self.service_account.id,
+            "service_account_name": "ci",
+        }
+
+        # The plaintext is never returned again.
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(self.organization.slug, self.service_account.id)
+        assert "token" not in response.data[0]
+        assert plaintext not in str(response.content)
+
+    @freeze_time("2026-11-09 12:00:00")
+    def test_create_with_expiration(self) -> None:
+        expires_at = timezone.now() + timedelta(days=30)
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="post",
+                name="deploys",
+                scopes=["project:read"],
+                expiresAt=expires_at.isoformat(),
+                status_code=201,
+            )
+
+        token = ServiceAccountToken.objects.get(id=response.data["id"])
+        assert token.date_expires == expires_at
+        assert response.data["dateExpires"] == expires_at
+
+    def test_create_with_null_expiration_never_expires(self) -> None:
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="post",
+                name="deploys",
+                scopes=["project:read"],
+                expiresAt=None,
+                status_code=201,
+            )
+
+        assert ServiceAccountToken.objects.get(id=response.data["id"]).date_expires is None
+
+    @freeze_time("2026-11-09 12:00:00")
+    def test_create_rejects_past_expiration(self) -> None:
+        with self.feature(FEATURE_FLAG):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="post",
+                name="deploys",
+                scopes=["project:read"],
+                expiresAt=(timezone.now() - timedelta(minutes=1)).isoformat(),
+                status_code=400,
+            )
+
+        assert set(response.data["detail"]) == {"expiresAt"}
+        assert not ServiceAccountToken.objects.exists()
+
+    def test_create_rejects_scopes_the_account_lacks(self) -> None:
+        with self.feature(FEATURE_FLAG):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="post",
+                name="deploys",
+                scopes=["project:read", "org:write"],
+                status_code=400,
+            )
+
+        assert "scopes" in response.data["detail"]
+        assert not ServiceAccountToken.objects.exists()
+
+    def test_create_requires_name_and_scopes(self) -> None:
+        with self.feature(FEATURE_FLAG):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="post",
+                scopes=[],
+                status_code=400,
+            )
+
+        assert set(response.data["detail"]) == {"name", "scopes"}
+        assert not ServiceAccountToken.objects.exists()
+
+    def test_create_requires_service_account_write(self) -> None:
+        self.login_as_role("member")
+
+        with self.feature(FEATURE_FLAG):
+            self.get_error_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="post",
+                name="deploys",
+                scopes=["project:read"],
+                status_code=403,
+            )
+
+        assert not ServiceAccountToken.objects.exists()
+
+    def test_manager_can_create(self) -> None:
+        self.login_as_role("manager")
+
+        with self.feature(FEATURE_FLAG):
+            self.get_success_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="post",
+                name="deploys",
+                scopes=["project:read"],
+                status_code=201,
+            )
+
     def test_service_account_caller_cannot_list(self) -> None:
         url = reverse(self.endpoint, args=[self.organization.slug, self.service_account.id])
 
@@ -120,6 +288,25 @@ class OrganizationServiceAccountTokenIndexTest(ServiceAccountTokenTestCase):
         assert response.status_code == 403
         assert response.data["detail"]["code"] == "user-required"
 
+    def test_service_account_caller_cannot_create(self) -> None:
+        url = reverse(self.endpoint, args=[self.organization.slug, self.service_account.id])
+
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch.object(
+                OrganizationServiceAccountTokenIndexEndpoint,
+                "authentication_classes",
+                (ServiceAccountAuthentication,),
+            ),
+        ):
+            response = self.client.post(
+                url, data={"name": "deploys", "scopes": ["project:read"]}, format="json"
+            )
+
+        assert response.status_code == 403
+        assert response.data["detail"]["code"] == "user-required"
+        assert not ServiceAccountToken.objects.exists()
+
     def test_other_org_returns_404(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             other_organization = self.create_organization()
@@ -129,6 +316,23 @@ class OrganizationServiceAccountTokenIndexTest(ServiceAccountTokenTestCase):
         with self.feature(FEATURE_FLAG):
             self.get_error_response(self.organization.slug, other.id, status_code=404)
 
+    def test_create_for_other_org_returns_404(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_organization = self.create_organization()
+        other = self.create_service_account(organization=other_organization, name="other")
+
+        with self.feature(FEATURE_FLAG):
+            self.get_error_response(
+                self.organization.slug,
+                other.id,
+                method="post",
+                name="deploys",
+                scopes=["org:read"],
+                status_code=404,
+            )
+
+        assert not ServiceAccountToken.objects.filter(service_account=other).exists()
+
     def test_deleted_account_returns_404(self) -> None:
         self.service_account.deactivate()
 
@@ -136,3 +340,18 @@ class OrganizationServiceAccountTokenIndexTest(ServiceAccountTokenTestCase):
             self.get_error_response(
                 self.organization.slug, self.service_account.id, status_code=404
             )
+
+
+@control_silo_test
+class DisallowAgentTokenWritesTest(TestCase):
+    def check(self, method: str, kind: str) -> bool:
+        request = mock.Mock(method=method, auth=AuthenticatedToken(kind=kind, user_id=self.user.id))
+        return DisallowAgentTokenWrites().has_permission(request, view=None)
+
+    def test_rejects_agent_writes(self) -> None:
+        assert not self.check("POST", AGENT_TOKEN_KIND)
+        assert not self.check("DELETE", AGENT_TOKEN_KIND)
+
+    def test_allows_agent_reads_and_other_writes(self) -> None:
+        assert self.check("GET", AGENT_TOKEN_KIND)
+        assert self.check("POST", "api_token")
