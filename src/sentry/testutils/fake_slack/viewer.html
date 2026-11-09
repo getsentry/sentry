@@ -121,6 +121,8 @@ function linkAttrs(url) {
   return `href="${esc(url)}" target="_blank" rel="noopener"`;
 }
 
+function unescapeSlack(s) { return String(s ?? '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); }
+
 function esc(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
 function mrkdwn(text) {
@@ -148,13 +150,12 @@ function mrkdwn(text) {
       html = `<a href="#${esc(id)}">#${esc(name ?? state.channels[id] ?? id)}</a>`;
     } else {
       const [url, label] = inner.split('|');
-      const text = esc(label ?? url).replace(/^\*(.+)\*$/, '<b>$1</b>').replace(/^_(.+)_$/, '<i>$1</i>');
-      html = `<a ${linkAttrs(url.replace(/&amp;/g, '&'))}>${text}</a>`;
+      const text = esc(unescapeSlack(label ?? url)).replace(/^\*(.+)\*$/, '<b>$1</b>').replace(/^_(.+)_$/, '<i>$1</i>');
+      html = `<a ${linkAttrs(unescapeSlack(url))}>${text}</a>`;
     }
     tokens.push(html); return `\u0000${tokens.length - 1}\u0000`;
   });
-  s = s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-  s = esc(s);
+  s = esc(unescapeSlack(s));
   s = s.replace(/```([\s\S]*?)```/g, (_, c) => `<pre>${c}</pre>`);
   s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
   s = s.replace(/(^|[\s(])\*([^*\n]+)\*(?=$|[\s).,:!?])/g, '$1<b>$2</b>');
@@ -167,10 +168,12 @@ function mrkdwn(text) {
 }
 
 function markdown(text) {
-  let s = esc(text);
-  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => `<a ${linkAttrs(url.replace(/&amp;/g, '&'))}>${label}</a>`);
-  s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
-  return s.replace(/\n/g, '<br>');
+  const links = [];
+  let s = String(text ?? '').replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => {
+    links.push(`<a ${linkAttrs(url)}>${esc(label)}</a>`); return `\u0000${links.length - 1}\u0000`;
+  });
+  s = esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  return s.replace(/\n/g, '<br>').replace(/\u0000(\d+)\u0000/g, (_, i) => links[+i]);
 }
 
 function textObj(obj) {
