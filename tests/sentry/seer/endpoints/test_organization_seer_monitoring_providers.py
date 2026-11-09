@@ -290,7 +290,7 @@ class TestOrganizationSeerMonitoringIntegrationToken(SeerMonitoringProviderEndpo
 
     @responses.activate
     def test_cannot_refresh_another_organizations_integration(self) -> None:
-        other_org = self.create_organization()
+        other_org = self.create_organization(owner=self.user)
         other_linear = self.create_integration(
             organization=other_org, provider="linear", external_id="other-linear"
         )

@@ -15,7 +15,7 @@ from sentry.models.organization import Organization
 from sentry.seer.agent.monitoring_providers import (
     get_monitoring_provider_connections,
     refresh_monitoring_provider_identity_token,
-    refresh_org_integration_monitoring_token,
+    refresh_monitoring_provider_integration_token,
 )
 from sentry.seer.sentry_data_models import (
     MonitoringProviderConnectionsResponse,
@@ -105,7 +105,7 @@ class OrganizationSeerMonitoringIntegrationTokenEndpoint(SeerMonitoringProviderE
         if not features.has("organizations:seer-infra-telemetry", organization):
             raise ResourceDoesNotExist
         return _refresh_response(
-            refresh_org_integration_monitoring_token(
+            refresh_monitoring_provider_integration_token(
                 organization_id=organization.id, integration_id=int(integration_id)
             )
         )

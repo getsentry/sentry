@@ -190,7 +190,7 @@ def get_monitoring_provider_connections(
     return personal_connections + org_connections
 
 
-def refresh_org_integration_monitoring_token(
+def refresh_monitoring_provider_integration_token(
     *, organization_id: int, integration_id: int
 ) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
     """Replace an org integration's rejected MCP token without a user identity."""

@@ -64,7 +64,7 @@ from sentry.seer.agent.monitoring_providers import (
 )
 from sentry.seer.agent.monitoring_providers import (
     refresh_monitoring_provider_identity_token,
-    refresh_org_integration_monitoring_token,
+    refresh_monitoring_provider_integration_token,
 )
 from sentry.seer.agent.on_completion_hook import call_on_completion_hook
 from sentry.seer.agent.tools import (
@@ -869,7 +869,7 @@ def refresh_org_monitoring_provider_token(
     Seer RPC shim for ``OrganizationSeerMonitoringIntegrationTokenEndpoint``. Kept until
     Seer calls the endpoint.
     """
-    return refresh_org_integration_monitoring_token(
+    return refresh_monitoring_provider_integration_token(
         organization_id=organization_id, integration_id=integration_id
     )
 
