@@ -1,0 +1,108 @@
+{
+  "name": "@sentry/api",
+  "version": "1.54.0",
+  "description": "Official auto-generated TypeScript client for the Sentry public REST API",
+  "keywords": [
+    "sentry",
+    "sentry-api",
+    "openapi",
+    "typescript",
+    "api-client"
+  ],
+  "license": "FSL-1.1-Apache-2.0",
+  "type": "module",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "spec"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "build:spec": "node build.mjs --spec-only",
+    "test:vitest": "vitest run",
+    "typecheck": "tsc6 -p tsconfig.test.json && tsc6 -p tsconfig.browser.json"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./zod": {
+      "import": "./dist/zod.js",
+      "types": "./dist/zod.d.ts"
+    },
+    "./valibot": {
+      "import": "./dist/valibot.js",
+      "types": "./dist/valibot.d.ts"
+    },
+    "./browser": {
+      "import": "./dist/browser.js",
+      "types": "./dist/browser.d.ts"
+    },
+    "./client": {
+      "types": "./dist/api-client/index.d.ts",
+      "import": "./dist/api-client/index.js"
+    },
+    "./client/endpoints": {
+      "types": "./dist/api-client/endpoints/index.d.ts",
+      "import": "./dist/api-client/endpoints/index.js"
+    },
+    "./operations": {
+      "types": "./dist/operations.d.ts",
+      "import": "./dist/operations.js"
+    },
+    "./source-analysis": {
+      "types": "./dist/source-analysis.d.ts",
+      "import": "./dist/source-analysis.js"
+    },
+    "./spec/*.json": "./spec/*.json"
+  },
+  "homepage": "https://docs.sentry.io/api/",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getsentry/sentry.git",
+    "directory": "static/packages/api"
+  },
+  "bugs": {
+    "url": "https://github.com/getsentry/sentry/issues"
+  },
+  "dependencies": {
+    "http-cache-semantics": "^4.2.0",
+    "p-limit": "^7.3.3"
+  },
+  "peerDependencies": {
+    "typescript": "*",
+    "valibot": "*",
+    "zod": "^4.6.6"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    },
+    "valibot": {
+      "optional": true
+    },
+    "zod": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.98.0",
+    "@types/http-cache-semantics": "4.2.0",
+    "@types/node": "26.6.4",
+    "esbuild": "0.28.1",
+    "fast-check": "4.10.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "valibot": "1.4.2",
+    "vitest": "5.1.0",
+    "zod": "4.6.7"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

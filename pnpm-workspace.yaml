@@ -3,6 +3,7 @@ packages:
   - static/app
   - static/gsApp
   - static/gsAdmin
+  - static/packages/api
   - static/packages/icons
   - static/packages/scraps
   - static/packages/search-syntax
@@ -22,6 +23,7 @@ overrides:
   '@testing-library/jest-dom>aria-query': 5.3.0
   diff@>=4.0.0 <4.0.4: 4.0.4
   diff@>=5.0.0 <5.2.2: 5.2.2
+  js-yaml@>=4.0.0 <4.3.2: 4.3.2
 packageExtensions:
   '@sentry/webpack-plugin@5.4.1':
     peerDependenciesMeta:

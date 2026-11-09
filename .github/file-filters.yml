@@ -162,6 +162,12 @@ api_docs: &api_docs
   - 'api-docs/**'
   - 'tests/apidocs/**'
 
+# The @sentry/api package builds from the API spec, so it rebuilds whenever
+# the spec might change, and when the package itself does.
+api_client:
+  - *api_docs
+  - 'static/packages/api/**'
+
 # This is the ultimate controller for backend.yml
 backend_any_type: &backend_any_type
   - *backend_all
