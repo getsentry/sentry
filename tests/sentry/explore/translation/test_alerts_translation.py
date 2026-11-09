@@ -583,12 +583,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             name="Test Detector",
             type=MetricIssue.slug,
             project=self.project,
-            config={
-                "detection_type": AlertRuleDetectionType.DYNAMIC.value,
-                "sensitivity": AnomalyDetectionSensitivity.HIGH,
-                "seasonality": AnomalyDetectionSeasonality.AUTO,
-                "threshold_type": AnomalyDetectionThresholdType.ABOVE,
-            },
+            config={"detection_type": AlertRuleDetectionType.DYNAMIC.value},
             workflow_condition_group=detector_data_condition_group,
         )
 

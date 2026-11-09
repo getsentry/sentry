@@ -62,11 +62,11 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import _SchemaType
 
 from sentry.apidocs.descriptions import ApiDescription, ApiSchema
-from sentry.apidocs.formats import ApiFormat
+from sentry.apidocs.formats import ApiFormat, ApiJsonValue
 from sentry.apidocs.json_schemas import union_schema
 from sentry.apidocs.omission_guard import descended, omissions_enabled, record_typed_dict
 from sentry.apidocs.omissions import OMISSION_REASONS_OVERRIDE
-from sentry.apidocs.response_coverage import CYCLE, FIELD_SOURCE
+from sentry.apidocs.response_coverage import CYCLE, FIELD_SOURCE, JSON_VALUE
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 # This function is ported from the drf-spectacular library method here:
@@ -75,6 +75,7 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 #   grabbing description from a TypedDict __doc__
 #   grabbing field descriptions from Annotated[T, ApiDescription(...)]
 #   adding schema keywords such as format from Annotated[T, ApiFormat(...)]
+#   any JSON value from JsonValue, Annotated[object, ApiJsonValue()]
 #   replacing the schema with Annotated[T, ApiSchema(...)]
 #   support for TypedDict required fields
 #   support for excluded fields via @extend_schema_serializer
@@ -189,6 +190,25 @@ def _cycle_placeholder(hint: Any) -> dict[str, Any]:
     return placeholder
 
 
+def _json_value() -> dict[str, Any]:
+    """Schema of a JsonValue field: any JSON value, listed by type."""
+    schema: dict[str, Any] = {
+        "description": "Any JSON value",
+        "anyOf": [
+            # OpenAPI 3.0 has no null type, and `nullable` needs a `type` next to it.
+            {"type": "object", "additionalProperties": True, "nullable": True},
+            {"type": "array", "items": {}},
+            {"type": "string"},
+            {"type": "number"},
+            {"type": "boolean"},
+        ],
+    }
+    if os.environ.get("OPENAPIGENERATE"):
+        # Read by the response coverage check; the deref step strips it.
+        schema[JSON_VALUE] = True
+    return schema
+
+
 def resolve_type_hint(hint: TypeHint) -> TypeHint:
     """drf-spectacular library method modified as described above"""
     if hint is type(None):
@@ -203,6 +223,8 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
     if isinstance(hint, NewType):
         return resolve_type_hint(hint.__supertype__)
     if origin is Annotated:
+        if any(isinstance(metadata, ApiJsonValue) for metadata in hint.__metadata__):
+            return _json_value()
         for metadata in hint.__metadata__:
             if isinstance(metadata, ApiSchema):
                 return metadata.build()

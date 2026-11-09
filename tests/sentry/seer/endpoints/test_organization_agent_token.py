@@ -51,11 +51,12 @@ from sentry.service_accounts.models import GRANTABLE_SCOPES
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, OurLogTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
 from sentry.viewer_context import (
     Actor,
     ActorType,
@@ -1134,7 +1135,7 @@ class OrganizationAgentTokenTest(APITestCase):
 @pytest.mark.seer_agent_token_matrix
 @requires_snuba
 @override_settings(SEER_API_SHARED_SECRET=SECRET, SENTRY_SELF_HOSTED=False)
-class AgentTokenPublicGetMatrixTest(APITestCase):
+class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
     """Differential, full-stack authentication coverage for the public API.
 
     Every row uses a real database user, organization membership, team, and project.
@@ -1418,6 +1419,19 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 )
             )
             resource = replay_id
+        elif name == "trace_log":
+            trace_id = uuid4().hex
+            log = self.create_ourlog(
+                {"trace_id": trace_id}, timestamp=timezone.now() - timedelta(minutes=1)
+            )
+            response = requests.post(
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+                files={"eap_items_0": log.SerializeToString()},
+                timeout=30,
+            )
+            assert response.status_code == 200, response.content
+            # EAP stores item IDs little-endian, so they come back reversed.
+            resource = {"item_id": log.item_id[::-1].hex(), "trace_id": trace_id}
         elif name == "replay_deletion_job":
             now = timezone.now()
             resource = self.create_replay_deletion_job(
@@ -1638,6 +1652,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if placeholder == "image_identifier":
             self._resource("preprod_snapshot")
             return "permission-matrix.png"
+        if placeholder == "item_id":
+            return str(self._resource("trace_log")["item_id"])
         if placeholder == "resource_type_name":
             return "User"
         if placeholder == "schema_uri":
@@ -1734,6 +1750,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return {"dataset": "spans", "project": [self.project.id]}
         if endpoint.endpoint_name == "OrganizationTraceLogsEndpoint":
             return {"traceId": uuid4().hex, "statsPeriod": "1h"}
+        if endpoint.endpoint_name == "ProjectTraceItemDetailsEndpoint":
+            return {"item_type": "logs", "trace_id": self._resource("trace_log")["trace_id"]}
         if endpoint.endpoint_name == "OrganizationTraceItemStatsEndpoint":
             return {
                 "statsType": ["attributeDistributions"],

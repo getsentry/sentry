@@ -1625,3 +1625,41 @@ class InvestigationParams:
         default="active",
         description="Return investigations with this status. Defaults to active.",
     )
+    TRIGGER = OpenApiParameter(
+        name="trigger",
+        location="query",
+        type=str,
+        enum=["me", "user", "automation"],
+        description=(
+            "Return investigations started this way: me (created by the requesting user), "
+            "user (created by any user), or automation (started by a Seer automation run)."
+        ),
+    )
+    STRATEGY = OpenApiParameter(
+        name="strategy",
+        location="query",
+        type=str,
+        description=(
+            "Return investigations started by an automation with this strategy, for example "
+            "breached_metric_investigation. Can't be combined with trigger=me or trigger=user."
+        ),
+    )
+    RUN_STATUS = OpenApiParameter(
+        name="runStatus",
+        location="query",
+        type=str,
+        many=True,
+        enum=["pending", "processing", "awaiting_input", "completed", "failed", "cancelled"],
+        description=(
+            "Return investigations whose agentic run has one of these statuses. Repeat to match "
+            "several. Investigations without a run never match."
+        ),
+    )
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        type=str,
+        enum=["dateUpdated", "dateCreated"],
+        default="dateUpdated",
+        description="Newest first by last update or by creation. Defaults to dateUpdated.",
+    )

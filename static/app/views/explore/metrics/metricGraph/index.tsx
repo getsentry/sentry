@@ -17,8 +17,13 @@ import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQue
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ChartVisualization,
+  useChartVisualizationPlottables,
+} from 'sentry/views/explore/components/chart/chartVisualization';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {
   doesMetricSupportHeatMapVisualization,
@@ -243,6 +248,9 @@ function Graph({
     };
   }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit, visualizes]);
 
+  const plottables = useChartVisualizationPlottables(chartInfo);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
+
   const chartTitle = useMemo(() => {
     if (visualizes.length > 1) {
       return metricName;
@@ -318,6 +326,7 @@ function Graph({
               key={chartRemountKey}
               chartInfo={chartInfo}
               droppedData={droppedData.band}
+              plottables={plottables}
               isDroppedDataLoading={droppedData.isLoading}
             />
           ) : undefined
@@ -334,7 +343,12 @@ function Graph({
                   justify="between"
                   gap={{zero: 'xs', xl: 'md'}}
                 >
-                  {showChart ? (
+                  {showChart && hasExtrapolationConfidenceFooter ? (
+                    !timeseriesResult.isPending &&
+                    !timeseriesResult.isFetching && (
+                      <ExtrapolationConfidenceFooter plottables={plottables} />
+                    )
+                  ) : showChart ? (
                     <ConfidenceFooter
                       chartInfo={chartInfo}
                       isLoading={
