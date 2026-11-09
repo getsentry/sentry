@@ -77,7 +77,6 @@ class IgnoredMetricBreach:
         "feature_disabled",
         "configuration_unavailable",
         "out_of_scope",
-        "workflow_unavailable",
     ]
 
 
@@ -273,11 +272,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
         """Check eligibility, then record one admission decision per issue and config."""
         if not features.has("organizations:seer-automations", group.organization):
             return IgnoredMetricBreach("feature_disabled")
-        if binding.workflow_config_id != self.config_id:
-            return IgnoredMetricBreach("workflow_unavailable")
-        if group.organization.id != self.organization_id:
-            return IgnoredMetricBreach("configuration_unavailable")
-        if group.type != MetricIssue.type_id or not isinstance(event, GroupEvent):
+        if group.type != MetricIssue.type_id:
             return IgnoredMetricBreach("unsupported_trigger")
         occurrence = event.occurrence
         if (

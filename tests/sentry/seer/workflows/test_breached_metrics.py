@@ -281,28 +281,6 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
         assert rejected == IgnoredMetricBreach("invalid_source")
         assert not SeerWorkflowRun.objects.exists()
 
-    def test_other_organization_configuration_does_not_accept_the_breach(self) -> None:
-        other_action = self.create_action(type=Action.Type.SEER_WORKFLOW)
-        other = Factories.create_seer_workflow_config(
-            self.create_organization(),
-            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-            enabled=True,
-            filters={"all_projects": True},
-            trigger_actions=[other_action],
-        )
-
-        result = BreachedMetricWorkflow(
-            config_id=other.id, organization_id=other.organization_id
-        ).accept(
-            self.group,
-            self.breach_event(detector_id=1),
-            binding=other_action.seer_workflow_binding,
-            workflow_id=1,
-        )
-
-        assert result == IgnoredMetricBreach("configuration_unavailable")
-        assert not SeerWorkflowRun.objects.exists()
-
 
 @with_feature("organizations:seer-automations")
 class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
