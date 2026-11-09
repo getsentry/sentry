@@ -17,9 +17,9 @@ from sentry.users.models.user import User
 
 
 @sensitive_variables()
-def claim_handoff(code: str) -> str | None:
+def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
     """Consume a handoff and render credentials after revalidating its authorization."""
-    handoff = consume_handoff(code)
+    handoff = consume_handoff(code, ip_address=ip_address)
     if handoff is None:
         return None
 
