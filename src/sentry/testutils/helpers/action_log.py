@@ -10,14 +10,6 @@ Usage::
             publish_action(ResolveAction(), source="web", group_id=1, project=self.project)
         log.assert_logged(ResolveAction, group_id=1)
         log.assert_not_logged(ViewAction)
-
-To publish an action and synchronously drain pending outbox jobs::
-
-    from sentry.testutils.helpers.action_log import publish_action_for_test
-
-    def test_action_log(self) -> None:
-        with self.feature("projects:issue-action-log-write-to-db"):
-            publish_action_for_test(group=self.group, action=ResolveAction())
 """
 
 from __future__ import annotations
@@ -49,16 +41,7 @@ def publish_action_for_test(
     actor: GroupActionActor = SYSTEM_ACTOR,
     source: str = ActionSource.API,
 ) -> None:
-    """Publish an action for a group and synchronously drain pending outbox jobs.
-
-    Defaults to API attribution and the system actor. Enable
-    ``projects:issue-action-log-write-to-db`` in the calling test to persist
-    actions. This uses the real publishing and outbox paths, including derived
-    data processing, and drains all pending outboxes, not just this action.
-
-    Use the production ``publish_action`` directly when testing deferred outbox
-    delivery or its publishing options.
-    """
+    """Publish an action for a group and synchronously drain pending outbox jobs."""
     with outbox_runner():
         publish_action(
             action,
