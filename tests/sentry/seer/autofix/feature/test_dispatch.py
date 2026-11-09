@@ -387,32 +387,6 @@ class TestTriggerAutofixFeature(TestCase):
 
         MockClient.return_value.continue_feature_run.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
-    @patch(
-        "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
-    )
-    def test_agentic_triage_skips_credit_check(self, mock_check_seer_credits: MagicMock) -> None:
-        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
-
-        with (
-            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
-            patch("sentry.seer.autofix.feature.dispatch.quotas"),
-        ):
-            MockClient.return_value.start_feature_run.return_value = fake_run
-
-            run = trigger_autofix_feature(
-                self.group,
-                AutofixFeatureArgs(
-                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
-                    step=AutofixStep.ROOT_CAUSE,
-                    step_args=RCAStepArgs(),
-                ),
-            )
-
-        assert run is fake_run
-        mock_check_seer_credits.assert_not_called()
-
     def test_allows_async_dispatch(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
 
@@ -763,18 +737,3 @@ class TestContinueSingleRun(TestCase):
             )
 
         mock_client_cls.return_value.continue_feature_run.assert_not_called()
-
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
-    @patch(
-        "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
-    )
-    def test_agentic_triage_run_skips_credit_check(
-        self, mock_check_seer_credits: MagicMock
-    ) -> None:
-        """The run's own referrer decides, not the reply's."""
-        self.seer_run.update(referrer=AutofixReferrer.AGENTIC_TRIAGE)
-
-        self._reply()
-
-        mock_check_seer_credits.assert_not_called()

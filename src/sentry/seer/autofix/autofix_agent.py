@@ -832,15 +832,7 @@ def trigger_push_changes(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    seer_run = SeerRun.objects.filter(
-        organization_id=group.organization.id, seer_run_state_id=run_id
-    ).first()
-    check_autofix_billing(
-        group.organization,
-        SeerOperation.AUTOFIX_OPEN_PR,
-        seer_run.referrer if seer_run else None,
-        is_new_run=False,
-    )
+    check_autofix_billing(group.organization, SeerOperation.AUTOFIX_OPEN_PR, is_new_run=False)
 
     client = get_autofix_agent_client(group, user=user)
 
@@ -858,6 +850,10 @@ def trigger_push_changes(
             run_id=run_id,
         )
     )
+
+    seer_run = SeerRun.objects.filter(
+        organization_id=group.organization.id, seer_run_state_id=run_id
+    ).first()
 
     # Draft when review-request/CI-green is enabled; mark ready once green fires.
     client.push_changes(

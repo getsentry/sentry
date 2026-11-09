@@ -153,7 +153,6 @@ def _org_allows_coding(group: Group) -> bool:
 def check_autofix_billing(
     organization: Organization,
     operation: SeerOperation,
-    referrer: str | None,
     *,
     is_new_run: bool,
     skip_quota_for_free_cohort: bool = False,
@@ -165,11 +164,9 @@ def check_autofix_billing(
     """
     # Check credits for token-billed orgs.
     if features.has("organizations:token-billed-seer-enabled", organization):
-        if (
-            features.has("organizations:seer-credit-checks", organization)
-            and referrer != AutofixReferrer.AGENTIC_TRIAGE  # Agentic triage runs stay free.
-            and not has_enough_seer_credits(organization, operation)
-        ):
+        if features.has(
+            "organizations:seer-credit-checks", organization
+        ) and not has_enough_seer_credits(organization, operation):
             raise SeerOutOfCreditsException()
         return False
 
@@ -200,7 +197,6 @@ def continue_single_run(
     check_autofix_billing(
         group.organization,
         SeerOperation.AUTOFIX_SINGLE_RUN_REPLY,
-        agent_run.run.referrer,
         is_new_run=False,
     )
 
@@ -258,7 +254,6 @@ def trigger_autofix_feature(
         uses_quota = check_autofix_billing(
             group.organization,
             args.step.seer_operation,
-            args.referrer,
             is_new_run=is_new_run,
             # Free cohort orgs bypass quota only when called from agentic triage
             # (allow_free_cohort=True). Not exposed via the API.
