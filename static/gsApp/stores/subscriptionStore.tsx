@@ -1,7 +1,9 @@
+import * as Sentry from '@sentry/react';
 import {createStore} from 'reflux';
 
 import {Client} from 'sentry/api';
 import type {StrictStoreDefinition} from 'sentry/stores/types';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -75,7 +77,10 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
       return Promise.resolve();
     }
 
-    return this.loadData(orgSlug, callback);
+    // Keep this callback queued through failed loads, so work such as page-view
+    // tracking runs late instead of never.
+    (this.callbacks[orgSlug] ??= []).push(callback);
+    return this.loadData(orgSlug);
   },
 
   getState() {
@@ -96,17 +101,7 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
   },
 
   loadData(orgSlug: string, callback?: null | GetCallback, {markStartedTrial} = {}) {
-    if (this.callbacks[orgSlug] === undefined) {
-      this.callbacks[orgSlug] = [];
-    }
-
-    if (typeof callback === 'function') {
-      this.callbacks[orgSlug].push(callback);
-    }
-
-    // Concurrent callers share the request so each one can see its outcome. A failed
-    // load keeps its callbacks queued for the next successful load, so work such as
-    // page-view tracking runs late instead of never.
+    // Concurrent callers share the request so each one can see its outcome.
     this.loadingData[orgSlug] ??= this.api
       .requestPromise(`/customers/${orgSlug}/`)
       .then(
@@ -118,6 +113,10 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
           this.set(orgSlug, data);
         },
         (error: unknown) => {
+          // Report the first failure only, not each retry until a load succeeds.
+          if (this.errors[orgSlug] === undefined && isUnseenByBackend(error)) {
+            Sentry.captureException(error);
+          }
           this.errors[orgSlug] = error;
         }
       )
@@ -125,8 +124,30 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
         delete this.loadingData[orgSlug];
       });
 
-    return this.loadingData[orgSlug];
+    const load = this.loadingData[orgSlug];
+    if (typeof callback !== 'function') {
+      return load;
+    }
+
+    // A callback passed here follows an action, such as an upgrade. Run it only if
+    // this load succeeds, so a later load does not repeat the action's success UI.
+    return load.then(() => {
+      const subscription = this.state[orgSlug];
+      if (this.errors[orgSlug] === undefined && subscription) {
+        callback(subscription);
+      }
+    });
   },
 };
+
+// The backend reports its own errors, so report only failures it cannot see: the
+// request never reached it (no status), or a gateway in front of it failed.
+function isUnseenByBackend(error: unknown) {
+  if (!(error instanceof RequestError)) {
+    return true;
+  }
+  const {status} = error;
+  return status === undefined || status === 0 || (status >= 502 && status <= 504);
+}
 
 export const SubscriptionStore = createStore(subscriptionStoreConfig);
