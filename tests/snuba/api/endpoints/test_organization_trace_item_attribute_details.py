@@ -169,6 +169,43 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         assert response.data["attributeSource"] == {"source_type": "sentry"}
         assert response.data["datasets"] == ["logs"]
 
+    def test_returns_user_attribute_when_requested_by_source_and_a_sentry_attribute_shares_its_name(
+        self,
+    ) -> None:
+        self._store_span({"severity": "custom"})
+        self._store_log()
+
+        response = self.do_request(
+            query={
+                "attributeName": "severity",
+                "attributeType": "string",
+                "attributeSource": "user",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "severity"
+        assert response.data["attributeSource"] == {"source_type": "user"}
+        assert response.data["datasets"] == ["spans"]
+
+    def test_returns_404_when_the_attribute_was_not_stored_with_the_requested_source(
+        self,
+    ) -> None:
+        self._store_span({"cart": "a"})
+
+        response = self.do_request(
+            query={"attributeName": "cart", "attributeType": "string", "attributeSource": "sentry"}
+        )
+
+        assert response.status_code == 404, response.content
+
+    def test_returns_400_when_attribute_source_is_invalid(self) -> None:
+        response = self.do_request(
+            query={"attributeName": "cart", "attributeType": "string", "attributeSource": "other"}
+        )
+
+        assert response.status_code == 400, response.content
+
     def test_returns_log_message_parameter_when_requested_by_its_public_alias(self) -> None:
         self._store_log({"sentry.message.parameter.0": {"string_value": "laptop"}})
 
