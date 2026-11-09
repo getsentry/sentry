@@ -10,28 +10,24 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {AddTransformationButton} from './visualizeTransformations';
 
 describe('AddTransformationButton', () => {
-  it.snapshot.each([false, true])(
-    'disabled-%s',
-    disabled => (
-      <OrganizationContext value={OrganizationFixture()}>
-        <Flex gap="md" align="baseline" padding="md">
-          <Button icon={<IconAdd />} variant="link">
-            Add Metric
-          </Button>
-          <Button disabled icon={<IconAdd />} variant="link">
-            Add Equation
-          </Button>
-          <AddTransformationButton
-            traceItemDataset={TraceItemDataset.TRACEMETRICS}
-            analyticsSource="dashboards"
-            transformations={disabled ? ['fill(zero)', 'smooth(sma,3)'] : []}
-            onChange={() => {}}
-          />
-        </Flex>
-      </OrganizationContext>
-    ),
-    disabled => ({tags: {disabled: String(disabled)}})
-  );
+  it.snapshot.each([false, true])('disabled-%s', disabled => (
+    <OrganizationContext value={OrganizationFixture()}>
+      <Flex gap="md" align="baseline" padding="md">
+        <Button icon={<IconAdd />} variant="link">
+          Add Metric
+        </Button>
+        <Button disabled icon={<IconAdd />} variant="link">
+          Add Equation
+        </Button>
+        <AddTransformationButton
+          traceItemDataset={TraceItemDataset.TRACEMETRICS}
+          analyticsSource="dashboards"
+          transformations={disabled ? ['fill(zero)', 'smooth(sma,3)'] : []}
+          onChange={() => {}}
+        />
+      </Flex>
+    </OrganizationContext>
+  ));
 
   it.snapshot('icon-only', () => (
     <OrganizationContext value={OrganizationFixture()}>
