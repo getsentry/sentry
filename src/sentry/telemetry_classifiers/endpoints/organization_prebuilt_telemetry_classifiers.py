@@ -11,7 +11,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import ChainPaginator
-from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -21,12 +20,12 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
-from sentry.telemetry_classifiers.models import TelemetryClassifierDataset
 from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.serializers import (
     PrebuiltClassifierResponse,
     PrebuiltClassifierSerializer,
 )
+from sentry.telemetry_classifiers.types import Dataset
 
 
 @cell_silo_endpoint
@@ -46,7 +45,7 @@ class OrganizationPrebuiltTelemetryClassifiersEndpoint(OrganizationEndpoint):
                 location="query",
                 required=False,
                 type=str,
-                enum=TelemetryClassifierDataset.values,
+                enum=Dataset.values,
                 description="Only return prebuilt classifiers for this dataset.",
             ),
             CursorQueryParam,
@@ -71,19 +70,21 @@ class OrganizationPrebuiltTelemetryClassifiersEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         dataset = request.GET.get("dataset")
-        if dataset is not None and dataset not in TelemetryClassifierDataset.values:
+        if dataset is not None and dataset not in Dataset.values:
             raise ValidationError({"dataset": f'"{dataset}" is not a valid dataset.'})
 
         classifiers = [
             classifier
             for classifier in PREBUILT_CLASSIFIERS.values()
-            if dataset is None or classifier.dataset == dataset
+            if dataset is None or classifier["dataset"] == dataset
         ]
+        serializer = PrebuiltClassifierSerializer()
         return self.paginate(
             request=request,
             sources=[classifiers],
             paginator_cls=ChainPaginator,
-            on_results=lambda results: serialize(
-                results, request.user, serializer=PrebuiltClassifierSerializer()
-            ),
+            on_results=lambda results: [
+                serializer.serialize(classifier, attrs={}, user=request.user)
+                for classifier in results
+            ],
         )

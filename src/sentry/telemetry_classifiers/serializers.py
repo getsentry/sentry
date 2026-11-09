@@ -11,9 +11,14 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.auth.principal import acting_user_id, has_user
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.telemetry_classifiers.models import TelemetryClassifier
-from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS, PrebuiltClassifier
-from sentry.telemetry_classifiers.types import Dataset, TelemetryClassifierStatus
+from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
+from sentry.telemetry_classifiers.types import (
+    Dataset,
+    PrebuiltClassifier,
+    TelemetryClassifierStatus,
+)
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -98,15 +103,15 @@ class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
         self,
         obj: PrebuiltClassifier,
         attrs: Mapping[str, Any],
-        user: User | RpcUser | AnonymousUser,
+        user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal,
         **kwargs: Any,
     ) -> PrebuiltClassifierResponse:
         return {
-            "key": obj.key,
-            "dataset": obj.dataset,
-            "name": obj.name,
-            "description": obj.description,
-            "resultAttribute": obj.result_attribute,
+            "key": obj["key"],
+            "dataset": obj["dataset"],
+            "name": obj["name"],
+            "description": obj["description"],
+            "resultAttribute": obj["result_attribute"],
         }
 
 
@@ -142,7 +147,7 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
         if {"natural_language_prompt", "output_type"} & self.initial_data.keys():
             raise serializers.ValidationError("Custom classifiers aren't supported yet.")
 
-        if PREBUILT_CLASSIFIERS[attrs["prebuilt_classifier_key"]].dataset != attrs["dataset"]:
+        if PREBUILT_CLASSIFIERS[attrs["prebuilt_classifier_key"]]["dataset"] != attrs["dataset"]:
             raise serializers.ValidationError(
                 {
                     "prebuilt_classifier_key": "This prebuilt classifier doesn't support this dataset."

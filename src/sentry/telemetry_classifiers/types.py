@@ -25,8 +25,8 @@ class TelemetryClassifierStatus(models.TextChoices):
 
 
 class PrebuiltClassifier(TypedDict):
+    key: str  # Prebuilt classifier key used to identify it in Seer.
     dataset: Dataset
     name: str
-    result_attribute: str  # Attribute where classifier output materializes.
-    key: str  # Prebuilt classifier key used to identify it in Seer.
     description: str
+    result_attribute: str  # Attribute where classifier output materializes.
