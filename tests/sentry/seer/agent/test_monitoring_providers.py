@@ -766,7 +766,7 @@ class TestGetMonitoringProviderConnections(TestCase):
                 "refresh_token": "renewed-refresh-token",
                 "expires_in": 86400,
                 "token_type": "Bearer",
-                "scope": "read",
+                "scope": "read write",
             },
         )
 
