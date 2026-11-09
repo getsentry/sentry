@@ -41,6 +41,8 @@ LINEAR_ERROR_MESSAGE = (
 
 _WORKSPACE_QUERY = "query SentrySeerConnectionCheck { organization { id name } viewer { id } }"
 
+LINEAR_SCOPES = ["read", "write"]
+
 # How long a just-written token satisfies a forced refresh. Concurrent callers whose shared
 # token was rejected serialize on the lock below; the first one's refresh (or a concurrent
 # reauthorization) already replaced the rejected token, so the rest reuse it instead of
@@ -124,7 +126,7 @@ def _request_token(params: dict[str, str]) -> LinearToken:
     expires_in = body.get("expires_in")
     scope = body.get("scope")
     # Older Linear apps return scopes as an array rather than a space-separated string.
-    scopes = scope.split() if isinstance(scope, str) else scope
+    scopes = scope.replace(",", " ").split() if isinstance(scope, str) else scope
     if (
         not isinstance(access_token, str)
         or not access_token
@@ -133,14 +135,15 @@ def _request_token(params: dict[str, str]) -> LinearToken:
         or type(expires_in) is not int
         or not 0 < expires_in <= 30 * 24 * 60 * 60
         or str(body.get("token_type", "")).lower() != "bearer"
-        or scopes != ["read"]
+        or not isinstance(scopes, list)
+        or sorted(scopes) != LINEAR_SCOPES
     ):
         raise IntegrationConfigurationError(LINEAR_ERROR_MESSAGE)
     return LinearToken(
         access_token=SecretStr(access_token),
         refresh_token=SecretStr(refresh_token),
         expires_at=requested_at + timedelta(seconds=expires_in),
-        scopes=["read"],
+        scopes=list(LINEAR_SCOPES),
     )
 
 
