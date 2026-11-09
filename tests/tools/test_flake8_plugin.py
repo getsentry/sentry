@@ -2453,7 +2453,7 @@ def _summary(violations: list[ApiInputViolation]) -> list[tuple[ApiRule, int, st
     return summary
 
 
-def test_helper_method_read_is_reported_under_the_public_method() -> None:
+def test_helper_method_read_is_reported_at_the_helper() -> None:
     src = """\
 class E(Endpoint):
     publish_status = {"GET": ApiPublishStatus.PUBLIC}
@@ -2464,7 +2464,7 @@ class E(Endpoint):
     def _status(self, request):
         return request.GET.get("status")
 """
-    assert _summary(_api_violations(src)) == [("S026", 8, "E.get", "query:status")]
+    assert _summary(_api_violations(src)) == [("S026", 8, "E._status", "query:status")]
 
 
 def test_helper_defined_below_and_module_function_are_followed() -> None:
@@ -2484,8 +2484,8 @@ def build(request):
     return request.GET.get("two")
 """
     assert _summary(_api_violations(src)) == [
-        ("S026", 9, "E.get", "query:one"),
-        ("S026", 13, "E.get", "query:two"),
+        ("S026", 9, "E._one", "query:one"),
+        ("S026", 13, "build", "query:two"),
     ]
 
 
@@ -2503,7 +2503,7 @@ class E(Endpoint):
     def _inner(self, request):
         return request.GET.get("deep")
 """
-    assert _summary(_api_violations(src)) == [("S026", 11, "E.get", "query:deep")]
+    assert _summary(_api_violations(src)) == [("S026", 11, "E._inner", "query:deep")]
 
 
 def test_helper_serializer_is_checked_against_the_public_method_schema() -> None:
@@ -2551,7 +2551,7 @@ class E(Base):
     def _limit(self, request):
         return request.GET.get("limit")
 """
-    assert _summary(_api_violations(src)) == [("S026", 13, "E.get", "query:limit")]
+    assert _summary(_api_violations(src)) == [("S026", 13, "E._limit", "query:limit")]
 
 
 def test_inherited_helper_resolves_from_the_public_class() -> None:
@@ -2573,7 +2573,7 @@ class E(Base):
     def _limit(self, request):
         return request.GET.get("limit")
 """
-    assert _summary(_api_violations(src)) == [("S026", 16, "E.get", "query:limit")]
+    assert _summary(_api_violations(src)) == [("S026", 16, "E._limit", "query:limit")]
 
 
 def test_super_call_skips_the_defining_class() -> None:
@@ -2594,8 +2594,8 @@ class E(Base):
         return request.GET.get("child")
 """
     assert _summary(_api_violations(src)) == [
-        ("S026", 14, "E.get", "query:child"),
-        ("S026", 3, "E.get", "query:base"),
+        ("S026", 14, "E._filters", "query:child"),
+        ("S026", 3, "Base._filters", "query:base"),
     ]
 
 
@@ -2640,7 +2640,7 @@ class E(Endpoint):
     assert _summary(_api_violations(src)) == [("S028", 5, "E.get", "query:_use")]
 
 
-def test_helper_shared_by_two_public_methods_is_reported_for_each() -> None:
+def test_helper_shared_by_two_public_methods_is_reported_once() -> None:
     src = """\
 class E(Endpoint):
     publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PUBLIC}
@@ -2654,10 +2654,76 @@ class E(Endpoint):
     def _shared(self, request):
         return request.GET.get("k")
 """
-    assert _summary(_api_violations(src)) == [
-        ("S026", 11, "E.get", "query:k"),
-        ("S026", 11, "E.post", "query:k"),
+    violations = _api_violations(src)
+    assert _summary(violations) == [("S026", 11, "E._shared", "query:k")]
+    # the first public method in the file that reaches it
+    assert violations[0].caller == "E.get"
+
+
+def test_helper_read_records_its_caller_and_a_direct_read_does_not() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        request.GET.get("direct")
+        return build(request)
+
+
+def build(request):
+    return request.GET.get("inside")
+"""
+    violations = _api_violations(src)
+    assert _summary(violations) == [
+        ("S026", 5, "E.get", "query:direct"),
+        ("S026", 10, "build", "query:inside"),
     ]
+    assert violations[0].caller is None
+    # a module-level helper has no class, so its owner comes from the method that reaches it
+    assert violations[1].caller == "E.get"
+
+
+def test_helper_reached_from_three_methods_is_one_finding() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC,
+    }
+
+    def get(self, request) -> Response[X]:
+        return self.filter_things(request)
+
+    def put(self, request) -> Response[X]:
+        return self.filter_things(request)
+
+    def delete(self, request) -> Response[X]:
+        return self.filter_things(request)
+
+    def filter_things(self, request):
+        return request.GET.getlist("id")
+"""
+    assert _summary(_api_violations(src)) == [("S026", 18, "E.filter_things", "query:id")]
+
+
+def test_helper_serializer_stays_on_each_calling_method() -> None:
+    # S025 depends on the calling method's @extend_schema, so it isn't merged across callers
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC, "PUT": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._validate(request)
+
+    @extend_schema(parameters=[QuerySerializer])
+    def put(self, request) -> Response[X]:
+        return self._validate(request)
+
+    def _validate(self, request):
+        return QuerySerializer(data=request.GET)
+"""
+    assert _summary(_api_violations(src)) == [("S025", 12, "E.get", "query:QuerySerializer")]
 
 
 def test_helper_with_no_public_caller_is_not_reported() -> None:
@@ -2701,7 +2767,7 @@ class E(Endpoint):
     def _read(self, params):
         return params.get("y")
 """
-    assert _summary(_api_violations(src)) == [("S026", 8, "E.get", "query:y")]
+    assert _summary(_api_violations(src)) == [("S026", 8, "E._read", "query:y")]
 
 
 def test_request_bound_to_a_renamed_parameter_is_read() -> None:
@@ -2715,7 +2781,7 @@ class E(Endpoint):
     def _read(self, req):
         return req.data.get("z")
 """
-    assert _summary(_api_violations(src)) == [("S026", 8, "E.post", "body:z")]
+    assert _summary(_api_violations(src)) == [("S026", 8, "E._read", "body:z")]
 
 
 def test_same_helper_reads_whatever_each_caller_passes() -> None:
@@ -2733,8 +2799,8 @@ class E(Endpoint):
         return params.get("k")
 """
     assert _summary(_api_violations(src)) == [
-        ("S026", 11, "E.get", "query:k"),
-        ("S026", 11, "E.post", "body:k"),
+        ("S026", 11, "E._read", "query:k"),
+        ("S026", 11, "E._read", "body:k"),
     ]
 
 
@@ -2752,7 +2818,7 @@ class E(Endpoint):
     def _inner(self, r):
         return r.GET.get("z")
 """
-    assert _summary(_api_violations(src)) == [("S026", 11, "E.get", "query:z")]
+    assert _summary(_api_violations(src)) == [("S026", 11, "E._inner", "query:z")]
 
 
 def test_payload_passed_by_keyword_is_bound() -> None:
@@ -2766,7 +2832,7 @@ class E(Endpoint):
     def _read(self, params):
         return params.get("y")
 """
-    assert _summary(_api_violations(src)) == [("S026", 8, "E.get", "query:y")]
+    assert _summary(_api_violations(src)) == [("S026", 8, "E._read", "query:y")]
 
 
 def test_staticmethod_helper_has_no_self_to_skip() -> None:
@@ -2781,7 +2847,7 @@ class E(Endpoint):
     def _read(params):
         return params.get("y")
 """
-    assert _summary(_api_violations(src)) == [("S026", 9, "E.get", "query:y")]
+    assert _summary(_api_violations(src)) == [("S026", 9, "E._read", "query:y")]
 
 
 def test_alias_of_a_parameter_is_read() -> None:
@@ -2802,8 +2868,8 @@ class E(Endpoint):
         return r.GET.get("b")
 """
     assert _summary(_api_violations(src)) == [
-        ("S026", 10, "E.get", "query:a"),
-        ("S026", 14, "E.get", "query:b"),
+        ("S026", 10, "E._params", "query:a"),
+        ("S026", 14, "E._request", "query:b"),
     ]
 
 
@@ -2832,7 +2898,7 @@ class E(Endpoint):
     def _use(self, params):
         return parse_filters(params)
 """
-    assert _summary(_api_violations(src)) == [("S028", 8, "E.post", "body:parse_filters")]
+    assert _summary(_api_violations(src)) == [("S028", 8, "E._use", "body:parse_filters")]
 
 
 def test_public_method_passing_a_non_request_parameter_keeps_its_s028() -> None:
@@ -2898,8 +2964,8 @@ class E(Endpoint):
         return serialize(params, request.GET)
 """
     assert _summary(_api_violations(src)) == [
-        ("S028", 8, "E.get", "body:serialize"),
-        ("S028", 8, "E.get", "query:serialize"),
+        ("S028", 8, "E._a", "body:serialize"),
+        ("S028", 8, "E._a", "query:serialize"),
     ]
 
 
@@ -2914,7 +2980,7 @@ class E(Endpoint):
     def _a(self, org, params):
         return serialize(org, params)
 """
-    assert _summary(_api_violations(src)) == [("S028", 8, "E.get", "query:serialize")]
+    assert _summary(_api_violations(src)) == [("S028", 8, "E._a", "query:serialize")]
 
 
 def test_helper_loop_over_a_declared_serializers_fields_is_silent() -> None:
@@ -2946,7 +3012,7 @@ class E(Endpoint):
         for f in MySerializer().fields:
             request.GET.get(f)
 """
-    assert _summary(_api_violations(src)) == [("S027", 9, "E.get", "query:f")]
+    assert _summary(_api_violations(src)) == [("S027", 9, "E._a", "query:f")]
 
 
 def test_isinstance_check_on_a_payload_is_not_a_hand_off() -> None:
@@ -3017,7 +3083,7 @@ class E(Endpoint):
 
         return inner({})
 """
-    assert _summary(_api_violations(src)) == [("S026", 9, "E.get", "query:x")]
+    assert _summary(_api_violations(src)) == [("S026", 9, "E._a", "query:x")]
 
 
 def _run_s023(src: str) -> list[str]:

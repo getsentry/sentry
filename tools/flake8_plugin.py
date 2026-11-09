@@ -1000,9 +1000,14 @@ class ApiInputViolation:
     end_line: int
     end_column: int
     severity: Literal["error", "warning"]
-    scope: str  # Class.method
+    # Class.method or function where the read or hand-off is. S025 is the public method instead,
+    # since it's checked against that method's @extend_schema
+    scope: str
     key: str  # source and name, for example "query:id"
     tool: str = "sentry-flake8"
+    # for a read or hand-off inside a helper, the first public method (in file order) whose request
+    # reaches it, so a module-level helper, which has no class, can still be given an owner
+    caller: str | None = None
 
 
 class _InputCtx:
@@ -1053,6 +1058,8 @@ class _InputCtx:
         self.param_validators: list[tuple[_StartEnd, str, str]] = []
         # the calls this function makes to possible helpers
         self.calls: list[_HelperCall] = []
+        # for a merged ctx: the position of each read or hand-off -> the scope of the function it's in
+        self.found_in: dict[_StartEnd, str] = {}
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -1162,6 +1169,8 @@ class SentryVisitor(ast.NodeVisitor):
         self._functions: dict[str, _InputCtx] = {}
         # every ctx in file order, duplicates included, so a scope defined twice is reported twice
         self._function_ctxs: list[_InputCtx] = []
+        # (rule, scope, key, position) already reported, so a shared helper's line is reported once
+        self._reported_inputs: set[tuple[ApiRule, str, str, _StartEnd]] = set()
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module == _S030_LEGACY_MODULE and not node.level:
@@ -1789,9 +1798,24 @@ class SentryVisitor(ast.NodeVisitor):
         key: str,
         source: str,
         rule: ApiRule,
+        scope: str | None = None,
     ) -> None:
-        """Always recorded as a structured violation; fatal only for an enforced group."""
+        """Always recorded as a structured violation; fatal only for an enforced group.
+
+        `scope` is where the finding is, when that isn't `ctx` itself (a read inside a helper). A helper
+        reached from several public methods is reported once, the first time (in file order).
+        """
         enforced = group in ENFORCED
+        where = scope or ctx.scope
+        prefixed_key = f"{_SOURCE_PREFIX[source]}:{key}"
+        # a shared helper's line is one finding, however many public methods reach it
+        identity = (rule, where, prefixed_key, start_end)
+        if identity in self._reported_inputs:
+            return
+        self._reported_inputs.add(identity)
+        caller = None
+        if where != ctx.scope:
+            caller = ctx.scope
         self.api_violations.append(
             ApiInputViolation(
                 rule=rule,
@@ -1801,8 +1825,9 @@ class SentryVisitor(ast.NodeVisitor):
                 end_line=start_end.end_line,
                 end_column=start_end.end_column,
                 severity="error" if enforced else "warning",
-                scope=ctx.scope,
-                key=f"{_SOURCE_PREFIX[source]}:{key}",
+                scope=where,
+                key=prefixed_key,
+                caller=caller,
             )
         )
         if enforced or os.environ.get(INPUT_LINT_ALL_ENV):
@@ -1827,12 +1852,32 @@ class SentryVisitor(ast.NodeVisitor):
                     self._report_input(
                         ctx, start_end, msg, "declared", name, "request body", ApiRule.S025
                     )
+            # S026-S028 are reported where the read or hand-off is, so a helper's line is one finding.
+            # S025 above stays on the public method, since it depends on that method's @extend_schema
             for start_end, key, source in ctx.literal_reads:
                 msg = S026_msg.format(repr(key), source)
-                self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S026)
+                self._report_input(
+                    ctx,
+                    start_end,
+                    msg,
+                    "shaped",
+                    key,
+                    source,
+                    ApiRule.S026,
+                    ctx.found_in.get(start_end),
+                )
             for start_end, key, source in ctx.computed_reads:
                 msg = S027_msg.format(source, key)
-                self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S027)
+                self._report_input(
+                    ctx,
+                    start_end,
+                    msg,
+                    "shaped",
+                    key,
+                    source,
+                    ApiRule.S027,
+                    ctx.found_in.get(start_end),
+                )
             for start_end, callee, source in ctx.hand_offs:
                 # The date helpers read a fixed set of keys, so they are only a hand-off
                 # when the endpoint does not document all of them.
@@ -1841,7 +1886,16 @@ class SentryVisitor(ast.NodeVisitor):
                 ):
                     continue
                 msg = S028_msg.format(source, callee)
-                self._report_input(ctx, start_end, msg, "shaped", callee, source, ApiRule.S028)
+                self._report_input(
+                    ctx,
+                    start_end,
+                    msg,
+                    "shaped",
+                    callee,
+                    source,
+                    ApiRule.S028,
+                    ctx.found_in.get(start_end),
+                )
 
     def _request_payload_input(self, ctx: _InputCtx, argument: ast.expr) -> str | None:
         """Returns what request input the argument carries: "request", "query string", "request body", or None"""
@@ -2116,10 +2170,12 @@ class SentryVisitor(ast.NodeVisitor):
             real = _resolve_source(source, bindings)
             if real is not None:
                 _append_once(new_ctx.literal_reads, (start_end, key, real))
+                new_ctx.found_in[start_end] = ctx.scope
         for start_end, key, source in ctx.computed_reads:
             real = _resolve_source(source, bindings)
             if real is not None:
                 _append_once(new_ctx.computed_reads, (start_end, key, real))
+                new_ctx.found_in[start_end] = ctx.scope
         # a loop over X().fields reads a fixed set of keys when the public method declares X
         for start_end, key, source, serializer in ctx.field_reads:
             if serializer in new_ctx.declared_params or serializer in new_ctx.declared_body:
@@ -2127,12 +2183,14 @@ class SentryVisitor(ast.NodeVisitor):
             real = _resolve_source(source, bindings)
             if real is not None:
                 _append_once(new_ctx.computed_reads, (start_end, key, real))
+                new_ctx.found_in[start_end] = ctx.scope
         for start_end, callee, source in ctx.hand_offs:
             if start_end in followed:
                 continue
             real = _resolve_source(source, bindings)
             if real is not None:
                 _append_once(new_ctx.hand_offs, (start_end, callee, real))
+                new_ctx.found_in[start_end] = ctx.scope
 
         for helper_ctx, helper_bindings in to_visit:
             seen_key = (helper_ctx.scope, frozenset(helper_bindings.items()))
