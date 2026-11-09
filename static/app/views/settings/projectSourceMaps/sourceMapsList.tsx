@@ -34,9 +34,6 @@ import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceM
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {isReactNativePlatform} from 'sentry/utils/platform';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
