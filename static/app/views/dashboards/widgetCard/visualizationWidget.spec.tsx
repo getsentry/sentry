@@ -469,3 +469,47 @@ describe('VisualizationWidget dropped-data heatmap', () => {
     expect(lastDroppedDataProp()).toBeUndefined();
   });
 });
+
+describe('VisualizationWidget releases', () => {
+  let releasesRequest: jest.Mock;
+
+  beforeEach(() => {
+    jest.mocked(TimeSeriesWidgetVisualization).mockClear();
+    releasesRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+  });
+
+  function lastShowReleaseAsProp() {
+    const calls = jest.mocked(TimeSeriesWidgetVisualization).mock.calls;
+    return calls.at(-1)![0].showReleaseAs;
+  }
+
+  it('shows release bubbles', async () => {
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        widgetInterval="5m"
+      />
+    );
+
+    await waitFor(() => expect(releasesRequest).toHaveBeenCalled());
+    expect(lastShowReleaseAsProp()).toBe('bubble');
+  });
+
+  it('hides releases for mobile builds widgets', async () => {
+    render(
+      <VisualizationWidget
+        widget={{...spansBreakdownWidget, widgetType: WidgetType.PREPROD_APP_SIZE}}
+        selection={selection}
+        widgetInterval="5m"
+      />
+    );
+
+    await waitFor(() => expect(TimeSeriesWidgetVisualization).toHaveBeenCalled());
+    expect(releasesRequest).not.toHaveBeenCalled();
+    expect(lastShowReleaseAsProp()).toBe('none');
+  });
+});

@@ -122,7 +122,11 @@ function VisualizationWidgetComponent({
       }
     : undefined;
 
-  const {releases: releasesWithDate} = useReleaseStats(selection);
+  // Mobile build sizes are not associated with Sentry releases
+  const showReleases = widget.widgetType !== WidgetType.PREPROD_APP_SIZE;
+  const {releases: releasesWithDate} = useReleaseStats(selection, {
+    enabled: showReleases,
+  });
 
   const releases =
     releasesWithDate?.map(({date, version}) => ({
@@ -164,7 +168,7 @@ function VisualizationWidgetComponent({
             errorMessage={errorMessage}
             loading={loading}
             releases={releases}
-            showReleaseAs="bubble"
+            showReleaseAs={showReleases ? 'bubble' : 'none'}
             dashboardFilters={dashboardFilters}
             showConfidenceWarning={showConfidenceWarning}
             confidence={confidence}
