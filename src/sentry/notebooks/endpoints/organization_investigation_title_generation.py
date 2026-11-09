@@ -10,10 +10,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.agent import synchronize_title, title_generation_preview
-from sentry.investigations.endpoints.serializers.responses import InvestigationTitlePreviewResponse
 from sentry.models.organization import Organization
+from sentry.notebooks.agent import synchronize_title, title_generation_preview
 from sentry.notebooks.endpoints.base import OrganizationInvestigationEndpoint
+from sentry.notebooks.endpoints.serializers.responses import InvestigationTitlePreviewResponse
 from sentry.notebooks.models import Notebook
 from sentry.seer.agent.client import SeerAgentClient
 

@@ -64,7 +64,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
         )
 
     @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_execution_details."
+        "sentry.notebooks.endpoints.organization_investigation_block_execution_details."
         "make_agent_update_request"
     )
     def test_resume_forwards_the_user_response_and_marks_it_running(
@@ -102,7 +102,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
         assert "inputId" in response.data
 
     @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_execution_details."
+        "sentry.notebooks.endpoints.organization_investigation_block_execution_details."
         "interrupt_run"
     )
     def test_stop_reaches_a_terminal_status_even_when_the_interrupt_fails(
@@ -141,11 +141,11 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
         record_cancelled.assert_called_once_with(execution, reason="user_requested")
 
     @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_execution_details."
+        "sentry.notebooks.endpoints.organization_investigation_block_execution_details."
         "interrupt_run"
     )
     @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_execution_details."
+        "sentry.notebooks.endpoints.organization_investigation_block_execution_details."
         "make_agent_update_request"
     )
     def test_integration_token_cannot_resume_or_stop_execution(
