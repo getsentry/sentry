@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
@@ -241,22 +241,9 @@ def compare_preprod_artifact_size_analysis(
                             },
                         )
 
-            _run_size_analysis_comparisons(org_id, comparisons)
-
-            for artifact_id in preprod_artifact_status_check_updates:
-                # Update all artifact's status check with the new comparison
-                create_preprod_status_check_task.apply_async(
-                    kwargs={
-                        "preprod_artifact_id": artifact_id,
-                        "caller": "compare_completion",
-                    }
-                )
-                create_preprod_size_pr_comment_task.apply_async(
-                    kwargs={
-                        "preprod_artifact_id": artifact_id,
-                        "caller": "compare_completion",
-                    }
-                )
+            _run_size_analysis_comparisons(
+                org_id, comparisons, preprod_artifact_status_check_updates
+            )
 
             try:
                 artifact_type_name = PreprodArtifact.ArtifactType(
@@ -411,7 +398,9 @@ def manual_size_analysis_comparison(
 
 
 def _run_size_analysis_comparisons(
-    org_id: int, comparisons: Sequence[dict[str, PreprodArtifactSizeMetrics]]
+    org_id: int,
+    comparisons: Sequence[dict[str, PreprodArtifactSizeMetrics]],
+    follow_up_artifact_ids: Iterable[int],
 ) -> None:
     """A run's comparisons, recorded together once all are computed so a failure leaves no rows."""
     result_files: list[File] = []
@@ -448,9 +437,28 @@ def _run_size_analysis_comparisons(
             )
             for prepared in ordered_comparisons:
                 _record_size_analysis_comparison(org_id, prepared)
+            # Dispatched before the commit, as before, so a deadline at COMMIT cannot lose them
+            _dispatch_follow_up_tasks(follow_up_artifact_ids)
     finally:
         # Runs on the processing deadline too; a file stays only if a committed row points at it
         _delete_unreferenced_result_files(result_files)
+
+
+def _dispatch_follow_up_tasks(artifact_ids: Iterable[int]) -> None:
+    for artifact_id in artifact_ids:
+        # Update all artifact's status check with the new comparison
+        create_preprod_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+                "caller": "compare_completion",
+            }
+        )
+        create_preprod_size_pr_comment_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+                "caller": "compare_completion",
+            }
+        )
 
 
 def _prepare_size_analysis_comparison(

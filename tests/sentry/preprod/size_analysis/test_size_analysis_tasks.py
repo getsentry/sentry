@@ -256,7 +256,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
             "sentry.preprod.size_analysis.tasks._record_size_analysis_comparison",
             wraps=_record_size_analysis_comparison,
         ) as record:
-            _run_size_analysis_comparisons(head_artifact.project.organization_id, comparisons)
+            _run_size_analysis_comparisons(head_artifact.project.organization_id, comparisons, [])
 
         recorded = [call.args[1] for call in record.call_args_list]
         assert [prepared.head_metric.id for prepared in recorded] == [
@@ -348,13 +348,28 @@ class ComparePreprodArtifactSizeAnalysisTransactionTest(_CompareTaskHelpers, Tra
             record()
             return compare_size_analysis(*args, **kwargs)
 
+        dispatched_in_atomic_block: list[bool] = []
+
+        def spy_dispatch(*args: Any, **kwargs: Any) -> None:
+            dispatched_in_atomic_block.append(transaction.get_connection(using).in_atomic_block)
+
         with (
             patch.object(File, "getfile", spy_getfile),
             patch.object(File, "putfile", spy_putfile),
             patch("sentry.preprod.size_analysis.tasks.compare_size_analysis", spy_compare),
+            patch(
+                "sentry.preprod.size_analysis.tasks.create_preprod_status_check_task.apply_async",
+                spy_dispatch,
+            ),
+            patch(
+                "sentry.preprod.size_analysis.tasks.create_preprod_size_pr_comment_task.apply_async",
+                spy_dispatch,
+            ),
             CaptureQueriesContext(connection) as ctx,
         ):
             self._run_task(head_artifact)
+
+        assert dispatched_in_atomic_block == [True, True]
 
         downloads_diff_and_upload = 4
         assert len(in_atomic_block) >= downloads_diff_and_upload * len(pairs)
