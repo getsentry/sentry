@@ -9,6 +9,8 @@ from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.metric_alerts import get_incident_status_text, incident_attachment_info
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -25,7 +27,7 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
                 None,
                 "0.123456",
             )
-            == "12.35% failure_rate() in the last 10 minutes"
+            == "12.35% failure_rate() of errors in the last 10 minutes"
         )
 
     def test_formats_failure_rate_as_percentage_for_comparison_alert(self) -> None:
@@ -42,20 +44,51 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
                 alert_rule.comparison_delta,
                 "12.3456",
             )
-            == "failure_rate() 12.35% higher in the last 10 minutes compared to the same time one hour ago"
+            == "failure_rate() of errors 12.35% higher in the last 10 minutes compared to the same time one hour ago"
         )
 
-    def test_shows_aggregate_as_configured(self) -> None:
-        for aggregate, expected in (
-            ("count()", "14 count()"),
-            ("count(message)", "14 count(message)"),
-            ("count_unique(tags[sentry:user])", "14 count_unique(user)"),
+    def test_names_aggregate_and_telemetry(self) -> None:
+        for dataset, event_types, aggregate, expected in (
             (
+                Dataset.Events,
+                [SnubaQueryEventType.EventType.ERROR],
+                "count()",
+                "14 count() of errors",
+            ),
+            (
+                Dataset.Events,
+                [SnubaQueryEventType.EventType.ERROR],
+                "count_unique(tags[sentry:user])",
+                "14 count_unique(user) of errors",
+            ),
+            (
+                Dataset.Transactions,
+                [SnubaQueryEventType.EventType.TRANSACTION],
+                "count()",
+                "14 count() of transactions",
+            ),
+            (
+                Dataset.EventsAnalyticsPlatform,
+                [SnubaQueryEventType.EventType.TRACE_ITEM_LOG],
+                "count(message)",
+                "14 count(message) of logs",
+            ),
+            (
+                Dataset.EventsAnalyticsPlatform,
+                [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
+                "count(span.duration)",
+                "14 count(span.duration) of spans",
+            ),
+            (
+                Dataset.Metrics,
+                [],
                 "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-                "14% crash_free_rate(session)",
+                "14% crash_free_rate(session) of releases",
             ),
         ):
-            alert_rule = self.create_alert_rule(aggregate=aggregate)
+            alert_rule = self.create_alert_rule(
+                dataset=dataset, event_types=event_types, aggregate=aggregate
+            )
             assert (
                 get_incident_status_text(
                     alert_rule.snuba_query, AlertRuleThresholdType.ABOVE, None, "14"
@@ -120,7 +153,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
 
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "123 count() in the last 10 minutes"
+        assert data["text"] == "123 count() of errors in the last 10 minutes"
         # We still build the link using the alert_rule_id and the incident identifier
         assert (
             data["title_link"]

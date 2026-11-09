@@ -18,8 +18,9 @@ from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
@@ -42,6 +43,35 @@ def format_aggregate(aggregate: str) -> str:
         return strip_equation(aggregate)
     aggregate = _CRASH_FREE_RATE_AGGREGATES.get(aggregate, aggregate)
     return aggregate.replace("(tags[sentry:user])", "(user)")
+
+
+# Named like the monitor form's dataset picker, mirroring the frontend's getDetectorDataset.
+_DATASET_TELEMETRY = {
+    Dataset.Events: "errors",
+    Dataset.IssuePlatform: "errors",
+    Dataset.Transactions: "transactions",
+    Dataset.PerformanceMetrics: "transactions",
+    Dataset.Metrics: "releases",
+    Dataset.Sessions: "releases",
+}
+
+
+def get_query_telemetry(snuba_query: SnubaQuery) -> str:
+    """The kind of telemetry a query measures, e.g. "logs" or "errors"."""
+    dataset = Dataset(snuba_query.dataset)
+    if dataset == Dataset.EventsAnalyticsPlatform:
+        event_types = snuba_query.event_types
+        if SnubaQueryEventType.EventType.TRACE_ITEM_LOG in event_types:
+            return "logs"
+        if SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
+            return "application metrics"
+        return "spans"
+    return _DATASET_TELEMETRY.get(dataset, "events")
+
+
+def describe_query_metric(snuba_query: SnubaQuery) -> str:
+    """What a query measures, e.g. `count(message) of logs`."""
+    return f"{format_aggregate(snuba_query.aggregate)} of {get_query_telemetry(snuba_query)}"
 
 
 # These should be the same as the options in the frontend
@@ -85,6 +115,7 @@ def get_incident_status_text(
 ) -> str:
     """Returns a human readable current status of an incident"""
     aggregate = format_aggregate(snuba_query.aggregate)
+    metric = describe_query_metric(snuba_query)
 
     if is_mri_field(snuba_query.aggregate):
         metric_value = format_mri_field_value(snuba_query.aggregate, metric_value)
@@ -92,17 +123,17 @@ def get_incident_status_text(
         metric_value = f"{float(metric_value) * 100:.2f}"
 
     if aggregate in _PERCENT_AGGREGATES:
-        metric_and_agg_text = f"{metric_value}% {aggregate}"
+        metric_and_agg_text = f"{metric_value}% {metric}"
     else:
-        metric_and_agg_text = f"{metric_value} {aggregate}"
+        metric_and_agg_text = f"{metric_value} {metric}"
 
     time_window = snuba_query.time_window // 60
     # % change alerts have a comparison delta
     if comparison_delta:
         if aggregate == "failure_rate()":
-            metric_and_agg_text = f"{aggregate} {float(metric_value):.2f}%"
+            metric_and_agg_text = f"{metric} {float(metric_value):.2f}%"
         else:
-            metric_and_agg_text = f"{aggregate} {int(float(metric_value))}%"
+            metric_and_agg_text = f"{metric} {int(float(metric_value))}%"
         higher_or_lower = (
             "higher"
             if (

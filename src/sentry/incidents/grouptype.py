@@ -14,7 +14,7 @@ from sentry.incidents.utils.types import (
     AnomalyDetectionValues,
     ProcessedSubscriptionUpdate,
 )
-from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA, format_aggregate
+from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA, describe_query_metric
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -156,10 +156,10 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
     ) -> str:
         comparison_delta = self.detector.config.get("comparison_delta")
         detection_type = self.detector.config.get("detection_type")
-        aggregate = format_aggregate(snuba_query.aggregate)
+        metric = describe_query_metric(snuba_query)
 
         if detection_type == "dynamic":
-            return f"Detected an anomaly in the query for {aggregate}"
+            return f"Detected an anomaly in {metric}"
 
         # Determine the higher or lower comparison
         higher_or_lower = ""
@@ -186,7 +186,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         template = "{label}: {metric} in the last {time_window} {higher_or_lower} {comparison}"
         return template.format(
             label=label.capitalize(),
-            metric=aggregate,
+            metric=metric,
             higher_or_lower=higher_or_lower,
             comparison=comparison,
             time_window=time_window,
