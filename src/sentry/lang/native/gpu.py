@@ -130,8 +130,8 @@ def apply_gpu_crash_symbolication(
     shader_group = _shader_group(response)
     material, shader_class = _shader_group_parts(shader_group)
     _tag("gpu.shader_group", truncatechars(shader_group, MAX_TAG_VALUE_LENGTH))
-    _tag("gpu.material", material)
-    _tag("gpu.shader_class", shader_class)
+    _tag("gpu.material", truncatechars(material, MAX_TAG_VALUE_LENGTH))
+    _tag("gpu.shader_class", truncatechars(shader_class, MAX_TAG_VALUE_LENGTH))
     if shader_group:
         data["culprit"] = truncatechars(shader_group, MAX_CULPRIT_LENGTH)
     _tag("gpu.shader_type", primary_shader.get("shader_type"))

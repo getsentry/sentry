@@ -109,6 +109,13 @@ def _redact_urls(text: str) -> str:
     return _URL_QUERY_RE.sub(r"\1?<redacted>", text)
 
 
+def _redact(text: str, secrets: Sequence[str]) -> str:
+    """Presigned URL tokens and the given secrets (the sources' tokens) removed."""
+    for secret in secrets:
+        text = text.replace(secret, "<redacted>")
+    return _redact_urls(text)
+
+
 def _resolve_url() -> str | None:
     base = getattr(settings, "SENTRY_TEAPOT_URL", None)
     return base.rstrip("/") if base else None
@@ -158,9 +165,13 @@ class TeapotClient:
                 for att in shader_debug_info
             ],
         }
+        secrets: list[str] = []
         if sources:
             # Carries the system token; never log the body.
             body["sources"] = list(sources)
+            secrets = [
+                s["token"] for s in sources if isinstance(s.get("token"), str) and s["token"]
+            ]
         data = orjson.dumps(body)
         headers = {
             "X-Teapot-Version": "1",
@@ -169,7 +180,7 @@ class TeapotClient:
             "Idempotency-Key": self.event_id,
             **_auth_headers(data),
         }
-        return self._send(url, headers=headers, data=data)
+        return self._send(url, headers=headers, data=data, secrets=secrets)
 
     def _storage_url(self, session: Any, att: TeapotAttachment) -> str:
         """Short-lived self-authenticating (presigned) GET URL for the attachment —
@@ -178,7 +189,9 @@ class TeapotClient:
             raise TeapotRequestError(f"attachment {att.name!r} is not in objectstore")
         return get_internal_download_url(session, att.stored_id)
 
-    def _send(self, url: str, headers: dict[str, str], data: bytes) -> dict[str, Any]:
+    def _send(
+        self, url: str, headers: dict[str, str], data: bytes, secrets: Sequence[str] = ()
+    ) -> dict[str, Any]:
         def attempt() -> dict[str, Any]:
             try:
                 resp = requests.post(url, data=data, headers=headers, timeout=_timeout())
@@ -189,7 +202,8 @@ class TeapotClient:
                 raise _RetryableTeapotError(f"teapot returned {resp.status_code}")
 
             if resp.status_code >= 400:
-                safe_body = _redact_urls(resp.text[:512])
+                # Redact before truncating, so a cut can't leave part of a secret.
+                safe_body = _redact(resp.text, secrets)[:512]
                 logger.warning(
                     "teapot.request_failed",
                     extra={

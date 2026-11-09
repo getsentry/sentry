@@ -60,7 +60,7 @@ def test_material_group_fills_tags_culprit_and_context() -> None:
     assert gpu_crash["shader_class"] == "FLumenCardPS"
 
 
-def test_long_group_is_truncated_for_culprit_and_tag() -> None:
+def test_long_group_is_truncated_for_culprit_and_tags() -> None:
     group = "M_" + "x" * 600 + "/Default/FLocalVertexFactory/FLumenCardPS/0"
     data = _apply(
         _frame(module=group, data={"shader_hash": "49478268ce7710e2", "shader_group": group})
@@ -70,6 +70,8 @@ def test_long_group_is_truncated_for_culprit_and_tag() -> None:
     assert data["culprit"].startswith("M_xxx")
     tags = dict(data["tags"])
     assert len(tags["gpu.shader_group"]) <= MAX_TAG_VALUE_LENGTH
+    assert len(tags["gpu.material"]) <= MAX_TAG_VALUE_LENGTH
+    assert tags["gpu.material"].startswith("M_xxx")
     assert tags["gpu.shader_class"] == "FLumenCardPS"
     assert data["contexts"]["gpu_crash"]["shader_group"] == group
 
