@@ -12,14 +12,14 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.agent import interrupt_run, synchronize_execution
-from sentry.investigations.endpoints.serializers.responses import (
-    InvestigationExecutionDetailsResponse,
-)
 from sentry.models.organization import Organization
+from sentry.notebooks.agent import interrupt_run, synchronize_execution
 from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationBlockEndpoint,
     require_authenticated_user,
+)
+from sentry.notebooks.endpoints.serializers.responses import (
+    InvestigationExecutionDetailsResponse,
 )
 from sentry.notebooks.endpoints.validators import BlockExecutionResumeValidator
 from sentry.notebooks.models import (
