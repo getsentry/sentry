@@ -227,8 +227,9 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
+    const attrs = (
+      node?.value as {additional_attributes?: Record<string, unknown>} | undefined
+    )?.additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(inputMessages);
   });
 
@@ -268,8 +269,9 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
+    const attrs = (
+      node?.value as {additional_attributes?: Record<string, unknown>} | undefined
+    )?.additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_OUTPUT_MESSAGES]).toBe(outputMessages);
   });
 
@@ -306,8 +308,9 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
+    const attrs = (
+      node?.value as {additional_attributes?: Record<string, unknown>} | undefined
+    )?.additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_EMBEDDINGS_INPUT]).toBe('search query text');
   });
 
@@ -349,8 +352,9 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
+    const attrs = (
+      node?.value as {additional_attributes?: Record<string, unknown>} | undefined
+    )?.additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_MEMORY_STORE_ID]).toBe('user-prefs');
     expect(attrs?.[SpanFields.GEN_AI_MEMORY_QUERY_TEXT]).toBe('dietary preferences');
     expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORD_ID]).toBe('mem_123');
@@ -393,8 +397,9 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
+    const attrs = (
+      node?.value as {additional_attributes?: Record<string, unknown>} | undefined
+    )?.additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_OPERATION_NAME]).toBe('evaluate');
   });
 
@@ -430,8 +435,9 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
+    const attrs = (
+      node?.value as {additional_attributes?: Record<string, unknown>} | undefined
+    )?.additional_attributes;
     // Should default to empty string for missing fields
     expect(attrs?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe('');
   });

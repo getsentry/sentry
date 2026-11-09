@@ -468,9 +468,7 @@ const base = defineConfig({
     'no-unreachable': 'error',
     'no-unsafe-finally': 'error',
     'no-unsafe-negation': 'error',
-    // Oxlint reports TypeScript patterns that ESLint accepts and suggests
-    // replacing optional access with unsafe non-null assertions.
-    'no-unsafe-optional-chaining': 'off',
+    'no-unsafe-optional-chaining': 'error',
     'no-unused-labels': 'error',
     'no-unused-private-class-members': 'error',
     'no-useless-catch': 'error',

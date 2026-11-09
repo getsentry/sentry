@@ -302,8 +302,8 @@ export function useVirtualizedTree<T extends TreeLike>(
             }
             (container.firstChild as HTMLElement).style.pointerEvents = 'none';
           });
-        } else {
-          (props.scrollContainer?.firstChild as HTMLElement).style.pointerEvents = 'none';
+        } else if (props.scrollContainer?.firstChild) {
+          (props.scrollContainer.firstChild as HTMLElement).style.pointerEvents = 'none';
         }
       });
 
