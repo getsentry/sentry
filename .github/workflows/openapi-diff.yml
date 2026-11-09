@@ -11,7 +11,10 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
-  # Shared by the jobs below: where the build job puts the baseline schemas.
+  # Shared by the jobs below: the artifact the build job hands to the compare
+  # jobs, and where it puts the PR's RPC schema and the baseline schemas.
+  DIFF_ARTIFACT: openapi-diff
+  RPC_SCHEMA: .artifacts/rpc_method_schema.json
   BASELINE_DIR: .artifacts/openapi-baseline
 
 jobs:
@@ -67,10 +70,10 @@ jobs:
         if: steps.changes.outputs.api_docs == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: openapi-diff
+          name: ${{ env.DIFF_ARTIFACT }}
           path: |
             tests/apidocs/openapi-derefed.json
-            .artifacts/rpc_method_schema.json
+            ${{ env.RPC_SCHEMA }}
             ${{ env.BASELINE_DIR }}/
           include-hidden-files: true
           if-no-files-found: error
@@ -91,7 +94,7 @@ jobs:
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: openapi-diff
+          name: ${{ env.DIFF_ARTIFACT }}
 
       # Writes the changelog to the job summary. It is information for the
       # author and reviewers, so it never fails the build.
@@ -113,9 +116,9 @@ jobs:
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: openapi-diff
+          name: ${{ env.DIFF_ARTIFACT }}
 
       # Control and cell silos deploy separately, so an RPC change must keep
       # working with callers built from the merge-base.
       - name: Check RPC schema for breaking changes
-        run: .github/workflows/scripts/openapi-diff.sh rpc-breaking "$BASELINE_DIR/rpc_method_schema.json" .artifacts/rpc_method_schema.json
+        run: .github/workflows/scripts/openapi-diff.sh rpc-breaking "$BASELINE_DIR/rpc_method_schema.json" "$RPC_SCHEMA"
