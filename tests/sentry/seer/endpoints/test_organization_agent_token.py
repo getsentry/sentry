@@ -1673,6 +1673,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return {"file": "src/matrix.py", "platform": "python"}
         if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
             return {"channel": "permission-matrix"}
+        if endpoint.endpoint_name == "DsnLookupEndpoint":
+            return {"dsn": self._resource("project_key").dsn_public}
         if endpoint.endpoint_name == "OrganizationEventsEndpoint":
             return {
                 "field": ["id", "project"],
