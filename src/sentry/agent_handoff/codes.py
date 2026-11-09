@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 import secrets
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -7,7 +8,7 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 
 from django.utils import timezone
-from pydantic import BaseModel, Extra, StrictInt, StrictStr
+from pydantic import BaseModel, Extra, StrictBool, StrictInt, StrictStr
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import hashlib, redis
@@ -31,10 +32,16 @@ class AgentHandoff(BaseModel):
     organization_id: StrictInt
     application_id: StrictInt
     scope_list: tuple[StrictStr, ...]
+    ip_address: StrictStr | None = None
+    disable_ip_pinning: StrictBool = False
 
     class Config:
         frozen = True
         extra = Extra.forbid
+
+
+class HandoffIPMismatch(Exception):
+    """The handoff is pinned to a different client IP address."""
 
 
 @dataclass(frozen=True)
@@ -59,6 +66,8 @@ def issue_handoff(
     organization_id: int,
     application_id: int,
     scope_list: Sequence[str],
+    ip_address: str,
+    disable_ip_pinning: bool = False,
 ) -> IssuedAgentHandoff:
     context = AgentHandoff(
         flow=flow,
@@ -66,10 +75,11 @@ def issue_handoff(
         organization_id=organization_id,
         application_id=application_id,
         scope_list=tuple(scope_list),
+        ip_address=str(ipaddress.ip_address(ip_address)),
+        disable_ip_pinning=disable_ip_pinning,
     )
     code = f"sntryh_{secrets.token_urlsafe(32)}"
     expires_at = timezone.now() + HANDOFF_LIFETIME
-    # Keep default handoffs readable by servers during a rolling deploy.
     stored = _get_redis_client().set(
         _handoff_key(code),
         context.json(exclude_defaults=True),
@@ -82,7 +92,7 @@ def issue_handoff(
     return IssuedAgentHandoff(code=code, expires_at=expires_at)
 
 
-def consume_handoff(code: str) -> AgentHandoff | None:
+def consume_handoff(code: str, *, ip_address: str | None) -> AgentHandoff | None:
     """Consume a handoff once; unavailable codes reveal no previous context."""
     client = _get_redis_client()
     key = _handoff_key(code)
@@ -90,12 +100,23 @@ def consume_handoff(code: str) -> AgentHandoff | None:
     if value is None:
         return None
 
+    handoff = AgentHandoff.parse_raw(value)
+    if (
+        not handoff.disable_ip_pinning
+        and handoff.ip_address is not None
+        and (
+            ip_address is None
+            or ipaddress.ip_address(handoff.ip_address) != ipaddress.ip_address(ip_address)
+        )
+    ):
+        raise HandoffIPMismatch
+
     # Compare-and-delete works on both Redis Cluster and sharded deployments.
     # Only the caller that deletes the value may receive its authorization context.
     if not compare_and_delete((key,), (value,), client):
         return None
 
-    return AgentHandoff.parse_raw(value)
+    return handoff
 
 
 def revoke_handoff(code: str) -> None:

@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageOverlay} from 'sentry/components/pageOverlay';

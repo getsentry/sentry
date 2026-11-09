@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -11,6 +12,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.principal import require_user
 from sentry.explore import utils
 from sentry.explore.models import ExploreSavedQueryStarred
@@ -28,12 +36,20 @@ class MemberPermission(OrganizationPermission):
 
 
 class SavedQueryRefSerializer(serializers.Serializer[dict[str, Any]]):
-    type = serializers.ChoiceField(choices=[query_type.value for query_type in SavedQueryType])
-    query_id = serializers.IntegerField()
+    type = serializers.ChoiceField(
+        choices=[query_type.value for query_type in SavedQueryType],
+        help_text="Which product the saved query belongs to.",
+    )
+    query_id = serializers.IntegerField(help_text="The ID of the starred saved query.")
 
 
 class SavedQueryStarredOrderSerializer(serializers.Serializer[dict[str, Any]]):
-    queries = serializers.ListField(child=SavedQueryRefSerializer(), required=True, min_length=0)
+    queries = serializers.ListField(
+        child=SavedQueryRefSerializer(),
+        required=True,
+        min_length=0,
+        help_text="The starred saved queries in their new order. Each query may appear only once.",
+    )
 
     def validate_queries(self, queries: list[dict[str, Any]]) -> list[dict[str, Any]]:
         refs = [(query["type"], query["query_id"]) for query in queries]
@@ -43,6 +59,7 @@ class SavedQueryStarredOrderSerializer(serializers.Serializer[dict[str, Any]]):
         return queries
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     """
@@ -53,6 +70,7 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     """
 
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
+    idempotent_methods = frozenset({"PUT"})
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (MemberPermission,)
 
@@ -61,7 +79,23 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
             "organizations:visibility-explore-view", organization, actor=request.user
         )
 
+    @extend_schema(
+        operation_id="Reorder an Organization's Starred Saved Queries",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=SavedQueryStarredOrderSerializer,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def put(self, request: Request, organization: Organization) -> Response:
+        """
+        Reorder the starred Discover and Explore saved queries for the member making
+        the request. Both products share one starred list. If the payload holds only
+        some of the starred queries, only those queries swap positions among themselves.
+        """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 

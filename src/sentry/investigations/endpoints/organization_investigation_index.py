@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
@@ -33,15 +34,14 @@ from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationsBaseEndpoint,
     organization_project_ids,
+    request_creator_actor,
     require_authenticated_user,
     service_error,
-    user_id,
 )
 from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.notebooks.services import create_manual_investigation
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
-from sentry.viewer_context import ActorId, ActorType
 
 SORT_ORDER = {"dateUpdated": "-date_updated", "dateCreated": "-date_added"}
 TRIGGERS = ("me", "user", "automation")
@@ -244,7 +244,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                         )
                     investigation, created = create_agentic_breached_metric_investigation(
                         organization=organization,
-                        creator=ActorId(ActorType.USER, user_id(request)),
+                        creator=request_creator_actor(request),
                         title=values.get("title"),
                         resolved_source=resolved_source,
                         project_ids=requested_project_ids,
@@ -259,7 +259,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                     created = True
                     investigation, _ = create_agentic_manual_investigation(
                         organization=organization,
-                        creator=ActorId(ActorType.USER, user_id(request)),
+                        creator=request_creator_actor(request),
                         title=values.get("title"),
                         source=source,
                         project_ids=requested_project_ids,
@@ -275,7 +275,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                     )
                 investigation = create_manual_investigation(
                     organization=organization,
-                    user_id=user_id(request),
+                    creator=get_creator_reference(request),
                     title=values["title"],
                     project_ids=requested_project_ids,
                     filters=values.get("filters", {}),

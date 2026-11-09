@@ -32,9 +32,7 @@ def _json_schema_to_openapi(schema: dict[str, Any]) -> dict[str, Any]:
         }
         if isinstance(properties := value.get("properties"), dict):
             result["properties"] = {
-                snake_to_camel_case(name): convert(spec)
-                for name, spec in properties.items()
-                if not (name == "additionalProperties" and spec is False)
+                snake_to_camel_case(name): convert(spec) for name, spec in properties.items()
             }
         if "const" in result:
             result["enum"] = [result.pop("const")]

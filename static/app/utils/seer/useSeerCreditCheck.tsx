@@ -71,6 +71,13 @@ export function useSeerCreditCheck(
 
   return {
     hasEnoughCredits: isChecking ? (query.data?.hasEnoughCredits ?? true) : true,
+    /**
+     * Whether the check has answered, or failed, since the caller mounted. A
+     * cached answer from an earlier mount doesn't count, since credits can
+     * change in between. Wait on this rather than `isPending` before acting on
+     * the answer automatically.
+     */
+    hasCheckedSinceMount: !isChecking || query.isFetchedAfterMount,
     // A disabled query reports `isPending` forever, so only a running check
     // counts as pending.
     isPending: isChecking && query.isPending,

@@ -540,14 +540,16 @@ export type Invoice = InvoiceBase & {
   };
 };
 
+type InvoiceItemData = {period?: any; plan?: any; quantity?: any};
+
 type BaseInvoiceItem = {
   amount: number;
-  data: {period?: any; plan?: any; quantity?: any};
   description: string;
   type: InvoiceItemType;
 };
 
 export type InvoiceItem = BaseInvoiceItem & {
+  data: InvoiceItemData;
   periodEnd: string;
   periodStart: string;
 };
@@ -773,6 +775,7 @@ export type PreviewData = {
 };
 
 export type PreviewInvoiceItem = BaseInvoiceItem & {
+  data: InvoiceItemData | null;
   period_end: string;
   period_start: string;
 };

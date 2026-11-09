@@ -29,7 +29,7 @@ class Stage(StrEnum):
     """Stages that can be progressed during agentic onboarding."""
 
     CONNECT_MCP = "connect_mcp"
-    """Connect the setup agent to the user's Sentry account through MCP."""
+    """Connect the setup agent to the user's Sentry account through the CLI or MCP."""
 
     ANALYZE_PROJECT = "analyze_project"
     """Inspect the application and identify its platform, SDK, and setup needs."""
@@ -108,6 +108,16 @@ class VerificationErrorExtra(StageExtra):
 
     def merge(self, incoming: Self) -> Self:
         return type(self)(issue_ids=_merge_unique(self.issue_ids, incoming.issue_ids))
+
+
+ConnectionMethod = Literal["cli", "mcp"]
+
+
+class ConnectExtra(StageExtra):
+    method: ConnectionMethod
+
+    def merge(self, incoming: Self) -> Self:
+        return self
 
 
 ExtraT = TypeVar("ExtraT", bound=StageExtra)
@@ -255,7 +265,7 @@ class StageDefinition(Generic[ExtraT]):
 
 # Tuple order is the onboarding order and therefore part of the persisted schema.
 STAGE_DEFINITIONS: tuple[StageDefinition[Any], ...] = (
-    StageDefinition(Stage.CONNECT_MCP),
+    StageDefinition(Stage.CONNECT_MCP, extra_type=ConnectExtra),
     StageDefinition(Stage.ANALYZE_PROJECT),
     StageDefinition(
         Stage.CREATE_PROJECT,
@@ -274,6 +284,12 @@ STAGE_DEFINITIONS: tuple[StageDefinition[Any], ...] = (
 
 STAGE_DEFINITION_BY_STAGE = {definition.stage: definition for definition in STAGE_DEFINITIONS}
 STAGE_INDEX = {definition.stage: index for index, definition in enumerate(STAGE_DEFINITIONS)}
+
+
+@overload
+def get_stage_definition(
+    stage: Literal[Stage.CONNECT_MCP],
+) -> StageDefinition[ConnectExtra]: ...
 
 
 @overload

@@ -5,6 +5,7 @@ from sentry import options
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
+from sentry.utils.locking import LockNotOwned
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.services import build_instance_from_options_of_type, resolve_callable
 
@@ -162,11 +163,17 @@ class MigrationLockBackend(LockBackend):
             return self.selector_func.check_new()
         return True
 
-    def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
+    def acquire(
+        self,
+        key: str,
+        duration: int,
+        routing_key: str | None = None,
+        token: str | None = None,
+    ) -> None:
         backend = self._get_backend(key=key, routing_key=routing_key)
         other = self.backend_new if backend is self.backend_old else self.backend_old
 
-        backend.acquire(key=key, duration=duration, routing_key=routing_key)
+        backend.acquire(key=key, duration=duration, routing_key=routing_key, token=token)
         if backend is self.backend_old and not self._uses_new():
             return
         try:
@@ -177,12 +184,12 @@ class MigrationLockBackend(LockBackend):
 
         if held_elsewhere:
             try:
-                backend.release(key=key, routing_key=routing_key)
+                backend.release(key=key, routing_key=routing_key, token=token)
             except Exception:
                 pass
             raise Exception(f"Could not set key: {key!r}")
 
-    def release(self, key: str, routing_key: str | None = None) -> None:
+    def release(self, key: str, routing_key: str | None = None, token: str | None = None) -> None:
         # Release on the backend that the selector picks now
         # Release on the other backend only if that fails
         # (the selector can have picked a different backend at acquire time)
@@ -195,11 +202,16 @@ class MigrationLockBackend(LockBackend):
         errors = []
         for backend in backends:
             try:
-                backend.release(key=key, routing_key=routing_key)
+                backend.release(key=key, routing_key=routing_key, token=token)
             except Exception as e:
                 errors.append(e)
             else:
                 return
+        # A caller that uses backend.release directly needs the refusal type.
+        # Wrapping it as a generic Exception hides LockNotOwned. A different
+        # child error, such as a connection failure, stays wrapped.
+        if errors and all(isinstance(error, LockNotOwned) for error in errors):
+            raise errors[0]
         raise Exception(f"Could not release key: {key!r}: {errors!r}")
 
     def locked(self, key: str, routing_key: str | None = None) -> bool:
