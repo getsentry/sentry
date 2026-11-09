@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 from uuid import uuid4
@@ -17,7 +17,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
 
 from sentry.testutils.cases import (
     APITestCase,
@@ -396,11 +395,12 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         assert names_rpc.call_args.args[0].value_substring_match == "cart "
 
     def test_returns_null_last_seen_when_the_rollup_last_seen_predates_the_window(self) -> None:
+        window_start = before_now(days=14).replace(hour=0, minute=0, second=0, microsecond=0)
         self._store_span({"cart": "a"})
 
         with mock.patch(
             f"{STATS_MODULE}.attribute_names_rpc",
-            return_value=names_response([("cart", before_now(days=20))]),
+            return_value=names_response([("cart", window_start - timedelta(hours=1))]),
         ):
             response = self.do_request(
                 query={
@@ -414,6 +414,47 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["stats"] == {"spans": {"lastSeen": None, "cardinality": 1}}
         assert response.data["lastSeen"] is None
+
+    def test_returns_rollup_last_seen_when_it_is_just_after_the_window_start(self) -> None:
+        last_seen = before_now(days=14).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) + timedelta(seconds=1)
+        self._store_span({"cart": "a"})
+
+        with mock.patch(
+            f"{STATS_MODULE}.attribute_names_rpc",
+            return_value=names_response([("cart", last_seen)]),
+        ):
+            response = self.do_request(
+                query={
+                    "attributeName": "cart",
+                    "attributeType": "string",
+                    "dataset": "spans",
+                    "statsPeriod": "14d",
+                }
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["lastSeen"] == last_seen.isoformat()
+
+    def test_returns_null_last_seen_when_a_short_rollup_response_lacks_the_name(self) -> None:
+        self._store_span({"cart": "a"})
+
+        with mock.patch(
+            f"{STATS_MODULE}.attribute_names_rpc",
+            return_value=names_response([("cart.id", before_now(hours=1))]),
+        ):
+            response = self.do_request(
+                query={
+                    "attributeName": "cart",
+                    "attributeType": "string",
+                    "dataset": "spans",
+                    "statsPeriod": "14d",
+                }
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["lastSeen"] is None
 
     def test_returns_table_last_seen_when_the_rollup_has_no_last_seen(self) -> None:
         timestamp = before_now(minutes=10).replace(microsecond=0)
@@ -494,9 +535,6 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
 
     def test_returns_null_cardinality_when_the_attribute_is_an_array(self) -> None:
         last_seen = before_now(hours=1).replace(microsecond=0)
-        self._store_log(
-            {"csv_headers": {"array_value": ArrayValue(values=[AnyValue(string_value="title")])}}
-        )
         listed = TraceItemAttributeNamesResponse(
             attributes=[
                 TraceItemAttributeNamesResponse.Attribute(
@@ -595,8 +633,8 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         log_timestamp = before_now(minutes=20).replace(microsecond=0)
         metric_timestamp = before_now(minutes=10).replace(microsecond=0)
         self._store_span({"shared.attribute": "a"}, timestamp=span_timestamp)
-        self._store_log({"shared.attribute": "b"}, timestamp=log_timestamp)
-        self._store_log({"shared.attribute": "c"}, timestamp=log_timestamp)
+        self._store_log({"shared.attribute": {"string_value": "b"}}, timestamp=log_timestamp)
+        self._store_log({"shared.attribute": {"string_value": "c"}}, timestamp=log_timestamp)
         self.store_eap_items(
             [
                 self.create_trace_metric(

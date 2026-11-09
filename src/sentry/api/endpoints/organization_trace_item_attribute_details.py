@@ -109,7 +109,9 @@ class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttribu
                     and attribute["attributeType"] == match["attributeType"]
                     and attribute["attributeSource"]["source_type"]
                     == match["attributeSource"]["source_type"]
-                    for ref in stored_refs_by_dataset[dataset].get(attribute["key"], [])
+                    for ref in stored_refs_by_dataset[dataset].get(
+                        (attribute["attributeType"], attribute["key"]), []
+                    )
                 )
             )
             for dataset in match["datasets"]

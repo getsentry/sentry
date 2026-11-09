@@ -120,6 +120,7 @@ def query_last_seen(
     )
     window_start = meta.start_timestamp.ToDatetime(tzinfo=UTC)
 
+    limit = options.get("explore.trace-items.keys.max")
     # The names RPC has no environment filter, but the details page sends no environment.
     last_seen: datetime | None = None
     for ref in refs:
@@ -127,7 +128,7 @@ def query_last_seen(
             response = attribute_names_rpc(
                 TraceItemAttributeNamesRequest(
                     meta=meta,
-                    limit=options.get("explore.trace-items.keys.max"),
+                    limit=limit,
                     type=ref.proto_type,
                     value_substring_match=_escape_like(ref.name),
                     order_by=TraceItemAttributeNamesRequest.OrderBy(
@@ -143,8 +144,12 @@ def query_last_seen(
             return _query_last_seen_from_table(dataset, refs, resolver)
 
         rows = [attribute for attribute in response.attributes if attribute.name == ref.name]
+        if not rows:
+            if len(response.attributes) >= limit:
+                return _query_last_seen_from_table(dataset, refs, resolver)
+            continue
         # Snuba answers windows before 2026-07-27 from its v1 table, which has no last_seen.
-        if not rows or not all(row.HasField("last_seen") for row in rows):
+        if not all(row.HasField("last_seen") for row in rows):
             return _query_last_seen_from_table(dataset, refs, resolver)
         for row in rows:
             row_last_seen = row.last_seen.ToDatetime(tzinfo=UTC).replace(microsecond=0)
