@@ -321,13 +321,21 @@ function DropdownMenuList({
   // change as rows scroll in and out. Measure it once, with `widestKey`
   // mounted, and keep that width until the menu closes, including while a
   // search filters the items. A label that does not fit is truncated.
+  //
+  // Measure the rows' own width (`max-content`), not the menu's current width.
+  // This effect runs before the overlay is positioned, while the menu may still
+  // be squeezed by its container.
   const [lockedWidth, setLockedWidth] = useState<number>();
   useLayoutEffect(() => {
-    if (virtualized && lockedWidth === undefined && menuRef.current) {
-      // Round up: `offsetWidth` rounds to a whole pixel, which could cut off the
-      // widest label.
-      setLockedWidth(Math.ceil(menuRef.current.getBoundingClientRect().width));
+    const menu = menuRef.current;
+    if (!virtualized || lockedWidth !== undefined || !menu) {
+      return;
     }
+    const {width} = menu.style;
+    menu.style.width = 'max-content';
+    // Round up, so a fractional width does not cut off the widest label.
+    setLockedWidth(Math.ceil(menu.getBoundingClientRect().width));
+    menu.style.width = width;
   }, [virtualized, lockedWidth]);
 
   /**
@@ -502,6 +510,8 @@ function DropdownMenuList({
                   disableTextSelection={disableTextSelection}
                   flexGrow={showEmptyMessage ? 1 : undefined}
                   width={lockedWidth === undefined ? undefined : `${lockedWidth}px`}
+                  // The overlay's `maxWidth` still applies to the locked width.
+                  maxWidth={lockedWidth === undefined ? undefined : '100%'}
                   {...mergeProps(modifiedMenuProps, keyboardProps)}
                 >
                   <ReserveLeadingSlot reserve={hasLeadingItems}>
