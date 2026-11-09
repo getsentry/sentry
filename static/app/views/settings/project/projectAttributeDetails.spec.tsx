@@ -1,7 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectAttributeDetails from './projectAttributeDetails';
 
@@ -42,6 +42,8 @@ describe('ProjectAttributeDetails', () => {
         attributeType: 'string',
         attributeSource: {source_type: 'sentry'},
         datasets: ['spans'],
+        lastSeen: null,
+        stats: {spans: {lastSeen: null, cardinality: null}},
         context: {
           brief: 'The HTTP method, such as `HEAD`.',
           details: ['Uppercased by the SDK.\n\nSent on every request.'],
@@ -59,7 +61,7 @@ describe('ProjectAttributeDetails', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('HEAD', {selector: 'code'})).toBeInTheDocument();
     expect(screen.getByText('string')).toBeInTheDocument();
-    expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+    expect(screen.getByText('Sentry')).toBeInTheDocument();
     expect(screen.getByText('Deprecated')).toBeInTheDocument();
     expect(screen.getByText('http.request.method')).toBeInTheDocument();
     expect(screen.getByText('Uppercased by the SDK.')).toBeInTheDocument();
@@ -85,6 +87,8 @@ describe('ProjectAttributeDetails', () => {
         attributeType: 'number',
         attributeSource: {source_type: 'user'},
         datasets: ['spans'],
+        lastSeen: null,
+        stats: {spans: {lastSeen: null, cardinality: null}},
         context: {},
       },
     });
@@ -102,6 +106,8 @@ describe('ProjectAttributeDetails', () => {
         attributeType: 'string',
         attributeSource: {source_type: 'user'},
         datasets: ['spans'],
+        lastSeen: null,
+        stats: {spans: {lastSeen: null, cardinality: null}},
         context: {isConvention: true},
       },
     });
@@ -109,6 +115,213 @@ describe('ProjectAttributeDetails', () => {
     renderDetails('string', 'db.system');
 
     expect(await screen.findByText('Sentry convention')).toBeInTheDocument();
+  });
+
+  it('renders the last seen time and cardinality when the attribute has stats', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'cart.size',
+        attributeType: 'number',
+        attributeSource: {source_type: 'user'},
+        datasets: ['spans'],
+        lastSeen: '2017-10-15T02:41:20+00:00',
+        stats: {spans: {lastSeen: '2017-10-15T02:41:20+00:00', cardinality: 1234}},
+      },
+    });
+
+    renderDetails('number', 'cart.size');
+
+    expect(await screen.findByText('2 days ago')).toBeInTheDocument();
+    expect(screen.getByText('≈1.2K')).toBeInTheDocument();
+    expect(screen.getByText('Last 14 days')).toBeInTheDocument();
+  });
+
+  it('renders placeholders when the stats are null', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'project',
+        attributeType: 'string',
+        attributeSource: {source_type: 'sentry'},
+        datasets: ['spans'],
+        lastSeen: null,
+        stats: {spans: {lastSeen: null, cardinality: null}},
+        context: {brief: 'The project.'},
+      },
+    });
+
+    renderDetails('string', 'project');
+
+    expect(await screen.findByText('The project.')).toBeInTheDocument();
+    expect(screen.getAllByText('—')).toHaveLength(2);
+  });
+
+  it('renders the cardinality of each dataset when the attribute is in several datasets', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'environment',
+        attributeType: 'string',
+        attributeSource: {source_type: 'user'},
+        datasets: ['spans', 'logs', 'tracemetrics'],
+        lastSeen: '2017-10-15T02:41:20+00:00',
+        stats: {
+          spans: {lastSeen: '2017-10-15T02:41:20+00:00', cardinality: 12},
+          logs: {lastSeen: null, cardinality: 3},
+          tracemetrics: {lastSeen: null, cardinality: null},
+        },
+        context: {brief: 'The environment.'},
+      },
+    });
+
+    renderDetails('string', 'environment');
+
+    const spans = (await screen.findByText('≈12')).parentElement!;
+    const logs = screen.getByText('≈3').parentElement!;
+    const metrics = screen.getByText('—').parentElement!;
+    expect(within(spans).getByText('Spans')).toBeInTheDocument();
+    expect(within(logs).getByText('Logs')).toBeInTheDocument();
+    expect(within(metrics).getByText('Metrics')).toBeInTheDocument();
+  });
+
+  it('labels the source as a Sentry convention in OpenTelemetry when the convention is in OpenTelemetry', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'http.route',
+        attributeType: 'string',
+        attributeSource: {source_type: 'user'},
+        datasets: ['spans'],
+        lastSeen: null,
+        stats: {spans: {lastSeen: null, cardinality: null}},
+        context: {isConvention: true, isInOtel: true},
+      },
+    });
+
+    renderDetails('string', 'http.route');
+
+    expect(await screen.findByText('Sentry convention')).toBeInTheDocument();
+    expect(screen.getByText('OpenTelemetry')).toBeInTheDocument();
+  });
+
+  it('labels the source as Sentry when a user-sourced attribute is defined by Sentry', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'payload_size',
+        attributeType: 'number',
+        attributeSource: {source_type: 'user'},
+        datasets: ['logs'],
+        lastSeen: null,
+        stats: {logs: {lastSeen: null, cardinality: null}},
+        context: {
+          isConvention: false,
+          brief: 'The size of the log payload.',
+          unit: 'byte',
+        },
+      },
+    });
+
+    renderDetails('number', 'payload_size');
+
+    expect(await screen.findByText('Sentry')).toBeInTheDocument();
+    expect(screen.queryByText('Custom')).not.toBeInTheDocument();
+    expect(screen.getByText('byte')).toBeInTheDocument();
+  });
+
+  it('labels the source as custom when the attribute has custom context', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'cart.size',
+        attributeType: 'number',
+        attributeSource: {source_type: 'user'},
+        datasets: ['spans'],
+        lastSeen: null,
+        stats: {spans: {lastSeen: null, cardinality: null}},
+        context: {isCustom: true, brief: 'Items in the cart.'},
+      },
+    });
+
+    renderDetails('number', 'cart.size');
+
+    expect(await screen.findByText('Custom')).toBeInTheDocument();
+    expect(screen.queryByText('Unit')).not.toBeInTheDocument();
+  });
+
+  it('renders the count of values modified by Relay when the attribute is in spans', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'http.url',
+        attributeType: 'string',
+        attributeSource: {source_type: 'user'},
+        datasets: ['spans'],
+        lastSeen: null,
+        stats: {spans: {lastSeen: null, cardinality: null, modifiedCount: 4321}},
+      },
+    });
+
+    renderDetails('string', 'http.url');
+
+    expect(await screen.findByText('Modified by Relay')).toBeInTheDocument();
+    expect(screen.getByText('4,321')).toBeInTheDocument();
+  });
+
+  it('hides the count of values modified by Relay when the attribute is not in spans', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'payload_size',
+        attributeType: 'number',
+        attributeSource: {source_type: 'user'},
+        datasets: ['logs'],
+        lastSeen: null,
+        stats: {logs: {lastSeen: null, cardinality: null}},
+      },
+    });
+
+    renderDetails('number', 'payload_size');
+
+    expect(await screen.findByText('Custom')).toBeInTheDocument();
+    expect(screen.queryByText('Modified by Relay')).not.toBeInTheDocument();
+  });
+
+  it('renders the changelog with links to its pull requests when the attribute has a changelog', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'http.route',
+        attributeType: 'string',
+        attributeSource: {source_type: 'user'},
+        datasets: ['spans'],
+        lastSeen: null,
+        stats: {spans: {lastSeen: null, cardinality: null}},
+        context: {isConvention: true},
+        changelog: [
+          {version: '0.2.0', prs: [101, 102], description: 'Added an example.'},
+          {version: '0.1.0'},
+        ],
+      },
+    });
+
+    renderDetails('string', 'http.route');
+
+    expect(
+      await screen.findByRole('heading', {level: 3, name: 'Changelog'})
+    ).toBeInTheDocument();
+    expect(screen.getByText('0.2.0')).toBeInTheDocument();
+    expect(screen.getByText('0.1.0')).toBeInTheDocument();
+    expect(screen.getByText('Added an example.')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '#101'})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry-conventions/pull/101'
+    );
+    expect(screen.getByRole('link', {name: '#102'})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry-conventions/pull/102'
+    );
   });
 
   it('requests and renders the attribute when its name contains a slash', async () => {
@@ -119,6 +332,8 @@ describe('ProjectAttributeDetails', () => {
         attributeType: 'string',
         attributeSource: {source_type: 'user'},
         datasets: ['spans'],
+        lastSeen: null,
+        stats: {spans: {lastSeen: null, cardinality: null}},
         context: {brief: 'The matched route.'},
       },
     });
@@ -142,6 +357,8 @@ describe('ProjectAttributeDetails', () => {
         attributeType: 'string',
         attributeSource: {source_type: 'user'},
         datasets: ['spans'],
+        lastSeen: null,
+        stats: {spans: {lastSeen: null, cardinality: null}},
         context: {},
       },
     });

@@ -32,18 +32,12 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {
   ATTRIBUTE_VALUE_TYPES,
   ATTRIBUTES_STATS_PERIOD,
+  DATASET_LABELS,
   type Attribute,
-  type AttributeDataset,
 } from './projectAttributesCommon';
 import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 const ATTRIBUTES_PER_PAGE = 25;
-
-const DATASET_LABELS: Record<AttributeDataset, string> = {
-  spans: t('Spans'),
-  logs: t('Logs'),
-  tracemetrics: t('Metrics'),
-};
 
 const ALL_OPTION_VALUE = 'all';
 
