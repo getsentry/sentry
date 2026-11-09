@@ -67,9 +67,7 @@ class GroupImpactAssessmentEndpointTest(APITestCase):
             response = self.client.post(self.url, format="json")
 
         assert response.status_code == 400, response.content
-        assert response.data == {
-            "detail": f"Group {self.group.id} has no event available for Impact assessment"
-        }
+        assert response.data == {"detail": "Issue has no event available for Impact assessment"}
 
     @patch("sentry.issues.endpoints.group_impact_assessment.assess_impact_for_group")
     def test_requires_seer_access(self, mock_assess: MagicMock) -> None:

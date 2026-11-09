@@ -67,9 +67,15 @@ class GroupImpactAssessmentEndpoint(GroupAiEndpoint):
     def post(self, request: Request, group: Group) -> Response:
         try:
             run = assess_impact_for_group(group, user=request.user)
-        except ImpactAssessmentDisabled as error:
-            return Response({"detail": str(error)}, status=status.HTTP_403_FORBIDDEN)
-        except ImpactAssessmentEventNotFound as error:
-            return Response({"detail": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+        except ImpactAssessmentDisabled:
+            return Response(
+                {"detail": "Seer Impact assessment is not enabled for this organization"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        except ImpactAssessmentEventNotFound:
+            return Response(
+                {"detail": "Issue has no event available for Impact assessment"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response({"runId": str(run.uuid)}, status=status.HTTP_202_ACCEPTED)
