@@ -27,7 +27,10 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
-from sentry.integrations.types import IntegrationIssueConfigField
+from sentry.integrations.types import (
+    IntegrationIssueConfigField,
+    IntegrationIssueConfigFieldValue,
+)
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.repository import Repository
@@ -147,7 +150,7 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
 
         default_project = default_fields.get("project")
         if default_project is not None:
-            project_field["default"] = default_project
+            project_field["default"] = cast(IntegrationIssueConfigFieldValue, default_project)
 
         return project_field
 

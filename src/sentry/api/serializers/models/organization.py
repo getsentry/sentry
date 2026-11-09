@@ -25,6 +25,7 @@ from sentry.api.serializers.models.role import (
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.utils import generate_locality_url
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import NumericId, Slug, hex_id, numeric_id, slug
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
@@ -86,7 +87,7 @@ from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.types.cell import get_locality_name_for_cell
-from sentry.users.api.serializers.user import SerializedAvatarFields
+from sentry.users.api.serializers.user import AvatarTypeName, SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -121,6 +122,21 @@ class _Links(TypedDict):
     regionUrl: Annotated[str, ApiDescription("Base URL of the API for the organization's region")]
 
 
+# The keys that src/sentry/receivers/onboarding.py has written over time. It no
+# longer writes any, but older rows still carry them.
+class OnboardingTaskDataResponse(TypedDict, total=False):
+    invited_member_id: Annotated[
+        int, ApiDescription("ID of the member whose invite completed the invite_member task")
+    ]
+    platform: Annotated[
+        str | None, ApiDescription("Platform of the first event, for the first_event task")
+    ]
+    plugin: Annotated[str, ApiDescription("Slug of the plugin enabled for the task")]
+    providers: Annotated[
+        list[str], ApiDescription("Integration providers installed for the integrations task")
+    ]
+
+
 class OnboardingTasksSerializerResponse(TypedDict):
     # TODO: literal/enum
     task: Annotated[str | None, ApiDescription("Onboarding task key, such as create_project")]
@@ -130,7 +146,8 @@ class OnboardingTasksSerializerResponse(TypedDict):
     ]
     dateCompleted: Annotated[datetime, ApiDescription("When the task was completed or skipped")]
     data: Annotated[
-        object, ApiDescription("Extra data recorded for the task, which depends on the task")
+        OnboardingTaskDataResponse,
+        ApiDescription("Data recorded for the task. Most tasks record none, so it's often empty"),
     ]
 
 
@@ -152,8 +169,8 @@ class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
 
 
 class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
-    id: Annotated[str, ApiDescription("Organization ID")]
-    slug: Annotated[str, ApiDescription("Organization slug")]
+    id: Annotated[NumericId, ApiDescription("Organization ID")]
+    slug: Annotated[Slug, ApiDescription("Organization slug")]
     status: Annotated[_Status, ApiDescription("Organization status")]
     name: Annotated[str, ApiDescription("Organization name, or its slug when it has no name")]
     dateCreated: Annotated[datetime, ApiDescription("When the organization was created (ISO 8601)")]
@@ -408,8 +425,10 @@ class ControlSiloOrganizationMappingSerializer(
             # URL must point at that cell's locality rather than the local
             # control silo.
             avatar: SerializedAvatarFields = {
-                "avatarType": avatar_type,
-                "avatarUuid": avatar_replica.avatar_ident if avatar_type == "upload" else None,
+                "avatarType": cast(AvatarTypeName, avatar_type),
+                "avatarUuid": (
+                    hex_id(avatar_replica.avatar_ident) if avatar_type == "upload" else None
+                ),
                 "avatarUrl": avatar_replica.absolute_url(),
             }
         else:
@@ -562,7 +581,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
+                "avatarUuid": hex_id(attrs["avatar"].ident) if attrs["avatar"].file_id else None,
                 "avatarUrl": attrs["avatar"].absolute_url(),
             }
         else:
@@ -575,8 +594,8 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         has_auth_provider = attrs.get("auth_provider", None) is not None
 
         context: OrganizationSummarySerializerResponse = {
-            "id": str(obj.id),
-            "slug": obj.slug,
+            "id": numeric_id(obj.id),
+            "slug": slug(obj.slug),
             "status": {"id": status.name.lower(), "name": status.label},
             "name": obj.name or obj.slug,
             "dateCreated": obj.date_added,
@@ -661,8 +680,18 @@ class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerRespo
     samplingMode: Annotated[
         str, ApiDescription("Where dynamic sampling target rates are set: organization or project")
     ]
-    planSampleRate: float
-    desiredSampleRate: float
+    planSampleRate: Annotated[
+        float,
+        ApiDescription(
+            "Sample rate of the organization's plan, or its target sample rate in organization sampling mode, from 0 to 1"
+        ),
+    ]
+    desiredSampleRate: Annotated[
+        float,
+        ApiDescription(
+            "Sample rate dynamic sampling aims for, from 0 to 1. Not set in project sampling mode"
+        ),
+    ]
     ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
     consoleSdkInviteQuota: int
@@ -782,7 +811,10 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     hideAiFeatures: Annotated[
         bool, ApiDescription("Whether AI features are hidden for the organization")
     ]
-    aggregatedDataConsent: bool
+    aggregatedDataConsent: Annotated[
+        bool,
+        ApiDescription("Whether the organization agreed to let Sentry use its data in aggregate"),
+    ]
     genAIConsent: bool
     isDynamicallySampled: Annotated[
         bool,

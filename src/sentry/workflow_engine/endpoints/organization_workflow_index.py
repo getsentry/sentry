@@ -226,15 +226,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             request, organization, include_all_accessible=include_all_accessible
         )
         accessible_workflows = Q(detectorworkflow__detector__project__in=projects)
-        # Detached workflows are organization-level and do not match a specific
-        # project filter. ID filters take precedence over project filters, and the
-        # all-project sentinels are equivalent to no project filter.
-        has_specific_project_filter = (
-            not request.GET.getlist("id")
-            and requested_projects.has_values
-            and not requested_projects.has_all_projects_sentinel
-        )
-        if not has_specific_project_filter:
+        # Detached workflows aren't connected to any project, so they only match
+        # requests that aren't scoped to projects: ID lookups and the all-projects
+        # sentinels. A request without project params is scoped to member projects.
+        if request.GET.getlist("id") or requested_projects.has_all_projects_sentinel:
             accessible_workflows |= Q(detectorworkflow__isnull=True)
         all_projects_detector = get_all_projects_detector(organization.id)
         if all_projects_detector:

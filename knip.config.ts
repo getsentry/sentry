@@ -20,6 +20,8 @@ const productionEntryPoints = [
   'components/seer/autofixChatContext.tsx',
   // TODO: Remove when the Seer credit gates consume it (#129563, #129565)
   'utils/seer/useSeerCreditCheck.tsx',
+  // TODO: Remove when the Seer credit gates render it (#129563, #129565)
+  'components/seer/outOfCredits/seerOutOfCreditsCta.tsx',
   'components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'views/authV2/authLogin/**/*.{ts,tsx}',
@@ -117,6 +119,8 @@ const config: KnipConfig = {
         '**/*.snapshots.tsx',
         '**/__mocks__/**/*.{js,ts,tsx}',
         '**/*.stories.{js,ts,tsx}',
+        // The story manifest loads MDX stories from gsApp too.
+        '**/*.mdx',
       ],
     },
     'static/gsAdmin': {

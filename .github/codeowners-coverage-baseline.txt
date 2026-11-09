@@ -411,9 +411,6 @@ static/app/components/badge/groupPriority.tsx
 static/app/components/badge/iconCellSignal.tsx
 static/app/components/banner.spec.tsx
 static/app/components/banner.tsx
-static/app/components/breadcrumbs.spec.tsx
-static/app/components/breadcrumbs.stories.tsx
-static/app/components/breadcrumbs.tsx
 static/app/components/calendar/calendar.stories.tsx
 static/app/components/calendar/calendarStylesWrapper.tsx
 static/app/components/calendar/datePicker.tsx

@@ -1,4 +1,4 @@
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
@@ -11,7 +11,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
@@ -24,7 +24,6 @@ import type {Policy, PolicyRevision} from 'getsentry/types';
 export function PolicyDetails() {
   const {openModal} = useModal();
 
-  const api = useApi();
   const queryClient = useQueryClient();
   const {policySlug} = useParams<{policySlug: string}>();
   const policyQueryOptions = apiOptions.as<Policy>()('/policies/$policySlug/', {
@@ -42,6 +41,25 @@ export function PolicyDetails() {
 
   const {data: policy, isPending, isError, refetch} = useQuery(policyQueryOptions);
 
+  const {mutateAsync: updatePolicyRevision} = useMutation({
+    mutationFn: ({
+      slug,
+      version,
+      data,
+    }: {
+      data: Record<string, unknown>;
+      slug: string;
+      version: PolicyRevision['version'];
+    }) =>
+      fetchMutation({
+        url: getApiUrl('/policies/$policySlug/revisions/$version/', {
+          path: {policySlug: slug, version},
+        }),
+        method: 'PUT',
+        data,
+      }),
+  });
+
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -55,10 +73,7 @@ export function PolicyDetails() {
     version: PolicyRevision['version']
   ) => {
     try {
-      await api.requestPromise(`/policies/${policy.slug}/revisions/${version}/`, {
-        method: 'PUT',
-        data,
-      });
+      await updatePolicyRevision({slug: policy.slug, version, data});
       await invalidatePolicyQueries();
     } catch {
       toast.error('There was an error when updating the current policy version.');
