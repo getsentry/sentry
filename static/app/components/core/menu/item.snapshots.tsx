@@ -1,7 +1,12 @@
 import {IconCircle} from '@sentry/icons/circle';
 
 import {Tag} from '@sentry/scraps/badge';
-import {ListItem, ReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
+import {
+  ListItem,
+  ReserveLeadingSlot,
+  SectionList,
+  type ListItemProps,
+} from '@sentry/scraps/menu';
 
 const sizes: Array<NonNullable<ListItemProps['size']>> = ['xs', 'sm', 'md'];
 const variants = ['plain', 'leading', 'details', 'leading-details'] as const;
@@ -15,14 +20,14 @@ describe('ListItem', () => {
         const hasDetails = variant === 'details' || variant === 'leading-details';
 
         return (
-          <ul style={{padding: 8, width: 300, listStyle: 'none'}}>
+          <SectionList padding="md" width="300px">
             <ListItem
               size={size}
               label="Option"
               leadingItems={hasLeading ? <IconCircle aria-hidden /> : undefined}
               details={hasDetails ? 'Additional information about the option' : undefined}
             />
-          </ul>
+          </SectionList>
         );
       },
       variant => ({
@@ -38,7 +43,7 @@ describe('ListItem', () => {
     it.snapshot(
       'rich-label',
       () => (
-        <ul style={{padding: 8, width: 300, listStyle: 'none'}}>
+        <SectionList padding="md" width="300px">
           <ListItem
             size={size}
             label={
@@ -47,7 +52,7 @@ describe('ListItem', () => {
               </Tag>
             }
           />
-        </ul>
+        </SectionList>
       ),
       {tags: {area: 'core', size}}
     );
@@ -55,11 +60,11 @@ describe('ListItem', () => {
     it.snapshot(
       'section-gap',
       () => (
-        <ul style={{padding: 8, width: 300, listStyle: 'none'}}>
+        <SectionList padding="md" width="300px">
           <ListItem size={size} label="First in section" />
           <ListItem size={size} label="Spaced from the item above" gapAbove />
           <ListItem size={size} label="Spaced from the item above" gapAbove />
-        </ul>
+        </SectionList>
       ),
       {tags: {area: 'core', size, gapAbove: 'true'}}
     );
@@ -67,7 +72,7 @@ describe('ListItem', () => {
     it.snapshot(
       'reserved-leading-slot',
       () => (
-        <ul style={{padding: 8, width: 300, listStyle: 'none'}}>
+        <SectionList padding="md" width="300px">
           <ReserveLeadingSlot reserve>
             <ListItem
               size={size}
@@ -76,7 +81,7 @@ describe('ListItem', () => {
             />
             <ListItem size={size} label="Without icon" />
           </ReserveLeadingSlot>
-        </ul>
+        </SectionList>
       ),
       {tags: {area: 'core', size}}
     );
