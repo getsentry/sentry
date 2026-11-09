@@ -22,7 +22,11 @@ import {
 import {Container} from '@sentry/scraps/layout';
 import {ControlContext, ReserveLeadingSlot} from '@sentry/scraps/menu';
 import {useTranslation} from '@sentry/scraps/translation';
-import {useVirtualCollection, VirtualRows} from '@sentry/scraps/useVirtualCollection';
+import {
+  useVirtualCollection,
+  VirtualRows,
+  type VirtualRowProps,
+} from '@sentry/scraps/useVirtualCollection';
 
 import {GridListOption, type GridListOptionProps} from './option';
 import {GridListSection} from './section';
@@ -64,6 +68,40 @@ interface GridListProps<T extends ListItemBase>
    * If true, virtualization will be enabled for the list.
    */
   virtualized?: boolean;
+}
+
+interface GridListRowProps<T extends ListItemBase> extends Pick<
+  GridListOptionProps<T>,
+  'listState' | 'node' | 'rowIndex' | 'size'
+> {
+  virtualIndex?: number;
+  virtualRef?: VirtualRowProps['ref'];
+}
+
+/**
+ * Renders an option for `VirtualRows`. The list re-renders on every scroll, so
+ * this returns the same option element while the row's own props keep their
+ * identity, and React skips rendering an option that did not change.
+ */
+// Props are listed rather than spread: a rest object is new on every render.
+function GridListRow<T extends ListItemBase>({
+  listState,
+  node,
+  rowIndex,
+  size,
+  virtualIndex,
+  virtualRef,
+}: GridListRowProps<T>) {
+  return (
+    <GridListOption
+      listState={listState}
+      node={node}
+      rowIndex={rowIndex}
+      size={size}
+      data-index={virtualIndex}
+      ref={virtualRef}
+    />
+  );
 }
 
 /**
@@ -155,8 +193,9 @@ function GridList<T extends ListItemBase>({
             <VirtualRows
               virtual={virtual}
               renderRow={({node, props: rowProps}) => (
-                <GridListOption
-                  {...rowProps}
+                <GridListRow
+                  virtualIndex={rowProps?.['data-index']}
+                  virtualRef={rowProps?.ref}
                   node={node}
                   rowIndex={positions?.get(node.key as SelectKey)?.rowIndex}
                   listState={listState}

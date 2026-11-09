@@ -22,9 +22,17 @@ import {Container} from '@sentry/scraps/layout';
 import {ReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation';
-import {useVirtualCollection, VirtualRows} from '@sentry/scraps/useVirtualCollection';
+import {
+  useVirtualCollection,
+  VirtualRows,
+  type VirtualRowProps,
+} from '@sentry/scraps/useVirtualCollection';
 
-import {ListBoxDetailsHoverContext, ListBoxOption} from './option';
+import {
+  ListBoxDetailsHoverContext,
+  ListBoxOption,
+  type ListBoxOptionProps,
+} from './option';
 import {ListBoxSection} from './section';
 
 interface ListBoxProps<T extends ListItemBase>
@@ -112,6 +120,39 @@ interface ListBoxProps<T extends ListItemBase>
 }
 
 const EMPTY_SET = new Set<never>();
+
+interface ListBoxRowProps extends Omit<ListBoxOptionProps, 'data-index' | 'ref'> {
+  rowIndex?: number;
+  rowRef?: VirtualRowProps['ref'];
+}
+
+/**
+ * Renders an option for `VirtualRows`. The list re-renders on every scroll, so
+ * this returns the same option element while the row's own props keep their
+ * identity, and React skips rendering an option that did not change.
+ */
+// Props are listed rather than spread: a rest object is new on every render.
+function ListBoxRow({
+  item,
+  listState,
+  position,
+  rowIndex,
+  rowRef,
+  showDetails,
+  size,
+}: ListBoxRowProps) {
+  return (
+    <ListBoxOption
+      item={item}
+      listState={listState}
+      position={position}
+      showDetails={showDetails}
+      size={size}
+      data-index={rowIndex}
+      ref={rowRef}
+    />
+  );
+}
 const DETAILS_CLOSE_DELAY = 150;
 const DEFAULT_KEY_DOWN_HANDLER = () => true;
 
@@ -302,8 +343,9 @@ export function ListBox<T extends ListItemBase>({
               <VirtualRows
                 virtual={virtual}
                 renderRow={({node, props: rowProps}) => (
-                  <ListBoxOption
-                    {...rowProps}
+                  <ListBoxRow
+                    rowIndex={rowProps?.['data-index']}
+                    rowRef={rowProps?.ref}
                     item={node}
                     position={positions?.get(node.key as SelectKey)}
                     listState={listState}
