@@ -90,7 +90,7 @@ type Module = {
 
 const SDK = "@sentry/api";
 const API_PREFIX = /^\/api\/\d+(?=\/)/;
-const PATH_PARAMETER = /\{[^}]*\}/g;
+const PATH_PARAMETER = /\{[^{}]*\}/g;
 
 function unwrap(node: ts.Node): ts.Node {
   return ts.isAsExpression(node) ||
