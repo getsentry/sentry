@@ -41,24 +41,6 @@ class Migration(CheckedMigration):
                 "service_accounts.ServiceAccount", db_index=True, null=True, on_delete="SET_NULL"
             ),
         ),
-        migrations.AddField(
-            model_name="workflow",
-            name="created_by_org_auth_token_id",
-            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.OrgAuthToken", blank=True, db_index=True, null=True, on_delete="SET_NULL"
-            ),
-        ),
-        migrations.AddField(
-            model_name="workflow",
-            name="created_by_service_account_id",
-            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "service_accounts.ServiceAccount",
-                blank=True,
-                db_index=True,
-                null=True,
-                on_delete="SET_NULL",
-            ),
-        ),
         migrations.AddConstraint(
             model_name="detector",
             constraint=models.CheckConstraint(
@@ -78,27 +60,6 @@ class Migration(CheckedMigration):
                     _connector="OR",
                 ),
                 name="workflow_engine_detector_single_creator",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="workflow",
-            constraint=models.CheckConstraint(
-                condition=models.Q(
-                    models.Q(
-                        ("created_by_service_account_id__isnull", True),
-                        ("created_by_org_auth_token_id__isnull", True),
-                    ),
-                    models.Q(
-                        ("created_by_id__isnull", True),
-                        ("created_by_org_auth_token_id__isnull", True),
-                    ),
-                    models.Q(
-                        ("created_by_id__isnull", True),
-                        ("created_by_service_account_id__isnull", True),
-                    ),
-                    _connector="OR",
-                ),
-                name="workflow_engine_workflow_single_creator",
             ),
         ),
     ]

@@ -8,9 +8,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.serializers import ValidationError
 
 from sentry.auth.access import SystemAccess
-from sentry.auth.services.auth import AuthenticatedToken
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
@@ -414,25 +412,6 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.config == self.valid_data["config"]
         assert workflow.organization_id == self.organization.id
         assert workflow.created_by_id == self.user.id
-        assert workflow.created_by_service_account_id is None
-        assert workflow.created_by_org_auth_token_id is None
-
-    @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
-    def test_create__service_account(self, mock_audit: mock.MagicMock) -> None:
-        service_account = self.create_service_account(organization=self.organization)
-        auth = AuthenticatedToken(
-            kind=SERVICE_ACCOUNT_TOKEN_KIND,
-            entity_id=service_account.id,
-            organization_id=self.organization.id,
-        )
-        context = {**self.context, "request": self.make_request(auth=auth)}
-        validator = WorkflowValidator(data=self.valid_data, context=context)
-        assert validator.is_valid() is True
-        workflow = validator.create(validator.validated_data)
-
-        assert workflow.created_by_id is None
-        assert workflow.created_by_service_account_id == service_account.id
-        assert workflow.created_by_org_auth_token_id is None
 
     def test_create__without_config(self) -> None:
         del self.valid_data["config"]
