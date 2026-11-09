@@ -10,7 +10,10 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
-import {hasAccessToSubscriptionOverview, hasBillingAccess} from 'getsentry/utils/billing';
+import {
+  hasAccessToSubscriptionOverview,
+  shouldShowBillingInformation,
+} from 'getsentry/utils/billing';
 
 export function GsBillingCommandPaletteActions() {
   const organization = useOrganization();
@@ -18,9 +21,8 @@ export function GsBillingCommandPaletteActions() {
 
   const prefix = `/settings/${organization.slug}`;
   const canViewSubscription = hasAccessToSubscriptionOverview(subscription, organization);
-  // Partner-billed orgs are redirected away from the billing details page.
-  const canEditBillingInformation =
-    hasBillingAccess(organization) && !(subscription?.isSelfServePartner ?? false);
+  const showBillingInformation =
+    subscription !== null && shouldShowBillingInformation(subscription, organization);
 
   return (
     <Fragment>
@@ -42,7 +44,7 @@ export function GsBillingCommandPaletteActions() {
           to={`${prefix}/billing/`}
         />
       )}
-      {canEditBillingInformation && (
+      {showBillingInformation && (
         <CMDKAction
           display={{label: t('Billing Information'), icon: <IconCreditCard />}}
           keywords={[

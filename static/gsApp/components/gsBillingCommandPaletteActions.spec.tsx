@@ -18,6 +18,7 @@ import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 
 import {GsBillingCommandPaletteActions} from 'getsentry/components/gsBillingCommandPaletteActions';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import type {Subscription} from 'getsentry/types';
 
 mockElementSize();
 
@@ -93,12 +94,19 @@ describe('GsBillingCommandPaletteActions', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('hides billing information for partner-billed subscriptions', async () => {
+  it.each<[string, Partial<Subscription>]>([
+    ['partner-billed subscriptions', {isSelfServePartner: true}],
+    ['enterprise trials', {plan: 'am3_t_ent'}],
+    [
+      'sales-led subscriptions without pay-as-you-go',
+      {plan: 'am3_business_ent_auf', canSelfServe: false, supportsOnDemand: false},
+    ],
+  ])('hides billing information for %s', async (_, subscriptionProps) => {
     const organization = OrganizationFixture({access: ['org:billing']});
     act(() =>
       SubscriptionStore.set(
         organization.slug,
-        SubscriptionFixture({organization, isSelfServePartner: true})
+        SubscriptionFixture({organization, ...subscriptionProps})
       )
     );
 
