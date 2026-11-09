@@ -31,15 +31,9 @@ function getIncidentLineLabel(openPeriod: GroupOpenPeriod) {
 }
 
 describe('getMetricDetectorChartOption', () => {
-  it('labels open periods with the issue short ID', () => {
+  it('does not label open period lines', () => {
     const label = getIncidentLineLabel(GroupOpenPeriodFixture({shortId: 'PROJ-1A'}));
 
-    expect(label).toEqual(expect.objectContaining({show: true, formatter: 'PROJ-1A'}));
-  });
-
-  it('hides the label when the open period has no short ID', () => {
-    const label = getIncidentLineLabel(GroupOpenPeriodFixture({shortId: null}));
-
-    expect(label).toEqual(expect.objectContaining({show: false}));
+    expect(label).toEqual({show: false});
   });
 });

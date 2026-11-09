@@ -106,16 +106,8 @@ function createIncidentSeries(
           xAxis: incidentTimestamp,
         },
       ],
-      label: {
-        silent: true,
-        // Match the UI, which identifies open periods by their issue short ID
-        show: !!openPeriod.shortId,
-        position: 'insideEndBottom',
-        formatter: openPeriod.shortId ?? '',
-        color: lineColor,
-        fontSize: 10,
-        fontFamily: 'Rubik',
-      },
+      // Match the metric detector UI, which doesn't label open period lines
+      label: {show: false},
       tooltip: {
         formatter,
       },
