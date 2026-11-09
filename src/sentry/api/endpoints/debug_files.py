@@ -305,6 +305,19 @@ def debug_id_queries(debug_id: str) -> list[Q]:
     return qs
 
 
+class DebugFilesPermission(ProjectReleasePermission):
+    """
+    sentry-cli uploads debug files with org:ci tokens but never lists them; its
+    upload dedup check goes through UnknownDebugFilesEndpoint. Keep org:ci off GET
+    so CI tokens cannot enumerate a project's debug files.
+    """
+
+    scope_map = {
+        **ProjectReleasePermission.scope_map,
+        "GET": ["project:read", "project:write", "project:admin", "project:releases"],
+    }
+
+
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
@@ -314,7 +327,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (DebugFilesPermission,)
 
     def download(
         self, debug_file_id: int, project: Project
