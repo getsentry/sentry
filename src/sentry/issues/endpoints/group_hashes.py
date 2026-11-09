@@ -1,4 +1,3 @@
-import time
 import uuid
 from collections.abc import Sequence
 from functools import partial
@@ -34,7 +33,6 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
-from sentry.issues.unmerge_recovery import RETENTION_SECONDS
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.service_accounts.principal import ServiceAccountPrincipal
@@ -48,7 +46,6 @@ from sentry.utils.snuba import raw_query
 
 class UnmergeRecoveryArguments(TypedDict, total=False):
     operation_id: str
-    operation_expires_at: int
 
 
 class GroupHashesResult(TypedDict):
@@ -188,7 +185,6 @@ class GroupHashesEndpoint(GroupEndpoint):
             # ID alone does not identify duplicate child deliveries.
             task_kwargs = {
                 "operation_id": uuid.uuid4().hex,
-                "operation_expires_at": int(time.time()) + RETENTION_SECONDS,
             }
         start_unmerge.delay(
             group.project_id,

@@ -4,7 +4,6 @@ import functools
 import hashlib
 import itertools
 import logging
-import time
 import uuid
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
@@ -22,7 +21,6 @@ from sentry.issues.action_log.types import (
     first_seen_idempotency_key,
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
-from sentry.issues.unmerge_recovery import RETENTION_SECONDS
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
@@ -223,7 +221,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             self._assert_unmerge(
                 {
                     "operation_id": uuid.uuid4().hex,
-                    "operation_expires_at": int(time.time()) + RETENTION_SECONDS,
                 },
                 batch_size=2,
             )

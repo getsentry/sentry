@@ -155,7 +155,6 @@ class UnmergeArgsBase(abc.ABC):
     actor_id: int | None
     batch_size: int
     operation_id: str | None = dataclasses.field(default=None, kw_only=True)
-    operation_expires_at: int | None = dataclasses.field(default=None, kw_only=True)
     batch_number: int = dataclasses.field(default=0, kw_only=True)
 
     @staticmethod
@@ -173,7 +172,6 @@ class UnmergeArgsBase(abc.ABC):
         locked_primary_hashes: Collection[str] | None = None,
         destinations: Destinations | None = None,
         operation_id: str | None = None,
-        operation_expires_at: int | None = None,
         batch_number: int = 0,
     ) -> "UnmergeArgs":
         if destinations is None:
@@ -194,7 +192,6 @@ class UnmergeArgsBase(abc.ABC):
                 batch_size=batch_size,
                 destinations=destinations,
                 operation_id=operation_id,
-                operation_expires_at=operation_expires_at,
                 batch_number=batch_number,
             )
         else:
@@ -210,14 +207,13 @@ class UnmergeArgsBase(abc.ABC):
                 locked_primary_hashes=locked_primary_hashes or fingerprints or [],
                 source_fields_reset=source_fields_reset,
                 operation_id=operation_id,
-                operation_expires_at=operation_expires_at,
                 batch_number=batch_number,
             )
 
     def dump_arguments(self) -> Mapping[str, Any]:
         rv = dataclasses.asdict(self)
         if self.operation_id is None:
-            for key in ("operation_id", "operation_expires_at", "batch_number"):
+            for key in ("operation_id", "batch_number"):
                 del rv[key]
         rv["fingerprints"] = None
         rv["destination_id"] = None

@@ -1,4 +1,3 @@
-import time
 from unittest.mock import patch
 from urllib.parse import urlencode
 
@@ -8,7 +7,6 @@ from rest_framework.request import Request
 from sentry.api.serializers.models.event import FULL_PAYLOAD_MAX_PER_PAGE
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.endpoints.group_hashes import GroupHashesEndpoint
-from sentry.issues.unmerge_recovery import RETENTION_SECONDS
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import Factories
@@ -250,10 +248,6 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 202
         assert len(enqueue.call_args.kwargs["operation_id"]) == 32
-        assert (
-            abs(enqueue.call_args.kwargs["operation_expires_at"] - time.time() - RETENTION_SECONDS)
-            < 5
-        )
 
     def test_unmerge_put_member(self) -> None:
         member_user = self.create_user(is_superuser=False)

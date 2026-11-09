@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Callable, Collection, Mapping, Sequence
-from dataclasses import replace
 from datetime import datetime
 from functools import reduce
 from multiprocessing.context import TimeoutError
@@ -22,8 +21,8 @@ from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_
 from sentry.issues.action_log.backfill import BackfillEntry, backfill_actions
 from sentry.issues.action_log.types import FirstSeenAction, first_seen_idempotency_key
 from sentry.issues.unmerge_recovery import (
-    BatchCheckpoint,
     UnmergeBusy,
+    UnmergeCheckpoint,
     UnmergeNeedsRecovery,
     release_hashes,
     reserve_legacy_hashes,
@@ -51,7 +50,6 @@ from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import (
     InitialUnmergeArgs,
-    PrimaryHashUnmergeReplacement,
     SuccessiveUnmergeArgs,
     UnmergeArgs,
     UnmergeArgsBase,
@@ -488,11 +486,13 @@ def publish_destination_first_seen(project: Project, destination_ids: Collection
 
 def lock_hashes(project_id: int, source_id: int, fingerprints: Sequence[str]) -> list[str]:
     with (
-        reserve_legacy_hashes(project_id, fingerprints) as reserved,
+        reserve_legacy_hashes(project_id, fingerprints),
         transaction.atomic(router.db_for_write(GroupHash)),
     ):
         eligible_hashes = list(
-            GroupHash.objects.filter(project_id=project_id, group_id=source_id, hash__in=reserved)
+            GroupHash.objects.filter(
+                project_id=project_id, group_id=source_id, hash__in=fingerprints
+            )
             .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
             .select_for_update()
         )
@@ -530,7 +530,6 @@ def start_unmerge(
     actor_id: int | None,
     batch_size: int = 250,
     operation_id: str | None = None,
-    operation_expires_at: int | None = None,
 ) -> None:
     task_state = current_task()
     activation_id = task_state.id if task_state else None
@@ -558,21 +557,17 @@ def start_unmerge(
     metrics.incr("unmerge.started")
 
     if operation_id:
-        try:
-            _send_unmerge(
-                {
-                    "project_id": project_id,
-                    "source_id": source_id,
-                    "destination_id": destination_id,
-                    "fingerprints": fingerprints,
-                    "actor_id": actor_id,
-                    "batch_size": batch_size,
-                    "operation_id": operation_id,
-                    "operation_expires_at": operation_expires_at,
-                }
-            )
-        except Exception as error:
-            raise UnmergeBusy("Initial unmerge delivery was not confirmed") from error
+        _send_unmerge(
+            {
+                "project_id": project_id,
+                "source_id": source_id,
+                "destination_id": destination_id,
+                "fingerprints": fingerprints,
+                "actor_id": actor_id,
+                "batch_size": batch_size,
+                "operation_id": operation_id,
+            }
+        )
         return
     unmerge.delay(
         project_id, source_id, destination_id, fingerprints, actor_id, batch_size=batch_size
@@ -594,49 +589,34 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
         _unmerge(args)
         return
 
-    checkpoint: BatchCheckpoint | None = None
+    checkpoint = UnmergeCheckpoint(args)
     try:
-        checkpoint = BatchCheckpoint(args)
         with checkpoint:
-            if checkpoint.phase == "complete":
+            if checkpoint.finished:
                 return
-            if checkpoint.phase == "handoff":
-                _send_unmerge(checkpoint.state["continuation"])
-                checkpoint.complete()
-                return
-            _unmerge(args, checkpoint)
-    except UnmergeNeedsRecovery:
-        logger.exception(
-            "unmerge.needs_recovery",
-            extra={
-                "project_id": args.project_id,
-                "source_id": args.source_id,
-                "operation_id": args.operation_id,
-                "batch_number": args.batch_number,
-                "phase": checkpoint.state.get("phase") if checkpoint else None,
-            },
-        )
-        raise
-    except RedisError as error:
-        # A state write may have succeeded even when its response was lost.
-        # Redelivery reads the checkpoint: handoff/complete can resume, while
-        # applying still fails closed without replaying mutations.
-        raise UnmergeBusy("Unmerge checkpoint write was not confirmed") from error
-    except Exception as error:
-        # Read/locking/handoff failures can be retried. Once mutations might
-        # have started, preserve the original exception and require inspection.
-        if checkpoint is None or checkpoint.state.get("phase") != "applying":
-            raise UnmergeBusy("Unmerge read or handoff interrupted") from error
-        raise
+            if checkpoint.phase == "applying":
+                raise UnmergeNeedsRecovery("Unmerge batch may have partially applied mutations")
+            if checkpoint.phase != "handoff":
+                _unmerge(args, checkpoint)
+            continuation = checkpoint.state.get("continuation")
+        # Release the operation lease before delivery: the next batch may start
+        # immediately, while this worker is still waiting for confirmation.
+        if continuation:
+            _send_unmerge(continuation)
+    except (RedisError, MemoryError) as error:
+        raise UnmergeBusy("Unmerge read or checkpoint interrupted") from error
 
 
 def _send_unmerge(arguments: Mapping[str, Any]) -> None:
-    future = unmerge.apply_async_with_future(kwargs=arguments)
-    if future is not None:
-        future.result(timeout=30)
+    try:
+        future = unmerge.apply_async_with_future(kwargs=arguments)
+        if future is not None:
+            future.result(timeout=30)
+    except Exception as error:
+        raise UnmergeBusy("Unmerge delivery was not confirmed") from error
 
 
-def _unmerge(args: UnmergeArgs, checkpoint: BatchCheckpoint | None = None) -> None:
+def _unmerge(args: UnmergeArgs, checkpoint: UnmergeCheckpoint | None = None) -> None:
     with action_context_scope(ActionSource.SYSTEM):
         extra: dict[str, Any] = {"source_id": args.source_id, "project_id": args.project_id}
         if checkpoint:
@@ -661,36 +641,22 @@ def _unmerge(args: UnmergeArgs, checkpoint: BatchCheckpoint | None = None) -> No
             "unmerge.killswitch-projects", {"project_id": args.project_id}
         ):
             logger.warning("unmerge.halted_by_killswitch", extra=extra)
-            if checkpoint and isinstance(args, InitialUnmergeArgs):
-                owned = list(checkpoint.state.get("hashes", {}))
-                checkpoint.check_ownership(owned)
+            hashes = list(args.replacement.primary_hashes_to_lock)
+            if checkpoint and checkpoint.phase != "new":
+                checkpoint.check_ownership(hashes)
                 checkpoint.begin_mutations()
-                unlock_hashes(args.project_id, owned)
-                release_hashes(
-                    args.project_id, list(args.replacement.primary_hashes_to_lock), checkpoint.owner
-                )
+                unlock_hashes(args.project_id, hashes)
             if isinstance(args, SuccessiveUnmergeArgs):
-                if checkpoint:
-                    checkpoint.check_ownership(list(args.locked_primary_hashes))
-                    checkpoint.begin_mutations()
                 unlock_hashes(args.project_id, list(args.locked_primary_hashes))
                 for _unmerge_key, (_destination_id, eventstream_state) in args.destinations.items():
                     if eventstream_state:
                         args.replacement.stop_snuba_replacement(eventstream_state)
-                if checkpoint:
-                    release_hashes(
-                        args.project_id, list(args.locked_primary_hashes), checkpoint.owner
-                    )
             if checkpoint:
+                release_hashes(args.project_id, hashes, checkpoint.owner)
                 checkpoint.complete()
             return
 
-        try:
-            source = Group.objects.get(project_id=args.project_id, id=args.source_id)
-        except Group.DoesNotExist as error:
-            if checkpoint:
-                raise UnmergeNeedsRecovery("Unmerge source no longer exists") from error
-            raise
+        source = Group.objects.get(project_id=args.project_id, id=args.source_id)
 
         caches: Mapping[str, Any] = get_caches()
 
@@ -718,13 +684,6 @@ def _unmerge(args: UnmergeArgs, checkpoint: BatchCheckpoint | None = None) -> No
             return
         if checkpoint:
             checkpoint.check_ownership(locked_primary_hashes)
-        if isinstance(args.replacement, PrimaryHashUnmergeReplacement):
-            # Snuba's replacement must use the same owned subset as Postgres
-            # and event classification when an overlapping request wins a hash.
-            args = replace(
-                args,
-                replacement=PrimaryHashUnmergeReplacement(fingerprints=locked_primary_hashes),
-            )
         last_event, raw_events = task_run_batch_query(
             filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
             batch_size=args.batch_size,
@@ -826,14 +785,11 @@ def _unmerge(args: UnmergeArgs, checkpoint: BatchCheckpoint | None = None) -> No
             locked_primary_hashes=locked_primary_hashes,
             source_fields_reset=source_fields_reset,
             operation_id=args.operation_id,
-            operation_expires_at=args.operation_expires_at,
             batch_number=args.batch_number + 1,
         )
 
         if checkpoint:
             checkpoint.handoff(new_args.dump_arguments())
-            _send_unmerge(checkpoint.state["continuation"])
-            checkpoint.complete()
             return
         unmerge.delay(**new_args.dump_arguments())
         # Record that this activation has spawned its continuation. A subsequent re-pend of this same
