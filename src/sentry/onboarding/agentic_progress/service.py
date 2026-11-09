@@ -47,7 +47,7 @@ TOKEN_LENGTH = 10
 
 class RegisteredRun(NamedTuple):
     run: OnboardingRun
-    onboarding_code: str
+    onboarding_code: str | None
 
 
 class UpdatedRun(NamedTuple):
@@ -89,23 +89,29 @@ class OnboardingProgressService:
         user_id: int,
         organization_id: int,
         client_run_id: str,
-        onboarding_code: str,
+        onboarding_code: str | None = None,
         origin: RunOrigin | None = None,
     ) -> RegisteredRun:
         index_key = self._client_index_key(user_id, organization_id, client_run_id)
         claim = self._claim_client_run(index_key)
         if claim.existing is not None:
-            if hmac.compare_digest(claim.existing.token_hash, self._hash_token(onboarding_code)):
-                return RegisteredRun(claim.existing, onboarding_code)
-            raise RunOwnershipMismatch
+            if onboarding_code is not None and (
+                claim.existing.token_hash is None
+                or not hmac.compare_digest(
+                    claim.existing.token_hash, self._hash_token(onboarding_code)
+                )
+            ):
+                raise RunOwnershipMismatch
+            return RegisteredRun(claim.existing, onboarding_code)
 
         assert claim.claimed_run_id is not None
         now = datetime.now(timezone.utc)
         ttl = int(RUN_LIFETIME.total_seconds())
-        token_hash = self._hash_token(onboarding_code)
-        token_key = self._token_index_key(token_hash)
+        token_hash = self._hash_token(onboarding_code) if onboarding_code is not None else None
+        token_key = self._token_index_key(token_hash) if token_hash is not None else None
         try:
-            self._claim_token_index(token_key, claim.claimed_run_id, ttl)
+            if token_key is not None:
+                self._claim_token_index(token_key, claim.claimed_run_id, ttl)
             run = OnboardingRun(
                 origin=origin,
                 run_id=claim.claimed_run_id,
@@ -122,7 +128,8 @@ class OnboardingProgressService:
             )
             self.redis.set(self._state_key(claim.claimed_run_id), self._serialize(run), ex=ttl)
         except Exception:
-            self._release_index(token_key, claim.claimed_run_id)
+            if token_key is not None:
+                self._release_index(token_key, claim.claimed_run_id)
             self._release_index(index_key, claim.claimed_run_id)
             raise
 

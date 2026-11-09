@@ -141,7 +141,7 @@ class PersistedStageState(BaseModel):
 class PersistedOnboardingRun(BaseModel):
     run_id: StrictStr
     channel_id: StrictStr
-    token_hash: StrictStr
+    token_hash: StrictStr | None
     client_run_id: StrictStr
     user_id: StrictInt
     organization_id: StrictInt
@@ -388,8 +388,8 @@ class OnboardingRun:
     channel_id: str
     """Stable Conduit channel shared by every snapshot for this run."""
 
-    token_hash: str
-    """HMAC of the short handoff token accepted from the onboarding tool."""
+    token_hash: str | None
+    """HMAC of the reporting code when one has been issued."""
 
     client_run_id: str
     """Browser-generated identifier used to make registration resumable."""
