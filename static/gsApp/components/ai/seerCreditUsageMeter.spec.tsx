@@ -113,7 +113,7 @@ describe('SeerCreditUsageMeter', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('points to the threshold when auto reload has no top-ups left', async () => {
+  it('links to auto reload when it has no top-ups left', async () => {
     mockWallet(billingOrganization, {autoReload: true, balance: 50, percentUsed: 0.95});
 
     render(<SeerCreditUsageMeter hasEnoughCredits={false} />, {
@@ -125,9 +125,10 @@ describe('SeerCreditUsageMeter', () => {
     expect(
       await screen.findByText(/You do not have any more reloads available\./)
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', {name: 'Configure your threshold here.'})
-    ).toHaveAttribute('href', settingsUrl);
+    expect(screen.getByRole('link', {name: 'Configure auto-reload.'})).toHaveAttribute(
+      'href',
+      settingsUrl
+    );
     expect(
       screen.queryByText('Credits will reload automatically.')
     ).not.toBeInTheDocument();

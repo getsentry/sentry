@@ -167,7 +167,7 @@ function AutoReloadStatus({
     return (
       <Text>
         {tct(
-          'You do not have any more reloads available. [link:Configure your threshold here.]',
+          'You do not have any more reloads available. [link:Configure auto-reload.]',
           {link: <Link to={configureAutoReloadTo} />}
         )}
       </Text>

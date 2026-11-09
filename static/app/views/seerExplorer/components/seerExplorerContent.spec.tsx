@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {QueryClientProvider, type QueryClient} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
@@ -41,6 +42,7 @@ async function getSeerExplorerInput() {
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
+  featureId: null,
   isPolling: false,
   isError: false,
   hasSessionLoadError: false,
@@ -2261,6 +2263,59 @@ describe('SeerExplorerContent', () => {
       expect(sendMessage).toHaveBeenCalledTimes(1);
       expect(textarea).toHaveTextContent('my own question');
       expect(screen.getByRole('button', {name: 'Send message'})).toBeEnabled();
+    });
+
+    it('waits for its own credit check instead of an earlier panel’s answer', async () => {
+      mockCreditCheck(false);
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+
+      // Each forward remounts the panel, which keeps the query cache.
+      function ForwardAgain() {
+        const [forwarded, setForwarded] = useState<string>();
+        return (
+          <PictureInPictureProvider>
+            <SeerExplorerSessionsProvider>
+              <button onClick={() => setForwarded('why is this slow?')}>
+                Forward a question
+              </button>
+              <SeerExplorerContent
+                key={forwarded ?? 'first'}
+                getPageReferrer={mockGetPageReferrer}
+                onClose={() => {}}
+                initialQuery={forwarded}
+              />
+            </SeerExplorerSessionsProvider>
+          </PictureInPictureProvider>
+        );
+      }
+
+      render(<ForwardAgain />, {organization: creditsOrganization});
+      await screen.findByTestId('seer-explorer-out-of-credits');
+
+      // A billing member tops up before the next question is forwarded.
+      let answerCreditCheck!: () => void;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'agent_chat_message'})],
+        body: {hasEnoughCredits: true},
+        asyncDelay: new Promise<void>(resolve => {
+          answerCreditCheck = resolve;
+        }),
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Forward a question'}));
+
+      // The cached "out of credits" doesn't park the question in the composer.
+      expect(await getSeerExplorerInput()).not.toHaveTextContent('why is this slow?');
+      expect(sendMessage).not.toHaveBeenCalled();
+
+      answerCreditCheck();
+
+      await waitFor(() => {
+        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0);
+      });
     });
 
     it('disables retrying a timed out message', async () => {

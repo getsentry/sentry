@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator, Mapping, Sequence
-from typing import Any, Protocol, TypedDict, cast
+from typing import Annotated, Any, Literal, Protocol, TypedDict, cast
 
 from django.conf import settings
 from django.core.cache import cache
 from packaging.version import Version
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.tasks.release_registry import SDK_INDEX_CACHE_KEY
 from sentry.utils.safe import get_path
 
@@ -86,8 +87,48 @@ class SdkIndexState:
         return self._sdk_urls
 
 
+class EnableIntegrationSuggestionResponse(TypedDict):
+    type: Annotated[Literal["enableIntegration"], ApiDescription("Kind of suggestion")]
+    integrationName: Annotated[str, ApiDescription("Name of the SDK integration to enable")]
+    integrationUrl: Annotated[str, ApiDescription("Documentation URL of the integration")]
+    enables: Annotated[
+        list[SdkUpdateSuggestionResponse],
+        ApiDescription("Suggestions that become possible after this one is applied"),
+    ]
+
+
+class UpdateSdkSuggestionResponse(TypedDict):
+    type: Annotated[Literal["updateSdk"], ApiDescription("Kind of suggestion")]
+    sdkName: Annotated[str, ApiDescription("Name of the SDK to update")]
+    newSdkVersion: Annotated[str | None, ApiDescription("SDK version to update to")]
+    sdkUrl: Annotated[
+        str | None, ApiDescription("Documentation URL of the SDK. Null when it isn't known")
+    ]
+    enables: Annotated[
+        list[SdkUpdateSuggestionResponse],
+        ApiDescription("Suggestions that become possible after this one is applied"),
+    ]
+
+
+class ChangeSdkSuggestionResponse(TypedDict):
+    type: Annotated[Literal["changeSdk"], ApiDescription("Kind of suggestion")]
+    newSdkName: Annotated[str, ApiDescription("Name of the SDK to switch to")]
+    sdkUrl: Annotated[
+        str | None, ApiDescription("Documentation URL of the SDK. Null when it isn't known")
+    ]
+    enables: Annotated[
+        list[SdkUpdateSuggestionResponse],
+        ApiDescription("Suggestions that become possible after this one is applied"),
+    ]
+
+
+SdkUpdateSuggestionResponse = (
+    EnableIntegrationSuggestionResponse | UpdateSdkSuggestionResponse | ChangeSdkSuggestionResponse
+)
+
+
 class Suggestion:
-    def to_json(self, sdk_urls: Mapping[str, str]) -> dict[str, object]:
+    def to_json(self, sdk_urls: Mapping[str, str]) -> SdkUpdateSuggestionResponse:
         raise NotImplementedError()
 
     def __eq__(self, other: object) -> bool:
@@ -100,11 +141,12 @@ class EnableIntegrationSuggestion(Suggestion):
         self.integration_name = integration_name
         self.integration_url = integration_url
 
-    def to_json(self, sdk_urls: Mapping[str, str]) -> dict[str, object]:
+    def to_json(self, sdk_urls: Mapping[str, str]) -> EnableIntegrationSuggestionResponse:
         return {
             "type": "enableIntegration",
             "integrationName": self.integration_name,
             "integrationUrl": self.integration_url,
+            "enables": [],
         }
 
     def get_new_state(self, old_state: SdkSetupState) -> SdkSetupState:
@@ -124,12 +166,13 @@ class UpdateSDKSuggestion(Suggestion):
         self.new_sdk_version = new_sdk_version
         self.ignore_patch_version = ignore_patch_version
 
-    def to_json(self, sdk_urls: Mapping[str, str]) -> dict[str, object]:
+    def to_json(self, sdk_urls: Mapping[str, str]) -> UpdateSdkSuggestionResponse:
         return {
             "type": "updateSdk",
             "sdkName": self.sdk_name,
             "newSdkVersion": self.new_sdk_version,
             "sdkUrl": sdk_urls.get(self.sdk_name),
+            "enables": [],
         }
 
     def get_new_state(self, old_state: SdkSetupState) -> SdkSetupState:
@@ -167,11 +210,12 @@ class ChangeSDKSuggestion(Suggestion):
         self.new_sdk_name = new_sdk_name
         self.module_names = module_names
 
-    def to_json(self, sdk_urls: Mapping[str, str]) -> dict[str, object]:
+    def to_json(self, sdk_urls: Mapping[str, str]) -> ChangeSdkSuggestionResponse:
         return {
             "type": "changeSdk",
             "newSdkName": self.new_sdk_name,
             "sdkUrl": sdk_urls.get(self.new_sdk_name),
+            "enables": [],
         }
 
     def get_new_state(self, old_state: SdkSetupState) -> SdkSetupState:
@@ -195,7 +239,7 @@ class SupportedModule(TypedDict):
 
 
 class StatefulSuggestion(Protocol):
-    def to_json(self, sdk_urls: Mapping[str, str]) -> dict[str, object]: ...
+    def to_json(self, sdk_urls: Mapping[str, str]) -> SdkUpdateSuggestionResponse: ...
 
     def get_new_state(self, old_state: SdkSetupState) -> SdkSetupState: ...
 
@@ -487,7 +531,7 @@ def get_suggested_updates(
     index_state: SdkIndexState | None = None,
     parent_suggestions: list[StatefulSuggestion] | None = None,
     ignore_patch_version: bool = True,
-) -> Iterator[dict[str, object]]:
+) -> Iterator[SdkUpdateSuggestionResponse]:
     if index_state is None:
         index_state = SdkIndexState()
 

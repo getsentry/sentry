@@ -21,6 +21,7 @@ import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
+import {SINGLE_RUN_FEATURE_ID} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   AutofixChatProvider,
   type SendMessageOptions,
@@ -227,6 +228,7 @@ export function SeerExplorerContent({
   const {
     runId,
     sessionData,
+    featureId,
     isPolling,
     isError,
     hasSessionLoadError,
@@ -361,11 +363,15 @@ export function SeerExplorerContent({
   // waits on an answer to a message it already has.
   const isComposerShown =
     !readOnly && !showLoadError && !showFileApprovalBar && !showQuestionBar;
-  const {hasEnoughCredits, isPending: isCheckingCredits} = useSeerCreditCheck(
+  const {hasEnoughCredits, hasCheckedSinceMount} = useSeerCreditCheck(
     'agent_chat_message',
     {enabled: isComposerShown}
   );
   const isOutOfCredits = !hasEnoughCredits;
+  // Each forward remounts the panel, so an answer cached by an earlier panel can
+  // be out of date: a billing member may have topped up since. Only this
+  // panel's own check counts.
+  const isCheckingCredits = !hasCheckedSinceMount;
   // Seer stopped a reply, or refused a send, for credits. Recheck so the notice
   // replaces the composer instead of the next send failing too. Only on the change,
   // since opening a run like this already runs the check.
@@ -380,7 +386,7 @@ export function SeerExplorerContent({
     }
     prevHitOutOfCreditsRef.current = hitOutOfCredits;
   }, [hitOutOfCredits, organization, queryClient]);
-  // A question forwarded from elsewhere waits for the first check (see the
+  // A question forwarded from elsewhere waits for that check (see the
   // auto-submit below) and goes first. Until it does, the user's own sends wait
   // too, or one would land ahead of it and the forwarded question would be
   // dropped, or sent after it.
@@ -967,7 +973,7 @@ export function SeerExplorerContent({
               </Container>
             ) : undefined
           }
-          usageMeter={<SeerCreditUsageMeter hasEnoughCredits={hasEnoughCredits} />}
+          toolbarItems={<SeerCreditUsageMeter hasEnoughCredits={hasEnoughCredits} />}
           interruptState={interruptState}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}
@@ -976,6 +982,7 @@ export function SeerExplorerContent({
           onSend={handleSend}
           repoPRStates={repoPRStates}
           runId={runId}
+          isSingleRun={featureId === SINGLE_RUN_FEATURE_ID}
           composerRef={composerRef}
           fileApprovalActions={
             showFileApprovalBar

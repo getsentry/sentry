@@ -9,6 +9,10 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
+import {
+  hasPaidSeer,
+  SeerPricingChangeAlert,
+} from 'getsentry/components/ai/seerPricingChangeAlert';
 import type {Subscription} from 'getsentry/types';
 import {getPlanIcon} from 'getsentry/utils/billing';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
@@ -73,6 +77,7 @@ export function SubscriptionHeader(props: Props) {
           organization={organization}
           subscription={subscription}
         />
+        {hasPaidSeer(subscription) && <SeerPricingChangeAlert />}
         {isDisabled ? (
           <PartnershipNote subscription={subscription} />
         ) : hasBillingPerms ? (

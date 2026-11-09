@@ -50,9 +50,11 @@ HANDOFF_SCOPES = (
 
 class AgentHandoffRequest(TypedDict):
     flow: str
+    disable_ip_pinning: bool
 
 
 class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
+    disable_ip_pinning = serializers.BooleanField(default=False)
     flow = serializers.ChoiceField(choices=list(HandoffFlow), default=HandoffFlow.GUIDED_NEXT_STEPS)
 
 
@@ -63,7 +65,7 @@ class AgentHandoffResponse(TypedDict):
 
 
 class AgentHandoffPermission(OrganizationPermission):
-    scope_map = {"POST": ["org:read"]}
+    scope_map = {"GET": ["org:read"], "POST": ["org:read"]}
 
 
 @extend_schema(tags=["Organizations"])
@@ -121,6 +123,8 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
             organization_id=organization.id,
             application_id=application.id,
             scope_list=HANDOFF_SCOPES,
+            ip_address=request.META["REMOTE_ADDR"],
+            disable_ip_pinning=serializer.validated_data["disable_ip_pinning"],
         )
         guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {

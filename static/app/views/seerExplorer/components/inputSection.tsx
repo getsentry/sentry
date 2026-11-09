@@ -48,12 +48,16 @@ interface InputSectionProps {
   disabledPlaceholder?: string;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
+  isSingleRun?: boolean;
   /** Shown right above the composer, for example to say why sending is blocked. */
   notice?: React.ReactNode;
   questionActions?: QuestionActions;
   runId?: SeerExplorerRunId | null;
-  /** Shown next to the send button, for example the organization's credit usage. */
-  usageMeter?: React.ReactNode;
+  /**
+   * Shown in the toolbar under the editor, before the send or interrupt button.
+   * The chat puts the organization's credit usage here.
+   */
+  toolbarItems?: React.ReactNode;
 }
 
 export function InputSection({
@@ -73,11 +77,13 @@ export function InputSection({
   notice,
   questionActions,
   runId,
-  usageMeter,
+  isSingleRun,
+  toolbarItems,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
-  // With ask-seer-create-pr the agent opens PRs, so show links to them.
-  const agentCreatesPRs = organization?.features.includes('ask-seer-create-pr');
+  // Autofix single runs and ask-seer-create-pr runs open PRs, so show links to them.
+  const agentCreatesPRs =
+    isSingleRun || organization?.features.includes('ask-seer-create-pr');
   // Keyed by run so collapse state resets when switching conversations.
   const prLinksBar = agentCreatesPRs ? (
     <PRLinksBar key={runId ?? undefined} repoPRStates={repoPRStates} />
@@ -298,7 +304,7 @@ export function InputSection({
             background="primary"
             radius="0 0 lg lg"
           >
-            {usageMeter}
+            {toolbarItems}
             {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
               <Button
                 icon={<IconPause />}

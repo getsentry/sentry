@@ -109,8 +109,8 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
         <Text as="p">
           Auto reload is on but the organization still can't afford a message, so it has
           used every top-up its threshold allows. The bar turns warning-colored and the
-          tooltip links to the threshold. The out-of-credits alert sits above the composer
-          at the same time.
+          tooltip links to the auto reload settings. The out-of-credits alert sits above
+          the composer at the same time.
         </Text>
         <NextToSendButton>
           <SeerCreditUsageMeterView

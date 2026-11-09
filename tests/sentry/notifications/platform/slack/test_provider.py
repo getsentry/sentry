@@ -184,6 +184,17 @@ class SlackNotificationProviderTrackActionsTest(TestCase):
             action=action, organization_id=self.organization.id, project_id=self.project.id
         )
 
+    def _view_pr_action_id(
+        self, pr_number: int, tracking: SlackActionTracking | None = None
+    ) -> str:
+        return encode_action_id(
+            action=SlackAction.SEER_AUTOFIX_VIEW_PR,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            suffix=str(pr_number),
+            tracking=tracking,
+        )
+
     def _button_action_ids(self, renderable: SlackRenderable) -> list[str | None]:
         actions = renderable["blocks"][0]
         assert isinstance(actions, ActionsBlock)
@@ -198,8 +209,18 @@ class SlackNotificationProviderTrackActionsTest(TestCase):
                     elements=[
                         LinkButtonElement(
                             text="View in Sentry",
-                            url="https://sentry.io/issues/1/",
+                            url=f"https://sentry.io/issues/1/?referrer=seer-autofix-update-slack&notification_uuid={self.context.notification_uuid}",
                             action_id=self._action_id(SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY),
+                        ),
+                        LinkButtonElement(
+                            text="View PR (#123)",
+                            url="https://github.com/org/repo/pull/123",
+                            action_id=self._view_pr_action_id(123),
+                        ),
+                        LinkButtonElement(
+                            text="View PR (#456)",
+                            url="https://github.com/org/repo/pull/456",
+                            action_id=self._view_pr_action_id(456),
                         ),
                         ButtonElement(
                             text="Fix with Seer",
@@ -238,9 +259,15 @@ class SlackNotificationProviderTrackActionsTest(TestCase):
             renderable=renderable, context=self.context
         )
 
-        assert tracked == {SlackAction.SEER_AUTOFIX_START, SlackAction.SEER_INVESTIGATION_START}
+        assert tracked == {
+            SlackAction.SEER_AUTOFIX_VIEW_PR,
+            SlackAction.SEER_AUTOFIX_START,
+            SlackAction.SEER_INVESTIGATION_START,
+        }
         assert self._button_action_ids(renderable) == [
             self._action_id(SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY),
+            self._view_pr_action_id(123, tracking=self.tracking),
+            self._view_pr_action_id(456, tracking=self.tracking),
             encode_action_id(
                 action=SlackAction.SEER_AUTOFIX_START,
                 organization_id=self.organization.id,
@@ -263,7 +290,7 @@ class SlackNotificationProviderTrackActionsTest(TestCase):
             )
 
         assert tracked == set()
-        assert self._button_action_ids(renderable)[1] == self._action_id(
+        assert self._button_action_ids(renderable)[3] == self._action_id(
             SlackAction.SEER_AUTOFIX_START
         )
 
@@ -274,6 +301,32 @@ class SlackNotificationProviderTrackActionsTest(TestCase):
         tracked = SlackNotificationProvider.track_actions(renderable=renderable, context=context)
 
         assert tracked == set()
+
+    def test_tracks_link_button_to_a_link_tracked_for_another_notification(self) -> None:
+        action_id = self._action_id(SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY)
+        renderable = SlackRenderable(
+            blocks=[
+                ActionsBlock(
+                    elements=[
+                        LinkButtonElement(
+                            text="View in Sentry",
+                            url="https://sentry.io/issues/1/?notification_uuid=other",
+                            action_id=action_id,
+                        )
+                    ]
+                )
+            ],
+            text="Seer",
+        )
+
+        tracked = SlackNotificationProvider.track_actions(
+            renderable=renderable, context=self.context
+        )
+
+        assert tracked == {SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY}
+        [tracked_action_id] = self._button_action_ids(renderable)
+        assert tracked_action_id is not None
+        assert decode_action_id(tracked_action_id).tracking == self.tracking
 
 
 class SlackNotificationProviderSendTest(TestCase):
