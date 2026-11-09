@@ -1620,9 +1620,9 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Blocks telemetry classifier enrichment writes to snuba-items while enabled.
+# Enables telemetry classifier enrichment writes to snuba-items.
 register(
-    "telemetry-classifiers.eap-write-killswitch.enabled",
+    "telemetry-classifiers.eap-write.enabled",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

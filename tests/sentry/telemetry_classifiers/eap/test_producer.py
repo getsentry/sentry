@@ -21,7 +21,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 
-KILLSWITCH_OPTION = "telemetry-classifiers.eap-write-killswitch.enabled"
+WRITE_ENABLED_OPTION = "telemetry-classifiers.eap-write.enabled"
 
 
 class ProduceEnrichmentAttributesTest(TestCase):
@@ -47,7 +47,7 @@ class ProduceEnrichmentAttributesTest(TestCase):
         )
 
         with (
-            override_options({KILLSWITCH_OPTION: False}),
+            override_options({WRITE_ENABLED_OPTION: True}),
             mock.patch("sentry.telemetry_classifiers.eap.producer._snuba_items_producer", producer),
             mock.patch(
                 "sentry.telemetry_classifiers.eap.producer.timezone.now",
@@ -103,7 +103,7 @@ class ProduceEnrichmentAttributesTest(TestCase):
 
     def test_rejects_invalid_sample_rate(self) -> None:
         with (
-            override_options({KILLSWITCH_OPTION: False}),
+            override_options({WRITE_ENABLED_OPTION: True}),
             pytest.raises(
                 ValueError, match="client_sample_rate must be greater than 0 and at most 1"
             ),
@@ -118,14 +118,13 @@ class ProduceEnrichmentAttributesTest(TestCase):
             )
 
     @mock.patch("sentry.telemetry_classifiers.eap.producer._snuba_items_producer")
-    def test_killswitch_blocks_production(self, producer: mock.Mock) -> None:
-        with override_options({KILLSWITCH_OPTION: True}):
-            produce_enrichment_attributes(
-                self.project,
-                idempotency_key="key",
-                trace_id="1" * 32,
-                timestamp=datetime(2020, 1, 1, tzinfo=UTC),
-                attributes={"sentry.enrichment.test": True},
-            )
+    def test_writes_disabled_by_default(self, producer: mock.Mock) -> None:
+        produce_enrichment_attributes(
+            self.project,
+            idempotency_key="key",
+            trace_id="1" * 32,
+            timestamp=datetime(2020, 1, 1, tzinfo=UTC),
+            attributes={"sentry.enrichment.test": True},
+        )
 
         producer.produce.assert_not_called()

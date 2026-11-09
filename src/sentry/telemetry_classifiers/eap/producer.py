@@ -29,7 +29,7 @@ type EnrichmentAttributeValue = (
 # It is not a Kafka namespace or secret. Changing it changes every item ID and breaks retry
 # idempotency; it provides collision isolation, not security.
 ENRICHMENT_NAMESPACE = uuid.UUID("98bf1b4e-0a58-426f-81f5-fe27689fde74")
-_EAP_WRITE_KILLSWITCH = "telemetry-classifiers.eap-write-killswitch.enabled"
+_EAP_WRITE_ENABLED = "telemetry-classifiers.eap-write.enabled"
 _RETENTION_DAYS = 30
 _SNUBA_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 _snuba_items_topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
@@ -78,7 +78,7 @@ def produce_enrichment_attributes(
     Callers must derive the idempotency key and timestamp from stable source data so task retries
     replace the same EAP item.
     """
-    if options.get(_EAP_WRITE_KILLSWITCH):
+    if not options.get(_EAP_WRITE_ENABLED):
         return
 
     if not idempotency_key:
