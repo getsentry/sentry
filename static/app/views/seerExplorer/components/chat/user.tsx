@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
 
 import {ChatPromptMessage} from './chatPrompt';
@@ -20,18 +21,24 @@ export function UserBlock({block, blockIndex}: UserBlockProps) {
       {chatPrompt ? <ChatPromptMessage text={chatPrompt.text} /> : null}
       <MessageRow from="user">
         <UserMessage>
-          {isAutofixPrompt ? (
-            <Disclosure size="sm">
-              <Disclosure.Title>
-                <Text>{t('Started Autofix')}</Text>
-              </Disclosure.Title>
-              <Disclosure.Content>{content}</Disclosure.Content>
-            </Disclosure>
-          ) : (
-            content
-          )}
+          {isAutofixPrompt ? <AutofixPrompt content={content} /> : content}
         </UserMessage>
       </MessageRow>
     </Fragment>
+  );
+}
+
+function AutofixPrompt({content}: {content: string}) {
+  const isSentryEmployee = useIsSentryEmployee();
+  if (!isSentryEmployee) {
+    return <Text>{t('Started Autofix')}</Text>;
+  }
+  return (
+    <Disclosure size="sm">
+      <Disclosure.Title>
+        <Text>{t('Started Autofix')}</Text>
+      </Disclosure.Title>
+      <Disclosure.Content>{content}</Disclosure.Content>
+    </Disclosure>
   );
 }

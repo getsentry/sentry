@@ -1,5 +1,9 @@
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -17,7 +21,14 @@ function createBlock(overrides?: Partial<Block>): Block {
 }
 
 describe('UserBlock', () => {
-  it('collapses the Autofix prompt that starts a run', async () => {
+  function loginAs(email: string) {
+    ConfigStore.loadInitialData(
+      ConfigFixture({user: UserFixture({emails: [{email, is_verified: true, id: '1'}]})})
+    );
+  }
+
+  it('lets a Sentry employee expand the Autofix prompt that starts a run', async () => {
+    loginAs('nico@sentry.io');
     const block = createBlock({
       message: {role: 'user', content: 'Fix issue ABC-1', metadata: {step: 'single_run'}},
     });
@@ -28,6 +39,18 @@ describe('UserBlock', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Started Autofix'}));
     expect(screen.getByText('Fix issue ABC-1')).toBeVisible();
+  });
+
+  it('hides the Autofix prompt from customers', () => {
+    loginAs('customer@example.com');
+    const block = createBlock({
+      message: {role: 'user', content: 'Fix issue ABC-1', metadata: {step: 'single_run'}},
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Started Autofix')).toBeInTheDocument();
+    expect(screen.queryByText('Fix issue ABC-1')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('shows a reply to an Autofix run in full', () => {
