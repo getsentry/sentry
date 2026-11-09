@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import datetime
 from io import BytesIO
 from typing import Any, cast
@@ -23,7 +24,7 @@ from sentry.preprod.size_analysis.grouptype import (
     SizeAnalysisMetadata,
     SizeAnalysisValue,
 )
-from sentry.preprod.size_analysis.models import SizeAnalysisResults
+from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 from sentry.preprod.size_analysis.webhooks import send_size_analysis_webhook
 from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
@@ -419,11 +420,77 @@ def manual_size_analysis_comparison(
         )
 
 
+def _get_analysis_files(
+    head_size_metric: PreprodArtifactSizeMetrics, base_size_metric: PreprodArtifactSizeMetrics
+) -> tuple[File, File] | None:
+    try:
+        head_analysis_file = File.objects.get(id=head_size_metric.analysis_file_id)
+    except File.DoesNotExist:
+        logger.exception(
+            "preprod.size_analysis.compare.head_analysis_file_not_found",
+            extra={
+                "head_artifact_size_metric_id": head_size_metric.id,
+                "head_artifact_id": head_size_metric.preprod_artifact.id,
+            },
+        )
+        return None
+
+    try:
+        base_analysis_file = File.objects.get(id=base_size_metric.analysis_file_id)
+    except File.DoesNotExist:
+        logger.exception(
+            "preprod.size_analysis.compare.base_analysis_file_not_found",
+            extra={
+                "base_artifact_size_metric_id": base_size_metric.id,
+                "base_artifact_id": base_size_metric.preprod_artifact.id,
+            },
+        )
+        return None
+
+    return head_analysis_file, base_analysis_file
+
+
+def _load_size_analysis_results(analysis_file: File) -> SizeAnalysisResults:
+    analysis_fileobj = analysis_file.getfile()
+    analysis_content = analysis_fileobj.read()
+    return SizeAnalysisResults.parse_raw(analysis_content)
+
+
+def _store_size_comparison_results(name: str, comparison_results: ComparisonResults) -> File:
+    file = File.objects.create(
+        name=name,
+        type="size_analysis_comparison.json",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        results_json = dumps_htmlsafe(comparison_results.dict())
+        results_bytes = results_json.encode()
+        file.putfile(BytesIO(results_bytes))
+    except BaseException:
+        file.delete()
+        raise
+    return file
+
+
+def _delete_unreferenced_result_files(files: Sequence[File]) -> None:
+    for file in files:
+        try:
+            referencing_comparisons = PreprodArtifactSizeComparison.objects.filter(file_id=file.id)
+            if not referencing_comparisons.exists():
+                file.delete()
+        except Exception:
+            logger.exception(
+                "preprod.size_analysis.compare.result_file_cleanup_failed",
+                extra={"file_id": file.id},
+            )
+
+
 def _run_size_analysis_comparison(
     org_id: int,
     head_size_metric: PreprodArtifactSizeMetrics,
     base_size_metric: PreprodArtifactSizeMetrics,
 ) -> None:
+    """One comparison on an existing PENDING row; PROCESSING lets the sweeper fail a stuck one."""
     comparison = None
     try:
         comparison = PreprodArtifactSizeComparison.objects.get(
@@ -466,38 +533,16 @@ def _run_size_analysis_comparison(
             comparison.save()
         return
 
-    try:
-        head_analysis_file = File.objects.get(id=head_size_metric.analysis_file_id)
-    except File.DoesNotExist:
-        logger.exception(
-            "preprod.size_analysis.compare.head_analysis_file_not_found",
-            extra={
-                "head_artifact_size_metric_id": head_size_metric.id,
-                "head_artifact_id": head_size_metric.preprod_artifact.id,
-            },
-        )
+    analysis_files = _get_analysis_files(head_size_metric, base_size_metric)
+    if analysis_files is None:
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
             comparison.state = PreprodArtifactSizeComparison.State.FAILED
             comparison.save()
         return
+    head_analysis_file, base_analysis_file = analysis_files
 
-    try:
-        base_analysis_file = File.objects.get(id=base_size_metric.analysis_file_id)
-    except File.DoesNotExist:
-        logger.exception(
-            "preprod.size_analysis.compare.base_analysis_file_not_found",
-            extra={
-                "base_artifact_size_metric_id": base_size_metric.id,
-                "base_artifact_id": base_size_metric.preprod_artifact.id,
-            },
-        )
-        with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
-            comparison.state = PreprodArtifactSizeComparison.State.FAILED
-            comparison.save()
-        return
-
-    head_size_analysis_results = SizeAnalysisResults.parse_raw(head_analysis_file.getfile().read())
-    base_size_analysis_results = SizeAnalysisResults.parse_raw(base_analysis_file.getfile().read())
+    head_size_analysis_results = _load_size_analysis_results(head_analysis_file)
+    base_size_analysis_results = _load_size_analysis_results(base_analysis_file)
 
     logger.info(
         "preprod.size_analysis.compare.running_comparison",
@@ -510,6 +555,15 @@ def _run_size_analysis_comparison(
     # Update existing PENDING comparison or create new one
     with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
         if comparison:
+            # Claimed only while still PENDING: another run may have recorded it meanwhile
+            pending_comparison = PreprodArtifactSizeComparison.objects.filter(
+                id=comparison.id, state=PreprodArtifactSizeComparison.State.PENDING
+            )
+            claimed = pending_comparison.update(
+                state=PreprodArtifactSizeComparison.State.PROCESSING, date_updated=timezone.now()
+            )
+            if not claimed:
+                return
             logger.info(
                 "preprod.size_analysis.compare.transitioning_pending_to_processing",
                 extra={
@@ -518,7 +572,6 @@ def _run_size_analysis_comparison(
                 },
             )
             comparison.state = PreprodArtifactSizeComparison.State.PROCESSING
-            comparison.save()
         else:
             logger.info(
                 "preprod.size_analysis.compare.no_existing_comparison",
@@ -548,17 +601,17 @@ def _run_size_analysis_comparison(
         extra={"comparison_id": comparison.id},
     )
 
-    with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
-        file = File.objects.create(
-            name=str(comparison.id),
-            type="size_analysis_comparison.json",
-            headers={"Content-Type": "application/json"},
-        )
-        file.putfile(BytesIO(dumps_htmlsafe(comparison_results.dict()).encode()))
+    file_name = str(comparison.id)
+    file = _store_size_comparison_results(file_name, comparison_results)
 
-        comparison.file_id = file.id
-        comparison.state = PreprodArtifactSizeComparison.State.SUCCESS
-        comparison.save()
+    try:
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+            comparison.file_id = file.id
+            comparison.state = PreprodArtifactSizeComparison.State.SUCCESS
+            comparison.save()
+    except BaseException:
+        _delete_unreferenced_result_files([file])
+        raise
 
     logger.info(
         "preprod.size_analysis.compare.success",
