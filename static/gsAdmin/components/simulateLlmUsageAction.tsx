@@ -163,10 +163,6 @@ function SimulateLlmUsageModal({
             it like real usage, so the customer is invoiced for test_paid usage. Refund it
             afterwards with Change Balance or Grant Ledger Credit.
           </Text>
-          <Text variant="muted">
-            Billing only counts LLM usage for organizations in the
-            billing.platform.usage.llm_cost_rollout option.
-          </Text>
           <form.AppField name="feature">
             {field => (
               <field.Layout.Stack label="Feature" required>
