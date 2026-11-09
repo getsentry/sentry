@@ -48,11 +48,10 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class PreparedSizeComparison:
-    """A comparison computed ahead of its row; result_file is None when an analysis file is missing."""
+    """A comparison computed ahead of its row; result_file is None for a missing analysis file."""
 
     head_metric: PreprodArtifactSizeMetrics
     base_metric: PreprodArtifactSizeMetrics
-    row_existed: bool
     result_file: File | None
 
 
@@ -414,10 +413,9 @@ def manual_size_analysis_comparison(
 def _run_size_analysis_comparisons(
     org_id: int, comparisons: Sequence[dict[str, PreprodArtifactSizeMetrics]]
 ) -> None:
+    """A run's comparisons, recorded together once all are computed so a failure leaves no rows."""
     result_files: list[File] = []
-    recorded_files: list[File] = []
     try:
-        # Rows are written only once every result is ready, so a failed run leaves none behind
         prepared_comparisons: list[PreparedSizeComparison] = []
         for comp in comparisons:
             prepared = _prepare_size_analysis_comparison(
@@ -444,21 +442,15 @@ def _run_size_analysis_comparisons(
                 )
                 for prepared in ordered_comparisons
             ]
-            # ignore_conflicts waits out a concurrent run's insert without opening a savepoint
+            # ignore_conflicts, not get_or_create: no savepoint inside the transaction
             PreprodArtifactSizeComparison.objects.bulk_create(
                 pending_comparisons, ignore_conflicts=True
             )
             for prepared in ordered_comparisons:
-                recorded_file = _record_size_analysis_comparison(org_id, prepared)
-                if recorded_file is not None:
-                    recorded_files.append(recorded_file)
-    except BaseException:
-        # BaseException covers the processing deadline, which must not leave files without a row
-        _delete_result_files(result_files)
-        raise
-
-    unused_files = [file for file in result_files if file not in recorded_files]
-    _delete_result_files(unused_files)
+                _record_size_analysis_comparison(org_id, prepared)
+    finally:
+        # Runs on the processing deadline too; a file stays only if a committed row points at it
+        _delete_unreferenced_result_files(result_files)
 
 
 def _prepare_size_analysis_comparison(
@@ -472,7 +464,6 @@ def _prepare_size_analysis_comparison(
         organization_id=org_id,
     )
     existing_comparison = existing_comparisons.first()
-    row_existed = existing_comparison is not None
     if (
         existing_comparison is not None
         and existing_comparison.state != PreprodArtifactSizeComparison.State.PENDING
@@ -487,39 +478,12 @@ def _prepare_size_analysis_comparison(
         )
         return None
 
-    try:
-        head_analysis_file = File.objects.get(id=head_size_metric.analysis_file_id)
-    except File.DoesNotExist:
-        logger.exception(
-            "preprod.size_analysis.compare.head_analysis_file_not_found",
-            extra={
-                "head_artifact_size_metric_id": head_size_metric.id,
-                "head_artifact_id": head_size_metric.preprod_artifact.id,
-            },
-        )
+    analysis_files = _get_analysis_files(head_size_metric, base_size_metric)
+    if analysis_files is None:
         return PreparedSizeComparison(
-            head_metric=head_size_metric,
-            base_metric=base_size_metric,
-            row_existed=row_existed,
-            result_file=None,
+            head_metric=head_size_metric, base_metric=base_size_metric, result_file=None
         )
-
-    try:
-        base_analysis_file = File.objects.get(id=base_size_metric.analysis_file_id)
-    except File.DoesNotExist:
-        logger.exception(
-            "preprod.size_analysis.compare.base_analysis_file_not_found",
-            extra={
-                "base_artifact_size_metric_id": base_size_metric.id,
-                "base_artifact_id": base_size_metric.preprod_artifact.id,
-            },
-        )
-        return PreparedSizeComparison(
-            head_metric=head_size_metric,
-            base_metric=base_size_metric,
-            row_existed=row_existed,
-            result_file=None,
-        )
+    head_analysis_file, base_analysis_file = analysis_files
 
     head_size_analysis_results = _load_size_analysis_results(head_analysis_file)
     base_size_analysis_results = _load_size_analysis_results(base_analysis_file)
@@ -550,30 +514,21 @@ def _prepare_size_analysis_comparison(
     provisional_file_name = f"{head_size_metric.id}-{base_size_metric.id}"
     result_file = _store_size_comparison_results(provisional_file_name, comparison_results)
     return PreparedSizeComparison(
-        head_metric=head_size_metric,
-        base_metric=base_size_metric,
-        row_existed=row_existed,
-        result_file=result_file,
+        head_metric=head_size_metric, base_metric=base_size_metric, result_file=result_file
     )
 
 
-def _record_size_analysis_comparison(org_id: int, prepared: PreparedSizeComparison) -> File | None:
-    locked_comparisons = PreprodArtifactSizeComparison.objects.select_for_update()
-    comparison = locked_comparisons.get(
+def _record_size_analysis_comparison(org_id: int, prepared: PreparedSizeComparison) -> None:
+    locked_comparisons = PreprodArtifactSizeComparison.objects.select_for_update().filter(
         head_size_analysis=prepared.head_metric,
         base_size_analysis=prepared.base_metric,
         organization_id=org_id,
     )
-    comparison_created = not prepared.row_existed
+    comparison = locked_comparisons.first()
 
-    logger.info(
-        "preprod.size_analysis.compare.running_comparison",
-        extra={
-            "head_metric_id": prepared.head_metric.id,
-            "base_metric_id": prepared.base_metric.id,
-            "comparison_created": comparison_created,
-        },
-    )
+    # Checked again under the lock: another run may have recorded or deleted this pair meanwhile
+    if comparison is None:
+        return
 
     if comparison.state != PreprodArtifactSizeComparison.State.PENDING:
         logger.info(
@@ -584,13 +539,14 @@ def _record_size_analysis_comparison(org_id: int, prepared: PreparedSizeComparis
                 "state": comparison.state,
             },
         )
-        return None
+        return
 
     if prepared.result_file is None:
         comparison.state = PreprodArtifactSizeComparison.State.FAILED
         comparison.save()
-        return None
+        return
 
+    # The file was stored before its row existed, so it takes the row id as its name here
     prepared.result_file.name = str(comparison.id)
     prepared.result_file.save(update_fields=["name"])
 
@@ -602,7 +558,36 @@ def _record_size_analysis_comparison(org_id: int, prepared: PreparedSizeComparis
         "preprod.size_analysis.compare.success",
         extra={"comparison_id": comparison.id},
     )
-    return prepared.result_file
+
+
+def _get_analysis_files(
+    head_size_metric: PreprodArtifactSizeMetrics, base_size_metric: PreprodArtifactSizeMetrics
+) -> tuple[File, File] | None:
+    try:
+        head_analysis_file = File.objects.get(id=head_size_metric.analysis_file_id)
+    except File.DoesNotExist:
+        logger.exception(
+            "preprod.size_analysis.compare.head_analysis_file_not_found",
+            extra={
+                "head_artifact_size_metric_id": head_size_metric.id,
+                "head_artifact_id": head_size_metric.preprod_artifact.id,
+            },
+        )
+        return None
+
+    try:
+        base_analysis_file = File.objects.get(id=base_size_metric.analysis_file_id)
+    except File.DoesNotExist:
+        logger.exception(
+            "preprod.size_analysis.compare.base_analysis_file_not_found",
+            extra={
+                "base_artifact_size_metric_id": base_size_metric.id,
+                "base_artifact_id": base_size_metric.preprod_artifact.id,
+            },
+        )
+        return None
+
+    return head_analysis_file, base_analysis_file
 
 
 def _load_size_analysis_results(analysis_file: File) -> SizeAnalysisResults:
@@ -627,10 +612,12 @@ def _store_size_comparison_results(name: str, comparison_results: ComparisonResu
     return file
 
 
-def _delete_result_files(files: Sequence[File]) -> None:
+def _delete_unreferenced_result_files(files: Sequence[File]) -> None:
     for file in files:
         try:
-            file.delete()
+            referencing_comparisons = PreprodArtifactSizeComparison.objects.filter(file_id=file.id)
+            if not referencing_comparisons.exists():
+                file.delete()
         except Exception:
             logger.exception(
                 "preprod.size_analysis.compare.result_file_cleanup_failed",
@@ -643,6 +630,7 @@ def _run_size_analysis_comparison(
     head_size_metric: PreprodArtifactSizeMetrics,
     base_size_metric: PreprodArtifactSizeMetrics,
 ) -> None:
+    """One comparison on an existing PENDING row; PROCESSING lets the sweeper fail a stuck one."""
     comparison = None
     try:
         comparison = PreprodArtifactSizeComparison.objects.get(
@@ -685,35 +673,13 @@ def _run_size_analysis_comparison(
             comparison.save()
         return
 
-    try:
-        head_analysis_file = File.objects.get(id=head_size_metric.analysis_file_id)
-    except File.DoesNotExist:
-        logger.exception(
-            "preprod.size_analysis.compare.head_analysis_file_not_found",
-            extra={
-                "head_artifact_size_metric_id": head_size_metric.id,
-                "head_artifact_id": head_size_metric.preprod_artifact.id,
-            },
-        )
+    analysis_files = _get_analysis_files(head_size_metric, base_size_metric)
+    if analysis_files is None:
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
             comparison.state = PreprodArtifactSizeComparison.State.FAILED
             comparison.save()
         return
-
-    try:
-        base_analysis_file = File.objects.get(id=base_size_metric.analysis_file_id)
-    except File.DoesNotExist:
-        logger.exception(
-            "preprod.size_analysis.compare.base_analysis_file_not_found",
-            extra={
-                "base_artifact_size_metric_id": base_size_metric.id,
-                "base_artifact_id": base_size_metric.preprod_artifact.id,
-            },
-        )
-        with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
-            comparison.state = PreprodArtifactSizeComparison.State.FAILED
-            comparison.save()
-        return
+    head_analysis_file, base_analysis_file = analysis_files
 
     head_size_analysis_results = _load_size_analysis_results(head_analysis_file)
     base_size_analysis_results = _load_size_analysis_results(base_analysis_file)
@@ -729,6 +695,15 @@ def _run_size_analysis_comparison(
     # Update existing PENDING comparison or create new one
     with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
         if comparison:
+            # Claimed only while still PENDING: another run may have recorded it meanwhile
+            pending_comparison = PreprodArtifactSizeComparison.objects.filter(
+                id=comparison.id, state=PreprodArtifactSizeComparison.State.PENDING
+            )
+            claimed = pending_comparison.update(
+                state=PreprodArtifactSizeComparison.State.PROCESSING, date_updated=timezone.now()
+            )
+            if not claimed:
+                return
             logger.info(
                 "preprod.size_analysis.compare.transitioning_pending_to_processing",
                 extra={
@@ -737,7 +712,6 @@ def _run_size_analysis_comparison(
                 },
             )
             comparison.state = PreprodArtifactSizeComparison.State.PROCESSING
-            comparison.save()
         else:
             logger.info(
                 "preprod.size_analysis.compare.no_existing_comparison",
@@ -770,10 +744,14 @@ def _run_size_analysis_comparison(
     file_name = str(comparison.id)
     file = _store_size_comparison_results(file_name, comparison_results)
 
-    with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
-        comparison.file_id = file.id
-        comparison.state = PreprodArtifactSizeComparison.State.SUCCESS
-        comparison.save()
+    try:
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+            comparison.file_id = file.id
+            comparison.state = PreprodArtifactSizeComparison.State.SUCCESS
+            comparison.save()
+    except BaseException:
+        _delete_unreferenced_result_files([file])
+        raise
 
     logger.info(
         "preprod.size_analysis.compare.success",
