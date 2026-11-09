@@ -8,6 +8,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks import on_demand_metrics
 from sentry.tasks.on_demand_metrics import (
+    DASHBOARD_QUERY_PERIOD,
     get_field_cardinality_cache_key,
     process_widget_specs,
     schedule_on_demand_check,
@@ -566,7 +567,9 @@ def test_check_field_cardinality_duplicate_columns_cached(project: Project) -> N
             ["issue", "boundaryId", "issue"], organization, 100
         )
         assert first == {"issue": True, "boundaryId": True}
-        _query_cardinality.assert_called_once_with(["issue", "boundaryId"], organization, "30m")
+        _query_cardinality.assert_called_once_with(
+            ["issue", "boundaryId"], organization, DASHBOARD_QUERY_PERIOD
+        )
 
         # All columns are now cached, so no further (empty) cardinality query is issued.
         second = on_demand_metrics.check_field_cardinality(
