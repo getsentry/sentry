@@ -118,7 +118,7 @@ def lookup_event(project_id: int, event_id: str) -> Event:
 
 @traces.trace
 def process_event_and_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, event_data: dict[str, Any], *, publish: bool = True
+    occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
     if occurrence_data["event_id"] != event_data["event_id"]:
         raise ValueError(
@@ -130,7 +130,7 @@ def process_event_and_issue_occurrence(
         "occurrence_consumer._process_message.save_issue_occurrence",
         tags={"method": "process_event_and_issue_occurrence"},
     ):
-        return save_issue_occurrence(occurrence_data, event, publish=publish)
+        return save_issue_occurrence(occurrence_data, event)
 
 
 @traces.trace
@@ -319,7 +319,6 @@ def process_occurrence_message(
     message: Mapping[str, Any],
     span: StreamedSpan,
     *,
-    publish: bool = True,
     raise_on_drop: bool = False,
 ) -> tuple[IssueOccurrence, GroupInfo | None] | None:
     with metrics.timer("occurrence_consumer._process_message._get_kwargs"):
@@ -371,7 +370,7 @@ def process_occurrence_message(
             tags=metric_tags,
         ):
             return process_event_and_issue_occurrence(
-                kwargs["occurrence_data"], kwargs["event_data"], publish=publish
+                kwargs["occurrence_data"], kwargs["event_data"]
             )
     else:
         span.set_attribute("result", "success")

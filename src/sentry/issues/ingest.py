@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 @traces.trace
 def save_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, event: Event, *, publish: bool = True
+    occurrence_data: IssueOccurrenceData, event: Event
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
     occurrence = IssueOccurrence.from_dict(occurrence_data)
     if occurrence.event_id != event.event_id:
@@ -73,8 +73,7 @@ def save_issue_occurrence(
         _increment_release_associated_counts(event.project, environment, release, [group_info])
         _get_or_create_group_release(environment, release, event, [group_info])
 
-        if publish:
-            send_issue_occurrence_to_eventstream(event, occurrence, group_info)
+        send_issue_occurrence_to_eventstream(event, occurrence, group_info)
     return occurrence, group_info
 
 

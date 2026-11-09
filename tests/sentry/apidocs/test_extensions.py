@@ -57,7 +57,7 @@ def test_synthetic_breach_schema() -> None:
     failure_ref = operation["responses"]["503"]["content"]["application/json"]["schema"]["$ref"]
     failure = components[failure_ref.split("/")[-1]]
     assert failure["required"] == ["detail"]
-    assert set(failure["properties"]) == {"detail", "issueId", "issueUrl", "eventId"}
+    assert set(failure["properties"]) == {"detail"}
 
 
 def test_null_only_response_field() -> None:

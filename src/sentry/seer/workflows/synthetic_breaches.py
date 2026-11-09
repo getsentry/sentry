@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import math
 from dataclasses import dataclass
 from datetime import timedelta
@@ -17,12 +16,10 @@ from sentry.incidents.utils.types import (
     ProcessedSubscriptionUpdate,
 )
 from sentry.investigations.services.breached_metrics import code_mode_dataset
-from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
     OccurrenceIngestionDisabled,
     OccurrenceRateLimited,
-    lookup_event,
     process_occurrence_message,
 )
 from sentry.models.group import Group
@@ -36,22 +33,11 @@ from sentry.workflow_engine.models import DataCondition, DataPacket, DataSourceD
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
-logger = logging.getLogger(__name__)
-
 
 class SyntheticBreachError(Exception):
-    def __init__(
-        self,
-        detail: str,
-        status_code: int,
-        *,
-        group: Group | None = None,
-        event_id: str | None = None,
-    ) -> None:
+    def __init__(self, detail: str, status_code: int) -> None:
         super().__init__(detail)
         self.status_code = status_code
-        self.group = group
-        self.event_id = event_id
 
 
 @dataclass(frozen=True)
@@ -190,7 +176,7 @@ def create_synthetic_breach(context: SyntheticBreachContext) -> tuple[Group, str
     }
     with traces.start_span(name="seer.synthetic_metric_breach") as span:
         try:
-            result = process_occurrence_message(payload, span, publish=False, raise_on_drop=True)
+            result = process_occurrence_message(payload, span, raise_on_drop=True)
         except OccurrenceRateLimited:
             raise SyntheticBreachError("Issue creation was rate limited.", 429)
         except OccurrenceIngestionDisabled:
@@ -200,15 +186,4 @@ def create_synthetic_breach(context: SyntheticBreachContext) -> tuple[Group, str
     saved_occurrence, group_info = result
     if group_info is None:
         raise SyntheticBreachError("Issue creation was prevented by ingestion controls.", 429)
-    try:
-        event = lookup_event(saved_occurrence.project_id, saved_occurrence.event_id)
-        send_issue_occurrence_to_eventstream(event, saved_occurrence, group_info)
-    except Exception:
-        logger.exception("seer.synthetic_metric_breach.publication_failed")
-        raise SyntheticBreachError(
-            "Test issue created, but workflow submission failed.",
-            503,
-            group=group_info.group,
-            event_id=saved_occurrence.event_id,
-        )
     return group_info.group, saved_occurrence.event_id

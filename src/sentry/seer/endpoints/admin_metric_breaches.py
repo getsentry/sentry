@@ -54,12 +54,6 @@ class SyntheticMetricBreachResponse(TypedDict):
     eventId: str
 
 
-class SyntheticMetricBreachFailure(DetailResponse, total=False):
-    issueId: str
-    issueUrl: str
-    eventId: str
-
-
 class SyntheticMetricBreachValidationResponse(TypedDict):
     detail: dict[str, Any]
 
@@ -92,16 +86,13 @@ class SeerAdminMetricBreachesEndpoint(Endpoint):
             429: inline_sentry_response_serializer(
                 "SyntheticMetricBreachRateLimited", DetailResponse
             ),
-            503: inline_sentry_response_serializer(
-                "SyntheticMetricBreachFailure", SyntheticMetricBreachFailure
-            ),
+            503: inline_sentry_response_serializer("SyntheticMetricBreachFailure", DetailResponse),
         },
     )
     def post(
         self, request: Request
     ) -> (
         Response[SyntheticMetricBreachResponse]
-        | Response[SyntheticMetricBreachFailure]
         | Response[SyntheticMetricBreachValidationResponse]
         | Response[DetailResponse]
     ):
@@ -109,8 +100,8 @@ class SeerAdminMetricBreachesEndpoint(Endpoint):
 
         Each POST is independent. Matching actions can execute asynchronously, including
         non-Seer actions. A successful response confirms issue creation only; event delivery
-        and Seer execution are not guaranteed. A propagated publication exception returns
-        an error with the persisted issue link.
+        and Seer execution are not guaranteed. Processing or propagated publication errors
+        return detail without an issue link, even if an issue was already created.
         """
         serializer = SyntheticMetricBreachRequest(data=request.data)
         if not serializer.is_valid():
@@ -141,11 +132,7 @@ class SeerAdminMetricBreachesEndpoint(Endpoint):
             context = prepare_synthetic_breach(organization, detector)
             group, event_id = create_synthetic_breach(context)
         except SyntheticBreachError as error:
-            failure: SyntheticMetricBreachFailure = {"detail": str(error)}
-            if error.group is not None and error.event_id is not None:
-                failure["issueId"] = str(error.group.id)
-                failure["issueUrl"] = error.group.get_absolute_url()
-                failure["eventId"] = error.event_id
+            failure: DetailResponse = {"detail": str(error)}
             return Response(failure, status=error.status_code)
         except Exception:
             logger.exception("seer.synthetic_metric_breach.creation_failed")

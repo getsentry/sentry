@@ -169,7 +169,7 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
 
-    @patch("sentry.seer.workflows.synthetic_breaches.send_issue_occurrence_to_eventstream")
+    @patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_creates_fresh_issues_with_resolvable_context(self, publish: MagicMock) -> None:
         first = self.get_success_response(
             organizationId=self.organization.id, monitorId=self.detector.id, status_code=201
@@ -231,7 +231,7 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         )
         assert not Group.objects.filter(type=8001).exists()
 
-    @patch("sentry.seer.workflows.synthetic_breaches.send_issue_occurrence_to_eventstream")
+    @patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_preserves_existing_breached_monitor_state(self, publish: MagicMock) -> None:
         state = self.create_detector_state(
             detector=self.detector,
@@ -266,7 +266,7 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         )
         assert not Group.objects.filter(type=8001).exists()
 
-    @patch("sentry.seer.workflows.synthetic_breaches.send_issue_occurrence_to_eventstream")
+    @patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_anomaly_monitor_bypasses_evaluation(self, publish: MagicMock) -> None:
         self.detector.update(config={"detection_type": AlertRuleDetectionType.DYNAMIC.value})
         self.critical_detector_trigger.update(
@@ -291,16 +291,17 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         assert not Group.objects.filter(type=8001).exists()
 
     @patch(
-        "sentry.seer.workflows.synthetic_breaches.send_issue_occurrence_to_eventstream",
+        "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
         side_effect=RuntimeError("Publication unavailable"),
     )
-    def test_publication_failure_returns_existing_issue(self, publish: MagicMock) -> None:
+    def test_publication_exception_returns_error_without_issue_link(
+        self, publish: MagicMock
+    ) -> None:
         response = self.get_error_response(
             organizationId=self.organization.id, monitorId=self.detector.id, status_code=503
         )
-        group = Group.objects.get(id=response.data["issueId"])
-        assert response.data["issueUrl"] == group.get_absolute_url()
-        assert "workflow submission failed" in response.data["detail"]
+        assert Group.objects.filter(type=8001).count() == 1
+        assert response.data == {"detail": "Test issue creation is unavailable."}
 
     def test_delivery_failure_returns_created_issue(self) -> None:
         broker = LocalBroker(MemoryMessageStorage[KafkaPayload]())
@@ -320,7 +321,7 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         assert response.data["issueUrl"] == group.get_absolute_url()
         produce.assert_called_once()
 
-    @patch("sentry.seer.workflows.synthetic_breaches.send_issue_occurrence_to_eventstream")
+    @patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_dispatches_through_connected_workflows(self, publish: MagicMock) -> None:
         with outbox_runner():
             account = self.create_service_account(
