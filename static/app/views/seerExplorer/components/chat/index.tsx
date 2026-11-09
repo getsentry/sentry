@@ -49,7 +49,7 @@ function BlockVariant(props: Omit<BlockProps, 'onClick' | 'ref'>) {
 
   switch (block.message.role) {
     case 'user':
-      return <UserBlock block={block} />;
+      return <UserBlock block={block} blockIndex={props.blockIndex} />;
     case 'tool_use':
       return (
         <ToolUseBlock

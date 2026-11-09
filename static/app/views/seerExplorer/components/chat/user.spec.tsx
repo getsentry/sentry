@@ -17,6 +17,32 @@ function createBlock(overrides?: Partial<Block>): Block {
 }
 
 describe('UserBlock', () => {
+  it('collapses the Autofix prompt that starts a run', async () => {
+    const block = createBlock({
+      message: {role: 'user', content: 'Fix issue ABC-1', metadata: {step: 'single_run'}},
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Started Autofix')).toBeInTheDocument();
+    expect(screen.getByText('Fix issue ABC-1')).not.toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Started Autofix'}));
+    expect(screen.getByText('Fix issue ABC-1')).toBeVisible();
+  });
+
+  it('shows a reply to an Autofix run in full', () => {
+    const block = createBlock({
+      message: {
+        role: 'user',
+        content: 'Nice, make a code fix',
+        metadata: {step: 'single_run'},
+      },
+    });
+    render(<BlockComponent block={block} blockIndex={3} />);
+
+    expect(screen.getByText('Nice, make a code fix')).toBeInTheDocument();
+  });
+
   it('renders content', () => {
     render(<BlockComponent block={createBlock()} blockIndex={0} />);
     expect(screen.getByText('What is this error about?')).toBeInTheDocument();

@@ -9,7 +9,9 @@ interface BlockVariantProps {
   block: Block;
 }
 
-export interface UserBlockProps extends BlockVariantProps {}
+export interface UserBlockProps extends BlockVariantProps {
+  blockIndex: number;
+}
 
 export interface AssistantBlockProps extends BlockVariantProps {
   blockIndex: number;
