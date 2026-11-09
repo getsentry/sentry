@@ -608,6 +608,18 @@ OUTER_BOUNDARY_MUTATION_STATUSES = {
 
 AGENT_SUDO_BOUNDARY_MUTATIONS = frozenset({("TeamDetailsEndpoint", "DELETE")})
 
+# Public rows that are also user-global: agent tokens and service accounts must never read
+# a person's account, so those credentials are denied rather than matching the oracle.
+USER_GLOBAL_ENDPOINT_NAMES = frozenset(
+    endpoint.endpoint_name for endpoint in USER_GLOBAL_GET_ENDPOINTS
+)
+NON_PERSON_AUTHENTICATIONS = frozenset(
+    {
+        MatrixAuthentication.AGENT_TOKEN,
+        MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
+        MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
+    }
+)
 # Org auth tokens can only be managed without a token (a session, or a viewer context,
 # which carries no token either) or by an OAuth application token with `org:tokens`. Every
 # other matrix credential must be denied.
@@ -1560,6 +1572,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             return str(member.id)
         if placeholder == "attachment_id":
             return str(self._resource("event_attachment").id)
+        if placeholder == "user_id":
+            return "me"
         if placeholder == "token_id":
             return str(self._resource("org_auth_token").id)
         if placeholder == "dashboard_id":
@@ -2639,6 +2653,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
         expected_baseline_status = OUTER_BOUNDARY_GET_STATUSES.get(endpoint.endpoint_name, 200)
         assert baseline.status_code == expected_baseline_status, baseline.content
         if (
+            endpoint.endpoint_name in USER_GLOBAL_ENDPOINT_NAMES
+            and authentication in NON_PERSON_AUTHENTICATIONS
+        ) or (
             endpoint.endpoint_name in SESSION_OR_OAUTH_APP_ONLY_ENDPOINTS
             and authentication not in TOKENLESS_AUTHENTICATIONS
         ):
