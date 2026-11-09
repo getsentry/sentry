@@ -18,7 +18,7 @@ EXPLICIT_SCOPE_RESOURCES = {"service_account"}
 
 # Scopes are `<resource>:<action>`, see src/AGENTS.md. Adding a verb here should be a
 # deliberate choice made in review, not a way to name a resource.
-SCOPE_ACTIONS = {"read", "write", "admin", "invite"}
+SCOPE_ACTIONS = {"read", "write", "admin", "create", "invite"}
 SCOPE_RESOURCE_RE = re.compile(r"[a-z]+(_[a-z]+)*")
 # OIDC requires these exact names.
 OIDC_SCOPES = {"openid", "profile", "email"}
