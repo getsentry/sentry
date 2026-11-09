@@ -273,6 +273,8 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         compare.assert_not_called()
         assert len(self._result_files()) == 2
 
+
+class ManualSizeAnalysisComparisonTest(_CompareTaskHelpers, TestCase):
     def test_manual_comparison_does_not_overwrite_one_recorded_meanwhile(self) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         self._create_pending_rows(pairs)
@@ -324,7 +326,7 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         assert self._result_files() == []
 
 
-class ComparePreprodArtifactSizeAnalysisTransactionTest(_CompareTaskHelpers, TransactionTestCase):
+class SizeComparisonTransactionTest(_CompareTaskHelpers, TransactionTestCase):
     def test_file_io_runs_outside_any_transaction(self) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         in_atomic_block: list[bool] = []
