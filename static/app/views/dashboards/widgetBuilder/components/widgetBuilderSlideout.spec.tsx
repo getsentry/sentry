@@ -713,6 +713,51 @@ describe('WidgetBuilderSlideout', () => {
     expect(screen.getAllByTestId('transaction-widget-disabled-wrapper')).toHaveLength(2);
   });
 
+  it('links to the spans dataset keeping only the page filters when editing a transaction widget', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: [
+        'discover-saved-queries-deprecation',
+        'performance-transaction-deprecation-banner',
+      ],
+    });
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithFeature,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {
+            pathname: '/dashboards/1/',
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              project: ['1', '2'],
+              environment: 'prod',
+              statsPeriod: '7d',
+              utc: 'true',
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByRole('link', {name: 'spans'})).toHaveAttribute(
+      'href',
+      '/dashboards/1/?environment=prod&project=1&project=2&statsPeriod=7d&utc=true'
+    );
+  });
+
   it('should not show deprecation alert when flag enabled', async () => {
     render(
       <WidgetBuilderProvider>

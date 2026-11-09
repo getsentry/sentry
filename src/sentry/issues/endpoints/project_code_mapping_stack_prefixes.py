@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -11,6 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -21,7 +22,9 @@ from sentry.models.project import Project
 
 
 class StackPrefixesResponse(TypedDict):
-    prefixes: list[PrefixItem]
+    prefixes: Annotated[
+        list[PrefixItem], ApiDescription("Path prefixes of the project's stack trace frames")
+    ]
 
 
 def _get_stack_prefixes(project: Project) -> list[PrefixItem]:
