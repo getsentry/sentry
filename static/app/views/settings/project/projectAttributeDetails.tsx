@@ -115,7 +115,7 @@ function AttributeDetails({
         <AttributeStats attribute={attribute} />
       </Flex>
       <Grid
-        columns={{zero: 'minmax(0, 1fr)', md: 'minmax(0, 1fr) minmax(0, 20rem)'}}
+        columns={{zero: 'minmax(0, 1fr)', '2xl': 'minmax(0, 1fr) minmax(0, 20rem)'}}
         gap="xl"
         align="start"
       >
