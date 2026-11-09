@@ -18,6 +18,7 @@ from sentry.notifications.platform.tracking import (
     NotificationLinkDecorator,
     NotificationReferrer,
     NotificationTrackingContext,
+    build_pull_request_redirect_url,
     classify_link,
     is_tracking_enabled,
     parse_referrer,
@@ -42,6 +43,7 @@ from sentry.testutils.helpers.analytics import (
 )
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.notifications.platform import MockNotification
+from sentry.testutils.pytest.fixtures import django_db_all
 
 ENABLED_OPTIONS = {"notifications.tracking.sources": ["activity-seer-rca-completed"]}
 
@@ -244,12 +246,42 @@ class RecordEngagementTest(TestCase):
             "https://acme.sentry.io/seer/investigations/1/",
             NotificationLink.INVESTIGATION,
         ),
+        (
+            "https://sentry.io/organizations/acme/tr/github.com/acme/backend/pull/1",
+            NotificationLink.PULL_REQUEST,
+        ),
     ],
 )
 def test_classify_link(url: str, expected: NotificationLink) -> None:
     with mock.patch("sentry.notifications.platform.tracking.logger") as mock_logger:
         assert classify_link(url) == expected
     mock_logger.error.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        (
+            "https://github.com/acme/backend/pull/12",
+            "https://sentry.io/organizations/acme/tr/github.com/acme/backend/pull/12",
+        ),
+        (
+            "https://github.acme.example:8443/acme/backend/pull/12/",
+            "https://sentry.io/organizations/acme/tr/github.acme.example:8443/acme/backend/pull/12/",
+        ),
+        ("https://github.com/acme/backend/issues/12", "https://github.com/acme/backend/issues/12"),
+        ("https://github.com/acme/backend", "https://github.com/acme/backend"),
+        (
+            "https://user@github.com/acme/backend/pull/12",
+            "https://user@github.com/acme/backend/pull/12",
+        ),
+        ("ftp://github.com/acme/backend/pull/12", "ftp://github.com/acme/backend/pull/12"),
+    ],
+)
+@django_db_all
+def test_build_pull_request_redirect_url(url: str, expected: str) -> None:
+    with override_options({"system.url-prefix": "https://sentry.io"}):
+        assert build_pull_request_redirect_url("acme", url) == expected
 
 
 @pytest.mark.parametrize(
@@ -525,6 +557,22 @@ class DecorateRenderedTemplateTest(TestCase):
             ),
         ]
         assert links == {NotificationLink.ISSUE}
+
+    def test_decorates_pull_request_redirects(self) -> None:
+        redirect_url = build_pull_request_redirect_url(
+            "acme", "https://github.com/acme/backend/pull/12"
+        )
+        rendered_template = NotificationRenderedTemplate(
+            subject="PR ready",
+            body=[ParagraphSection(blocks=[LinkTextBlock(text="#12", url=redirect_url)])],
+        )
+
+        decorated, links = self.decorate_rendered_template(rendered_template)
+
+        assert decorated.body[0].blocks == [
+            LinkTextBlock(text="#12", url=f"{redirect_url}?{self.tracking}")
+        ]
+        assert links == {NotificationLink.PULL_REQUEST}
 
     def test_idempotent(self) -> None:
         rendered_template = NotificationRenderedTemplate(

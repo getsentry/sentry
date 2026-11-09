@@ -27,6 +27,7 @@ from sentry.notifications.platform.types import (
     NotificationTextBlock,
 )
 from sentry.utils import metrics
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,8 @@ class NotificationLink(StrEnum):
     REPOSITORIES = "repositories"
     SEER_AGENT_RUN = "seer_agent_run"
     INVESTIGATION = "investigation"
+    PULL_REQUEST = "pull_request"
+    """A pull request, opened through the notification link redirect."""
     OTHER = "other"
 
 
@@ -268,8 +271,36 @@ def classify_link(url: str) -> NotificationLink:
         return NotificationLink.SEER_AGENT_RUN
     if path.startswith("/seer/investigations/"):
         return NotificationLink.INVESTIGATION
+    if path.startswith("/tr/"):
+        return NotificationLink.PULL_REQUEST
     logger.error("notifications.tracking.unclassified_link", extra={"path": path})
     return NotificationLink.OTHER
+
+
+PULL_REQUEST_PATH = re.compile(r"^/(?P<repository>[^/]+/[^/]+)/pull/(?P<number>\d+)/?$")
+"""The path of a GitHub pull request URL, which is the same on GitHub Enterprise."""
+
+
+def build_pull_request_redirect_url(organization_slug: str, url: str) -> str:
+    """
+    Returns a Sentry URL that redirects to the GitHub pull request at `url`, such as
+    `https://sentry.io/organizations/<slug>/tr/github.com/<owner>/<repo>/pull/1`. Unlike `url`, it
+    can be decorated like any other Sentry link, and the redirect records its clicks. Other URLs
+    are returned unchanged.
+
+    The redirect only follows pull requests on the organization's connected repositories.
+    """
+    parsed = urlsplit(url)
+    if (
+        parsed.scheme not in ("http", "https")
+        or not parsed.hostname
+        or "@" in parsed.netloc
+        or not PULL_REQUEST_PATH.match(parsed.path)
+    ):
+        return url
+    # The organization path, not the organization's subdomain, lets control silo route the
+    # request to the organization's cell, where its repositories are.
+    return absolute_uri(f"/organizations/{organization_slug}/tr/{parsed.netloc}{parsed.path}")
 
 
 def _is_sentry_url(parsed: SplitResult) -> bool:

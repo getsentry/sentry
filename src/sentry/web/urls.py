@@ -41,6 +41,7 @@ from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
+from sentry.web.frontend.notification_link_redirect import NotificationLinkRedirectView
 from sentry.web.frontend.oauth_device_authorization import OAuthDeviceAuthorizationView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
@@ -1104,6 +1105,11 @@ urlpatterns += [
                     r"^(?P<organization_slug>[^/]+)/data-export/(?P<data_export_id>\d+)/$",
                     react_page_view,
                     name="sentry-data-export-details",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[^/]+)/tr/(?P<destination>.+)$",
+                    NotificationLinkRedirectView.as_view(),
+                    name="sentry-notification-link-redirect",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/json/$",
