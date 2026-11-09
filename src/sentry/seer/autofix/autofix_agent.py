@@ -463,19 +463,6 @@ def trigger_autofix_agent(
     """
     outcome = "success"
     try:
-        # Seat-based orgs are checked for billing quota when triggering a new autofix run.
-        # Free cohort orgs bypass quota only when called from agentic triage
-        # (allow_free_cohort=True). The API endpoint never sets this flag,
-        # so manual triggers still require quota.
-        # Token-billed orgs are checked for credits on every step instead.
-        check_autofix_billing(
-            group.organization,
-            step.seer_operation,
-            referrer,
-            is_new_run=run_id is None,
-            skip_quota_for_free_cohort=allow_free_cohort,
-        )
-
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
 

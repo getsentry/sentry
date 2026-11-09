@@ -283,6 +283,58 @@ class TestTriggerAutofixFeature(TestCase):
         mock_quotas.backend.check_seer_quota.assert_not_called()
         mock_quotas.backend.record_seer_run.assert_not_called()
 
+    def test_non_free_cohort_org_checks_quota_and_records_usage(self) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+
+        with (
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.is_free_cohort_org", return_value=False),
+        ):
+            mock_quotas.backend.check_seer_quota.return_value = True
+            MockClient.return_value.start_feature_run.return_value = fake_run
+
+            run = trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    step=AutofixStep.ROOT_CAUSE,
+                    step_args=RCAStepArgs(),
+                    allow_free_cohort=True,
+                ),
+            )
+
+        assert run is fake_run
+        mock_quotas.backend.check_seer_quota.assert_called_once()
+        mock_quotas.backend.record_seer_run.assert_called_once()
+
+    @with_feature("organizations:token-billed-seer-enabled")
+    @patch("sentry.seer_credit.backend.check_seer_credits")
+    def test_token_billed_without_credit_checks_skips_quota_and_usage_recording(
+        self, mock_check_seer_credits: MagicMock
+    ) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+
+        with (
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+        ):
+            MockClient.return_value.start_feature_run.return_value = fake_run
+
+            run = trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                    step=AutofixStep.ROOT_CAUSE,
+                    step_args=RCAStepArgs(),
+                ),
+            )
+
+        assert run is fake_run
+        mock_check_seer_credits.assert_not_called()
+        mock_quotas.backend.check_seer_quota.assert_not_called()
+        mock_quotas.backend.record_seer_run.assert_not_called()
+
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
