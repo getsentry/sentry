@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -11,7 +12,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.endpoints.organization_trace_meta_types import OrganizationTraceMetaResponse
+from sentry.api.endpoints.organization_trace_meta_types import (
+    OrganizationTraceMetaResponse,
+    TransactionChildCount,
+)
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_examples import TraceExamples
@@ -357,7 +361,9 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
             "metricsCount": results["metrics_meta"]["data"][0].get("count(value)") or 0,
             "performanceIssuesCount": perf_issues,
             "spansCount": results["spans_meta"]["data"][0].get("count()") or 0,
-            "transactionChildCountMap": results["transaction_children"]["data"],
+            "transactionChildCountMap": cast(
+                list[TransactionChildCount], results["transaction_children"]["data"]
+            ),
             "spansCountMap": {
                 row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
             },

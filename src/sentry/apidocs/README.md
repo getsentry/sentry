@@ -110,6 +110,12 @@ an SDK sent. Type those as `JsonValue` from `sentry.apidocs.formats`: the schema
 lists every JSON type, and the check counts it as typed. Don't use it for a
 field you can type.
 
+When another schema already pins a field down, such as a JSON Schema the code
+validates the data against, build the field's schema from it with
+`Annotated[T, ApiSchema(build)]` instead of copying it into a TypedDict, so the
+two can't drift. `sentry.apidocs.json_schemas` converts a JSON Schema, including
+one from sentry-kafka-schemas, and fails when a property has no description.
+
 `tests/apidocs/test_response_coverage.py` checks this after `make build-api-docs`.
 Fields that already lacked a description or a type are listed in
 `tests/apidocs/response-coverage-baseline.txt`, so the check fails only for new

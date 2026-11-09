@@ -113,6 +113,8 @@ class CustomEndpointEnumerator(EndpointEnumerator):
         return enumerate_endpoints()
 
     def get_path_from_regex(self, path_regex: str) -> str:
+        # User feedback routes also answer to the legacy `user-reports` name, which isn't documented.
+        path_regex = path_regex.replace("(?:user-feedback|user-reports)", "user-feedback")
         # django 4.x changes to simplify_regex breaks these urls
         path_regex = self._non_capturing.sub("{var}", path_regex)
         return cast("Callable[[str], str]", super().get_path_from_regex)(path_regex)
