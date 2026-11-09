@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {useContext, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -58,7 +59,7 @@ TabPanels.Item = TabPanelItem;
 
 interface TabPanelProps {
   state: TabListState<any>;
-  children?: React.ReactNode;
+  children?: ReactNode;
   className?: string;
   orientation?: Orientation;
 }
