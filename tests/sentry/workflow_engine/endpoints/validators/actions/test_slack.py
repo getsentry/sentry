@@ -43,6 +43,40 @@ class TestSlackActionValidator(TestCase):
         assert result is True
         validator.save()
 
+    @mock.patch("sentry.integrations.slack.actions.form.get_slack_entity_name")
+    def test_validate__only_channel_id(self, mock_get_slack_entity_name: mock.MagicMock) -> None:
+        mock_get_slack_entity_name.return_value = "cathy-sentry"
+
+        validator = BaseActionValidator(
+            data={
+                **self.valid_data,
+                "config": {"targetType": "specific", "targetIdentifier": "C1234567890"},
+            },
+            context={"organization": self.organization},
+        )
+
+        assert validator.is_valid() is True
+        mock_get_slack_entity_name.assert_called_once_with(
+            integration_id=str(self.integration.id), input_id="C1234567890"
+        )
+        assert validator.validated_data["config"]["target_display"] == "cathy-sentry"
+        assert validator.validated_data["config"]["target_identifier"] == "C1234567890"
+        action = validator.save()
+        assert action.config["target_display"] == "cathy-sentry"
+
+    def test_validate__no_channel_name_or_id(self) -> None:
+        validator = BaseActionValidator(
+            data={**self.valid_data, "config": {"targetType": "specific"}},
+            context={"organization": self.organization},
+        )
+
+        assert validator.is_valid() is False
+        assert validator.errors == {
+            "all": [
+                ErrorDetail(string="Slack: Channel name or channel ID is required.", code="invalid")
+            ]
+        }
+
     @mock.patch("sentry.integrations.slack.actions.form.validate_slack_entity_id")
     def test_validate__invalid_channel_id(
         self, mock_validate_slack_entity_id: mock.MagicMock

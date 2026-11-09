@@ -859,7 +859,7 @@ class SlackActionConfig(TypedDict):
     """The configuration schema for a Messaging Action"""
 
     target_identifier: NotRequired[str]
-    target_display: str
+    target_display: NotRequired[str]
     target_type: Literal[0]
 
 
@@ -868,7 +868,7 @@ class SlackStagingActionConfig(TypedDict):
     """The configuration schema for a Messaging Action"""
 
     target_identifier: NotRequired[str]
-    target_display: str
+    target_display: NotRequired[str]
     target_type: Literal[0]
 
 
@@ -1001,7 +1001,7 @@ class SlackActionConfigResponse(TypedDict):
     """The configuration schema for a Messaging Action"""
 
     targetIdentifier: NotRequired[str]
-    targetDisplay: str
+    targetDisplay: NotRequired[str]
     targetType: Literal["specific"]
 
 
@@ -1010,7 +1010,7 @@ class SlackStagingActionConfigResponse(TypedDict):
     """The configuration schema for a Messaging Action"""
 
     targetIdentifier: NotRequired[str]
-    targetDisplay: str
+    targetDisplay: NotRequired[str]
     targetType: Literal["specific"]
 
 
