@@ -2,6 +2,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {SizeUnit} from 'sentry/utils/discover/fields';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {MobileAppSizeConfig} from './mobileAppSize';
@@ -54,6 +55,30 @@ describe('MobileAppSizeConfig with events-timeseries responses', () => {
       ).toEqual([
         [1000, 1000000],
         [4000, 1200000],
+      ]);
+    });
+
+    it('keeps empty buckets for bar charts', () => {
+      const result = MobileAppSizeConfig.transformTimeSeries!(
+        {
+          timeSeries: [
+            makeTimeSeries('max(install_size)', [
+              [1000, 1000000],
+              [2000, null],
+              [3000, 0],
+              [4000, 1200000],
+            ]),
+          ],
+        },
+        WidgetFixture({
+          displayType: DisplayType.BAR,
+          queries: [timeSeriesWidgetQuery],
+        }),
+        0
+      );
+
+      expect(result[0]!.timeSeries.values.map(({timestamp}) => timestamp)).toEqual([
+        1000, 2000, 3000, 4000,
       ]);
     });
 

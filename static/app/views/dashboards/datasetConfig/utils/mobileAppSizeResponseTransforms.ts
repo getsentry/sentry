@@ -4,7 +4,7 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {SizeUnit} from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   transformTimeSeriesResponse,
   type WidgetTimeSeries,
@@ -18,7 +18,7 @@ function transformTimeSeries(
   const isSingleUngroupedSeries =
     data.timeSeries.length === 1 && !data.timeSeries[0]!.groupBy?.length;
 
-  return transformTimeSeriesResponse(data, widget, queryIndex, {
+  const series = transformTimeSeriesResponse(data, widget, queryIndex, {
     meta: {valueType: 'size', valueUnit: SizeUnit.BYTE},
     getSeriesName: isSingleUngroupedSeries
       ? (_timeSeries, widgetQuery) =>
@@ -27,7 +27,16 @@ function transformTimeSeries(
           widgetQuery.fields?.[0] ||
           'App Size'
       : undefined,
-  }).map(item => ({
+  });
+
+  // Stacked bars line up by bucket index, so removing empty buckets shifts
+  // grouped series onto the wrong timestamps. Empty buckets already render as
+  // nothing in a bar chart.
+  if (widget.displayType === DisplayType.BAR) {
+    return series;
+  }
+
+  return series.map(item => ({
     ...item,
     timeSeries: {
       ...item.timeSeries,
