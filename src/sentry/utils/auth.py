@@ -39,6 +39,8 @@ _LOGIN_URL: str | None = None
 _STATIC_LOGIN_REDIRECT_SUFFIXES = frozenset({".js", ".css", ".map"})
 
 MFA_SESSION_KEY = "mfa"
+# Unix time at which this session last completed authentication, including MFA.
+AUTH_TIME_SESSION_KEY = "_auth_time"
 
 SUSPENDED_USER_REJECTED_METRIC = "auth.suspended_user.rejected"
 

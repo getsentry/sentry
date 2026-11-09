@@ -1,6 +1,6 @@
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 from urllib.parse import urlparse
 
@@ -19,6 +19,9 @@ logger = logging.getLogger("sentry.oauth")
 # RFC 7636 §4.2: 43–128 unreserved characters.
 CODE_CHALLENGE_REGEX = re.compile(r"^[A-Za-z0-9\-._~]{43,128}$")
 
+# OIDC Core 1.0 §3.1.2.1 prompt values. Other values are ignored.
+PROMPT_VALUES = ("none", "login", "consent", "select_account")
+
 
 @dataclass(frozen=True)
 class AuthorizationRequest:
@@ -29,6 +32,8 @@ class AuthorizationRequest:
     state: str | None
     code_challenge: str | None
     code_challenge_method: Literal["S256"] | None
+    # Consent preparation enforces prompts; approval does not need them.
+    prompt: frozenset[str] = field(default_factory=frozenset)
 
 
 def get_active_application(client_id: str | None) -> ApiApplication:
@@ -129,6 +134,16 @@ def build_authorization_request(params: OAuthAuthorizeQuery) -> AuthorizationReq
                 client_id=application.client_id,
             )
 
+    prompt = frozenset(params.get("prompt", "").split()).intersection(PROMPT_VALUES)
+    if "none" in prompt and len(prompt) > 1:
+        raise authorization_error(
+            response_type=response_type,
+            redirect_uri=redirect_uri,
+            name="invalid_request",
+            state=state,
+            client_id=application.client_id,
+        )
+
     return AuthorizationRequest(
         application=application,
         response_type=response_type,
@@ -137,4 +152,5 @@ def build_authorization_request(params: OAuthAuthorizeQuery) -> AuthorizationReq
         state=state,
         code_challenge=code_challenge,
         code_challenge_method="S256" if code_challenge else None,
+        prompt=prompt,
     )

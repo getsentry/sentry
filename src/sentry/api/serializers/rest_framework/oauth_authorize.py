@@ -11,6 +11,7 @@ class OAuthAuthorizeQuery(TypedDict):
     state: NotRequired[str]
     code_challenge: NotRequired[str]
     code_challenge_method: NotRequired[str]
+    prompt: NotRequired[str]
 
 
 class OAuthAuthorizeQuerySerializer(serializers.Serializer[OAuthAuthorizeQuery]):
@@ -26,4 +27,9 @@ class OAuthAuthorizeQuerySerializer(serializers.Serializer[OAuthAuthorizeQuery])
         allow_blank=True,
         trim_whitespace=False,
         help_text="Must be S256 when code_challenge is supplied.",
+    )
+    prompt = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Space-delimited OIDC prompt values: none, login, consent, or select_account.",
     )
