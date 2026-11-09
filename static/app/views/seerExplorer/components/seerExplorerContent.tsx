@@ -11,7 +11,7 @@ import {
 import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
 import {IconRefresh} from '@sentry/icons/refresh';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -36,7 +36,10 @@ import {
   canManageIntegrations,
   integrationRequiresUpgrade,
 } from 'sentry/utils/integrationUtil';
-import {useSeerCreditCheck} from 'sentry/utils/seer/useSeerCreditCheck';
+import {
+  seerCreditCheckApiOptions,
+  useSeerCreditCheck,
+} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -154,6 +157,7 @@ export function SeerExplorerContent({
   sidebarPosition?: SeerExplorerSidebarPosition;
 }) {
   const organization = useOrganization({allowNull: true});
+  const queryClient = useQueryClient();
   const {projects} = useProjects();
   const user = useUser();
   const {
@@ -362,6 +366,20 @@ export function SeerExplorerContent({
     {enabled: isComposerShown}
   );
   const isOutOfCredits = !hasEnoughCredits;
+  // Seer stopped a reply, or refused a send, for credits. Recheck so the notice
+  // replaces the composer instead of the next send failing too. Only on the change,
+  // since opening a run like this already runs the check.
+  const hitOutOfCredits =
+    !!requestError?.isOutOfCredits || sessionData?.failure_reason === 'out_of_credits';
+  const prevHitOutOfCreditsRef = useRef(hitOutOfCredits);
+  useEffect(() => {
+    if (organization && hitOutOfCredits && !prevHitOutOfCreditsRef.current) {
+      queryClient.invalidateQueries({
+        queryKey: seerCreditCheckApiOptions(organization, 'agent_chat_message').queryKey,
+      });
+    }
+    prevHitOutOfCreditsRef.current = hitOutOfCredits;
+  }, [hitOutOfCredits, organization, queryClient]);
   // A question forwarded from elsewhere waits for the first check (see the
   // auto-submit below) and goes first. Until it does, the user's own sends wait
   // too, or one would land ahead of it and the forwarded question would be
@@ -490,7 +508,15 @@ export function SeerExplorerContent({
 
   const showReauth = isReauthPending && isReauthEnabled(organization);
 
-  const requestErrorAlert = requestError ? (
+  // A send refused for credits gets the credits notice, not the generic error. Once
+  // the recheck agrees, the notice above the composer covers it.
+  const requestErrorAlert = requestError?.isOutOfCredits ? (
+    isOutOfCredits ? null : (
+      <Container padding="0 xl" data-test-id="seer-explorer-send-out-of-credits">
+        <SeerOutOfCreditsCta reason="agent-chat" />
+      </Container>
+    )
+  ) : requestError ? (
     <Container padding="0 xl">
       <Alert variant="danger">
         <Text>{t('There was an error sending your message, wait and try again.')}</Text>
