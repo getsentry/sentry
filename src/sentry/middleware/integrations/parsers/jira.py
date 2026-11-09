@@ -16,6 +16,7 @@ from sentry.integrations.jira.views import (
 )
 from sentry.integrations.jira.views.sentry_issue_details import JiraSentryIssueDetailsControlView
 from sentry.integrations.jira.webhooks import (
+    JiraForgeInstallationWebhook,
     JiraIssueUpdatedWebhook,
     JiraSentryInstalledWebhook,
     JiraSentryUninstalledWebhook,
@@ -38,6 +39,7 @@ class JiraRequestParser(BaseRequestParser):
 
     control_classes = [
         JiraDescriptorEndpoint,
+        JiraForgeInstallationWebhook,
         JiraSentryInstallationView,
         JiraSentryInstalledWebhook,
         JiraSentryUninstalledWebhook,
