@@ -303,7 +303,7 @@ def make_timeseries_result(
     values: list[Row],
 ) -> TimeSeries:
     meta = SeriesMeta(
-        interval=interval.seconds * 1000,
+        interval=int(interval.total_seconds()) * 1000,
         valueType="integer",
         valueUnit=None,
     )

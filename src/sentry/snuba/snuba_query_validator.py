@@ -54,10 +54,14 @@ UNSUPPORTED_QUERIES = {"release:latest"}
 CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [1800, 3600, 7200, 14400, 43200, 86400]
 
 MIN_EAP_ALERT_TIME_WINDOW_SECONDS = 300
+# Snuba subscriptions reject time windows longer than a day.
+MAX_EAP_ALERT_TIME_WINDOW_SECONDS = 86400
 
-# Valid time windows for EAP alerts: valid Snuba granularities at or above the alert minimum.
+# Valid time windows for EAP alerts: valid Snuba granularities within the alert bounds.
 EAP_ALERTS_ALLOWED_TIME_WINDOWS = sorted(
-    g for g in VALID_GRANULARITIES if g >= MIN_EAP_ALERT_TIME_WINDOW_SECONDS
+    g
+    for g in VALID_GRANULARITIES
+    if MIN_EAP_ALERT_TIME_WINDOW_SECONDS <= g <= MAX_EAP_ALERT_TIME_WINDOW_SECONDS
 )
 
 

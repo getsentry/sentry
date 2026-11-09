@@ -191,6 +191,19 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             "interval": 3_600_000,
         }
 
+    def test_meta_interval_with_multi_day_interval(self) -> None:
+        response = self.do_request(
+            {
+                "start": self.end - timedelta(days=90),
+                "end": self.end,
+                "interval": "30d",
+                "category": "issue",
+                "yAxis": "count(new_issues)",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["timeSeries"][0]["meta"]["interval"] == 2_592_000_000
+
     def test_get_resolved_issues(self) -> None:
         response = self.do_request(
             {
