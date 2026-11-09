@@ -318,17 +318,19 @@ function DropdownMenuList({
   });
 
   // A virtualized menu only mounts some of its rows, so its natural width would
-  // change as rows scroll in and out. Measure it once, with `widestKey`
-  // mounted, and keep that width until the menu closes, including while a
+  // change as rows scroll in and out. Measure it once, when the `widestKey` row
+  // has mounted, and keep that width until the menu closes, including while a
   // search filters the items. A label that does not fit is truncated.
   //
-  // Measure the rows' own width (`max-content`), not the menu's current width.
-  // This effect runs before the overlay is positioned, while the menu may still
-  // be squeezed by its container.
+  // The virtualizer mounts no rows on its first render, so measuring earlier
+  // would lock the width of an empty list. Measure the rows' own width
+  // (`max-content`) rather than the menu's current one, which its container
+  // may still be squeezing before the overlay is positioned.
+  const isWidestRowMounted = virtual.rows.some(row => row.node.key === widestKey);
   const [lockedWidth, setLockedWidth] = useState<number>();
   useLayoutEffect(() => {
     const menu = menuRef.current;
-    if (!virtualized || lockedWidth !== undefined || !menu) {
+    if (!virtualized || !isWidestRowMounted || lockedWidth !== undefined || !menu) {
       return;
     }
     const {width} = menu.style;
@@ -336,7 +338,7 @@ function DropdownMenuList({
     // Round up, so a fractional width does not cut off the widest label.
     setLockedWidth(Math.ceil(menu.getBoundingClientRect().width));
     menu.style.width = width;
-  }, [virtualized, lockedWidth]);
+  }, [virtualized, isWidestRowMounted, lockedWidth]);
 
   /**
    * Moves focus to an item by key. Items outside a virtualized window are not
