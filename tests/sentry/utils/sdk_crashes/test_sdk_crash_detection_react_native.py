@@ -554,7 +554,7 @@ def test_supabase_instrumentation_not_detected(
     ["function", "mechanism_type", "detected"],
     [
         # Real-world Hermes frame name for the PostgREST capture that the stack trace matcher
-        # misses. Regression for event a73b7559756f4382aaa0412515164c0f.
+        # misses.
         ("Proxy$argument_1.apply", "auto.db.supabase.postgres", False),
         ("Reflect.apply.then$argument_0", "auto.db.supabase.postgres", False),
         ("Proxy$argument_1.apply", "auto.db.supabase.auth", False),
@@ -565,10 +565,10 @@ def test_supabase_instrumentation_not_detected(
 )
 @decorators
 def test_supabase_mechanism_not_detected(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
     function: str,
     mechanism_type: str,
     detected: bool,
