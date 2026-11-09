@@ -1,28 +1,13 @@
-import {useState} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {
-  defaultFormOptions,
-  DisplayField,
-  setFieldErrors,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {
-  DISTRIBUTION_SENTRY_APP_PERMISSION,
-  SENTRY_APP_PERMISSIONS,
-} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Permissions} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -30,33 +15,17 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {
-  PermissionSelection,
-  permissionStateToList,
-} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 import {serviceAccountsOptions} from './index';
+import {
+  getDefaultServiceAccountScopes,
+  getGrantableServiceAccountScopes,
+  getServiceAccountScopeOptions,
+} from './scopes';
 import type {ServiceAccount} from './types';
 
 // Matches MAX_NAME_LENGTH in sentry/service_accounts/models.py.
 const MAX_NAME_LENGTH = 64;
-
-const INITIAL_PERMISSIONS: Permissions = {
-  Event: 'no-access',
-  Team: 'no-access',
-  Member: 'no-access',
-  Project: 'no-access',
-  Release: 'no-access',
-  Organization: 'no-access',
-  Alerts: 'no-access',
-  Distribution: 'no-access',
-};
-
-// Distribution is for apps published to other organizations, which a service account
-// never is.
-const DISPLAYED_PERMISSIONS = SENTRY_APP_PERMISSIONS.filter(
-  permission => permission !== DISTRIBUTION_SENTRY_APP_PERMISSION
-);
 
 const schema = z.object({
   name: z
@@ -66,15 +35,10 @@ const schema = z.object({
     .max(MAX_NAME_LENGTH, t('Name must be %s characters or fewer', MAX_NAME_LENGTH)),
   projectAccess: z.enum(['all', 'specific']),
   projectIds: z.array(z.string()),
+  scopes: z.array(z.string()).min(1, t('Select at least one permission scope.')),
 });
 
 type FormValues = z.infer<typeof schema>;
-
-const DEFAULT_VALUES: FormValues = {
-  name: '',
-  projectAccess: 'specific',
-  projectIds: [],
-};
 
 const errorDetailSchema = z.union([
   z.string(),
@@ -95,14 +59,18 @@ export default function OrganizationServiceAccountsNew() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {projects} = useProjects();
-  const [permissions, setPermissions] = useState<Permissions>({...INITIAL_PERMISSIONS});
+  const grantableScopes = getGrantableServiceAccountScopes(organization);
+  const defaultValues: FormValues = {
+    name: '',
+    projectAccess: 'specific',
+    projectIds: [],
+    scopes: getDefaultServiceAccountScopes(organization),
+  };
 
   const handleGoBack = () => navigate(`/settings/${organization.slug}/service-accounts/`);
 
-  const scopes = Array.from(new Set(permissionStateToList(permissions, false))).sort();
-
   const mutation = useMutation<ServiceAccount, RequestError, FormValues>({
-    mutationFn: ({name, projectAccess, projectIds}) =>
+    mutationFn: ({name, projectAccess, projectIds, scopes}) =>
       fetchMutation<ServiceAccount>({
         url: getApiUrl('/organizations/$organizationIdOrSlug/service-accounts/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -126,7 +94,7 @@ export default function OrganizationServiceAccountsNew() {
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: DEFAULT_VALUES,
+    defaultValues,
     validators: {onDynamic: schema},
     onSubmit: async ({value, formApi}) => {
       try {
@@ -142,16 +110,14 @@ export default function OrganizationServiceAccountsNew() {
         }
         const nameError = detail?.name?.[0];
         const projectIdsError = detail?.projectIds?.[0];
-        if (nameError || projectIdsError) {
+        const scopesError = detail?.scopes?.[0];
+        if (nameError || projectIdsError || scopesError) {
           setFieldErrors(formApi, {
             ...(nameError ? {name: {message: nameError}} : {}),
             ...(projectIdsError ? {projectIds: {message: projectIdsError}} : {}),
+            ...(scopesError ? {scopes: {message: scopesError}} : {}),
           });
-        }
-        const scopesError = detail?.scopes?.[0];
-        if (scopesError) {
-          toast.error(scopesError);
-        } else if (!nameError && !projectIdsError) {
+        } else {
           toast.error(t('Failed to create the service account.'));
         }
       }
@@ -250,29 +216,35 @@ export default function OrganizationServiceAccountsNew() {
           </form.Subscribe>
         </form.FieldGroup>
 
-        <Panel>
-          <PanelHeader>{t('Permissions')}</PanelHeader>
-          <PanelBody>
-            <PermissionSelection
-              appPublished={false}
-              displaySpecialPermissions={false}
-              permissions={permissions}
-              onChange={nextPermissions => setPermissions({...nextPermissions})}
-              displayedPermissions={DISPLAYED_PERMISSIONS}
-            />
-            <DisplayField.Row
-              label={t('Permissions Preview')}
-              hintText={t('The service account will have these scopes.')}
-              padding="xl"
-            >
-              <Text>{scopes.join(', ') || '—'}</Text>
-            </DisplayField.Row>
-          </PanelBody>
-        </Panel>
+        <form.FieldGroup title={t('Permissions')}>
+          <form.AppField name="scopes">
+            {field => (
+              <field.Layout.Row
+                label={t('Permission scopes')}
+                hintText={t(
+                  'Starts with read access. Add write permissions only for actions you want the service account to perform.'
+                )}
+                required
+              >
+                <field.Select
+                  multiple
+                  clearable
+                  searchable
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={getServiceAccountScopeOptions(
+                    grantableScopes,
+                    field.state.value
+                  )}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+        </form.FieldGroup>
 
         <Flex justify="end" gap="md" padding="md">
           <Button onClick={handleGoBack}>{t('Cancel')}</Button>
-          <form.SubmitButton disabled={scopes.length === 0 || mutation.isSuccess}>
+          <form.SubmitButton disabled={mutation.isSuccess}>
             {t('Create Service Account')}
           </form.SubmitButton>
         </Flex>
