@@ -718,7 +718,9 @@ class ExhaustiveFixtures(Fixtures):
             )
 
         # Setup a test 'Issue Rule' and 'Automation'
-        workflow = self.create_workflow(organization=org)
+        workflow = self.create_workflow(
+            organization=org, created_by_service_account_id=service_account.id
+        )
         seer_workflow_config.update(backing_workflow=workflow)
         detector = self.create_detector(project=project, type=MetricIssue.slug)
         self.create_detector_workflow(detector=detector, workflow=workflow)
