@@ -244,6 +244,26 @@ class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
         )
 
 
+AGENT_OUT_OF_CREDITS_MESSAGE = "Your org does not have enough Seer credits for this request. Set up auto top up to keep your flow uninterrupted."
+
+
+class SeerAgentOutOfCredits(NotificationData):
+    source: NotificationSource = NotificationSource.SEER_AGENT_OUT_OF_CREDITS
+
+
+@template_registry.register(NotificationSource.SEER_AGENT_OUT_OF_CREDITS)
+class SeerAgentOutOfCreditsTemplate(NotificationTemplate[SeerAgentOutOfCredits]):
+    category = NotificationCategory.SEER
+    example_data = SeerAgentOutOfCredits(organization_id=1)
+    hide_from_debugger = True
+
+    def render(self, data: SeerAgentOutOfCredits) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=AGENT_OUT_OF_CREDITS_MESSAGE,
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=AGENT_OUT_OF_CREDITS_MESSAGE)])],
+        )
+
+
 class SeerAgentResponse(NotificationData):
     """Notification data for Agent completion response in Slack."""
 

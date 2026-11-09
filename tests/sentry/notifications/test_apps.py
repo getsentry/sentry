@@ -58,4 +58,5 @@ class NotificationsDjangoAppTest(TestCase):
             (NotificationProviderKey.SLACK, NotificationSource.SEER_INVESTIGATION_STATUS),
             (NotificationProviderKey.SLACK, NotificationSource.SEER_INVESTIGATION_CONCLUSION),
             (NotificationProviderKey.SLACK, NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS),
+            (NotificationProviderKey.SLACK, NotificationSource.SEER_AGENT_OUT_OF_CREDITS),
         }

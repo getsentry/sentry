@@ -28,8 +28,10 @@ from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
+    AGENT_OUT_OF_CREDITS_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
+    SeerAgentOutOfCredits,
     SeerAgentResponse,
     SeerAutofixError,
     SeerAutofixOutOfCredits,
@@ -50,6 +52,7 @@ from sentry.notifications.platform.types import (
 )
 from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.credits import OUT_OF_CREDITS
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -111,6 +114,7 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
         NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
+        NotificationSource.SEER_AGENT_OUT_OF_CREDITS,
         NotificationSource.SEER_INVESTIGATION_STARTED,
         NotificationSource.SEER_INVESTIGATION_ERROR,
         NotificationSource.SEER_INVESTIGATION_STATUS,
@@ -154,6 +158,11 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
             return cls._render_agent_response(data, link_decorator)
+        elif isinstance(data, SeerAgentOutOfCredits):
+            return SlackRenderable(
+                blocks=[SectionBlock(text=AGENT_OUT_OF_CREDITS_MESSAGE)],
+                text=AGENT_OUT_OF_CREDITS_MESSAGE,
+            )
         elif isinstance(data, SeerInvestigationStarted):
             return cls._render_investigation_started(data)
         elif isinstance(data, SeerInvestigationError):
@@ -471,6 +480,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 return (
                     f"Updating {pr_text}..." if pr.pr_number else f"Creating a PR in {repo_text}..."
                 )
+            case "error" if pr.pr_creation_error_code == OUT_OF_CREDITS:
+                return f"Couldn't push to {pr_text}: your organization is out of Seer credits"
             case "error":
                 return f"Latest push failed for {pr_text}"
             case "completed":

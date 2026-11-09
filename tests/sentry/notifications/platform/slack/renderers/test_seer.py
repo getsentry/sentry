@@ -25,8 +25,11 @@ from sentry.notifications.platform.slack.renderers.seer_agent_write_approval imp
     SeerAgentWriteApprovalSlackRenderer,
 )
 from sentry.notifications.platform.templates.seer import (
+    AGENT_OUT_OF_CREDITS_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
+    SeerAgentOutOfCredits,
+    SeerAgentOutOfCreditsTemplate,
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixCodeChange,
@@ -49,6 +52,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationRenderedTemplate,
 )
+from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -391,6 +395,21 @@ class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
             assert blocks[0].text.text == AUTOFIX_OUT_OF_CREDITS_MESSAGE
 
 
+class SeerSlackRendererAgentOutOfCreditsTest(TestCase):
+    def test_render_out_of_credits(self) -> None:
+        data = SeerAgentOutOfCredits(organization_id=1)
+        renderable = render_seer(
+            data=data, rendered_template=SeerAgentOutOfCreditsTemplate().render(data)
+        )
+
+        assert renderable["text"] == AGENT_OUT_OF_CREDITS_MESSAGE
+        blocks = renderable["blocks"]
+        assert len(blocks) == 1
+        assert isinstance(blocks[0], SectionBlock)
+        assert blocks[0].text is not None
+        assert blocks[0].text.text == AGENT_OUT_OF_CREDITS_MESSAGE
+
+
 class SeerSlackRendererAgentErrorTest(TestCase):
     def test_render_agent_error(self) -> None:
         data = SeerAgentError(
@@ -513,6 +532,16 @@ class SeerSlackRendererAgentTest(TestCase):
         footer_text = first_element.text
         assert "Reinstall" in footer_text
         assert "I can't read the whole thread" in footer_text
+
+    def test_render_agent_pr_state_out_of_credits(self) -> None:
+        pr = RepoPRState(
+            repo_name="acme/web",
+            pr_creation_status="error",
+            pr_creation_error_code="out_of_credits",
+        )
+        assert SeerSlackRenderer._render_agent_pr_state(pr) == (
+            "Couldn't push to `acme/web`: your organization is out of Seer credits"
+        )
 
     def test_render_agent_response_no_footer_when_url_not_set(self) -> None:
         data = self._create_agent_response(summary="Some analysis")
