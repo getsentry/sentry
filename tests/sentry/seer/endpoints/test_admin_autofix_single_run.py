@@ -19,10 +19,7 @@ from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.endpoints.admin_metric_breaches import (
-    FEATURE,
-    SyntheticMetricBreachRequest,
-)
+from sentry.seer.endpoints.admin_metric_breaches import SyntheticMetricBreachRequest
 from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
@@ -150,7 +147,6 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
         mock_trigger.assert_not_called()
 
 
-@with_feature(FEATURE)
 @with_feature("organizations:seer-automations")
 class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
     endpoint = "sentry-admin-seer-metric-breaches"
@@ -215,18 +211,12 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
             )
         assert response.status_code == 403
 
-    def test_requires_flag(self) -> None:
-        with self.feature({FEATURE: False}):
+    def test_requires_seer_automations(self) -> None:
+        with self.feature({"organizations:seer-automations": False}):
             self.get_error_response(
                 organizationId=self.organization.id, monitorId=self.detector.id, status_code=404
             )
-
-    def test_flag_exposed_in_organization_response(self) -> None:
-        response = self.client.get(
-            f"/api/0/organizations/{self.organization.slug}/", {"include_feature_flags": "1"}
-        )
-        assert response.status_code == 200
-        assert "seer-admin-synthetic-metric-breaches" in response.data["features"]
+        assert not Group.objects.filter(type=8001).exists()
 
     def test_monitor_scoped_to_organization(self) -> None:
         other = self.create_organization(owner=self.user)

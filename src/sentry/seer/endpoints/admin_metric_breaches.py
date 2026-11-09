@@ -29,8 +29,6 @@ from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
 
-FEATURE = "organizations:seer-admin-synthetic-metric-breaches"
-
 
 class StrictIdField(serializers.IntegerField):
     def to_internal_value(self, data: Any) -> int:
@@ -126,9 +124,7 @@ class SeerAdminMetricBreachesEndpoint(Endpoint):
         access = from_request(request, organization)
         if not access.has_scope("event:write"):
             raise PermissionDenied
-        if not features.has(FEATURE, organization, actor=request.user) or not features.has(
-            "organizations:seer-automations", organization, actor=request.user
-        ):
+        if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
         detector = (
             Detector.objects.filter(
