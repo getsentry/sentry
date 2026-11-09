@@ -101,7 +101,7 @@ function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps)
       margin="0"
       padding="xs"
       width="100%"
-      gap="0"
+      gap="xs"
       align={layout === 'mobile' ? 'stretch' : 'center'}
       {...props}
     >
@@ -239,7 +239,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   }
 
   return (
-    <Stack align="center" gap="xs" paddingBottom="md">
+    <Stack align="center" gap="xs" padding="xs">
       {button}
       <Text
         size="xs"
@@ -421,7 +421,7 @@ const DesktopNavigationLink = styled((props: LinkProps) => {
       align="center"
       justify="center"
       gap="xs"
-      padding="xs xs md xs"
+      padding="xs"
     >
       {p => <Link {...mergeProps(p, props)} />}
     </Stack>
