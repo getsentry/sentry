@@ -244,6 +244,8 @@ class RecordEngagementTest(TestCase):
             "https://acme.sentry.io/seer/investigations/1/",
             NotificationLink.INVESTIGATION,
         ),
+        ("https://acme.sentry.io/inbox/issue/1/", NotificationLink.INBOX),
+        ("https://sentry.io/organizations/acme/inbox/notebook/1/", NotificationLink.INBOX),
     ],
 )
 def test_classify_link(url: str, expected: NotificationLink) -> None:
