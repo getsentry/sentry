@@ -7,9 +7,19 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.constants import ObjectStatusName
 from sentry.types.actor import Actor
+from sentry.workflow_engine.endpoints.serializers.response_schemas import (
+    action_config_schema,
+    condition_comparison_schema,
+    workflow_config_schema,
+)
+from sentry.workflow_engine.generated_schema_types import (
+    ActionConfigResponse,
+    ConditionComparisonResponse,
+    WorkflowConfig,
+)
 from sentry.workflow_engine.models import (
     DataConditionGroup,
     DetectorWorkflow,
@@ -51,8 +61,9 @@ class ActionSerializerResponse(TypedDict, total=False):
         dict[str, str], ApiDescription("Extra data for the action, which depends on its type")
     ]
     config: Annotated[
-        dict[str, Any],
+        ActionConfigResponse,
         ApiDescription("Configuration of the action, such as targetType and targetIdentifier"),
+        ApiSchema(action_config_schema),
     ]
     status: Annotated[ObjectStatusName, ApiDescription("Status of the action")]
 
@@ -61,11 +72,16 @@ class ConditionSerializerResponse(TypedDict):
     id: Annotated[str, ApiDescription("ID of the condition")]
     type: Annotated[str, ApiDescription("Type of the condition, such as first_seen_event or level")]
     comparison: Annotated[
-        bool | int,
+        ConditionComparisonResponse,
         ApiDescription("Value the condition compares against, which depends on its type"),
+        ApiSchema(condition_comparison_schema),
     ]
     conditionResult: Annotated[
-        bool, ApiDescription("Result the condition produces when it matches")
+        bool | int | float | None,
+        ApiDescription(
+            "Result the condition produces when it matches: true for alert conditions, or the "
+            "priority level for monitor conditions"
+        ),
     ]
 
 
@@ -74,11 +90,10 @@ class TriggerSerializerResponse(TypedDict, total=False):
     organizationId: Annotated[str, ApiDescription("ID of the organization")]
     logicType: Annotated[LogicTypeName, ApiDescription("How the conditions in the group combine")]
     conditions: Annotated[
-        list[ConditionSerializerResponse] | list[Any], ApiDescription("Conditions in the group")
+        list[ConditionSerializerResponse], ApiDescription("Conditions in the group")
     ]
     actions: Annotated[
-        list[ActionSerializerResponse] | list[Any],
-        ApiDescription("Actions to fire when the conditions pass"),
+        list[ActionSerializerResponse], ApiDescription("Actions to fire when the conditions pass")
     ]
 
 
@@ -103,7 +118,9 @@ class WorkflowSerializerResponse(TypedDict):
         ),
     ]
     config: Annotated[
-        dict[str, Any], ApiDescription("Configuration of the alert, such as frequency in minutes")
+        WorkflowConfig,
+        ApiDescription("Configuration of the alert, such as frequency in minutes"),
+        ApiSchema(workflow_config_schema),
     ]
     detectorIds: Annotated[
         list[str] | None, ApiDescription("IDs of the monitors connected to the alert")

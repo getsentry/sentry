@@ -7,9 +7,11 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.base import serialize
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.formats import Uuid, uuid_str
+from sentry.sentry_apps.api.serializers.response_schemas import component_schema
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializerResponse
+from sentry.sentry_apps.generated_schema_types import SentryAppComponentSchema
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.services.app import SentryAppEventDataInterface
 from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
@@ -34,7 +36,11 @@ class SentryAppComponentSerializerResponse(TypedDict):
             "Type of the component, such as issue-link, stacktrace-link or alert-rule-action"
         ),
     ]
-    schema: Annotated[dict[str, Any], ApiDescription("UI schema of the component")]
+    schema: Annotated[
+        SentryAppComponentSchema,
+        ApiDescription("UI schema of the component"),
+        ApiSchema(component_schema),
+    ]
     error: Annotated[
         str | SentryAppPublicErrorBody,
         ApiDescription("Error from loading the component. Empty when there's none"),

@@ -1,18 +1,19 @@
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Annotated, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.activity import (
+    ActivitySerializerResponse,
     _ActivitySentryAppEmbed,
     serialize_activity_source,
     serialize_group_notes,
 )
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.principal import RequestPrincipal
 from sentry.issues.action_log.read_metrics import (
     ActivityReadFallbackReason,
@@ -60,17 +61,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class GroupActionLogEntrySerializerResponse(TypedDict):
-    id: str
-    # The reference accepted by the notes endpoints, or null for non-comments.
-    commentId: str | None
-    # the serialized acting user when actorType is USER, otherwise null
-    user: dict[str, Any] | None
-    sentry_app: _ActivitySentryAppEmbed | None
-    type: str
-    source: str | None
-    data: dict[str, Any]
-    dateCreated: datetime
+class GroupActionLogEntrySerializerResponse(ActivitySerializerResponse):
+    source: Annotated[
+        str | None,
+        ApiDescription("Where the action came from, such as web, api or mcp:<client>"),
+    ]
 
 
 def serialize_first_seen_entry(
@@ -345,7 +340,7 @@ class GroupActionLogEntrySerializer(Serializer):
             action = obj.action
             if not isinstance(action, ImpactAssessmentAction):
                 raise TypeError("Impact assessment entry has an unexpected action type")
-            data = {
+            data: dict[str, object] = {
                 "score": action.score,
                 "level": get_impact_level(action.score),
                 "description": action.description,

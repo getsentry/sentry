@@ -2,11 +2,53 @@ from collections.abc import Mapping
 from typing import Annotated, Any, Literal, NotRequired, TypedDict, cast
 
 from sentry.api.serializers import Serializer, register
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.formats import Uuid, uuid_str
 from sentry.constants import SentryAppStatusName
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
+from sentry.sentry_apps.api.serializers.response_schemas import alert_rule_settings_schema
+from sentry.sentry_apps.generated_schema_types import SentryAppAlertRuleSettings
 from sentry.workflow_engine.types import ActionHandler
+
+# The JSON Schema keywords that action handlers' config and data schemas use.
+# test_response_schemas checks that every registered handler sticks to them.
+JsonSchemaDocument = TypedDict(
+    "JsonSchemaDocument",
+    {
+        "$schema": Annotated[str, ApiDescription("URI of the JSON Schema dialect")],
+        "type": Annotated[str | list[str], ApiDescription("JSON type or types the value has")],
+        "description": Annotated[str, ApiDescription("What the value is")],
+        "properties": Annotated[
+            dict[str, "JsonSchemaDocument | bool"],
+            ApiDescription(
+                "Schemas of the object's properties, by property name. false forbids the property"
+            ),
+        ],
+        "required": Annotated[list[str], ApiDescription("Properties the object must have")],
+        "additionalProperties": Annotated[
+            bool, ApiDescription("Whether the object can have properties that aren't listed")
+        ],
+        "enum": Annotated[
+            list[str | int | float | bool | None], ApiDescription("Values the value can be")
+        ],
+        "default": Annotated[
+            str | int | float | bool | list[str] | dict[str, str] | None,
+            ApiDescription("Value used when none is given"),
+        ],
+        "items": Annotated["JsonSchemaDocument", ApiDescription("Schema of the array's items")],
+        "allOf": Annotated[
+            list["JsonSchemaDocument"], ApiDescription("Schemas that the value must all match")
+        ],
+        "if": Annotated[
+            "JsonSchemaDocument", ApiDescription("Schema that decides whether then applies")
+        ],
+        "then": Annotated[
+            "JsonSchemaDocument", ApiDescription("Schema the value must match when if matches")
+        ],
+        "pattern": Annotated[str, ApiDescription("Regular expression the string must match")],
+    },
+    total=False,
+)
 
 
 class SentryAppContext(TypedDict):
@@ -17,10 +59,11 @@ class SentryAppContext(TypedDict):
     status: Annotated[SentryAppStatusName, ApiDescription("Status of the Sentry app")]
     settings: NotRequired[
         Annotated[
-            dict[str, Any],
+            SentryAppAlertRuleSettings,
             ApiDescription(
                 "Settings form for the action, from the app's alert rule action component"
             ),
+            ApiSchema(alert_rule_settings_schema),
         ]
     ]
     title: NotRequired[
@@ -54,8 +97,10 @@ class ActionHandlerSerializerResponse(TypedDict):
     handlerGroup: Annotated[
         str, ApiDescription("Group the action belongs to, such as notification or ticket_creation")
     ]
-    configSchema: Annotated[dict[str, Any], ApiDescription("JSON schema of the action's config")]
-    dataSchema: Annotated[dict[str, Any], ApiDescription("JSON schema of the action's data")]
+    configSchema: Annotated[
+        JsonSchemaDocument, ApiDescription("JSON schema of the action's config")
+    ]
+    dataSchema: Annotated[JsonSchemaDocument, ApiDescription("JSON schema of the action's data")]
     sentryApp: NotRequired[
         Annotated[
             SentryAppContext,
@@ -103,8 +148,8 @@ class ActionHandlerSerializer(Serializer[ActionHandlerSerializerResponse]):
         result: ActionHandlerSerializerResponse = {
             "type": action_type,
             "handlerGroup": obj.group.value,
-            "configSchema": obj.config_schema,
-            "dataSchema": obj.data_schema,
+            "configSchema": cast(JsonSchemaDocument, obj.config_schema),
+            "dataSchema": cast(JsonSchemaDocument, obj.data_schema),
         }
 
         integrations = kwargs.get("integrations")

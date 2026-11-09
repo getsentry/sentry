@@ -14,6 +14,7 @@ from sentry import features, release_health, tsdb
 from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializerResponse
+from sentry.api.serializers.models.event_metadata import EventMetadataResponse
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupAnnotation,
@@ -395,7 +396,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     issueCategory: NotRequired[
         Annotated[str, ApiDescription("Issue category, such as error or performance")]
     ]
-    metadata: NotRequired[Annotated[dict[str, Any], ApiDescription("Issue metadata")]]
+    metadata: NotRequired[Annotated[EventMetadataResponse, ApiDescription("Issue metadata")]]
     numComments: NotRequired[Annotated[int, ApiDescription("Number of comments on the issue")]]
     assignedTo: NotRequired[
         Annotated[

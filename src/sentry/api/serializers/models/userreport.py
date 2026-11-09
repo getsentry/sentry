@@ -1,15 +1,13 @@
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Annotated, NotRequired, TypedDict, cast
+from typing import Annotated, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry import quotas
-from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.models.environment import Environment
-from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
@@ -50,10 +48,6 @@ class UserReportSerializerResponse(TypedDict):
         ),
     ]
     event: Annotated[UserReportEvent, ApiDescription("Event the feedback is attached to")]
-
-
-class UserReportWithGroupSerializerResponse(UserReportSerializerResponse):
-    issue: dict[str, object]
 
 
 class _EventUser(TypedDict):
@@ -127,49 +121,4 @@ class UserReportSerializer(Serializer[UserReportSerializerResponse]):
             "dateCreated": obj.date_added,
             "user": serialized_user,
             "event": {"id": obj.event_id, "eventID": obj.event_id},
-        }
-
-
-class UserReportWithGroupSerializer(UserReportSerializer):
-    def __init__(self, environment_func: Callable[[], Environment | None] | None = None) -> None:
-        self.environment_func = environment_func
-
-    def get_attrs(
-        self,
-        item_list: Sequence[UserReport],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ) -> dict[UserReport, _EventUser]:
-        from sentry.api.serializers import GroupSerializer
-
-        groups = list(Group.objects.filter(id__in={i.group_id for i in item_list if i.group_id}))
-        serialized_groups = {}
-        if groups:
-            serialized_groups = {
-                d["id"]: d
-                for d in serialize(
-                    groups,
-                    user,
-                    GroupSerializer(environment_func=self.environment_func),
-                )
-            }
-
-        attrs = super().get_attrs(item_list, user)
-        for item in item_list:
-            attrs[item].update(
-                {"group": serialized_groups[str(item.group_id)] if item.group_id else None}
-            )
-        return attrs
-
-    def serialize(
-        self,
-        obj: UserReport,
-        attrs: Mapping[str, object],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ) -> UserReportWithGroupSerializerResponse:
-        context = super().serialize(obj, attrs, user)
-        return {
-            **context,
-            "issue": cast(dict[str, object], attrs["group"]),
         }

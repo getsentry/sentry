@@ -61,8 +61,9 @@ from drf_spectacular.plumbing import build_array_type as drf_build_array_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import _SchemaType
 
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.formats import ApiFormat
+from sentry.apidocs.json_schemas import union_schema
 from sentry.apidocs.omission_guard import descended, omissions_enabled, record_typed_dict
 from sentry.apidocs.omissions import OMISSION_REASONS_OVERRIDE
 from sentry.apidocs.response_coverage import CYCLE, FIELD_SOURCE
@@ -74,6 +75,7 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 #   grabbing description from a TypedDict __doc__
 #   grabbing field descriptions from Annotated[T, ApiDescription(...)]
 #   adding schema keywords such as format from Annotated[T, ApiFormat(...)]
+#   replacing the schema with Annotated[T, ApiSchema(...)]
 #   support for TypedDict required fields
 #   support for excluded fields via @extend_schema_serializer
 
@@ -201,6 +203,9 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
     if isinstance(hint, NewType):
         return resolve_type_hint(hint.__supertype__)
     if origin is Annotated:
+        for metadata in hint.__metadata__:
+            if isinstance(metadata, ApiSchema):
+                return metadata.build()
         schema = resolve_type_hint(hint.__origin__)
         for metadata in hint.__metadata__:
             if isinstance(metadata, ApiFormat):
@@ -224,8 +229,11 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
             _resolve_at(args[0], "items") if args else build_basic_type(OpenApiTypes.ANY)
         )
     elif origin is tuple:
+        if len(args) == 2 and args[1] is Ellipsis:
+            return build_array_type(_resolve_at(args[0], "items"))
+        # OpenAPI 3.0 has no tuples, so each item can be any of the tuple's types.
         return build_array_type(
-            schema=build_basic_type(args[0]),
+            schema=union_schema(_resolve_at(arg, "items") for arg in args),
             max_length=len(args),
             min_length=len(args),
         )

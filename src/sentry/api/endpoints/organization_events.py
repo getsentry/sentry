@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping, Sequence
 from concurrent.futures import as_completed
-from typing import Annotated, Any, TypedDict, cast
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -131,7 +131,7 @@ class EventsMeta(TypedDict, total=False):
     ]
     dataset: Annotated[str, ApiDescription("Dataset that was queried")]
     discoverSplitDecision: Annotated[
-        Any,
+        Literal["error-events", "transaction-like"],
         ApiDescription(
             "Dataset the results were taken from when a Discover dashboard widget query was split between errors and transactions"
         ),

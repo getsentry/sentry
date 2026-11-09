@@ -58,6 +58,12 @@ class NonMappableUser(TypedDict):
 Author: TypeAlias = UserSerializerResponse | NonMappableUser
 
 
+class EmptyAuthor(TypedDict):
+    """The commit and pull request serializers emit ``{}`` for ``author`` when there's
+    no mapped author, so the published schema must allow an empty object alongside a
+    populated ``Author``."""
+
+
 class HealthDataOptional(TypedDict, total=False):
     durationP50: Annotated[float | None, ApiDescription("Median session duration in seconds")]
     durationP90: Annotated[

@@ -802,11 +802,39 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         }
 
 
+# Mirrors the GlobalFilter type in static/app/views/dashboards/types.tsx, which
+# is the only writer of these filters.
+class DashboardGlobalFilterTag(TypedDict):
+    key: Annotated[str, ApiDescription("Key of the tag or attribute the filter applies to")]
+    name: Annotated[str, ApiDescription("Display name of the tag or attribute")]
+    kind: NotRequired[
+        Annotated[str, ApiDescription("Kind of the field, such as tag, measurement or field")]
+    ]
+
+
+class DashboardGlobalFilter(TypedDict):
+    dataset: Annotated[
+        str,
+        ApiDescription(
+            "Widget dataset the filter applies to, such as error-events, transaction-like, spans or logs"
+        ),
+    ]
+    tag: Annotated[DashboardGlobalFilterTag, ApiDescription("Tag or attribute being filtered")]
+    value: Annotated[
+        str, ApiDescription("Filter condition in search syntax, such as browser.name:[Chrome]")
+    ]
+    isTemporary: NotRequired[
+        Annotated[
+            bool, ApiDescription("Whether the filter comes from a link and isn't saved by the user")
+        ]
+    ]
+
+
 class DashboardFilters(TypedDict, total=False):
     release: Annotated[list[str], ApiDescription("Saved release filter")]
     releaseId: Annotated[list[str], ApiDescription("Saved release ID filter")]
     globalFilter: Annotated[
-        list[dict[str, object]], ApiDescription("Saved global filters applied to every widget")
+        list[DashboardGlobalFilter], ApiDescription("Saved global filters applied to every widget")
     ]
 
 

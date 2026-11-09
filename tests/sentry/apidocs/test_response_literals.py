@@ -11,11 +11,13 @@ from sentry.monitors.models import CheckInStatus, MonitorStatus
 from sentry.monitors.serializers import CheckInStatusName, MonitorStatusName
 from sentry.users.api.serializers.user import AvatarTypeName
 from sentry.users.models.user_avatar import UserAvatar
+from sentry.workflow_engine.endpoints.serializers.data_source_serializer import DataSourceTypeName
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     ActionTypeName,
     LogicTypeName,
 )
 from sentry.workflow_engine.models import Action, DataConditionGroup
+from sentry.workflow_engine.registry import data_source_type_registry
 
 
 def _labels(choices: Any) -> set[str]:
@@ -45,6 +47,7 @@ def _labels(choices: Any) -> set[str]:
         ),
         (ActionTypeName, {t.value for t in Action.Type}),
         (LogicTypeName, {t.value for t in DataConditionGroup.Type}),
+        (DataSourceTypeName, set(data_source_type_registry.registrations)),
     ],
 )
 def test_literal_matches_choices(literal: Any, values: set[str]) -> None:

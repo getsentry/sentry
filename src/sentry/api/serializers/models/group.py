@@ -26,10 +26,12 @@ from sentry_sdk import traces
 from sentry import features, tagstore
 from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.activity_response_schemas import group_activity_schema
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.event import SharedEventSerializerResponse
+from sentry.api.serializers.models.event_metadata import EventMetadataResponse
 from sentry.api.serializers.models.project import SharedProjectSerializerResponse
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.formats import NumericId, Slug, Url, absolute_url, numeric_id, slug
 from sentry.auth.principal import has_user
 from sentry.constants import LOG_LEVELS
@@ -225,7 +227,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
         str, ApiDescription("Issue type, such as error or performance_n_plus_one_db_queries")
     ]
     issueCategory: Annotated[str, ApiDescription("Issue category, such as error or performance")]
-    metadata: Annotated[dict[str, Any], ApiDescription("Issue metadata")]
+    metadata: Annotated[EventMetadataResponse, ApiDescription("Issue metadata")]
     numComments: Annotated[int, ApiDescription("Number of comments on the issue")]
     assignedTo: Annotated[
         ActorSerializerResponse | None, ApiDescription("User or team the issue is assigned to")
@@ -333,7 +335,8 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
 
 class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
     activity: Annotated[
-        list[dict[str, Any]], ApiDescription("Recent activity on the issue, newest first")
+        list[Annotated[dict[str, Any], ApiSchema(group_activity_schema)]],
+        ApiDescription("Recent activity on the issue, newest first"),
     ]
     seenBy: Annotated[
         list[GroupSeenByResponse],
@@ -629,7 +632,7 @@ class GroupSerializerBase(Serializer, ABC):
             "platform": obj.platform,
             "project": _make_group_project_response(obj.project),
             "type": obj.get_event_type(),
-            "metadata": obj.get_event_metadata(),
+            "metadata": cast(EventMetadataResponse, obj.get_event_metadata()),
             "numComments": obj.num_comments,
             "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
             "isBookmarked": attrs["is_bookmarked"],
@@ -1454,22 +1457,31 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
 
 class SimpleGroupSerializerResponse(TypedDict):
-    id: str
-    title: str
-    culprit: str | None
-    shortId: str | None
-    level: GroupLevelStr
-    status: GroupStatusStr
-    substatus: GroupSubStatusStr | None
-    platform: str | None
-    project: GroupProjectResponse
-    type: EventTypeStr
-    issueType: str
-    issueCategory: str
-    metadata: dict[str, Any]
-    numComments: int
-    firstSeen: datetime | None
-    lastSeen: datetime | None
+    id: Annotated[NumericId, ApiDescription("ID of the issue")]
+    title: Annotated[str, ApiDescription("Title of the issue")]
+    culprit: Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
+    shortId: Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    level: Annotated[GroupLevelStr, ApiDescription("Severity level of the issue")]
+    status: Annotated[GroupStatusStr, ApiDescription("Issue status")]
+    substatus: Annotated[
+        GroupSubStatusStr | None,
+        ApiDescription("Substatus of the issue, such as ongoing, regressed or escalating"),
+    ]
+    platform: Annotated[str | None, ApiDescription("Platform of the issue's events")]
+    project: Annotated[GroupProjectResponse, ApiDescription("Project the issue belongs to")]
+    type: Annotated[
+        EventTypeStr, ApiDescription("Event type of the issue, such as error or default")
+    ]
+    issueType: Annotated[
+        str, ApiDescription("Issue type, such as error or performance_n_plus_one_db_queries")
+    ]
+    issueCategory: Annotated[str, ApiDescription("Issue category, such as error or performance")]
+    metadata: Annotated[EventMetadataResponse, ApiDescription("Issue metadata")]
+    numComments: Annotated[int, ApiDescription("Number of comments on the issue")]
+    firstSeen: Annotated[
+        datetime | None, ApiDescription("When the issue was first seen (ISO 8601)")
+    ]
+    lastSeen: Annotated[datetime | None, ApiDescription("When the issue was last seen (ISO 8601)")]
 
 
 class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
@@ -1489,7 +1501,7 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
         qualified_short_id = obj.qualified_short_id
 
         return SimpleGroupSerializerResponse(
-            id=str(obj.id),
+            id=numeric_id(obj.id),
             title=obj.title,
             culprit=obj.culprit,
             shortId=qualified_short_id,
@@ -1501,7 +1513,7 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
             type=obj.get_event_type(),
             issueType=obj.issue_type.slug,
             issueCategory=issue_category,
-            metadata=obj.get_event_metadata(),
+            metadata=cast(EventMetadataResponse, obj.get_event_metadata()),
             numComments=obj.num_comments,
             firstSeen=obj.first_seen,
             lastSeen=obj.last_seen,

@@ -1,10 +1,13 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Annotated, Any, Generic, Literal, NotRequired, TypedDict, TypeVar
+from typing import Annotated, Generic, Literal, NotRequired, TypedDict, TypeVar
 
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.hybridcloud.rpc import ValueEqualityEnum
+
+# A text, select, multi-select or boolean field's value. Null when nothing is preselected.
+IntegrationIssueConfigFieldValue = str | int | bool | list[str] | None
 
 
 class IntegrationIssueConfigField(TypedDict):
@@ -15,16 +18,19 @@ class IntegrationIssueConfigField(TypedDict):
     type: Annotated[
         str, ApiDescription("Type of the form field, such as string, text, select or boolean")
     ]
-    default: NotRequired[Annotated[Any, ApiDescription("Default value of the field")]]
+    default: NotRequired[
+        Annotated[IntegrationIssueConfigFieldValue, ApiDescription("Default value of the field")]
+    ]
     defaultValue: NotRequired[
         Annotated[
-            Any, ApiDescription("Default value of the field, for integrations that use this key")
+            IntegrationIssueConfigFieldValue,
+            ApiDescription("Default value of the field, for integrations that use this key"),
         ]
     ]
     required: NotRequired[Annotated[bool, ApiDescription("Whether the field is required")]]
     choices: NotRequired[
         Annotated[
-            Sequence[tuple[Any, str]],
+            Sequence[tuple[str | int, str]],
             ApiDescription("Options of a select field, as [value, label] pairs"),
         ]
     ]
