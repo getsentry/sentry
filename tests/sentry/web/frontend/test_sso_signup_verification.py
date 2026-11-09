@@ -15,7 +15,7 @@ from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.hashlib import md5_text
-from sentry.utils.redis import clusters
+from sentry.utils.redis import redis_clusters
 from sentry.utils.signing import sign
 from sentry.web.frontend.signup_email_verification import PENDING_VERIFICATION_SESSION_KEY
 
@@ -61,7 +61,7 @@ class SSOSignupVerificationViewTest(TestCase):
                 "email_verified": False,
             },
         }
-        local_client = clusters.get(REDIS_CLUSTER).get_local_client_for_key(auth_key)
+        local_client = redis_clusters.get_binary(REDIS_CLUSTER)
         local_client.set(auth_key, json.dumps(pipeline_state))
 
         session = self.client.session
@@ -83,8 +83,9 @@ class SSOSignupVerificationViewTest(TestCase):
 
     def _get_pipeline_state(self) -> dict[str, Any]:
         auth_key = "auth:pipeline:test-sso-verification"
-        local_client = clusters.get(REDIS_CLUSTER).get_local_client_for_key(auth_key)
+        local_client = redis_clusters.get_binary(REDIS_CLUSTER)
         raw = local_client.get(auth_key)
+        assert raw is not None
         state = json.loads(raw)
         if not isinstance(state, dict):
             raise TypeError("Pipeline state is not a JSON object")

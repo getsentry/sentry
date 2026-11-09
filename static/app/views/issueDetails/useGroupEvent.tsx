@@ -1,8 +1,9 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {decodeScalar} from 'sentry/utils/queryString';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 
 import {useEventQuery} from './hooks/useEventQuery';
 import {
@@ -33,9 +34,10 @@ export function useGroupEvent({
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
   const isSpecificEventId = eventId && !isReservedEventId;
 
-  const statsPeriod = decodeScalar(location.query.statsPeriod);
-  const start = decodeScalar(location.query.start);
-  const end = decodeScalar(location.query.end);
+  const {statsPeriod, start, end} = loadQueryParamsFromLocation(
+    pageFilterParsers,
+    location
+  );
 
   const staleTime = isSpecificEventId ? Infinity : 30_000;
 

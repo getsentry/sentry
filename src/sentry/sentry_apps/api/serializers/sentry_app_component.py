@@ -7,8 +7,11 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.base import serialize
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
+from sentry.apidocs.formats import Uuid, uuid_str
+from sentry.sentry_apps.api.serializers.response_schemas import component_schema
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializerResponse
+from sentry.sentry_apps.generated_schema_types import SentryAppComponentSchema
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.services.app import SentryAppEventDataInterface
 from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
@@ -17,7 +20,7 @@ from sentry.users.services.user import RpcUser
 
 
 class SentryAppComponentAppResponse(TypedDict):
-    uuid: Annotated[str, ApiDescription("UUID of the custom integration")]
+    uuid: Annotated[Uuid, ApiDescription("UUID of the custom integration")]
     slug: Annotated[str, ApiDescription("Slug of the custom integration")]
     name: Annotated[str, ApiDescription("Name of the custom integration")]
     avatars: Annotated[
@@ -26,14 +29,18 @@ class SentryAppComponentAppResponse(TypedDict):
 
 
 class SentryAppComponentSerializerResponse(TypedDict):
-    uuid: Annotated[str, ApiDescription("UUID of the component")]
+    uuid: Annotated[Uuid, ApiDescription("UUID of the component")]
     type: Annotated[
         str,
         ApiDescription(
             "Type of the component, such as issue-link, stacktrace-link or alert-rule-action"
         ),
     ]
-    schema: Annotated[dict[str, Any], ApiDescription("UI schema of the component")]
+    schema: Annotated[
+        SentryAppComponentSchema,
+        ApiDescription("UI schema of the component"),
+        ApiSchema(component_schema),
+    ]
     error: Annotated[
         str | SentryAppPublicErrorBody,
         ApiDescription("Error from loading the component. Empty when there's none"),
@@ -44,7 +51,7 @@ class SentryAppComponentSerializerResponse(TypedDict):
     ]
     installationUuid: NotRequired[
         Annotated[
-            str, ApiDescription("UUID of the integration installation the component belongs to")
+            Uuid, ApiDescription("UUID of the integration installation the component belongs to")
         ]
     ]
 
@@ -61,19 +68,19 @@ class SentryAppComponentSerializer(Serializer[SentryAppComponentSerializerRespon
         errors = kwargs["errors"]
         installation_uuids: dict[int, str] | None = kwargs.get("installation_uuids")
         data: SentryAppComponentSerializerResponse = {
-            "uuid": str(obj.uuid),
+            "uuid": uuid_str(obj.uuid),
             "type": obj.type,
             "schema": obj.schema,
             "error": errors.get(str(obj.uuid), ""),
             "sentryApp": {
-                "uuid": obj.sentry_app.uuid,
+                "uuid": uuid_str(obj.sentry_app.uuid),
                 "slug": obj.sentry_app.slug,
                 "name": obj.sentry_app.name,
                 "avatars": [serialize(avatar) for avatar in obj.sentry_app.avatar.all()],
             },
         }
         if installation_uuids is not None:
-            data["installationUuid"] = installation_uuids[obj.sentry_app_id]
+            data["installationUuid"] = uuid_str(installation_uuids[obj.sentry_app_id])
         return data
 
 

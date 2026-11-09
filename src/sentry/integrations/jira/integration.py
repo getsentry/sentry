@@ -944,7 +944,7 @@ class JiraIntegration(IssueSyncIntegration):
         except ApiError as e:
             self.raise_error(e)
 
-    def make_choices(self, values: Sequence[Mapping[str, Any]]) -> list[tuple[object, str]]:
+    def make_choices(self, values: Sequence[Mapping[str, Any]]) -> list[tuple[str | int, str]]:
         if not values:
             return []
         results = []
@@ -962,7 +962,8 @@ class JiraIntegration(IssueSyncIntegration):
                 value = item["label"]
             else:
                 continue
-            results.append((key, cast("str", value)))
+            # Jira gives every allowed value that has a name an ID.
+            results.append((cast("str | int", key), cast("str", value)))
         return results
 
     def error_message_from_json(self, data: Mapping[str, Any]) -> str:

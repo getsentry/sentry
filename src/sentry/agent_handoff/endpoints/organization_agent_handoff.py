@@ -50,9 +50,11 @@ HANDOFF_SCOPES = (
 
 class AgentHandoffRequest(TypedDict):
     flow: str
+    disable_ip_pinning: bool
 
 
 class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
+    disable_ip_pinning = serializers.BooleanField(default=False)
     flow = serializers.ChoiceField(choices=list(HandoffFlow), default=HandoffFlow.GUIDED_NEXT_STEPS)
 
 
@@ -121,11 +123,15 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
             organization_id=organization.id,
             application_id=application.id,
             scope_list=HANDOFF_SCOPES,
+            ip_address=request.META["REMOTE_ADDR"],
+            disable_ip_pinning=serializer.validated_data["disable_ip_pinning"],
         )
-        # Fragments are withheld from HTTP requests, including access logs and previews.
-        guide_url = f"{absolute_uri(reverse('sentry-agent-handoff'))}#{issued.code}"
+        guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {
-            "prompt": f"Follow these instructions to get started with Sentry:\n{guide_url}",
+            "prompt": (
+                f"Fetch and follow the instructions at {guide_url}. "
+                f"Your secret token is `{issued.code}`."
+            ),
             "guideUrl": guide_url,
             "expiresAt": issued.expires_at.isoformat(),
         }
