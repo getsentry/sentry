@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any, cast
+from unittest.mock import patch
 
 from django.test import override_settings
 from django.urls import reverse
@@ -35,6 +36,7 @@ from sentry.notebooks.services.action_kinds.base import (
     ActionStale,
     CannotApplyReason,
 )
+from sentry.notebooks.services.producer import PRODUCERS
 from sentry.seer import agent_token
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
@@ -309,6 +311,18 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             False,
             "detector_not_found",
         )
+
+    def test_a_source_type_without_a_producer_cannot_apply(self) -> None:
+        action_request = self.suggest(
+            before={"highThreshold": 500}, changes={"highThreshold": 800.0}
+        )
+
+        with patch.dict(PRODUCERS, clear=True):
+            response = self.apply(action_request)
+
+        assert response.status_code == 404, response.data
+        action_request.refresh_from_db()
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
 
     def test_requests_that_are_no_longer_suggested_conflict(self) -> None:
         action_request = self.suggest(state=NotebookActionRequestState.SUPERSEDED)

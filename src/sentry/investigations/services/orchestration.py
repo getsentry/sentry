@@ -377,7 +377,7 @@ INTERNAL_COMMAND_TYPES = frozenset({"record_action_outcome"})
 # Commands Seer runs whatever its workflow version is. Sentry still moves the version for them.
 UNVERSIONED_COMMAND_TYPES = frozenset({"rerun_after_connection"})
 # Commands Sentry sends for an action request, which shows how they went.
-FOLLOW_UP_COMMAND_TYPES: frozenset[str] = frozenset(get_args(FollowUpCommandType))
+FOLLOW_UP_COMMAND_TYPES = frozenset({"recheck_action_requests", "rerun_after_connection"})
 
 
 def _is_run_retry(command_type: str, payload: dict[str, Any]) -> bool:

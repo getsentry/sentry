@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import Union
+
 from sentry.notebooks.models import (
     Notebook,
     NotebookActionRequest,
@@ -8,15 +11,20 @@ from sentry.notebooks.models import (
 )
 from sentry.notebooks.services.action_kinds.base import ActionKind, CannotApplyReason
 
-ACTION_KINDS: dict[str, ActionKind] = {}
+ACTION_KINDS: dict[str, ActionKind[Mapping[str, object]]] = {}
 
 
-def register_action_kind(kind: ActionKind) -> None:
+def register_action_kind(kind: ActionKind[Mapping[str, object]]) -> None:
     ACTION_KINDS[kind.kind] = kind
 
 
-def get_action_kind(kind: str | None) -> ActionKind | None:
+def get_action_kind(kind: str | None) -> ActionKind[Mapping[str, object]] | None:
     return ACTION_KINDS.get(kind) if kind is not None else None
+
+
+def applied_details_hint() -> object:
+    """Any registered kind's applied details, or None."""
+    return Union[(*(kind.applied_details for kind in ACTION_KINDS.values()), None)]
 
 
 def shared_cannot_apply_reason(

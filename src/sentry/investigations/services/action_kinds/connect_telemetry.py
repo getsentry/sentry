@@ -71,9 +71,10 @@ def open_connect_requests(
     )
 
 
-class ConnectTelemetryKind(ActionKind):
+class ConnectTelemetryKind(ActionKind[ConnectTelemetryAppliedDetails]):
     kind = CONNECT_TELEMETRY_ACTION
     payload_serializer = ConnectTelemetryActionSerializer
+    applied_details = ConnectTelemetryAppliedDetails
 
     def cannot_apply_reasons(
         self,

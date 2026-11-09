@@ -7,6 +7,9 @@ from rest_framework import serializers
 from sentry.notebooks.endpoints.validators import InvestigationUpdateValidator
 
 
+def assert_valid(validator: serializers.Serializer[Any]) -> dict[str, Any]:
+    assert validator.is_valid(), validator.errors
+    return dict(validator.validated_data)
 
 
 class TestInvestigationUpdateValidator:

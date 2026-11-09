@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Generator, Sequence
-from typing import Any
+from typing import Any, TypedDict
 from unittest.mock import patch
 
 import orjson
@@ -528,9 +528,14 @@ class _Payload(ActionPayloadSerializer):
         return None if action.get("target") == "advice" else action
 
 
-class RecordingKind(ActionKind):
+class _Details(TypedDict):
+    target: str
+
+
+class RecordingKind(ActionKind[_Details]):
     kind = "test_kind"
     payload_serializer = _Payload
+    applied_details = _Details
 
     def __init__(self) -> None:
         # The requests after_upsert ran for, in order.
@@ -576,7 +581,7 @@ class RecordingKind(ActionKind):
         if self.raises is not None:
             raise self.raises
 
-    def apply(self, context: ApplyContext) -> dict[str, object]:
+    def apply(self, context: ApplyContext) -> _Details:
         self.calls.append("apply")
         if self.raises is not None:
             raise self.raises

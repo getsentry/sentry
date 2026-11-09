@@ -746,7 +746,7 @@ def _apply_snapshot(
 
 
 def _sync_snapshot_action_requests(run: InvestigationOrchestrationRun, items: list[object]) -> None:
-    sync_snapshot_action_requests(run, valid_action_requests(items, log=True))
+    sync_snapshot_action_requests(run.investigation, valid_action_requests(items, log=True))
 
 
 def _event_carries_projection(event: InvestigationOrchestrationEvent) -> bool:
@@ -916,9 +916,9 @@ def _apply_generation_event(
             return False, "invalid_action_request"
         if request["reportRevision"] < _report_revision(run):
             return False, "stale_report_revision"
-        upsert_action_request(run, request)
+        upsert_action_request(run.investigation, request)
     elif event.type == "action_withdrawn":
-        withdraw_action_request(run, payload["key"], payload["reason"])
+        withdraw_action_request(run.investigation, payload["key"], payload["reason"])
     elif event.type == "workflow_failed":
         # A delayed failure still fails the run, but it must not replace state
         # that a newer projection has already established.

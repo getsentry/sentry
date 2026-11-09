@@ -31,7 +31,7 @@ from sentry.notebooks.models import (
     NotebookSourceType,
 )
 from sentry.notebooks.services.action_requests import STALE
-from sentry.notebooks.services.producer import get_producer
+from sentry.notebooks.services.producer import orchestration_summaries
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.viewer_context import ActorType
@@ -133,7 +133,7 @@ class InvestigationSerializer(Serializer):
                 ).values_list("notebook_id", flat=True)
             )
 
-        orchestration_by_investigation = orchestration_summaries_by_investigation(item_list)
+        orchestration_by_investigation = orchestration_summaries(item_list)
 
         return {
             investigation: {

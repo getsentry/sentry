@@ -19,10 +19,10 @@ from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
-from sentry.investigations.services.action_requests import LIVE_STATES
 from sentry.investigations.services.orchestration_events import _report_revision
 from sentry.issues.issue_search import issue_search_config
 from sentry.notebooks.models import Notebook, NotebookActionRequest
+from sentry.notebooks.services.action_requests import LIVE_STATES
 from sentry.notifications.platform.templates.seer import (
     SeerInvestigationConclusion,
     SeerInvestigationHypothesis,

@@ -394,9 +394,10 @@ def _validation_messages(
     return []
 
 
-class UpdateDetectorKind(ActionKind):
+class UpdateDetectorKind(ActionKind[UpdateDetectorAppliedDetails]):
     kind = UPDATE_DETECTOR_ACTION
     payload_serializer = UpdateDetectorActionSerializer
+    applied_details = UpdateDetectorAppliedDetails
 
     def cannot_apply_reasons(
         self,

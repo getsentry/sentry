@@ -28,7 +28,7 @@ from sentry.notebooks.endpoints.validators import (
     InvestigationUpdateValidator,
 )
 from sentry.notebooks.models import Notebook, NotebookStatus
-from sentry.notebooks.services.producer import get_producer
+from sentry.notebooks.services.producer import archive_notebook, update_notebook
 
 
 @extend_schema(tags=["Investigations"])
@@ -133,7 +133,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             try:
-                archived = archive_investigation_with_orchestration(
+                archived = archive_notebook(
                     investigation=investigation,
                     expected_version=expected_version,
                     actor_id=acting_user_id(request.user),
@@ -151,7 +151,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 )
             )
         try:
-            updated = update_investigation_with_orchestration(
+            updated = update_notebook(
                 investigation=investigation,
                 expected_version=expected_version,
                 fields=values,
@@ -199,7 +199,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         try:
-            archive_investigation_with_orchestration(
+            archive_notebook(
                 investigation=investigation,
                 expected_version=validator.validated_data["investigation_version"],
                 actor_id=acting_user_id(request.user),

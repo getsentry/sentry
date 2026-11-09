@@ -4,7 +4,7 @@ import abc
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Generic, NotRequired, TypedDict, TypeVar
 
 from rest_framework.request import Request
 
@@ -13,6 +13,7 @@ from sentry.auth.principal import RequestPrincipal
 from sentry.notebooks.contracts import ActionPayloadSerializer
 from sentry.notebooks.models import Notebook, NotebookActionRequest
 
+if TYPE_CHECKING:
     from sentry.notebooks.services.producer import NotebookProducerRun
 
 
@@ -75,17 +76,16 @@ class ApplyContext:
     """When applying, the caller holds the investigation, run, and request row locks."""
 
     investigation: Notebook
-    run: InvestigationOrchestrationRun
+    run: NotebookProducerRun
     action_request: NotebookActionRequest
     request: Request
     actor_id: int
 
 
-FollowUpCommandType = Literal["recheck_action_requests", "rerun_after_connection"]
 class FollowUpCommand(TypedDict):
     """A command Sentry sends Seer for an action request."""
 
-    type: FollowUpCommandType
+    type: str
     payload: dict[str, Any]
 
 
@@ -105,11 +105,16 @@ class ActionInvalid(Exception):
         self.messages = messages
 
 
-class ActionKind(abc.ABC):
+TDetails = TypeVar("TDetails", bound=Mapping[str, object], covariant=True)
+
+
+class ActionKind(abc.ABC, Generic[TDetails]):
     """Everything Sentry needs to check, apply, and record one kind of action."""
 
     kind: str
     payload_serializer: type[ActionPayloadSerializer]
+    # The TypedDict apply returns. The API schema lists each kind's.
+    applied_details: type[TDetails]
 
     def cannot_apply_reasons(
         self,
@@ -134,7 +139,7 @@ class ActionKind(abc.ABC):
         cannot_apply_reasons can leave this as is.
         """
 
-    def apply(self, context: ApplyContext) -> Mapping[str, object]:
+    def apply(self, context: ApplyContext) -> TDetails:
         """Make the change, and return what the activity feed should show about it. Raise
         ActionStale or ActionInvalid instead of updating the request; the caller records it.
         """

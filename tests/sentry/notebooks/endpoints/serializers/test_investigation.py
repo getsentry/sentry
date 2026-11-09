@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, cast
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.db import connection
@@ -28,6 +29,7 @@ from sentry.notebooks.models import (
     NotebookStatus,
 )
 from sentry.notebooks.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.services.producer import PRODUCERS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
@@ -94,6 +96,14 @@ class InvestigationSerializerTest(TestCase):
             "heartbeatAt": heartbeat,
             "notebookRevision": 4,
         }
+
+    def test_a_source_type_without_a_producer_has_no_orchestration_state(self) -> None:
+        self.create_investigation_orchestration_run(investigation=self.investigation)
+
+        with patch.dict(PRODUCERS, clear=True):
+            result = serialize(self.investigation, self.user, InvestigationSerializer())
+
+        assert result["orchestration"] is None
 
     def test_counts_only_active_blocks(self) -> None:
         self.create_notebook_block(notebook=self.investigation, position=0)
@@ -396,6 +406,14 @@ class InvestigationActionRequestSerializationTest(TestCase):
             "rerun": None,
             "retryable": False,
         }
+
+    def test_a_source_type_without_a_producer_has_no_follow_up(self) -> None:
+        self.add_followed_up_request()
+
+        with patch.dict(PRODUCERS, clear=True):
+            (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] is None
 
     def test_a_follow_up_seer_turned_down_has_seers_code(self) -> None:
         self.add_followed_up_request(
