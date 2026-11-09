@@ -13,6 +13,7 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import (
@@ -150,7 +151,7 @@ def _org_allows_coding(group: Group) -> bool:
 
 
 def check_autofix_billing(
-    group: Group,
+    organization: Organization,
     operation: SeerOperation,
     referrer: str | None,
     *,
@@ -162,8 +163,6 @@ def check_autofix_billing(
     checked for credits, and everyone else is checked for quota once per run.
     Returns whether the operation uses quota.
     """
-    organization = group.organization
-
     # Check credits for token-billed orgs.
     if features.has("organizations:token-billed-seer-enabled", organization):
         if (
@@ -199,7 +198,7 @@ def continue_single_run(
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     check_autofix_billing(
-        group,
+        group.organization,
         SeerOperation.AUTOFIX_SINGLE_RUN_REPLY,
         agent_run.run.referrer,
         is_new_run=False,
@@ -257,7 +256,7 @@ def trigger_autofix_feature(
     is_new_run = args.existing_run_id is None
     try:
         uses_quota = check_autofix_billing(
-            group,
+            group.organization,
             args.step.seer_operation,
             args.referrer,
             is_new_run=is_new_run,

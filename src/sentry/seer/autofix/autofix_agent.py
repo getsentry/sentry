@@ -469,7 +469,7 @@ def trigger_autofix_agent(
         # so manual triggers still require quota.
         # Token-billed orgs are checked for credits on every step instead.
         check_autofix_billing(
-            group,
+            group.organization,
             step.seer_operation,
             referrer,
             is_new_run=run_id is None,
@@ -849,7 +849,7 @@ def trigger_push_changes(
         organization_id=group.organization.id, seer_run_state_id=run_id
     ).first()
     check_autofix_billing(
-        group,
+        group.organization,
         SeerOperation.AUTOFIX_OPEN_PR,
         seer_run.referrer if seer_run else None,
         is_new_run=False,
