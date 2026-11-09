@@ -1,0 +1,27 @@
+---
+title: Agent Handoff
+description: Preview and copy a private prompt for setting up Sentry with a coding agent.
+category: patterns
+source: sentry/components/agentHandoff/agentHandoff
+---
+
+import {AgentHandoff} from './agentHandoff';
+import {AgentHandoffFlow} from './useAgentHandoff';
+import * as Storybook from 'sentry/stories';
+
+Use `AgentHandoff` within an organization to configure IP pinning and copy a private
+handoff prompt. The preview link opens the handoff markdown in a new tab. Copying mints
+a real, single-use handoff for the current organization.
+
+<Storybook.Demo>
+  <AgentHandoff flow={AgentHandoffFlow.ONBOARDING}>
+    <AgentHandoff.Details />
+  </AgentHandoff>
+</Storybook.Demo>
+
+IP pinning is enabled by default. Disabling it shows a privacy warning that remains
+visible when advanced options are collapsed.
+
+The displayed prompt keeps its secret token masked. Selecting its text and using the
+native copy command, or pressing the copy icon, mints the private handoff and writes the
+complete prompt to the clipboard.
