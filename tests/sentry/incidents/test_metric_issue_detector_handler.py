@@ -285,7 +285,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f'Critical: count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2 of application metrics in the last minute above {self.critical_detector_trigger.comparison}'
+            == f'Critical: count_if(`agent_name:"Agent Run"`,metric_name) * 2 of application metrics in the last minute above {self.critical_detector_trigger.comparison}'
         )
 
     def test_dynamic_alert_title(self) -> None:
@@ -323,7 +323,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             (
                 SnubaQueryEventType.EventType.TRACE_ITEM_METRIC,
                 "per_second(value,metric_name,counter,-)",
-                "per_second(value,metric_name,counter,-) of application metrics",
+                "per_second(metric_name) of application metrics",
             ),
         ):
             self.snuba_query.snubaqueryeventtype_set.update(type=event_type.value)
@@ -351,7 +351,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == 'Detected an anomaly in count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2 of application metrics'
+            == 'Detected an anomaly in count_if(`agent_name:"Agent Run"`,metric_name) * 2 of application metrics'
         )
 
 

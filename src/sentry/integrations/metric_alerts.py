@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, get_args
 from urllib import parse
 
 from django.urls import reverse
@@ -9,7 +9,12 @@ from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
-from sentry.discover.arithmetic import is_equation, strip_equation
+from sentry.discover.arithmetic import (
+    ArithmeticError,
+    is_equation,
+    parse_arithmetic,
+    strip_equation,
+)
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
@@ -17,6 +22,9 @@ from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueCo
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
 from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
+from sentry.search.eap.trace_metrics.types import TraceMetricType
+from sentry.search.events.fields import is_function, parse_arguments
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
@@ -35,11 +43,39 @@ _CRASH_FREE_RATE_AGGREGATES = {
 _PERCENT_AGGREGATES = {"failure_rate()", *_CRASH_FREE_RATE_AGGREGATES.values()}
 
 
-def format_aggregate(aggregate: str) -> str:
+def _format_trace_metric_function(function_call: str) -> str:
+    # Trace metric functions end with (value, metric name, metric type, metric unit), after any
+    # leading arguments such as count_if's filter. Users know the metric by its name alone.
+    match = is_function(function_call)
+    if match is None:
+        return function_call
+    function = match.group("function")
+    arguments = parse_arguments(function, match.group("columns"))
+    if len(arguments) < 4 or arguments[-2] not in get_args(TraceMetricType):
+        return function_call
+    return f"{function}({','.join([*arguments[:-4], arguments[-3]])})"
+
+
+def _format_trace_metric_aggregate(aggregate: str) -> str:
+    if not is_equation(aggregate):
+        return _format_trace_metric_function(aggregate)
+    equation = strip_equation(aggregate)
+    try:
+        _, _, function_calls = parse_arithmetic(equation, definitions=TRACE_METRICS_DEFINITIONS)
+    except ArithmeticError:
+        return equation
+    for function_call in function_calls:
+        equation = equation.replace(function_call, _format_trace_metric_function(function_call))
+    return equation
+
+
+def format_aggregate(aggregate: str, *, trace_metric: bool = False) -> str:
     """The aggregate as the monitor form shows it, e.g. `count_unique(user)`."""
     aggregate = aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
     if is_mri_field(aggregate):
         return format_mri_field(aggregate)
+    if trace_metric:
+        return _format_trace_metric_aggregate(aggregate)
     if is_equation(aggregate):
         return strip_equation(aggregate)
     aggregate = _CRASH_FREE_RATE_AGGREGATES.get(aggregate, aggregate)
@@ -57,6 +93,9 @@ _DATASET_TELEMETRY = {
 }
 
 
+_TRACE_METRIC_TELEMETRY = "application metrics"
+
+
 def get_query_telemetry(snuba_query: SnubaQuery) -> str:
     """The kind of telemetry a query measures, e.g. "logs" or "errors"."""
     # An MRI names its own namespace, and one metrics dataset holds several.
@@ -70,14 +109,18 @@ def get_query_telemetry(snuba_query: SnubaQuery) -> str:
         if SnubaQueryEventType.EventType.TRACE_ITEM_LOG in event_types:
             return "logs"
         if SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
-            return "application metrics"
+            return _TRACE_METRIC_TELEMETRY
         return "spans"
     return _DATASET_TELEMETRY.get(dataset, "events")
 
 
 def describe_query_metric(snuba_query: SnubaQuery) -> str:
     """What a query measures, e.g. `count(message) of logs`."""
-    return f"{format_aggregate(snuba_query.aggregate)} of {get_query_telemetry(snuba_query)}"
+    telemetry = get_query_telemetry(snuba_query)
+    aggregate = format_aggregate(
+        snuba_query.aggregate, trace_metric=telemetry == _TRACE_METRIC_TELEMETRY
+    )
+    return f"{aggregate} of {telemetry}"
 
 
 # These should be the same as the options in the frontend

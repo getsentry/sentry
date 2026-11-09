@@ -7,7 +7,11 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
-from sentry.integrations.metric_alerts import get_incident_status_text, incident_attachment_info
+from sentry.integrations.metric_alerts import (
+    format_aggregate,
+    get_incident_status_text,
+    incident_attachment_info,
+)
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
@@ -100,6 +104,18 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
                 "count(span.duration) of spans was 14",
             ),
             (
+                Dataset.EventsAnalyticsPlatform,
+                [SnubaQueryEventType.EventType.TRACE_ITEM_METRIC],
+                "p95(value,request.latency,distribution,millisecond)",
+                "p95(request.latency) of application metrics was 14",
+            ),
+            (
+                Dataset.EventsAnalyticsPlatform,
+                [SnubaQueryEventType.EventType.TRACE_ITEM_METRIC],
+                "equation|sum(value,request.errors,counter,-) / count(value,request.count,counter,-)",
+                "sum(request.errors) / count(request.count) of application metrics was 14",
+            ),
+            (
                 Dataset.Metrics,
                 [],
                 "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
@@ -115,6 +131,31 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
                 )
                 == f"{expected} in the last 10 minutes"
             )
+
+
+@pytest.mark.parametrize(
+    ("aggregate", "expected"),
+    [
+        ("per_second(value,my.metric,counter,-)", "per_second(my.metric)"),
+        ("avg(value,request.latency,distribution,millisecond)", "avg(request.latency)"),
+        (
+            'count_if(`agent_name:"Agent Run"`,value,agent.runs,distribution,none)',
+            'count_if(`agent_name:"Agent Run"`,agent.runs)',
+        ),
+        (
+            "equation|per_second(value,my.metric,counter,-) * 2 + avg(value,request.latency,distribution,millisecond)",
+            "per_second(my.metric) * 2 + avg(request.latency)",
+        ),
+        ("count()", "count()"),
+    ],
+)
+def test_format_aggregate_names_trace_metrics(aggregate: str, expected: str) -> None:
+    assert format_aggregate(aggregate, trace_metric=True) == expected
+
+
+def test_format_aggregate_keeps_other_aggregates_raw() -> None:
+    assert format_aggregate("p95(span.duration)") == "p95(span.duration)"
+    assert format_aggregate("count_if(span.op,equals,db)") == "count_if(span.op,equals,db)"
 
 
 class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
