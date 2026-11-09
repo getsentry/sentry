@@ -135,7 +135,7 @@ describe('useSaveMetricsMultiQuery', () => {
   });
 
   it.each(['save', 'update'])(
-    'preserves each transformation pipeline on %s',
+    'preserves each set of transformations on %s',
     async action => {
       const request = MockApiClient.addMockResponse({
         url:

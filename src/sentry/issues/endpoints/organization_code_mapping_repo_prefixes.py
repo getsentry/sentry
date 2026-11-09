@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -15,6 +15,7 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsPermission,
 )
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -29,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 class PrefixItem(TypedDict):
-    path: str
-    fileCount: int
+    path: Annotated[str, ApiDescription("Path prefix")]
+    fileCount: Annotated[int, ApiDescription("Number of files under the prefix")]
 
 
 class RepoPrefixesResponse(TypedDict):
