@@ -21,8 +21,10 @@ from sentry.api.serializers.models.activity import ActivitySerializer, ActivityS
 from sentry.api.serializers.models.commit import CommitSerializer, CommitSerializerResponse
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
 from sentry.issues.formatting.mixin import FORMATTER_FEATURE, VALID_FORMATS
@@ -119,6 +121,7 @@ from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.action_log.activity_translator import ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE
 from sentry.utils.committers import (
     get_event_file_committers,
     get_frame_paths,
@@ -1260,6 +1263,32 @@ _SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES = [
     ActivityType.SEER_ITERATION_STARTED.value,
 ]
 
+# Keep the existing history plus external issue links, unassignment, and PR lifecycle.
+# Automated Seer progress remains excluded, even when visible in the web feed.
+_SEER_EXPLORER_ACTION_FILTER = models.Q(
+    type__in=[
+        *(
+            ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE[t].get_type()
+            for t in _SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
+        ),
+        GroupActionType.UNASSIGN,
+        GroupActionType.CREATE_ISSUE,
+        GroupActionType.UNLINK_EXTERNAL_ISSUE,
+        GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+        GroupActionType.PULL_REQUEST_CLOSED,
+        GroupActionType.PULL_REQUEST_REOPENED,
+        GroupActionType.PULL_REQUEST_MERGED,
+        GroupActionType.PULL_REQUEST_UNLINKED,
+    ]
+) | models.Q(
+    type__in=[
+        ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE[t].get_type()
+        for t in _SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES
+    ],
+    actor_type=GroupActorType.USER,
+    actor_id__gt=0,
+)
+
 
 class _EventTroubleshootingContext(TypedDict):
     # These fields are added to the serialized event, which uses camelCase keys.
@@ -1429,18 +1458,31 @@ def get_issue_details(
         timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
     try:
-        activity_filter = models.Q(
-            type__in=_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
-        ) | models.Q(
-            type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
-            user_id__isnull=False,
+        serialized_activities = get_serialized_activity_items(
+            group,
+            user=None,
+            endpoint="seer_get_issue_details",
+            limit=50,
+            action_filter=_SEER_EXPLORER_ACTION_FILTER,
+            include_first_seen=False,
+            resolve_mentions=True,
         )
-        activities: list[Activity] = list(
-            Activity.objects.filter(group=group).filter(activity_filter).order_by("-datetime")[:50]
-        )
-        serialized_activities: list[ActivitySerializerResponse] = serialize(
-            activities, user=None, serializer=ActivitySerializer(resolve_mentions=True)
-        )
+        if serialized_activities is None:
+            activity_filter = models.Q(
+                type__in=_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
+            ) | models.Q(
+                type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
+                user_id__isnull=False,
+            )
+            activities: list[Activity] = list(
+                Activity.objects.filter(group=group)
+                .filter(activity_filter)
+                .order_by("-datetime", "-id")[:50]
+            )
+            legacy_activities: list[ActivitySerializerResponse] = serialize(
+                activities, user=None, serializer=ActivitySerializer(resolve_mentions=True)
+            )
+            serialized_activities = [dict(item) for item in legacy_activities]
     except Exception:
         logger.exception(
             "get_issue_details: Failed to get user activity",

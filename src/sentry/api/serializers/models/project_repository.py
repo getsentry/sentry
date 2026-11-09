@@ -1,25 +1,37 @@
 from collections.abc import Mapping, Sequence
-from typing import NotRequired, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.projectrepository import ProjectRepository
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 
 class ProjectRepositorySerializerResponse(TypedDict):
-    id: str
-    integrationId: str | None
-    externalId: str | None
-    projectId: str
-    repositoryId: str
-    repoName: str
-    source: str
-    providerKey: str | None
-    mappingCount: NotRequired[int]
+    id: Annotated[str, ApiDescription("ID of the link between the project and the repository")]
+    integrationId: Annotated[str | None, ApiDescription("ID of the repository's integration")]
+    externalId: Annotated[str | None, ApiDescription("ID of the repository in the provider")]
+    projectId: Annotated[str, ApiDescription("ID of the project")]
+    repositoryId: Annotated[str, ApiDescription("ID of the repository")]
+    repoName: Annotated[str, ApiDescription("Name of the repository")]
+    source: Annotated[
+        str,
+        ApiDescription(
+            "How the link was made: manual, scm_onboarding, auto_event, auto_name_match or seer_preference"
+        ),
+    ]
+    providerKey: Annotated[
+        str | None, ApiDescription("Key of the repository's provider, such as github")
+    ]
+    mappingCount: NotRequired[
+        Annotated[
+            int, ApiDescription("Number of code mappings between the project and the repository")
+        ]
+    ]
 
 
 @register(ProjectRepository)

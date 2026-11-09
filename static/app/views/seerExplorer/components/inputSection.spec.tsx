@@ -85,4 +85,20 @@ describe('InputSection', () => {
       expect(screen.getByRole('button', {name: 'acme/web#482'})).toBeInTheDocument();
     });
   });
+
+  it('shows the pull requests on an Autofix single run without ask-seer-create-pr', () => {
+    render(<InputSection {...makeProps({isSingleRun: true})} />, {
+      organization: OrganizationFixture({features: []}),
+    });
+
+    expect(screen.getByRole('button', {name: 'acme/web#482'})).toBeInTheDocument();
+  });
+
+  it('hides the pull requests on other runs without ask-seer-create-pr', () => {
+    render(<InputSection {...makeProps()} />, {
+      organization: OrganizationFixture({features: []}),
+    });
+
+    expect(screen.queryByRole('button', {name: 'acme/web#482'})).not.toBeInTheDocument();
+  });
 });
