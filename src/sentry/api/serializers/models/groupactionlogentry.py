@@ -60,6 +60,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Entries written before SeerPullRequestItem kept pr_number an int store it as a string.
+# Reading them through the model turns it back into one.
+_SEER_PULL_REQUEST_ACTION_TYPES = {
+    GroupActionType.SEER_PR_CREATED.value,
+    GroupActionType.SEER_PR_READY_FOR_REVIEW.value,
+}
+
 # The stored ID of the other issue in an unmerge, and the key that returns it serialized,
 # as ActivitySerializer does.
 _UNMERGE_GROUP_KEYS = {
@@ -382,6 +389,8 @@ class GroupActionLogEntrySerializer(Serializer):
             data = {"commit": attrs["commit"]}
         elif obj.type in PULL_REQUEST_ACTION_TYPES:
             data = {"pullRequest": attrs["pull_request"]}
+        elif obj.type in _SEER_PULL_REQUEST_ACTION_TYPES:
+            data = obj.action.json_dict()
         elif obj.type in _UNMERGE_GROUP_KEYS:
             data = {
                 "fingerprints": (obj.data or {}).get("fingerprints", []),

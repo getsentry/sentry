@@ -52,11 +52,7 @@ _SEER_PULL_REQUESTS: dict[str, Any] = {
                 "type": "object",
                 "description": "The pull request",
                 "properties": {
-                    "pr_number": {
-                        # The action log model's dict[str, str | ...] turns it into a string.
-                        "anyOf": [{"type": "integer"}, {"type": "string"}],
-                        "description": "Number of the pull request",
-                    },
+                    "pr_number": {"type": "integer", "description": "Number of the pull request"},
                     "pr_url": {"type": "string", "description": "URL of the pull request"},
                 },
             },

@@ -455,6 +455,25 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
 
         assert serialize(entry, self.user)["data"] == {"fingerprints": ["a"], "destination": None}
 
+    def test_seer_pr_entry_written_with_a_string_pr_number(self) -> None:
+        pull_request = {"pr_number": "42", "pr_url": "https://github.com/o/r/pull/42"}
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.SEER_PR_CREATED,
+            data={
+                "run_id": 1,
+                "pull_requests": [
+                    {"provider": "github", "repo_name": "o/r", "pull_request": pull_request}
+                ],
+            },
+        )
+
+        result = serialize(entry, self.user)
+
+        assert result["data"]["pull_requests"][0]["pull_request"] == {
+            "pr_number": 42,
+            "pr_url": "https://github.com/o/r/pull/42",
+        }
+
     def test_comment_entry_serializes_its_own_id_and_comment_reference(self) -> None:
         user = self.create_user()
         group = self.create_group(status=GroupStatus.UNRESOLVED)
