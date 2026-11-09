@@ -73,6 +73,7 @@ export type KnownSentryApiUrls =
   | '/internal/seer-rpc/$methodName/'
   | '/internal/seer/autofix/retry/'
   | '/internal/seer/autofix/single-run/'
+  | '/internal/seer/metric-breaches/'
   | '/internal/seer/night-shift/trigger/'
   | '/internal/warnings/'
   | '/notification-defaults/'
