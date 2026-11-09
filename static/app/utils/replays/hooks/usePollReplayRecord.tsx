@@ -31,7 +31,6 @@ export function usePollReplayRecord({
     refetchInterval: 30_000,
     enabled,
     refetchIntervalInBackground: true,
-    staleTime: 0,
   });
 
   return data?.data ? mapResponseToReplayRecord(data.data) : undefined;

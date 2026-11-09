@@ -1125,9 +1125,8 @@ function DiscoverContextMenu({
             organization,
             source: analyticsEventSource,
           });
-          queryClient.setQueryData(homepageQueryKey, previous => previous);
+          await queryClient.resetQueries({queryKey: homepageQueryKey, exact: true});
           if (isHomepage) {
-            setSavedQuery(undefined);
             const nextEventView = EventView.fromNewQueryWithLocation(
               DEFAULT_EVENT_VIEW,
               location
