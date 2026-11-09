@@ -23,7 +23,8 @@ import {useUser} from 'sentry/utils/useUser';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {usePrimaryNavigation} from './primaryNavigationContext';
 
 export const enum NavigationTour {
   ISSUES = 'issues',
@@ -243,9 +244,7 @@ export function useNavigationTourModal() {
   const organization = useOrganization({allowNull: true});
   const hasOpenedTourModal = useRef(false);
   const {startTour, endTour} = useNavigationTour();
-  const {data: assistantData} = useAssistant({
-    notifyOnChangeProps: ['data'],
-  });
+  const {data: assistantData} = useAssistant();
   const {mutate: mutateAssistant} = useMutateAssistant();
   const [localTourState, setLocalTourState] = useLocalStorageState(
     NAVIGATION_TOUR_GUIDE_KEY,

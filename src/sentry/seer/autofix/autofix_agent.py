@@ -55,6 +55,7 @@ from sentry.seer.autofix.pr_iteration.iterations import (
     PrIterationNoPullRequestException,
     get_open_iteration_index,
 )
+from sentry.seer.autofix.single_run import is_single_run_record
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
@@ -441,7 +442,6 @@ def trigger_autofix_agent(
     insert_index: int | None = None,
     feedback: Sequence[Feedback] | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
-    enable_bash_mode: bool = False,
     actor_user_id: int | None = None,
     commit_author: SeerCommitAuthor | None = None,
     iteration_id: int | None = None,
@@ -475,13 +475,6 @@ def trigger_autofix_agent(
                 if not has_budget:
                     raise NoSeerQuotaException()
 
-        # If autofix-should-run-repo-checks is enabled,
-        # we should force bash tools on as it is dependent on bash tools
-        enable_bash_mode = enable_bash_mode or (
-            referrer == AutofixReferrer.AGENTIC_TRIAGE
-            and features.has("organizations:autofix-should-run-repo-checks", group.organization)
-        )
-
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
 
@@ -490,9 +483,9 @@ def trigger_autofix_agent(
         if step == AutofixStep.ROOT_CAUSE:
             step_args = RCAStepArgs(repo_pins=_build_repo_pins(group, referrer))
         elif step == AutofixStep.SOLUTION:
-            step_args = SolutionStepArgs(should_run_repo_checks=enable_bash_mode)
+            step_args = SolutionStepArgs(should_run_repo_checks=True)
         elif step == AutofixStep.CODE_CHANGES:
-            step_args = CodeChangesStepArgs(should_run_repo_checks=enable_bash_mode)
+            step_args = CodeChangesStepArgs(should_run_repo_checks=True)
         elif step == AutofixStep.PR_ITERATION:
             iteration_run_state = (
                 get_autofix_run_state(group, run_id) if run_id is not None else None
@@ -523,7 +516,6 @@ def trigger_autofix_agent(
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
             user=user,
-            enable_bash_mode=enable_bash_mode,
             single_run=single_run,
         )
         feature_run = trigger_autofix_feature(group, args)
@@ -545,7 +537,7 @@ def trigger_autofix_agent(
 
         # TEMPORARY: single runs skip "started" notices until they send completion notices too;
         # otherwise the issue would look stuck in progress. Remove with AIML-3809.
-        if not SeerAgentRun.objects.filter(run=feature_run, source=SINGLE_RUN_FEATURE_ID).exists():
+        if not is_single_run_record(feature_run):
             _handle_step_started_events(
                 group,
                 step,
@@ -570,7 +562,11 @@ def trigger_autofix_agent(
         )
 
 
-def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRunState | None:
+def get_autofix_agent_state(
+    organization: Organization,
+    group_id: int,
+    sources: tuple[str, ...] = (FEATURE_ID, SINGLE_RUN_FEATURE_ID),
+) -> SeerRunState | None:
     """
     Get the current state of an agent-based autofix run for a group.
 
@@ -580,10 +576,10 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
     client = SeerAgentClient(
         organization=organization,
         user=None,
-        category_key="autofix",
+        category_key=FEATURE_ID,
         category_value=str(group_id),
     )
-    return client.fetch_latest_run_state(group_id=group_id)
+    return client.fetch_latest_run_state(group_id=group_id, sources=sources)
 
 
 def generate_autofix_handoff_prompt(
@@ -860,11 +856,17 @@ def trigger_push_changes(
         )
     )
 
+    seer_run = SeerRun.objects.filter(
+        organization_id=group.organization.id, seer_run_state_id=run_id
+    ).first()
+
     # Draft when review-request/CI-green is enabled; mark ready once green fires.
     client.push_changes(
         run_id,
         repo_name=repo_name,
-        pr_description_suffix=build_pr_description_suffix(group, run_id),
+        pr_description_suffix=build_pr_description_suffix(
+            group, seer_run.referrer if seer_run is not None else None
+        ),
         ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
         verify_content=verify_content,
         blocking=False,
@@ -879,9 +881,13 @@ def trigger_push_changes(
     )
 
 
-# Kept in sync with the automated SeerAutomationSource entries in issue_summary.referrer_map.
+# Referrers for runs started without a user.
 AUTOMATED_AUTOFIX_REFERRERS = frozenset(
-    {AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY, AutofixReferrer.AGENTIC_TRIAGE}
+    {
+        AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+        AutofixReferrer.AGENTIC_TRIAGE,
+        AutofixReferrer.ADMIN_AUTOMATED,
+    }
 )
 
 
@@ -925,7 +931,7 @@ def _build_issue_reference_lines(group: Group) -> list[str]:
     return lines
 
 
-def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
+def build_pr_description_suffix(group: Group, referrer: str | None) -> str | None:
     lines = _build_issue_reference_lines(group)
     lines.append(
         # One command per line, and one `<sub>` tag per line: a blank line
@@ -934,11 +940,7 @@ def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
         "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
     )
 
-    seer_run = SeerRun.objects.filter(
-        organization_id=group.organization.id, seer_run_state_id=run_id
-    ).first()
-    is_automated_run = seer_run is not None and seer_run.referrer in AUTOMATED_AUTOFIX_REFERRERS
-    if is_automated_run:
+    if referrer in AUTOMATED_AUTOFIX_REFERRERS:
         settings_url = group.organization.absolute_url(
             f"/settings/{group.organization.slug}/projects/{group.project.slug}/seer/"
         )

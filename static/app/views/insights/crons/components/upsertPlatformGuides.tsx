@@ -1240,39 +1240,45 @@ SentrySdk.CaptureCheckIn("<monitor-slug>", CheckInStatus.Ok, checkInId);`;
 
 function CLIUpsertPlatformGuide() {
   const upsertCode = `# Upsert a monitor with a crontab schedule (every 10 minutes)
-sentry-cli monitors run \\
+sentry monitor run <monitor-slug> \\
   --schedule "*/10 * * * *" \\
   --check-in-margin 5 \\
   --max-runtime 10 \\
   --timezone "Europe/Vienna" \\
-  <monitor-slug> \\
   -- <command> <args>`;
 
   const exampleCode = `# Example: Python script with monitor upsert
-sentry-cli monitors run \\
+sentry monitor run my-monitor-slug \\
   --schedule "*/10 * * * *" \\
   --check-in-margin 5 \\
   --max-runtime 10 \\
-  my-monitor-slug \\
   -- python path/to/file.py
 
 # Example: Node.js script with monitor upsert
-sentry-cli monitors run \\
+sentry monitor run my-monitor-slug \\
   --schedule "*/10 * * * *" \\
   --check-in-margin 5 \\
   --max-runtime 10 \\
-  my-monitor-slug \\
   -- node path/to/file.js`;
 
   return (
     <Fragment>
       <div>
         {tct(
-          'You can use the [additionalDocs:Sentry CLI] (min v2.16.1) to create and update your Monitors programmatically when running your job.',
+          'You can use the [additionalDocs:Sentry CLI] (min v0.36.0) to create and update your Monitors programmatically when running your job.',
           {
             additionalDocs: (
-              <ExternalLink href="https://docs.sentry.io/cli/crons/#creating-or-updating-a-monitor-through-a-check-in-optional" />
+              <ExternalLink href="https://cli.sentry.dev/commands/monitor/" />
             ),
+          }
+        )}
+      </div>
+      <div>
+        {tct(
+          'Provide a DSN with [dsnEnv:SENTRY_DSN] or [dsnFlag:--dsn], or run the command from a project where Sentry CLI can detect one.',
+          {
+            dsnEnv: <code />,
+            dsnFlag: <code />,
           }
         )}
       </div>

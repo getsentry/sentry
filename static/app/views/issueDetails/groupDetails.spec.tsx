@@ -21,8 +21,9 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types/group';
-import GroupDetails from 'sentry/views/issueDetails/groupDetails';
-import * as GroupDetailsLayoutModule from 'sentry/views/issueDetails/groupDetailsLayout';
+
+import GroupDetails from './groupDetails';
+import * as GroupDetailsLayoutModule from './groupDetailsLayout';
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
@@ -270,10 +271,6 @@ describe('groupDetails', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
         body: {integrations: []},
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/autofix-repos/`,
-        body: [],
       });
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,

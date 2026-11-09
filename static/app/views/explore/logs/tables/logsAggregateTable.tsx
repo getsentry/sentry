@@ -30,8 +30,6 @@ import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/logs/logsQueryParams';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
-import {addValidatedFieldTypesToLogsMeta} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   LOGS_AGGREGATES_TIMESTAMP_FIELD,
@@ -56,6 +54,9 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+
+import {addValidatedFieldTypesToLogsMeta} from './logsInfiniteTable';
+import {LogsRateLimitError} from './logsRateLimitError';
 
 export function LogsAggregateTable({
   aggregatesTableResult,

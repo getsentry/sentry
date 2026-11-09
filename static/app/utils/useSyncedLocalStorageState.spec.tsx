@@ -1,7 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {localStorageWrapper} from './localStorage';
+import {useSyncedLocalStorageState} from './useSyncedLocalStorageState';
 
 describe('useSyncedLocalStorageState', () => {
   beforeEach(() => {

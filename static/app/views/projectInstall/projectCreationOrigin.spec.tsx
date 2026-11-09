@@ -3,12 +3,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
+
 import {
   PROJECT_CREATION_ORIGIN_ORG_CREATION,
   PROJECT_CREATION_ORIGIN_QUERY_KEY,
   resolveProjectCreationPageOrigin,
   useProjectCreationPageOrigin,
-} from 'sentry/views/projectInstall/projectCreationOrigin';
+} from './projectCreationOrigin';
 
 describe('resolveProjectCreationPageOrigin', () => {
   beforeEach(() => {

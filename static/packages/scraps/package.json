@@ -23,9 +23,17 @@
       "types": "./dist/theme/index.d.ts",
       "import": "./dist/theme/index.js"
     },
-    "./formPresentation": {
-      "types": "./dist/formPresentation/index.d.ts",
-      "import": "./dist/formPresentation/index.js"
+    "./form": {
+      "types": "./dist/form/index.d.ts",
+      "import": "./dist/form/index.js"
+    },
+    "./form/formErrorContext": {
+      "types": "./dist/form/formErrorContext/index.d.ts",
+      "import": "./dist/form/formErrorContext/index.js"
+    },
+    "./confirm": {
+      "types": "./dist/confirm/index.d.ts",
+      "import": "./dist/confirm/index.js"
     },
     "./tokens": {
       "types": "./dist/tokens/index.d.ts",
@@ -255,6 +263,10 @@
       "types": "./dist/toast/index.d.ts",
       "import": "./dist/toast/index.js"
     },
+    "./dropdownMenu": {
+      "types": "./dist/dropdownMenu/index.d.ts",
+      "import": "./dist/dropdownMenu/index.js"
+    },
     "./codeBlock": {
       "types": "./dist/codeBlock/index.d.ts",
       "import": "./dist/codeBlock/index.js"
@@ -282,6 +294,26 @@
     "./useVirtualRows": {
       "types": "./dist/useVirtualRows.d.ts",
       "import": "./dist/useVirtualRows.js"
+    },
+    "./useVirtualCollection": {
+      "types": "./dist/useVirtualCollection.d.ts",
+      "import": "./dist/useVirtualCollection.js"
+    },
+    "./modal": {
+      "types": "./dist/modal/index.d.ts",
+      "import": "./dist/modal/index.js"
+    },
+    "./clipboard": {
+      "types": "./dist/clipboard/index.d.ts",
+      "import": "./dist/clipboard/index.js"
+    },
+    "./compactSelect": {
+      "types": "./dist/compactSelect/index.d.ts",
+      "import": "./dist/compactSelect/index.js"
+    },
+    "./pictureInPicture": {
+      "types": "./dist/pictureInPicture/index.d.ts",
+      "import": "./dist/pictureInPicture/index.js"
     }
   },
   "publishConfig": {
@@ -297,17 +329,22 @@
     "lint:css": "stylelint '**/*.[jt]sx' --allow-empty-input"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/styled": "^11.14.0",
     "@floating-ui/react-dom": "^2.1.9",
     "@react-aria/button": "3.15.1",
     "@react-aria/disclosure": "3.2.1",
     "@react-aria/focus": "3.22.1",
+    "@react-aria/gridlist": "3.15.1",
     "@react-aria/i18n": "3.13.1",
     "@react-aria/interactions": "3.28.1",
+    "@react-aria/listbox": "3.16.1",
+    "@react-aria/menu": "3.22.1",
     "@react-aria/numberfield": "3.13.1",
     "@react-aria/overlays": "3.32.1",
     "@react-aria/radio": "3.13.1",
+    "@react-aria/separator": "3.5.1",
     "@react-aria/slider": "3.9.1",
     "@react-aria/utils": "3.34.1",
     "@react-aria/visually-hidden": "3.9.1",
@@ -318,31 +355,37 @@
     "@react-stately/overlays": "3.7.1",
     "@react-stately/radio": "3.12.1",
     "@react-stately/slider": "3.8.1",
+    "@react-stately/tree": "3.10.1",
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
     "@tanstack/react-hotkeys": "0.18.0",
+    "@tanstack/react-pacer": "^0.22.1",
     "@tanstack/react-virtual": "3.14.6",
     "@types/react": "19.3.0",
     "@types/react-select": "4.0.18",
     "classnames": "2.3.1",
+    "focus-trap": "8.2.2",
     "framer-motion": "12.38.0",
     "input-otp": "^1.5.0",
     "prismjs": "^1.30.0",
     "query-string": "7.0.1",
+    "react-error-boundary": "^6.1.6",
     "react-select": "4.3.1",
     "react-textarea-autosize": "8.5.7",
     "sonner": "2.0.8",
-    "type-fest": "^5.10.0"
+    "type-fest": "^5.10.0",
+    "zustand": "5.0.16"
   },
   "devDependencies": {
     "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@rsbuild/plugin-react": "2.1.1",
-    "@rslib/core": "1.0.3",
-    "@swc/core": "1.16.13",
+    "@rslib/core": "1.0.6",
+    "@swc/core": "1.16.22",
     "@swc/jest": "0.2.39",
     "@tanstack/react-form": "1.28.6",
+    "@tanstack/react-query": "5.101.4",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.2",
@@ -357,12 +400,15 @@
     "oxlint": "1.90.0",
     "oxlint-tsgolint": "7.0.2005",
     "stylelint": "16.26.1",
-    "typescript": "npm:@typescript/typescript6@6.0.2"
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",
     "@tanstack/react-form": "^1.28.6",
+    "@tanstack/react-query": "^5.101.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^4.6.7"
   }
 }

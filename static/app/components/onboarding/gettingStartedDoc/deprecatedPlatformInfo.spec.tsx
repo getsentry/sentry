@@ -3,8 +3,9 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
 import type {PlatformIntegration} from 'sentry/types/project';
+
+import {DeprecatedPlatformInfo} from './deprecatedPlatformInfo';
 
 describe('DeprecatedPlatformInfo', () => {
   it('renders correctly', () => {

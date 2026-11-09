@@ -1,8 +1,9 @@
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getClassifiersPath} from 'sentry/views/classifiers/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {getClassifiersPath} from './utils';
 
 export default function ClassifierDetail() {
   const organization = useOrganization();

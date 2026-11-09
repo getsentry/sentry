@@ -13,10 +13,11 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getTitle} from 'sentry/utils/events';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {AttachmentsBadge} from 'sentry/views/issueDetails/header/attachmentsBadge';
-import {ReplayBadge} from 'sentry/views/issueDetails/header/replayBadge';
-import {SeerBadge} from 'sentry/views/issueDetails/header/seerBadge';
-import {UserFeedbackBadge} from 'sentry/views/issueDetails/header/userFeedbackBadge';
+
+import {AttachmentsBadge} from './attachmentsBadge';
+import {ReplayBadge} from './replayBadge';
+import {SeerBadge} from './seerBadge';
+import {UserFeedbackBadge} from './userFeedbackBadge';
 
 interface GroupStatusSubtitleProps {
   group: Group;

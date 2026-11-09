@@ -1,4 +1,4 @@
-import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {parsePeriodToHours} from './parsePeriodToHours';
 
 describe('parsePeriodToHours()', () => {
   it('can convert standard formats', () => {

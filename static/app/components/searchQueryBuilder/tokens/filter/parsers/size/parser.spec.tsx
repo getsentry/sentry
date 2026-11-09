@@ -1,4 +1,4 @@
-import {parseFilterValueSize} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/size/parser';
+import {parseFilterValueSize} from './parser';
 
 describe('parseFilterValueSize', () => {
   it('parses size values', () => {

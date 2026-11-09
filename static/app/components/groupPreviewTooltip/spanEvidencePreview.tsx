@@ -2,15 +2,13 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {SpanEvidenceKeyValueList} from 'sentry/components/events/interfaces/performance/spanEvidenceKeyValueList';
-import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
-import {
-  useDelayedLoadingState,
-  usePreviewEvent,
-} from 'sentry/components/groupPreviewTooltip/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {KeyValueTableCardPanel} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
+
+import {GroupPreviewHovercard} from './groupPreviewHovercard';
+import {useDelayedLoadingState, usePreviewEvent} from './utils';
 
 type SpanEvidencePreviewProps = {
   children: React.ReactNode;

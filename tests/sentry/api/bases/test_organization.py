@@ -44,11 +44,17 @@ from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.dashboards.endpoints import organization_dashboards_starred
+from sentry.dashboards.endpoints.organization_dashboard_generate import (
+    OrganizationDashboardGeneratePermission,
+)
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.discover.endpoints import discover_saved_query_starred
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.explore.endpoints import explore_saved_query_starred, saved_query_starred_order
-from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
+from sentry.explore.endpoints.bases import (
+    ExploreSavedFormulaPermission,
+    ExploreSavedQueryPermission,
+)
 from sentry.insights.endpoints import starred_segments
 from sentry.issues.endpoints import (
     organization_group_search_view_details_starred,
@@ -56,6 +62,7 @@ from sentry.issues.endpoints import (
     organization_group_search_view_visit,
     organization_group_search_views_starred,
 )
+from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -98,11 +105,6 @@ class MockSuperUser:
     @property
     def is_active(self) -> bool:
         return True
-
-
-class LightweightControlSiloOrganizationEndpoint(ControlSiloOrganizationEndpoint):
-    include_organization_projects = False
-    include_organization_teams = False
 
 
 class PermissionBaseTestCase(TestCase):
@@ -588,8 +590,11 @@ class RejectsDeprecatedScopesTest(TestCase):
 # Every permission class that stops accepting deprecated scopes in orgs with granular scopes.
 OPTED_IN_PERMISSIONS: list[type[OrganizationPermission]] = [
     OrganizationDashboardsPermission,
+    OrganizationDashboardGeneratePermission,
     DiscoverSavedQueryPermission,
     ExploreSavedQueryPermission,
+    ExploreSavedFormulaPermission,
+    GroupSearchViewPermission,
     OrganizationRecentSearchPermission,
     PromptsActivityPermission,
     organization_dashboards_starred.MemberPermission,
@@ -721,11 +726,14 @@ class DetermineAccessHydrationTest(TestCase):
         assert request.access.has_scope("org:read")
 
 
+@all_silo_test
 class ControlSiloOrganizationEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
 
     def build_request(self) -> Request:
         request = RequestFactory().get("/")
@@ -734,62 +742,37 @@ class ControlSiloOrganizationEndpointTest(TestCase):
         request.auth = None
         return drf_request_from_request(request)
 
-    @mock.patch.object(
-        organization_service,
-        "get_organization_by_slug",
-        wraps=organization_service.get_organization_by_slug,
-    )
-    def test_convert_args_includes_projects_and_teams_by_default(
-        self, mock_get_organization: mock.MagicMock
-    ) -> None:
-        ControlSiloOrganizationEndpoint().convert_args(self.build_request(), self.organization.slug)
+    def assert_organization_access(self, organization_id_or_slug: int | str) -> None:
+        request = self.build_request()
+        _, kwargs = ControlSiloOrganizationEndpoint().convert_args(request, organization_id_or_slug)
 
-        mock_get_organization.assert_called_once_with(
-            slug=self.organization.slug,
-            only_visible=False,
-            user_id=self.user.id,
-            include_projects=True,
-            include_teams=True,
-        )
+        assert kwargs["organization"].id == self.organization.id
+        assert request.access.has_scope("org:read")
+        assert request.access.has_project_access(self.project)
+        assert request.access.has_team_access(self.team)
 
-    @mock.patch.object(
-        organization_service,
-        "get_organization_by_slug",
-        wraps=organization_service.get_organization_by_slug,
-    )
-    def test_convert_args_can_omit_projects_and_teams_for_slug(
-        self, mock_get_organization: mock.MagicMock
-    ) -> None:
-        LightweightControlSiloOrganizationEndpoint().convert_args(
-            self.build_request(), self.organization.slug
-        )
+    def test_convert_args_resolves_organization_and_access_by_slug(self) -> None:
+        self.assert_organization_access(self.organization.slug)
 
-        mock_get_organization.assert_called_once_with(
-            slug=self.organization.slug,
-            only_visible=False,
-            user_id=self.user.id,
-            include_projects=False,
-            include_teams=False,
-        )
+    def test_convert_args_resolves_organization_and_access_by_id(self) -> None:
+        self.assert_organization_access(self.organization.id)
 
-    @mock.patch.object(
-        organization_service,
-        "get_organization_by_id",
-        wraps=organization_service.get_organization_by_id,
-    )
-    def test_convert_args_can_omit_projects_and_teams_for_id(
-        self, mock_get_organization: mock.MagicMock
-    ) -> None:
-        LightweightControlSiloOrganizationEndpoint().convert_args(
-            self.build_request(), self.organization.id
+    def test_org_token_enumerates_resources_without_additional_rpcs(self) -> None:
+        request = self.build_request()
+        request.user = AnonymousUser()
+        request.auth = AuthenticatedToken(
+            kind="org_auth_token", organization_id=self.organization.id, scopes=["org:read"]
         )
+        unassigned = self.create_project(organization=self.organization, teams=[])
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            ControlSiloOrganizationEndpoint().convert_args(request, self.organization.slug)
+            with mock.patch("sentry.hybridcloud.rpc.service.dispatch_remote_call") as rpc:
+                assert request.access.accessible_project_ids == frozenset(
+                    {self.project.id, unassigned.id}
+                )
+                assert request.access.accessible_team_ids == frozenset({self.team.id})
 
-        mock_get_organization.assert_called_once_with(
-            id=self.organization.id,
-            user_id=self.user.id,
-            include_projects=False,
-            include_teams=False,
-        )
+        rpc.assert_not_called()
 
 
 class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):

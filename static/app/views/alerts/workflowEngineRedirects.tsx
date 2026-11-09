@@ -16,11 +16,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {
-  AlertWizardRuleTemplates,
-  type MetricAlertType,
-} from 'sentry/views/alerts/wizard/options';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -34,6 +29,9 @@ import {
 } from 'sentry/views/detectors/pathnames';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
+
+import {Dataset, EventTypes} from './rules/metric/types';
+import {AlertWizardRuleTemplates, type MetricAlertType} from './wizard/options';
 
 const DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE =
   'workflow-engine-disable-legacy-alert-rule-redirects';

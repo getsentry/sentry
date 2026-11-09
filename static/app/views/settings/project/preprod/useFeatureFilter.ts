@@ -1,10 +1,7 @@
 import {useCallback} from 'react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
@@ -45,17 +42,17 @@ export function useFeatureFilter({
 
   const setFilterQuery = useCallback(
     (query: string) => {
-      addLoadingMessage(t('Saving...'));
+      toast.loading(t('Saving...'));
       updateProject.mutate(
         {
           [queryWriteKey]: query === '' ? null : query,
         },
         {
           onSuccess: () => {
-            addSuccessMessage(successMessage);
+            toast.success(successMessage);
           },
           onError: () => {
-            addErrorMessage(t('Failed to save changes. Please try again.'));
+            toast.error(t('Failed to save changes. Please try again.'));
           },
         }
       );
@@ -65,17 +62,17 @@ export function useFeatureFilter({
 
   const setEnabled = useCallback(
     (newEnabled: boolean) => {
-      addLoadingMessage(t('Saving...'));
+      toast.loading(t('Saving...'));
       updateProject.mutate(
         {
           [enabledWriteKey]: newEnabled,
         },
         {
           onSuccess: () => {
-            addSuccessMessage(successMessage);
+            toast.success(successMessage);
           },
           onError: () => {
-            addErrorMessage(t('Failed to save changes. Please try again.'));
+            toast.error(t('Failed to save changes. Please try again.'));
           },
         }
       );

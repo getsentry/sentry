@@ -17,13 +17,13 @@ import {
   resizeCanvasToDisplaySize,
   safeGetContext,
 } from 'sentry/utils/profiling/gl/utils';
-import type {FlamegraphRendererOptions} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
+
+import type {FlamegraphRendererOptions} from './flamegraphRenderer';
 import {
   DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS,
   FlamegraphRenderer,
-} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-
+} from './flamegraphRenderer';
 import {fragment, vertex} from './shaders';
 
 // These are both mutable and are used to avoid unnecessary allocations during rendering.

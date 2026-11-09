@@ -17,12 +17,10 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {
-  Interval,
-  MatchType,
-} from 'sentry/views/automations/components/actionFilters/constants';
-import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
-import {AutomationBuilderTestProvider} from 'sentry/views/automations/components/testUtils';
+
+import {Interval, MatchType} from './actionFilters/constants';
+import {DataConditionNodeList} from './dataConditionNodeList';
+import {AutomationBuilderTestProvider} from './testUtils';
 
 const dataConditionHandlers: DataConditionHandler[] = [
   DataConditionHandlerFixture({type: DataConditionType.AGE_COMPARISON}),

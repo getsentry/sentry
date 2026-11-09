@@ -6,7 +6,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {FeatureDisabledOverrides} from 'sentry/types/overrides';
 import type {Project} from 'sentry/types/project';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ComingSoon} from './comingSoon';
 
@@ -29,11 +29,7 @@ type Props = {
    * Use `organizations:` or `projects:` prefix strings to specify a feature with context.
    */
   features: string | string[];
-  /**
-   * The following properties will be set by the HoCs
-   */
-  organization: Organization;
-  organizationAllowNull?: undefined | true;
+  organization?: Organization;
   /**
    * Specify the key to use for override registry functionality.
    *
@@ -129,15 +125,17 @@ const hasFeature = (
 /**
  * Component to handle feature flags.
  */
-function Feature({
+export function Feature({
   children,
   features: featuresProp,
   overrideName,
-  organization,
+  organization: organizationProp,
   project,
   renderDisabled = false,
   requireAll = true,
 }: Props) {
+  const contextOrganization = useOrganization();
+  const organization = organizationProp ?? contextOrganization;
   const config = useLegacyStore(ConfigStore);
 
   const features = useMemo(
@@ -148,10 +146,10 @@ function Feature({
   const allFeatures = useMemo<AllFeatures>(
     () => ({
       configFeatures: config.features ? Array.from(config.features) : [],
-      organization: organization?.features ?? [],
+      organization: organization.features,
       project: project?.features ?? [],
     }),
-    [config.features, organization?.features, project?.features]
+    [config.features, organization.features, project?.features]
   );
 
   const hasFeatureEnabled = useMemo(() => {
@@ -197,5 +195,3 @@ function Feature({
 
   return hasFeatureEnabled && children ? children : null;
 }
-
-export default withOrganization(Feature);

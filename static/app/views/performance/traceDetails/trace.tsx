@@ -274,7 +274,7 @@ export function Trace({
       }
 
       if (event.key === 'ArrowLeft') {
-        if (node.expanded) {
+        if (node.canCollapse) {
           onNodeExpand(event, node, false);
         }
       } else if (event.key === 'ArrowRight') {
@@ -596,7 +596,7 @@ function RenderTraceRow(props: {
   const onExpandProp = props.onExpand;
   const onExpand = useCallback(
     (e: React.MouseEvent) => {
-      onExpandProp(e, node, !node.expanded);
+      onExpandProp(e, node, !node.canCollapse);
     },
     [node, onExpandProp]
   );

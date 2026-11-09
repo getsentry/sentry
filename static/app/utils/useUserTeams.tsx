@@ -4,10 +4,11 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {useApiQuery} from 'sentry/utils/queryClient';
+
+import type {ApiQueryKey} from './api/apiQueryKey';
+import {getApiUrl} from './api/getApiUrl';
+import {isActiveSuperuser} from './isActiveSuperuser';
+import {useApiQuery} from './queryClient';
 
 interface UseTeamsResult {
   isError: boolean | null;

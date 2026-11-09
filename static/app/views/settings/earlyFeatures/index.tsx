@@ -8,8 +8,9 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {EarlyFeaturesSettingsForm} from 'sentry/views/settings/earlyFeatures/settingsForm';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
+
+import {EarlyFeaturesSettingsForm} from './settingsForm';
 
 export default function OrganizationGeneralSettings() {
   const {isSelfHosted} = useLegacyStore(ConfigStore);

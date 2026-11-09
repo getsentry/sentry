@@ -1,16 +1,16 @@
+import {DrawerHeader} from '@sentry/scraps/drawer';
+
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {
-  EventDrawerContainer,
-  EventDrawerHeader,
-} from 'sentry/components/events/eventDrawer';
+import {EventDrawerContainer} from 'sentry/components/events/eventDrawer';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {FlagsDistributionDrawer} from 'sentry/views/issueDetails/groupDistributions/flagsDistributionDrawer';
-import {GroupDistributionCrumbs} from 'sentry/views/issueDetails/groupDistributions/groupDistributionCrumbs';
-import {TagsDistributionDrawer} from 'sentry/views/issueDetails/groupDistributions/tagsDistributionDrawer';
-import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
-import {useDrawerTab} from 'sentry/views/issueDetails/groupDistributions/useDrawerTab';
+
+import {FlagsDistributionDrawer} from './groupDistributions/flagsDistributionDrawer';
+import {GroupDistributionCrumbs} from './groupDistributions/groupDistributionCrumbs';
+import {TagsDistributionDrawer} from './groupDistributions/tagsDistributionDrawer';
+import {DrawerTab} from './groupDistributions/types';
+import {useDrawerTab} from './groupDistributions/useDrawerTab';
 
 type Props = {
   group: Group;
@@ -30,9 +30,9 @@ export function GroupDistributionsDrawer({group, includeFeatureFlagsTab}: Props)
   return (
     <AnalyticsArea name="distributions_drawer">
       <EventDrawerContainer>
-        <EventDrawerHeader>
-          <GroupDistributionCrumbs project={project} group={group} tab={tab} />
-        </EventDrawerHeader>
+        <DrawerHeader>
+          <GroupDistributionCrumbs group={group} project={project} tab={tab} />
+        </DrawerHeader>
         {tab === DrawerTab.TAGS ? (
           <TagsDistributionDrawer
             organization={organization}

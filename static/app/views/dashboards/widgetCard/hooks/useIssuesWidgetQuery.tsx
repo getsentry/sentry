@@ -20,11 +20,12 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {combineWidgetJsonQueryResults} from './utils/combineWidgetQueryResults';
+import {getWidgetStaleTime} from './utils/getStaleTime';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_EXPAND = ['owners'];

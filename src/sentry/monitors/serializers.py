@@ -3,12 +3,14 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from itertools import groupby
 from operator import attrgetter
-from typing import Any, Literal, TypedDict, cast
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.constants import ObjectStatusName
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.monitors.models import (
@@ -30,10 +32,23 @@ from sentry.monitors.utils import fetch_associated_groups
 from sentry.monitors.validators import IntervalNames
 from sentry.types.actor import Actor
 
+# The names of the MonitorStatus and CheckInStatus choices, as get_status_display() returns them.
+MonitorStatusName = Literal[
+    "active", "disabled", "pending_deletion", "deletion_in_progress", "ok", "error"
+]
+CheckInStatusName = Literal["unknown", "ok", "error", "in_progress", "missed", "timeout"]
+
 
 class MonitorEnvBrokenDetectionSerializerResponse(TypedDict):
-    userNotifiedTimestamp: datetime | None
-    environmentMutedTimestamp: datetime | None
+    userNotifiedTimestamp: Annotated[
+        datetime | None,
+        ApiDescription(
+            "When users were notified that the monitor environment looks broken (ISO 8601)"
+        ),
+    ]
+    environmentMutedTimestamp: Annotated[
+        datetime | None, ApiDescription("When the broken monitor environment was muted (ISO 8601)")
+    ]
 
 
 @register(MonitorEnvBrokenDetection)
@@ -52,9 +67,18 @@ class MonitorEnvBrokenDetectionSerializer(Serializer[MonitorEnvBrokenDetectionSe
 
 
 class MonitorIncidentSerializerResponse(TypedDict):
-    startingTimestamp: datetime | None
-    resolvingTimestamp: datetime | None
-    brokenNotice: MonitorEnvBrokenDetectionSerializerResponse | None
+    startingTimestamp: Annotated[
+        datetime | None, ApiDescription("When the incident started (ISO 8601)")
+    ]
+    resolvingTimestamp: Annotated[
+        datetime | None, ApiDescription("When the incident was resolved (ISO 8601)")
+    ]
+    brokenNotice: Annotated[
+        MonitorEnvBrokenDetectionSerializerResponse | None,
+        ApiDescription(
+            "Details of the broken monitor notice for the incident. Null when there's none"
+        ),
+    ]
 
 
 @register(MonitorIncident)
@@ -89,14 +113,33 @@ class MonitorIncidentSerializer(Serializer[MonitorIncidentSerializerResponse]):
 
 
 class MonitorEnvironmentSerializerResponse(TypedDict):
-    name: str
-    status: str
-    isMuted: bool
-    dateCreated: datetime
-    lastCheckIn: datetime | None
-    nextCheckIn: datetime | None
-    nextCheckInLatest: datetime | None
-    activeIncident: MonitorIncidentSerializerResponse | None
+    name: Annotated[str, ApiDescription("Name of the environment")]
+    status: Annotated[MonitorStatusName, ApiDescription("Status of the monitor in the environment")]
+    isMuted: Annotated[
+        bool, ApiDescription("Whether incidents are muted for the monitor in the environment")
+    ]
+    dateCreated: Annotated[datetime, ApiDescription("When the monitor was created (ISO 8601)")]
+    lastCheckIn: Annotated[
+        datetime | None,
+        ApiDescription(
+            "When the most recent check-in was received, not counting missed check-ins (ISO 8601)"
+        ),
+    ]
+    nextCheckIn: Annotated[
+        datetime | None, ApiDescription("When the next check-in is expected (ISO 8601)")
+    ]
+    nextCheckInLatest: Annotated[
+        datetime | None,
+        ApiDescription(
+            "Latest time the next check-in can arrive before it counts as missed (ISO 8601)"
+        ),
+    ]
+    activeIncident: Annotated[
+        MonitorIncidentSerializerResponse | None,
+        ApiDescription(
+            "Unresolved incident for the monitor in the environment. Null when there's none"
+        ),
+    ]
 
 
 @register(MonitorEnvironment)
@@ -159,7 +202,7 @@ class MonitorEnvironmentSerializer(Serializer[MonitorEnvironmentSerializerRespon
         environment = attrs["environment"]
         return {
             "name": environment.name if environment else "[removed]",
-            "status": obj.get_status_display(),
+            "status": cast(MonitorStatusName, obj.get_status_display()),
             "isMuted": obj.is_muted,
             "dateCreated": attrs["date_added"],
             "lastCheckIn": obj.last_checkin,
@@ -170,28 +213,72 @@ class MonitorEnvironmentSerializer(Serializer[MonitorEnvironmentSerializerRespon
 
 
 class MonitorConfigSerializerResponse(TypedDict):
-    schedule_type: Literal["crontab", "interval"]
-    schedule: str | tuple[int, IntervalNames]
-    checkin_margin: int | None
-    max_runtime: int | None
-    timezone: str | None
-    failure_issue_threshold: int | None
-    recovery_threshold: int | None
-    alert_rule_id: int | None
+    schedule_type: Annotated[
+        Literal["crontab", "interval"], ApiDescription("Type of schedule: crontab or interval")
+    ]
+    schedule: Annotated[
+        str | tuple[int, IntervalNames],
+        ApiDescription(
+            'Schedule of the monitor: a crontab string, or a [value, unit] pair for intervals, such as [1, "day"]'
+        ),
+    ]
+    checkin_margin: Annotated[
+        int | None,
+        ApiDescription(
+            "How long in minutes after the expected check-in time to wait before the check-in counts as missed"
+        ),
+    ]
+    max_runtime: Annotated[
+        int | None,
+        ApiDescription(
+            "How long in minutes a check-in can stay in progress before it counts as failed"
+        ),
+    ]
+    timezone: Annotated[
+        str | None, ApiDescription("Timezone the schedule is evaluated in, as a tz database name")
+    ]
+    failure_issue_threshold: Annotated[
+        int | None,
+        ApiDescription(
+            "Number of consecutive missed or failed check-ins before an issue is created"
+        ),
+    ]
+    recovery_threshold: Annotated[
+        int | None,
+        ApiDescription("Number of consecutive successful check-ins before the issue is resolved"),
+    ]
+    alert_rule_id: Annotated[
+        int | None, ApiDescription("ID of the alert rule linked to the monitor")
+    ]
 
 
 class MonitorSerializerResponse(TypedDict):
-    id: str
-    name: str
-    slug: str
-    status: str
-    isMuted: bool
-    isUpserting: bool
-    config: MonitorConfigSerializerResponse
-    dateCreated: datetime
-    project: ProjectSerializerResponse
-    environments: MonitorEnvironmentSerializerResponse
-    owner: ActorSerializerResponse
+    id: Annotated[str, ApiDescription("ID of the monitor")]
+    name: Annotated[str, ApiDescription("Name of the monitor")]
+    slug: Annotated[str, ApiDescription("Slug that identifies the monitor in the organization")]
+    status: Annotated[
+        ObjectStatusName,
+        ApiDescription("Status of the monitor. Disabled monitors don't accept check-ins"),
+    ]
+    isMuted: Annotated[
+        bool, ApiDescription("Whether incidents are muted in all of the monitor's environments")
+    ]
+    isUpserting: Annotated[
+        bool, ApiDescription("Whether the most recent check-in was an upsert check-in")
+    ]
+    config: Annotated[
+        MonitorConfigSerializerResponse, ApiDescription("Configuration of the monitor")
+    ]
+    dateCreated: Annotated[datetime, ApiDescription("When the monitor was created (ISO 8601)")]
+    project: Annotated[ProjectSerializerResponse, ApiDescription("Project the monitor belongs to")]
+    environments: Annotated[
+        list[MonitorEnvironmentSerializerResponse],
+        ApiDescription("Environments the monitor has received check-ins for"),
+    ]
+    owner: Annotated[
+        ActorSerializerResponse | None,
+        ApiDescription("Team or user that owns the monitor. Null when there's no owner"),
+    ]
 
 
 class MonitorBulkEditResponse(TypedDict):
@@ -309,7 +396,7 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
 
         result: MonitorSerializerResponse = {
             "id": str(obj.guid),
-            "status": obj.get_status_display(),
+            "status": cast(ObjectStatusName, obj.get_status_display()),
             "isMuted": attrs["is_muted"],
             "isUpserting": obj.is_upserting,
             "name": obj.name,
@@ -325,21 +412,45 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
 
 
 class MonitorCheckInSerializerResponseOptional(TypedDict, total=False):
-    groups: list[str]
+    groups: Annotated[
+        list[str],
+        ApiDescription(
+            "Issues linked to the check-in's trace. Only included when requested with expand=groups"
+        ),
+    ]
 
 
 class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional):
-    id: str
-    environment: str
-    status: str
-    duration: int | None
-    dateCreated: datetime | None
-    dateAdded: datetime
-    dateUpdated: datetime
-    dateInProgress: datetime | None
-    dateClock: datetime | None
-    expectedTime: datetime | None
-    monitorConfig: MonitorConfigSerializerResponse
+    id: Annotated[str, ApiDescription("ID of the check-in")]
+    environment: Annotated[str, ApiDescription("Name of the environment the check-in belongs to")]
+    status: Annotated[CheckInStatusName, ApiDescription("Status of the check-in")]
+    duration: Annotated[int | None, ApiDescription("Duration of the job run in milliseconds")]
+    dateCreated: Annotated[
+        datetime | None, ApiDescription("When the check-in was stored (ISO 8601)")
+    ]
+    dateAdded: Annotated[datetime, ApiDescription("When the check-in was received (ISO 8601)")]
+    dateUpdated: Annotated[
+        datetime, ApiDescription("When the check-in was last updated (ISO 8601)")
+    ]
+    dateInProgress: Annotated[
+        datetime | None,
+        ApiDescription(
+            "When the first in_progress check-in was received (ISO 8601). Null when none was sent"
+        ),
+    ]
+    dateClock: Annotated[
+        datetime | None,
+        ApiDescription(
+            "Clock time the check-in was processed at, relative to other check-in tasks (ISO 8601)"
+        ),
+    ]
+    expectedTime: Annotated[
+        datetime | None, ApiDescription("When the check-in was expected (ISO 8601)")
+    ]
+    monitorConfig: Annotated[
+        MonitorConfigSerializerResponse,
+        ApiDescription("Monitor configuration when the check-in was received"),
+    ]
 
 
 @register(MonitorCheckIn)
@@ -434,7 +545,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
         result: MonitorCheckInSerializerResponse = {
             "id": str(obj.guid),
             "environment": attrs["environment_name"],
-            "status": obj.get_status_display(),
+            "status": cast(CheckInStatusName, obj.get_status_display()),
             "duration": obj.duration,
             "dateCreated": obj.date_created,
             "dateAdded": obj.date_added,

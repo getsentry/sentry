@@ -1,7 +1,9 @@
+import {useQueryStates} from 'nuqs';
+
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {MonitorBucket} from 'sentry/views/insights/crons/types';
 
@@ -31,7 +33,7 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
   };
 
   const organization = useOrganization();
-  const location = useLocation();
+  const [{project, environment}] = useQueryStates(pageFilterParsers);
 
   const monitorStatsQueryKey = getApiUrl(
     '/organizations/$organizationIdOrSlug/monitors-stats/',
@@ -46,8 +48,8 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
       {
         query: {
           monitor: monitors,
-          project: location.query.project,
-          environment: location.query.environment,
+          project,
+          environment,
           ...selectionQuery,
         },
       },

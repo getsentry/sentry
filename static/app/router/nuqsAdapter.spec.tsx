@@ -7,7 +7,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 
 import {act, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {NuqsAdapter} from 'sentry/router/nuqsAdapter';
+import {NuqsAdapter} from './nuqsAdapter';
 
 type Commit = {location: string | null; nuqs: string | null};
 

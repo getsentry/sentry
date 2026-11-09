@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -7,12 +8,14 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {Button} from '@sentry/scraps/button';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
-import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
-import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCardDataLoader';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {VisualizationWidget} from './visualizationWidget';
+import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 jest.mock('sentry/views/dashboards/widgetCard/widgetCardDataLoader');
 jest.mock(
@@ -389,4 +392,124 @@ describe('VisualizationWidget threshold time windows', () => {
       expect(screen.getByTestId('threshold-values')).toHaveTextContent('600, 1200');
     }
   );
+});
+
+describe('VisualizationWidget dropped-data heatmap', () => {
+  const orgWithFlags = () =>
+    OrganizationFixture({
+      features: [
+        'explore-data-fidelity-annotations',
+        'dashboards-data-fidelity-annotations',
+      ],
+    });
+
+  let droppedDataRequest: jest.Mock;
+
+  beforeEach(() => {
+    jest.mocked(TimeSeriesWidgetVisualization).mockClear();
+    droppedDataRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-dropped/',
+      body: {
+        droppedEvents: [OutcomeRowFixture({count: 10})],
+        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 90})],
+        meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+      },
+    });
+  });
+
+  function lastDroppedDataProp() {
+    const calls = jest.mocked(TimeSeriesWidgetVisualization).mock.calls;
+    return calls.at(-1)![0].droppedData;
+  }
+
+  it('passes the band to the chart', async () => {
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        widgetInterval="5m"
+      />,
+      {organization: orgWithFlags()}
+    );
+
+    await waitFor(() =>
+      expect(lastDroppedDataProp()).toEqual(
+        expect.objectContaining({dataset: DiscoverDatasets.SPANS})
+      )
+    );
+  });
+
+  it('hides the heatmap while editing a widget (disableFullscreen)', async () => {
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        widgetInterval="5m"
+        disableFullscreen
+      />,
+      {organization: orgWithFlags()}
+    );
+
+    await waitFor(() => expect(droppedDataRequest).toHaveBeenCalled());
+    expect(lastDroppedDataProp()).toBeUndefined();
+  });
+
+  it('does not request dropped data for unsupported widget types', async () => {
+    render(
+      <VisualizationWidget
+        widget={{...spansBreakdownWidget, widgetType: WidgetType.TRANSACTIONS}}
+        selection={selection}
+        widgetInterval="5m"
+      />,
+      {organization: orgWithFlags()}
+    );
+
+    await waitFor(() => expect(TimeSeriesWidgetVisualization).toHaveBeenCalled());
+    expect(droppedDataRequest).not.toHaveBeenCalled();
+    expect(lastDroppedDataProp()).toBeUndefined();
+  });
+});
+
+describe('VisualizationWidget releases', () => {
+  let releasesRequest: jest.Mock;
+
+  beforeEach(() => {
+    jest.mocked(TimeSeriesWidgetVisualization).mockClear();
+    releasesRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+  });
+
+  function lastShowReleaseAsProp() {
+    const calls = jest.mocked(TimeSeriesWidgetVisualization).mock.calls;
+    return calls.at(-1)![0].showReleaseAs;
+  }
+
+  it('shows release bubbles', async () => {
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        widgetInterval="5m"
+      />
+    );
+
+    await waitFor(() => expect(releasesRequest).toHaveBeenCalled());
+    expect(lastShowReleaseAsProp()).toBe('bubble');
+  });
+
+  it('hides releases for mobile builds widgets', async () => {
+    render(
+      <VisualizationWidget
+        widget={{...spansBreakdownWidget, widgetType: WidgetType.PREPROD_APP_SIZE}}
+        selection={selection}
+        widgetInterval="5m"
+      />
+    );
+
+    await waitFor(() => expect(TimeSeriesWidgetVisualization).toHaveBeenCalled());
+    expect(releasesRequest).not.toHaveBeenCalled();
+    expect(lastShowReleaseAsProp()).toBe('none');
+  });
 });

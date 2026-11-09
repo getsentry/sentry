@@ -39,9 +39,9 @@ from sentry.notebooks.services.notebooks import (
     InvestigationConflictError,
     InvestigationSourceNotFound,
     InvestigationValidationError,
-    _create_project_links,
     _validate_project_ids,
     archive_investigation,
+    create_notebook,
     default_investigation_title,
     update_investigation,
 )
@@ -183,7 +183,7 @@ def _create_agentic_investigation(
     """Create the notebook and its parent control-plane aggregate atomically."""
 
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        investigation = Notebook.objects.create(
+        investigation = create_notebook(
             organization=organization,
             created_by_id=creator.id if creator.type == ActorType.USER else None,
             created_by_service_account_id=(
@@ -192,11 +192,11 @@ def _create_agentic_investigation(
             title=title or default_investigation_title(source_type),
             source_type=source_type,
             source_key=source_key,
-            source=deepcopy(source),
+            source=source,
             source_revision=source_revision,
-            filters=deepcopy(filters),
+            filters=filters,
+            project_ids=project_ids,
         )
-        _create_project_links(investigation, project_ids)
         phase, status, projection = _initial_projection(
             investigation_id=investigation.id, source=orchestration_source
         )
@@ -207,9 +207,6 @@ def _create_agentic_investigation(
             source=deepcopy(orchestration_source),
             projection=projection,
         )
-        # Remove once dispatch can use the saved service-account identity.
-        if creator.type == ActorType.SERVICE_ACCOUNT:
-            raise PermissionDenied
         _schedule_orchestration_create(orchestration_run.id)
     return investigation, orchestration_run
 

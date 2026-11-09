@@ -4,7 +4,8 @@ import {IconClose} from '@sentry/icons/close';
 import {Button} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
-import {StyledEmptyStateWarning as EmptyState} from 'sentry/views/explore/replays/detail/emptyState';
+
+import {StyledEmptyStateWarning as EmptyState} from './emptyState';
 
 type Props = {
   children: ReactNode;

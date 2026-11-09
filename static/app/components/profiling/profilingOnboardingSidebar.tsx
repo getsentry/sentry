@@ -30,6 +30,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
@@ -59,8 +60,7 @@ const PROFILING_ONBOARDING_STEPS = [
 
 export function useProfilingOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.PROFILING_ONBOARDING;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.PROFILING_ONBOARDING);
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 

@@ -10,12 +10,8 @@ import {
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {
   PROVIDER_TO_SETUP_WEBHOOK_URL,
   WebhookProviderEnum,
@@ -80,7 +76,7 @@ export function NewProviderForm({
 
   const mutation = useMutation({
     mutationFn: ({provider, secret}: CreateSecretData) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       return fetchMutation({
         url: getApiUrl('/organizations/$organizationIdOrSlug/flags/signing-secrets/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -93,7 +89,7 @@ export function NewProviderForm({
       });
     },
     onSuccess: (_response, {secret, provider}) => {
-      addSuccessMessage(t('Added provider and secret.'));
+      toast.success(t('Added provider and secret.'));
       onCreatedSecret(secret);
       setSelectedProvider(provider);
       queryClient.invalidateQueries({
@@ -101,7 +97,7 @@ export function NewProviderForm({
       });
     },
     onError: error => {
-      clearIndicators();
+      toast.dismiss();
       if (error instanceof RequestError) {
         const responseJSON = error.responseJSON;
         const hasFieldSpecificErrors = responseJSON?.secret || responseJSON?.provider;

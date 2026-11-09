@@ -7,6 +7,7 @@ import {
   useMutation,
 } from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -14,8 +15,8 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
@@ -30,7 +31,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -117,10 +117,10 @@ function useDeletePathConfig({
       }
     },
     onSuccess: () => {
-      addSuccessMessage(t('Successfully deleted code mapping'));
+      toast.success(t('Successfully deleted code mapping'));
     },
     onError: error => {
-      addErrorMessage(`${error.statusText}: ${error.responseText}`);
+      toast.error(`${error.statusText}: ${error.responseText}`);
     },
     onSettled: () => {
       queryClient.invalidateQueries({
@@ -167,13 +167,13 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
 
   const organization = useOrganization();
   const {projects} = useProjects();
-  const location = useLocation();
+  const [cursor] = useQueryState('cursor', parseAsString);
   const integrationId = integration.id;
 
   const pathConfigsQueryOptions = codeMappingsApiOptions({
     orgSlug: organization.slug,
     integrationId,
-    cursor: location.query.cursor,
+    cursor: cursor ?? undefined,
   });
 
   const {

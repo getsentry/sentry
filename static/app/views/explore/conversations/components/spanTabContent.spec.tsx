@@ -1,9 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  EmptySpanTab,
-  SpanTabContent,
-} from 'sentry/views/explore/conversations/components/spanTabContent';
+import {EmptySpanTab, SpanTabContent} from './spanTabContent';
 
 describe('SpanTabContent', () => {
   const originalResizeObserver = window.ResizeObserver;

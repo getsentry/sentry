@@ -1,7 +1,8 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
+
+import {InvestigationRunTimer} from './runTimer';
 
 const timing = {
   startedAt: '2025-01-01T00:00:00Z',

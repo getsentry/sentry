@@ -1,7 +1,8 @@
 import type {User} from 'sentry/types/user';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {getApiUrl} from './api/getApiUrl';
+import {useApiQuery} from './queryClient';
+import {useOrganization} from './useOrganization';
 
 export function useUserFromId({id}: {id: number | undefined}) {
   const organization = useOrganization();

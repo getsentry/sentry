@@ -5,7 +5,7 @@ from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NamedTuple, NotRequired, Protocol, TypedDict, cast
+from typing import Annotated, Any, NamedTuple, NotRequired, Protocol, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
@@ -14,6 +14,7 @@ from sentry import features, release_health, tsdb
 from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializerResponse
+from sentry.api.serializers.models.event_metadata import EventMetadataResponse
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupAnnotation,
@@ -28,9 +29,13 @@ from sentry.api.serializers.models.group import (
     is_seen_stats,
     snuba_tsdb,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.constants import StatsPeriod
 from sentry.eventtypes import EventTypeStr
-from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
+from sentry.integrations.api.serializers.models.external_issue import (
+    ExternalIssueResponse,
+    ExternalIssueSerializer,
+)
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.derived.serialization import GroupDerivedDataResponse
 from sentry.issues.grouptype import GroupCategory
@@ -265,67 +270,272 @@ class _SeenStatsFunc(Protocol):
 
 
 class _Filtered(TypedDict):
-    count: str
-    userCount: int
-    firstSeen: datetime | None
-    lastSeen: datetime | None
-    stats: NotRequired[dict[str, Any]]
+    count: Annotated[
+        str, ApiDescription("Number of the issue's events that match the search query")
+    ]
+    userCount: Annotated[
+        int,
+        ApiDescription(
+            "Number of users affected by the issue's events that match the search query"
+        ),
+    ]
+    firstSeen: Annotated[
+        datetime | None,
+        ApiDescription("When an event matching the search query was first seen (ISO 8601)"),
+    ]
+    lastSeen: Annotated[
+        datetime | None,
+        ApiDescription("When an event matching the search query was last seen (ISO 8601)"),
+    ]
+    stats: NotRequired[
+        Annotated[
+            dict[str, list[list[float]]],
+            ApiDescription(
+                "Counts of matching events over the requested stats period, keyed by the period, as [timestamp, count] pairs"
+            ),
+        ]
+    ]
+
+
+class _Lifetime(TypedDict):
+    count: Annotated[str, ApiDescription("Number of events in the issue")]
+    userCount: Annotated[int, ApiDescription("Number of users affected by the issue")]
+    firstSeen: Annotated[
+        datetime | None, ApiDescription("When the issue was first seen (ISO 8601)")
+    ]
+    lastSeen: Annotated[datetime | None, ApiDescription("When the issue was last seen (ISO 8601)")]
+    stats: NotRequired[
+        Annotated[
+            None,
+            ApiDescription("Always null. Only included when a stats period is requested"),
+        ]
+    ]
 
 
 class StreamGroupSerializerSnubaResponse(TypedDict):
-    id: str
+    id: Annotated[str, ApiDescription("ID of the issue")]
     # from base response
-    shareId: NotRequired[str | None]
-    shortId: NotRequired[str | None]
-    title: NotRequired[str]
-    culprit: NotRequired[str | None]
-    permalink: NotRequired[str]
-    logger: NotRequired[str | None]
-    level: NotRequired[GroupLevelStr]
-    status: NotRequired[GroupStatusStr]
-    statusDetails: NotRequired[GroupStatusDetailsResponseOptional]
-    substatus: NotRequired[GroupSubStatusStr | None]
-    isPublic: NotRequired[bool]
-    platform: NotRequired[str | None]
-    priority: NotRequired[GroupPriorityStr | None]
-    priorityLockedAt: NotRequired[datetime | None]
-    seerFixabilityScore: NotRequired[float | None]
-    seerAutofixLastTriggered: NotRequired[datetime | None]
-    seerExplorerAutofixLastTriggered: NotRequired[datetime | None]
-    project: NotRequired[GroupProjectResponse]
-    type: NotRequired[EventTypeStr]
-    issueType: NotRequired[str]
-    issueCategory: NotRequired[str]
-    metadata: NotRequired[dict[str, Any]]
-    numComments: NotRequired[int]
-    assignedTo: NotRequired[ActorSerializerResponse | None]
-    isBookmarked: NotRequired[bool]
-    isSubscribed: NotRequired[bool]
-    subscriptionDetails: NotRequired[SubscriptionDetails | None]
-    hasSeen: NotRequired[bool]
-    annotations: NotRequired[list[GroupAnnotation]]
+    shareId: NotRequired[
+        Annotated[
+            str | None,
+            ApiDescription(
+                "ID used in the issue's public share URL. Null when the issue isn't shared"
+            ),
+        ]
+    ]
+    shortId: NotRequired[
+        Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    ]
+    title: NotRequired[Annotated[str, ApiDescription("Title of the issue")]]
+    culprit: NotRequired[
+        Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
+    ]
+    permalink: NotRequired[Annotated[str, ApiDescription("URL of the issue in Sentry")]]
+    logger: NotRequired[Annotated[str | None, ApiDescription("Logger of the issue's events")]]
+    level: NotRequired[Annotated[GroupLevelStr, ApiDescription("Severity level of the issue")]]
+    status: NotRequired[Annotated[GroupStatusStr, ApiDescription("Issue status")]]
+    statusDetails: NotRequired[
+        Annotated[
+            GroupStatusDetailsResponseOptional,
+            ApiDescription(
+                "Details of the issue's status, such as when an ignore expires or which release resolves it"
+            ),
+        ]
+    ]
+    substatus: NotRequired[
+        Annotated[
+            GroupSubStatusStr | None,
+            ApiDescription("Substatus of the issue, such as ongoing, regressed or escalating"),
+        ]
+    ]
+    isPublic: NotRequired[Annotated[bool, ApiDescription("Whether the issue is shared publicly")]]
+    platform: NotRequired[Annotated[str | None, ApiDescription("Platform of the issue's events")]]
+    priority: NotRequired[
+        Annotated[
+            GroupPriorityStr | None, ApiDescription("Priority of the issue: high, medium or low")
+        ]
+    ]
+    priorityLockedAt: NotRequired[
+        Annotated[
+            datetime | None,
+            ApiDescription(
+                "When the priority was last set manually, which stops automatic priority updates (ISO 8601)"
+            ),
+        ]
+    ]
+    seerFixabilityScore: NotRequired[
+        Annotated[
+            float | None, ApiDescription("Seer's score for how likely the issue is to be fixable")
+        ]
+    ]
+    seerAutofixLastTriggered: NotRequired[
+        Annotated[
+            datetime | None,
+            ApiDescription("When Seer Autofix was last triggered for the issue (ISO 8601)"),
+        ]
+    ]
+    seerExplorerAutofixLastTriggered: NotRequired[
+        Annotated[
+            datetime | None,
+            ApiDescription(
+                "When the Seer explorer agent last completed an Autofix step for the issue (ISO 8601)"
+            ),
+        ]
+    ]
+    project: NotRequired[
+        Annotated[GroupProjectResponse, ApiDescription("Project the issue belongs to")]
+    ]
+    type: NotRequired[
+        Annotated[EventTypeStr, ApiDescription("Event type of the issue, such as error or default")]
+    ]
+    issueType: NotRequired[
+        Annotated[
+            str, ApiDescription("Issue type, such as error or performance_n_plus_one_db_queries")
+        ]
+    ]
+    issueCategory: NotRequired[
+        Annotated[str, ApiDescription("Issue category, such as error or performance")]
+    ]
+    metadata: NotRequired[Annotated[EventMetadataResponse, ApiDescription("Issue metadata")]]
+    numComments: NotRequired[Annotated[int, ApiDescription("Number of comments on the issue")]]
+    assignedTo: NotRequired[
+        Annotated[
+            ActorSerializerResponse | None, ApiDescription("User or team the issue is assigned to")
+        ]
+    ]
+    isBookmarked: NotRequired[
+        Annotated[bool, ApiDescription("Whether the requesting user bookmarked the issue")]
+    ]
+    isSubscribed: NotRequired[
+        Annotated[bool, ApiDescription("Whether the requesting user is subscribed to the issue")]
+    ]
+    subscriptionDetails: NotRequired[
+        Annotated[
+            SubscriptionDetails | None,
+            ApiDescription("Why the requesting user is subscribed to the issue"),
+        ]
+    ]
+    hasSeen: NotRequired[
+        Annotated[
+            bool,
+            ApiDescription("Whether the requesting user has seen the issue since it last occurred"),
+        ]
+    ]
+    annotations: NotRequired[
+        Annotated[list[GroupAnnotation], ApiDescription("External issues linked to the issue")]
+    ]
     # from base response optional
-    isUnhandled: NotRequired[bool]
-    count: NotRequired[str]
-    userCount: NotRequired[int]
-    firstSeen: NotRequired[datetime | None]
-    lastSeen: NotRequired[datetime | None]
-    derivedData: NotRequired[GroupDerivedDataResponse]
+    isUnhandled: NotRequired[
+        Annotated[bool, ApiDescription("Whether the issue includes unhandled events")]
+    ]
+    count: NotRequired[Annotated[str, ApiDescription("Total number of events in the issue")]]
+    userCount: NotRequired[Annotated[int, ApiDescription("Number of users affected by the issue")]]
+    firstSeen: NotRequired[
+        Annotated[datetime | None, ApiDescription("When the issue was first seen (ISO 8601)")]
+    ]
+    lastSeen: NotRequired[
+        Annotated[datetime | None, ApiDescription("When the issue was last seen (ISO 8601)")]
+    ]
+    derivedData: NotRequired[
+        Annotated[
+            GroupDerivedDataResponse,
+            ApiDescription(
+                "Additional data derived for the issue. Only included when requested with expand"
+            ),
+        ]
+    ]
 
     # from the serializer itself
-    stats: NotRequired[dict[str, Any]]
-    lifetime: NotRequired[dict[str, Any]]
-    filtered: NotRequired[_Filtered | None]
-    sessionCount: NotRequired[int]
-    inbox: NotRequired[InboxDetails]
-    owners: NotRequired[OwnersSerialized]
-    integrationIssues: NotRequired[list[dict[str, Any]]]
-    sentryAppIssues: NotRequired[list[dict[str, Any]]]
-    latestEventHasAttachments: NotRequired[bool]
+    stats: NotRequired[
+        Annotated[
+            dict[str, list[list[float]]],
+            ApiDescription(
+                "Event counts over the requested stats period, keyed by the period, as [timestamp, count] pairs. Omitted when stats is collapsed"
+            ),
+        ]
+    ]
+    lifetime: NotRequired[
+        Annotated[
+            _Lifetime,
+            ApiDescription(
+                "Event count, user count, and first and last seen times over the issue's lifetime. Omitted when stats or lifetime is collapsed"
+            ),
+        ]
+    ]
+    filtered: NotRequired[
+        Annotated[
+            _Filtered | None,
+            ApiDescription(
+                "Event count, user count, and first and last seen times for events that match the search query. Null when there's no query; omitted when stats or filtered is collapsed"
+            ),
+        ]
+    ]
+    sessionCount: NotRequired[
+        Annotated[
+            int,
+            ApiDescription(
+                "Number of sessions in the issue's project over the query time range. Only included when requested with expand=sessions"
+            ),
+        ]
+    ]
+    inbox: NotRequired[
+        Annotated[
+            InboxDetails,
+            ApiDescription(
+                "Why the issue is in the inbox. Only included when requested with expand"
+            ),
+        ]
+    ]
+    owners: NotRequired[
+        Annotated[
+            list[OwnersSerialized] | None,
+            ApiDescription(
+                "Suggested owners of the issue. Only included when requested with expand"
+            ),
+        ]
+    ]
+    integrationIssues: NotRequired[
+        Annotated[
+            list[ExternalIssueResponse],
+            ApiDescription(
+                "External issues linked through integrations. Only included when requested with expand"
+            ),
+        ]
+    ]
+    sentryAppIssues: NotRequired[
+        Annotated[
+            list[PlatformExternalIssueSerializerResponse],
+            ApiDescription(
+                "External issues linked through Sentry apps. Only included when requested with expand"
+            ),
+        ]
+    ]
+    latestEventHasAttachments: NotRequired[
+        Annotated[
+            bool,
+            ApiDescription(
+                "Whether the issue's latest event has attachments. Only included when requested with expand"
+            ),
+        ]
+    ]
     # Added post-serialize at the direct-hit path in OrganizationGroupIndexEndpoint /
     # ProjectGroupIndexEndpoint when a query resolves to a specific event.
-    matchingEventId: NotRequired[str | None]
-    matchingEventEnvironment: NotRequired[str | None]
+    matchingEventId: NotRequired[
+        Annotated[
+            str | None,
+            ApiDescription(
+                "ID of the event the search query matched. Only included when the query matches an event ID"
+            ),
+        ]
+    ]
+    matchingEventEnvironment: NotRequired[
+        Annotated[
+            str | None,
+            ApiDescription(
+                "Environment of the event the search query matched. Only included when the query matches an event ID"
+            ),
+        ]
+    ]
 
 
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
@@ -471,7 +681,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             serialized_external_issues = serialize(
                 external_issues, serializer=ExternalIssueSerializer()
             )
-            integration_issues_by_group_id: dict[int, list[dict[str, Any]]] = defaultdict(list)
+            integration_issues_by_group_id: dict[int, list[ExternalIssueResponse]] = defaultdict(
+                list
+            )
             for external_issue, serialized_external_issue in zip(
                 external_issues, serialized_external_issues
             ):

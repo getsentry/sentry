@@ -7,7 +7,6 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
@@ -15,6 +14,8 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {useAddMetricToDashboard} from './useAddMetricToDashboard';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -37,7 +38,7 @@ describe('useAddMetricToDashboard', () => {
     jest.clearAllMocks();
   });
 
-  it('keeps each metric widget paired with its pipelines when saving all metrics', () => {
+  it('keeps each metric widget paired with its transformations when saving all metrics', () => {
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
       mode: Mode.AGGREGATE,

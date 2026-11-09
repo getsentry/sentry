@@ -1,4 +1,4 @@
-import {renderOnDomReady} from 'sentry/bootstrap/renderOnDomReady';
+import {renderOnDomReady} from './renderOnDomReady';
 
 describe('renderOnDomReady', () => {
   it('immediately runs callback if `document.readyState` is not loading', () => {

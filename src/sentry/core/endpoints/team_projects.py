@@ -1,4 +1,3 @@
-import time
 from typing import Any, TypedDict
 
 from django.db import IntegrityError, router, transaction
@@ -39,10 +38,10 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.roles import team_roles
 from sentry.seer.similarity.utils import (
-    project_is_seer_eligible,
     set_default_project_autofix_automation_tuning,
     set_default_project_seer_preferences,
     set_default_project_seer_scanner_automation,
+    set_default_project_similarity_grouping,
 )
 from sentry.signals import project_created
 from sentry.utils.platform_categories import CONSOLES
@@ -65,9 +64,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
 
     set_default_symbol_sources(project, organization)
 
-    # Create project option to turn on ML similarity feature for new EA projects
-    if project_is_seer_eligible(project):
-        project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+    set_default_project_similarity_grouping(project)
 
     set_default_project_autofix_automation_tuning(organization, project)
     set_default_project_seer_scanner_automation(organization, project)

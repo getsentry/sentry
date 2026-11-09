@@ -109,6 +109,25 @@ class ServiceAccountServiceTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert ServiceAccount.objects.filter(organization_id=self.organization.id).count() == 1
 
+    def test_create_with_same_idempotency_key_returns_first_account(self) -> None:
+        def create(name: str) -> int:
+            return service_account_service.create_service_account(
+                organization_id=self.organization.id,
+                name=name,
+                scope_list=["event:read"],
+                project_ids=[self.project.id],
+                all_projects=False,
+                created_by_id=None,
+                idempotency_key="retry-key",
+            ).id
+
+        first = create("seer-agent")
+        # A retry with the same key returns the first account even when its name changed.
+        assert create("seer-agent-renamed") == first
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ServiceAccount.objects.get(organization_id=self.organization.id).id == first
+        assert self.project_ids(first) == [self.project.id]
+
     def test_create_ungrantable_scope_raises_validation_error(self) -> None:
         with pytest.raises(RpcValidationException):
             service_account_service.create_service_account(
@@ -200,14 +219,55 @@ class ServiceAccountServiceTest(TestCase):
             organization_id=self.create_organization().id, service_account_id=account_id
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert ServiceAccount.objects.filter(id=account_id).exists()
+            assert ServiceAccount.objects.get(id=account_id).is_active
+
+    def test_delete_service_account_soft_deletes(self) -> None:
+        account_id = self.create()
 
         with outbox_runner():
             service_account_service.delete_service_account(
                 organization_id=self.organization.id, service_account_id=account_id
             )
+
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not ServiceAccount.objects.filter(id=account_id).exists()
+            assert not ServiceAccount.objects.get(id=account_id).is_active
+        assert self.project_ids(account_id) == []
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ServiceAccountReplica.objects.get(service_account_id=account_id).is_active
+        assert self.replica_project_ids(account_id) == []
+
+        # A second delete does nothing.
+        service_account_service.delete_service_account(
+            organization_id=self.organization.id, service_account_id=account_id
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not ServiceAccount.objects.get(id=account_id).is_active
+
+    def test_deleted_service_account_is_hidden(self) -> None:
+        account_id = self.create()
+        service_account_service.delete_service_account(
+            organization_id=self.organization.id, service_account_id=account_id
+        )
+
+        assert (
+            service_account_service.get_service_account(
+                organization_id=self.organization.id, service_account_id=account_id
+            )
+            is None
+        )
+        assert (
+            service_account_service.update_service_account(
+                organization_id=self.organization.id,
+                service_account_id=account_id,
+                scope_list=["project:read"],
+                project_ids=[self.project.id],
+                all_projects=False,
+            )
+            is None
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ServiceAccount.objects.get(id=account_id).scope_list == ["event:read"]
+        assert self.project_ids(account_id) == []
 
     def test_get_service_account(self) -> None:
         account_id = self.create()

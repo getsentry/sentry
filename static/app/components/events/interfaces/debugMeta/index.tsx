@@ -17,11 +17,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
-import {
-  DebugImageDetails,
-  modalCss,
-} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
-import {useDebugMetaSearch} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {
@@ -42,6 +37,8 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {Status} from './debugImage/status';
 import {DebugImage} from './debugImage';
+import {DebugImageDetails, modalCss} from './debugImageDetails';
+import {useDebugMetaSearch} from './debugMetaSearchContext';
 import {combineStatus, getFileName, normalizeId} from './utils';
 
 const ROW_HEIGHT = 61;

@@ -1,0 +1,192 @@
+import type * as React from 'react';
+//
+// Styled components used by both ListBox and GridList
+//
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {SectionSeparator as MenuSectionSeparator} from '@sentry/scraps/menu';
+
+export const ListWrap = styled('ul')`
+  margin: 0;
+  padding: ${p => p.theme.space.xs} 0;
+
+  > [data-section-separator]:first-of-type {
+    display: none;
+  }
+
+  /* Add 1px to top padding if preceded by menu header, to account for the header's
+  shadow border */
+  [data-menu-has-header='true'] > div > &:first-of-type {
+    padding-top: calc(${p => p.theme.space.xs} + 1px);
+  }
+
+  /* Add 1px to bottom padding if succeeded by menu footer, to account for the footer's
+  shadow border */
+  [data-menu-has-footer='true'] > div > &:last-of-type {
+    padding-bottom: calc(${p => p.theme.space.xs} + 1px);
+  }
+
+  /* Remove top padding if preceded by search input, since search input already has
+  vertical padding. Account for InputGroup wrapper div. */
+  div:has(input) ~ &&:first-of-type,
+  div:has(input) ~ div > &&:first-of-type {
+    padding-top: 0;
+  }
+
+  &:empty {
+    padding: 0;
+  }
+
+  /* Should scroll if it's in a non-composite select */
+  :only-of-type {
+    min-height: 0;
+    overflow: auto;
+  }
+
+  :focus-visible {
+    outline: none;
+  }
+
+  /* The first section follows a hidden separator in a headerless menu. */
+  [data-menu-has-header='false']
+    &:first-of-type
+    li[role='presentation']:nth-of-type(2)
+    > [data-section-header] {
+    padding-top: 0;
+  }
+`;
+
+// Not a `p`: menus render inline, so ancestor `p` rules such as PanelBody's legacy
+// textStyles would otherwise add a 20px bottom margin.
+export const ListLabel = styled('span')`
+  display: inline-block;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+  padding-right: ${p => p.theme.space.md};
+`;
+
+export const ListSeparator = styled('div')`
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
+  margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+
+  :first-child {
+    display: none;
+  }
+
+  ul:empty + & {
+    display: none;
+  }
+`;
+
+export const SectionToggleButton = styled(Button)<{visible: boolean}>`
+  padding: 0 ${p => p.theme.space.xs};
+  margin: 0 -${p => p.theme.space.xs} 0 ${p => p.theme.space.xl};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  transition: opacity 0.1s;
+
+  &:focus-visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  ${p =>
+    p.visible
+      ? css`
+          opacity: 1;
+          pointer-events: all;
+        `
+      : css`
+          opacity: 0;
+          pointer-events: none;
+        `}
+
+  li[role='rowgroup']:hover &,
+  li[role='presentation']:hover & {
+    opacity: 1;
+    pointer-events: all;
+  }
+`;
+
+export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
+  return (
+    <Stack
+      as="li"
+      data-section-separator
+      justify="center"
+      height="8px"
+      padding="0 lg 0 xl"
+      {...props}
+      role="presentation"
+    >
+      <MenuSectionSeparator />
+    </Stack>
+  );
+}
+
+/**
+ * Left inset for CompactSelect options. CompactSelect puts its check column 4px
+ * closer to the menu edge than dropdown menus, in line with the title. The shared
+ * menu item centers leading content in a 24px slot, which already adds 4px
+ * before a 16px checkbox, so a single check-sized item needs a smaller inset.
+ */
+export function getOptionPaddingLeft({
+  hasCheck,
+  hasLeadingItems,
+}: {
+  hasCheck: boolean;
+  hasLeadingItems: boolean;
+}) {
+  // A check plus custom leading items overflows the slot, so nothing is centered.
+  if (hasCheck && hasLeadingItems) {
+    return 'md';
+  }
+  return hasCheck || hasLeadingItems ? 'xs' : 'md';
+}
+
+export function LeadWrap(props: FlexProps) {
+  return (
+    <Flex
+      justify="center"
+      align="center"
+      minWidth="1em"
+      height="1rem"
+      pointerEvents="none"
+      {...props}
+    />
+  );
+}
+
+export const EmptyMessage = styled('p')`
+  text-align: center;
+  color: ${p => p.theme.tokens.content.secondary};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.lg};
+  margin: 0;
+
+  /* Message should only be displayed when _all_ preceding lists are empty */
+  display: block;
+  div:has(ul:not(:empty)) ~ &,
+  ul:not(:empty) ~ & {
+    display: none;
+  }
+`;
+
+export const SizeLimitMessage = styled('li')`
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
+  margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg} ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} 0;
+
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  list-style-type: none;
+  white-space: nowrap;
+  text-align: center;
+`;

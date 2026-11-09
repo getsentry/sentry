@@ -6,8 +6,9 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useLogsTimeseriesRequest} from 'sentry/views/explore/logs/useLogsTimeseriesRequest';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {useLogsTimeseriesRequest} from './useLogsTimeseriesRequest';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -36,7 +37,7 @@ describe('useLogsTimeseriesRequest', () => {
   });
 
   it.each([false, true])(
-    'deduplicates pipelines and adds a raw count with the feature enabled=%s',
+    'deduplicates transformations and adds a raw count with the feature enabled=%s',
     enabled => {
       const {result} = renderHookWithProviders(
         () => useLogsTimeseriesRequest({enabled: true, timeseriesIngestDelay: 0n}),

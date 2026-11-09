@@ -9,7 +9,6 @@ import {Badge} from '@sentry/scraps/badge';
 import {
   CompositeSelect,
   TriggerLabel,
-  type SelectKey,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -18,7 +17,6 @@ import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, FieldKind} from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -61,7 +59,6 @@ import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder
 import {
   SHARED_CHART_AGGREGATE_REGIONS,
   SHARED_CHART_AGGREGATES,
-  hasMultiAggregateCharts,
 } from 'sentry/views/explore/spans/sharedChartAggregates';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
@@ -220,7 +217,6 @@ function ToolbarVisualizeItem({
   visualizes,
 }: VisualizeDropdownProps) {
   const visualize = visualizes[0]!;
-  const organization = useOrganization();
   const [search, setSearch] = useState<string | undefined>(undefined);
   const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
   const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
@@ -348,16 +344,6 @@ function ToolbarVisualizeItem({
     [onReplace, visualizes]
   );
 
-  const onChangeAggregate = useCallback(
-    (option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        onChangeAggregates([option.value]);
-      }
-    },
-    [onChangeAggregates]
-  );
-
-  const multiAggregateCharts = hasMultiAggregateCharts(organization);
   const showFilterSearchBar = supportsConditionalAggregateFilter(
     parsedFunction?.name ?? ''
   );
@@ -366,17 +352,13 @@ function ToolbarVisualizeItem({
     <ToolbarVisualizeDropdown
       dragColumnId={dragColumnId}
       aggregateSelect={
-        multiAggregateCharts ? (
-          <AggregateMultiSelect
-            formulas={formulas}
-            maxAggregates={maxAggregates}
-            onChange={onChangeAggregates}
-            value={selectedAggregates}
-          />
-        ) : undefined
+        <AggregateMultiSelect
+          formulas={formulas}
+          maxAggregates={maxAggregates}
+          onChange={onChangeAggregates}
+          value={selectedAggregates}
+        />
       }
-      aggregateOptions={AGGREGATE_OPTIONS}
-      onChangeAggregate={onChangeAggregate}
       fieldOptions={fieldOptions}
       formulaDefaultColumn={DEFAULT_VISUALIZATION_FIELD}
       formulas={formulas}
@@ -401,13 +383,6 @@ function ToolbarVisualizeItem({
     />
   );
 }
-
-const AGGREGATE_OPTIONS: Array<SelectOption<string>> =
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => ({
-    label: aggregate,
-    value: aggregate,
-    textValue: aggregate,
-  }));
 
 const SINGLE_SELECT_AGGREGATES = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.filter(
   aggregate => !SHARED_CHART_AGGREGATES.includes(aggregate)

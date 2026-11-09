@@ -476,7 +476,7 @@ class TestTriggerAutofixAgent(TestCase):
         feature_trigger = mock_feature.call_args.args[1]
         assert feature_trigger.step == AutofixStep.SOLUTION
         assert feature_trigger.existing_run_id is None
-        assert feature_trigger.step_args.should_run_repo_checks is False
+        assert feature_trigger.step_args.should_run_repo_checks is True
         mock_broadcast.assert_called_once()
         assert (
             mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
@@ -508,7 +508,6 @@ class TestTriggerAutofixAgent(TestCase):
             run_id=777,
             user_context="Keep compatibility",
             insert_index=3,
-            enable_bash_mode=True,
             actor_user_id=self.user.id,
         )
 
@@ -615,7 +614,7 @@ class TestTriggerAutofixAgent(TestCase):
         feature_trigger = mock_feature.call_args.args[1]
         assert feature_trigger.step == AutofixStep.CODE_CHANGES
         assert feature_trigger.existing_run_id is None
-        assert feature_trigger.step_args.should_run_repo_checks is False
+        assert feature_trigger.step_args.should_run_repo_checks is True
         mock_broadcast.assert_called_once()
         assert mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.CODING_STARTED.value
 

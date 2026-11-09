@@ -62,6 +62,9 @@ class ExploreSavedFormulaPermission(OrganizationPermission):
         "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
 
+    # saved_query:read and saved_query:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
 
 def filter_to_accessible_explore_queries(
     request: Request, queryset: QuerySet[ExploreSavedQuery]

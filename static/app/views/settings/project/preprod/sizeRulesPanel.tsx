@@ -1,6 +1,7 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
+import {useQueryState} from 'nuqs';
 
 import seerConfigBugSvg from 'sentry-images/spot/seer-config-bug-1.svg';
 
@@ -13,8 +14,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -52,8 +52,7 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
   const {copy, analytics} = panelConfig;
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [expanded, setExpanded] = useQueryState('expanded', parseAsStringArray);
   const {data: repositories, isPending: isLoadingRepos} = useRepositories({
     orgSlug: organization.slug,
   });
@@ -62,35 +61,14 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
 
   const [newRuleId, setNewRuleId] = useState<string | null>(null);
 
-  const expandedRuleIds = useMemo(() => {
-    const expanded = location.query.expanded;
-    if (!expanded) {
-      return new Set<string>();
-    }
-    return new Set(Array.isArray(expanded) ? expanded : [expanded]);
-  }, [location.query.expanded]);
-
-  const updateExpandedInUrl = useCallback(
-    (expandedIds: string[]) => {
-      navigate(
-        {
-          query: {
-            ...location.query,
-            expanded: expandedIds,
-          },
-        },
-        {replace: true}
-      );
-    },
-    [location.query, navigate]
-  );
+  const expandedRuleIds = useMemo(() => new Set(expanded), [expanded]);
 
   const handleAddRule = () => {
     const newRule = createEmptyRule();
     addRule(newRule);
     analytics.onCreate();
     setNewRuleId(newRule.id);
-    updateExpandedInUrl([...expandedRuleIds, newRule.id]);
+    setExpanded([...expandedRuleIds, newRule.id]);
   };
 
   const handleToggleExpanded = (ruleId: string, isExpanded: boolean) => {
@@ -103,7 +81,7 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
         setNewRuleId(null);
       }
     }
-    updateExpandedInUrl([...newExpanded]);
+    setExpanded([...newExpanded]);
   };
 
   const hasRepositories = !isLoadingRepos && repositories && repositories.length > 0;
@@ -159,7 +137,7 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
                           }
                           const newExpanded = new Set(expandedRuleIds);
                           newExpanded.delete(rule.id);
-                          updateExpandedInUrl([...newExpanded]);
+                          setExpanded([...newExpanded]);
                         }}
                       />
                     ))}

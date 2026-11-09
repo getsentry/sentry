@@ -17,8 +17,9 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/traceDetails/traceApi/utils';
-import {TraceHeaderComponents} from 'sentry/views/performance/traceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import {TraceHeaderComponents} from './styles';
 
 interface TitleProps {
   isLoading: boolean;

@@ -1331,7 +1331,6 @@ class GroupDeleteTest(APITestCase):
 
 
 class GroupDetailsCorruptDerivedDataTest(APITestCase):
-    @with_feature("projects:issue-status-reconciliation")
     def test_corrupt_derived_status_does_not_break_details_or_reconcile(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group(status=GroupStatus.UNRESOLVED)

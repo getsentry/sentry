@@ -2,12 +2,12 @@ import {IconDelete} from '@sentry/icons/delete';
 import {IconEdit} from '@sentry/icons/edit';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {IdBadge} from 'sentry/components/idBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';

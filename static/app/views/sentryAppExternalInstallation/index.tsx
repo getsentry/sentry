@@ -5,8 +5,8 @@ import {useQuery} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {Select} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
@@ -115,7 +115,7 @@ function SentryAppExternalInstallationContent() {
         setSelectedOrgSlug(org.slug);
         setIsInstalled(installed);
       } catch (err) {
-        addErrorMessage(t('Failed to retrieve organization or integration details'));
+        toast.error(t('Failed to retrieve organization or integration details'));
       }
     },
     [

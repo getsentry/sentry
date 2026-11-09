@@ -1,13 +1,14 @@
 import {useState} from 'react';
 
-import {hasDroppedData} from 'sentry/components/droppedData/buckets';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
-import type {DroppedDataFilterNoteProps} from 'sentry/components/droppedData/droppedDataFilterNote';
-import type {DroppedDataLayerControlProps} from 'sentry/components/droppedData/droppedDataLayerControl';
-import type {DroppedDataProps} from 'sentry/components/droppedData/types';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {useDroppedDataDrawer} from './drawer/useDroppedDataDrawer';
+import {hasDroppedData} from './buckets';
+import type {DroppedDataFilterNoteProps} from './droppedDataFilterNote';
+import type {DroppedDataLayerControlProps} from './droppedDataLayerControl';
+import type {DroppedDataProps} from './types';
+import {useDroppedData, type UseDroppedDataParams} from './useDroppedData';
 
 const SUPPORTED_DATASETS = new Set<DiscoverDatasets>([
   DiscoverDatasets.ERRORS,
@@ -16,9 +17,8 @@ const SUPPORTED_DATASETS = new Set<DiscoverDatasets>([
   DiscoverDatasets.TRACEMETRICS,
 ]);
 
-interface UseDroppedDataLayerParams {
-  dataset: DiscoverDatasets;
-  interval: string;
+interface UseDroppedDataLayerParams extends UseDroppedDataParams {
+  environments?: string[];
 }
 
 interface UseDroppedDataLayerOptions {
@@ -28,7 +28,8 @@ interface UseDroppedDataLayerOptions {
 
 interface DroppedDataLayer {
   band: DroppedDataProps | undefined;
-  filterNote: Pick<DroppedDataFilterNoteProps, 'dataset'> | undefined;
+  filterNote: Pick<DroppedDataFilterNoteProps, 'dataset' | 'environments'> | undefined;
+  isLoading: boolean;
   layerControl: DroppedDataLayerControlProps | undefined;
 }
 
@@ -37,19 +38,16 @@ interface DroppedDataLayer {
  * and its filter note.
  */
 export function useDroppedDataLayer(
-  {dataset, interval}: UseDroppedDataLayerParams,
+  {environments, ...params}: UseDroppedDataLayerParams,
   {enabled = true, hidden = false}: UseDroppedDataLayerOptions = {}
 ): DroppedDataLayer {
+  const {dataset} = params;
   const isEnabled = enabled && SUPPORTED_DATASETS.has(dataset);
-  const {droppedEvents, acceptedEvents} = useDroppedData(
-    {dataset, interval},
-    {enabled: isEnabled}
-  );
+  const {droppedEvents, acceptedEvents, isLoading} = useDroppedData(params, {
+    enabled: isEnabled,
+  });
   const [isLayerOn, setIsLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(
-    {dataset, interval},
-    {enabled: isEnabled}
-  );
+  const openDroppedDataDrawer = useDroppedDataDrawer(params, {enabled: isEnabled});
 
   const isLoaded = isEnabled && defined(droppedEvents);
   const canShowDroppedData = isEnabled && hasDroppedData(droppedEvents, acceptedEvents);
@@ -59,7 +57,8 @@ export function useDroppedDataLayer(
     band: isBandShown
       ? {dataset, droppedEvents, acceptedEvents, onClick: openDroppedDataDrawer}
       : undefined,
-    filterNote: isBandShown ? {dataset} : undefined,
+    filterNote: isBandShown ? {dataset, environments} : undefined,
+    isLoading: isEnabled && isLayerOn && !hidden && isLoading,
     layerControl: isLoaded
       ? {
           dataset,

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Text} from '@sentry/scraps/text';
 
-import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {ColumnType} from 'sentry/utils/discover/fields';
@@ -13,6 +12,8 @@ import {
   getAggregateAlias,
 } from 'sentry/utils/discover/fields';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
+
+import {QUERY_EMBED_ROW_LIMIT} from './queryEmbedConstants';
 
 /**
  * A raw `1234` is not a duration a reader can scan — `1.23s` is. The events

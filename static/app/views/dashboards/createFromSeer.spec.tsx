@@ -68,9 +68,7 @@ const MOCKED_PROCESSING_SESSION = {
 };
 
 describe('CreateFromSeer', () => {
-  const organization = OrganizationFixture({
-    features: ['dashboards-edit'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

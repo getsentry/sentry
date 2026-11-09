@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -11,15 +12,11 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useAutomationRuns} from 'sentry/views/seerWorkflows/automations/hooks/useAutomationRuns';
-import {
-  getRunDisplayStatus,
-  StatusIcon,
-} from 'sentry/views/seerWorkflows/automations/runs/statusIcon';
 import {getStrategyLabel} from 'sentry/views/seerWorkflows/strategies';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
+
+import {getRunDisplayStatus, StatusIcon} from './statusIcon';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'status', width: 'min-content'},
@@ -32,10 +29,10 @@ const COLUMNS: TableColumnConfig[] = [
  * Pass `configId` to only show one automation's runs
  */
 export function RunsTable({configId}: {configId?: string}) {
-  const location = useLocation();
+  const [cursor] = useQueryState('cursor');
   const {runs, pageLinks, isPending, isLoadingError, refetch} = useAutomationRuns({
     configId,
-    cursor: decodeScalar(location.query.cursor),
+    cursor: cursor || undefined,
   });
 
   if (isLoadingError) {

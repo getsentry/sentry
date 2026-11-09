@@ -3,16 +3,17 @@ import type {ReactNode} from 'react';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
-import {AdminSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/admin/adminSecondaryNavigation';
-import {DashboardsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsSecondaryNavigation';
-import {ExploreSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/explore/exploreSecondaryNavigation';
-import {InboxSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/inbox/inboxSecondaryNavigation';
-import {InsightsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/insights/insightsSecondaryNavigation';
-import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/issues/issuesSecondaryNavigation';
-import {MonitorsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/monitors/monitorsSecondaryNavigation';
-import {ProjectsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/projects/projectsSecondaryNavigation';
-import {SeerSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/seer/seerSecondaryNavigation';
-import {SettingsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/settings/settingsSecondaryNavigation';
+
+import {AdminSecondaryNavigation} from './sections/admin/adminSecondaryNavigation';
+import {DashboardsSecondaryNavigation} from './sections/dashboards/dashboardsSecondaryNavigation';
+import {ExploreSecondaryNavigation} from './sections/explore/exploreSecondaryNavigation';
+import {InboxSecondaryNavigation} from './sections/inbox/inboxSecondaryNavigation';
+import {InsightsSecondaryNavigation} from './sections/insights/insightsSecondaryNavigation';
+import {IssuesSecondaryNavigation} from './sections/issues/issuesSecondaryNavigation';
+import {MonitorsSecondaryNavigation} from './sections/monitors/monitorsSecondaryNavigation';
+import {ProjectsSecondaryNavigation} from './sections/projects/projectsSecondaryNavigation';
+import {SeerSecondaryNavigation} from './sections/seer/seerSecondaryNavigation';
+import {SettingsSecondaryNavigation} from './sections/settings/settingsSecondaryNavigation';
 
 export function SecondaryNavigationContent(): ReactNode {
   const {activeGroup} = usePrimaryNavigation();

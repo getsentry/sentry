@@ -7,13 +7,14 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+
+import type {TraceMetric} from './metricQuery';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
   type SampleTableColumnKey,
   type TraceMetricFieldKey,
-} from 'sentry/views/explore/metrics/types';
+} from './types';
 
 export const NONE_UNIT = 'none';
 

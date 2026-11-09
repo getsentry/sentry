@@ -1,7 +1,15 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import AutomationDetail from 'sentry/views/seerWorkflows/automations/detail';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
@@ -17,6 +25,7 @@ async function findLoadedPage() {
 describe('AutomationDetail', () => {
   const organization = OrganizationFixture({features: ['seer-automations']});
   const configsUrl = `/organizations/${organization.slug}/seer/workflows/configs/`;
+  const configUrl = `${configsUrl}42/`;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -26,7 +35,7 @@ describe('AutomationDetail', () => {
     return MockApiClient.addMockResponse({
       url: configsUrl,
       body: {configs: [config]},
-      match: [MockApiClient.matchQuery({id: '42'})],
+      match: [MockApiClient.matchQuery({id: ['42']})],
     });
   }
 
@@ -34,7 +43,7 @@ describe('AutomationDetail', () => {
     pathname = '/organizations/org-slug/seer/automations/42/',
     org = organization
   ) {
-    render(<AutomationDetail />, {
+    return render(<AutomationDetail />, {
       organization: org,
       initialRouterConfig: {
         location: {pathname},
@@ -112,7 +121,7 @@ describe('AutomationDetail', () => {
     const request = MockApiClient.addMockResponse({
       url: configsUrl,
       body: {configs: []},
-      match: [MockApiClient.matchQuery({id: '42'})],
+      match: [MockApiClient.matchQuery({id: ['42']})],
     });
     renderDetail();
     await waitFor(() => expect(request).toHaveBeenCalled());
@@ -141,12 +150,14 @@ describe('AutomationDetail', () => {
     renderDetail();
     await findLoadedPage();
 
-    expect(
-      within(screen.getByRole('tab', {name: 'Configuration'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/42/');
-    expect(
-      within(screen.getByRole('tab', {name: 'Runs'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/42/runs/');
+    expect(screen.getByRole('tab', {name: 'Configuration'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/42/'
+    );
+    expect(screen.getByRole('tab', {name: 'Runs'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/42/runs/'
+    );
   });
 
   it.each([
@@ -160,5 +171,124 @@ describe('AutomationDetail', () => {
       'aria-selected',
       'true'
     );
+  });
+  it.each([
+    [true, 'Active'],
+    [false, 'Paused'],
+  ])('shows the status tag when enabled is %s', async (enabled, tag) => {
+    mockConfig(SeerWorkflowConfigFixture({id: '42', enabled}));
+    renderDetail();
+    expect(await screen.findByText(tag)).toBeInTheDocument();
+    expect(screen.queryByText(enabled ? 'Paused' : 'Active')).not.toBeInTheDocument();
+  });
+
+  it('shows the last run, or that there are no runs yet', async () => {
+    mockConfig(SeerWorkflowConfigFixture({id: '42'}));
+    renderDetail();
+    expect(await screen.findByText('No runs yet')).toBeInTheDocument();
+  });
+
+  it('shows when the automation last ran', async () => {
+    mockConfig(
+      SeerWorkflowConfigFixture({id: '42', dateLastRun: '2026-10-01T00:00:00Z'})
+    );
+    renderDetail();
+    expect(await screen.findByText(/Last run/)).toBeInTheDocument();
+    expect(screen.queryByText('No runs yet')).not.toBeInTheDocument();
+  });
+
+  it('shows who created the automation', async () => {
+    mockConfig(SeerWorkflowConfigFixture({id: '42', createdBy: '7'}));
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/7/`,
+      body: UserFixture({id: '7', name: 'Jane Doe'}),
+    });
+    renderDetail();
+    expect(await screen.findByText('Jane Doe')).toBeInTheDocument();
+    expect(screen.getByText('Created by')).toBeInTheDocument();
+  });
+
+  it('shows who last updated the automation instead of who created it', async () => {
+    mockConfig(SeerWorkflowConfigFixture({id: '42', createdBy: '7', updatedBy: '8'}));
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/8/`,
+      body: UserFixture({id: '8', name: 'John Smith'}),
+    });
+    renderDetail();
+    expect(await screen.findByText('John Smith')).toBeInTheDocument();
+    expect(screen.getByText('Last updated by')).toBeInTheDocument();
+    expect(screen.queryByText('Created by')).not.toBeInTheDocument();
+  });
+
+  it('pauses and resumes the automation', async () => {
+    mockConfig(SeerWorkflowConfigFixture({id: '42', enabled: true}));
+    const updateRequest = MockApiClient.addMockResponse({
+      url: configUrl,
+      method: 'PUT',
+      body: SeerWorkflowConfigFixture({id: '42', enabled: false}),
+    });
+    renderDetail();
+    await findLoadedPage();
+
+    // The refetch after pausing returns the paused config
+    mockConfig(SeerWorkflowConfigFixture({id: '42', enabled: false}));
+    await userEvent.click(screen.getByRole('button', {name: 'Pause'}));
+
+    expect(updateRequest).toHaveBeenCalledWith(
+      configUrl,
+      expect.objectContaining({method: 'PUT', data: {enabled: false}})
+    );
+    expect(await screen.findByRole('button', {name: 'Resume'})).toBeInTheDocument();
+    expect(screen.getByText('Paused')).toBeInTheDocument();
+
+    mockConfig(SeerWorkflowConfigFixture({id: '42', enabled: true}));
+    await userEvent.click(screen.getByRole('button', {name: 'Resume'}));
+
+    expect(updateRequest).toHaveBeenLastCalledWith(
+      configUrl,
+      expect.objectContaining({method: 'PUT', data: {enabled: true}})
+    );
+    expect(await screen.findByRole('button', {name: 'Pause'})).toBeInTheDocument();
+  });
+
+  it('deletes the automation after confirming and returns to the list', async () => {
+    mockConfig(SeerWorkflowConfigFixture({id: '42'}));
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: configUrl,
+      method: 'DELETE',
+    });
+    const {router} = renderDetail();
+    renderGlobalModal();
+    await findLoadedPage();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Delete'}));
+
+    expect(deleteRequest).toHaveBeenCalledWith(
+      configUrl,
+      expect.objectContaining({method: 'DELETE'})
+    );
+    await waitFor(() =>
+      expect(router.location.pathname).toBe('/organizations/org-slug/seer/automations/')
+    );
+  });
+
+  it('does not delete the automation when the confirmation is cancelled', async () => {
+    mockConfig(SeerWorkflowConfigFixture({id: '42'}));
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: configUrl,
+      method: 'DELETE',
+    });
+    renderDetail();
+    renderGlobalModal();
+    await findLoadedPage();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Cancel'}));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(deleteRequest).not.toHaveBeenCalled();
   });
 });

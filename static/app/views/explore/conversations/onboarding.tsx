@@ -53,7 +53,6 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {
   CopyLLMPromptButton,
   getAgentSetupPrompt,
@@ -73,6 +72,8 @@ import {
   useOnboardingProject,
   useSpanWaiter,
 } from 'sentry/views/insights/pages/onboardingUtils';
+
+import {Referrer} from './utils/referrers';
 
 function ConversationWaitingIndicator({
   project,

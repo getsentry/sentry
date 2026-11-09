@@ -16,6 +16,9 @@ AI_CONVERSATIONS_FIELDS = {
     "conversation.totalTokens": CONVERSATION_AGGREGATE_DEFINITIONS["totalTokens"],
 }
 
+# Documented sort fields, captured before the legacy spellings below are added.
+AI_CONVERSATIONS_SORT_FIELDS = tuple(AI_CONVERSATIONS_FIELDS)
+
 AI_CONVERSATIONS_LEGACY_ALIASES = {
     "conversation.messages": "conversation.llmCalls",
 }

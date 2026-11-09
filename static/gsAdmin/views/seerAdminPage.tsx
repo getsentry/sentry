@@ -6,8 +6,8 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {Region} from 'sentry/types/system';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -65,6 +65,7 @@ const SINGLE_RUN_ORGANIZATION_SLUG = 'sentry';
 const singleRunFormSchema = z.object({
   locality: z.string().min(1, 'Select a region'),
   shortId: z.string().trim().min(1, 'Enter an issue short ID'),
+  automated: z.boolean(),
 });
 
 type SingleRunResponse = {
@@ -114,10 +115,10 @@ function NightShiftForm() {
         variables.organizationId === null
           ? 'all eligible orgs'
           : `organization ${variables.organizationId}`;
-      addSuccessMessage(`Night shift run triggered for ${target}${mode}`);
+      toast.success(`Night shift run triggered for ${target}${mode}`);
     },
     onError: () => {
-      addErrorMessage('Failed to trigger night shift run');
+      toast.error('Failed to trigger night shift run');
     },
   });
 
@@ -238,10 +239,10 @@ function AutofixRetryForm() {
     },
     onSuccess: data => {
       const retried = data.results.filter(result => result.retried).length;
-      addSuccessMessage(`Retried ${retried} of ${data.results.length} autofix runs`);
+      toast.success(`Retried ${retried} of ${data.results.length} autofix runs`);
     },
     onError: () => {
-      addErrorMessage('Failed to retry autofix runs');
+      toast.error('Failed to retry autofix runs');
     },
   });
 
@@ -333,23 +334,28 @@ function SingleRunForm() {
       return fetchMutation<SingleRunResponse>({
         url: getApiUrl('/internal/seer/autofix/single-run/'),
         method: 'POST',
-        data: {organization_slug: SINGLE_RUN_ORGANIZATION_SLUG, short_id: data.shortId},
+        data: {
+          organization_slug: SINGLE_RUN_ORGANIZATION_SLUG,
+          short_id: data.shortId,
+          automated: data.automated,
+        },
         options: {host: data.locality},
       });
     },
     onSuccess: data => {
-      addSuccessMessage(`Started single run ${data.run_id}`);
+      toast.success(`Started single run ${data.run_id}`);
     },
     onError: error => {
       const detail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
-      addErrorMessage(typeof detail === 'string' ? detail : 'Failed to start single run');
+      toast.error(typeof detail === 'string' ? detail : 'Failed to start single run');
     },
   });
 
   const defaultValues: z.input<typeof singleRunFormSchema> = {
     locality: localities[0]?.url ?? '',
     shortId: '',
+    automated: false,
   };
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -363,7 +369,7 @@ function SingleRunForm() {
     <form.AppForm form={form}>
       <Container background="secondary" border="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
-          <Heading as="h3">Start Single-Run Autofix</Heading>
+          <Heading as="h3">[Temporary, for testing] Start Single-Run Autofix</Heading>
           <Text as="p" variant="muted">
             Start a single-run Autofix on one issue in the Sentry org, using the
             project&apos;s Autofix settings.
@@ -387,6 +393,13 @@ function SingleRunForm() {
                   onChange={field.handleChange}
                   placeholder="SENTRY-5RDF"
                 />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="automated">
+            {field => (
+              <field.Layout.Stack label="Start as automated (no owner)">
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
               </field.Layout.Stack>
             )}
           </form.AppField>

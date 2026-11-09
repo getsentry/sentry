@@ -2,9 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ReplayTableHeader} from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {type ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
+
+import {ReplayTableHeader} from './replayTableHeader';
 
 jest.mock('sentry/components/replays/table/replayBulkViewedActions', () => ({
   ReplayBulkViewedActions: () => <div data-test-id="replay-bulk-viewed-actions" />,

@@ -5,9 +5,9 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {
@@ -102,7 +102,7 @@ export function RepositoryProjectPathConfigModal({
       }),
     onError: e => {
       Sentry.captureException(e);
-      addErrorMessage(t('Failed to configure code path mapping'));
+      toast.error(t('Failed to configure code path mapping'));
     },
     onSuccess: () => {
       trackAnalytics('integrations.stacktrace_complete_setup', {

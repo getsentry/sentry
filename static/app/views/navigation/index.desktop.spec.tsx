@@ -17,19 +17,18 @@ import {
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {Navigation} from 'sentry/views/navigation';
+
 import {
   NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
   getSettingsLastProjectKey,
-} from 'sentry/views/navigation/constants';
-import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
+} from './constants';
+import {PrimaryNavigationContextProvider} from './primaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
   'discover',
   'discover-basic',
   'discover-query',
-  'dashboards-basic',
-  'dashboards-edit',
   'dashboards-prebuilt-insights-dashboards',
   'session-replay-ui',
   'ourlogs-enabled',
@@ -864,7 +863,7 @@ describe('desktop navigation', () => {
           [`${ORG}/explore/profiles/`, 'Explore', 'Profiles'],
           [`${ORG}/explore/replays/`, 'Explore', 'Replays'],
           [`${ORG}/explore/releases/`, 'Explore', 'Releases'],
-          [`${ORG}/explore/saved-queries/`, 'Explore', 'All Queries'],
+          [`${ORG}/explore/saved-queries/`, 'Explore', 'Saved Queries'],
           // Dashboards
           [`${ORG}/dashboards/`, 'Dashboards', 'All Dashboards'],
           // Insights
@@ -1068,6 +1067,28 @@ describe('desktop navigation', () => {
       expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/seer/investigations/'
+      );
+    });
+
+    it('hides Seer with classifiers-ui but without seer-primary-nav', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'classifiers-ui'],
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('links Seer to classifiers when only classifiers is enabled', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'classifiers-ui'],
+        openMembership: false,
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/classifiers/'
       );
     });
 

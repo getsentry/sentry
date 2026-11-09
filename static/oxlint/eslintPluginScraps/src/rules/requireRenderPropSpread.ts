@@ -8,6 +8,7 @@ import {
 
 // These render props receive APIs or state, not props for the rendered JSX element.
 const SCRAPS_SOURCE_EXCEPTIONS = new Set([
+  '@sentry/scraps/confirm',
   '@sentry/scraps/form',
   '@sentry/scraps/slideOverPanel',
 ]);

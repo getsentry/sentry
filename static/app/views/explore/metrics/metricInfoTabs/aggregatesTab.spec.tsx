@@ -12,7 +12,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -21,6 +20,8 @@ import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+
+import {AggregatesTab} from './aggregatesTab';
 
 function createWrapper({
   queryParams,
