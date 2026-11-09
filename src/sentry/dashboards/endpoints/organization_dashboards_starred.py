@@ -23,6 +23,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import require_user
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
@@ -129,7 +130,9 @@ class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, organization: Organization) -> Response[None]:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[ValidationErrorResponse]:
         """
         Reorder the custom dashboards the requesting user has starred. If the payload lists
         only some of the starred dashboards, only those dashboards swap positions among
@@ -147,7 +150,7 @@ class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         dashboard_ids = serializer.validated_data["dashboard_ids"]
 
