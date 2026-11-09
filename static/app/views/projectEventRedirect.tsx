@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -10,14 +11,15 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+
+import {makeFeedbackPathname} from './feedback/pathnames';
+import {getTraceDetailsUrl} from './performance/traceDetails/traceUrl';
 
 /**
  * This component redirects to the Event Details page given only an event ID
@@ -42,20 +44,18 @@ export function ProjectEventRedirect() {
     data: event,
     isPending,
     error,
-  } = useApiQuery<Event>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: params.projectId,
-            eventId: params.eventId,
-          },
-        }
-      ),
-    ],
-    {staleTime: 2 * 60 * 1000} // 2 minutes in milliseconds
+  } = useQuery(
+    apiOptions.as<Event>()(
+      '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: params.projectId,
+          eventId: params.eventId,
+        },
+        staleTime: 2 * 60 * 1000, // 2 minutes in milliseconds
+      }
+    )
   );
 
   useEffect(() => {
@@ -115,8 +115,8 @@ export function ProjectEventRedirect() {
   }, [event, organization, datetimeSelection, location, navigate]);
 
   if (error) {
-    const notFound = error.status === 404;
-    const permissionDenied = error.status === 403;
+    const notFound = error instanceof RequestError && error.status === 404;
+    const permissionDenied = error instanceof RequestError && error.status === 403;
 
     if (notFound) {
       return <NotFound />;

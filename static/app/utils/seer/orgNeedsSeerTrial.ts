@@ -1,5 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
-import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+
+import {showNewSeer} from './showNewSeer';
 
 export function orgNeedsSeerTrial(organization: Organization) {
   return (

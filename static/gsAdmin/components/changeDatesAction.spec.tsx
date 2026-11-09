@@ -8,7 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ModalStore} from 'sentry/stores/modalStore';
+import {closeModal} from '@sentry/scraps/modal';
 
 import {triggerChangeDatesModal} from 'admin/components/changeDatesAction';
 
@@ -32,7 +32,7 @@ describe('ChangeDatesAction', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
+    closeModal();
     jest.clearAllMocks();
   });
 

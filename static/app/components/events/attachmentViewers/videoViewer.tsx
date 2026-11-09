@@ -1,8 +1,9 @@
 import {css} from '@emotion/react';
 
-import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
-import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import {t} from 'sentry/locale';
+
+import type {ViewerProps} from './utils';
+import {getAttachmentUrl} from './utils';
 
 interface WebMViewerProps
   extends

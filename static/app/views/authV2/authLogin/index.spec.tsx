@@ -8,10 +8,10 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import type {AuthenticatedResult} from 'sentry/views/authV2/authLogin/types';
 import {AuthPageLoadingProvider} from 'sentry/views/authV2/useAuthPageLoading';
 
 import AuthLogin from './index';
+import type {AuthenticatedResult} from './types';
 
 jest.mock('sentry/utils/analytics');
 

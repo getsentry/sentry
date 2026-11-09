@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import TypedDict
+from typing import Annotated, TypedDict
 from uuid import uuid4
 
 import rest_framework
 
 from sentry import eventstream
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -18,8 +19,10 @@ from sentry.users.services.user import RpcUser
 
 
 class MergedGroup(TypedDict):
-    parent: str
-    children: list[str]
+    parent: Annotated[str, ApiDescription("ID of the issue the other issues were merged into")]
+    children: Annotated[
+        list[str], ApiDescription("IDs of the issues that were merged into the parent issue")
+    ]
 
 
 def handle_merge(

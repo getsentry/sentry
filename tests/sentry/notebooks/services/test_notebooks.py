@@ -8,6 +8,7 @@ from sentry.notebooks.services.notebooks import (
     InvestigationSourceNotFound,
     InvestigationValidationError,
     create_manual_investigation,
+    create_notebook,
     default_investigation_title,
     lock_investigation,
     update_investigation,
@@ -39,6 +40,27 @@ class ProjectLinkScopingTest(TestCase):
 
         assert "projectIds" in excinfo.value.errors
         assert not NotebookProject.objects.filter(project_id=foreign_project.id).exists()
+
+    def test_create_notebook_rejected_projects_leave_no_notebook(self) -> None:
+        other_organization = self.create_organization(name="other")
+        foreign_project = self.create_project(organization=other_organization)
+
+        with pytest.raises(InvestigationValidationError):
+            create_notebook(
+                organization=self.organization,
+                created_by_id=self.user.id,
+                created_by_service_account_id=None,
+                title="Notebook",
+                source_type=NotebookSourceType.MANUAL,
+                source_key=None,
+                source={},
+                source_revision=None,
+                filters={},
+                project_ids=[self.project.id, foreign_project.id],
+            )
+
+        assert not Notebook.objects.filter(organization=self.organization).exists()
+        assert not NotebookProject.objects.exists()
 
     def test_create_accepts_projects_in_the_organization(self) -> None:
         investigation = create_manual_investigation(

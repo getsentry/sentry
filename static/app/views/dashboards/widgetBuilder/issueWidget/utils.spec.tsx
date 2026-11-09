@@ -1,7 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboards/widgetBuilder/issueWidget/utils';
+
+import {generateIssueWidgetFieldOptions} from './utils';
 
 describe('generateIssueWidgetFieldOptions', () => {
   it('returns default issue fields', () => {

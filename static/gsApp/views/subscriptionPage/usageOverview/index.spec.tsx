@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingHistoryFixture} from 'getsentry-test/fixtures/billingHistory';
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -119,7 +119,9 @@ describe('UsageOverview', () => {
   });
 
   it('defaults to last selected when query param is invalid', async () => {
-    renderUsageOverview({
+    const onNuqsUrlUpdate = jest.fn();
+    const {router} = renderUsageOverview({
+      onNuqsUrlUpdate,
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/subscription/usage-overview',
@@ -130,6 +132,10 @@ describe('UsageOverview', () => {
 
     await screen.findByRole('heading', {name: 'Errors'});
     expect(screen.queryByRole('heading', {name: 'Transactions'})).not.toBeInTheDocument();
+    await waitFor(() => expect(router.location.query.product).toBe(DataCategory.ERRORS));
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'replace'})})
+    );
   });
 
   it('selects gifted-only product from URL query parameter', async () => {
@@ -225,12 +231,17 @@ describe('UsageOverview', () => {
   });
 
   it('can switch panel by clicking table rows', async () => {
-    renderUsageOverview();
+    const onNuqsUrlUpdate = jest.fn();
+    const {router} = renderUsageOverview({onNuqsUrlUpdate});
 
     await screen.findByRole('heading', {name: 'Errors'});
     expect(screen.queryByRole('heading', {name: 'Replays'})).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'View Replays usage'}));
     await screen.findByRole('heading', {name: 'Replays'});
     expect(screen.queryByRole('heading', {name: 'Errors'})).not.toBeInTheDocument();
+    await waitFor(() => expect(router.location.query.product).toBe(DataCategory.REPLAYS));
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'replace'})})
+    );
   });
 });

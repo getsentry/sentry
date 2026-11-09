@@ -4,10 +4,11 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+
 import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
-} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+} from './getWidgetExploreUrl';
 
 describe('getWidgetExploreUrl', () => {
   const organization = OrganizationFixture();

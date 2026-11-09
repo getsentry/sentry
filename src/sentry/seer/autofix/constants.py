@@ -48,6 +48,10 @@ class AutofixStatus(str, enum.Enum):
     WAITING_FOR_USER_RESPONSE = "WAITING_FOR_USER_RESPONSE"
 
 
+PUBLISH_SCOPES = frozenset({"event:write", "event:admin"})
+AUTOFIX_RUN_SCOPES = frozenset({"event:write", "event:admin", "seer:write"})
+
+
 class AutofixReferrer(enum.StrEnum):
     GROUP_AUTOFIX_ENDPOINT = "api.group_ai_autofix"
     ISSUE_SUMMARY_POST_PROCESS_FIXABILITY = "issue_summary.post_process_fixability"
@@ -66,6 +70,7 @@ class AutofixReferrer(enum.StrEnum):
     GITHUB_PR_REVIEW = "github.pr_review"
     GITHUB_CHECK_SUITE = "github.check_suite"
     ADMIN = "admin.seer"
+    ADMIN_AUTOMATED = "admin.seer.automated"
     UNKNOWN = "unknown"
 
 

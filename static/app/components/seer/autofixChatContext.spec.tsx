@@ -8,11 +8,12 @@ import {
   usePictureInPicture,
 } from '@sentry/scraps/pictureInPicture';
 
-import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+
+import {useAutofixChat} from './autofixChatContext';
 
 /**
  * A button elsewhere in the app. It renders outside the chat, so it only sees

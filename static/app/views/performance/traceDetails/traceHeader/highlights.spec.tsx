@@ -8,7 +8,8 @@ import type {
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import {Highlights} from 'sentry/views/performance/traceDetails/traceHeader/highlights';
+
+import {Highlights} from './highlights';
 
 function makeTraceItemDetailsResponse(
   attributes: TraceItemResponseAttribute[]

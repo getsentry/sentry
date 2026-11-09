@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {useQuery} from '@tanstack/react-query';
-import {useQueryState} from 'nuqs';
+import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -17,19 +17,7 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import {AutomationListTable} from 'sentry/views/automations/components/automationListTable';
-import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
-import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
-import {useAutomationListQueryOptions} from 'sentry/views/automations/hooks/useAutomationListDetectors';
-import {
-  getNoAlertWritePermissionTooltip,
-  useCanCreateAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
-import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {
   LLM_CONTEXT_MAX_ROWS,
   useLLMContext,
@@ -39,6 +27,17 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+
+import {AutomationFeedbackButton} from './components/automationFeedbackButton';
+import {AutomationListTable} from './components/automationListTable';
+import {AutomationSearch} from './components/automationListTable/search';
+import {useAutomationListQueryOptions} from './hooks/useAutomationListDetectors';
+import {
+  getNoAlertWritePermissionTooltip,
+  useCanCreateAutomation,
+} from './hooks/useCanEditAutomation';
+import {AUTOMATION_LIST_PAGE_LIMIT} from './constants';
+import {makeAutomationCreatePathname} from './pathnames';
 
 const CONTEXT_HINT =
   'Sentry alerts list page. Alerts watch monitors and run actions when one fires — Slack and email ' +
@@ -161,22 +160,18 @@ function AutomationsListInner() {
 
 export default registerLLMContext('alert-list', AutomationsListInner);
 
+const searchParsers = {query: parseAsString.withDefault(''), cursor: parseAsString};
+
 function TableHeader() {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
   const canCreateAlert = useCanCreateAutomation();
-  const initialQuery =
-    typeof location.query.query === 'string' ? location.query.query : '';
+  const [{query: initialQuery}, setSearchParams] = useQueryStates(searchParsers);
 
   const onSearch = useCallback(
     (query: string) => {
-      navigate({
-        pathname: location.pathname,
-        query: {...location.query, query, cursor: undefined},
-      });
+      setSearchParams({query, cursor: null}, {history: 'push'});
     },
-    [location.pathname, location.query, navigate]
+    [setSearchParams]
   );
 
   return (

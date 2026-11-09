@@ -12,11 +12,12 @@ import {prettifyTagKey} from 'sentry/utils/fields';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET} from 'sentry/views/explore/metrics/constants';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
-import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
   createTraceMetricFilter,
   hasDisplayMetricUnit,
 } from 'sentry/views/explore/metrics/utils';
+
+import type {MetricSelectorOption} from './types';
 
 const METRIC_ATTRIBUTES_DEBOUNCE_DURATION = 200;
 

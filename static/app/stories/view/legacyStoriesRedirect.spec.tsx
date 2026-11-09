@@ -1,6 +1,6 @@
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import LegacyStoriesRedirect from 'sentry/stories/view/legacyStoriesRedirect';
+import LegacyStoriesRedirect from './legacyStoriesRedirect';
 
 describe('LegacyStoriesRedirect', () => {
   it('redirects stories deep links to scraps and preserves the query and hash', async () => {

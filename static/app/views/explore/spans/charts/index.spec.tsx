@@ -4,10 +4,12 @@ import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
@@ -25,13 +27,49 @@ import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSor
 jest.mock('echarts-for-react/lib/core', () => {
   return function Chart({
     option,
+    onEvents,
   }: {
-    option: {series: Array<{data?: Array<[number, number]>}>};
+    onEvents: Record<
+      string,
+      (event: Record<string, unknown>, instance: Record<string, unknown>) => void
+    >;
+    option: {
+      series: Array<{data?: Array<[number, number]>}>;
+      brush?: unknown;
+    };
   }) {
     return (
-      <output aria-label="Chart values">
-        {JSON.stringify(option.series.map(series => series.data))}
-      </output>
+      <div>
+        <output aria-label="Chart values">
+          {JSON.stringify(option.series.map(series => series.data))}
+        </output>
+        <button
+          onClick={() => {
+            const range = [1729796430000, 1729796730000];
+            if (option.brush) {
+              onEvents.brushend?.(
+                {areas: [{coordRange: range, panelId: 'grid--0'}]},
+                {
+                  getModel: () => ({
+                    getComponent: () => ({
+                      axis: {scale: {getExtent: () => [1729796400000, 1729797000000]}},
+                    }),
+                  }),
+                  convertToPixel: () => 100,
+                  getDom: () => document.body,
+                }
+              );
+            } else {
+              onEvents.datazoom?.(
+                {batch: [{startValue: range[0], endValue: range[1]}]},
+                {}
+              );
+            }
+          }}
+        >
+          Select chart range
+        </button>
+      </div>
     );
   };
 });
@@ -47,6 +85,195 @@ function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
 }
 
 describe('ExploreCharts', () => {
+  describe('range selection', () => {
+    const timeseriesResult = timeseriesResultFixture({
+      data: {
+        'count(span.duration)': [
+          TimeSeriesFixture({
+            yAxis: 'count(span.duration)',
+            values: [{timestamp: 1729796400000, value: 10}],
+          }),
+        ],
+      },
+    });
+
+    function SelectableChart({
+      resultForRange,
+    }: {
+      resultForRange?: (datetime: PageFilters['datetime']) => SortedTimeSeries;
+    }) {
+      const {selection} = usePageFilters();
+      return (
+        <SpansQueryParamsProvider>
+          <ChartSelectionProvider>
+            <ExploreCharts
+              extrapolate
+              query=""
+              timeseriesResult={resultForRange?.(selection.datetime) ?? timeseriesResult}
+              visualizes={defaultVisualizes()}
+              setVisualizes={() => {}}
+              rawSpanCounts={{
+                total: {count: 100, isLoading: false},
+                normal: {count: 100, isLoading: false},
+              }}
+            />
+          </ChartSelectionProvider>
+        </SpansQueryParamsProvider>
+      );
+    }
+
+    beforeEach(() => {
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    });
+
+    afterEach(() => {
+      PageFiltersStore.reset();
+    });
+
+    it.each<Record<string, string>>([
+      {mode: 'samples'},
+      {mode: 'samples', table: 'trace'},
+      {mode: 'aggregate'},
+      {mode: 'aggregate', table: 'attribute_breakdowns'},
+    ])('zooms directly for %j', async query => {
+      const {router} = render(<SelectableChart />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/explore/traces/', query},
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Select chart range'})
+      );
+
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          start: '2024-10-24T19:00:00',
+          end: '2024-10-24T19:06:00',
+        })
+      );
+      expect(screen.queryByText('Compare Attribute Breakdowns')).not.toBeInTheDocument();
+    });
+
+    it('shows a loading state after zooming until the zoomed data arrives', async () => {
+      const pendingResult = timeseriesResultFixture({isPending: true, isLoading: true});
+      const zoomedResult = timeseriesResultFixture({
+        data: {
+          'count(span.duration)': [
+            TimeSeriesFixture({
+              yAxis: 'count(span.duration)',
+              values: [{timestamp: 1729796460000, value: 5}],
+            }),
+          ],
+        },
+      });
+      const {rerender} = render(
+        <SelectableChart
+          resultForRange={datetime => (datetime.start ? pendingResult : timeseriesResult)}
+        />,
+        {
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/explore/traces/'},
+          },
+        }
+      );
+
+      const unzoomedChart = await screen.findByLabelText('Chart values');
+      await userEvent.click(screen.getByRole('button', {name: 'Select chart range'}));
+
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(unzoomedChart).not.toBeInTheDocument();
+
+      rerender(
+        <SelectableChart
+          resultForRange={datetime => (datetime.start ? zoomedResult : timeseriesResult)}
+        />
+      );
+
+      expect(await screen.findByLabelText('Chart values')).toHaveTextContent(
+        '[[[1729796460000,5]]]'
+      );
+    });
+
+    it('shows a loading state when the date selection changes', async () => {
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
+          datetime: {
+            start: '2024-10-24T19:00:00',
+            end: '2024-10-24T19:06:00',
+            period: null,
+            utc: null,
+          },
+        })
+      );
+      const pendingResult = timeseriesResultFixture({isPending: true, isLoading: true});
+      render(
+        <SelectableChart
+          resultForRange={datetime =>
+            datetime.period === '30d' ? pendingResult : timeseriesResult
+          }
+        />,
+        {
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/explore/traces/'},
+          },
+        }
+      );
+
+      const zoomedChart = await screen.findByLabelText('Chart values');
+
+      act(() => {
+        PageFiltersStore.updateDateTime({
+          period: '30d',
+          start: null,
+          end: null,
+          utc: null,
+        });
+      });
+
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(zoomedChart).not.toBeInTheDocument();
+    });
+
+    it('opens the breakdown menu and restores direct zoom when leaving the tab', async () => {
+      const {router} = render(<SelectableChart />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {mode: 'samples', table: 'attribute_breakdowns'},
+          },
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Select chart range'})
+      );
+
+      expect(await screen.findByText('Compare Attribute Breakdowns')).toBeInTheDocument();
+      expect(screen.getByText('Zoom in')).toBeInTheDocument();
+      expect(router.location.query.start).toBeUndefined();
+      const breakdownChart = screen.getByLabelText('Chart values');
+
+      act(() => {
+        router.navigate(
+          '/organizations/org-slug/explore/traces/?mode=samples&table=trace'
+        );
+      });
+
+      expect(screen.queryByText('Compare Attribute Breakdowns')).not.toBeInTheDocument();
+      expect(breakdownChart).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Select chart range'}));
+
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          start: '2024-10-24T19:00:00',
+          end: '2024-10-24T19:06:00',
+        })
+      );
+    });
+  });
+
   it('plots raw and smoothed values in their respective charts', async () => {
     const result = timeseriesResultFixture({
       data: {

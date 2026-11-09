@@ -1,14 +1,7 @@
 import type {ReactNode} from 'react';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  DEFAULT_VISUALIZATION,
-  DEFAULT_VISUALIZATION_AGGREGATE,
-  DEFAULT_VISUALIZATION_FIELD,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   useQueryParams,
   useSetQueryParams,
@@ -23,6 +16,13 @@ import {
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {Mode} from './mode';
+import {
+  DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_AGGREGATE,
+  DEFAULT_VISUALIZATION_FIELD,
+} from './visualizes';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -75,15 +75,11 @@ describe('SpanQueryParamsProvider', () => {
     return <br />;
   }
 
-  function renderTestComponent(
-    defaultPageParams?: any,
-    organization?: Parameters<typeof OrganizationFixture>[0]
-  ) {
+  function renderTestComponent(defaultPageParams?: any) {
     render(
       <Wrapper>
         <Component />
-      </Wrapper>,
-      {organization: OrganizationFixture(organization)}
+      </Wrapper>
     );
 
     act(() =>
@@ -581,16 +577,13 @@ describe('SpanQueryParamsProvider', () => {
   });
 
   it('keeps group bys between charts in place when updating a shared chart', () => {
-    renderTestComponent(
-      {
-        aggregateFields: [
-          {yAxes: ['p50(span.duration)', 'p99(span.duration)']},
-          {groupBy: 'span.op'},
-          {yAxes: ['count(span.duration)']},
-        ],
-      },
-      {features: ['explore-multi-aggregate-charts']}
-    );
+    renderTestComponent({
+      aggregateFields: [
+        {yAxes: ['p50(span.duration)', 'p99(span.duration)']},
+        {groupBy: 'span.op'},
+        {yAxes: ['count(span.duration)']},
+      ],
+    });
 
     act(() =>
       setVisualizes([

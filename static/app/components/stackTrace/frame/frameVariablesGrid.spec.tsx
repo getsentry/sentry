@@ -5,8 +5,9 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {FrameVariablesGrid} from './frameVariablesGrid';
 
 describe('FrameVariablesGrid', () => {
   it('renders proposed native payloads with type labels and formatted values', async () => {

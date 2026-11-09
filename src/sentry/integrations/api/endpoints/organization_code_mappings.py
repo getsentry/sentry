@@ -18,7 +18,11 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.api.serializers.rest_framework.base import (
+    CamelSnakeModelSerializer,
+    camel_to_snake_case,
+    convert_dict_key_case,
+)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -351,13 +355,16 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         :param int required integrationId:
         :auth: required
         """
-        integration_id = request.data.get("integrationId")
+        # Normalize keys the way the serializer does first, so the snake_case body the schema
+        # documents reaches these reads as the camelCase one does.
+        data = convert_dict_key_case(request.data, camel_to_snake_case)
+        integration_id = data.get("integration_id")
 
         if not integration_id:
             return self.respond("Missing param: integrationId", status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            project = Project.objects.get(id=request.data["projectId"])
+            project = Project.objects.get(id=data["project_id"])
         except ValueError as exc:
             if "invalid literal for int() with base 10" in str(exc):
                 return self.respond(

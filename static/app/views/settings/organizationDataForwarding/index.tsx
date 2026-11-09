@@ -6,7 +6,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {Access} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -15,15 +15,16 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {DataForwarderOnboarding} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderOnboarding';
-import {DataForwarderRow} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderRow';
-import {getCreateTooltip} from 'sentry/views/settings/organizationDataForwarding/util/forms';
-import {useDataForwarders} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
+
+import {DataForwarderOnboarding} from './components/dataForwarderOnboarding';
+import {DataForwarderRow} from './components/dataForwarderRow';
+import {getCreateTooltip} from './util/forms';
+import {useDataForwarders} from './util/hooks';
 import {
   DATA_FORWARDING_DOCS_URL,
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+} from './util/types';
 
 export default function OrganizationDataForwarding() {
   const organization = useOrganization();

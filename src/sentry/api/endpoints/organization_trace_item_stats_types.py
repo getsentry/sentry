@@ -1,18 +1,25 @@
-from typing import TypedDict
+from typing import Annotated, TypedDict
+
+from sentry.apidocs.descriptions import ApiDescription
 
 
 class TraceItemStatsBucket(TypedDict):
-    label: str
-    value: float
+    label: Annotated[str, ApiDescription("Value of the attribute")]
+    value: Annotated[float, ApiDescription("Number of items with the value")]
 
 
 class AttributeDistributions(TypedDict):
-    data: dict[str, list[TraceItemStatsBucket]]
+    data: Annotated[
+        dict[str, list[TraceItemStatsBucket]],
+        ApiDescription("Value distribution of each attribute, by attribute name"),
+    ]
 
 
 class TraceItemStat(TypedDict):
-    attributeDistributions: AttributeDistributions
+    attributeDistributions: Annotated[
+        AttributeDistributions, ApiDescription("Value distributions of the attributes")
+    ]
 
 
 class TraceItemStatsResponse(TypedDict):
-    data: list[TraceItemStat]
+    data: Annotated[list[TraceItemStat], ApiDescription("Requested stats")]

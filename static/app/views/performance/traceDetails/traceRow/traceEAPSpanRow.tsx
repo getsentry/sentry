@@ -13,14 +13,15 @@ import {
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
-import {TraceBar} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
+
+import {TraceBar} from './traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+} from './traceRow';
 
 /**
  * Returns an enriched description for AI spans when attributes are available.
@@ -62,7 +63,8 @@ function getAIEnhancedDescription(node: EapSpanNode): string | undefined {
 export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
   const spanId = props.node.id;
 
-  const childrenCount = getChildrenCount(props.node);
+  const childrenCount =
+    props.node.directVisibleChildren.length || props.node.children.length;
 
   const icon = (
     <PlatformIcon platform={props.projects[props.node.projectSlug ?? ''] ?? 'default'} />
@@ -100,7 +102,7 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
               <TraceChildrenButton
                 icon={
                   <TraceIcons.Chevron
-                    direction={props.node.expanded ? 'down' : 'right'}
+                    direction={props.node.canCollapse ? 'down' : 'right'}
                   />
                 }
                 onDoubleClick={props.onExpandDoubleClick}
@@ -149,12 +151,4 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
       </div>
     </div>
   );
-}
-
-function getChildrenCount(node: EapSpanNode) {
-  if (node.value.is_transaction && !node.expanded) {
-    return node.children.length - node.directVisibleChildren.length;
-  }
-
-  return node.children.length;
 }

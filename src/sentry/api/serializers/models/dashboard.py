@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Annotated, Any, NotRequired, TypedDict, cast
 from urllib.parse import urlencode
 
 import sentry_sdk
@@ -12,12 +12,14 @@ from django.db.models import prefetch_related_objects
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is_equation_alias
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
     DashboardLastVisited,
     DashboardRevision,
+    QueryPriorities,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -32,6 +34,7 @@ from sentry.models.dashboard_widget import (
 from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
 from sentry.search.events.fields import is_function, parse_arguments
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -43,41 +46,67 @@ DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 
 
 class OnDemandResponse(TypedDict):
-    enabled: bool
-    extractionState: str
-    dashboardWidgetQueryId: int
+    enabled: Annotated[
+        bool, ApiDescription("Whether on-demand metric extraction is enabled for the query")
+    ]
+    extractionState: Annotated[
+        str,
+        ApiDescription(
+            "On-demand extraction state, such as enabled:enrolled or disabled:high-cardinality"
+        ),
+    ]
+    dashboardWidgetQueryId: Annotated[int, ApiDescription("ID of the widget query")]
 
 
 class LinkedDashboardResponse(TypedDict):
-    field: str
-    dashboardId: int
+    field: Annotated[str, ApiDescription("Field that links to the dashboard")]
+    dashboardId: Annotated[int, ApiDescription("ID of the linked dashboard")]
 
 
 class DashboardWidgetQueryResponse(TypedDict):
-    id: str
-    name: str
-    fields: list[str]
-    aggregates: list[str]
-    transformations: dict[str, list[str]]
-    columns: list[str]
-    fieldAliases: list[str]
-    conditions: str
-    orderby: str
-    widgetId: str
-    onDemand: list[OnDemandResponse]
-    isHidden: bool
-    selectedAggregate: int | None
-    linkedDashboards: list[LinkedDashboardResponse]
+    id: Annotated[str, ApiDescription("ID of the widget query")]
+    name: Annotated[str, ApiDescription("Name of the query, used as the series name")]
+    fields: Annotated[list[str], ApiDescription("Fields the query selects")]
+    aggregates: Annotated[list[str], ApiDescription("Aggregate functions the query computes")]
+    transformations: Annotated[
+        dict[str, list[str]],
+        ApiDescription("Transformations applied to aggregates, keyed by the aggregate's index"),
+    ]
+    columns: Annotated[list[str], ApiDescription("Columns the query groups by")]
+    fieldAliases: Annotated[
+        list[str], ApiDescription("Aliases shown in place of field names in table headers")
+    ]
+    conditions: Annotated[str, ApiDescription("Search query that filters the data")]
+    orderby: Annotated[str, ApiDescription("Field the results are sorted by")]
+    widgetId: Annotated[str, ApiDescription("ID of the widget the query belongs to")]
+    onDemand: Annotated[
+        list[OnDemandResponse], ApiDescription("On-demand metric extraction settings for the query")
+    ]
+    isHidden: Annotated[bool, ApiDescription("Whether the query is hidden from the UI")]
+    selectedAggregate: Annotated[
+        int | None, ApiDescription("Index of the aggregate shown by Big Number widgets")
+    ]
+    linkedDashboards: Annotated[
+        list[LinkedDashboardResponse],
+        ApiDescription("Dashboards linked from fields in the query's results"),
+    ]
 
 
 class ThresholdTypeOptional(TypedDict, total=False):
-    preferredPolarity: str
-    timeWindow: str
+    preferredPolarity: Annotated[
+        str, ApiDescription("Whether higher (+) or lower (-) values are better. Empty when unset")
+    ]
+    timeWindow: Annotated[
+        str,
+        ApiDescription(
+            "Time window the thresholds apply to, as a stats period such as 5m, 1h or 1d"
+        ),
+    ]
 
 
 class ThresholdType(ThresholdTypeOptional):
-    max_values: dict[str, int]
-    unit: str
+    max_values: Annotated[dict[str, int], ApiDescription("Threshold maximums, keyed max1 and max2")]
+    unit: Annotated[str, ApiDescription("Unit of the threshold values")]
 
 
 def _convert_thresholds_to_camel_case(
@@ -99,34 +128,83 @@ def _convert_thresholds_to_camel_case(
 
 
 class WidgetChangedReasonType(TypedDict):
-    orderby: list[dict[str, str]] | None
-    equations: list[dict[str, str | list[str]]] | None
-    selected_columns: list[str]
+    orderby: Annotated[
+        list[dict[str, str]] | None,
+        ApiDescription(
+            "Sort orders that were dropped when the widget was migrated from transactions to spans"
+        ),
+    ]
+    equations: Annotated[
+        list[dict[str, str | list[str]]] | None,
+        ApiDescription(
+            "Equations that were dropped when the widget was migrated from transactions to spans"
+        ),
+    ]
+    selected_columns: Annotated[
+        list[str],
+        ApiDescription(
+            "Columns that were dropped when the widget was migrated from transactions to spans"
+        ),
+    ]
 
 
 class DashboardWidgetResponse(TypedDict):
-    id: str
-    title: str
-    description: str | None
-    displayType: str | None
-    thresholds: ThresholdType | None
-    interval: str
-    dateCreated: datetime
-    dashboardId: str
-    queries: list[DashboardWidgetQueryResponse]
-    limit: int | None
-    widgetType: str | None
-    layout: dict[str, int] | None
-    axisRange: str | None
-    legendType: DashboardWidgetLegendType | None
-    datasetSource: str | None
-    exploreUrls: NotRequired[list[str] | None]
-    changedReason: list[WidgetChangedReasonType] | None
+    id: Annotated[str, ApiDescription("ID of the widget")]
+    title: Annotated[str, ApiDescription("Title of the widget")]
+    description: Annotated[str | None, ApiDescription("Description of the widget")]
+    displayType: Annotated[
+        str | None,
+        ApiDescription("How the widget is displayed, such as line, area, bar, table or big_number"),
+    ]
+    thresholds: Annotated[
+        ThresholdType | None, ApiDescription("Thresholds that color the widget's values")
+    ]
+    interval: Annotated[str, ApiDescription("Time interval for the widget's series, such as 5m")]
+    dateCreated: Annotated[datetime, ApiDescription("When the widget was created (ISO 8601)")]
+    dashboardId: Annotated[str, ApiDescription("ID of the dashboard the widget belongs to")]
+    queries: Annotated[
+        list[DashboardWidgetQueryResponse], ApiDescription("Queries that provide the widget's data")
+    ]
+    limit: Annotated[
+        int | None, ApiDescription("Maximum number of series or rows the widget shows")
+    ]
+    widgetType: Annotated[
+        str | None,
+        ApiDescription("Dataset the widget queries, such as error-events, spans, logs or issue"),
+    ]
+    layout: Annotated[
+        dict[str, int] | None,
+        ApiDescription("Position and size of the widget on the dashboard grid"),
+    ]
+    axisRange: Annotated[str | None, ApiDescription("Y-axis range: auto or dataMin")]
+    legendType: Annotated[
+        DashboardWidgetLegendType | None, ApiDescription("Legend style: default or breakdown")
+    ]
+    datasetSource: Annotated[
+        str | None,
+        ApiDescription("Whether the widget's dataset was chosen by the user or inferred"),
+    ]
+    exploreUrls: NotRequired[
+        Annotated[
+            list[str] | None,
+            ApiDescription("Explore URLs for each query, for widgets that query transactions"),
+        ]
+    ]
+    changedReason: Annotated[
+        list[WidgetChangedReasonType] | None,
+        ApiDescription(
+            "Parts of each query that were dropped when the widget was migrated from transactions to spans"
+        ),
+    ]
 
 
 class DashboardPermissionsResponse(TypedDict):
-    isEditableByEveryone: bool
-    teamsWithEditAccess: list[int]
+    isEditableByEveryone: Annotated[
+        bool, ApiDescription("Whether everyone in the organization can edit the dashboard")
+    ]
+    teamsWithEditAccess: Annotated[
+        list[int], ApiDescription("IDs of the teams that can edit the dashboard")
+    ]
 
 
 @register(DashboardWidget)
@@ -500,19 +578,38 @@ class DashboardPermissionsSerializer(Serializer[DashboardPermissionsResponse]):
 
 
 class DashboardListResponse(TypedDict):
-    id: str
-    title: str
-    dateCreated: datetime
-    createdBy: dict[str, object] | None
-    environment: list[str]
-    filters: DashboardFilters
-    lastVisited: datetime | None
-    widgetDisplay: list[str | None]
-    widgetPreview: list[dict[str, str | None]]
-    permissions: DashboardPermissionsResponse | None
-    isFavorited: bool
-    projects: list[int]
-    prebuiltId: int | None
+    id: Annotated[str, ApiDescription("ID of the dashboard")]
+    title: Annotated[str, ApiDescription("Title of the dashboard")]
+    dateCreated: Annotated[datetime, ApiDescription("When the dashboard was created (ISO 8601)")]
+    createdBy: Annotated[
+        UserSerializerResponse | None, ApiDescription("User who created the dashboard")
+    ]
+    environment: Annotated[list[str], ApiDescription("Saved environment filter for the dashboard")]
+    filters: Annotated[
+        DashboardFilters, ApiDescription("Saved release and global filters for the dashboard")
+    ]
+    lastVisited: Annotated[
+        datetime | None, ApiDescription("When the dashboard was last visited (ISO 8601)")
+    ]
+    widgetDisplay: Annotated[
+        list[str | None], ApiDescription("Display type of each widget, in order")
+    ]
+    widgetPreview: Annotated[
+        list[dict[str, str | None]],
+        ApiDescription("Display type and layout of each widget, for rendering a preview"),
+    ]
+    permissions: Annotated[
+        DashboardPermissionsResponse | None, ApiDescription("Edit permissions for the dashboard")
+    ]
+    isFavorited: Annotated[
+        bool, ApiDescription("Whether the requesting user favorited the dashboard")
+    ]
+    projects: Annotated[
+        list[int], ApiDescription("Saved project filter for the dashboard. [-1] means all projects")
+    ]
+    prebuiltId: Annotated[
+        int | None, ApiDescription("ID of the prebuilt dashboard this dashboard comes from")
+    ]
 
 
 class _WidgetPreview(TypedDict):
@@ -523,7 +620,7 @@ class _WidgetPreview(TypedDict):
 class _Widget(TypedDict):
     widget_display: list[str | None]
     widget_preview: list[_WidgetPreview]
-    created_by: dict[str, object] | None
+    created_by: UserSerializerResponse | None
     permissions: NotRequired[dict[str, object]]
     is_favorited: NotRequired[bool]
     projects: list[int]
@@ -621,7 +718,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             lambda: {
                 "widget_display": [],
                 "widget_preview": [],
-                "created_by": {},
+                "created_by": None,
                 "projects": [],
                 "environment": [],
                 "filters": {},
@@ -705,32 +802,82 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         }
 
 
+# Mirrors the GlobalFilter type in static/app/views/dashboards/types.tsx, which
+# is the only writer of these filters.
+class DashboardGlobalFilterTag(TypedDict):
+    key: Annotated[str, ApiDescription("Key of the tag or attribute the filter applies to")]
+    name: Annotated[str, ApiDescription("Display name of the tag or attribute")]
+    kind: NotRequired[
+        Annotated[str, ApiDescription("Kind of the field, such as tag, measurement or field")]
+    ]
+
+
+class DashboardGlobalFilter(TypedDict):
+    dataset: Annotated[
+        str,
+        ApiDescription(
+            "Widget dataset the filter applies to, such as error-events, transaction-like, spans or logs"
+        ),
+    ]
+    tag: Annotated[DashboardGlobalFilterTag, ApiDescription("Tag or attribute being filtered")]
+    value: Annotated[
+        str, ApiDescription("Filter condition in search syntax, such as browser.name:[Chrome]")
+    ]
+    isTemporary: NotRequired[
+        Annotated[
+            bool, ApiDescription("Whether the filter comes from a link and isn't saved by the user")
+        ]
+    ]
+
+
 class DashboardFilters(TypedDict, total=False):
-    release: list[str]
-    releaseId: list[str]
-    globalFilter: list[dict[str, object]]
+    release: Annotated[list[str], ApiDescription("Saved release filter")]
+    releaseId: Annotated[list[str], ApiDescription("Saved release ID filter")]
+    globalFilter: Annotated[
+        list[DashboardGlobalFilter], ApiDescription("Saved global filters applied to every widget")
+    ]
 
 
 class DashboardDetailsResponseOptional(TypedDict, total=False):
-    environment: list[str]
-    period: str
-    utc: str
-    expired: bool
-    start: datetime
-    end: datetime
+    environment: Annotated[list[str], ApiDescription("Saved environment filter for the dashboard")]
+    period: Annotated[str, ApiDescription("Saved relative time range, such as 24h")]
+    utc: Annotated[str, ApiDescription("Whether the saved time range is shown in UTC")]
+    expired: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the saved start time was outside data retention and was moved forward"
+        ),
+    ]
+    start: Annotated[datetime, ApiDescription("Saved start of the time range (ISO 8601)")]
+    end: Annotated[datetime, ApiDescription("Saved end of the time range (ISO 8601)")]
 
 
 class DashboardDetailsResponse(DashboardDetailsResponseOptional):
-    id: str
-    title: str
-    dateCreated: datetime
-    createdBy: dict[str, object] | None
-    widgets: list[DashboardWidgetResponse]
-    projects: list[int]
-    filters: DashboardFilters
-    permissions: DashboardPermissionsResponse | None
-    isFavorited: bool
-    prebuiltId: int | None
+    id: Annotated[str, ApiDescription("ID of the dashboard")]
+    title: Annotated[str, ApiDescription("Title of the dashboard")]
+    dateCreated: Annotated[datetime, ApiDescription("When the dashboard was created (ISO 8601)")]
+    createdBy: Annotated[
+        UserSerializerResponse | None, ApiDescription("User who created the dashboard")
+    ]
+    widgets: Annotated[list[DashboardWidgetResponse], ApiDescription("Widgets on the dashboard")]
+    projects: Annotated[
+        list[int], ApiDescription("Saved project filter for the dashboard. [-1] means all projects")
+    ]
+    filters: Annotated[
+        DashboardFilters, ApiDescription("Saved release and global filters for the dashboard")
+    ]
+    permissions: Annotated[
+        DashboardPermissionsResponse | None, ApiDescription("Edit permissions for the dashboard")
+    ]
+    isFavorited: Annotated[
+        bool, ApiDescription("Whether the requesting user favorited the dashboard")
+    ]
+    prebuiltId: Annotated[
+        int | None, ApiDescription("ID of the prebuilt dashboard this dashboard comes from")
+    ]
+    queryPriority: Annotated[
+        str, ApiDescription("Query priority for the dashboard: normal or faster")
+    ]
 
 
 @register(Dashboard)
@@ -782,6 +929,9 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
         **kwargs: object,
     ) -> DashboardDetailsResponse:
         page_filters, tag_filters = self.get_filters(obj)
+        query_priority = QueryPriorities.get_type_name(obj.query_priority)
+        if query_priority is None:
+            query_priority = "normal"
 
         data: DashboardDetailsResponse = {
             "id": str(obj.id),
@@ -795,18 +945,41 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             "projects": page_filters.get("projects", []),
             "environment": page_filters.get("environment", []),
             "prebuiltId": obj.prebuilt_id,
+            "queryPriority": query_priority,
             **page_filters,
         }
 
         return data
 
 
+class DashboardRevisionCreatedByResponse(TypedDict):
+    id: Annotated[str, ApiDescription("ID of the user")]
+    name: Annotated[str, ApiDescription("Display name of the user")]
+    email: Annotated[str, ApiDescription("Primary email address of the user")]
+    avatarType: Annotated[
+        str | None, ApiDescription("Avatar type, such as letter_avatar, upload or gravatar")
+    ]
+    avatarUrl: Annotated[
+        str | None, ApiDescription("URL of the avatar image, or null if none is set")
+    ]
+
+
 class DashboardRevisionResponse(TypedDict):
-    id: str
-    title: str
-    dateCreated: datetime
-    createdBy: dict[str, object] | None
-    source: str
+    id: Annotated[str, ApiDescription("ID of the revision")]
+    title: Annotated[str, ApiDescription("Title of the dashboard in this revision")]
+    dateCreated: Annotated[datetime, ApiDescription("When the revision was recorded (ISO 8601)")]
+    createdBy: Annotated[
+        DashboardRevisionCreatedByResponse | None,
+        ApiDescription(
+            "User whose change recorded the revision, or null if there is no such user or it was deleted"
+        ),
+    ]
+    source: Annotated[
+        str,
+        ApiDescription(
+            "Change that recorded the revision, which holds the dashboard as it was just before that change: edit (a dashboard edit), edit-with-agent (an edit the client marked as made by an AI agent) or pre-restore (a restore of another revision)"
+        ),
+    ]
 
 
 @register(DashboardRevision)
