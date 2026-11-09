@@ -337,7 +337,7 @@ describe('useSeerExplorer', () => {
       });
     });
 
-    it('marks a send refused for credits', async () => {
+    it('flags a send refused for credits', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/`,
         method: 'POST',

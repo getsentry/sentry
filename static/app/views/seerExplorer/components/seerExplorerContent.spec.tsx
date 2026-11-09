@@ -2415,7 +2415,7 @@ describe('SeerExplorerContent', () => {
         expect(creditCheck).toHaveBeenCalledTimes(1);
       });
 
-      it('shows the credits notice instead of the send error when a send is refused for credits', async () => {
+      it('shows the CTA instead of the send error when a send is refused for credits', async () => {
         jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
           ...defaultHookReturn,
           requestError: {query: 'Why is this slow?', isOutOfCredits: true},
@@ -2445,7 +2445,7 @@ describe('SeerExplorerContent', () => {
           requestError: {query: 'Why is this slow?', isOutOfCredits: true},
         });
 
-        // The notice above the composer takes over from the one in the error's place.
+        // The CTA above the composer replaces the one in the error's place.
         expect(
           await screen.findByTestId('seer-explorer-out-of-credits')
         ).toBeInTheDocument();
