@@ -126,7 +126,7 @@ describe('Performance > Transaction Summary Header', () => {
     );
 
     expect(
-      await screen.findByRole('menuitemradio', {name: 'Star for Team'})
+      await screen.findByRole('menuitem', {name: 'Star for Team'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitemradio', {name: 'Transaction Settings'})
@@ -145,7 +145,7 @@ describe('Performance > Transaction Summary Header', () => {
     );
 
     expect(
-      await screen.findByRole('menuitemradio', {name: 'Star for Team'})
+      await screen.findByRole('menuitem', {name: 'Star for Team'})
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: 'Transaction Settings'})
@@ -171,6 +171,7 @@ describe('Performance > Transaction Summary Header', () => {
       await screen.findByRole('button', {name: 'Transaction Actions'})
     );
 
+    // A disabled submenu trigger does not open a menu, so it has no popup role.
     expect(
       await screen.findByRole('menuitemradio', {name: 'Star for Team'})
     ).toHaveAttribute('aria-disabled', 'true');
@@ -185,9 +186,7 @@ describe('Performance > Transaction Summary Header', () => {
     );
 
     // Submenus open on hover, not on click.
-    await userEvent.hover(
-      await screen.findByRole('menuitemradio', {name: 'Star for Team'})
-    );
+    await userEvent.hover(await screen.findByRole('menuitem', {name: 'Star for Team'}));
 
     for (const team of data.teams) {
       expect(

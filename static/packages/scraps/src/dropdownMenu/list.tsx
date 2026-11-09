@@ -1,14 +1,17 @@
 import type * as React from 'react';
-import {Fragment, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import {Fragment, useContext, useMemo, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import type {AriaMenuOptions} from '@react-aria/menu';
-import {useMenu, useMenuTrigger} from '@react-aria/menu';
+import {useMenu, useSubmenuTrigger} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
+import type {RootMenuTriggerState} from '@react-stately/menu';
+import {useSubmenuTriggerState} from '@react-stately/menu';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
@@ -28,7 +31,6 @@ import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import type {OverlayState} from './context';
 import {DropdownMenuContext} from './context';
 import type {
   DropdownMenuContentSizeOptions,
@@ -37,7 +39,6 @@ import type {
 } from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
-import {useSafetyTriangle} from './useSafetyTriangle';
 
 export interface DropdownMenuListProps
   extends
@@ -53,10 +54,6 @@ export interface DropdownMenuListProps
     DropdownMenuContentSizeOptions {
   overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
-   * The open state of the current overlay that contains this menu
-   */
-  overlayState: OverlayState;
-  /**
    * Whether the menu should close when an item has been clicked/selected
    */
   closeOnSelect?: boolean;
@@ -70,15 +67,34 @@ export interface DropdownMenuListProps
    */
   menuFooter?: React.ReactNode;
   /**
+   * Ref for the menu element. A submenu trigger passes one, so it can move
+   * focus into its submenu.
+   */
+  menuRef?: React.RefObject<HTMLUListElement | null>;
+  /**
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
+  /**
+   * State of the root menu trigger. Only the root menu passes it. Submenus read
+   * it from context.
+   */
+  rootMenuState?: RootMenuTriggerState;
   /** Controlled input state supplied by DropdownMenuContent. */
   searchState?: DropdownMenuSearchOptions & {
     onChange: (value: string) => void;
     value: string;
   };
   size?: MenuItemProps['size'];
+  /**
+   * Set when this list is a submenu.
+   */
+  submenu?: {
+    /** Closes this submenu and returns focus to its trigger. */
+    close: () => void;
+    /** Whether the submenu was opened from the keyboard and should take focus. */
+    shouldAutoFocus: boolean;
+  };
   /**
    * Style overrides applied to the position wrapper. Useful for overriding
    * the default z-index (e.g. when the menu is inside a high z-index container
@@ -215,14 +231,17 @@ function DropdownMenuList({
   menuFooter,
   searchState,
   disableTextSelection,
-  overlayState,
   overlayPositionProps,
   zIndex,
+  menuRef: menuRefProp,
+  rootMenuState: rootMenuStateProp,
+  submenu,
+  autoFocus,
   ...props
 }: DropdownMenuListProps) {
   const {t} = useTranslation();
-  const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
-  const safetyTriangle = useSafetyTriangle();
+  const context = useContext(DropdownMenuContext);
+  const rootMenuState = rootMenuStateProp ?? context.rootMenuState;
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
   const hasLeadingItems = useMemo(
@@ -234,20 +253,35 @@ function DropdownMenuList({
   );
 
   // Implement focus states, keyboard navigation, aria-label,...
-  const menuRef = useRef<HTMLUListElement>(null);
+  const ownMenuRef = useRef<HTMLUListElement>(null);
+  const menuRef = menuRefProp ?? ownMenuRef;
   const searchRef = useRef<HTMLInputElement>(null);
-  const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
+  const {menuProps} = useMenu(
+    {
+      ...props,
+      // A searchable menu focuses its search field instead (see FocusScope below).
+      autoFocus: searchState ? false : autoFocus,
+      selectionMode: 'single',
+    },
+    state,
+    menuRef
+  );
   const {separatorProps} = useSeparator({elementType: 'li'});
 
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
+      // Submenus are portaled, but React still bubbles their events through
+      // this menu. Only handle events from this menu's own items.
+      if (!menuRef.current?.contains(e.target as HTMLElement)) {
+        e.continuePropagation();
+        return;
+      }
       const enabledMenuItems = getEnabledMenuItems(menuRef.current);
       // When keyboard navigation wraps past the last item, show the top of the
       // list again so the search field and first item are visible.
       if (
         e.key === 'ArrowDown' &&
         searchRef.current &&
-        menuRef.current &&
         e.target === enabledMenuItems.at(-1)
       ) {
         menuRef.current.scrollTop = 0;
@@ -256,7 +290,6 @@ function DropdownMenuList({
       if (
         e.key === 'ArrowUp' &&
         searchRef.current &&
-        menuRef.current &&
         document.activeElement === enabledMenuItems[0]
       ) {
         e.preventDefault();
@@ -264,59 +297,19 @@ function DropdownMenuList({
         searchRef.current.focus();
         return;
       }
-      // ArrowLeft closes a submenu, but leaves the root menu open.
-      if (e.key === 'ArrowLeft' && parentMenuState) {
-        parentMenuState.selectionManager.clearSelection();
-        return;
-      }
       e.continuePropagation();
     },
   });
 
-  /**
-   * Whether this menu/submenu is the current focused one, which in a nested,
-   * tree-like menu system should be the leaf submenu. This information is
-   * used for controlling keyboard events. See ``modifiedMenuProps` below.
-   */
-  const hasFocus = useMemo(() => {
-    // A submenu is a leaf when it does not contain any expanded submenu. This
-    // logically follows from the tree-like structure and single-selection
-    // nature of menus.
-    const isLeafSubmenu = !stateCollection.some(node => {
-      const isSection = node.hasChildNodes && !node.value?.submenu;
-      // A submenu with key [key] is expanded if
-      // state.selectionManager.isSelected([key]) = true
-      return isSection
-        ? [...node.childNodes].some(child =>
-            state.selectionManager.isSelected(`${child.key}`)
-          )
-        : state.selectionManager.isSelected(`${node.key}`);
-    });
-
-    return isLeafSubmenu;
-  }, [stateCollection, state.selectionManager]);
-
-  // Menu props from useMenu, modified to disable keyboard events if the
-  // current menu does not have focus.
-  const modifiedMenuProps = useMemo(
-    () => ({
-      ...menuProps,
-      ...(!hasFocus && {
-        onKeyUp: () => null,
-        onKeyDown: () => null,
-      }),
-    }),
-    [menuProps, hasFocus]
-  );
+  // Submenus render into this element. It sits inside the root overlay, but
+  // outside every menu element.
+  const [ownPortalContainer, setOwnPortalContainer] = useState<HTMLElement | null>(null);
+  const portalContainer = context.portalContainer ?? ownPortalContainer;
 
   const theme = useTheme();
   const contextValue = useMemo(
-    () => ({
-      rootOverlayState: rootOverlayState ?? overlayState,
-      parentMenuState: state,
-      safetyTriangle,
-    }),
-    [rootOverlayState, overlayState, state, safetyTriangle]
+    () => ({rootMenuState, parentMenuRef: menuRef, portalContainer}),
+    [rootMenuState, menuRef, portalContainer]
   );
   const searchInput = searchState && (
     <Search
@@ -339,7 +332,13 @@ function DropdownMenuList({
     searchState?.value.trim() && stateCollection.length === 0
   );
   return (
-    <FocusScope restoreFocus autoFocus>
+    // A root menu, and a submenu opened from the keyboard, take focus. A
+    // searchable submenu always does, so typing filters it right away. A
+    // submenu opened by hover leaves focus on its trigger.
+    <FocusScope
+      restoreFocus
+      autoFocus={!submenu || submenu.shouldAutoFocus || Boolean(searchState)}
+    >
       <PositionWrapper
         zIndex={zIndex === undefined ? theme.zIndex.dropdown : Number(zIndex)}
         {...overlayPositionProps}
@@ -350,15 +349,22 @@ function DropdownMenuList({
               <Overlay
                 {...stackProps}
                 onKeyDownCapture={event => {
-                  // Handle Escape before React Aria closes the entire menu tree.
-                  if (event.key === 'Escape' && parentMenuState && hasFocus) {
+                  // Escape closes only this submenu. Handle it before React Aria
+                  // closes the entire menu tree. This also covers the search
+                  // field, which sits outside the menu element. Deeper submenus
+                  // are portaled out of this overlay, so they handle their own.
+                  if (
+                    event.key === 'Escape' &&
+                    submenu &&
+                    event.currentTarget.contains(event.target as HTMLElement)
+                  ) {
                     event.stopPropagation();
                     // Let the IME cancel composition without dismissing the submenu.
                     if (event.nativeEvent.isComposing) {
                       return;
                     }
                     event.preventDefault();
-                    parentMenuState.selectionManager.clearSelection();
+                    submenu.close();
                   }
                 }}
                 style={{
@@ -385,7 +391,7 @@ function DropdownMenuList({
                   ref={menuRef}
                   disableTextSelection={disableTextSelection}
                   flexGrow={showEmptyMessage ? 1 : undefined}
-                  {...mergeProps(modifiedMenuProps, keyboardProps)}
+                  {...mergeProps(menuProps, keyboardProps)}
                 >
                   <ReserveLeadingSlot reserve={hasLeadingItems}>
                     <DropdownMenuCollection
@@ -415,6 +421,9 @@ function DropdownMenuList({
               </Overlay>
             )}
           </Stack>
+          {!context.portalContainer && (
+            <Container display="contents" ref={setOwnPortalContainer} />
+          )}
         </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
@@ -585,21 +594,26 @@ function DropdownSubmenu({
   onClose,
   size,
 }: DropdownSubmenuProps) {
-  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const {rootMenuState, parentMenuRef, portalContainer} = useContext(DropdownMenuContext);
+  if (!rootMenuState || !parentMenuRef) {
+    throw new Error('DropdownSubmenu must be rendered inside a DropdownMenu');
+  }
   const submenu = node.value?.submenu;
   const options = typeof submenu === 'object' ? submenu : {};
   const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
+  const submenuState = useSubmenuTriggerState({triggerKey: node.key}, rootMenuState);
+  const submenuRef = useRef<HTMLUListElement>(null);
   const {
     isOpen,
-    state: overlayState,
     triggerRef,
     triggerProps: {ref: setTriggerElement},
     overlayProps,
-    overlayRef,
   } = useOverlay({
-    isOpen: state.selectionManager.isSelected(node.key),
-    onClose: rootOverlayState?.close,
+    isOpen: submenuState.isOpen,
+    onClose: rootMenuState.close,
     disableTrigger: isDisabled,
+    // The submenu handles Escape itself, closing only this level.
+    isKeyboardDismissDisabled: true,
     position: options.position ?? 'right-start',
     offset: -4,
     preventOverflowOptions: {
@@ -607,52 +621,56 @@ function DropdownSubmenu({
       crossAxis: true,
     },
   });
-  const {menuTriggerProps, menuProps} = useMenuTrigger(
-    {type: 'menu', isDisabled},
-    {...overlayState, focusStrategy: 'first'},
+  const {submenuTriggerProps, submenuProps} = useSubmenuTrigger<MenuItemProps>(
+    {parentMenuRef, submenuRef, isDisabled, type: 'menu'},
+    submenuState,
     triggerRef
   );
-  const isFocused = state.selectionManager.focusedKey === node.key;
+  const {
+    submenuLevel: _submenuLevel,
+    onClose: _closeAll,
+    autoFocus,
+    ...submenuMenuProps
+  } = submenuProps;
+
   return (
     <Container as="li" display="contents" role="presentation">
       <DropdownMenuItem
-        menuItemRef={useCallback(
-          element => {
-            setTriggerElement(element);
-            if (element && !isOpen && isFocused && rootOverlayState?.isOpen) {
-              element.focus();
-            }
-          },
-          [isOpen, isFocused, rootOverlayState, setTriggerElement]
-        )}
-        id={menuTriggerProps.id}
-        aria-haspopup={menuTriggerProps['aria-haspopup']}
-        aria-expanded={isOpen}
-        aria-controls={menuTriggerProps['aria-controls']}
-        submenuRef={isOpen ? overlayRef : undefined}
+        menuItemRef={setTriggerElement}
+        submenuTriggerProps={submenuTriggerProps}
         renderAs="div"
         node={node}
         state={state}
         closeOnSelect={false}
       />
-      {isOpen && (
-        <DropdownMenuContent
-          onClose={onClose}
-          closeOnSelect={closeOnSelect}
-          disableTextSelection={disableTextSelection}
-          menuTitle={options.title}
-          emptyMessage={options.emptyMessage}
-          maxHeight={options.maxHeight}
-          maxWidth={options.maxWidth}
-          search={options.search}
-          size={size}
-          {...menuProps}
-          items={items}
-          autoFocus={false}
-          overlayState={overlayState}
-          overlayPositionProps={overlayProps}
-        />
-      )}
+      {isOpen &&
+        portalContainer &&
+        createPortal(
+          <DropdownMenuContent
+            onClose={onClose}
+            closeOnSelect={closeOnSelect}
+            disableTextSelection={disableTextSelection}
+            menuTitle={options.title}
+            emptyMessage={options.emptyMessage}
+            maxHeight={options.maxHeight}
+            maxWidth={options.maxWidth}
+            search={options.search}
+            size={size}
+            {...submenuMenuProps}
+            autoFocus={autoFocus}
+            menuRef={submenuRef}
+            submenu={{
+              shouldAutoFocus: Boolean(autoFocus),
+              close: () => {
+                submenuState.close();
+                triggerRef.current?.focus();
+              },
+            }}
+            items={items}
+            overlayPositionProps={overlayProps}
+          />,
+          portalContainer
+        )}
     </Container>
   );
 }

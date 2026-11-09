@@ -1456,7 +1456,7 @@ describe('ExploreToolbar', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: /save as/i}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Monitor for'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Monitor for'}));
     await userEvent.click(
       await screen.findByRole('menuitemradio', {name: 'count(spans)'})
     );
