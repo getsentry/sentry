@@ -552,8 +552,10 @@ def _looks_like_a_class(func: ast.expr) -> bool:
 
 
 def _looks_like_a_class_variable(func: ast.expr) -> bool:
-    """Callee is a class held in a variable, like serializer_cls which is another way how a serializer is defined."""
-    return _name_of(func).endswith("_cls")
+    """Callee is a serializer class held in a variable or attribute, like serializer_cls,
+    settings.validator or self.get_serializer, which is another way how a serializer is defined."""
+    name = _name_of(func).rsplit(".", 1)[-1].lower()
+    return name.endswith(("_cls", "serializer", "validator"))
 
 
 def _is_request(node: ast.expr) -> bool:

@@ -1987,6 +1987,31 @@ class E(Endpoint):
     assert _run_input(src, SHAPED) == []
 
 
+def test_S028_serializer_reached_through_a_lowercase_attribute_is_not_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    def put(self, request) -> Response[X]:
+        settings.validator(instance=x, data=request.data)
+        return self.get_serializer(data=request.data)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S028_plain_call_taking_data_is_still_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    def put(self, request) -> Response[X]:
+        return installation.get_issue(external_id, data=request.data)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "handed to get_issue" in errors[0]
+
+
 def test_S028_class_variable_without_data_is_still_a_hand_off() -> None:
     src = """\
 class E(Endpoint):
