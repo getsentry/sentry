@@ -31,7 +31,6 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
         assert (
             get_incident_status_text(
                 alert_rule.snuba_query,
-                AlertRuleThresholdType.ABOVE,
                 None,
                 "0.123456",
             )
@@ -50,12 +49,21 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
         assert (
             get_incident_status_text(
                 alert_rule.snuba_query,
-                AlertRuleThresholdType.ABOVE,
                 alert_rule.comparison_delta,
-                "12.3456",
+                "112.3456",
             )
             == "failure_rate() of transactions was 12.35% higher in the last 10 minutes compared to the same time one hour ago"
         )
+
+    def test_comparison_alert_states_change_from_comparison_value(self) -> None:
+        alert_rule = self.create_alert_rule(
+            detection_type=AlertRuleDetectionType.PERCENT, comparison_delta=60
+        )
+        for value, expected in (("150", "50% higher"), ("60", "40% lower"), ("100", "0% higher")):
+            assert (
+                get_incident_status_text(alert_rule.snuba_query, alert_rule.comparison_delta, value)
+                == f"count() of errors was {expected} in the last 10 minutes compared to the same time one hour ago"
+            )
 
     def test_comparison_alert_skips_mri_unit_formatting(self) -> None:
         alert_rule = self.create_alert_rule(
@@ -64,11 +72,9 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
         snuba_query = alert_rule.snuba_query
         snuba_query.aggregate = "sum(d:spans/exclusive_time@millisecond)"
 
-        text = get_incident_status_text(
-            snuba_query, AlertRuleThresholdType.ABOVE, alert_rule.comparison_delta, "200"
-        )
+        text = get_incident_status_text(snuba_query, alert_rule.comparison_delta, "200")
         assert text.endswith(
-            " of spans was 200% higher in the last 10 minutes compared to the same time one hour ago"
+            " of spans was 100% higher in the last 10 minutes compared to the same time one hour ago"
         )
 
     def test_names_aggregate_and_telemetry(self) -> None:
@@ -126,9 +132,7 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
                 dataset=dataset, event_types=event_types, aggregate=aggregate
             )
             assert (
-                get_incident_status_text(
-                    alert_rule.snuba_query, AlertRuleThresholdType.ABOVE, None, "14"
-                )
+                get_incident_status_text(alert_rule.snuba_query, None, "14")
                 == f"{expected} in the last 10 minutes"
             )
 

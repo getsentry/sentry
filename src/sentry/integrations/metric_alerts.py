@@ -16,7 +16,6 @@ from sentry.discover.arithmetic import (
     strip_equation,
 )
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
@@ -25,7 +24,6 @@ from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.trace_metrics.types import TraceMetricType
 from sentry.search.events.fields import is_function, parse_arguments
-from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.snuba.metrics.naming_layer.mri import parse_mri_field
@@ -158,7 +156,6 @@ def logo_url() -> str:
 
 def get_incident_status_text(
     snuba_query: SnubaQuery,
-    threshold_type: AlertRuleThresholdType | AnomalyDetectionThresholdType | None,
     comparison_delta: int | None,
     metric_value: str,
 ) -> str:
@@ -167,21 +164,15 @@ def get_incident_status_text(
     metric = describe_query_metric(snuba_query)
 
     time_window = snuba_query.time_window // 60
-    # % change alerts have a comparison delta, and their values are already percentages
-    # rather than values in the aggregate's unit.
+    # % change alerts have a comparison delta, and their values are the current value as a
+    # percentage of the comparison value (150 is 50% higher), not values in the aggregate's unit.
     if comparison_delta:
+        change = float(metric_value) - 100
+        higher_or_lower = "higher" if change >= 0 else "lower"
         if aggregate == "failure_rate()":
-            metric_value = f"{float(metric_value):.2f}%"
+            metric_value = f"{abs(change):.2f}%"
         else:
-            metric_value = f"{int(float(metric_value))}%"
-        higher_or_lower = (
-            "higher"
-            if (
-                threshold_type == AlertRuleThresholdType.ABOVE
-                or threshold_type == AnomalyDetectionThresholdType.ABOVE
-            )
-            else "lower"
-        )
+            metric_value = f"{round(abs(change))}%"
         comparison_delta_minutes = comparison_delta // 60
         comparison_string = TEXT_COMPARISON_DELTA.get(
             comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
@@ -242,7 +233,6 @@ def incident_attachment_info(
     if metric_issue_context.metric_value is not None:
         text = get_incident_status_text(
             metric_issue_context.snuba_query,
-            alert_context.threshold_type,
             alert_context.comparison_delta,
             str(metric_issue_context.metric_value),
         )
