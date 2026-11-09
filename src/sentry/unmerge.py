@@ -166,7 +166,7 @@ class UnmergeArgsBase(abc.ABC):
         fingerprints: Sequence[str],
         actor_id: int | None,
         last_event: Mapping[str, Any] | None = None,
-        batch_size: int = 500,
+        batch_size: int = 250,
         source_fields_reset: bool = False,
         eventstream_state: EventstreamState | None = None,
         replacement: UnmergeReplacement | None = None,

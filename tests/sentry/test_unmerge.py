@@ -41,13 +41,13 @@ def test_argument_parsing_endpoint() -> None:
             fingerprints=["a" * 32],
         ),
         actor_id=None,
-        batch_size=500,
+        batch_size=250,
     )
 
     dumped = args.dump_arguments()
     assert dumped == {
         "actor_id": None,
-        "batch_size": 500,
+        "batch_size": 250,
         "destination_id": None,
         "destinations": {},
         "fingerprints": None,
@@ -311,9 +311,8 @@ class UnmergeRecoveryTest(TestCase):
 
         query.side_effect = None
         query.return_value = (None, [])
-        with self.options({"unmerge.max-batch-size": 17}):
-            unmerge(**self.args.dump_arguments())
-        assert query.call_args.kwargs["batch_size"] == 17
+        unmerge(**self.args.dump_arguments())
+        assert query.call_args.kwargs["batch_size"] == 500
         truncate.assert_called_once()
         self.group_hash.refresh_from_db()
         assert self.group_hash.state == GroupHash.State.UNLOCKED

@@ -15,7 +15,7 @@ from redis.exceptions import RedisError
 from taskbroker_client.retry import LastAction, Retry
 from taskbroker_client.state import current_task
 
-from sentry import features, options, similarity, tsdb
+from sentry import features, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
@@ -528,7 +528,7 @@ def start_unmerge(
     destination_id: int | None,
     fingerprints: Sequence[str],
     actor_id: int | None,
-    batch_size: int = 500,
+    batch_size: int = 250,
     operation_id: str | None = None,
     operation_expires_at: int | None = None,
 ) -> None:
@@ -725,13 +725,9 @@ def _unmerge(args: UnmergeArgs, checkpoint: BatchCheckpoint | None = None) -> No
                 args,
                 replacement=PrimaryHashUnmergeReplacement(fingerprints=locked_primary_hashes),
             )
-        batch_size = args.batch_size
-        if checkpoint:
-            batch_size = min(max(1, batch_size), max(1, options.get("unmerge.max-batch-size")))
-
         last_event, raw_events = task_run_batch_query(
             filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
-            batch_size=batch_size,
+            batch_size=args.batch_size,
             state=last_event,
             referrer="unmerge",
             tenant_ids={"organization_id": source.project.organization_id},
@@ -824,7 +820,7 @@ def _unmerge(args: UnmergeArgs, checkpoint: BatchCheckpoint | None = None) -> No
             source_id=args.source_id,
             replacement=args.replacement,
             actor_id=args.actor_id,
-            batch_size=batch_size,
+            batch_size=args.batch_size,
             last_event=last_event,
             destinations=destinations,
             locked_primary_hashes=locked_primary_hashes,
