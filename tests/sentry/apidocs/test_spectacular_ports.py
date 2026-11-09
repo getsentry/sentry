@@ -3,7 +3,7 @@ from typing import Annotated, NotRequired, ReadOnly, TypedDict
 
 import pytest
 
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.formats import (
     GIT_REF_MAX_LENGTH,
     GIT_REF_PATTERN_OPTIONAL_EMPTY,
@@ -89,6 +89,18 @@ def test_functional_typed_dict_field_description() -> None:
     }
 
 
+class EmptyResponse(TypedDict):
+    """Always an empty object."""
+
+
+def test_typed_dict_without_fields_is_an_empty_object() -> None:
+    assert resolve_type_hint(EmptyResponse) == {
+        "type": "object",
+        "description": "Always an empty object.",
+        "maxProperties": 0,
+    }
+
+
 class FormattedResponse(TypedDict):
     created: Annotated[IsoDateTime, ApiDescription("A timestamp")]
     expires: IsoDateTime | None
@@ -113,6 +125,18 @@ def test_annotated_field_formats() -> None:
         },
         "custom": {"type": "string", "format": "email", "maxLength": 10},
         "optional": {"type": "string", "format": "uri", "description": "An optional link"},
+    }
+
+
+class SchemaResponse(TypedDict):
+    built: Annotated[
+        object, ApiDescription("Built elsewhere"), ApiSchema(lambda: {"type": "integer"})
+    ]
+
+
+def test_annotated_field_schema_replaces_the_generated_one() -> None:
+    assert resolve_type_hint(SchemaResponse)["properties"] == {
+        "built": {"type": "integer", "description": "Built elsewhere"},
     }
 
 

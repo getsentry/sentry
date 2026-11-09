@@ -1,9 +1,10 @@
 import shlex
+from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.agent_handoff.codes import AgentHandoff, HandoffFlow
-from sentry.agent_handoff.flows import get_flow_instructions
+from sentry.agent_handoff.codes import HandoffFlow
+from sentry.agent_handoff.flows import HandoffMode, get_flow_instructions
 from sentry.agent_handoff.runbook import render_agent_runbook, render_claim_runbook
 
 
@@ -86,7 +87,8 @@ def test_credentials_and_instance_remain_shell_arguments(field: str, value: str)
     ]
     assert shlex.split(installer)[4:] == [*assignments, "bash"]
     assert (
-        f"SENTRY_URL={shlex.quote(context['sentry_url'])} sentry auth status --fresh --json"
+        f"SENTRY_URL={shlex.quote(context['sentry_url'])} "
+        f"SENTRY_CLIENT_ID={shlex.quote(context['client_id'])} sentry auth status --fresh --json"
         in guide
     )
 
@@ -106,10 +108,10 @@ def test_organization_labels_cannot_create_markdown_blocks_or_html() -> None:
 
 
 def test_claim_runbook_explains_explicit_private_code_redemption() -> None:
-    guide = render_claim_runbook(claim_url="https://sentry.example.com/agents/")
-    assert "original guide URL" in guide
+    guide = render_claim_runbook(claim_url="https://sentry.example.com/agent-handoff/")
+    assert "secret token supplied alongside the instructions URL" in guide
     assert "Fetching this page does not claim it" in guide
-    assert "curl -sS -X POST https://sentry.example.com/agents/" in guide
+    assert "curl -sS -X POST https://sentry.example.com/agent-handoff/" in guide
     assert "--data-urlencode 'handoff_code=HANDOFF_CODE'" in guide
 
 
@@ -121,14 +123,99 @@ def test_runbook_includes_flow_instructions_after_authentication() -> None:
     )
 
 
-@pytest.mark.parametrize("flow", list(HandoffFlow))
-def test_flow_guides_the_user_to_their_next_task(flow: HandoffFlow) -> None:
-    handoff = AgentHandoff(
-        flow=flow,
-        user_id=1,
-        organization_id=2,
-        application_id=3,
-        scope_list=("org:read",),
+@pytest.mark.parametrize(
+    "flow,expected",
+    [
+        (HandoffFlow.GUIDED_NEXT_STEPS, "Now ask the user what they would like to do next."),
+        (HandoffFlow.ONBOARDING, "agent-setup/get-started.md guide."),
+    ],
+)
+@pytest.mark.parametrize("mode", list(HandoffMode))
+def test_runbook_includes_selected_flow_instructions(
+    flow: HandoffFlow, mode: HandoffMode, expected: str
+) -> None:
+    guide = render(
+        flow_instructions=get_flow_instructions(flow, mode=mode, user_id=1, organization_id=2)
     )
-    guide = render(flow_instructions=get_flow_instructions(handoff))
-    assert guide.rstrip().endswith("Now ask the user what they would like to do next.")
+    assert guide.rstrip().endswith(expected)
+
+
+def test_runbook_has_windows_commands_and_restores_the_environment() -> None:
+    guide = render()
+    assert "macOS, Linux, and WSL" in guide
+    assert "Follow only" in guide
+    assert "Get-Command sentry -ErrorAction SilentlyContinue" in guide
+    assert "Invoke-RestMethod https://cli.sentry.dev/install.ps1 | Invoke-Expression" in guide
+    assert "sentry auth bootstrap --url 'https://sentry.example.com'" in guide
+    assert "$env:SENTRY_SETUP_CODE = 'sntryc_example-setup-code'" in guide
+    assert "SENTRY_SETUP_CODE = $env:SENTRY_SETUP_CODE" in guide
+    assert "} finally {" in guide
+    assert 'Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue' in guide
+    assert (
+        "[Environment]::SetEnvironmentVariable($name, $previousEnvironment[$name], 'Process')"
+        in guide
+    )
+    assert 'if ($LASTEXITCODE -ne 0) { throw "Sentry CLI authentication failed." }' in guide
+
+
+@pytest.mark.parametrize("field", ["setup_code", "sentry_url", "client_id"])
+def test_powershell_values_are_literal_strings(field: str) -> None:
+    guide = render(**{field: "example'; $(Write-Output 'injected')`\nline2"})
+    assert "'example''; $(Write-Output ''injected'')`\nline2'" in guide
+
+
+def test_claim_runbook_has_a_powershell_form_post() -> None:
+    guide = render_claim_runbook(claim_url="https://sentry.example.com/agent-handoff/")
+    assert "macOS, Linux, and WSL" in guide
+    assert "matching claim command once" in guide
+    assert "Invoke-WebRequest -UseBasicParsing -Method Post" in guide
+    assert "-Uri 'https://sentry.example.com/agent-handoff/'" in guide
+    assert "-ContentType 'application/x-www-form-urlencoded'" in guide
+    assert "-Body @{handoff_code = 'HANDOFF_CODE'} -ErrorAction Stop).Content" in guide
+    assert "if ($null -eq $_.Exception.Response) { throw }" in guide
+    assert "$_.ErrorDetails.Message" in guide
+    assert "GetResponseStream()" in guide
+
+
+def test_powershell_claim_url_is_a_literal_string() -> None:
+    guide = render_claim_runbook(claim_url="https://sentry.example.com/path'with'quotes")
+    assert "-Uri 'https://sentry.example.com/path''with''quotes'" in guide
+
+
+@pytest.mark.parametrize("mode", list(HandoffMode))
+def test_flow_handler_receives_rendering_mode_and_context(mode: HandoffMode) -> None:
+    handler = Mock(return_value="Flow instructions.")
+    with patch.dict("sentry.agent_handoff.flows._FLOW_HANDLERS", {HandoffFlow.ONBOARDING: handler}):
+        instructions = get_flow_instructions(
+            HandoffFlow.ONBOARDING, mode=mode, user_id=1, organization_id=2
+        )
+
+    assert instructions == "Flow instructions."
+    handler.assert_called_once_with(mode, 1, 2)
+
+
+@pytest.mark.parametrize("mode", list(HandoffMode))
+def test_onboarding_flow_uses_live_documentation(mode: HandoffMode) -> None:
+    guide = render(
+        flow_instructions=get_flow_instructions(
+            HandoffFlow.ONBOARDING, mode=mode, user_id=1, organization_id=2
+        )
+    )
+    assert "You're onboarding a new user to Sentry" in guide
+    assert "https://docs.sentry.io/index.md" in guide
+
+
+@pytest.mark.parametrize("sentry_url", ["sentry.io", "https://sentry.io", "https://sentry.io/"])
+def test_default_instance_uses_cli_environment_defaults(sentry_url: str) -> None:
+    guide = render(sentry_url=sentry_url)
+
+    assert "SENTRY_HOST" not in guide
+    assert "SENTRY_URL" not in guide
+    assert "SENTRY_CLIENT_ID" not in guide
+    assert "```bash\nsentry auth status --fresh --json\n```" in guide
+    assert "```powershell\nsentry auth status --fresh --json\n```" in guide
+    assert (
+        "curl -fsSL https://cli.sentry.dev/install | "
+        "SENTRY_SETUP_CODE=sntryc_example-setup-code bash"
+    ) in guide
+    assert "$env:SENTRY_SETUP_CODE = 'sntryc_example-setup-code'" in guide

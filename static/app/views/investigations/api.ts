@@ -22,6 +22,8 @@ import type {
   InvestigationExecutionDetail,
   InvestigationListItem,
   InvestigationOrchestration,
+  InvestigationOrchestrationCommandResponse,
+  InvestigationOrchestrationCommandVariables,
   InvestigationTitleGeneration,
   InvestigationViewer,
   ManualInvestigationSource,
@@ -319,6 +321,57 @@ export function investigationOrchestrationQueryOptions(
       staleTime: 0,
     }
   );
+}
+
+/**
+ * Send a viewer command to a running workflow. The only one sent today is
+ * `provide_input`, the question a run started without.
+ *
+ * The response carries the post-command projection, so it is written straight
+ * into the orchestration cache instead of triggering another fetch.
+ */
+export function useInvestigationOrchestrationCommandMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<
+    InvestigationOrchestrationCommandResponse,
+    InvestigationOrchestrationCommandVariables
+  >
+) {
+  const queryClient = useQueryClient();
+  const orchestrationOptions = investigationOrchestrationQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    mutationFn: ({command, expectedWorkflowVersion, requestId}) =>
+      fetchMutation<InvestigationOrchestrationCommandResponse>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/commands/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId,
+            },
+          }
+        ),
+        method: 'POST',
+        data: {requestId, expectedWorkflowVersion, command},
+      }),
+    onSuccess: async (response, variables, onMutateResult, context) => {
+      queryClient.setQueryData(orchestrationOptions.queryKey, current =>
+        current ? {...current, json: response.projection} : current
+      );
+      await options?.onSuccess?.(response, variables, onMutateResult, context);
+    },
+    onError: async (error, variables, onMutateResult, context) => {
+      // A rejected command usually means the projection moved on beneath us.
+      await queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey});
+      await options?.onError?.(error, variables, onMutateResult, context);
+    },
+  });
 }
 
 export function investigationCandidatesQueryOptions({

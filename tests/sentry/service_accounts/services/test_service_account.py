@@ -109,6 +109,25 @@ class ServiceAccountServiceTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert ServiceAccount.objects.filter(organization_id=self.organization.id).count() == 1
 
+    def test_create_with_same_idempotency_key_returns_first_account(self) -> None:
+        def create(name: str) -> int:
+            return service_account_service.create_service_account(
+                organization_id=self.organization.id,
+                name=name,
+                scope_list=["event:read"],
+                project_ids=[self.project.id],
+                all_projects=False,
+                created_by_id=None,
+                idempotency_key="retry-key",
+            ).id
+
+        first = create("seer-agent")
+        # A retry with the same key returns the first account even when its name changed.
+        assert create("seer-agent-renamed") == first
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ServiceAccount.objects.get(organization_id=self.organization.id).id == first
+        assert self.project_ids(first) == [self.project.id]
+
     def test_create_ungrantable_scope_raises_validation_error(self) -> None:
         with pytest.raises(RpcValidationException):
             service_account_service.create_service_account(

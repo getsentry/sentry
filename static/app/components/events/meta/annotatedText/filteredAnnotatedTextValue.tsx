@@ -1,9 +1,10 @@
 import {useMemo} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {useLocation} from 'sentry/utils/useLocation';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -17,10 +18,12 @@ type Props = {
 
 export function FilteredAnnotatedTextValue({value, meta}: Props) {
   const organization = useOrganization();
-  const location = useLocation<{project: string}>();
-  const projectId = location.query.project;
+  const [projectIds] = useQueryState('project', pageFilterParsers.project);
   const {projects} = useProjects();
-  const currentProject = projects.find(project => project.id === projectId);
+  const currentProject =
+    projectIds.length === 1
+      ? projects.find(project => project.id === projectIds[0])
+      : undefined;
 
   // Fetch full project details including `project.relayPiiConfig`
   // That property is not normally available in the store

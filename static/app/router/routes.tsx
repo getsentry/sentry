@@ -610,7 +610,28 @@ function buildRoutes(): RouteObject[] {
       },
       path: 'attributes/',
       name: t('Attributes'),
-      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributes')
+          ),
+        },
+        {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Attributes'),
+              to: '/settings/:orgId/projects/:projectId/attributes/',
+            },
+          },
+          path: ':attributeType/:attributeName/',
+          name: t('Attribute Details'),
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributeDetails')
+          ),
+        },
+      ],
     },
     {
       handle: {
@@ -1493,11 +1514,6 @@ function buildRoutes(): RouteObject[] {
       path: 'early-features/',
       name: t('Early Features'),
       component: make(() => import('sentry/views/settings/earlyFeatures')),
-    },
-    {
-      path: 'dynamic-sampling/',
-      name: t('Dynamic Sampling'),
-      component: make(() => import('sentry/views/settings/dynamicSampling')),
     },
     {
       path: 'mcp-cli/',

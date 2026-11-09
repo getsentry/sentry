@@ -89,7 +89,7 @@ describe('IssueListOverview (actions)', () => {
       body: [],
     });
 
-    TagStore.init?.();
+    TagStore.reset();
   });
 
   afterEach(() => {

@@ -26,7 +26,8 @@ export function PaymentIntentForm(props: IntentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {intentData, isLoading, isError, error} = usePaymentIntentData({
-    queryKey: props.intentDataQueryKey,
+    organizationSlug: organization.slug,
+    invoiceId: invoiceGuid ?? '',
   });
 
   useEffect(() => {

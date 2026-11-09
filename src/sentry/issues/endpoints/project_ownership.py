@@ -311,7 +311,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         ],
         request=ProjectOwnershipRequestSerializer,
         responses={
-            202: ProjectOwnershipSerializer,
+            200: ProjectOwnershipSerializer,
             400: RESPONSE_BAD_REQUEST,
         },
         examples=ownership_examples.UPDATE_PROJECT_OWNERSHIP,

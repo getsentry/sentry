@@ -1,7 +1,14 @@
+import {useQueryClient} from '@tanstack/react-query';
+import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {doEventsRequest} from './events';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+
+import type {IssueAttachment} from 'sentry/types/group';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+import {doEventsRequest, useDeleteEventAttachmentOptimistic} from './events';
 
 describe('Events ActionCreator', () => {
   const api = new MockApiClient();
@@ -143,5 +150,69 @@ describe('Events ActionCreator', () => {
         }),
       })
     );
+  });
+});
+
+describe('attachment deletion cache', () => {
+  const params = {orgSlug: 'org-slug', projectSlug: 'project-slug', eventId: 'event-id'};
+  const options = apiOptions.as<IssueAttachment[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/',
+    {
+      path: {
+        organizationIdOrSlug: params.orgSlug,
+        projectIdOrSlug: params.projectSlug,
+        eventId: params.eventId,
+      },
+      staleTime: Infinity,
+    }
+  );
+
+  afterEach(() => MockApiClient.clearMockResponses());
+
+  it.each([200, 500])(
+    'preserves response metadata on deletion with status %s',
+    async statusCode => {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/events/event-id/attachments/1/',
+        method: 'DELETE',
+        statusCode,
+      });
+      const {result} = renderHookWithProviders(() => ({
+        mutation: useDeleteEventAttachmentOptimistic(),
+        client: useQueryClient(),
+      }));
+      const attachments = [
+        EventAttachmentFixture({id: '1'}),
+        EventAttachmentFixture({id: '2'}),
+      ];
+      const previous = {json: attachments, headers: {Link: 'next-page'}, status: 200};
+      result.current.client.setQueryData(options.queryKey, previous);
+      await act(async () => {
+        await result.current.mutation
+          .mutateAsync({...params, attachmentId: '1'})
+          .catch(() => null);
+      });
+      expect(result.current.client.getQueryData(options.queryKey)).toEqual({
+        ...previous,
+        json: statusCode === 200 ? [attachments[1]] : attachments,
+      });
+      expect(previous.json).toEqual(attachments);
+      expect(previous.json).toHaveLength(2);
+    }
+  );
+
+  it('does not create a response when the attachments are absent from cache', async () => {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/event-id/attachments/1/',
+      method: 'DELETE',
+    });
+    const {result} = renderHookWithProviders(() => ({
+      mutation: useDeleteEventAttachmentOptimistic(),
+      client: useQueryClient(),
+    }));
+    await act(async () => {
+      await result.current.mutation.mutateAsync({...params, attachmentId: '1'});
+    });
+    expect(result.current.client.getQueryData(options.queryKey)).toBeUndefined();
   });
 });
