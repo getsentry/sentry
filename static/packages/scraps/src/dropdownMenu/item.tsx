@@ -1,6 +1,7 @@
 import type * as React from 'react';
-import {Fragment, useContext, useEffect, useRef} from 'react';
-import {useHover, useKeyboard} from '@react-aria/interactions';
+import {Fragment, useContext, useRef} from 'react';
+import {useKeyboard} from '@react-aria/interactions';
+import type {SubmenuTriggerAria} from '@react-aria/menu';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
@@ -129,7 +130,10 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
    * Tag name for item wrapper
    */
   renderAs?: T;
-  submenuRef?: React.RefObject<HTMLElement | null>;
+  /**
+   * Props from `useSubmenuTrigger`, set when this item opens a submenu.
+   */
+  submenuTriggerProps?: SubmenuTriggerAria<MenuItemProps>['submenuTriggerProps'];
 }
 
 /**
@@ -145,12 +149,11 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   renderAs,
   ref,
   menuItemRef,
-  submenuRef,
+  submenuTriggerProps,
   ...props
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
   const trailingActionRef = useRef<HTMLButtonElement>(null);
-  const lastPointerPosition = useRef<{x: number; y: number} | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {
@@ -170,7 +173,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   } = node.value ?? {};
   const isSubmenu = !!submenu;
   const {size} = node.props;
-  const {rootOverlayState, safetyTriangle} = useContext(DropdownMenuContext);
+  const {rootMenuState} = useContext(DropdownMenuContext);
   const isLink = to || externalHref;
   const resolvedCloseOnSelect = itemCloseOnSelect ?? closeOnSelect;
 
@@ -179,45 +182,18 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       // Close the menu after the click event has bubbled to the link
       // Only needed on links that do not unmount the menu
       if (resolvedCloseOnSelect) {
-        requestAnimationFrame(() => rootOverlayState?.close());
+        requestAnimationFrame(() => rootMenuState?.close());
       }
       onAction?.();
-      return;
-    }
-    if (isSubmenu) {
-      state.selectionManager.toggleSelection(node.key);
       return;
     }
     onAction?.();
   };
 
-  // Open submenu on hover
-  const {hoverProps, isHovered} = useHover({});
-  const previousInteraction = useRef({isHovered, isFocused});
-  useEffect(() => {
-    const previous = previousInteraction.current;
-    previousInteraction.current = {isHovered, isFocused};
-    if (isHovered === previous.isHovered && isFocused === previous.isFocused) {
-      return;
-    }
-
-    if (isHovered && isFocused) {
-      if (isSubmenu) {
-        state.selectionManager.replaceSelection(node.key);
-        return;
-      }
-      state.selectionManager.clearSelection();
-    }
-  }, [isHovered, isFocused, isSubmenu, node.key, state.selectionManager]);
-
-  // ArrowRight opens a submenu or moves focus to an adjacent action.
+  // ArrowRight moves focus to the trailing action. Submenu triggers get their
+  // arrow key handling from `useSubmenuTrigger`.
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
-      if (e.key === 'ArrowRight' && isSubmenu) {
-        state.selectionManager.replaceSelection(node.key);
-        return;
-      }
-
       // The trailing action sits outside the focusable menu item. Move to it
       // only when focus is still on the item itself and the button can take focus.
       if (
@@ -237,13 +213,15 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   });
 
   // Manage interactive events & create aria attributes
+  const {isOpen: _isSubmenuOpen, ...submenuTriggerAriaProps} = submenuTriggerProps ?? {};
   const {menuItemProps, labelProps, descriptionProps} = useMenuItem(
     {
+      ...submenuTriggerAriaProps,
       key: node.key,
       onAction: actionHandler,
       onClose: () => {
         onClose?.();
-        rootOverlayState?.close();
+        rootMenuState?.close();
       },
       closeOnSelect: isLink ? false : resolvedCloseOnSelect,
       isDisabled,
@@ -278,13 +256,11 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const mergedMenuItemContentProps: React.HTMLAttributes<HTMLElement> = mergeProps(
     props,
     menuItemProps,
-    hoverProps,
     keyboardProps,
     makeInnerWrapProps(),
     // oxlint-disable-next-line react/refs
     {ref: mergeRefs(menuItemRef, innerWrapRef), 'data-test-id': key}
   );
-  const {onPointerEnter, onPointerMove, onPointerLeave} = mergedMenuItemContentProps;
   const itemLabel = node.rendered ?? label;
 
   return (
@@ -311,35 +287,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       }
       disabled={isDisabled}
       isFocused={isFocused}
-      innerWrapProps={{
-        ...mergedMenuItemContentProps,
-        onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
-          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
-          // React clears currentTarget after dispatch, but hover may be deferred.
-          const savedEvent = {...event, currentTarget: event.currentTarget};
-          const enter = () => onPointerEnter?.(savedEvent);
-          if (safetyTriangle) {
-            safetyTriangle.defer(event, enter);
-          } else {
-            enter();
-          }
-        },
-        onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
-          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
-          onPointerMove?.(event);
-        },
-        onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
-          safetyTriangle?.leave(event.currentTarget);
-          if (
-            event.pointerType === 'mouse' &&
-            submenuRef?.current &&
-            lastPointerPosition.current
-          ) {
-            safetyTriangle?.start(lastPointerPosition.current, submenuRef.current);
-          }
-          onPointerLeave?.(event);
-        },
-      }}
+      innerWrapProps={mergedMenuItemContentProps}
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingAction={trailingAction}

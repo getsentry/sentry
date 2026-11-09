@@ -381,14 +381,14 @@ describe('DropdownMenu', () => {
       screen.queryByRole('menuitemradio', {name: 'Sub Item'})
     ).not.toBeInTheDocument();
 
-    const parentItem = screen.getByRole('menuitemradio', {name: 'Item'});
+    const parentItem = screen.getByRole('menuitem', {name: 'Item'});
 
     expect(parentItem).toHaveAttribute('aria-expanded', 'false');
 
     await userEvent.hover(parentItem);
 
-    // The sub item is now visibile
-    const subItem = screen.getByRole('menuitemradio', {name: 'Sub Item'});
+    // The sub item is visible after the hover delay
+    const subItem = await screen.findByRole('menuitemradio', {name: 'Sub Item'});
     expect(subItem).toBeInTheDocument();
 
     // Menu does not close when hovering over it
@@ -396,16 +396,18 @@ describe('DropdownMenu', () => {
     await userEvent.hover(subItem);
     expect(subItem).toBeInTheDocument();
 
-    // Menu is closed when hovering the other menu item
+    // Menu is closed when hovering the other menu item. React Aria blocks
+    // pointer events on the parent menu while the pointer heads toward the
+    // submenu, which jsdom's zero-size layout always reports.
     await userEvent.unhover(subItem);
     const otherItem = screen.getByRole('menuitemradio', {name: 'Item Two'});
-    await userEvent.hover(otherItem);
+    await userEvent.hover(otherItem, {pointerEventsCheck: 0});
     expect(subItem).not.toBeInTheDocument();
     expect(otherItem).toHaveFocus();
 
     // Click the menu item
     await userEvent.hover(parentItem);
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Sub Item'}));
     expect(onAction).toHaveBeenCalled();
 
     // Entire menu system is closed
@@ -418,8 +420,8 @@ describe('DropdownMenu', () => {
     // ArrowLeft closes the submenu and returns focus to its parent item.
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
     expect(onOpenChange).toHaveBeenCalledTimes(3);
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Item'}));
+    await userEvent.hover(await screen.findByRole('menuitemradio', {name: 'Sub Item'}));
     await userEvent.keyboard('{ArrowLeft}');
     expect(onOpenChange).toHaveBeenCalledTimes(3);
     expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
@@ -429,11 +431,11 @@ describe('DropdownMenu', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'Sub Item'})
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Item'})).toHaveFocus();
+    expect(screen.getByRole('menuitem', {name: 'Item'})).toHaveFocus();
 
     // Clicking outside closes the entire menu system
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Item'}));
+    await userEvent.hover(await screen.findByRole('menuitemradio', {name: 'Sub Item'}));
     await userEvent.click(document.body);
     expect(onOpenChange).toHaveBeenCalledTimes(4);
     expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
@@ -474,10 +476,10 @@ describe('DropdownMenu', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'All Projects'}));
 
-    const search = screen.getByRole('textbox', {name: 'Search projects'});
-    expect(search).toHaveFocus();
+    const search = await screen.findByRole('textbox', {name: 'Search projects'});
+    await waitFor(() => expect(search).toHaveFocus());
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
     expect(screen.getByRole('menuitemradio', {name: 'sentry'})).toHaveFocus();
@@ -534,9 +536,9 @@ describe('DropdownMenu', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    const search = screen.getByRole('textbox', {name: 'Search projects'});
-    expect(search).toHaveFocus();
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'All Projects'}));
+    const search = await screen.findByRole('textbox', {name: 'Search projects'});
+    await waitFor(() => expect(search).toHaveFocus());
 
     await userEvent.keyboard('{ArrowDown}');
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toHaveFocus();
@@ -564,8 +566,8 @@ describe('DropdownMenu', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    const search = screen.getByRole<HTMLInputElement>('textbox', {
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'All Projects'}));
+    const search = await screen.findByRole<HTMLInputElement>('textbox', {
       name: 'Search projects',
     });
     await userEvent.type(search, 'sentry');
@@ -586,15 +588,15 @@ describe('DropdownMenu', () => {
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getByRole('menuitemradio', {name: 'All Projects'})).toHaveFocus()
+      expect(screen.getByRole('menuitem', {name: 'All Projects'})).toHaveFocus()
     );
     expect(screen.getByRole('button', {name: 'Projects'})).toHaveAttribute(
       'aria-expanded',
       'true'
     );
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'All Projects'}));
 
-    expect(screen.getByRole('textbox', {name: 'Search projects'})).toHaveValue('');
+    expect(await screen.findByRole('textbox', {name: 'Search projects'})).toHaveValue('');
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
   });
 
@@ -615,8 +617,8 @@ describe('DropdownMenu', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'All Projects'}));
+    const search = await screen.findByRole('textbox', {name: 'Search projects'});
     await userEvent.type(search, 'java');
 
     const escape = new KeyboardEvent('keydown', {
@@ -635,128 +637,9 @@ describe('DropdownMenu', () => {
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getByRole('menuitemradio', {name: 'All Projects'})).toHaveFocus()
+      expect(screen.getByRole('menuitem', {name: 'All Projects'})).toHaveFocus()
     );
   });
-
-  it.each(['right', 'left'] as const)(
-    'keeps a %s submenu open while crossing a sibling diagonally',
-    async side => {
-      const user = userEvent.setup();
-      render(
-        <DropdownMenu
-          triggerLabel="Menu"
-          items={[
-            {
-              key: 'parent',
-              label: 'Parent',
-              submenu: true,
-              children: [{key: 'child', label: 'Child'}],
-            },
-            {key: 'sibling', label: 'Sibling'},
-          ]}
-        />,
-        {wrapper: ThemeWrapper}
-      );
-      await user.click(screen.getByRole('button', {name: 'Menu'}));
-      const parent = screen.getByRole('menuitemradio', {name: 'Parent'});
-      const sibling = screen.getByRole('menuitemradio', {name: 'Sibling'});
-      const x = side === 'right' ? 80 : 320;
-      await user.pointer({target: parent, coords: {clientX: x, clientY: 20}});
-      const child = screen.getByRole('menuitemradio', {name: 'Child'});
-      // Geometry belongs to the floating position wrapper around the submenu.
-      // oxlint-disable-next-line testing-library/no-node-access
-      const submenu = screen.getAllByRole('menu')[1]!.parentElement!.parentElement!;
-      jest
-        .spyOn(submenu, 'getBoundingClientRect')
-        .mockReturnValue(new DOMRect(side === 'right' ? 200 : 0, 0, 200, 240));
-
-      await user.pointer({
-        target: sibling,
-        coords: {clientX: side === 'right' ? 150 : 250, clientY: 60},
-      });
-      expect(child).toBeInTheDocument();
-      expect(sibling).not.toHaveFocus();
-
-      await user.pointer({
-        target: child,
-        coords: {clientX: side === 'right' ? 220 : 180, clientY: 70},
-      });
-      expect(child).toHaveFocus();
-      await user.pointer({target: sibling, coords: {clientX: x, clientY: 60}});
-      expect(child).not.toBeInTheDocument();
-      expect(sibling).toHaveFocus();
-    }
-  );
-
-  it.each(['away', 'outside', 'timeout', 'click', 'touch'] as const)(
-    'releases deferred sibling hover on %s',
-    async action => {
-      const user = userEvent.setup();
-      const onAction = jest.fn();
-      render(
-        <DropdownMenu
-          triggerLabel="Menu"
-          items={[
-            {
-              key: 'parent',
-              label: 'Parent',
-              submenu: true,
-              children: [{key: 'child', label: 'Child'}],
-            },
-            {key: 'sibling', label: 'Sibling', onAction},
-          ]}
-        />,
-        {wrapper: ThemeWrapper}
-      );
-      await user.click(screen.getByRole('button', {name: 'Menu'}));
-      const parent = screen.getByRole('menuitemradio', {name: 'Parent'});
-      const sibling = screen.getByRole('menuitemradio', {name: 'Sibling'});
-      await user.pointer({target: parent, coords: {clientX: 80, clientY: 20}});
-      const child = screen.getByRole('menuitemradio', {name: 'Child'});
-      // Geometry belongs to the floating position wrapper around the submenu.
-      // oxlint-disable-next-line testing-library/no-node-access
-      const submenu = screen.getAllByRole('menu')[1]!.parentElement!.parentElement!;
-      jest
-        .spyOn(submenu, 'getBoundingClientRect')
-        .mockReturnValue(new DOMRect(200, 0, 200, 240));
-      await user.pointer({
-        target: sibling,
-        coords: {clientX: action === 'away' ? 70 : 150, clientY: 60},
-      });
-      if (action === 'away') {
-        expect(child).not.toBeInTheDocument();
-        expect(sibling).toHaveFocus();
-        return;
-      }
-      expect(child).toBeInTheDocument();
-      expect(sibling).not.toHaveFocus();
-
-      if (action === 'outside') {
-        await user.pointer({target: sibling, coords: {clientX: 70, clientY: 60}});
-        expect(child).not.toBeInTheDocument();
-        expect(sibling).toHaveFocus();
-      } else if (action === 'click' || action === 'touch') {
-        if (action === 'touch') {
-          jest
-            .spyOn(sibling, 'getBoundingClientRect')
-            .mockReturnValue(new DOMRect(0, 40, 200, 40));
-          await user.pointer({
-            keys: '[TouchA]',
-            target: sibling,
-            coords: {clientX: 150, clientY: 60},
-          });
-        } else {
-          await user.click(sibling);
-        }
-        await waitFor(() => expect(onAction).toHaveBeenCalledTimes(1));
-        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-      } else {
-        await waitFor(() => expect(child).not.toBeInTheDocument());
-        expect(sibling).toHaveFocus();
-      }
-    }
-  );
 
   it.each(['Escape', 'ArrowLeft'])(
     'closes nested submenus one level at a time with %s',
@@ -784,11 +667,11 @@ describe('DropdownMenu', () => {
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
-      const parent = screen.getByRole('menuitemradio', {name: 'More actions'});
+      const parent = screen.getByRole('menuitem', {name: 'More actions'});
       await waitFor(() => expect(parent).toHaveFocus());
 
       await userEvent.keyboard('{ArrowRight}');
-      const child = await screen.findByRole('menuitemradio', {name: 'Nested actions'});
+      const child = await screen.findByRole('menuitem', {name: 'Nested actions'});
       await waitFor(() => expect(child).toHaveFocus());
 
       await userEvent.keyboard('{ArrowRight}');
@@ -815,7 +698,7 @@ describe('DropdownMenu', () => {
 
       await userEvent.keyboard(`{${key}}`);
       expect(
-        screen.queryByRole('menuitemradio', {name: 'Nested actions'})
+        screen.queryByRole('menuitem', {name: 'Nested actions'})
       ).not.toBeInTheDocument();
       await waitFor(() => expect(parent).toHaveFocus());
       expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
@@ -849,7 +732,7 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
     await waitFor(() =>
-      expect(screen.getByRole('menuitemradio', {name: 'More actions'})).toHaveFocus()
+      expect(screen.getByRole('menuitem', {name: 'More actions'})).toHaveFocus()
     );
     await userEvent.keyboard('{Enter}');
 

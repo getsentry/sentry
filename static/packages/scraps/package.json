@@ -339,6 +339,7 @@
     "@react-stately/collections": "3.13.1",
     "@react-stately/disclosure": "3.1.1",
     "@react-stately/list": "3.14.1",
+    "@react-stately/menu": "3.10.1",
     "@react-stately/numberfield": "3.12.1",
     "@react-stately/overlays": "3.7.1",
     "@react-stately/radio": "3.12.1",

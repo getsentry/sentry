@@ -1209,6 +1209,9 @@ importers:
       '@react-stately/list':
         specifier: 3.14.1
         version: 3.14.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/menu':
+        specifier: 3.10.1
+        version: 3.10.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-stately/numberfield':
         specifier: 3.12.1
         version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -3790,6 +3793,12 @@ packages:
 
   '@react-stately/list@3.14.1':
     resolution: {integrity: sha512-3W+GqsDqKih7gqVRzA85P2CtGcahETLzC+NM9zhgz+T0xeHQITc7N2oEAT1Vy+cIKGd1YmfGM8ACgtpcbcnWWA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+      react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+
+  '@react-stately/menu@3.10.1':
+    resolution: {integrity: sha512-4pQklVXmHV7EVCj3xRYqpfM8pYvIsn5jdIe1CZcvwp3XXtZ5Y6TFR82C7UnI1hAvqI0//by6HWzVOPT7AvyBzw==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
       react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
@@ -11517,6 +11526,13 @@ snapshots:
       react-stately: 3.48.0(react@19.3.0)
 
   '@react-stately/list@3.14.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@swc/helpers': 0.5.23
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      react-stately: 3.48.0(react@19.3.0)
+
+  '@react-stately/menu@3.10.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@swc/helpers': 0.5.23
       react: 19.3.0

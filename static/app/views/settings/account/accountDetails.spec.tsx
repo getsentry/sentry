@@ -107,7 +107,7 @@ describe('AccountDetails', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: user.email}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Preferences'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Preferences'}));
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Dark'}));
 
       expect(await screen.findByText('Dark')).toBeInTheDocument();

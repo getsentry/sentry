@@ -75,8 +75,8 @@ describe('ArchiveActions', () => {
   it('archives until a custom date/time', async () => {
     render(<ArchiveActions onUpdate={onUpdate} />);
     await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'For\u2026'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: '30 minutes'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'For\u2026'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: '30 minutes'}));
 
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'ignored',
@@ -89,10 +89,10 @@ describe('ArchiveActions', () => {
     render(<ArchiveActions onUpdate={onUpdate} disableArchiveUntilOccurrence={false} />);
     await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
     expect(
-      screen.getByRole('menuitemradio', {name: 'Until this occurs again\u2026'})
+      screen.getByRole('menuitem', {name: 'Until this occurs again\u2026'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitemradio', {
+      screen.getByRole('menuitem', {
         name: 'Until this affects an additional\u2026',
       })
     ).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe('ArchiveActions', () => {
     render(<ArchiveActions onUpdate={onUpdate} disableArchiveUntilOccurrence />);
     await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
     expect(
-      screen.queryByRole('menuitemradio', {name: 'Until this occurs again\u2026'})
+      screen.queryByRole('menuitem', {name: 'Until this occurs again\u2026'})
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {
@@ -156,8 +156,8 @@ describe('ArchiveActions', () => {
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'For…'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: /Custom/}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'For…'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: /Custom/}));
 
     // opens modal
     expect(screen.getByRole('dialog')).toBeInTheDocument();

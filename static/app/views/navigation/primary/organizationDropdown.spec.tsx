@@ -118,9 +118,11 @@ describe('OrganizationDropdown', () => {
     ).toHaveStyle({
       maxWidth: 'min(258px, 100%)',
     });
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
+    await waitFor(() =>
+      expect(screen.getAllByRole('menuitemradio', {name: slug})).toHaveLength(2)
+    );
     const projectItems = screen.getAllByRole('menuitemradio', {name: slug});
-    expect(projectItems).toHaveLength(2);
     expect(projectItems[1]?.closest('[data-overlay]')).toHaveStyle({
       maxWidth: 'min(258px, 100%)',
     });
@@ -140,10 +142,10 @@ describe('OrganizationDropdown', () => {
       'href',
       `/settings/${organization.slug}/`
     );
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
 
-    const search = screen.getByRole('textbox', {name: 'Search'});
-    expect(search).toHaveFocus();
+    const search = await screen.findByRole('textbox', {name: 'Search'});
+    await waitFor(() => expect(search).toHaveFocus());
     expect(within(search.parentElement!).getByRole('img')).toBeInTheDocument();
     await userEvent.type(search, 'python');
     const submenu = within(search.closest<HTMLElement>('[data-overlay]')!);
@@ -280,7 +282,8 @@ describe('OrganizationDropdown', () => {
 
     const toggle = screen.getByRole('button', {name: 'Toggle organization menu'});
     await userEvent.click(toggle);
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
+    await screen.findByRole('textbox', {name: 'Search'});
     const getSubmenu = () =>
       within(
         screen
@@ -304,7 +307,8 @@ describe('OrganizationDropdown', () => {
     await userEvent.keyboard('{Escape}');
     await userEvent.keyboard('{Escape}');
     await userEvent.click(toggle);
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
+    await screen.findByRole('textbox', {name: 'Search'});
 
     expect(getSubmenuOrder()).toEqual(['project-b', 'project-a']);
   });
@@ -378,9 +382,62 @@ describe('OrganizationDropdown', () => {
     expect(router.location.pathname).not.toBe(
       `/settings/${organization.slug}/projects/${project.slug}/`
     );
+    expect(screen.getByRole('menuitem', {name: 'View All Projects'})).toBeInTheDocument();
+  });
+
+  it('moves between the settings v3 menu and its submenus with arrow keys', async () => {
+    OrganizationsStore.addOrReplace(
+      OrganizationFixture({id: '1', name: 'Org 1', slug: 'org-1'})
+    );
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'javascript', isMember: true}),
+    ]);
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    const switchItem = screen.getByRole('menuitem', {name: 'Switch'});
+    // The pointer resting on the trigger must not reopen a submenu that the
+    // keyboard closed.
+    await userEvent.hover(switchItem);
+    await waitFor(() => expect(switchItem).toHaveAttribute('aria-expanded', 'true'));
+
+    await userEvent.keyboard('{ArrowRight}');
+    await waitFor(() =>
+      expect(screen.getByRole('menuitemradio', {name: /Org 1/})).toHaveFocus()
+    );
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(screen.queryByRole('menuitemradio', {name: /Org 1/})).not.toBeInTheDocument();
+    expect(switchItem).toHaveFocus();
+    expect(switchItem).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.keyboard('{ArrowRight}');
+    await waitFor(() =>
+      expect(screen.getByRole('menuitemradio', {name: /Org 1/})).toHaveFocus()
+    );
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(switchItem).toHaveFocus();
+
+    const viewAllProjects = screen.getByRole('menuitem', {name: 'View All Projects'});
+    // Switch, then the javascript quick-access project, then View All Projects
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+    expect(viewAllProjects).toHaveFocus();
+    await userEvent.keyboard('{ArrowRight}');
+    const search = await screen.findByRole('textbox', {name: 'Search'});
+    await waitFor(() => expect(search).toHaveFocus());
+    await userEvent.keyboard('{ArrowDown}');
+    const project = within(search.closest<HTMLElement>('[data-overlay]')!).getByRole(
+      'menuitemradio',
+      {name: 'javascript'}
+    );
+    expect(project).toHaveFocus();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(screen.queryByRole('textbox', {name: 'Search'})).not.toBeInTheDocument();
+    expect(viewAllProjects).toHaveFocus();
     expect(
-      screen.getByRole('menuitemradio', {name: 'View All Projects'})
-    ).toBeInTheDocument();
+      screen.getByRole('button', {name: 'Toggle organization menu'})
+    ).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('can switch orgs', async () => {
