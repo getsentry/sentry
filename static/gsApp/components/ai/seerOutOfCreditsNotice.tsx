@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import {IconMail} from '@sentry/icons/mail';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -128,8 +129,10 @@ export function SeerOutOfCreditsNotice({
   autoReloadEnabled,
   ...actionProps
 }: SeerOutOfCreditsNoticeProps) {
+  const NoticeAlert = variant === 'muted' ? MutedAlert : Alert;
+
   return (
-    <Alert variant={variant} data-test-id="seer-out-of-credits">
+    <NoticeAlert variant={variant} data-test-id="seer-out-of-credits">
       <Stack gap="md" align="start">
         <Text>{getSeerOutOfCreditsMessage({reason, escalation, autoReloadEnabled})}</Text>
         <SeerOutOfCreditsAction
@@ -147,9 +150,24 @@ export function SeerOutOfCreditsNotice({
           {...actionProps}
         />
       </Stack>
-    </Alert>
+    </NoticeAlert>
   );
 }
+
+/**
+ * The Billing Gates designs grey the muted notice's icon column, which the
+ * muted Alert leaves white. Paints over the Alert's icon column, the 43px left
+ * of the divider it draws, and leaves the icon above it.
+ */
+const MutedAlert = styled(Alert)`
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 43px;
+    background: ${p => p.theme.tokens.background.secondary};
+  }
+`;
 
 function SeerOutOfCreditsAction({
   escalation,

@@ -78,13 +78,21 @@ class SimulatedSidebarQueryClient extends QueryClient {
 interface SidebarStoryProps {
   description: ReactNode;
   hasEnoughCredits?: boolean;
+  /**
+   * Billing members configure auto-reload; everyone else contacts their admins.
+   */
+  isBillingMember?: boolean;
 }
 
 /**
  * The real sidebar section for an org with credit checks on, at the issue
  * sidebar's width.
  */
-function SidebarStory({description, hasEnoughCredits = false}: SidebarStoryProps) {
+function SidebarStory({
+  description,
+  hasEnoughCredits = false,
+  isBillingMember = false,
+}: SidebarStoryProps) {
   const organization = useOrganization();
   const [queryClient] = useState(() => new SimulatedSidebarQueryClient(hasEnoughCredits));
 
@@ -96,6 +104,9 @@ function SidebarStory({description, hasEnoughCredits = false}: SidebarStoryProps
       <OrganizationContext.Provider
         value={{
           ...organization,
+          access: isBillingMember
+            ? [...organization.access, 'org:billing']
+            : organization.access.filter(scope => scope !== 'org:billing'),
           hideAiFeatures: false,
           features: [
             ...organization.features,
@@ -116,7 +127,14 @@ function SidebarStory({description, hasEnoughCredits = false}: SidebarStoryProps
 
 export default Storybook.story('AutofixSection', story => {
   story('Out of credits: before a run', () => (
-    <SidebarStory description='No run yet. The muted autofix-start notice takes the place of the "Have Seer..." explainer, right above Start Analysis, which stays on screen but disabled (autofix_root_cause).' />
+    <SidebarStory description='No run yet, seen by a member. The muted autofix-start notice takes the place of the "Have Seer..." explainer, right above Start Analysis, which stays on screen but disabled (autofix_root_cause).' />
+  ));
+
+  story('Out of credits: before a run, billing member', () => (
+    <SidebarStory
+      description="The same notice for a billing member, who configures auto-reload instead of contacting an admin."
+      isBillingMember
+    />
   ));
 
   story('With credits: before a run', () => (
