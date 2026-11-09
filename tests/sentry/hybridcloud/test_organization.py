@@ -388,7 +388,7 @@ def test_set_user_for_organization_member_outbox_flush_failure() -> None:
 
 
 @django_db_all(transaction=True)
-def test_update_membership_flags_outbox_flush_failure() -> None:
+def test_update_membership_flags_defers_outbox_flush() -> None:
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")
     member = Factories.create_member(organization=org, user=user)
@@ -400,12 +400,11 @@ def test_update_membership_flags_outbox_flush_failure() -> None:
     rpc_member = serialize_member(member)
     rpc_member.flags.sso__linked = True
 
-    with patch.object(
-        OrganizationMember, "handle_async_replication", side_effect=Exception("replication failed")
-    ) as mock_replication:
+    with patch.object(OrganizationMember, "handle_async_replication") as mock_replication:
         organization_service.update_membership_flags(organization_member=rpc_member)
 
-    mock_replication.assert_called()
+    # Flags aren't replicated, so the outbox should not be flushed synchronously.
+    mock_replication.assert_not_called()
     member.refresh_from_db()
     assert member.flags["sso:linked"]
     assert CellOutbox.objects.filter(
