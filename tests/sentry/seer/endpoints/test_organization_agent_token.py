@@ -2083,6 +2083,19 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("OrganizationDashboardsEndpoint", "POST"): {
                 "title": "Permission matrix dashboard mutation"
             },
+            ("OrganizationDashboardWidgetDetailsEndpoint", "POST"): {
+                "title": "Permission matrix widget",
+                "displayType": "line",
+                "queries": [
+                    {
+                        "name": "errors",
+                        "conditions": "event.type:error",
+                        "fields": ["count()"],
+                        "columns": [],
+                        "aggregates": ["count()"],
+                    }
+                ],
+            },
             ("OrganizationDetailsEndpoint", "PUT"): {"name": self.org.name},
             ("OrganizationCodeMappingDetailsEndpoint", "PUT"): {
                 "repositoryId": self._resource("scm_code_mapping").project_repository.repository_id,
