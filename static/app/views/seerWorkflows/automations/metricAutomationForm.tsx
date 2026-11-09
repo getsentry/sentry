@@ -145,6 +145,7 @@ export function MetricAutomationForm(props: Props) {
           });
         }
       } catch (error) {
+        toast.error(getRequestErrorUserMessage(error, t('Unable to save automation.')));
         if (error instanceof RequestError) {
           setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
         }
