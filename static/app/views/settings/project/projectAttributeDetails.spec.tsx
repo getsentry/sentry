@@ -205,29 +205,63 @@ describe('ProjectAttributeDetails', () => {
     expect(screen.getByText('OpenTelemetry')).toBeInTheDocument();
   });
 
-  it('labels the source as Sentry when a user-sourced attribute is defined by Sentry', async () => {
+  it('labels the source as Sentry and renders the unit when Sentry defines the attribute', async () => {
     MockApiClient.addMockResponse({
       url: detailsEndpoint,
       body: {
         name: 'payload_size',
         attributeType: 'number',
-        attributeSource: {source_type: 'user'},
+        attributeSource: {source_type: 'sentry'},
         datasets: ['logs'],
         lastSeen: null,
         stats: {logs: {lastSeen: null, cardinality: null}},
-        context: {
-          isConvention: false,
-          brief: 'The size of the log payload.',
-          unit: 'byte',
-        },
+        context: {unit: 'byte'},
       },
     });
 
     renderDetails('number', 'payload_size');
 
     expect(await screen.findByText('Sentry')).toBeInTheDocument();
-    expect(screen.queryByText('Custom')).not.toBeInTheDocument();
-    expect(screen.getByText('byte')).toBeInTheDocument();
+    expect(screen.getByText('Bytes')).toBeInTheDocument();
+  });
+
+  it('labels the source as custom when a user attribute shares a name with a Sentry attribute', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'severity',
+        attributeType: 'string',
+        attributeSource: {source_type: 'user'},
+        datasets: ['logs'],
+        lastSeen: null,
+        stats: {logs: {lastSeen: null, cardinality: null}},
+        context: {isConvention: false, brief: 'The log severity.'},
+      },
+    });
+
+    renderDetails('string', 'severity');
+
+    expect(await screen.findByText('Custom')).toBeInTheDocument();
+    expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
+  });
+
+  it('hides the cardinality when the attribute is a boolean', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'cache.hit',
+        attributeType: 'boolean',
+        attributeSource: {source_type: 'user'},
+        datasets: ['spans'],
+        lastSeen: '2017-10-15T02:41:20+00:00',
+        stats: {spans: {lastSeen: '2017-10-15T02:41:20+00:00', cardinality: null}},
+      },
+    });
+
+    renderDetails('boolean', 'cache.hit');
+
+    expect(await screen.findByText('2 days ago')).toBeInTheDocument();
+    expect(screen.queryByText('Cardinality')).not.toBeInTheDocument();
   });
 
   it('labels the source as custom when the attribute has custom context', async () => {
@@ -284,7 +318,7 @@ describe('ProjectAttributeDetails', () => {
 
     renderDetails('number', 'payload_size');
 
-    expect(await screen.findByText('Custom')).toBeInTheDocument();
+    expect(await screen.findByText('Logs')).toBeInTheDocument();
     expect(screen.queryByText('Modified by Relay')).not.toBeInTheDocument();
   });
 

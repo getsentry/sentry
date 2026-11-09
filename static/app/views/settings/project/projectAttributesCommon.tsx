@@ -13,6 +13,16 @@ export const DATASET_LABELS: Record<AttributeDataset, string> = {
   tracemetrics: t('Metrics'),
 };
 
+type AttributeUnit = 'byte' | 'currency' | 'millisecond' | 'percentage' | 'second';
+
+export const UNIT_LABELS: Record<AttributeUnit, string> = {
+  byte: t('Bytes'),
+  currency: t('Currency'),
+  millisecond: t('Milliseconds'),
+  percentage: t('Percentage'),
+  second: t('Seconds'),
+};
+
 export interface Attribute extends Pick<
   TraceItemAttribute,
   'attributeSource' | 'attributeType' | 'name'
@@ -31,7 +41,7 @@ export interface Attribute extends Pick<
     isDeprecated?: boolean;
     isInOtel?: boolean;
     replacementAttribute?: string;
-    unit?: 'byte' | 'currency' | 'millisecond' | 'percentage' | 'second';
+    unit?: AttributeUnit;
   };
 }
 
@@ -61,6 +71,7 @@ export const ATTRIBUTE_VALUE_TYPES: Record<TraceItemAttributeType, FieldValueTyp
 };
 
 export const ATTRIBUTES_STATS_PERIOD = '14d';
+export const ATTRIBUTES_STATS_PERIOD_LABEL = t('Last 14 days');
 
 export function isAttributeType(
   value: string | undefined

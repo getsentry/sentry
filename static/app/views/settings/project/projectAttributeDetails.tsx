@@ -28,10 +28,12 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {
   ATTRIBUTES_STATS_PERIOD,
+  ATTRIBUTES_STATS_PERIOD_LABEL,
   DATASET_LABELS,
   isAttributeType,
   type Attribute,
   type AttributeDetails as AttributeDetailsResponse,
+  UNIT_LABELS,
 } from './projectAttributesCommon';
 import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
@@ -125,7 +127,8 @@ function AttributeDetails({
 }
 
 function AttributeStats({attribute}: {attribute: AttributeDetailsResponse}) {
-  const {datasets, lastSeen, stats} = attribute;
+  const {attributeType, datasets, lastSeen, stats} = attribute;
+  const hasCardinality = attributeType === 'string' || attributeType === 'number';
 
   return (
     <Stack gap="xs" align="end">
@@ -136,28 +139,32 @@ function AttributeStats({attribute}: {attribute: AttributeDetailsResponse}) {
           </Text>
           <Text size="lg">{lastSeen ? <TimeSince date={lastSeen} /> : '—'}</Text>
         </Stack>
-        <Stack gap="2xs">
-          <Text size="sm" variant="muted">
-            {t('Cardinality')}
-          </Text>
-          {datasets.length === 1 ? (
-            <Text size="lg">{formatCardinality(stats[datasets[0]!]?.cardinality)}</Text>
-          ) : (
-            <Flex gap="md" wrap="wrap">
-              {datasets.map(dataset => (
-                <Flex key={dataset} gap="xs" align="baseline">
-                  <Text size="lg">{formatCardinality(stats[dataset]?.cardinality)}</Text>
-                  <Text size="sm" variant="muted">
-                    {DATASET_LABELS[dataset]}
-                  </Text>
-                </Flex>
-              ))}
-            </Flex>
-          )}
-        </Stack>
+        {hasCardinality && (
+          <Stack gap="2xs">
+            <Text size="sm" variant="muted">
+              {t('Cardinality')}
+            </Text>
+            {datasets.length === 1 ? (
+              <Text size="lg">{formatCardinality(stats[datasets[0]!]?.cardinality)}</Text>
+            ) : (
+              <Flex gap="md" wrap="wrap">
+                {datasets.map(dataset => (
+                  <Flex key={dataset} gap="xs" align="baseline">
+                    <Text size="lg">
+                      {formatCardinality(stats[dataset]?.cardinality)}
+                    </Text>
+                    <Text size="sm" variant="muted">
+                      {DATASET_LABELS[dataset]}
+                    </Text>
+                  </Flex>
+                ))}
+              </Flex>
+            )}
+          </Stack>
+        )}
       </Flex>
       <Text size="xs" variant="muted">
-        {t('Last 14 days')}
+        {ATTRIBUTES_STATS_PERIOD_LABEL}
       </Text>
     </Stack>
   );
@@ -270,7 +277,9 @@ function AttributeSidebar({attribute}: {attribute: AttributeDetailsResponse}) {
           {context?.unit && (
             <Fragment>
               <DescriptionList.Term>{t('Unit')}</DescriptionList.Term>
-              <DescriptionList.Details>{context.unit}</DescriptionList.Details>
+              <DescriptionList.Details>
+                {UNIT_LABELS[context.unit]}
+              </DescriptionList.Details>
             </Fragment>
           )}
           {typeof modifiedCount === 'number' && (
@@ -281,7 +290,8 @@ function AttributeSidebar({attribute}: {attribute: AttributeDetailsResponse}) {
                   <InfoTip
                     size="xs"
                     title={t(
-                      'Spans in the last 14 days where Relay truncated or scrubbed this attribute.'
+                      '%s: spans where Relay truncated or scrubbed this attribute.',
+                      ATTRIBUTES_STATS_PERIOD_LABEL
                     )}
                   />
                 </Flex>
@@ -336,7 +346,7 @@ function AttributeSourceTags({attribute}: {attribute: Attribute}) {
     );
   }
 
-  if (context?.isConvention === false || attributeSource.source_type === 'sentry') {
+  if (attributeSource.source_type === 'sentry') {
     return <Tag variant="muted">{t('Sentry')}</Tag>;
   }
 
