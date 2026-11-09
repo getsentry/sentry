@@ -16,8 +16,11 @@ export function GsBillingCommandPaletteActions() {
   const subscription = useSubscription();
 
   const prefix = `/settings/${organization.slug}`;
-  const canViewSubscription =
-    organization.access.includes('org:billing') || (subscription?.canSelfServe ?? false);
+  const hasBillingAccess = organization.access.includes('org:billing');
+  const canViewSubscription = hasBillingAccess || (subscription?.canSelfServe ?? false);
+  // Partner-billed orgs are redirected away from the billing details page.
+  const canEditBillingInformation =
+    hasBillingAccess && !(subscription?.isSelfServePartner ?? false);
 
   return (
     <Fragment>
@@ -37,6 +40,24 @@ export function GsBillingCommandPaletteActions() {
             'receipts',
           ]}
           to={`${prefix}/billing/`}
+        />
+      )}
+      {canEditBillingInformation && (
+        <CMDKAction
+          display={{label: t('Billing Information'), icon: <IconCreditCard />}}
+          keywords={[
+            'billing',
+            'credit card',
+            'card',
+            'payment method',
+            'change card',
+            'update card',
+            'billing address',
+            'billing email',
+            'tax',
+            'vat',
+          ]}
+          to={`${prefix}/billing/details/`}
         />
       )}
       {organization.features.includes('spend-allocations') && (
