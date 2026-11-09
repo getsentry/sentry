@@ -22,6 +22,7 @@ from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
+    SeerAgentOutOfCredits,
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixError,
@@ -775,6 +776,22 @@ class SlackAgentEntrypoint(
                     },
                 )
 
+        for pr in _get_repo_pr_states(state):
+            if not _is_pr_out_of_credits(pr):
+                continue
+            key = f"pr_out_of_credits:{pr.repo_name}:{pr.pr_number}:{pr.commit_sha}"
+            if key in replies:
+                continue
+            message_ts = send_thread_update(
+                install=install,
+                thread=thread,
+                data=SeerAgentOutOfCredits(organization_id=organization_id),
+            )
+            if message_ts:
+                SlackSeerAgentReplyCache.set(
+                    run_id=run_id, key=key, reply=SlackSeerAgentReply(message_ts=message_ts)
+                )
+
         replies = SlackSeerAgentReplyCache.get(run_id=run_id)
         answers = [answer for turn in state.get_turns() if (answer := turn.answer) is not None]
         latest = next(
@@ -824,6 +841,10 @@ def _get_repo_pr_states(state: SeerRunState) -> list[RepoPRState]:
     return [state.repo_pr_states[repo] for repo in sorted(state.repo_pr_states)]
 
 
+def _is_pr_out_of_credits(pr: RepoPRState) -> bool:
+    return pr.pr_creation_status == "error" and pr.pr_creation_error_code == OUT_OF_CREDITS
+
+
 def _hash_pr_status(prs: Sequence[RepoPRState]) -> str:
     payload = orjson.dumps(
         [
@@ -842,7 +863,7 @@ def _next_agent_reply(
     cache_payload: SlackAgentCachePayload,
     state: SeerRunState,
     replies: Mapping[str, SlackSeerAgentReply],
-) -> tuple[str, SeerAgentError | SeerAgentResponse] | None:
+) -> tuple[str, SeerAgentError | SeerAgentResponse | SeerAgentOutOfCredits] | None:
     """The reply to post and its cache key, or None if the thread is up to date.
 
     Sends and records the write approval DM when a new approval is pending.
@@ -899,6 +920,13 @@ def _next_agent_reply(
             "I sent you a message."
         )
         repo_pr_states: list[RepoPRState] = []
+    elif state.failure_reason == OUT_OF_CREDITS:
+        # Seer ends the turn with its own plain-text notice; reply with the agent out-of-credits
+        # notification instead. Keyed on the last block so each stopped turn replies once.
+        key = f"out_of_credits:{state.blocks[-1].id}" if state.blocks else "out_of_credits"
+        if key in replies:
+            return None
+        return key, SeerAgentOutOfCredits(organization_id=organization_id)
     else:
         turn = next((turn for turn in reversed(state.get_turns()) if turn.answer), None)
         if turn is None or turn.answer is None:
