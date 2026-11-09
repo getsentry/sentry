@@ -46,7 +46,7 @@ from sentry.utils import metrics
 from sentry.utils.snuba import raw_query
 
 
-class _UnmergeRecoveryArguments(TypedDict, total=False):
+class UnmergeRecoveryArguments(TypedDict, total=False):
     operation_id: str
     operation_expires_at: int
 
@@ -182,7 +182,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
         )
 
-        task_kwargs: _UnmergeRecoveryArguments = {}
+        task_kwargs: UnmergeRecoveryArguments = {}
         if features.has("organizations:unmerge-recovery", group.project.organization):
             # Stable across starter and batch redeliveries; a broker activation
             # ID alone does not identify duplicate child deliveries.
