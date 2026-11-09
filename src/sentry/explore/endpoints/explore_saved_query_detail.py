@@ -186,7 +186,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         return Response(status=204)
 
 
-@extend_schema(tags=["Discover"])
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
     publish_status = {
