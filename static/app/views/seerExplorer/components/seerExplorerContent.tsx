@@ -948,7 +948,8 @@ export function SeerExplorerContent({
                   isFileApprovalPending ||
                   isAgentWriteApprovalPending ||
                   isQuestionPending ||
-                  showReauth
+                  showReauth ||
+                  (isAwaitingUserInput && pendingInput?.input_type === 'connect_scm')
                 }
                 outOfCredits={isRunOutOfCredits}
                 pendingInput={pendingInput}
