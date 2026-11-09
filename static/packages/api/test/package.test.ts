@@ -112,16 +112,6 @@ describe("package entry points", () => {
       `);
       execFileSync("node", ["smoke.mjs"], { cwd: directory });
 
-      writeFileSync(join(directory, "spec.mjs"), `
-        import assert from "node:assert/strict";
-        const read = name => import("@sentry/api/spec/" + name, { with: { type: "json" } }).then(module => module.default);
-        const spec = await read("openapi-derefed.json");
-        assert.ok(spec.paths["/api/0/organizations/"]);
-        assert.equal(typeof (await read("api_ownership_stats_dont_modify.json")), "object");
-        assert.equal(typeof (await read("rpc_method_schema.json")).paths, "object");
-      `);
-      execFileSync("node", ["spec.mjs"], { cwd: directory });
-
       writeFileSync(join(directory, "pagination.mjs"), `
         import assert from "node:assert/strict";
         import { consumePage, createSentryClient } from "@sentry/api";

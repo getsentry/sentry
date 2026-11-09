@@ -632,15 +632,13 @@ const projects = await core.requestJson("https://sentry.example.com", "/organiza
 
 ## Spec files
 
-The package also ships the files it is built from, as JSON entry points:
+Each `api@<version>` release on [GitHub](https://github.com/getsentry/sentry/releases) has the files that version was built from as assets:
 
-- `@sentry/api/spec/openapi-derefed.json`: the dereferenced OpenAPI spec.
-- `@sentry/api/spec/api_ownership_stats_dont_modify.json`: API ownership stats per team.
-- `@sentry/api/spec/rpc_method_schema.json`: the internal RPC method schema.
+- `openapi-derefed.json`: the dereferenced OpenAPI spec.
+- `api_ownership_stats_dont_modify.json`: API ownership stats per team.
+- `rpc_method_schema.json`: the internal RPC method schema.
 
-```ts
-import spec from "@sentry/api/spec/openapi-derefed.json" with { type: "json" };
-```
+For example, `https://github.com/getsentry/sentry/releases/download/api@1.55.0/openapi-derefed.json`. They are not in the npm package.
 
 ## Development
 

@@ -62,11 +62,17 @@ jobs:
       - name: Pack release artifact
         working-directory: ${{ env.PACKAGE_DIR }}
         run: pnpm pack --pack-destination .artifacts
+      # Craft's github target attaches every file in the artifact to the
+      # release; its npm target publishes only the tarball.
+      - name: Add the API spec files to the release artifact
+        if: env.BUILDS_FROM_API_SPEC == 'true'
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: cp spec/* .artifacts
       - name: Upload release artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           # Craft fetches `{{workspaceName}}-tarball` from this workflow.
           name: ${{ needs.workspace.outputs.name }}-tarball
-          path: ${{ env.PACKAGE_DIR }}/.artifacts/*.tgz
+          path: ${{ env.PACKAGE_DIR }}/.artifacts/*
           include-hidden-files: true
           if-no-files-found: error

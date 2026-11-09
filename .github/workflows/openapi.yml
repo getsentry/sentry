@@ -146,6 +146,7 @@ jobs:
         id: preflight
         env:
           SPEC_DIR: ${{ runner.temp }}/api-spec
+          GH_TOKEN: ${{ steps.token.outputs.token }}
         run: .github/workflows/scripts/api-package-release-preflight.sh
 
       - name: Prepare release
