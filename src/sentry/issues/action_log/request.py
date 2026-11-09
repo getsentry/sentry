@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
 from sentry.middleware import is_frontend_request
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import (
@@ -66,8 +67,8 @@ def resolve_action_actor(request: Request | HttpRequest) -> GroupActionActor:
 
     Region-side ``request.auth`` is an ``AuthenticatedToken`` whose ``kind`` distinguishes the
     caller: an org/legacy token is the organization acting, a token tied to an ApiApplication is
-    an integration (Sentry App) acting, and everything else authenticated is the user. Falls back
-    to SYSTEM_ACTOR when there is no authenticated caller.
+    an integration (Sentry App) acting, a service account is itself, and everything else
+    authenticated is the user. Falls back to SYSTEM_ACTOR when there is no authenticated caller.
     """
     if hasattr(request, "auth"):
         auth = request.auth
@@ -78,6 +79,9 @@ def resolve_action_actor(request: Request | HttpRequest) -> GroupActionActor:
             elif auth.kind == "agent_token":
                 if auth.user_id is not None:
                     return GroupActionActor.user(auth.user_id)
+            elif is_service_account_auth(auth):
+                if auth.entity_id is not None:
+                    return GroupActionActor.service_account(auth.entity_id)
             elif auth.kind == "api_token":
                 user = request.user
                 # Gate on is_sentry_app (the app's proxy user), not application_id: an OAuth client

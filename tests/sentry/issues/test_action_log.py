@@ -46,6 +46,7 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.action_log import CapturedAction, capture_action_log
 from sentry.testutils.outbox import outbox_runner
@@ -177,6 +178,16 @@ class TestResolveActionActor(TestCase):
         auth = AuthenticatedToken(kind="agent_token", user_id=self.user.id)
         request = self._request(auth=auth)
         assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
+
+    def test_service_account(self) -> None:
+        auth = AuthenticatedToken(
+            kind="service_account", entity_id=42, organization_id=self.organization.id
+        )
+        principal = ServiceAccountPrincipal(
+            service_account_id=42, organization_id=self.organization.id, name="seer"
+        )
+        request = self._request(auth=auth, user=principal)
+        assert resolve_action_actor(request) == GroupActionActor.service_account(42)
 
     def test_org_auth_token(self) -> None:
         auth = AuthenticatedToken(kind="org_auth_token", organization_id=self.organization.id)
