@@ -332,11 +332,12 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         try:
             client = SeerAgentClient(organization, request.user)
             state = client.get_run(run_id=resolved.seer_run_state_id)
+            session = redact_autofix_prompts(
+                state, can_see_prompts=can_see_autofix_prompts(request)
+            )
             return Response(
                 SeerAgentChatStateResponse(
-                    session=redact_autofix_prompts(
-                        state, can_see_prompts=can_see_autofix_prompts(request)
-                    ),
+                    session=session,
                     sentry_run_id=resolved.uuid,
                     feature_id=SINGLE_RUN_FEATURE_ID if is_single_run(state) else None,
                 ).dict()

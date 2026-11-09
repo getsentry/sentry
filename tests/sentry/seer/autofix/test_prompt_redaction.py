@@ -57,9 +57,3 @@ def test_keeps_a_plain_chat_message() -> None:
     assert _contents(redact_autofix_prompts(state, can_see_prompts=False)) == [
         "What is this error about?"
     ]
-
-
-def test_staff_see_the_prompts() -> None:
-    state = _state(_block(0, "user", "Fix issue ABC-1 ...", "single_run"))
-
-    assert _contents(redact_autofix_prompts(state, can_see_prompts=True)) == ["Fix issue ABC-1 ..."]

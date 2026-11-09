@@ -673,8 +673,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                 )
 
         run = get_seer_run(state.run_id, group.organization)
-        state = redact_autofix_prompts(state, can_see_prompts=can_see_autofix_prompts(request))
-        blocks = [block.dict() for block in state.blocks]
+        redacted = redact_autofix_prompts(state, can_see_prompts=can_see_autofix_prompts(request))
+        blocks = [block.dict() for block in redacted.blocks]
         return Response(
             {
                 "autofix": {

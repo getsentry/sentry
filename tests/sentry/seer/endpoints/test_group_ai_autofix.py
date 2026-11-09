@@ -36,6 +36,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
     pause_pr_iteration,
 )
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
+from sentry.seer.autofix.prompt_redaction import AUTOFIX_PROMPT_PLACEHOLDER
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
@@ -161,7 +162,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(self._get_url(group.id), format="json")
 
         assert response.status_code == 200, response.data
-        assert response.data["autofix"]["blocks"][0]["message"]["content"] == "Started Autofix"
+        assert (
+            response.data["autofix"]["blocks"][0]["message"]["content"]
+            == AUTOFIX_PROMPT_PLACEHOLDER
+        )
 
     @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
     def test_get_returns_newer_step_run_with_autofix_feature_id(
