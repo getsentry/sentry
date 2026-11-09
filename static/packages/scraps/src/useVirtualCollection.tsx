@@ -2,7 +2,12 @@ import type * as React from 'react';
 import {Fragment, useEffect} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
 import type {Key, Node} from '@react-types/shared';
-import {defaultRangeExtractor, type Range} from '@tanstack/react-virtual';
+import {
+  defaultRangeExtractor,
+  observeElementRect,
+  type Range,
+  type VirtualizerOptions,
+} from '@tanstack/react-virtual';
 
 import {Container} from '@sentry/scraps/layout';
 import type {FormSize} from '@sentry/scraps/theme';
@@ -38,6 +43,25 @@ export function flattenSections<T>(
       node.type === 'section' ? [node, ...[...node.childNodes].filter(isVisible)] : [node]
     );
 }
+
+/**
+ * Reports the scroll element's size like the default, but never taller than the
+ * window. A menu's list is capped by the space its overlay is positioned in,
+ * which is only known after its first render. Until then the list can be as
+ * tall as all of its rows, and the virtualizer would mount every one of them.
+ * The visible part of a list cannot be taller than the window, so this never
+ * mounts fewer rows than can be seen.
+ */
+const observeViewportCappedRect: VirtualizerOptions<
+  HTMLElement,
+  Element
+>['observeElementRect'] = (instance, cb) =>
+  observeElementRect(instance, rect =>
+    cb({
+      width: rect.width,
+      height: Math.min(rect.height, instance.targetWindow?.innerHeight ?? rect.height),
+    })
+  );
 
 /** Props for the element that renders a row. Spread them onto the row's root element. */
 export interface VirtualRowProps {
@@ -205,6 +229,7 @@ export function useVirtualCollection<T>({
     scrollPaddingEnd: listPadding,
     overscan: 1,
     rangeExtractor,
+    observeElementRect: observeViewportCappedRect,
   });
 
   // Keyboard navigation can move focus to a row that is not mounted. Scroll it
@@ -295,6 +320,11 @@ interface VirtualRowsProps<T> {
   /**
    * Renders an item row. Spread `props` onto the element that is the row's
    * height, so the virtualizer can measure it.
+   *
+   * The list re-renders on every scroll, and `props` is a new object each time.
+   * To let a row that did not change skip rendering, pass the row component
+   * `props['data-index']` and `props.ref` as separate props, which keep their
+   * identity, and rebuild the object inside it.
    */
   renderRow: (row: VirtualRow<T>) => React.ReactNode;
   /** The result of `useVirtualCollection`. */
