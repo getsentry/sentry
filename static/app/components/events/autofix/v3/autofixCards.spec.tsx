@@ -945,8 +945,7 @@ describe('ArtifactCard', () => {
               makeAssistantBlock('The failed check is unrelated to this PR.'),
             ]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(
