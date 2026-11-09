@@ -4,7 +4,6 @@ import {IconFire} from '@sentry/icons/fire';
 import {queryOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {
@@ -86,7 +85,6 @@ export function MetricAutomationForm(props: Props) {
   const updateConfig = useUpdateConfig({
     configId: props.mode === 'edit' ? props.config.id : '',
   });
-  const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
   const saveConfig = async (value: z.infer<typeof schema>) => {
     const fields = {
       enabled: value.enabled,
@@ -145,6 +143,7 @@ export function MetricAutomationForm(props: Props) {
           });
         }
       } catch (error) {
+        toast.error(getRequestErrorUserMessage(error, t('Unable to save automation.')));
         if (error instanceof RequestError) {
           setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
         }
@@ -191,11 +190,6 @@ export function MetricAutomationForm(props: Props) {
     <Container maxWidth="960px" width="100%" containerType="inline-size">
       <form.AppForm form={form}>
         <Stack gap="lg">
-          {mutationError && (
-            <Alert variant="danger">
-              {getRequestErrorUserMessage(mutationError, t('Unable to save automation.'))}
-            </Alert>
-          )}
           <form.FieldGroup title={t('Description')}>
             {props.mode === 'create' && (
               <form.AppField name="name">
