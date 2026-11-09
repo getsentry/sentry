@@ -5,7 +5,11 @@ import pytest
 
 from sentry.agent_handoff.codes import HandoffFlow, OnboardingHandoffContext
 from sentry.agent_handoff.flows import HandoffMode, InvalidHandoffContext, get_flow_instructions
-from sentry.agent_handoff.runbook import render_agent_runbook, render_claim_runbook
+from sentry.agent_handoff.runbook import (
+    render_agent_runbook,
+    render_claim_runbook,
+    render_onboarding_runbook,
+)
 from sentry.organizations.services.organization.model import RpcOnboardingReportingCode
 
 
@@ -237,3 +241,15 @@ def test_onboarding_claim_rejects_unavailable_run() -> None:
             organization_id=2,
             context=OnboardingHandoffContext(run_id="a" * 32),
         )
+
+
+def test_onboarding_guide_reports_connect_agent_before_other_stages() -> None:
+    guide = render_onboarding_runbook(organization_id=2, code="a1B2c3D4e5")
+    connect = (
+        "sentry api organizations/2/onboarding/agent/status/"
+        " -X POST -F schemaVersion=1 -f 'runToken=a1B2c3D4e5'"
+        " -f stage=connect_agent -f status=completed"
+        " -f 'extra[method]=cli'"
+    )
+    assert connect in guide
+    assert guide.index(connect) < guide.index("-f stage=analyze_project")

@@ -146,6 +146,10 @@ def render_claim_runbook(*, claim_url: str) -> str:
 
 
 def render_onboarding_runbook(*, organization_id: int, code: str) -> str:
+    status_command = (
+        f"sentry api organizations/{organization_id}/onboarding/agent/status/"
+        f" -X POST -F schemaVersion=1 -f 'runToken={code}'"
+    )
     return _ENVIRONMENT.get_template("sentry/agent_handoff/onboarding.md").render(
-        organization_id=organization_id, code=code
+        code=code, status_command=status_command
     )
