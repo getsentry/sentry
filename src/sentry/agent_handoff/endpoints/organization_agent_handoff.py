@@ -65,7 +65,7 @@ class AgentHandoffResponse(TypedDict):
 
 
 class AgentHandoffPermission(OrganizationPermission):
-    scope_map = {"POST": ["org:read"]}
+    scope_map = {"GET": ["org:read"], "POST": ["org:read"]}
 
 
 @extend_schema(tags=["Organizations"])
