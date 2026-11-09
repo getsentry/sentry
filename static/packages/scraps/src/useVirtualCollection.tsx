@@ -19,7 +19,7 @@ import {
   getSectionIndexes,
 } from './virtualCollectionLayout';
 
-export {isAfterFirstInSection} from './virtualCollectionLayout';
+export {estimateRowHeight, isAfterFirstInSection} from './virtualCollectionLayout';
 
 /**
  * Item count above which shared menu controls (CompactSelect, DropdownMenu)

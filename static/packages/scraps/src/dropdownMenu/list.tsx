@@ -40,6 +40,7 @@ import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 import {
   DEFAULT_VIRTUALIZE_THRESHOLD,
+  estimateRowHeight,
   flattenSections,
   useVirtualCollection,
   VirtualRows,
@@ -190,6 +191,9 @@ function DropdownMenuCollectionItem({
   );
 }
 
+/** Height (px) of `DropdownMenuSeparator`, also used to estimate unmounted rows. */
+const SEPARATOR_HEIGHT = 8;
+
 function DropdownMenuSeparator({
   separatorProps,
 }: {
@@ -198,7 +202,7 @@ function DropdownMenuSeparator({
   return (
     <Stack
       justify="center"
-      height="8px"
+      height={`${SEPARATOR_HEIGHT}px`}
       padding="0 lg 0 xl"
       {...separatorProps}
       role="presentation"
@@ -240,6 +244,51 @@ function DropdownMenuRows({
   ...itemProps
 }: DropdownMenuRowsProps) {
   const theme = useTheme();
+  const size = itemProps.size ?? 'md';
+  // The space items in a section get from `spaceAbove`.
+  const sectionRowSpace = parseFloat(theme.space[SECTION_ITEM_SPACE]);
+
+  // Top-level items right after a section. Their row starts with a separator.
+  const itemsAfterSections = useMemo(
+    () =>
+      new Set(
+        collection
+          .filter((_, index) => collection[index - 1]?.type === 'section')
+          .map(node => node.key)
+      ),
+    [collection]
+  );
+
+  const sectionsByKey = useMemo(
+    () =>
+      new Map(
+        collection.filter(node => node.type === 'section').map(node => [node.key, node])
+      ),
+    [collection]
+  );
+
+  // Estimates rows the way they render below: a separator is part of every
+  // section's row except the first one's, and of the row of an item right after
+  // a section. A section's row also holds its heading, if it has one.
+  const estimateSize = useCallback(
+    (node: Node<MenuItemProps>) => {
+      if (node.type === 'section') {
+        const separator = node.key === collection[0]?.key ? 0 : SEPARATOR_HEIGHT;
+        const heading = node.rendered
+          ? estimateRowHeight(node, undefined, size, sectionRowSpace)
+          : 0;
+        return separator + heading;
+      }
+      const section =
+        node.parentKey === null || node.parentKey === undefined
+          ? undefined
+          : sectionsByKey.get(node.parentKey);
+      const height = estimateRowHeight(node, section, size, sectionRowSpace);
+      return itemsAfterSections.has(node.key) ? height + SEPARATOR_HEIGHT : height;
+    },
+    [collection, itemsAfterSections, sectionsByKey, size, sectionRowSpace]
+  );
+
   // The virtualizer re-renders the component that calls it on every scroll.
   // Calling it here, rather than in `DropdownMenuList`, keeps those re-renders
   // to the rows: the list's state and handlers keep their identity, so a row
@@ -247,12 +296,10 @@ function DropdownMenuRows({
   const virtual = useVirtualCollection({
     collection,
     enabled: virtualized,
-    size: itemProps.size ?? 'md',
+    estimateSize,
     scrollRef: menuRef,
     focusedKey: itemProps.state.selectionManager.focusedKey,
     widestKey,
-    // The space items in a section get from `spaceAbove`.
-    sectionRowSpace: parseFloat(theme.space[SECTION_ITEM_SPACE]),
   });
 
   // A virtualized menu only mounts some of its rows, so its natural width would
@@ -276,16 +323,6 @@ function DropdownMenuRows({
     onLockWidth(Math.ceil(menu.getBoundingClientRect().width));
     menu.style.width = width;
   }, [virtualized, isWidestRowMounted, isWidthLocked, menuRef, onLockWidth]);
-
-  const itemsAfterSections = useMemo(
-    () =>
-      new Set(
-        collection
-          .filter((_, index) => collection[index - 1]?.type === 'section')
-          .map(node => node.key)
-      ),
-    [collection]
-  );
 
   return (
     <VirtualRows
