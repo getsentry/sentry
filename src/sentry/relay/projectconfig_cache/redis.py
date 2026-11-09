@@ -25,7 +25,7 @@ class RedisProjectConfigCache(ProjectConfigCache):
         super().__init__(**options)
 
     def validate(self) -> None:
-        validate_dynamic_cluster(True, self.cluster)
+        validate_dynamic_cluster(self.cluster)
 
     def __get_redis_key(self, public_key: str) -> str:
         return f"relayconfig:{public_key}"

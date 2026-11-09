@@ -92,6 +92,7 @@ def test_untyped_schemas() -> None:
             "dict_list": prop({"type": "array", "items": {"type": "object"}}),
             "any_branch": prop({"anyOf": [{"type": "string"}, {}]}),
             "typed_map": prop({"type": "object", "additionalProperties": {"type": "integer"}}),
+            "empty_object": prop({"type": "object", "maxProperties": 0}),
             "enum": prop({"enum": ["a", "b"]}),
             "union": prop({"oneOf": [{"type": "string"}, {"type": "integer"}]}),
             "reference": prop({"allOf": [_ref("Thing")], "nullable": True}),

@@ -8,6 +8,7 @@ from sentry.agent_handoff.codes import (
     HANDOFF_LIFETIME,
     AgentHandoff,
     HandoffFlow,
+    HandoffIPMismatch,
     IssuedAgentHandoff,
     _get_redis_client,
     _handoff_key,
@@ -23,13 +24,17 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 @control_silo_test
 class AgentHandoffTest(TestCase):
-    def issue(self) -> IssuedAgentHandoff:
+    def issue(
+        self, ip_address: str = "192.0.2.1", *, disable_ip_pinning: bool = False
+    ) -> IssuedAgentHandoff:
         return issue_handoff(
             flow=HandoffFlow.ONBOARDING,
             user_id=1,
             organization_id=2,
             application_id=3,
             scope_list=["org:read", "project:write"],
+            ip_address=ip_address,
+            disable_ip_pinning=disable_ip_pinning,
         )
 
     def test_stores_hashed_expiring_code_with_bound_context(self) -> None:
@@ -50,32 +55,34 @@ class AgentHandoffTest(TestCase):
             "organization_id": 2,
             "application_id": 3,
             "scope_list": ["org:read", "project:write"],
+            "ip_address": "192.0.2.1",
         }
 
     def test_consume_is_single_use(self) -> None:
         issued = self.issue()
-        assert consume_handoff(issued.code) == AgentHandoff(
+        assert consume_handoff(issued.code, ip_address="192.0.2.1") == AgentHandoff(
             flow=HandoffFlow.ONBOARDING,
             user_id=1,
             organization_id=2,
             application_id=3,
             scope_list=("org:read", "project:write"),
+            ip_address="192.0.2.1",
         )
-        assert consume_handoff(issued.code) is None
+        assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
 
     def test_expired_handoff_is_unavailable(self) -> None:
         issued = self.issue()
         _get_redis_client().expire(_handoff_key(issued.code), 0)
-        assert consume_handoff(issued.code) is None
+        assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
 
     def test_revoke_is_idempotent(self) -> None:
         issued = self.issue()
         revoke_handoff(issued.code)
         revoke_handoff(issued.code)
-        assert consume_handoff(issued.code) is None
+        assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
 
     def test_unknown_handoff_is_unavailable(self) -> None:
-        assert consume_handoff("unrecognized-code") is None
+        assert consume_handoff("unrecognized-code", ip_address="192.0.2.1") is None
 
     def test_concurrent_consumers_have_one_winner(self) -> None:
         issued = self.issue()
@@ -92,18 +99,46 @@ class AgentHandoffTest(TestCase):
             patch.object(client, "get", side_effect=read_before_consume),
             ContextPropagatingThreadPoolExecutor(max_workers=2) as executor,
         ):
-            results = list(executor.map(consume_handoff, [issued.code, issued.code]))
+            results = list(
+                executor.map(
+                    lambda code: consume_handoff(code, ip_address="192.0.2.1"),
+                    [issued.code, issued.code],
+                )
+            )
 
         assert sum(result is not None for result in results) == 1
-        assert consume_handoff(issued.code) is None
+        assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
 
-    def test_corrupt_persistence_is_rejected_and_consumed(self) -> None:
+    def test_corrupt_persistence_is_rejected(self) -> None:
         issued = self.issue()
         _get_redis_client().set(_handoff_key(issued.code), '{"user_id":"invalid"}', ex=60)
         with pytest.raises(ValidationError):
-            consume_handoff(issued.code)
+            consume_handoff(issued.code, ip_address="192.0.2.1")
 
-        assert consume_handoff(issued.code) is None
+    def test_mismatched_ip_preserves_handoff(self) -> None:
+        issued = self.issue()
+        with pytest.raises(HandoffIPMismatch):
+            consume_handoff(issued.code, ip_address="192.0.2.2")
+
+        assert consume_handoff(issued.code, ip_address="192.0.2.1") is not None
+
+    def test_missing_ip_cannot_claim_pinned_handoff(self) -> None:
+        issued = self.issue()
+        with pytest.raises(HandoffIPMismatch):
+            consume_handoff(issued.code, ip_address=None)
+
+        assert consume_handoff(issued.code, ip_address="192.0.2.1") is not None
+
+    def test_unpinned_handoff_accepts_another_ip(self) -> None:
+        issued = self.issue(disable_ip_pinning=True)
+        handoff = consume_handoff(issued.code, ip_address="192.0.2.2")
+        assert handoff is not None
+        assert handoff.ip_address == "192.0.2.1"
+        assert handoff.disable_ip_pinning
+
+    def test_equivalent_ipv6_addresses_match(self) -> None:
+        issued = self.issue(ip_address="2001:db8:0:0:0:0:0:1")
+        assert consume_handoff(issued.code, ip_address="2001:db8::1") is not None
 
 
 def test_handoff_defaults_to_guided_next_steps() -> None:
@@ -111,6 +146,7 @@ def test_handoff_defaults_to_guided_next_steps() -> None:
         '{"user_id":1,"organization_id":2,"application_id":3,"scope_list":["org:read"]}'
     )
     assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
+    assert handoff.ip_address is None
 
 
 def test_unknown_handoff_flow_is_rejected() -> None:

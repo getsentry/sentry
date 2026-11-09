@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
+import {SeerPricingChangeAlert} from 'getsentry/components/ai/seerPricingChangeAlert';
 import {AddOnCategory} from 'getsentry/types';
 import {
   displayUnitPrice,
@@ -222,6 +223,7 @@ export function ProductSelect({
                   {t('Find and fix issues anywhere with Seer AI debugger')}
                 </Heading>
               </Flex>
+              <SeerPricingChangeAlert />
               {!isSelected && subscription.addOns?.[AddOnCategory.SEER]?.enabled && (
                 <Alert variant="warning" icon={<IconWarning />}>
                   {t(

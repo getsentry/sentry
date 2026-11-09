@@ -335,14 +335,11 @@ class DatabaseBackedAppService(AppService):
         return SentryAppInstallationToken.objects.get_token(organization_id, provider)
 
     def get_proxy_user_id_for_provider(self, *, organization_id: int, provider: str) -> int | None:
-        install_for_provider = (
-            SentryAppInstallationForProvider.objects.filter(
-                organization_id=organization_id, provider=provider
-            )
-            .select_related("sentry_app_installation__sentry_app")
-            .first()
-        )
-        if install_for_provider is None:
+        try:
+            install_for_provider = SentryAppInstallationForProvider.objects.select_related(
+                "sentry_app_installation__sentry_app"
+            ).get(organization_id=organization_id, provider=provider)
+        except SentryAppInstallationForProvider.DoesNotExist:
             return None
         installation = install_for_provider.sentry_app_installation
         if (

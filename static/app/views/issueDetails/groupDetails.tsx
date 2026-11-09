@@ -644,7 +644,7 @@ function GroupDetailsContentInner({
   });
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
-  const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
+  const {openIssueActivityDrawer} = useIssueActivityDrawer({group});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 

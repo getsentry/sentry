@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import {useQueryState} from 'nuqs';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {toast} from '@sentry/scraps/toast';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct, tn} from 'sentry/locale';

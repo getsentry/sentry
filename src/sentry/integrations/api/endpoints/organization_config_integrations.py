@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -10,6 +10,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, IntegrationParams
 from sentry.apidocs.response_types import DetailResponse
@@ -24,7 +25,10 @@ from sentry.models.organization import Organization
 
 
 class OrganizationConfigIntegrationsEndpointResponse(TypedDict):
-    providers: list[IntegrationProviderResponse]
+    providers: Annotated[
+        list[IntegrationProviderResponse],
+        ApiDescription("Integration providers available to the organization"),
+    ]
 
 
 @extend_schema(tags=["Integrations"])

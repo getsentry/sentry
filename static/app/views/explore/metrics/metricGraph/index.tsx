@@ -327,6 +327,7 @@ function Graph({
               chartInfo={chartInfo}
               droppedData={droppedData.band}
               plottables={plottables}
+              isDroppedDataLoading={droppedData.isLoading}
             />
           ) : undefined
         }

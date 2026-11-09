@@ -6,6 +6,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
@@ -16,7 +17,6 @@ import {
 } from 'sentry/actionCreators/sentryAppInstallations';
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';

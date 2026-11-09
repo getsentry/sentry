@@ -203,6 +203,12 @@ register(
     type=Int,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "mail.send-dedupe.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # TOTP (Auth app)
 register(
@@ -807,14 +813,14 @@ register(
 
 register(
     "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
-    default=3600,
+    default=300,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
-    default=601,
+    default=1801,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1053,6 +1059,7 @@ register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # GCP MCP Integration
 register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1640,6 +1647,14 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables telemetry classifier enrichment writes to snuba-items.
+register(
+    "telemetry-classifiers.eap-write.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Conversation classifiers PoC.
 register(
     "classifiers.conversations.project-ids",
@@ -1653,6 +1668,14 @@ register(
     type=Int,
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Kill switch for sentry.cadence: when False, no triggers are claimed or fired.
+register(
+    "cadence.tick.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -3901,6 +3924,14 @@ register(
 
 register(
     "similarity.new_project_seer_grouping.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Use Seer embeddings similarity for every project. Off for self-hosted, which keeps the legacy
+# Redis index.
+register(
+    "similarity.seer_grouping.all_projects",
+    type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
