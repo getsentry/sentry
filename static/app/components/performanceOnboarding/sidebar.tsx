@@ -29,6 +29,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
@@ -43,8 +44,7 @@ import {filterProjects} from './utils';
 
 export function usePerformanceOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.PERFORMANCE_ONBOARDING;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 

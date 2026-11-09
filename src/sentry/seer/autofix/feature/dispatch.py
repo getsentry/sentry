@@ -140,6 +140,67 @@ def _single_run_pr_internal_settings(
     )
 
 
+def _org_allows_coding(group: Group) -> bool:
+    return bool(
+        group.organization.get_option(
+            "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+        )
+    )
+
+
+def continue_single_run(
+    agent_run: SeerAgentRun,
+    group: Group,
+    reply: str,
+    *,
+    user: User | RpcUser,
+    can_publish: bool,
+    referrer: AutofixReferrer,
+) -> SeerRun:
+    from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+
+    enable_coding = _org_allows_coding(group)
+    open_pr = enable_coding and can_publish
+    payload = AutofixSingleRunFeaturePayload(
+        group_id=group.id,
+        project_id=group.project_id,
+        short_id=group.qualified_short_id or str(group.id),
+        title=group.title or "Unknown error",
+        culprit=group.culprit or "unknown",
+        on_completion_hook=extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True),
+        should_run_repo_checks=True,
+        existing_run_id=agent_run.run.seer_run_state_id,
+        reply=reply,
+        pr_internal_settings=(
+            _single_run_pr_internal_settings(group, referrer) if open_pr else None
+        ),
+    )
+    agent_run_options = AgentRunOptions(
+        is_context_engine_enabled=False,
+        enable_frontend_code_search=False,
+        enable_coding=enable_coding,
+        enable_pr_context_tools=False,
+        enable_write_pull_request=open_pr,
+    )
+
+    client = SeerAgentClient(
+        organization=group.organization,
+        project=group.project,
+        group=group,
+        user=user,
+        enable_coding=enable_coding,
+        enable_bash_mode=True,
+    )
+    return client.continue_feature_run(
+        existing_agent_run=agent_run,
+        payload=payload.dict(),
+        referrer=referrer.value,
+        user_org_context=collect_user_org_context(user, group.organization),
+        proxy_headers=get_proxy_headers(),
+        agent_run_options=agent_run_options,
+    )
+
+
 def trigger_autofix_feature(
     group: Group,
     args: AutofixFeatureArgs,
@@ -203,11 +264,7 @@ def trigger_autofix_feature(
         enable_coding = stopping_point in (
             AutofixStoppingPoint.CODE_CHANGES,
             AutofixStoppingPoint.OPEN_PR,
-        ) and bool(
-            group.organization.get_option(
-                "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
-            )
-        )
+        ) and _org_allows_coding(group)
         open_pr = enable_coding and stopping_point == AutofixStoppingPoint.OPEN_PR
         if open_pr:
             payload.pr_internal_settings = _single_run_pr_internal_settings(group, args.referrer)

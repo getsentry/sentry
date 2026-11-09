@@ -62,6 +62,32 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _render_tracked(
+    data: NotificationData,
+) -> tuple[SlackRenderable, NotificationTrackingContext, set[str]]:
+    """
+    Renders a Seer Slack message with its callback buttons marked with the notification. Returns
+    the renderable, the context to record its send with, and the links and buttons it contains.
+    """
+    provider = provider_registry.get(NotificationProviderKey.SLACK)
+    template_cls = template_registry.get(data.source)
+    renderable, links = NotificationService.render_template(
+        data=data, template=template_cls(), provider=provider
+    )
+    tracking_context = NotificationTrackingContext(
+        source=data.source,
+        provider=NotificationProviderKey.SLACK,
+        category=template_cls.category,
+        notification_uuid=data.notification_uuid,
+        organization_id=data.organization_id,
+    )
+    tracked: set[str] = {
+        *links,
+        *provider.track_actions(renderable=renderable, context=tracking_context),
+    }
+    return renderable, tracking_context, tracked
+
+
 def send_thread_update(
     *,
     install: SlackIntegration,
@@ -87,22 +113,7 @@ def send_thread_update(
                 "ephemeral_user_id": ephemeral_user_id,
             }
         )
-        provider = provider_registry.get(NotificationProviderKey.SLACK)
-        template_cls = template_registry.get(data.source)
-        renderable, links = NotificationService.render_template(
-            data=data, template=template_cls(), provider=provider
-        )
-        tracking_context = NotificationTrackingContext(
-            source=data.source,
-            provider=NotificationProviderKey.SLACK,
-            category=template_cls.category,
-            notification_uuid=data.notification_uuid,
-            organization_id=data.organization_id,
-        )
-        tracked = {
-            *links,
-            *provider.track_actions(renderable=renderable, context=tracking_context),
-        }
+        renderable, tracking_context, tracked = _render_tracked(data)
         try:
             if ephemeral_user_id:
                 response = install.send_threaded_ephemeral_message(
@@ -155,7 +166,8 @@ def edit_thread_message(
     *, install: SlackIntegration, channel_id: str, message_ts: str, data: NotificationData
 ) -> None:
     """
-    Re-render a message we already posted from new data.
+    Re-render a message we already posted from new data, recording the edit as a send of the
+    data's notification, since the re-rendered links and buttons carry its ID.
     Returns once there's nothing left to do, including when the message is gone. Raises
     IntegrationError otherwise, so the caller can retry.
     """
@@ -167,15 +179,12 @@ def edit_thread_message(
         lifecycle.add_extras(
             {"channel_id": channel_id, "message_ts": message_ts, "data_source": data.source}
         )
-        renderable, _ = NotificationService.render_template(
-            data=data,
-            template=template_registry.get(data.source)(),
-            provider=provider_registry.get(NotificationProviderKey.SLACK),
-        )
+        renderable, tracking_context, tracked = _render_tracked(data)
         try:
             install.update_message(
                 channel_id=channel_id, message_ts=message_ts, renderable=renderable
             )
+            record_sent(tracking_context, links=tracked)
         except IntegrationResourceNotFoundError as e:
             lifecycle.record_halt(halt_reason=e)
         except TimeoutError as e:

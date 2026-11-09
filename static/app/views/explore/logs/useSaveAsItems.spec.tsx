@@ -246,7 +246,7 @@ describe('useSaveAsItems', () => {
     expect(getDetails('add-to-dashboard')).toBe('Always matches case');
   });
 
-  it('preserves the selected chart type and pipeline when adding a dashboard widget', () => {
+  it('preserves the selected chart type and transformations when adding a dashboard widget', () => {
     const {result, router} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: Wrapper,
       organization,

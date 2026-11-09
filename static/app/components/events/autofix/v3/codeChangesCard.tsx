@@ -15,6 +15,7 @@ import {
   isCodeChangesArtifact,
   isPrIterationBlock,
   isPrIterationPaused,
+  isSingleRunAutofix,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -371,7 +372,8 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
           ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
           : undefined
       }
-      allowReset
+      // Single runs reject step restarts; people redo the fix by replying in the chat.
+      allowReset={!isSingleRunAutofix(autofix.runState)}
       onReset={canReset ? (resetInChat ?? (() => setShouldShowReset(true))) : undefined}
       resetInChat={defined(resetInChat)}
       resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : undefined}

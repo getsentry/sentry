@@ -185,7 +185,7 @@ describe('MetricPanel', () => {
     expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
   });
 
-  it('counts each top-N group once across transformation pipelines', async () => {
+  it('counts each top-N group once across transformed series', async () => {
     setupEventsMock(
       createTraceMetricFixtures(organization, project, new Date()).detailedFixtures,
       [MockApiClient.matchQuery({referrer: 'api.explore.metric-options'})]

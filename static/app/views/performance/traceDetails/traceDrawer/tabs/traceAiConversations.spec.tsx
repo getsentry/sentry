@@ -124,6 +124,10 @@ describe('TraceAiConversations', () => {
     Element.prototype.scrollTo = jest.fn();
     Element.prototype.scrollIntoView = jest.fn();
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      body: [],
+    });
     act(() => {
       PageFiltersStore.reset();
       PageFiltersStore.init();

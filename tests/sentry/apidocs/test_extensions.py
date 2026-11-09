@@ -109,7 +109,7 @@ def test_sentry_response_serializer_extension() -> None:
                 "anyOf": [
                     {"type": "integer"},
                     {"format": "double", "type": "number"},
-                    {"type": "object", "nullable": True},
+                    {"type": "object", "nullable": True, "enum": [None]},
                 ]
             },
         },
@@ -150,7 +150,7 @@ def test_sentry_inline_response_serializer_extension() -> None:
                     "anyOf": [
                         {"type": "integer"},
                         {"format": "double", "type": "number"},
-                        {"type": "object", "nullable": True},
+                        {"type": "object", "nullable": True, "enum": [None]},
                     ]
                 },
             },

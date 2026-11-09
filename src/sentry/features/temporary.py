@@ -324,6 +324,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-thinking-summary", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:seer-explorer-stream", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:seer-agent-enable-assisted-query-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Seer Explorer Impact assessments
+    manager.add("organizations:seer-impact-assessment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable browser notifications for autofix runs
     manager.add("organizations:autofix-browser-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the "Open in Seer Agent (debug)" button in the autofix drawer
@@ -340,7 +342,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Assign the triggering user and post a status comment once a Seer PR exhausts its CI-fix iteration cap
     manager.add("organizations:autofix-pr-iteration-cap-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Keep PR iteration turns on their PR's latest commit, and retry a push the branch moved under
-    manager.add("organizations:autofix-pr-iteration-pin-to-pr-head", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:autofix-pr-iteration-pin-to-pr-head", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:autofix-single-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose one-shot question answers on the Seer runs list (?expand=questions)
     manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -407,8 +409,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-public-rpc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Organizations on the old usage-based (v0) Seer plan
     manager.add("organizations:seer-added", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Roll out issue action log writes to organizations with Seer access
-    manager.add("organizations:issue-action-log-seer-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the redesigned issue priority and assignee controls
     manager.add("organizations:issue-priority-assignee-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Specific flag for rolling out issue inbox UI to organization with Seer access
