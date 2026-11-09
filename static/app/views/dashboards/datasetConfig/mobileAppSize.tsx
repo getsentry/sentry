@@ -217,7 +217,7 @@ export const MobileAppSizeConfig: DatasetConfig<EventsTimeSeriesResponse, TableD
   enableEquations: false,
   SearchBar: MobileAppSizeSearchBar,
   useSearchBarDataProvider: useMobileAppSizeSearchBarDataProvider,
-  supportedDisplayTypes: [DisplayType.LINE],
+  supportedDisplayTypes: [DisplayType.LINE, DisplayType.BAR],
   getTableFieldOptions: getPrimaryFieldOptions,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
