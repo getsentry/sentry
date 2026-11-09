@@ -208,13 +208,13 @@ export default function AutomationDetail() {
         <Text size="sm" variant="muted">
           {t('Cost 30D')}
         </Text>
-        <Text size="lg">$140.69</Text>
+        <Text size="lg">$mock</Text>
       </Stack>
       <Stack align="end">
         <Text size="sm" variant="muted">
           {t('Cost per Run')}
         </Text>
-        <Text size="lg">$2.50</Text>
+        <Text size="lg">$mock</Text>
       </Stack>
     </Flex>
   );

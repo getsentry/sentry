@@ -32,8 +32,8 @@ const MOCK_ACTIONS = {
   openPullRequests: true,
 };
 const MOCK_SPEND_PERIOD: SpendPeriod = '30d';
-const MOCK_ESTIMATED_SPEND_TODAY = '$2.50';
-const MOCK_ESTIMATED_SPEND_PER_RUN = '$2.50';
+const MOCK_ESTIMATED_SPEND_TODAY = '$mock';
+const MOCK_ESTIMATED_SPEND_PER_RUN = '$mock';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MOCK_START = new Date('2026-09-23T00:00:00Z').getTime();
