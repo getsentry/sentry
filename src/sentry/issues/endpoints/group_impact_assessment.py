@@ -36,7 +36,7 @@ class GroupImpactAssessmentResponse(TypedDict):
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupImpactAssessmentEndpoint(GroupAiEndpoint):
-    owner = ApiOwner.ML_AI
+    owner = ApiOwner.ISSUES
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
@@ -66,7 +66,7 @@ class GroupImpactAssessmentEndpoint(GroupAiEndpoint):
     )
     def post(self, request: Request, group: Group) -> Response:
         try:
-            run = assess_impact_for_group(group, user=request.user)
+            run = assess_impact_for_group(group=group, user=request.user)
         except ImpactAssessmentDisabled:
             return Response(
                 {"detail": "Seer Impact assessment is not enabled for this organization"},

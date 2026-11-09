@@ -54,13 +54,13 @@ class AssessImpactForGroupTest(TestCase):
 
         with self.feature("organizations:seer-impact-assessment"):
             with pytest.raises(ValueError, match="has no event"):
-                assess_impact_for_group(group)
+                assess_impact_for_group(group=group)
 
     @patch("sentry.issues.impact.assessment.SeerAgentClient")
     def test_requires_feature(self, mock_client_cls: MagicMock) -> None:
         group = self.create_group(project=self.project)
 
         with pytest.raises(PermissionError, match="not enabled"):
-            assess_impact_for_group(group)
+            assess_impact_for_group(group=group)
 
         mock_client_cls.assert_not_called()

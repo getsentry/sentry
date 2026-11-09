@@ -16,7 +16,7 @@ class ImpactAssessmentEventNotFound(ValueError):
     pass
 
 
-def assess_impact_for_group(group: Group, user: RequestPrincipal | None = None) -> SeerRun:
+def assess_impact_for_group(*, group: Group, user: RequestPrincipal | None = None) -> SeerRun:
     if not features.has("organizations:seer-impact-assessment", organization=group.organization):
         raise ImpactAssessmentDisabled(
             "Seer Impact assessment is not enabled for this organization"
