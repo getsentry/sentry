@@ -378,7 +378,6 @@ export function LinkedTabsDemo() {
           <TabList.Item
             key={key}
             to={{
-              pathname: location.pathname,
               search: serialize(location.search, {linkedTab: key}),
               hash: location.hash,
             }}
@@ -425,7 +424,6 @@ function LinkedTabsDemo() {
           <TabList.Item
             key={key}
             to={{
-              pathname: location.pathname,
               search: serialize(location.search, {linkedTab: key}),
               hash: location.hash,
             }}
