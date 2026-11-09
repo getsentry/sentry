@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeCloseButton,
@@ -23,7 +23,7 @@ mockElementSize();
 
 function renderPalette(organization: Organization) {
   const closeModal = jest.fn();
-  render(
+  return render(
     <CommandPaletteProvider>
       <CommandPaletteSlot name="global">
         <GsBillingCommandPaletteActions />
@@ -51,18 +51,28 @@ async function search(query: string) {
 }
 
 describe('GsBillingCommandPaletteActions', () => {
-  it('finds billing information when searching for a credit card', async () => {
+  it.each([
+    'credit card',
+    'update payment method',
+    'billing details',
+    'edit billing information',
+  ])('goes to billing information when searching for %s', async query => {
     const organization = OrganizationFixture({access: ['org:billing']});
     act(() =>
       SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
     );
 
-    renderPalette(organization);
-    await search('credit card');
-
-    expect(
+    const {router} = renderPalette(organization);
+    await search(query);
+    await userEvent.click(
       await screen.findByRole('option', {name: /Billing Information/})
-    ).toBeInTheDocument();
+    );
+
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        `/settings/${organization.slug}/billing/details/`
+      )
+    );
   });
 
   it('hides billing information without billing access', async () => {
