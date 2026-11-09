@@ -11,7 +11,6 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.auth.principal import acting_user_id, has_user
-from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.types import (
@@ -98,21 +97,16 @@ class PrebuiltClassifierResponse(TypedDict):
     resultAttribute: str
 
 
-class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
-    def serialize(
-        self,
-        obj: PrebuiltClassifier,
-        attrs: Mapping[str, Any],
-        user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal,
-        **kwargs: Any,
-    ) -> PrebuiltClassifierResponse:
-        return {
-            "key": obj["key"],
-            "dataset": obj["dataset"],
-            "name": obj["name"],
-            "description": obj["description"],
-            "resultAttribute": obj["result_attribute"],
-        }
+def serialize_prebuilt_classifier(
+    classifier: PrebuiltClassifier,
+) -> PrebuiltClassifierResponse:
+    return {
+        "key": classifier["key"],
+        "dataset": classifier["dataset"],
+        "name": classifier["name"],
+        "description": classifier["description"],
+        "resultAttribute": classifier["result_attribute"],
+    }
 
 
 class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassifier]):

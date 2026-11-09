@@ -23,7 +23,7 @@ from sentry.models.organization import Organization
 from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.serializers import (
     PrebuiltClassifierResponse,
-    PrebuiltClassifierSerializer,
+    serialize_prebuilt_classifier,
 )
 from sentry.telemetry_classifiers.types import Dataset
 
@@ -78,13 +78,11 @@ class OrganizationPrebuiltTelemetryClassifiersEndpoint(OrganizationEndpoint):
             for classifier in PREBUILT_CLASSIFIERS.values()
             if dataset is None or classifier["dataset"] == dataset
         ]
-        serializer = PrebuiltClassifierSerializer()
         return self.paginate(
             request=request,
             sources=[classifiers],
             paginator_cls=ChainPaginator,
             on_results=lambda results: [
-                serializer.serialize(classifier, attrs={}, user=request.user)
-                for classifier in results
+                serialize_prebuilt_classifier(classifier) for classifier in results
             ],
         )
