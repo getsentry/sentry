@@ -6,11 +6,9 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {Feature} from 'sentry/components/acl/feature';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -57,14 +55,6 @@ export default function PreprodSettings() {
           'Configure status checks and thresholds for your mobile build size analysis.'
         )}
       />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
       <Stack gap="lg">
         <PreprodQuotaAlert />
         <Container borderBottom="primary">

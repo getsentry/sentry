@@ -4,7 +4,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -124,15 +123,7 @@ function MetricsHeader() {
           }}
         />
       )}
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={metricsFeedbackOptions}
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot name="feedback" feedbackOptions={metricsFeedbackOptions} />
     </Fragment>
   );
 }

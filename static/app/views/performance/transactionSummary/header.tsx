@@ -4,7 +4,6 @@ import type {Location} from 'history';
 import {TabList} from '@sentry/scraps/tabs';
 
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ReplayCountBadge} from 'sentry/components/replays/replayCountBadge';
@@ -255,14 +254,6 @@ export function TransactionHeader({
             aria-label={t('Create Alert')}
           />
         ) : null}
-      </TopBar.Slot>
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
       </TopBar.Slot>
       <TabList
         outerWrapStyles={{

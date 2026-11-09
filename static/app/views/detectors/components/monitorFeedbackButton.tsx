@@ -1,4 +1,3 @@
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -11,15 +10,5 @@ const monitorFeedbackOptions = {
 };
 
 export function MonitorFeedbackButton() {
-  return (
-    <TopBar.Slot name="feedback">
-      <FeedbackButton
-        feedbackOptions={monitorFeedbackOptions}
-        aria-label={t('Feedback')}
-        tooltipProps={{title: t('Feedback')}}
-      >
-        {null}
-      </FeedbackButton>
-    </TopBar.Slot>
-  );
+  return <TopBar.Slot name="feedback" feedbackOptions={monitorFeedbackOptions} />;
 }

@@ -16,7 +16,6 @@ import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import {Feature} from 'sentry/components/acl/feature';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -415,14 +414,6 @@ function ManageDashboards() {
                     {t('Import Dashboard from JSON')}
                   </Button>
                 </Feature>
-              </TopBar.Slot>
-              <TopBar.Slot name="feedback">
-                <FeedbackButton
-                  aria-label={t('Give Feedback')}
-                  tooltipProps={{title: t('Give Feedback')}}
-                >
-                  {null}
-                </FeedbackButton>
               </TopBar.Slot>
               <Layout.Body>
                 <Layout.Main width="full">
