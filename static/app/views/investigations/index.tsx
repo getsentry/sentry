@@ -74,7 +74,16 @@ const TableWrapper = styled('div')`
   }
 `;
 
-const RUN_STATUS_LABELS = {
+const RUN_STATUSES = [
+  'pending',
+  'processing',
+  'awaiting_input',
+  'completed',
+  'failed',
+  'cancelled',
+] as const;
+type RunStatus = (typeof RUN_STATUSES)[number];
+const RUN_STATUS_LABELS: Record<RunStatus, string> = {
   pending: t('Queued'),
   processing: t('Running'),
   awaiting_input: t('Needs input'),
@@ -82,8 +91,6 @@ const RUN_STATUS_LABELS = {
   failed: t('Failed'),
   cancelled: t('Cancelled'),
 };
-type RunStatus = keyof typeof RUN_STATUS_LABELS;
-const RUN_STATUSES = Object.keys(RUN_STATUS_LABELS) as RunStatus[];
 
 const BREACHED_METRICS_STRATEGY = 'breached_metric_investigation';
 const TRIGGER_FILTERS = [
@@ -121,11 +128,9 @@ const SORT_OPTIONS: Array<{label: string; value: (typeof SORTS)[number]}> = [
 ];
 
 function getStatusLabel({orchestration}: InvestigationListItem) {
-  const status = orchestration?.status;
   // Manual investigations have no run, and Seer can add statuses we don't know yet.
-  return status && Object.hasOwn(RUN_STATUS_LABELS, status)
-    ? RUN_STATUS_LABELS[status as RunStatus]
-    : t('Active');
+  const status = RUN_STATUSES.find(known => known === orchestration?.status);
+  return status ? RUN_STATUS_LABELS[status] : t('Active');
 }
 
 function isRunActive(investigation: InvestigationListItem) {
