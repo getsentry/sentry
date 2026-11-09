@@ -106,8 +106,14 @@ SeerWorkflowExecutionResponse = (
 
 
 class TriggerResponse(TypedDict):
-    type: Literal["monitor"]
-    id: str
+    detectorId: str
+    environment: str | None
+    eventId: str
+    groupId: str
+    observedAt: datetime
+    occurrenceId: str
+    projectId: str
+    type: Literal["breached_metric"]
 
 
 class SeerWorkflowRunResponseBase(TypedDict):
@@ -197,9 +203,9 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
           and each failed execution carries its own ``error``.
 
         Missing error details use code ``unknown``. Historical rows without lifecycle
-        tracking retain a null status. ``trigger`` identifies the monitor that started
-        the run as ``{"type": "monitor", "id": ...}``, or is null for runs not started
-        by a monitor. The monitor may have since been deleted. ``seerRunId`` is the linked Seer UUID or null.
+        tracking retain a null status. ``trigger`` describes the metric breach that started
+        the run (detector, event, occurrence, issue, and project), or is null for runs not
+        started by a metric monitor. The detector may have since been deleted. ``seerRunId`` is the linked Seer UUID or null.
         Each execution's ``outputs`` lists linked investigations by type, ID, and title
         when the viewer has investigation access, including archived investigations.
         The same investigation can be linked to multiple executions.
@@ -310,7 +316,16 @@ def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
         snapshot = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot
         if snapshot.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
             trigger = MetricBreachTrigger.parse_obj(snapshot.inputs)
-            return {"type": "monitor", "id": str(trigger.detector_id)}
+            return {
+                "detectorId": str(trigger.detector_id),
+                "environment": trigger.environment,
+                "eventId": trigger.event_id,
+                "groupId": str(trigger.group_id),
+                "observedAt": trigger.observed_at,
+                "occurrenceId": trigger.occurrence_id,
+                "projectId": str(trigger.project_id),
+                "type": "breached_metric",
+            }
     except ValidationError:
         logger.exception("seer.workflow_run.invalid_trigger", extra={"run_id": run.id})
     return None

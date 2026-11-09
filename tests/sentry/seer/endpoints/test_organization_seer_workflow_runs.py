@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import patch
 
@@ -489,6 +490,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 "detector_id": detector.id,
                 "evidence": {},
                 "observed_at": "2025-01-01T10:00:00Z",
+                "environment": "production",
                 "group_id": 1,
                 "project_id": self.project.id,
                 "binding_id": 1,
@@ -501,7 +503,16 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
         (serialized_run,) = response.data["runs"]
         assert serialized_run["id"] == str(run.id)
-        assert serialized_run["trigger"] == {"type": "monitor", "id": str(detector.id)}
+        assert serialized_run["trigger"] == {
+            "detectorId": str(detector.id),
+            "environment": "production",
+            "eventId": "a" * 32,
+            "groupId": "1",
+            "observedAt": datetime(2025, 1, 1, 10, tzinfo=UTC),
+            "occurrenceId": "abc",
+            "projectId": str(self.project.id),
+            "type": "breached_metric",
+        }
 
     def test_trigger_is_null_for_other_strategies(self) -> None:
         self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
