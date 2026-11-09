@@ -88,7 +88,11 @@ def _validate_with_serializer(
     # Strip fields that require request-scoped context (project permissions,
     # environment access) which we don't have in the completion hook.
     # The serializer validation here targets widget-level correctness.
-    artifact_data = artifact.dict()
+    # Ids only point at rows of the dashboard being edited, which this check has no
+    # instance for. The dashboard save validates them against the real dashboard.
+    artifact_data = artifact.dict(
+        exclude={"widgets": {"__all__": {"id": True, "queries": {"__all__": {"id"}}}}}
+    )
     artifact_data.pop("projects", None)
     artifact_data.pop("environment", None)
 

@@ -145,6 +145,23 @@ def test_generated_widget_allows_supported_issue_chart_aggregates() -> None:
     ]
 
 
+def test_generated_widget_reads_ids_as_strings() -> None:
+    artifact = _make_artifact(
+        id=12,
+        queries=[{"id": 34, "aggregates": ["count()"], "columns": []}],
+    )
+
+    assert artifact.widgets[0].id == "12"
+    assert artifact.widgets[0].queries[0].id == "34"
+
+
+def test_generated_widget_ids_default_to_none() -> None:
+    artifact = _make_artifact()
+
+    assert artifact.widgets[0].id is None
+    assert artifact.widgets[0].queries[0].id is None
+
+
 class TestFormatSerializerErrors(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -200,6 +217,29 @@ class DashboardOnCompletionHookTest(TestCase):
     @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
     def test_valid_artifact_passes(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = _make_state(artifact_data=VALID_ARTIFACT)
+
+        with patch.object(DashboardOnCompletionHook, "_request_fix") as mock_fix:
+            DashboardOnCompletionHook.execute(self.organization, run_id=1)
+            mock_fix.assert_not_called()
+
+    @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
+    def test_artifact_with_ids_passes(self, mock_fetch: MagicMock) -> None:
+        widget: dict[str, Any] = {
+            "title": "Error Count",
+            "description": "",
+            "display_type": "line",
+            "widget_type": "spans",
+            "layout": {"x": 0, "y": 0, "w": 3, "h": 2, "min_h": 2},
+        }
+        query: dict[str, Any] = {"aggregates": ["count()"], "columns": []}
+        artifact = {
+            "title": "Test Dashboard",
+            "widgets": [
+                {**widget, "id": "1", "queries": [{**query, "id": "2"}]},
+                {**widget, "layout": {**widget["layout"], "x": 3}, "queries": [query]},
+            ],
+        }
+        mock_fetch.return_value = _make_state(artifact_data=artifact)
 
         with patch.object(DashboardOnCompletionHook, "_request_fix") as mock_fix:
             DashboardOnCompletionHook.execute(self.organization, run_id=1)

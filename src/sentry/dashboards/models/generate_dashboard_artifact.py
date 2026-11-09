@@ -50,6 +50,10 @@ ISSUE_CHART_AGGREGATES: frozenset[str] = frozenset({"count(new_issues)", "count(
 
 
 class GeneratedWidgetQuery(BaseModel):
+    id: str | None = Field(
+        default=None,
+        description="When editing a dashboard, the `id` of this query in the current dashboard. Copy it unchanged for every query you keep or change. Leave it out of new queries and when generating a new dashboard. Never make one up.",
+    )
     name: str = ""
     conditions: str = Field(
         default="",
@@ -218,6 +222,10 @@ class GeneratedWidgetLayout(BaseModel):
 class GeneratedWidget(BaseModel):
     """A single dashboard widget. Default sizes by display type: big_number 2w x 1h (3 per row), line/area/bar/top_n 3w x 2h (2 per row), table 6w x 2h (full row)."""
 
+    id: str | None = Field(
+        default=None,
+        description="When editing a dashboard, the `id` of this widget in the current dashboard. Copy it unchanged for every widget you keep or change. Leave it out of new widgets and when generating a new dashboard. Never make one up.",
+    )
     title: str = Field(..., max_length=255)  # Matches serializer
     description: str = Field(
         ...,

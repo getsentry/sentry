@@ -68,7 +68,7 @@ EDIT_ON_PAGE_CONTEXT_TEMPLATE = (
 
 {current_dashboard_json}
 
-This session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change. Do not perform code changes or any tasks unrelated to dashboard editing.
+This session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change. Keep the `id` of every widget and query you keep or change, and leave `id` out of widgets and queries you add. Do not perform code changes or any tasks unrelated to dashboard editing.
 
 """
     + TRACE_METRICS_GUIDANCE
