@@ -176,17 +176,65 @@ class TestOrganizationSeerMonitoringIdentityToken(SeerMonitoringProviderEndpoint
         )
 
         assert response.status_code == 404
-        assert response.data == {"error": "identity_not_found"}
+        assert response.data == {"detail": "identity_not_found"}
         assert len(responses.calls) == 0
 
     @responses.activate
-    def test_service_account_has_no_identities(self) -> None:
+    def test_cannot_refresh_identity_connected_to_another_organization(self) -> None:
+        other_org = self.create_organization(owner=self.member)
+        other_idp = self.create_identity_provider(type="datadog", external_id="dd-other-org")
+        other_identity = self.create_identity(
+            user=self.member,
+            identity_provider=other_idp,
+            external_id="dd-member-other-org",
+            data={**self.identity.data, "access_token": "other-org-token"},
+        )
+        self.create_organization_identity(organization=other_org, identity=other_identity)
+        responses.add(
+            responses.POST,
+            DATADOG_TOKEN_URL,
+            json={"access_token": "new-token", "refresh_token": "new-refresh", "expires_in": 3600},
+        )
+
+        response = self.client.post(
+            self._url(other_identity.id), HTTP_X_VIEWER_CONTEXT=self._user_header(self.member.id)
+        )
+
+        assert response.status_code == 404, response.content
+        assert response.data == {"detail": "identity_not_found"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_requires_user_level_auth_feature(self) -> None:
+        with self.feature({"organizations:seer-infra-telemetry-user-level-auth": False}):
+            response = self.client.post(
+                self._url(self.identity.id),
+                HTTP_X_VIEWER_CONTEXT=self._user_header(self.member.id),
+            )
+
+        assert response.status_code == 404
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_provider_failure_is_bad_gateway(self) -> None:
+        responses.add(responses.POST, DATADOG_TOKEN_URL, status=500)
+
+        response = self.client.post(
+            self._url(self.identity.id), HTTP_X_VIEWER_CONTEXT=self._user_header(self.member.id)
+        )
+
+        assert response.status_code == 502
+        assert response.data == {"detail": "refresh_failed"}
+
+    @responses.activate
+    def test_service_account_requires_user(self) -> None:
         response = self.client.post(
             self._url(self.identity.id),
             HTTP_X_VIEWER_CONTEXT=self._service_account_header(["seer:write"]),
         )
 
-        assert response.status_code == 404
+        assert response.status_code == 403
+        assert response.data["detail"]["code"] == "user-required"
         assert len(responses.calls) == 0
 
 
@@ -252,5 +300,16 @@ class TestOrganizationSeerMonitoringIntegrationToken(SeerMonitoringProviderEndpo
         )
 
         assert response.status_code == 404
-        assert response.data == {"error": "integration_not_found"}
+        assert response.data == {"detail": "integration_not_found"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_requires_feature(self) -> None:
+        with self.feature({"organizations:seer-infra-telemetry": False}):
+            response = self.client.post(
+                self._url(self.linear.id),
+                HTTP_X_VIEWER_CONTEXT=self._service_account_header(["seer:write"]),
+            )
+
+        assert response.status_code == 404
         assert len(responses.calls) == 0

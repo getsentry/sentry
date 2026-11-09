@@ -879,9 +879,10 @@ def refresh_monitoring_provider_token(
 ) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
     """
     Seer RPC shim for ``OrganizationSeerMonitoringIdentityTokenEndpoint``. Kept until
-    Seer calls the endpoint. Unlike the endpoint, it doesn't bind the identity to a user.
+    Seer calls the endpoint. Unlike the endpoint, it doesn't bind the identity to a user
+    or an organization.
     """
-    return refresh_monitoring_provider_identity_token({"id": identity_id})
+    return refresh_monitoring_provider_identity_token(identity_id)
 
 
 # Every value below MUST be a function returning a `pydantic.BaseModel` (or

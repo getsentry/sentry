@@ -220,21 +220,21 @@ def refresh_org_integration_monitoring_token(
 
 
 def refresh_monitoring_provider_identity_token(
-    identity_filter: IdentityFilterArgs,
+    identity_id: int, *, organization_id: int | None = None, user_id: int | None = None
 ) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
     """
-    Refresh the access token of the monitoring provider identity that matches
-    ``identity_filter``, and return it encrypted for Seer.
+    Refresh a monitoring provider identity's access token and return it encrypted for Seer.
 
-    The filter is how callers bind the identity to a principal: the monitoring
-    identity refresh endpoint adds the acting user's id, so a caller can only
-    refresh its own identity.
+    ``organization_id`` and ``user_id`` limit it to that user's identity connected to that
+    organization. Only the Seer RPC, which has neither, omits them.
     """
-    identity_id = identity_filter.get("id")
     if not settings.SEER_GHE_ENCRYPT_KEY:
         logger.error("Cannot encrypt monitoring provider access token without SEER_GHE_ENCRYPT_KEY")
         return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
 
+    identity_filter: IdentityFilterArgs = {"id": identity_id}
+    if user_id is not None:
+        identity_filter["user_id"] = user_id
     identity = identity_service.get_identity(filter=identity_filter)
     if identity is None:
         logger.error(
@@ -253,6 +253,13 @@ def refresh_monitoring_provider_identity_token(
             },
         )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
+
+    if organization_id is not None:
+        connected_identities = identity_service.get_org_user_identities_by_provider_type(
+            organization_id=organization_id, user_id=identity.user_id, provider_type=idp.type
+        )
+        if not any(connected.id == identity.id for connected in connected_identities):
+            return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
 
     provider = identity_manager.get(idp.type)
     if not isinstance(provider, OAuth2Provider):

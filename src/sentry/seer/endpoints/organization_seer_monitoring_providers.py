@@ -3,13 +3,14 @@ from __future__ import annotations
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import ViewerContextAuthentication
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.auth.principal import acting_user_id
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.models.organization import Organization
 from sentry.seer.agent.monitoring_providers import (
     get_monitoring_provider_connections,
@@ -63,7 +64,7 @@ def _refresh_response(
     | RefreshMonitoringProviderTokenErrorResponse,
 ) -> Response:
     if isinstance(result, RefreshMonitoringProviderTokenErrorResponse):
-        return Response(result.dict(), status=_REFRESH_ERROR_STATUS[result.error])
+        return Response({"detail": result.error}, status=_REFRESH_ERROR_STATUS[result.error])
     return Response(result.dict())
 
 
@@ -84,11 +85,16 @@ class OrganizationSeerMonitoringConnectionsEndpoint(SeerMonitoringProviderEndpoi
 class OrganizationSeerMonitoringIdentityTokenEndpoint(SeerMonitoringProviderEndpoint):
     def post(self, request: Request, organization: Organization, identity_id: str) -> Response:
         """Refresh the access token of one of the caller's monitoring provider identities."""
-        user_id = acting_user_id(request.user)
-        if user_id is None:
+        if not features.has("organizations:seer-infra-telemetry", organization) or not features.has(
+            "organizations:seer-infra-telemetry-user-level-auth", organization
+        ):
             raise ResourceDoesNotExist
         return _refresh_response(
-            refresh_monitoring_provider_identity_token({"id": int(identity_id), "user_id": user_id})
+            refresh_monitoring_provider_identity_token(
+                int(identity_id),
+                organization_id=organization.id,
+                user_id=require_user(request).id,
+            )
         )
 
 
@@ -96,6 +102,8 @@ class OrganizationSeerMonitoringIdentityTokenEndpoint(SeerMonitoringProviderEndp
 class OrganizationSeerMonitoringIntegrationTokenEndpoint(SeerMonitoringProviderEndpoint):
     def post(self, request: Request, organization: Organization, integration_id: str) -> Response:
         """Refresh the access token of one of the org's monitoring integrations."""
+        if not features.has("organizations:seer-infra-telemetry", organization):
+            raise ResourceDoesNotExist
         return _refresh_response(
             refresh_org_integration_monitoring_token(
                 organization_id=organization.id, integration_id=int(integration_id)
