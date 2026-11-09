@@ -127,6 +127,21 @@ describe('useVirtualCollection', () => {
     expect(screen.getAllByRole('listitem').length).toBeGreaterThan(0);
   });
 
+  it('mounts no more rows than fit in the window while the list is unbounded', () => {
+    // A menu's list has no height limit until its overlay is positioned, so on
+    // its first render it can be as tall as all of its rows.
+    offsetHeight.mockImplementation(function (this: HTMLElement) {
+      return this.hasAttribute('data-index') ? ROW_HEIGHT : ROW_COUNT * ROW_HEIGHT;
+    });
+
+    render(<TestList />, {wrapper: ThemeWrapper});
+
+    const rowsInWindow = Math.ceil(window.innerHeight / ROW_HEIGHT);
+    expect(mountedKeys().length).toBeGreaterThan(0);
+    // Allow for the overscan rows on either side of the window.
+    expect(mountedKeys().length).toBeLessThanOrEqual(rowsInWindow + 2);
+  });
+
   it('keeps the focused row mounted, and the list its full height, after scrolling', () => {
     render(<TestList focusedKey="row-0" />, {wrapper: ThemeWrapper});
 

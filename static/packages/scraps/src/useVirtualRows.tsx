@@ -1,5 +1,10 @@
 import {useLayoutEffect} from 'react';
-import {useVirtualizer, type Range, type Rect} from '@tanstack/react-virtual';
+import {
+  useVirtualizer,
+  type Range,
+  type Rect,
+  type VirtualizerOptions,
+} from '@tanstack/react-virtual';
 
 export interface UseVirtualRowsOptions {
   count: number;
@@ -10,6 +15,7 @@ export interface UseVirtualRowsOptions {
   gap?: number;
   getItemKey?: (index: number) => string | number | bigint;
   initialRect?: Rect;
+  observeElementRect?: VirtualizerOptions<HTMLElement, Element>['observeElementRect'];
   overscan?: number;
   paddingEnd?: number;
   paddingStart?: number;
