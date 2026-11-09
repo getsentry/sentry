@@ -20,6 +20,7 @@ from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
+from sentry.snuba.metrics.naming_layer.mri import parse_mri_field
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -45,19 +46,24 @@ def format_aggregate(aggregate: str) -> str:
     return aggregate.replace("(tags[sentry:user])", "(user)")
 
 
-# Named like the monitor form's dataset picker, mirroring the frontend's getDetectorDataset.
+# Release health datasets hold session data; crash rate aggregates are computed from sessions.
 _DATASET_TELEMETRY = {
     Dataset.Events: "errors",
-    Dataset.IssuePlatform: "errors",
+    Dataset.IssuePlatform: "issue occurrences",
     Dataset.Transactions: "transactions",
     Dataset.PerformanceMetrics: "transactions",
-    Dataset.Metrics: "releases",
-    Dataset.Sessions: "releases",
+    Dataset.Metrics: "sessions",
+    Dataset.Sessions: "sessions",
 }
 
 
 def get_query_telemetry(snuba_query: SnubaQuery) -> str:
     """The kind of telemetry a query measures, e.g. "logs" or "errors"."""
+    # An MRI names its own namespace, and one metrics dataset holds several.
+    if parsed_mri := parse_mri_field(snuba_query.aggregate):
+        namespace = parsed_mri.mri.namespace
+        return "custom metrics" if namespace == "custom" else namespace
+
     dataset = Dataset(snuba_query.dataset)
     if dataset == Dataset.EventsAnalyticsPlatform:
         event_types = snuba_query.event_types
@@ -117,25 +123,14 @@ def get_incident_status_text(
     aggregate = format_aggregate(snuba_query.aggregate)
     metric = describe_query_metric(snuba_query)
 
-    # Percent-change values are already percentages, not values in the aggregate's unit.
-    if not comparison_delta:
-        if is_mri_field(snuba_query.aggregate):
-            metric_value = format_mri_field_value(snuba_query.aggregate, metric_value)
-        elif aggregate == "failure_rate()":
-            metric_value = f"{float(metric_value) * 100:.2f}"
-
-    if aggregate in _PERCENT_AGGREGATES:
-        metric_and_agg_text = f"{metric_value}% {metric}"
-    else:
-        metric_and_agg_text = f"{metric_value} {metric}"
-
     time_window = snuba_query.time_window // 60
-    # % change alerts have a comparison delta
+    # % change alerts have a comparison delta, and their values are already percentages
+    # rather than values in the aggregate's unit.
     if comparison_delta:
         if aggregate == "failure_rate()":
-            metric_and_agg_text = f"{metric} {float(metric_value):.2f}%"
+            metric_value = f"{float(metric_value):.2f}%"
         else:
-            metric_and_agg_text = f"{metric} {int(float(metric_value))}%"
+            metric_value = f"{int(float(metric_value))}%"
         higher_or_lower = (
             "higher"
             if (
@@ -149,11 +144,18 @@ def get_incident_status_text(
             comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
         )
         return _(
-            f"{metric_and_agg_text} {higher_or_lower} in the last {format_duration_idiomatic(time_window)} "
+            f"{metric} was {metric_value} {higher_or_lower} in the last {format_duration_idiomatic(time_window)} "
             f"compared to the {comparison_string}"
         )
 
-    return _(f"{metric_and_agg_text} in the last {format_duration_idiomatic(time_window)}")
+    if is_mri_field(snuba_query.aggregate):
+        metric_value = format_mri_field_value(snuba_query.aggregate, metric_value)
+    elif aggregate == "failure_rate()":
+        metric_value = f"{float(metric_value) * 100:.2f}"
+    if aggregate in _PERCENT_AGGREGATES:
+        metric_value = f"{metric_value}%"
+
+    return _(f"{metric} was {metric_value} in the last {format_duration_idiomatic(time_window)}")
 
 
 def get_status_text(status: IncidentStatus) -> str:

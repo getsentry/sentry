@@ -267,10 +267,14 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f"Critical: crash_free_rate(session) of releases in the last minute above {self.critical_detector_trigger.comparison}"
+            == f"Critical: crash_free_rate(session) of sessions in the last minute above {self.critical_detector_trigger.comparison}"
         )
 
     def test_title_equation_aggregate(self) -> None:
+        self.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        self.snuba_query.snubaqueryeventtype_set.update(
+            type=SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.value
+        )
         self.snuba_query.aggregate = (
             'equation|count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2'
         )
@@ -281,7 +285,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f'Critical: count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2 of errors in the last minute above {self.critical_detector_trigger.comparison}'
+            == f'Critical: count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2 of application metrics in the last minute above {self.critical_detector_trigger.comparison}'
         )
 
     def test_dynamic_alert_title(self) -> None:
@@ -293,13 +297,14 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert title == "Detected an anomaly in count() of errors"
 
+        self.snuba_query.dataset = Dataset.Transactions.value
         self.snuba_query.aggregate = "p95(transaction.duration)"
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
             detector_trigger=self.critical_detector_trigger,
             priority=self.critical_detector_trigger.condition_result,
         )
-        assert title == "Detected an anomaly in p95(transaction.duration) of errors"
+        assert title == "Detected an anomaly in p95(transaction.duration) of transactions"
 
     def test_dynamic_alert_title_eap(self) -> None:
         self.detector.config.update({"detection_type": "dynamic"})
@@ -336,6 +341,9 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             'equation|count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2'
         )
         self.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        self.snuba_query.snubaqueryeventtype_set.update(
+            type=SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.value
+        )
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
             detector_trigger=self.critical_detector_trigger,
@@ -343,7 +351,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == 'Detected an anomaly in count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2 of spans'
+            == 'Detected an anomaly in count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2 of application metrics'
         )
 
 

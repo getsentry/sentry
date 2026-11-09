@@ -18,7 +18,11 @@ pytestmark = pytest.mark.sentry_metrics
 
 class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
     def test_formats_failure_rate_as_percentage_with_two_decimal_places(self) -> None:
-        alert_rule = self.create_alert_rule(aggregate="failure_rate()")
+        alert_rule = self.create_alert_rule(
+            dataset=Dataset.Transactions,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            aggregate="failure_rate()",
+        )
 
         assert (
             get_incident_status_text(
@@ -27,11 +31,13 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
                 None,
                 "0.123456",
             )
-            == "12.35% failure_rate() of errors in the last 10 minutes"
+            == "failure_rate() of transactions was 12.35% in the last 10 minutes"
         )
 
     def test_formats_failure_rate_as_percentage_for_comparison_alert(self) -> None:
         alert_rule = self.create_alert_rule(
+            dataset=Dataset.Transactions,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
             aggregate="failure_rate()",
             detection_type=AlertRuleDetectionType.PERCENT,
             comparison_delta=60,
@@ -44,7 +50,7 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
                 alert_rule.comparison_delta,
                 "12.3456",
             )
-            == "failure_rate() of errors 12.35% higher in the last 10 minutes compared to the same time one hour ago"
+            == "failure_rate() of transactions was 12.35% higher in the last 10 minutes compared to the same time one hour ago"
         )
 
     def test_comparison_alert_skips_mri_unit_formatting(self) -> None:
@@ -57,7 +63,9 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
         text = get_incident_status_text(
             snuba_query, AlertRuleThresholdType.ABOVE, alert_rule.comparison_delta, "200"
         )
-        assert " 200% higher in the last 10 minutes" in text
+        assert text.endswith(
+            " of spans was 200% higher in the last 10 minutes compared to the same time one hour ago"
+        )
 
     def test_names_aggregate_and_telemetry(self) -> None:
         for dataset, event_types, aggregate, expected in (
@@ -65,37 +73,37 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
                 Dataset.Events,
                 [SnubaQueryEventType.EventType.ERROR],
                 "count()",
-                "14 count() of errors",
+                "count() of errors was 14",
             ),
             (
                 Dataset.Events,
                 [SnubaQueryEventType.EventType.ERROR],
                 "count_unique(tags[sentry:user])",
-                "14 count_unique(user) of errors",
+                "count_unique(user) of errors was 14",
             ),
             (
                 Dataset.Transactions,
                 [SnubaQueryEventType.EventType.TRANSACTION],
                 "count()",
-                "14 count() of transactions",
+                "count() of transactions was 14",
             ),
             (
                 Dataset.EventsAnalyticsPlatform,
                 [SnubaQueryEventType.EventType.TRACE_ITEM_LOG],
                 "count(message)",
-                "14 count(message) of logs",
+                "count(message) of logs was 14",
             ),
             (
                 Dataset.EventsAnalyticsPlatform,
                 [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
                 "count(span.duration)",
-                "14 count(span.duration) of spans",
+                "count(span.duration) of spans was 14",
             ),
             (
                 Dataset.Metrics,
                 [],
                 "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-                "14% crash_free_rate(session) of releases",
+                "crash_free_rate(session) of sessions was 14%",
             ),
         ):
             alert_rule = self.create_alert_rule(
@@ -165,7 +173,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
 
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "123 count() of errors in the last 10 minutes"
+        assert data["text"] == "count() of errors was 123 in the last 10 minutes"
         # We still build the link using the alert_rule_id and the incident identifier
         assert (
             data["title_link"]
