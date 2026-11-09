@@ -3,7 +3,8 @@ from django.views.decorators.debug import sensitive_variables
 from sentry import options
 from sentry.agent_handoff.applications import get_handoff_application
 from sentry.agent_handoff.codes import consume_handoff
-from sentry.agent_handoff.flows import HandoffMode, get_flow_instructions
+from sentry.agent_handoff.flows import get_flow
+from sentry.agent_handoff.flows.base import InvalidHandoffContext
 from sentry.agent_handoff.runbook import render_agent_runbook
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
@@ -43,6 +44,15 @@ def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
     except InvalidOrganizationSelection:
         return None
 
+    try:
+        flow_instructions = get_flow(handoff.flow).render(
+            handoff.context,
+            user_id=user.id,
+            organization_id=context.organization.id,
+        )
+    except InvalidHandoffContext:
+        return None
+
     persist_authorization(application, user.id, handoff.scope_list, organization_id)
     _, setup_code = ApiSetupCode.mint(
         application=application,
@@ -57,10 +67,5 @@ def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
         sentry_url=options.get("system.url-prefix"),
         client_id=application.client_id,
         setup_code=setup_code,
-        flow_instructions=get_flow_instructions(
-            handoff.flow,
-            mode=HandoffMode.CLAIMED,
-            user_id=user.id,
-            organization_id=context.organization.id,
-        ),
+        flow_instructions=flow_instructions,
     )
