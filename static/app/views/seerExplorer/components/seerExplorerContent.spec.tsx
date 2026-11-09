@@ -2425,23 +2425,6 @@ describe('SeerExplorerContent', () => {
         ).toBeInTheDocument();
       });
 
-      it('shows no send error when a send is refused for credits', async () => {
-        jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-          ...defaultHookReturn,
-          requestError: {query: 'Why is this slow?', isOutOfCredits: true},
-        });
-        const creditCheck = mockCreditCheck(true);
-
-        renderContent();
-
-        await waitFor(() => expect(creditCheck).toHaveBeenCalled());
-        expect(
-          screen.queryByText(
-            'There was an error sending your message, wait and try again.'
-          )
-        ).not.toBeInTheDocument();
-      });
-
       it('rechecks credits when a send is refused for credits', async () => {
         const useSeerExplorerSpy = jest
           .spyOn(useSeerExplorerModule, 'useSeerExplorer')
@@ -2460,6 +2443,35 @@ describe('SeerExplorerContent', () => {
         expect(
           await screen.findByTestId('seer-explorer-out-of-credits')
         ).toBeInTheDocument();
+        expect(
+          screen.queryByText(
+            'There was an error sending your message, wait and try again.'
+          )
+        ).not.toBeInTheDocument();
+      });
+
+      it('rechecks credits for each send refused for credits', async () => {
+        const useSeerExplorerSpy = jest
+          .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+          .mockReturnValue(defaultHookReturn);
+        // The check keeps saying there are credits, so sending stays possible.
+        const creditCheck = mockCreditCheck(true);
+        const {rerender} = render(tree(), {organization: creditsOrganization});
+        await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(1));
+
+        useSeerExplorerSpy.mockReturnValue({
+          ...defaultHookReturn,
+          requestError: {query: 'Why is this slow?', isOutOfCredits: true},
+        });
+        rerender(tree());
+        await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(2));
+
+        useSeerExplorerSpy.mockReturnValue({
+          ...defaultHookReturn,
+          requestError: {query: 'Why is this slow?', isOutOfCredits: true},
+        });
+        rerender(tree());
+        await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(3));
       });
     });
 

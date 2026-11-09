@@ -372,20 +372,18 @@ export function SeerExplorerContent({
   // be out of date: a billing member may have topped up since. Only this
   // panel's own check counts.
   const isCheckingCredits = !hasCheckedSinceMount;
-  // Seer stopped a reply, or refused a send, for credits. Recheck so the notice
-  // replaces the composer instead of the next send failing too. Only on the change,
-  // since opening a run like this already runs the check.
-  const hitOutOfCredits =
-    !!requestError?.isOutOfCredits || sessionData?.failure_reason === 'out_of_credits';
-  const prevHitOutOfCreditsRef = useRef(hitOutOfCredits);
+  // Seer stopped a reply, or the backend refused a send, for credits. Recheck so the
+  // notice shows and sending is disabled. Every refused send rechecks, since an
+  // earlier recheck may have failed open or the balance may have moved since.
+  const refusedForCredits = requestError?.isOutOfCredits ? requestError : null;
+  const isRunOutOfCredits = sessionData?.failure_reason === 'out_of_credits';
   useEffect(() => {
-    if (organization && hitOutOfCredits && !prevHitOutOfCreditsRef.current) {
+    if (organization && (refusedForCredits || isRunOutOfCredits)) {
       queryClient.invalidateQueries({
         queryKey: seerCreditCheckApiOptions(organization, 'agent_chat_message').queryKey,
       });
     }
-    prevHitOutOfCreditsRef.current = hitOutOfCredits;
-  }, [hitOutOfCredits, organization, queryClient]);
+  }, [refusedForCredits, isRunOutOfCredits, organization, queryClient]);
   // A question forwarded from elsewhere waits for that check (see the
   // auto-submit below) and goes first. Until it does, the user's own sends wait
   // too, or one would land ahead of it and the forwarded question would be

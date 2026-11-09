@@ -155,7 +155,8 @@ export const useSeerExplorer = () => {
   // Set when the last chat message or user-input response failed, so the UI can show an
   // alert until a later request succeeds. `query` is the failed chat message, if any,
   // so the draft can be restored, and `chatPrompt` the question it answered.
-  // `isOutOfCredits` marks a message refused for Seer credits.
+  // `isOutOfCredits` marks a message refused for Seer credits, which gets the credits
+  // notice instead of that alert.
   const [requestError, setRequestError] = useState<{
     runId: SeerExplorerRunId | null;
     chatPrompt?: ChatPrompt;
