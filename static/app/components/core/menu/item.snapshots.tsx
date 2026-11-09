@@ -62,11 +62,11 @@ describe('ListItem', () => {
       () => (
         <SectionList padding="md" width="300px">
           <ListItem size={size} label="First in section" />
-          <ListItem size={size} label="Spaced from the item above" gapAbove />
-          <ListItem size={size} label="Spaced from the item above" gapAbove />
+          <ListItem size={size} label="Spaced from the item above" spaceAbove />
+          <ListItem size={size} label="Spaced from the item above" spaceAbove />
         </SectionList>
       ),
-      {tags: {area: 'core', size, gapAbove: 'true'}}
+      {tags: {area: 'core', size, spaceAbove: 'true'}}
     );
 
     it.snapshot(

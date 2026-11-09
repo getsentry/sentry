@@ -67,27 +67,35 @@ export function getMountedIndexes({
 }
 
 /**
+ * Whether `node` is an item of `section` other than its first. These are the
+ * items a menu spaces from the item above, see `spaceAbove` on `ListItem`.
+ */
+export function isAfterFirstInSection<T>(
+  node: Node<T>,
+  section: Node<T> | null | undefined
+): boolean {
+  if (!section || node.parentKey !== section.key) {
+    return false;
+  }
+  const [first] = section.childNodes;
+  return first !== undefined && first.key !== node.key;
+}
+
+/**
  * Height to assume for a row that has not been measured. A row after the
- * first in its section includes `sectionRowGap`, which stands for padding on
+ * first in its section includes `sectionRowSpace`, which stands for padding on
  * the row's own element: mounted rows are measured by their border box, so
  * they include it too.
  */
 export function estimateRowHeight<T>(
-  nodes: ReadonlyArray<Node<T>>,
-  index: number,
+  node: Node<T> | undefined,
+  section: Node<T> | undefined,
   size: FormSize,
-  sectionRowGap: number
+  sectionRowSpace: number
 ): number {
-  const node = nodes[index];
   const heights = ROW_HEIGHT_ESTIMATES[size];
   // `Node.props` is typed `any`; the only prop read here is `details`.
   const props: {details?: unknown} | undefined = node?.props;
   const height = props?.details ? heights.withDetails : heights.regular;
-  // Each section's children follow its row, so a child that does not directly
-  // follow its section row is not the section's first.
-  const isAfterFirstInSection =
-    node?.parentKey !== null &&
-    node?.parentKey !== undefined &&
-    nodes[index - 1]?.key !== node.parentKey;
-  return isAfterFirstInSection ? height + sectionRowGap : height;
+  return node && isAfterFirstInSection(node, section) ? height + sectionRowSpace : height;
 }

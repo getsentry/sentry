@@ -15,7 +15,10 @@ import {
   type MenuItemTrailingAction,
 } from '@sentry/scraps/menu';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
-import type {VirtualRowProps} from '@sentry/scraps/useVirtualCollection';
+import {
+  isAfterFirstInSection,
+  type VirtualRowProps,
+} from '@sentry/scraps/useVirtualCollection';
 
 import {DropdownMenuContext} from './context';
 
@@ -299,10 +302,12 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     <ListItem
       ref={mergeRefs(ref, itemRef, rowProps?.ref)}
       data-index={rowProps?.['data-index']}
-      // Items in a section are spaced on the item rather than with a gap on
-      // the section's list. A gap would also open up around the spacer rows of
-      // a virtualized menu.
-      gapAbove={isAfterFirstInSection(node, state.collection)}
+      spaceAbove={isAfterFirstInSection(
+        node,
+        node.parentKey === null || node.parentKey === undefined
+          ? null
+          : state.collection.getItem(node.parentKey)
+      )}
       as={renderAs}
       label={itemLabel}
       leadingItems={
@@ -380,16 +385,4 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       {...itemProps}
     />
   );
-}
-
-/** Whether an item is in a section, after the section's first item. */
-function isAfterFirstInSection(
-  node: Node<MenuItemProps>,
-  collection: TreeState<MenuItemProps>['collection']
-): boolean {
-  if (node.parentKey === null || node.parentKey === undefined) {
-    return false;
-  }
-  const [first] = collection.getItem(node.parentKey)?.childNodes ?? [];
-  return first !== undefined && first.key !== node.key;
 }

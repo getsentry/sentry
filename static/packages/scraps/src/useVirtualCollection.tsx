@@ -19,6 +19,8 @@ import {
   getSectionIndexes,
 } from './virtualCollectionLayout';
 
+export {isAfterFirstInSection} from './virtualCollectionLayout';
+
 /**
  * Item count above which shared menu controls (CompactSelect, DropdownMenu)
  * virtualize their list.
@@ -98,7 +100,7 @@ export interface UseVirtualCollectionOptions<T> {
   /**
    * Height to assume for a row that has not been measured yet. Pass a stable
    * function: the estimates are rebuilt when it changes. Defaults to the height
-   * of a menu `ListItem` of `size`, plus `sectionRowGap`.
+   * of a menu `ListItem` of `size`, plus `sectionRowSpace`.
    */
   estimateSize?: (node: Node<T>, index: number) => number;
   /**
@@ -123,7 +125,7 @@ export interface UseVirtualCollectionOptions<T> {
    * lose it once they mount and the scroll range would shrink. Added to the
    * estimates of unmounted rows so the range does not shrink until they mount.
    */
-  sectionRowGap?: number;
+  sectionRowSpace?: number;
   /**
    * Item size of the default `estimateSize`. Defaults to `md`. Ignored when
    * `estimateSize` is set.
@@ -183,7 +185,7 @@ export function useVirtualCollection<T>({
   focusedKey,
   hiddenKeys,
   listPadding = 0,
-  sectionRowGap = 0,
+  sectionRowSpace = 0,
   size = 'md',
   widestKey,
 }: UseVirtualCollectionOptions<T>): VirtualCollection<T> {
@@ -219,9 +221,14 @@ export function useVirtualCollection<T>({
       const node = nodes[index];
       return estimateSize && node
         ? estimateSize(node, index)
-        : estimateRowHeight(nodes, index, size, sectionRowGap);
+        : estimateRowHeight(
+            node,
+            nodes[sectionIndexes[index] ?? -1],
+            size,
+            sectionRowSpace
+          );
     },
-    estimateKey: estimateSize ?? `${size}-${sectionRowGap}`,
+    estimateKey: estimateSize ?? `${size}-${sectionRowSpace}`,
     paddingStart: listPadding,
     // The list's padding is the same at both ends, so a row scrolled into view
     // at the bottom clears it too.

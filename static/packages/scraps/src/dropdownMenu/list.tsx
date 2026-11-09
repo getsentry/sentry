@@ -20,7 +20,7 @@ import {
   Header,
   ReserveLeadingSlot,
   Search,
-  SECTION_ITEM_GAP,
+  SECTION_ITEM_SPACE,
   SectionGroup,
   SectionList,
   SectionSeparator,
@@ -313,43 +313,22 @@ function DropdownMenuList({
     scrollRef: menuRef,
     focusedKey: state.selectionManager.focusedKey,
     widestKey,
-    // The space items in a section get from `gapAbove`.
-    sectionRowGap: parseFloat(theme.space[SECTION_ITEM_GAP]),
+    // The space items in a section get from `spaceAbove`.
+    sectionRowSpace: parseFloat(theme.space[SECTION_ITEM_SPACE]),
   });
 
-  // A virtualized menu's width follows the rows that happen to be mounted.
-  // Only let it grow while scrolling, so it does not jitter. The grown width
-  // belongs to one set of items: when they change, such as when a search
-  // filters them, the menu takes its natural width again and grows from there.
-  const itemsSignature = useMemo(
-    () => (virtualized ? items.map(node => String(node.key)).join('\n') : ''),
-    [items, virtualized]
-  );
-  const [grownWidth, setGrownWidth] = useState({signature: '', width: 0});
-  const virtualizedMinWidth =
-    grownWidth.signature === itemsSignature ? grownWidth.width : 0;
+  // A virtualized menu only mounts some of its rows, so its natural width would
+  // change as rows scroll in and out. Measure it once, with `widestKey`
+  // mounted, and keep that width until the menu closes, including while a
+  // search filters the items. A label that does not fit is truncated.
+  const [lockedWidth, setLockedWidth] = useState<number>();
   useLayoutEffect(() => {
-    const menu = menuRef.current;
-    if (!virtualized || !menu) {
-      return;
+    if (virtualized && lockedWidth === undefined && menuRef.current) {
+      // Round up: `offsetWidth` rounds to a whole pixel, which could cut off the
+      // widest label.
+      setLockedWidth(Math.ceil(menuRef.current.getBoundingClientRect().width));
     }
-    const grow = () =>
-      setGrownWidth(current => {
-        const width = Math.max(
-          current.signature === itemsSignature ? current.width : 0,
-          menu.offsetWidth
-        );
-        return current.signature === itemsSignature && current.width === width
-          ? current
-          : {signature: itemsSignature, width};
-      });
-    // Measure now as well: the observer does not report a menu whose width
-    // stays the same when the previous items' width is dropped.
-    grow();
-    const observer = new ResizeObserver(grow);
-    observer.observe(menu);
-    return () => observer.disconnect();
-  }, [virtualized, itemsSignature]);
+  }, [virtualized, lockedWidth]);
 
   /**
    * Moves focus to an item by key. Items outside a virtualized window are not
@@ -522,7 +501,7 @@ function DropdownMenuList({
                   ref={menuRef}
                   disableTextSelection={disableTextSelection}
                   flexGrow={showEmptyMessage ? 1 : undefined}
-                  minWidth={virtualized ? `${virtualizedMinWidth}px` : undefined}
+                  width={lockedWidth === undefined ? undefined : `${lockedWidth}px`}
                   {...mergeProps(modifiedMenuProps, keyboardProps)}
                 >
                   <ReserveLeadingSlot reserve={hasLeadingItems}>
