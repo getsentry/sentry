@@ -4,10 +4,13 @@ Follow the installed Sentry getting started and instrumentation skills to inspec
 this repository, configure the SDK, and verify that Sentry receives a test event.
 
 Your private onboarding run code is `{{ code }}`. Use it to report progress to the
-onboarding page. Send updates with the authenticated CLI.
+onboarding page. Send updates with the authenticated CLI. If you use an existing Sentry
+MCP connection instead, send the same updates with the `onboarding_status_update` tool,
+using this run code and the organization slug above. The tool records the connection
+method itself, so leave out `extra` on `connect_agent`.
 
-Once the CLI is authenticated and the account context is confirmed, report that the
-agent connected:
+Once Sentry access and the account context are confirmed, report that the agent
+connected:
 
 ```sh
 {{ status_command }} -f stage=connect_agent -f status=completed -f 'extra[method]=cli'
