@@ -65,6 +65,16 @@ class TraceItemAttributeContext(TypedDict):
     replacementAttribute: NotRequired[
         Annotated[str, ApiDescription("Attribute that replaces this one, when it is deprecated")]
     ]
+    isInOtel: NotRequired[
+        Annotated[
+            bool,
+            ApiDescription(
+                "Whether this Sentry convention is part of the OpenTelemetry semantic "
+                "conventions. Present (and true) only for such conventions; OpenTelemetry "
+                "attributes that aren't Sentry conventions are never marked"
+            ),
+        ]
+    ]
 
 
 class TraceItemAttributeKey(TypedDict):

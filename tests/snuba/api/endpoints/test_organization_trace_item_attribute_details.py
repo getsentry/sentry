@@ -247,3 +247,24 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["name"] == "project"
         assert response.data["context"]["brief"]
+
+    def test_returns_otel_status_in_context_when_the_convention_is_in_otel(self) -> None:
+        self._store_span({"http.route": "/users/:id"})
+
+        response = self.do_request(
+            query={"attributeName": "http.route", "attributeType": "string", "dataset": "spans"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["context"]["isInOtel"] is True
+
+    def test_omits_otel_status_from_context_when_the_convention_is_not_in_otel(self) -> None:
+        self._store_span()
+
+        response = self.do_request(
+            query={"attributeName": "device.class", "attributeType": "string", "dataset": "spans"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["context"]["isConvention"] is True
+        assert "isInOtel" not in response.data["context"]
