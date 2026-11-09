@@ -10,7 +10,7 @@ WORKFLOW_RUNS_RESPONSE = [
                     "configId": "10",
                     "strategy": "breached_metric_investigation",
                     "trigger": {
-                        "type": "breached_metric",
+                        "type": "monitor",
                         "detectorId": "401",
                         "environment": "production",
                         "eventId": "9f2d4c1b8a7e4f6d9c3b2a1e0f9d8c7b",

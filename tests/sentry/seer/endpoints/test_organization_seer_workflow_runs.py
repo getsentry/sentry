@@ -505,7 +505,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         (serialized_run,) = response.data["runs"]
         assert serialized_run["id"] == str(run.id)
         assert serialized_run["trigger"] == {
-            "type": "breached_metric",
+            "type": "monitor",
             "detectorId": str(detector.id),
             "environment": "production",
             "eventId": "a" * 32,

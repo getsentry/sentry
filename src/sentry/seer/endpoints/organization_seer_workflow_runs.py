@@ -107,8 +107,8 @@ SeerWorkflowExecutionResponse = (
 )
 
 
-class MetricBreachTriggerResponse(TypedDict):
-    type: Literal["breached_metric"]
+class MonitorTriggerResponse(TypedDict):
+    type: Literal["monitor"]
     detectorId: str
     environment: str | None
     eventId: str
@@ -126,7 +126,7 @@ class CronTriggerResponse(TypedDict):
 
 
 # Discriminated by `type`; add new trigger variants to this union.
-TriggerResponse = MetricBreachTriggerResponse | CronTriggerResponse
+TriggerResponse = MonitorTriggerResponse | CronTriggerResponse
 
 
 class SeerWorkflowRunResponseBase(TypedDict):
@@ -217,7 +217,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
         Missing error details use code ``unknown``. Historical rows without lifecycle
         tracking retain a null status. ``trigger`` describes what started the run, discriminated
-        by ``type``: ``breached_metric`` (detector, event, occurrence, issue, and project;
+        by ``type``: ``monitor`` (detector, event, occurrence, issue, and project;
         the detector may have since been deleted) or ``cron`` (scheduled run). It is
         null for other runs. ``seerRunId`` is the linked Seer UUID or null.
         Each execution's ``outputs`` lists linked investigations by type, ID, and title
@@ -335,7 +335,7 @@ def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
             inputs = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot.inputs
             trigger = MetricBreachTrigger.parse_obj(inputs)
             return {
-                "type": "breached_metric",
+                "type": "monitor",
                 "detectorId": str(trigger.detector_id),
                 "environment": trigger.environment,
                 "eventId": trigger.event_id,
