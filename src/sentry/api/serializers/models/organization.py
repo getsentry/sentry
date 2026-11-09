@@ -122,6 +122,21 @@ class _Links(TypedDict):
     regionUrl: Annotated[str, ApiDescription("Base URL of the API for the organization's region")]
 
 
+# The keys that src/sentry/receivers/onboarding.py has written over time. It no
+# longer writes any, but older rows still carry them.
+class OnboardingTaskDataResponse(TypedDict, total=False):
+    invited_member_id: Annotated[
+        int, ApiDescription("ID of the member whose invite completed the invite_member task")
+    ]
+    platform: Annotated[
+        str | None, ApiDescription("Platform of the first event, for the first_event task")
+    ]
+    plugin: Annotated[str, ApiDescription("Slug of the plugin enabled for the task")]
+    providers: Annotated[
+        list[str], ApiDescription("Integration providers installed for the integrations task")
+    ]
+
+
 class OnboardingTasksSerializerResponse(TypedDict):
     # TODO: literal/enum
     task: Annotated[str | None, ApiDescription("Onboarding task key, such as create_project")]
@@ -131,7 +146,8 @@ class OnboardingTasksSerializerResponse(TypedDict):
     ]
     dateCompleted: Annotated[datetime, ApiDescription("When the task was completed or skipped")]
     data: Annotated[
-        object, ApiDescription("Extra data recorded for the task, which depends on the task")
+        OnboardingTaskDataResponse,
+        ApiDescription("Data recorded for the task. Most tasks record none, so it's often empty"),
     ]
 
 

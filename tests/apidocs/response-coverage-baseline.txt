@@ -1,7 +1,5 @@
 # Response fields that are not described or typed yet; see src/sentry/apidocs/README.md#response-fields.
 # Only remove lines: python -m sentry.apidocs.response_coverage --prune
-untyped GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200[].issue
-untyped POST /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/ 200.issue
 untyped components/ListReplayRecordingSegments[][]
 untyped components/OrganizationProfilingChunksResponse
 untyped components/OrganizationProfilingFlamegraphResponse
@@ -9,56 +7,19 @@ untyped components/ProjectProfilingProfileResponse
 untyped sentry.ai_monitoring.endpoints.organization_ai_conversation_details.AIConversationDetailsResponse.spans[]
 untyped sentry.api.endpoints.organization_events.EventsApiResponse.data[]
 untyped sentry.api.endpoints.organization_events.EventsMeta.debug_info
-untyped sentry.api.endpoints.organization_events.EventsMeta.discoverSplitDecision
-untyped sentry.api.endpoints.organization_trace_meta_types.OrganizationTraceMetaResponse.transactionChildCountMap[]
-untyped sentry.api.serializers.models.dashboard.DashboardFilters.globalFilter[]
-untyped sentry.api.serializers.models.debug_file.DebugFileSerializerResponse.data
-untyped sentry.api.serializers.models.discoversavedquery.DiscoverSavedQueryResponseOptional.exploreQuery
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse._meta
 untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.entries[]
-untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.metadata
-untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.packages
 untyped sentry.api.serializers.models.event.EventDetailFields.context
-untyped sentry.api.serializers.models.event.EventDetailFields.contexts
-untyped sentry.api.serializers.models.event.IssueEventSerializerResponse.sdkUpdates[]
-untyped sentry.api.serializers.models.event.SimpleEventSerializerResponse.metadata
-untyped sentry.api.serializers.models.group.BaseGroupSerializerResponse.metadata
-untyped sentry.api.serializers.models.group.GroupDetailsResponse.activity[]
-untyped sentry.api.serializers.models.group_stream.StreamGroupSerializerSnubaResponse.metadata
-untyped sentry.api.serializers.models.organization.OnboardingTasksSerializerResponse.data
 untyped sentry.api.serializers.models.organization.OrganizationSummarySerializerResponseOptional.extraOptions{}
 untyped sentry.api.serializers.models.project.DetailedProjectResponse.options
 untyped sentry.api.serializers.models.project.DetailedProjectResponse.seerNightshiftTweaks
 untyped sentry.api.serializers.models.project._OrganizationProjectOptionalResponse.options
-untyped sentry.api.serializers.models.release_file.ReleaseFileSerializerResponse.headers
 untyped sentry.api.serializers.types.GroupEventReleaseSerializerResponse.data
 untyped sentry.api.serializers.types.ReleaseSerializerResponse.data
 untyped sentry.flags.endpoints.logs.FlagAuditLogModelSerializerResponse.tags
-untyped sentry.integrations.api.serializers.models.integration.IntegrationProviderInfo.aspects
-untyped sentry.integrations.api.serializers.models.integration.IntegrationProviderResponse.metadata
 untyped sentry.integrations.api.serializers.models.integration.OrganizationIntegrationResponse.configData
 untyped sentry.integrations.api.serializers.models.integration.OrganizationIntegrationResponse.configOrganization
-untyped sentry.integrations.types.IntegrationIssueConfigField.choices[][]
-untyped sentry.integrations.types.IntegrationIssueConfigField.default
-untyped sentry.integrations.types.IntegrationIssueConfigField.defaultValue
 untyped sentry.interfaces.user.EventUserApiContext.data
 untyped sentry.issues.issue_occurrence.IssueOccurrenceResponse.evidenceData
-untyped sentry.models.eventerror.EventErrorApiContext.data
-untyped sentry.preprod.api.models.public.size_analysis.DiffItemResponseDict.diffItems[]
-untyped sentry.preprod.api.models.public.size_analysis.SizeAnalysisResponseDict.insights
-untyped sentry.replays.post_process.ReplayDetailsResponse.clicks[]
 untyped sentry.seer.autofix.types.AutofixStateResponse.autofix
-untyped sentry.sentry_apps.api.serializers.sentry_app_component.SentryAppComponentSerializerResponse.schema
 untyped sentry.sentry_apps.utils.errors.SentryAppPublicErrorBody.context
-untyped sentry.snuba.trace.SerializedSpan.additional_attributes
-untyped sentry.snuba.trace.SerializedUptimeCheck.additional_attributes
-untyped sentry.workflow_engine.endpoints.serializers.action_handler_serializer.ActionHandlerSerializerResponse.configSchema
-untyped sentry.workflow_engine.endpoints.serializers.action_handler_serializer.ActionHandlerSerializerResponse.dataSchema
-untyped sentry.workflow_engine.endpoints.serializers.action_handler_serializer.SentryAppContext.settings
-untyped sentry.workflow_engine.endpoints.serializers.detector_serializer.DetectorSerializerResponse.config
-untyped sentry.workflow_engine.endpoints.serializers.detector_serializer.DetectorSerializerResponse.dataSources[]
-untyped sentry.workflow_engine.endpoints.serializers.detector_serializer.DetectorSerializerResponseOptional.latestGroup
-untyped sentry.workflow_engine.endpoints.serializers.workflow_serializer.ActionSerializerResponse.config
-untyped sentry.workflow_engine.endpoints.serializers.workflow_serializer.TriggerSerializerResponse.actions<anyOf1>[]
-untyped sentry.workflow_engine.endpoints.serializers.workflow_serializer.TriggerSerializerResponse.conditions<anyOf1>[]
-untyped sentry.workflow_engine.endpoints.serializers.workflow_serializer.WorkflowSerializerResponse.config
