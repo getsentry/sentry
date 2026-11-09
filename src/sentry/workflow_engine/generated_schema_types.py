@@ -1108,17 +1108,11 @@ class MsteamsActionData(TypedDict):
 
 
 # data_schema of the opsgenie action handler
-# Leaves out `additionalProperties`: the schema puts it inside `properties`,
-# where it declares a property with that name instead of closing the object.
-# The schema allows keys that aren't listed here.
 class OpsgenieActionData(TypedDict):
     priority: NotRequired[Literal["P1", "P2", "P3", "P4", "P5"]]
 
 
 # data_schema of the pagerduty action handler
-# Leaves out `additionalProperties`: the schema puts it inside `properties`,
-# where it declares a property with that name instead of closing the object.
-# The schema allows keys that aren't listed here.
 class PagerdutyActionData(TypedDict):
     priority: NotRequired[Literal["default", "critical", "warning", "error", "info"]]
 
