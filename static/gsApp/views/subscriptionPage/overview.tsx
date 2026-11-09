@@ -14,6 +14,7 @@ import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcru
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
@@ -66,14 +67,24 @@ function Overview({subscription}: Props) {
     }
   }, [organization, subscription]);
 
+  // The customer endpoint returns 200 with an empty body when it cannot
+  // serialize the customer, so the subscription has no plan details.
+  if (!subscription.planDetails) {
+    return (
+      <SubscriptionPageContainer>
+        <BreadcrumbTitle title={t('Overview')} />
+        <LoadingError
+          onRetry={() => {
+            SubscriptionStore.loadData(organization.slug);
+          }}
+        />
+      </SubscriptionPageContainer>
+    );
+  }
+
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.
-  //
-  // Members disabled by the plan's member limit receive a reduced customer
-  // payload (only `slug` and `totalLicenses`) without plan details, regardless
-  // of their role, so they cannot view the billing overview either.
-  const isReducedSubscription = !subscription.planDetails;
-  if (isReducedSubscription || (!hasBillingPerms && !subscription.canSelfServe)) {
+  if (!hasBillingPerms && !subscription.canSelfServe) {
     return (
       <SubscriptionPageContainer>
         <BreadcrumbTitle title={t('Overview')} />
