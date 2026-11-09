@@ -675,7 +675,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
         )
 
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
 
         assert str(hidden_workflow.id) not in {w["id"] for w in response.data}
 
@@ -686,7 +686,9 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
         )
 
-        response = self.get_success_response(self.organization.slug, qs_params={"type": "alert"})
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": "-1", "type": "alert"}
+        )
 
         assert {w["id"] for w in response.data} == {
             str(self.workflow.id),
@@ -2203,7 +2205,9 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         )
 
         self.get_success_response(
-            self.organization.slug, qs_params={"query": "Workflow"}, raw_data={"enabled": True}
+            self.organization.slug,
+            qs_params={"project": "-1", "query": "Workflow"},
+            raw_data={"enabled": True},
         )
 
         hidden_workflow.refresh_from_db()
@@ -2530,7 +2534,9 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
 
         with outbox_runner():
             self.get_success_response(
-                self.organization.slug, qs_params={"query": "Workflow"}, status_code=204
+                self.organization.slug,
+                qs_params={"project": "-1", "query": "Workflow"},
+                status_code=204,
             )
 
         self.assert_unaffected_workflows([hidden_workflow])
