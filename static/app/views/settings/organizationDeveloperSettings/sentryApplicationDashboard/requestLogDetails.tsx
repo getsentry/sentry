@@ -18,9 +18,9 @@ import type {SentryAppWebhookRequest} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
-import {decodeWebhookBody} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/decodeWebhookBody';
-import {ResponseCode} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/responseCode';
 
+import {decodeWebhookBody} from './decodeWebhookBody';
+import {ResponseCode} from './responseCode';
 import {WebhookSubject} from './webhookSubjects';
 
 const EMPTY_VALUE = '—';

@@ -21,8 +21,9 @@ import {
   makeFetchSecretQueryKey,
   type Secret,
 } from 'sentry/views/settings/featureFlags/changeTracking';
-import {NewProviderForm} from 'sentry/views/settings/featureFlags/changeTracking/newProviderForm';
-import {NewSecretHandler} from 'sentry/views/settings/featureFlags/changeTracking/newSecretHandler';
+
+import {NewProviderForm} from './newProviderForm';
+import {NewSecretHandler} from './newSecretHandler';
 
 type FetchSecretResponse = {data: Secret[]};
 

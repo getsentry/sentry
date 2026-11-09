@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import tracingKeyboardShortcuts from 'sentry-images/spot/tracing-keyboard-shortcuts.svg';
 
-import {type ModalRenderProps} from 'sentry/actionCreators/modal';
+import {type ModalRenderProps} from '@sentry/scraps/modal';
+
 import {t} from 'sentry/locale';
 
 const KEYBOARD_SHORTCUTS: Array<[string, string]> = [

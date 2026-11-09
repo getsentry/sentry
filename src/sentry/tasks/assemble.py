@@ -881,7 +881,7 @@ class ArtifactBundlePostAssembler:
 @instrumented_task(
     name="sentry.tasks.assemble.assemble_artifacts",
     namespace=attachments_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
 def assemble_artifacts(

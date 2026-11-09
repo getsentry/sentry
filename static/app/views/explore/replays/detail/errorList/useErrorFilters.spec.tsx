@@ -8,8 +8,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
-import type {ErrorSelectOption} from 'sentry/views/explore/replays/detail/errorList/useErrorFilters';
-import {useErrorFilters} from 'sentry/views/explore/replays/detail/errorList/useErrorFilters';
+
+import type {ErrorSelectOption} from './useErrorFilters';
+import {useErrorFilters} from './useErrorFilters';
 
 const {
   errorFrames: [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED],

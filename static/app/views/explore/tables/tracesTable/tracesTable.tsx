@@ -25,6 +25,7 @@ import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTrace
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
+
 import {
   Description,
   ProjectBadgeWrapper,
@@ -32,14 +33,9 @@ import {
   SpanTimeRenderer,
   TraceBreakdownRenderer,
   TraceIdRenderer,
-} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
-import {
-  BreakdownCell,
-  EmptyStateText,
-  EmptyValueContainer,
-  WrappingText,
-} from 'sentry/views/explore/tables/tracesTable/styles';
-import {TraceSpansTable} from 'sentry/views/explore/tables/tracesTable/traceSpansTable';
+} from './fieldRenderers';
+import {BreakdownCell, EmptyStateText, EmptyValueContainer, WrappingText} from './styles';
+import {TraceSpansTable} from './traceSpansTable';
 
 const TRACES_TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'trace', width: 'min-content'},

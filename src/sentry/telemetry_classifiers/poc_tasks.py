@@ -24,6 +24,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_classifiers_tasks
+from sentry.telemetry_classifiers.eap.producer import produce_enrichment_attributes
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
@@ -39,6 +40,8 @@ _MAX_INPUT_CHARS = 32_000
 _CLASSIFIER = "user_frustration"
 _ONESHOT_ID = "conversation_user_frustration"
 _MESSAGE_FIELD = "gen_ai.input.messages"
+_POC_RETENTION_DAYS = 30
+_POC_USER_FRUSTRATION_ATTRIBUTE = "sentry.enrichment.poc_user_frustration"
 
 
 @dataclass(frozen=True)
@@ -186,7 +189,7 @@ def _fetch_conversation_rows(
             organization=project.organization,
         ),
         query_string=f"{conversation_filter} has:gen_ai.operation.type has:{_MESSAGE_FIELD}",
-        selected_columns=["timestamp", _MESSAGE_FIELD],
+        selected_columns=["timestamp", "trace", "client_sample_rate", _MESSAGE_FIELD],
         orderby=["-timestamp"],
         offset=0,
         limit=_MAX_SOURCE_SPANS + 1,
@@ -196,6 +199,10 @@ def _fetch_conversation_rows(
     )
     rows = result.get("data", [])
     return list(reversed(rows[:_MAX_SOURCE_SPANS])), len(rows) > _MAX_SOURCE_SPANS
+
+
+def _source(span: Mapping[str, Any]) -> tuple[str, float]:
+    return span["trace"], span.get("client_sample_rate") or 1.0
 
 
 def _parse_probability(result: Mapping[str, Any]) -> float | None:
@@ -235,6 +242,8 @@ def _classify_user_frustration(
         _record_outcome("empty_input")
         return
 
+    trace_id, client_sample_rate = _source(rows[-1])
+
     try:
         result = run_oneshot(
             _ONESHOT_ID,
@@ -267,6 +276,23 @@ def _classify_user_frustration(
         )
         _record_outcome("invalid_response")
         return
+
+    produce_enrichment_attributes(
+        project,
+        idempotency_key="\0".join(
+            (
+                _CLASSIFIER,
+                conversation_context["conversation_id"],
+                str(conversation_context["last_span_timestamp"]),
+            )
+        ),
+        trace_id=trace_id,
+        timestamp=datetime.fromtimestamp(conversation_context["last_span_timestamp"], tz=UTC),
+        retention_days=_POC_RETENTION_DAYS,
+        conversation_id=conversation_context["conversation_id"],
+        attributes={_POC_USER_FRUSTRATION_ATTRIBUTE: probability},
+        client_sample_rate=client_sample_rate,
+    )
 
     logger.info(
         "telemetry_classifiers.conversation.classified",

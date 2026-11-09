@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+
+import type {WidgetTemplate} from './types';
 
 /**
  * Shared widget definitions for Web Vitals

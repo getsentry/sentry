@@ -1,5 +1,6 @@
 import type {AllNotificationOptions} from 'sentry/serviceWorker/types';
-import {log} from 'sentry/serviceWorker/worker/constants';
+
+import {log} from './constants';
 
 export async function showNotification(
   sw: ServiceWorkerGlobalScope,

@@ -1,7 +1,8 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {DroppedDataLayerControl} from './droppedDataLayerControl';
 
 describe('DroppedDataLayerControl', () => {
   it('hides dropped data when the layer is unchecked', async () => {

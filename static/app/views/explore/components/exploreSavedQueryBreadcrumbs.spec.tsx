@@ -12,9 +12,10 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ExploreSurface} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
-import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import type {ExploreSurface} from './exploreSavedQueryBreadcrumbs';
+import {ExploreSavedQueryBreadcrumbs} from './exploreSavedQueryBreadcrumbs';
 
 jest.mock('sentry/utils/analytics');
 

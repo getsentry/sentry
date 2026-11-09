@@ -1,6 +1,7 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t, tct} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -8,11 +9,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
-import {
-  ProviderLabels,
-  type DataForwarder,
-  type DataForwarderPayload,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+
+import {ProviderLabels, type DataForwarder, type DataForwarderPayload} from './types';
 
 const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [
   getApiUrl('/organizations/$organizationIdOrSlug/forwarding/', {
@@ -56,7 +54,7 @@ export function useMutateDataForwarder({
   return useMutation<DataForwarder, RequestError, DataForwarderPayload>({
     mutationFn: data => api.requestPromise(endpoint, {method, data}),
     onSuccess: (dataForwarder: DataForwarder) => {
-      addSuccessMessage(
+      toast.success(
         tct('[provider] data forwarder [action]', {
           provider: ProviderLabels[dataForwarder.provider],
           action: dataForwarderId ? t('updated') : t('created'),
@@ -69,7 +67,7 @@ export function useMutateDataForwarder({
     onError: error => {
       const displayError =
         JSON.stringify(error.responseJSON) ?? t('Failed to update data forwarder');
-      addErrorMessage(displayError);
+      toast.error(displayError);
     },
   });
 }
@@ -91,11 +89,11 @@ export function useDeleteDataForwarder({
         {method: 'DELETE'}
       ),
     onSuccess: () => {
-      addSuccessMessage(t('Data forwarder deleted'));
+      toast.success(t('Data forwarder deleted'));
       queryClient.invalidateQueries({queryKey: makeDataForwarderQueryKey(params)});
     },
     onError: _error => {
-      addErrorMessage(t('Failed to delete data forwarder'));
+      toast.error(t('Failed to delete data forwarder'));
     },
   });
 }
@@ -121,7 +119,7 @@ export function useMutateDataForwarderProject({
   >({
     mutationFn: data => api.requestPromise(endpoint, {method: 'PUT', data}),
     onSuccess: () => {
-      addSuccessMessage(
+      toast.success(
         tct('Updated project override for [project]', {
           project: project.slug,
         })
@@ -133,7 +131,7 @@ export function useMutateDataForwarderProject({
     onError: error => {
       const displayError =
         JSON.stringify(error.responseJSON) ?? t('Failed to update override');
-      addErrorMessage(displayError);
+      toast.error(displayError);
     },
   });
 }

@@ -1,11 +1,7 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {
-  emptyTourContext,
-  ORDERED_TEST_TOUR,
-  TestTour,
-} from 'sentry/components/tours/testUtils';
-import {useTourReducer, type TourState} from 'sentry/components/tours/tourContext';
+import {emptyTourContext, ORDERED_TEST_TOUR, TestTour} from './testUtils';
+import {useTourReducer, type TourState} from './tourContext';
 
 describe('useTourReducer', () => {
   const initialState: TourState<TestTour> = {

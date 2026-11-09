@@ -7,8 +7,9 @@ import {Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import type {TraceQueryResult} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
-import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+
+import type {TraceQueryResult} from './traceApi/useTrace';
+import {useTraceQueryParams} from './useTraceQueryParams';
 
 const TEN_MINUTES_IN_MS = 10 * 60 * 1000;
 

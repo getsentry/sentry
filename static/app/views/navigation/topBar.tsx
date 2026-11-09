@@ -13,10 +13,6 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SearchButton} from 'sentry/views/navigation/searchButton';
-import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
-import {useTopBarActionDisplay} from 'sentry/views/navigation/useTopBarActionDisplay';
-import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
@@ -27,6 +23,10 @@ import {
   PRIMARY_HEADER_TITLE_MIN_WIDTH,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
+import {SearchButton} from './searchButton';
+import {TopBarSlots} from './topBarSlot';
+import {useTopBarActionDisplay} from './useTopBarActionDisplay';
+import {useTopOffset} from './useTopOffset';
 
 type TopBarSlotProps =
   | {

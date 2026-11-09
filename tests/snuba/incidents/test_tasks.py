@@ -71,7 +71,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
             created_by_id=self.user.id,
             config={
                 "detection_type": "static",  # Required for MetricIssue detectors
-                "comparison_delta": None,
             },
         )
 

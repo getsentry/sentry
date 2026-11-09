@@ -2,7 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationJoinRequest from 'sentry/views/organizationJoinRequest';
 
@@ -11,13 +12,12 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-jest.mock('sentry/actionCreators/indicator');
-
 describe('OrganizationJoinRequest', () => {
   const org = OrganizationFixture({slug: 'test-org'});
   const endpoint = `/organizations/${org.slug}/join-request/`;
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     MockApiClient.clearMockResponses();
   });
 
@@ -117,7 +117,7 @@ describe('OrganizationJoinRequest', () => {
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
     });
-    expect(addErrorMessage).toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();
   });

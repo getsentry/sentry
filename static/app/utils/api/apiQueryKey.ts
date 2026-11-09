@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {getApiUrl} from './getApiUrl';
 
 export type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 

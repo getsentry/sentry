@@ -7,15 +7,16 @@ import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
 import {
   AGE_COMPARISON_CHOICES,
   MODEL_AGE_CHOICES,
   type AgeComparison,
   type ModelAge,
-} from 'sentry/views/automations/components/actionFilters/constants';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+} from './constants';
 
 export function LatestAdoptedReleaseDetails({condition}: {condition: DataCondition}) {
   return tct(

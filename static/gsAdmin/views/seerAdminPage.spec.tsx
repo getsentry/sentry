@@ -115,13 +115,16 @@ describe('SeerAdminPage', () => {
       screen.getByRole('textbox', {name: 'Issue short ID'}),
       'SENTRY-5RDF'
     );
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Start as automated (no owner)'})
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Start Single Run'}));
 
     await waitFor(() =>
       expect(request).toHaveBeenCalledWith(
         '/internal/seer/autofix/single-run/',
         expect.objectContaining({
-          data: {organization_slug: 'sentry', short_id: 'SENTRY-5RDF'},
+          data: {organization_slug: 'sentry', short_id: 'SENTRY-5RDF', automated: true},
         })
       )
     );

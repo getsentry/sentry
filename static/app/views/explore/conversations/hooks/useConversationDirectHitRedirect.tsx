@@ -3,8 +3,9 @@ import {useEffect, useRef} from 'react';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
+
+import type {Conversation} from './useConversations';
 
 interface UseConversationDirectHitRedirectOptions {
   conversations: Conversation[];

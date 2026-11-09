@@ -1,7 +1,8 @@
 import {useMutation} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
+import {openConfirmModal} from '@sentry/scraps/confirm';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -30,11 +31,11 @@ export function useDeleteIntegration({onSuccess}: UseDeleteIntegrationOptions = 
         ),
       }),
     onSuccess: (_data, integration) => {
-      addSuccessMessage(t('%s has been removed.', integration.name));
+      toast.success(t('%s has been removed.', integration.name));
       onSuccess?.(integration);
     },
     onError: () => {
-      addErrorMessage(t('Failed to remove integration'));
+      toast.error(t('Failed to remove integration'));
     },
   });
 

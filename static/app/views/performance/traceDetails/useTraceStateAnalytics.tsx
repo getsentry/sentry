@@ -4,8 +4,8 @@ import {getRelativeDate} from 'sentry/components/timeSince';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {TraceQueryResult} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
 
+import type {TraceQueryResult} from './traceApi/useTrace';
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {isEmptyTrace} from './traceApi/utils';
 import type {TraceTree} from './traceModels/traceTree';

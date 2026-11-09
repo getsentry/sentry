@@ -2,8 +2,8 @@ import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -102,14 +102,14 @@ export function BuiltInRepositories({
               variables.builtinSymbolSources.length
             );
             if (successMessage) {
-              addSuccessMessage(successMessage);
+              toast.success(successMessage);
             }
           },
           onError: (_error, variables) => {
             const {errorMessage} = getRequestMessages(
               variables.builtinSymbolSources.length
             );
-            addErrorMessage(errorMessage);
+            toast.error(errorMessage);
           },
         }}
       >

@@ -40,11 +40,6 @@ import {
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {
-  findItemInSections,
-  itemIsSection,
-} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {
   isQueryBuilderPanelChrome,
@@ -52,6 +47,9 @@ import {
 } from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+
+import {useSearchTokenCombobox} from './useSearchTokenCombobox';
+import {findItemInSections, itemIsSection} from './utils';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;

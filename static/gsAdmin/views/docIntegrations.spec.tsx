@@ -7,7 +7,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
 import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
 import {DocIntegrations} from 'admin/views/docIntegrations';
@@ -67,7 +67,7 @@ describe('Doc Integration Details', () => {
   });
 
   it('can delete', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -111,15 +111,13 @@ describe('Doc Integration Details', () => {
       })
     );
 
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
-      'Resource has been deleted.'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Resource has been deleted.');
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 
   it('handles API errors when deleting', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -167,7 +165,7 @@ describe('Doc Integration Details', () => {
       })
     );
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'There was an internal error with deleting the resource.'
     );
 
@@ -175,7 +173,7 @@ describe('Doc Integration Details', () => {
   });
 
   it('can unpublish', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -213,7 +211,7 @@ describe('Doc Integration Details', () => {
 
     await userEvent.click(unpublishButton);
 
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+    expect(toast.success).toHaveBeenCalledWith(
       'Resource has been updated with {"is_draft":true,"features":[]}.'
     );
 

@@ -1,8 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import type {TraceQueryResult} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
-import {TraceWaterfallState} from 'sentry/views/performance/traceDetails/traceWaterfallState';
+
+import type {TraceQueryResult} from './traceApi/useTrace';
+import {TraceWaterfallState} from './traceWaterfallState';
 
 const mockUseFeedbackForm = jest.fn();
 

@@ -11,15 +11,15 @@ import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import {Highlights} from 'sentry/views/performance/traceDetails/traceHeader/highlights';
-import {PlaceHolder} from 'sentry/views/performance/traceDetails/traceHeader/placeholder';
-import {Projects} from 'sentry/views/performance/traceDetails/traceHeader/projects';
-import {TraceHeaderComponents} from 'sentry/views/performance/traceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/traceDetails/useTraceContextSections';
 import type {TraceOverviewData} from 'sentry/views/performance/traceDetails/useTraceOverviewData';
 
+import {Highlights} from './highlights';
 import {Meta} from './meta';
+import {PlaceHolder} from './placeholder';
+import {Projects} from './projects';
+import {TraceHeaderComponents} from './styles';
 import {Title} from './title';
 import {TraceBreadcrumbs} from './traceBreadcrumbs';
 

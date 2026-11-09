@@ -12,8 +12,8 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Hovercard} from 'sentry/components/hovercard';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -351,7 +351,7 @@ function TreeNodeRenderer({
                         aria-label={t('Copy')}
                         onClick={() => {
                           navigator.clipboard.writeText(itemPath.join('/'));
-                          addSuccessMessage(t('Copied to clipboard'));
+                          toast.success(t('Copied to clipboard'));
                         }}
                       />
                     </OneLineCodeBlock>

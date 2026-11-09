@@ -1,8 +1,8 @@
-import {SpanChart} from 'sentry/utils/profiling/spanChart';
-import type {SpanNodeData, TransactionSpanData} from 'sentry/utils/profiling/spanTree';
-import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {SpanChart} from './spanChart';
+import type {SpanNodeData, TransactionSpanData} from './spanTree';
+import {SpanTree} from './spanTree';
 import {Rect} from './speedscope';
 
 function s(partial: Partial<SpanNodeData> = {}): SpanNodeData {

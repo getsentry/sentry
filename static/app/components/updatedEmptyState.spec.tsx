@@ -5,7 +5,7 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import UpdatedEmptyState from 'sentry/components/updatedEmptyState';
+import UpdatedEmptyState from './updatedEmptyState';
 
 function setupMockRequests({firstIssue}: {firstIssue?: string} = {}) {
   MockApiClient.addMockResponse({

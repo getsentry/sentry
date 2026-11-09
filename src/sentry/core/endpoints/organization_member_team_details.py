@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from typing import Annotated, Any, Literal, TypedDict
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
@@ -27,6 +27,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
@@ -51,10 +52,17 @@ ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membersh
 
 
 class OrganizationMemberTeamSerializerResponse(TypedDict):
-    isActive: bool
+    isActive: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the team membership is active. An inactive membership removes the team from the member's default list, but the member can rejoin without a request"
+        ),
+    ]
     # This must be manually kept up to date, because we cannot dynamically
     # unpack into static type annotations. See https://github.com/microsoft/pylance-release/issues/4084
-    teamRole: Literal["contributor", "admin"]
+    teamRole: Annotated[
+        Literal["contributor", "admin"], ApiDescription("ID of the member's team role")
+    ]
 
 
 @sentry_schema_serializer(

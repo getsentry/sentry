@@ -4,11 +4,11 @@ import {useMutation} from '@tanstack/react-query';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -24,9 +24,10 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
-import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+
+import {ConfirmAccountClose} from './confirmAccountClose';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
@@ -120,7 +121,7 @@ function AccountClose() {
         data: {organizations: orgs},
       }),
     onMutate: () => {
-      addLoadingMessage('Closing account\u2026');
+      toast.loading('Closing account\u2026');
     },
     onSuccess: () => {
       requestAnimationFrame(() => {
@@ -133,7 +134,7 @@ function AccountClose() {
       leaveRedirectTimeout.current = window.setTimeout(leaveRedirect, 10000);
     },
     onError: () => {
-      addErrorMessage('Error closing account');
+      toast.error('Error closing account');
     },
   });
 

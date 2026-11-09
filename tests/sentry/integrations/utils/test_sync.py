@@ -1,11 +1,13 @@
 from collections.abc import Iterator
 from unittest import mock
 
+import orjson
 import pytest
 from django.db import connection
-from django.test.utils import CaptureQueriesContext
+from django.test.utils import CaptureQueriesContext, override_settings
 
 from sentry.integrations.mixins.issues import where_should_sync
+from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.integrations.utils.sync import (
@@ -14,14 +16,22 @@ from sentry.integrations.utils.sync import (
     sync_group_assignee_inbound_by_external_actor,
 )
 from sentry.models.group import Group
-from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupassignee import GroupAssignee, GroupAssignmentState
 from sentry.models.organization import Organization
+from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.users.models import User, UserEmail
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
 @cell_silo_test
@@ -56,6 +66,83 @@ class TestSyncAssigneeInbound(TestCase):
         group_to_update.refresh_from_db()
         group_assignee = group_to_update.get_assignee()
         assert group_assignee is not None and group_assignee.id == user.id
+
+    def test_assignment_without_context(self) -> None:
+        self.assert_assignment_viewer_context(None, True)
+
+    def test_assignment_unknown_actor(self) -> None:
+        self.assert_assignment_viewer_context(ActorType.UNKNOWN, True)
+
+    def test_assignment_preserves_user(self) -> None:
+        self.assert_assignment_viewer_context(ActorType.USER, True)
+
+    def test_assignment_preserves_integration(self) -> None:
+        self.assert_assignment_viewer_context(ActorType.INTEGRATION, True)
+
+    def test_assignment_replaces_cross_org_user(self) -> None:
+        self.assert_assignment_viewer_context(ActorType.USER, False)
+
+    def test_assignment_replaces_cross_org_integration(self) -> None:
+        self.assert_assignment_viewer_context(ActorType.INTEGRATION, False)
+
+    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
+    def assert_assignment_viewer_context(
+        self, actor_type: ActorType | None, same_organization: bool
+    ) -> None:
+        external_issue = self.create_integration_external_issue(
+            group=self.group, key="foo-123", integration=self.example_integration
+        )
+        organization_id = (
+            self.organization.id if same_organization else self.create_organization().id
+        )
+        current = (
+            ViewerContext(
+                actor=Actor(type=actor_type, actor_id=self.user.id)
+                if actor_type == ActorType.USER
+                else Actor(type=actor_type or ActorType.UNKNOWN),
+                organization_id=organization_id,
+            )
+            if actor_type is not None
+            else None
+        )
+        contexts: list[ViewerContext] = []
+        assign = GroupAssignee.objects.assign
+
+        def capture_assignment(
+            group: Group, user: RpcUser, *, assignment_source: AssignmentSource
+        ) -> GroupAssignmentState:
+            headers: dict[str, str] = {}
+            ViewerContextHook().on_dispatch(headers)
+            contexts.append(
+                ViewerContext.deserialize(orjson.loads(headers["sentry-viewer-context"]))
+            )
+            return assign(group, user, assignment_source=assignment_source)
+
+        with (
+            viewer_context_scope(current),
+            mock.patch.object(GroupAssignee.objects, "assign", side_effect=capture_assignment),
+        ):
+            sync_group_assignee_inbound(
+                integration=self.example_integration,
+                email="test@example.com",
+                external_issue_key=external_issue.key,
+                assign=True,
+            )
+            assert get_viewer_context() is current
+
+        assert len(contexts) == 1
+        propagated = contexts[0]
+        assert propagated.organization_id == self.organization.id
+        expected = (
+            actor_type
+            if same_organization and actor_type in (ActorType.USER, ActorType.INTEGRATION)
+            else ActorType.INTEGRATION
+        )
+        assert propagated.actor.type == expected
+        assert propagated.actor.user_id == (self.user.id if expected == ActorType.USER else None)
+        assignee = self.group.get_assignee()
+        assert isinstance(assignee, RpcUser)
+        assert assignee.id == self.test_user.id
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_no_affected_groups(self, mock_record_event: mock.MagicMock) -> None:

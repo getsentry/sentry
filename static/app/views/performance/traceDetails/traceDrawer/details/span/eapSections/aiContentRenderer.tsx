@@ -9,15 +9,16 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
+import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
+import {parseJsonWithFix} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
+
 import {
   detectAIContentType,
   parseXmlTagSegments,
   preprocessInlineXmlTags,
   tryParsePythonDict,
-} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
-import {fenceContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentFencing';
-import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
-import {parseJsonWithFix} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
+} from './aiContentDetection';
+import {fenceContent} from './aiContentFencing';
 
 // Sensible defaults for JSON embedded in a larger message, distinct from a
 // whole-message JSON payload (which threads its own depth/collapse settings).

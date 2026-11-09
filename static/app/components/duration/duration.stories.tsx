@@ -1,5 +1,6 @@
-import {Duration} from 'sentry/components/duration/duration';
 import * as Storybook from 'sentry/stories';
+
+import {Duration} from './duration';
 
 export default Storybook.story('Duration', story => {
   story('Default format ("hh:mm:ss.sss")', () => (

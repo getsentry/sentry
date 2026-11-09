@@ -25,11 +25,12 @@ import {
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import AutomationsList from 'sentry/views/automations/list';
 import {
   LLM_CONTEXT_MAX_ROWS,
   useLLMContext,
 } from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import AutomationsList from './list';
 
 // Cells the container is too narrow to show are hidden rather than dropped, so
 // the row still holds every column in order: name, last triggered, action,
@@ -330,6 +331,25 @@ describe('AutomationsList', () => {
 
       await screen.findByText('My Automation');
       expect(mockAutomationCreatedBy).toHaveBeenCalled();
+    });
+
+    it('pushes the query without the cursor when searching', async () => {
+      const {router} = render(<AutomationsList />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/automations/', query: {cursor: '0:25:0', sort: 'name'}},
+        },
+      });
+      await screen.findByText('Automation 1');
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'created_by:me{enter}'
+      );
+      await waitFor(() =>
+        expect(router.location.query).toEqual({query: 'created_by:me', sort: 'name'})
+      );
+      expect(router.historyAction).toBe('PUSH');
     });
   });
 

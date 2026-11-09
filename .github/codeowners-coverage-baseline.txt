@@ -311,7 +311,6 @@ static/app/actionCreators/events.tsx
 static/app/actionCreators/group.spec.tsx
 static/app/actionCreators/group.tsx
 static/app/actionCreators/guides.tsx
-static/app/actionCreators/indicator.tsx
 static/app/actionCreators/integrations.tsx
 static/app/actionCreators/members.tsx
 static/app/actionCreators/modal.tsx
@@ -412,9 +411,6 @@ static/app/components/badge/groupPriority.tsx
 static/app/components/badge/iconCellSignal.tsx
 static/app/components/banner.spec.tsx
 static/app/components/banner.tsx
-static/app/components/breadcrumbs.spec.tsx
-static/app/components/breadcrumbs.stories.tsx
-static/app/components/breadcrumbs.tsx
 static/app/components/calendar/calendar.stories.tsx
 static/app/components/calendar/calendarStylesWrapper.tsx
 static/app/components/calendar/datePicker.tsx

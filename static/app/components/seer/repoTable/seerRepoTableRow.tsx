@@ -6,12 +6,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
@@ -103,7 +99,7 @@ export function SeerRepoTableRow({
               getRepositoryWithSettingsQueryKey(organization, repository.id),
               optimisticData
             );
-            addLoadingMessage(t('Updating code review for %s', repository.name));
+            toast.loading(t('Updating code review for %s', repository.name));
             mutateRepositorySettings(
               {
                 codeReviewTriggers:
@@ -118,12 +114,10 @@ export function SeerRepoTableRow({
                     queryKey,
                     repository
                   );
-                  addErrorMessage(
-                    t('Failed to update code review for %s', repository.name)
-                  );
+                  toast.error(t('Failed to update code review for %s', repository.name));
                 },
                 onSuccess: () => {
-                  addSuccessMessage(t('Code review updated for %s', repository.name));
+                  toast.success(t('Code review updated for %s', repository.name));
                 },
                 onSettled: () => {
                   queryClient.invalidateQueries({queryKey});

@@ -13,18 +13,15 @@ import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
 import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
-import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
+import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
-import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
@@ -243,20 +240,17 @@ function useOverflowTabs({
 
 interface OverflowMenuProps {
   disabled: boolean | undefined;
-  overflowMenuItems: Array<SelectOption<string | number>>;
-  state: TabListState<TabListItemProps>;
+  overflowMenuItems: MenuItemProps[];
 }
 
-function OverflowMenu({state, overflowMenuItems, disabled}: OverflowMenuProps) {
+function OverflowMenu({overflowMenuItems, disabled}: OverflowMenuProps) {
   const {t} = useTranslation();
 
   return (
     <TabListOverflowWrap>
-      <CompactSelect
-        options={overflowMenuItems}
-        value={[...state.selectionManager.selectedKeys][0]}
-        onChange={opt => state.setSelectedKey(opt.value)}
-        disabled={disabled}
+      <DropdownMenu
+        items={overflowMenuItems}
+        isDisabled={disabled}
         position="bottom-end"
         size="sm"
         offset={4}
@@ -285,7 +279,6 @@ interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabList
 }
 
 function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
-  const navigate = useNavigate();
   const outerWrapRef = useRef<HTMLDivElement>(null);
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
@@ -304,16 +297,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
-    onSelectionChange: (key: any) => {
-      onChange?.(key);
-
-      // If the newly selected tab is a tab link, then navigate to the specified link
-      const linkTo = [...(props.items ?? [])].find(item => item.key === key)?.to;
-      if (!linkTo) {
-        return;
-      }
-      navigate(linkTo);
-    },
+    onSelectionChange: onChange,
     isDisabled: disabled,
     keyboardActivation,
     ...otherRootProps,
@@ -355,7 +339,10 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
       const itemProps: TabListItemProps = item.props;
 
       return {
-        value: key,
+        key: String(key),
+        to: itemProps.to,
+        isSelected: state.selectedKey === key,
+        onAction: itemProps.to ? undefined : () => state.setSelectedKey(key),
         label: (
           <Flex align="center" gap="md">
             {itemProps.children}
@@ -365,9 +352,9 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
         tooltip: itemProps.tooltip?.title,
         tooltipOptions: itemProps.tooltip,
         textValue: item.textValue,
-      } satisfies SelectOption<string | number>;
+      } satisfies MenuItemProps;
     });
-  }, [state.collection, overflowTabs]);
+  }, [state, overflowTabs]);
 
   return (
     <Container position="relative" style={outerWrapStyles} ref={outerWrapRef}>
@@ -395,11 +382,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <OverflowMenu
-          state={state}
-          overflowMenuItems={overflowMenuItems}
-          disabled={disabled}
-        />
+        <OverflowMenu overflowMenuItems={overflowMenuItems} disabled={disabled} />
       )}
     </Container>
   );

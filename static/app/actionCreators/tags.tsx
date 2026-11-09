@@ -1,7 +1,8 @@
 import {keepPreviousData} from '@tanstack/react-query';
 import type {Query} from 'history';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
@@ -64,7 +65,7 @@ export function loadOrganizationTags(
     )
     .then(tags => tagFetchSuccess(tags, addAlert))
     .catch(() => {
-      addErrorMessage(t('Unable to load tags'));
+      toast.error(t('Unable to load tags'));
     });
 }
 

@@ -36,9 +36,10 @@ import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/t
 import {getStringAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {AiSpansSplitView} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceAiSpans';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
+
+import {AiSpansSplitView} from './traceAiSpans';
 
 interface TraceAiConversationsProps {
   allAiNodes: AITraceSpanNode[];

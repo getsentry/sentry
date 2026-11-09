@@ -9,10 +9,11 @@ import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import AutomationDetail from 'sentry/views/seerWorkflows/automations/detail';
-import AutomationConfiguration from 'sentry/views/seerWorkflows/automations/detail/configuration';
-import {MetricAutomationForm} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
-import NewMetricAutomation from 'sentry/views/seerWorkflows/automations/new';
+
+import AutomationConfiguration from './detail/configuration';
+import AutomationDetail from './detail';
+import {MetricAutomationForm} from './metricAutomationForm';
+import NewMetricAutomation from './new';
 
 describe('MetricAutomationForm', () => {
   const organization = OrganizationFixture({
@@ -20,7 +21,7 @@ describe('MetricAutomationForm', () => {
     access: [...OrganizationFixture().access, 'event:read', 'event:write', 'member:read'],
   });
   const configsUrl = `/organizations/${organization.slug}/seer/workflows/configs/`;
-  const agent = {
+  const serviceAccount = {
     scopes: ['event:read', 'member:read', 'org:read', 'project:read', 'team:read'],
     projectIds: [1, 2],
     allProjects: false,
@@ -32,7 +33,7 @@ describe('MetricAutomationForm', () => {
     enabled: false,
     monitorIds: [1],
     projects: [1],
-    agent: {...agent, serviceAccountId: '5'},
+    serviceAccount: {...serviceAccount, serviceAccountId: '5'},
   });
   let requestSpy: jest.SpyInstance;
 
@@ -64,7 +65,7 @@ describe('MetricAutomationForm', () => {
     requestSpy.mockRestore();
   });
 
-  it('creates an automation with its agent settings', async () => {
+  it('creates an automation with its service account settings', async () => {
     const create = MockApiClient.addMockResponse({
       url: configsUrl,
       method: 'POST',
@@ -82,7 +83,9 @@ describe('MetricAutomationForm', () => {
     await userEvent.type(name, 'Checkout errors');
     await userEvent.click(screen.getByRole('textbox', {name: 'Connected monitors'}));
     await userEvent.click(await screen.findByText('Checkout error rate · checkout-api'));
-    await userEvent.click(screen.getByRole('textbox', {name: 'Agent projects'}));
+    await userEvent.click(
+      screen.getByRole('textbox', {name: 'Service account projects'})
+    );
     await userEvent.click(
       screen.getByRole('menuitemcheckbox', {name: 'payments-worker'})
     );
@@ -103,8 +106,8 @@ describe('MetricAutomationForm', () => {
           name: 'Checkout errors',
           enabled: false,
           monitorIds: [1],
-          agent: {
-            scopes: [...agent.scopes, 'event:write'],
+          serviceAccount: {
+            scopes: [...serviceAccount.scopes, 'event:write'],
             projectIds: [1, 2],
             allProjects: false,
           },
@@ -115,10 +118,14 @@ describe('MetricAutomationForm', () => {
   });
 
   it('keeps all-project access without listing project IDs', async () => {
-    const allProjectsAgent = {...agent, projectIds: [], allProjects: true};
+    const allProjectsServiceAccount = {
+      ...serviceAccount,
+      projectIds: [],
+      allProjects: true,
+    };
     const allProjectsConfig = {
       ...config,
-      agent: {...allProjectsAgent, serviceAccountId: '5'},
+      serviceAccount: {...allProjectsServiceAccount, serviceAccountId: '5'},
     };
     const update = MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
@@ -136,21 +143,28 @@ describe('MetricAutomationForm', () => {
       expect(update).toHaveBeenCalledWith(
         `${configsUrl}42/`,
         expect.objectContaining({
-          data: {monitorIds: [1], enabled: false, agent: allProjectsAgent},
+          data: {
+            monitorIds: [1],
+            enabled: false,
+            serviceAccount: allProjectsServiceAccount,
+          },
         })
       )
     );
   });
 
-  it('defaults agent access to the monitor projects when there is no agent', async () => {
+  it('defaults service account access to the monitor projects when there is no service account', async () => {
     const update = MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
       method: 'PUT',
       body: config,
     });
-    render(<MetricAutomationForm mode="edit" config={{...config, agent: null}} />, {
-      organization,
-    });
+    render(
+      <MetricAutomationForm mode="edit" config={{...config, serviceAccount: null}} />,
+      {
+        organization,
+      }
+    );
 
     await screen.findByRole('link', {name: 'Checkout error rate'});
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
@@ -162,14 +176,18 @@ describe('MetricAutomationForm', () => {
           data: {
             monitorIds: [1],
             enabled: false,
-            agent: {scopes: agent.scopes, projectIds: [1], allProjects: false},
+            serviceAccount: {
+              scopes: serviceAccount.scopes,
+              projectIds: [1],
+              allProjects: false,
+            },
           },
         })
       )
     );
   });
 
-  it('saves monitors and the investigation toggle without changing agent access', async () => {
+  it('saves monitors and the investigation toggle without changing service account access', async () => {
     const update = MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
       method: 'PUT',
@@ -195,7 +213,7 @@ describe('MetricAutomationForm', () => {
     await waitFor(() =>
       expect(update).toHaveBeenCalledWith(
         `${configsUrl}42/`,
-        expect.objectContaining({data: {monitorIds: [2], enabled: true, agent}})
+        expect.objectContaining({data: {monitorIds: [2], enabled: true, serviceAccount}})
       )
     );
     expectNoServiceAccountRequests();

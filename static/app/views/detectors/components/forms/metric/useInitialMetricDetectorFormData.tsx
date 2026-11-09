@@ -7,13 +7,14 @@ import {
   parseFunction,
 } from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {DEFAULT_THRESHOLD_METRIC_FORM_DATA} from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {isTraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
+
+import {DEFAULT_THRESHOLD_METRIC_FORM_DATA} from './metricFormData';
+import type {MetricDetectorFormData} from './metricFormFields';
 
 function getLocationDataset(raw: string | null): DetectorDataset {
   if (!raw) {

@@ -18,8 +18,6 @@ import {t} from 'sentry/locale';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/buildDetailsMetricCards';
-import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {openMissingDsymModal} from 'sentry/views/preprod/components/missingDsymModal';
@@ -37,6 +35,9 @@ import {
 import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
 import {validatedPlatform} from 'sentry/views/preprod/utils/sharedTypesUtils';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
+
+import {AppSizeInsights} from './insights/appSizeInsights';
+import {BuildDetailsMetricCards} from './buildDetailsMetricCards';
 
 interface BuildDetailsMainContentProps {
   appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;

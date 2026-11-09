@@ -2,7 +2,8 @@ import {useCallback} from 'react';
 import {Outlet, useOutletContext} from 'react-router';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -13,13 +14,10 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 import type {UserEmail} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
-const ENDPOINT = getApiUrl('/users/$userId/authenticators/', {path: {userId: 'me'}});
-
 export default function AccountSecurityWrapper() {
-  const api = useApi();
   const {authId} = useParams<{authId?: string}>();
   const {links} = useLegacyStore(ConfigStore);
 
@@ -58,13 +56,18 @@ export default function AccountSecurityWrapper() {
         return;
       }
 
-      await api.requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'});
+      await fetchMutation({
+        url: getApiUrl('/users/$userId/authenticators/$authId/', {
+          path: {userId: 'me', authId: auth.authId},
+        }),
+        method: 'DELETE',
+      });
     },
     onSuccess: () => {
       handleRefresh();
     },
     onError: (_, auth) => {
-      addErrorMessage(t('Error disabling %s', auth.name));
+      toast.error(t('Error disabling %s', auth.name));
     },
   });
 
@@ -74,7 +77,10 @@ export default function AccountSecurityWrapper() {
         return;
       }
 
-      await api.requestPromise(`${ENDPOINT}${authId}/`, {
+      await fetchMutation({
+        url: getApiUrl('/users/$userId/authenticators/$authId/', {
+          path: {userId: 'me', authId},
+        }),
         method: 'PUT',
       });
     },
@@ -82,7 +88,7 @@ export default function AccountSecurityWrapper() {
       handleRefresh();
     },
     onError: () => {
-      addErrorMessage(t('Error regenerating backup codes'));
+      toast.error(t('Error regenerating backup codes'));
     },
   });
 
@@ -109,7 +115,10 @@ export default function AccountSecurityWrapper() {
   const countEnrolled = enrolled.length;
   const orgsRequire2fa = organizations.filter(org => org.require2FA) || [];
   const deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
-  const hasVerifiedEmail = emails.some(({isVerified}) => isVerified);
+  // Enrollment requires the primary address specifically, not any verified address
+  const hasVerifiedPrimaryEmail = emails.some(
+    ({isPrimary, isVerified}) => isPrimary && isVerified
+  );
 
   return (
     <Outlet
@@ -118,7 +127,7 @@ export default function AccountSecurityWrapper() {
         countEnrolled,
         deleteDisabled,
         handleRefresh,
-        hasVerifiedEmail,
+        hasVerifiedPrimaryEmail,
         onDisable: disableAuthenticatorMutation.mutate,
         onRegenerateBackupCodes: regenerateBackupCodesMutation.mutate,
         orgsRequire2fa,
@@ -132,7 +141,7 @@ type OutletContext = {
   countEnrolled: number;
   deleteDisabled: boolean;
   handleRefresh: () => void;
-  hasVerifiedEmail: boolean;
+  hasVerifiedPrimaryEmail: boolean;
   onDisable: (auth: Authenticator) => void;
   onRegenerateBackupCodes: () => void;
   orgsRequire2fa: OrganizationSummary[];

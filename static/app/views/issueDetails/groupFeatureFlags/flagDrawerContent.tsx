@@ -9,14 +9,15 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {FlagDetailsLink} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
-import {FlagDrawerCTA} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
-import {useGroupFlagDrawerData} from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
   Container,
   StyledEmptyStateWarning,
 } from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
+
+import {FlagDetailsLink} from './details/flagDetailsLink';
+import {useGroupFlagDrawerData} from './hooks/useGroupFlagDrawerData';
+import {FlagDrawerCTA} from './flagDrawerCTA';
 
 interface Props {
   environments: string[];

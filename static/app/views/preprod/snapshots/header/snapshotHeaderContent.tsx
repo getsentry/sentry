@@ -11,9 +11,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {SnapshotApproveButton} from 'sentry/views/preprod/snapshots/header/snapshotApproveButton';
-import {useSnapshotActions} from 'sentry/views/preprod/snapshots/header/useSnapshotActions';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
+
+import {SnapshotApproveButton} from './snapshotApproveButton';
+import {useSnapshotActions} from './useSnapshotActions';
 
 type PageTitleItem = Extract<BreadcrumbTitleItem, {type: 'page-title'}>;
 

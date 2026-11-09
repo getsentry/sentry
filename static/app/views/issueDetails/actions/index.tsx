@@ -9,28 +9,25 @@ import {IconSubscribed} from '@sentry/icons/subscribed';
 import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
 import {IconUpload} from '@sentry/icons/upload';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
-import {
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {ArchiveActions} from 'sentry/components/actions/archive';
 import {ResolveActions} from 'sentry/components/actions/resolve';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {openConfirmModal} from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
@@ -48,14 +45,9 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApi} from 'sentry/utils/useApi';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
-import {SeerCommandPaletteActions} from 'sentry/views/issueDetails/actions/seerCommandPaletteActions';
-import {ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
-import {StatusBanner} from 'sentry/views/issueDetails/actions/statusBanner';
-import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction';
 import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssueMutationOptions';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
@@ -66,6 +58,11 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+
+import {SeerCommandPaletteActions} from './seerCommandPaletteActions';
+import {ShareIssueModal} from './shareModal';
+import {StatusBanner} from './statusBanner';
+import {SubscribeAction} from './subscribeAction';
 
 type UpdateData =
   | {isBookmarked: boolean; inbox?: boolean}
@@ -208,7 +205,11 @@ export function GroupActions({
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const navigate = useNavigate();
-  const location = useLocation();
+  const [{alert_date, alert_rule_id, alert_type}] = useQueryStates({
+    alert_date: parseAsString,
+    alert_rule_id: parseAsString,
+    alert_type: parseAsString,
+  });
   const queryClient = useQueryClient();
   const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
 
@@ -256,17 +257,15 @@ export function GroupActions({
     substatus?: GroupSubstatus | null,
     statusDetailsKey?: string
   ) => {
-    const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
       action_type: action,
       action_substatus: substatus ?? undefined,
       action_status_details: statusDetailsKey,
       // Alert properties track if the user came from email/slack alerts
-      alert_date:
-        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
-      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      alert_date: alert_date === null ? undefined : getUtcDateString(Number(alert_date)),
+      alert_rule_id: alert_rule_id ?? undefined,
+      alert_type: alert_type ?? undefined,
       ...getAnalyticsDataForGroup(group),
       ...getAnalyicsDataForProject(project),
       org_streamline_only: organization.streamlineOnly ?? undefined,
@@ -274,7 +273,7 @@ export function GroupActions({
   };
 
   const onDelete = async () => {
-    addLoadingMessage(t('Delete event\u2026'));
+    toast.loading(t('Delete event\u2026'));
     trackIssueAction('deleted');
     IssueListCacheStore.reset();
 
@@ -284,9 +283,9 @@ export function GroupActions({
         projectId: project.slug,
         itemIds: [group.id],
       });
-      clearIndicators();
+      toast.dismiss();
 
-      addSuccessMessage(t('Issue deleted'));
+      toast.success(t('Issue deleted'));
       navigate({
         pathname: `/organizations/${organization.slug}/issues/`,
         query: {project: project.id},
@@ -318,9 +317,9 @@ export function GroupActions({
         itemIds: [group.id],
         data,
       });
-      clearIndicators();
+      toast.dismiss();
       if (successMessage) {
-        addSuccessMessage(successMessage);
+        toast.success(successMessage);
       }
       onComplete?.();
       onUpdateSuccess?.();
@@ -354,7 +353,7 @@ export function GroupActions({
   const onToggleBookmark = () => {
     onUpdate({isBookmarked: !group.isBookmarked}, () => {
       trackIssueAction('bookmarked');
-      addSuccessMessage(
+      toast.success(
         group.isBookmarked ? t('Issue bookmark removed') : t('Issue bookmarked')
       );
     });
@@ -363,7 +362,7 @@ export function GroupActions({
   const onToggleSubscribe = () => {
     onUpdate({isSubscribed: !group.isSubscribed}, () => {
       trackIssueAction('subscribed');
-      addSuccessMessage(
+      toast.success(
         group.isSubscribed ? t('Unsubscribed from issue') : t('Subscribed to issue')
       );
     });

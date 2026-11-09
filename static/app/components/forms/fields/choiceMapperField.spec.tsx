@@ -2,7 +2,7 @@ import type {ComponentProps} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ChoiceMapperField} from 'sentry/components/forms/fields/choiceMapperField';
+import {ChoiceMapperField} from './choiceMapperField';
 
 describe('ChoiceMapperField', () => {
   const mockOnChange = jest.fn();

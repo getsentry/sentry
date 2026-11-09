@@ -49,6 +49,7 @@ describe('CronDetectorDetails - check-ins', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    PageFiltersStore.reset();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -202,8 +203,8 @@ describe('CronDetectorDetails - check-ins', () => {
             '/organizations/org-slug/monitors-stats/',
             expect.objectContaining({
               query: expect.objectContaining({
-                project: project.id,
-                environment,
+                project: [project.id],
+                environment: [environment],
                 monitor: [cronDataSource.queryObj.id],
               }),
             })
@@ -217,6 +218,30 @@ describe('CronDetectorDetails - check-ins', () => {
         ).toEqual([999]);
       }
     );
+  });
+
+  it('shows only the environments selected in the page filters', async () => {
+    const multiEnvDetector = CronDetectorFixture({
+      ...detector,
+      dataSources: [
+        {
+          ...cronDataSource,
+          queryObj: {
+            ...cronDataSource.queryObj,
+            environments: [
+              CronMonitorEnvironmentFixture({name: 'production'}),
+              CronMonitorEnvironmentFixture({name: 'staging'}),
+            ],
+          },
+        },
+      ],
+    });
+    PageFiltersStore.updateEnvironments(['staging']);
+
+    render(<CronDetectorDetails detector={multiEnvDetector} project={project} />);
+
+    expect(await screen.findByRole('row', {name: /staging/})).toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: /production/})).not.toBeInTheDocument();
   });
 
   it('falls back to UTC when the monitor has no timezone', async () => {

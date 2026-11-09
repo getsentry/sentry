@@ -1,9 +1,6 @@
-import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
-import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
-import {
-  computeNextAllowedTokenKinds,
-  validateTokens,
-} from 'sentry/components/arithmeticBuilder/validator';
+import {TokenKind} from './token';
+import {tokenizeExpression} from './tokenizer';
+import {computeNextAllowedTokenKinds, validateTokens} from './validator';
 
 describe('vaidateTokens', () => {
   it.each([

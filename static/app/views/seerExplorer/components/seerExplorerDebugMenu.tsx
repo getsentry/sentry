@@ -38,20 +38,15 @@ export function SeerExplorerDebugMenu({
   const showThinkingToggle =
     !!organization?.features.includes('seer-explorer-thinking-blocks') &&
     !organization?.features.includes('seer-explorer-code-mode-tools');
-  const showBashModeToggle = !!organization?.features.includes(
-    'seer-explorer-allow-bash-mode'
-  );
 
   const toggleOptions: Array<SelectOption<DebugOption>> = [
-    ...(showBashModeToggle
-      ? [{value: 'force-bash-mode' as const, label: t('Force bash mode on')}]
-      : []),
+    {value: 'force-bash-mode' as const, label: t('Force bash mode on')},
     ...(showThinkingToggle
       ? [{value: 'show-thinking' as const, label: t('Show thinking')}]
       : []),
   ];
   const sections: Array<SelectSection<DebugOption>> = [
-    ...(toggleOptions.length ? [{key: 'toggles', options: toggleOptions}] : []),
+    {key: 'toggles', options: toggleOptions},
     ...(conversationsUrl
       ? [
           {
@@ -70,13 +65,11 @@ export function SeerExplorerDebugMenu({
       : []),
   ];
   const value: DebugOption[] = [
-    ...(showBashModeToggle && overrideBashModeEnabled
-      ? (['force-bash-mode'] as const)
-      : []),
+    ...(overrideBashModeEnabled ? (['force-bash-mode'] as const) : []),
     ...(showThinkingToggle && showThinking ? (['show-thinking'] as const) : []),
   ];
 
-  if (!isSentryEmployee || sections.length === 0) {
+  if (!isSentryEmployee) {
     return null;
   }
 
@@ -91,10 +84,7 @@ export function SeerExplorerDebugMenu({
           window.open(conversationsUrl, '_blank', 'noopener,noreferrer');
           return;
         }
-        if (
-          showBashModeToggle &&
-          selectedValues.has('force-bash-mode') !== overrideBashModeEnabled
-        ) {
+        if (selectedValues.has('force-bash-mode') !== overrideBashModeEnabled) {
           onOverrideBashModeToggle();
         }
         if (showThinkingToggle && selectedValues.has('show-thinking') !== showThinking) {

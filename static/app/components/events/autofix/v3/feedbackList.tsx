@@ -23,13 +23,14 @@ import {
   type RawFeedback,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {userDisplayName} from 'sentry/utils/formatters';
+
+import {ArtifactDetails} from './artifactDetails';
 
 const AVATAR_SIZE = 24;
 const SOURCE_BADGE_SIZE = 14;

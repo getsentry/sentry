@@ -33,6 +33,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth import access
 from sentry.auth.principal import acting_user_id, require_user
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
@@ -218,6 +219,12 @@ class OrganizationEventPermission(OrganizationPermission):
 # additional checks to limit actions to releases
 # associated with projects people have access to
 class OrganizationReleasePermission(OrganizationPermission):
+    """
+    Includes org:ci so CI org-auth-tokens (e.g. sentry-cli) can manage releases.
+    Use only for release endpoints. Do not reuse an org:ci permission for endpoints
+    exposing data a CI token should not read.
+    """
+
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
         "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
@@ -236,6 +243,15 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
 
 
 class OrganizationIntegrationsLoosePermission(OrganizationPermission):
+    """
+    "Loose" because GET also grants org:ci, so CI org-auth-tokens (e.g. sentry-cli)
+    can call it; this was added for the repositories list. Use only for integration
+    reads that are safe for CI tokens. Do NOT reuse for endpoints returning repo or
+    source content (PR diffs, file trees, source) — or any other data a CI token
+    should not read. Prefer OrganizationIntegrationsPermission (no org:ci), or
+    SessionNoAuthTokenAuthentication for UI-only endpoints.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
         "POST": ["org:read", "org:write", "org:admin", "org:integrations"],
@@ -245,6 +261,12 @@ class OrganizationIntegrationsLoosePermission(OrganizationPermission):
 
 
 class OrganizationCodeMappingsBulkPermission(OrganizationPermission):
+    """
+    Grants org:ci on GET/POST so sentry-cli can set up bulk code mappings in CI.
+    Use only for CI-driven code-mapping setup. Do not reuse an org:ci permission for
+    endpoints exposing data a CI token should not read.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
         "POST": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
@@ -367,13 +389,6 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
     permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
-    # Control silo endpoints fetch the organization over RPC from the cell silo.
-    # Including projects/teams serializes every row into the response body, which is
-    # expensive for large organizations. Set these to False when the endpoint does not
-    # need them.
-    include_organization_projects: bool = True
-    include_organization_teams: bool = True
-
     def convert_args(
         self,
         request: Request,
@@ -400,21 +415,15 @@ class ControlSiloOrganizationEndpoint(Endpoint):
                 raise ResourceDoesNotExist
 
         if str(organization_id_or_slug).isdecimal():
-            # It is ok that `get_organization_by_id` doesn't check for visibility as we
-            # don't check the visibility in `get_organization_by_slug` either (only_active=False).
-            organization_context = organization_service.get_organization_by_id(
-                id=int(organization_id_or_slug),
-                user_id=acting_user_id(request.user),
-                include_projects=self.include_organization_projects,
-                include_teams=self.include_organization_teams,
+            organization_context = access.get_organization_access_context(
+                request, organization_id=int(organization_id_or_slug)
             )
         else:
-            organization_context = organization_service.get_organization_by_slug(
+            organization_context = organization_service.get_access_context_by_slug(
                 slug=str(organization_id_or_slug),
                 only_visible=False,
                 user_id=acting_user_id(request.user),
-                include_projects=self.include_organization_projects,
-                include_teams=self.include_organization_teams,
+                include_resource_ids=access.should_prefetch_organization_resources(request),
             )
         if organization_context is None:
             raise ResourceDoesNotExist
