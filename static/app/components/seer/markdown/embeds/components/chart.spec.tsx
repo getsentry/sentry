@@ -1,5 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {DateTimeProvider} from '@sentry/scraps/datetime';
+
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
@@ -356,14 +358,69 @@ describe('Chart embed gaps and transformation provenance', () => {
     expect(lastChartProps().series).toEqual([
       expect.objectContaining({
         data: [
-          [Date.parse(T0), 12],
+          {value: [Date.parse(T0), 12], symbol: 'circle'},
           [Date.parse(T1), '-'],
-          [Date.parse(T2), 15],
+          {value: [Date.parse(T2), 15], symbol: 'circle'},
         ],
       }),
     ]);
     expect(screen.queryByText(/not observed measurements/)).not.toBeInTheDocument();
   });
+
+  it.each(['line', 'area', 'bar'] as const)(
+    'lists all-null %s values as missing data',
+    visualization => {
+      render(
+        <ExampleChartEmbed
+          body={{
+            title: 'Error volume',
+            visualization,
+            series: [{label: 'Errors', data: [{x: T0, y: null}]}],
+          }}
+        />
+      );
+
+      expect(screen.getByRole('columnheader', {name: 'Errors'})).toBeInTheDocument();
+      expect(screen.getByText('No data')).toBeInTheDocument();
+      expect(screen.queryByText('Unable to render')).not.toBeInTheDocument();
+    }
+  );
+
+  it.each([
+    ['2026-07-30T12:00:10Z', '2026-07-30T12:00:20Z', /12:00:10/, /12:00:20/],
+    [
+      '2026-07-30T12:00:00.100Z',
+      '2026-07-30T12:00:00.200Z',
+      /12:00:00\.100/,
+      /12:00:00\.200/,
+    ],
+  ] as const)(
+    'distinguishes table timestamps %s and %s',
+    (first, second, firstLabel, secondLabel) => {
+      render(
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '24'}}>
+          <ExampleChartEmbed
+            body={{
+              title: 'Error volume',
+              visualization: 'bar',
+              series: [
+                {
+                  label: 'Errors',
+                  data: [
+                    {x: first, y: 12, filled: true},
+                    {x: second, y: 15},
+                  ],
+                },
+              ],
+            }}
+          />
+        </DateTimeProvider>
+      );
+
+      expect(screen.getByText(firstLabel)).toBeInTheDocument();
+      expect(screen.getByText(secondLabel)).toBeInTheDocument();
+    }
+  );
 
   it('treats points without provenance flags as observed', () => {
     render(

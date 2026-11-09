@@ -38,6 +38,14 @@ export class TransformedLine extends ContinuousTimeSeries implements Plottable {
 
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): LineSeriesOption[] {
     const values = scaleTimeSeriesData(this.timeSeries, plottingOptions.unit).values;
+    const isolatedPoints = new Set(
+      values.filter(
+        (item, index) =>
+          item.value !== null &&
+          (values[index - 1]?.value ?? null) === null &&
+          (values[index + 1]?.value ?? null) === null
+      )
+    );
     const segments = segmentSequentialBy(values, this.#isDerived);
 
     const commonOptions: LineSeriesOption = {
@@ -45,13 +53,19 @@ export class TransformedLine extends ContinuousTimeSeries implements Plottable {
       color: plottingOptions.color ?? this.config?.color,
       animation: false,
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
+      showSymbol: true,
+      symbol: 'none',
     };
 
     return segments.map((segment, index) => {
       if (!segment.predicateValue) {
         return createLineSeries({
           ...commonOptions,
-          data: segment.data.map(timeSeriesItemToEChartsDataPoint),
+          data: segment.data.map(item =>
+            isolatedPoints.has(item)
+              ? {value: timeSeriesItemToEChartsDataPoint(item), symbol: 'circle'}
+              : timeSeriesItemToEChartsDataPoint(item)
+          ),
         });
       }
 
@@ -68,18 +82,9 @@ export class TransformedLine extends ContinuousTimeSeries implements Plottable {
       return createLineSeries({
         ...commonOptions,
         lineStyle: {type: 'dashed'},
-        // A derived value with no non-null neighbour draws no line, so mark it
-        // with a symbol rather than let it disappear.
-        showSymbol: true,
-        data: data.map((item, itemIndex) => ({
+        data: data.map(item => ({
           value: timeSeriesItemToEChartsDataPoint(item),
-          symbol:
-            this.#isDerived(item) &&
-            item.value !== null &&
-            (data[itemIndex - 1]?.value ?? null) === null &&
-            (data[itemIndex + 1]?.value ?? null) === null
-              ? 'circle'
-              : 'none',
+          symbol: this.#isDerived(item) && isolatedPoints.has(item) ? 'circle' : 'none',
         })),
       });
     });

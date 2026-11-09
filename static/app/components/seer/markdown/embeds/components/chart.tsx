@@ -92,6 +92,9 @@ function shouldRenderTable({
   x_axis: xAxis,
 }: EmbedOutput<'chart'>): boolean {
   const points = series.flatMap(item => item.data);
+  if (points.every(point => point.y === null)) {
+    return true;
+  }
   if (xAxis === 'category') {
     return points.some(point => point.y === null || isDerivedChartPoint(point));
   }
@@ -116,6 +119,10 @@ function ChartTable({
   if (xAxis === 'time') {
     rowKeys.sort((left, right) => Number(left) - Number(right));
   }
+  const showSeconds = rowKeys.some(key => typeof key === 'number' && key % 60_000 !== 0);
+  const showMilliseconds = rowKeys.some(
+    key => typeof key === 'number' && key % 1000 !== 0
+  );
   const pointsBySeries = series.map(
     item => new Map(item.data.map(point => [getKey(point.x), point]))
   );
@@ -146,7 +153,15 @@ function ChartTable({
       {rowKeys.map(rowKey => (
         <SimpleTable.Row key={rowKey}>
           <SimpleTable.RowCell>
-            {typeof rowKey === 'number' ? <DateTime date={rowKey} /> : rowKey}
+            {typeof rowKey === 'number' ? (
+              <DateTime
+                date={rowKey}
+                seconds={showSeconds}
+                milliseconds={showMilliseconds}
+              />
+            ) : (
+              rowKey
+            )}
           </SimpleTable.RowCell>
           {pointsBySeries.map((points, index) => {
             const point = points.get(rowKey);
@@ -312,9 +327,8 @@ export function ChartContent({
                 .filter(({point}) => isDerivedChartPoint(point))
                 .map(({timestamp}) => timestamp)
             );
-            // Only reached for line charts: `shouldRenderTable` sends any
-            // other visualization with derived values to the table.
-            return derivedTimestamps.size > 0
+            return derivedTimestamps.size > 0 ||
+              (visualization === 'line' && values.some(point => point.value === null))
               ? new TransformedLine(timeSeries, derivedTimestamps, config)
               : createPlottableFromTimeSeries(
                   DISPLAY_TYPES[visualization],
