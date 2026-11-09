@@ -45,11 +45,10 @@ export const ListWrap = styled('ul')`
     outline: none;
   }
 
-  /* The first section follows a hidden separator in a headerless menu. */
-  [data-menu-has-header='false']
-    &:first-of-type
-    li[role='presentation']:nth-of-type(2)
-    > [data-section-header] {
+  /* Remove the first section header's top padding in a headerless menu. Only the
+  first section has no separator, so its header is the only one that comes first
+  in its row. */
+  [data-menu-has-header='false'] &:first-of-type [data-section-header]:first-child {
     padding-top: 0;
   }
 `;
