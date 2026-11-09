@@ -66,7 +66,26 @@ describe('OrganizationServiceAccountDetails', () => {
     expect(screen.getByText('backend')).toBeInTheDocument();
     expect(screen.getByText('sntrym_************abcd')).toBeInTheDocument();
     expect(screen.getByText('2 scopes')).toBeInTheDocument();
-    expect(screen.getByText('Never')).toBeInTheDocument();
+    // Never used, and never expires.
+    expect(screen.getAllByText('Never')).toHaveLength(2);
+    expect(screen.queryByText('Expired')).not.toBeInTheDocument();
+  });
+
+  it('shows when tokens expire and marks expired ones', async () => {
+    MockApiClient.addMockResponse({
+      url: TOKENS_ENDPOINT,
+      body: [
+        {...token, id: '11', name: 'expired-token', dateExpires: '2010-01-15T12:00:00Z'},
+        {...token, id: '12', name: 'active-token', dateExpires: '2999-01-15T12:00:00Z'},
+      ],
+    });
+
+    render(<OrganizationServiceAccountDetails />, {initialRouterConfig});
+
+    expect(await screen.findByText('expired-token')).toBeInTheDocument();
+    expect(screen.getByText('Jan 15, 2010')).toBeInTheDocument();
+    expect(screen.getByText('Jan 15, 2999')).toBeInTheDocument();
+    expect(screen.getAllByText('Expired')).toHaveLength(1);
   });
 
   it('shows an empty state', async () => {

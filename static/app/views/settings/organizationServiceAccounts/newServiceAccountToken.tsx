@@ -26,18 +26,62 @@ import {
 } from './serviceAccountDetails';
 import type {NewServiceAccountToken, ServiceAccount} from './types';
 
-const schema = z.object({
-  name: z.string().trim().min(1, t('Name is required')),
-  scopes: z.array(z.string()).min(1, t('Pick at least one permission')),
-});
+const EXPIRATION_OPTIONS = [
+  {value: '30', label: t('30 days')},
+  {value: '60', label: t('60 days')},
+  {value: '90', label: t('90 days')},
+  {value: 'custom', label: t('Custom date')},
+  {value: 'never', label: t('No expiration')},
+];
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function toDateInputValue(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+const schema = z
+  .object({
+    name: z.string().trim().min(1, t('Name is required')),
+    scopes: z.array(z.string()).min(1, t('Pick at least one permission')),
+    expiration: z.string(),
+    customDate: z.string(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.expiration !== 'custom') {
+      return;
+    }
+    // Date inputs give YYYY-MM-DD, so tomorrow or later compares as greater.
+    if (!values.customDate || values.customDate <= toDateInputValue(new Date())) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['customDate'],
+        message: t('Pick a date after today'),
+      });
+    }
+  });
 
 type FormValues = z.infer<typeof schema>;
+
+function getExpiresAt({expiration, customDate}: FormValues): string | null {
+  if (expiration === 'never') {
+    return null;
+  }
+  if (expiration === 'custom') {
+    // The token works through the end of the picked day, in the user's timezone.
+    return new Date(`${customDate}T23:59:59`).toISOString();
+  }
+  return new Date(Date.now() + Number(expiration) * DAY_MS).toISOString();
+}
 
 const errorDetailSchema = z.union([
   z.string(),
   z.object({
     name: z.array(z.string()).optional(),
     scopes: z.array(z.string()).optional(),
+    expiresAt: z.array(z.string()).optional(),
   }),
 ]);
 
@@ -55,7 +99,7 @@ function NewTokenForm({serviceAccount}: {serviceAccount: ServiceAccount}) {
   const handleGoBack = () => navigate(detailsPath);
 
   const mutation = useMutation({
-    mutationFn: ({name, scopes}: FormValues) =>
+    mutationFn: (values: FormValues) =>
       fetchMutation<NewServiceAccountToken>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/service-accounts/$serviceAccountId/tokens/',
@@ -67,7 +111,11 @@ function NewTokenForm({serviceAccount}: {serviceAccount: ServiceAccount}) {
           }
         ),
         method: 'POST',
-        data: {name: name.trim(), scopes},
+        data: {
+          name: values.name.trim(),
+          scopes: values.scopes,
+          expiresAt: getExpiresAt(values),
+        },
       }),
     onSuccess: token => {
       queryClient.invalidateQueries({
@@ -80,7 +128,12 @@ function NewTokenForm({serviceAccount}: {serviceAccount: ServiceAccount}) {
     },
   });
 
-  const defaultValues: FormValues = {name: '', scopes: serviceAccount.scopes};
+  const defaultValues: FormValues = {
+    name: '',
+    scopes: serviceAccount.scopes,
+    expiration: '30',
+    customDate: '',
+  };
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -100,10 +153,12 @@ function NewTokenForm({serviceAccount}: {serviceAccount: ServiceAccount}) {
         }
         const nameError = detail?.name?.[0];
         const scopesError = detail?.scopes?.[0];
-        if (nameError || scopesError) {
+        const expiresAtError = detail?.expiresAt?.[0];
+        if (nameError || scopesError || expiresAtError) {
           setFieldErrors(formApi, {
             ...(nameError ? {name: {message: nameError}} : {}),
             ...(scopesError ? {scopes: {message: scopesError}} : {}),
+            ...(expiresAtError ? {expiration: {message: expiresAtError}} : {}),
           });
         } else {
           toast.error(t('Failed to create the token.'));
@@ -151,6 +206,44 @@ function NewTokenForm({serviceAccount}: {serviceAccount: ServiceAccount}) {
             </field.Layout.Row>
           )}
         </form.AppField>
+        <form.AppField name="expiration">
+          {field => (
+            <field.Layout.Row
+              label={t('Expiration')}
+              hintText={
+                field.state.value === 'never'
+                  ? t(
+                      'This token works until someone revokes it. Tokens that expire are safer.'
+                    )
+                  : t('The token stops working after this.')
+              }
+              required
+            >
+              <field.Select
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={EXPIRATION_OPTIONS}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.Subscribe selector={state => state.values.expiration === 'custom'}>
+          {isCustom =>
+            isCustom && (
+              <form.AppField name="customDate">
+                {field => (
+                  <field.Layout.Row label={t('Expiration date')} required>
+                    <field.Input
+                      type="date"
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                    />
+                  </field.Layout.Row>
+                )}
+              </form.AppField>
+            )
+          }
+        </form.Subscribe>
       </form.FieldGroup>
 
       <Flex justify="end" gap="md" padding="md">

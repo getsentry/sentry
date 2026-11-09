@@ -10,6 +10,8 @@ import {toast} from '@sentry/scraps/toast';
 
 import OrganizationServiceAccountNewToken from './newServiceAccountToken';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 describe('OrganizationServiceAccountNewToken', () => {
   const ACCOUNT_ENDPOINT = '/organizations/org-slug/service-accounts/1/';
   const TOKENS_ENDPOINT = '/organizations/org-slug/service-accounts/1/tokens/';
@@ -70,10 +72,17 @@ describe('OrganizationServiceAccountNewToken', () => {
       expect(createMock).toHaveBeenCalledWith(
         TOKENS_ENDPOINT,
         expect.objectContaining({
-          data: {name: 'ci-deploy', scopes: ['project:releases']},
+          data: {
+            name: 'ci-deploy',
+            scopes: ['project:releases'],
+            expiresAt: expect.any(String),
+          },
         })
       )
     );
+    const {expiresAt} = createMock.mock.calls[0][1].data;
+    const daysUntilExpiry = (new Date(expiresAt).getTime() - Date.now()) / DAY_MS;
+    expect(Math.round(daysUntilExpiry)).toBe(30);
     expect(await screen.findByLabelText('Generated token')).toHaveValue(
       'sntrym_secret-token-abcd'
     );
@@ -82,6 +91,70 @@ describe('OrganizationServiceAccountNewToken', () => {
     await userEvent.click(screen.getByRole('button', {name: "I've saved it"}));
     await waitFor(() =>
       expect(router.location.pathname).toBe('/settings/org-slug/service-accounts/1/')
+    );
+  });
+
+  it('creates a token that never expires', async () => {
+    const createMock = MockApiClient.addMockResponse({
+      url: TOKENS_ENDPOINT,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: '10', token: 'sntrym_secret-token-abcd'},
+    });
+
+    render(<OrganizationServiceAccountNewToken />, {initialRouterConfig});
+    renderGlobalModal();
+
+    await userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), 'ci-deploy');
+    await userEvent.click(screen.getByText('30 days'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'No expiration'}));
+    expect(screen.getByText(/works until someone revokes it/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        TOKENS_ENDPOINT,
+        expect.objectContaining({
+          data: expect.objectContaining({expiresAt: null}),
+        })
+      )
+    );
+  });
+
+  it('creates a token that expires on a custom date', async () => {
+    const createMock = MockApiClient.addMockResponse({
+      url: TOKENS_ENDPOINT,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: '10', token: 'sntrym_secret-token-abcd'},
+    });
+
+    render(<OrganizationServiceAccountNewToken />, {initialRouterConfig});
+    renderGlobalModal();
+
+    await userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), 'ci-deploy');
+    await userEvent.click(screen.getByText('30 days'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Custom date'}));
+
+    const dateInput = await screen.findByLabelText('Expiration date');
+    await userEvent.type(dateInput, '2000-01-01');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+    expect(await screen.findByText('Pick a date after today')).toBeInTheDocument();
+    expect(createMock).not.toHaveBeenCalled();
+
+    await userEvent.clear(dateInput);
+    await userEvent.type(dateInput, '2999-12-31');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        TOKENS_ENDPOINT,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            expiresAt: new Date('2999-12-31T23:59:59').toISOString(),
+          }),
+        })
+      )
     );
   });
 
