@@ -1,5 +1,5 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
-import type {UseMutationOptions} from '@tanstack/react-query';
+import type {UseMutationOptions, UseQueryOptions} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
@@ -16,14 +16,14 @@ import type {
   MultiSeriesEventsStats,
   OrganizationSummary,
 } from 'sentry/types/organization';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {getApiQueryData, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -221,12 +221,12 @@ type FetchEventAttachmentParameters = {
 
 type FetchEventAttachmentResponse = IssueAttachment[];
 
-const makeFetchEventAttachmentsQueryKey = ({
+const fetchEventAttachmentsOptions = ({
   orgSlug,
   projectSlug,
   eventId,
-}: FetchEventAttachmentParameters): ApiQueryKey => [
-  getApiUrl(
+}: FetchEventAttachmentParameters) =>
+  apiOptions.as<FetchEventAttachmentResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/',
     {
       path: {
@@ -234,26 +234,33 @@ const makeFetchEventAttachmentsQueryKey = ({
         projectIdOrSlug: projectSlug!,
         eventId,
       },
+      staleTime: Infinity,
     }
-  ),
-];
+  );
 
 export const useFetchEventAttachments = (
   params: FetchEventAttachmentParameters,
-  options: Partial<UseApiQueryOptions<FetchEventAttachmentResponse>> = {}
+  options: Partial<
+    Omit<
+      UseQueryOptions<
+        ApiResponse<FetchEventAttachmentResponse>,
+        Error,
+        FetchEventAttachmentResponse,
+        ApiQueryKey
+      >,
+      'queryKey' | 'queryFn' | 'select'
+    >
+  > = {}
 ) => {
   const organization = useOrganization();
-  return useApiQuery<FetchEventAttachmentResponse>(
-    makeFetchEventAttachmentsQueryKey(params),
-    {
-      staleTime: Infinity,
-      ...options,
-      enabled:
-        (organization.features.includes('event-attachments') ?? false) &&
-        options.enabled !== false &&
-        params.projectSlug !== undefined,
-    }
-  );
+  return useQuery({
+    ...fetchEventAttachmentsOptions(params),
+    ...options,
+    enabled:
+      (organization.features.includes('event-attachments') ?? false) &&
+      options.enabled !== false &&
+      params.projectSlug !== undefined,
+  });
 };
 
 type DeleteEventAttachmentVariables = {
@@ -266,7 +273,7 @@ type DeleteEventAttachmentVariables = {
 type DeleteEventAttachmentResponse = unknown;
 
 type DeleteEventAttachmentContext = {
-  previous?: IssueAttachment[];
+  previous?: ApiResponse<FetchEventAttachmentResponse>;
 };
 
 type DeleteEventAttachmentOptions = UseMutationOptions<
@@ -299,23 +306,26 @@ export const useDeleteEventAttachmentOptimistic = () => {
     },
     onMutate: async variables => {
       await queryClient.cancelQueries({
-        queryKey: makeFetchEventAttachmentsQueryKey(variables),
+        queryKey: fetchEventAttachmentsOptions(variables).queryKey,
       });
 
-      const previous = getApiQueryData<FetchEventAttachmentResponse>(
-        queryClient,
-        makeFetchEventAttachmentsQueryKey(variables)
+      const previous = queryClient.getQueryData(
+        fetchEventAttachmentsOptions(variables).queryKey
       );
 
-      setApiQueryData<FetchEventAttachmentResponse>(
-        queryClient,
-        makeFetchEventAttachmentsQueryKey(variables),
+      queryClient.setQueryData(
+        fetchEventAttachmentsOptions(variables).queryKey,
         oldData => {
-          if (!Array.isArray(oldData)) {
+          if (!Array.isArray(oldData?.json)) {
             return oldData;
           }
 
-          return oldData.filter(attachment => attachment?.id !== variables.attachmentId);
+          return {
+            ...oldData,
+            json: oldData.json.filter(
+              attachment => attachment?.id !== variables.attachmentId
+            ),
+          };
         }
       );
 
@@ -325,9 +335,8 @@ export const useDeleteEventAttachmentOptimistic = () => {
       toast.error(t('An error occurred while deleting the attachment'));
 
       if (onMutateResult) {
-        setApiQueryData(
-          queryClient,
-          makeFetchEventAttachmentsQueryKey(variables),
+        queryClient.setQueryData(
+          fetchEventAttachmentsOptions(variables).queryKey,
           onMutateResult.previous
         );
       }

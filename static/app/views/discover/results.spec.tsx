@@ -1437,7 +1437,7 @@ describe('Results', () => {
   describe('Save as', () => {
     it('groups saving, monitors and dashboards in one dropdown', async () => {
       const organization = OrganizationFixture({
-        features: ['discover-basic', 'discover-query', 'dashboards-edit'],
+        features: ['discover-basic', 'discover-query'],
       });
 
       renderMockRequests();

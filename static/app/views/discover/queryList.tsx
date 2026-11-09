@@ -10,7 +10,6 @@ import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import {Feature} from 'sentry/components/acl/feature';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -223,11 +222,7 @@ function PrebuiltQueryCard({
           query_name: eventView.name,
         });
       }}
-      renderContextMenu={() => (
-        <Feature organization={organization} features="dashboards-edit">
-          {({hasFeature}) => hasFeature && <HamburgerDropdown items={menuItems} />}
-        </Feature>
-      )}
+      renderContextMenu={() => <HamburgerDropdown items={menuItems} />}
     />
   );
 }
@@ -250,26 +245,22 @@ function SavedQueryCard({
     savedQuery.queryDataset
   );
 
-  const menuItems = (canAddToDashboard: boolean): MenuItemProps[] => [
-    ...(canAddToDashboard
-      ? [
-          {
-            key: 'add-to-dashboard',
-            label: t('Add to Dashboard'),
-            onAction: () =>
-              handleAddQueryToDashboard({
-                eventView,
-                location,
-                query: savedQuery,
-                organization,
-                yAxis: savedQuery?.yAxis ?? eventView.yAxis,
-                widgetType: getWidgetType(organization, location, savedQuery),
-                source: DashboardWidgetSource.DISCOVERV2,
-              }),
-            disabled: deprecateTransactionQuery,
-          },
-        ]
-      : []),
+  const menuItems: MenuItemProps[] = [
+    {
+      key: 'add-to-dashboard',
+      label: t('Add to Dashboard'),
+      onAction: () =>
+        handleAddQueryToDashboard({
+          eventView,
+          location,
+          query: savedQuery,
+          organization,
+          yAxis: savedQuery?.yAxis ?? eventView.yAxis,
+          widgetType: getWidgetType(organization, location, savedQuery),
+          source: DashboardWidgetSource.DISCOVERV2,
+        }),
+      disabled: deprecateTransactionQuery,
+    },
     {
       key: 'set-as-default',
       label: t('Set as Default'),
@@ -309,11 +300,7 @@ function SavedQueryCard({
           yAxis={savedQuery.yAxis?.length ? savedQuery.yAxis : ['count()']}
         />
       )}
-      renderContextMenu={() => (
-        <Feature organization={organization} features="dashboards-edit">
-          {({hasFeature}) => <HamburgerDropdown items={menuItems(hasFeature)} />}
-        </Feature>
-      )}
+      renderContextMenu={() => <HamburgerDropdown items={menuItems} />}
     />
   );
 }

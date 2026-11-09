@@ -268,6 +268,7 @@ export type SeerExplorerResponse = {
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;
   } | null;
+  feature_id?: string | null;
   sentry_run_id?: string | null;
 };
 

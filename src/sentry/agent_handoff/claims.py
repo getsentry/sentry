@@ -3,6 +3,7 @@ from django.views.decorators.debug import sensitive_variables
 from sentry import options
 from sentry.agent_handoff.applications import get_handoff_application
 from sentry.agent_handoff.codes import consume_handoff
+from sentry.agent_handoff.flows import HandoffMode, get_flow_instructions
 from sentry.agent_handoff.runbook import render_agent_runbook
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
@@ -56,4 +57,10 @@ def claim_handoff(code: str) -> str | None:
         sentry_url=options.get("system.url-prefix"),
         client_id=application.client_id,
         setup_code=setup_code,
+        flow_instructions=get_flow_instructions(
+            handoff.flow,
+            mode=HandoffMode.CLAIMED,
+            user_id=user.id,
+            organization_id=context.organization.id,
+        ),
     )

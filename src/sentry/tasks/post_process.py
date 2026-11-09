@@ -1350,11 +1350,11 @@ def process_data_forwarding(job: PostProcessJob) -> None:
 
 
 def process_similarity(job: PostProcessJob) -> None:
+    from sentry.seer.similarity.utils import project_uses_seer_similarity
+
     if not options.get("sentry.similarity.indexing.enabled"):
         return
-    if job["is_reprocessed"] or job["event"].group.project.get_option(
-        "sentry:similarity_backfill_completed"
-    ):
+    if job["is_reprocessed"] or project_uses_seer_similarity(job["event"].group.project):
         return
 
     from sentry import similarity

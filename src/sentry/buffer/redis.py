@@ -8,8 +8,8 @@ from datetime import date, datetime, timezone
 from time import time
 from typing import Any, TypeVar
 
-import rb
 from django.utils.encoding import force_bytes, force_str
+from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
 from sentry.buffer.base import Buffer, BufferField
@@ -19,10 +19,9 @@ from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
 from sentry.utils.redis import (
-    get_cluster_routing_client,
     get_dynamic_cluster_from_options,
-    is_instance_rb_cluster,
     is_instance_redis_cluster,
+    is_instance_standalone_redis,
     validate_dynamic_cluster,
 )
 
@@ -219,7 +218,7 @@ class RedisBuffer(Buffer):
         assert self.incr_batch_size > 0
 
     def validate(self) -> None:
-        validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
+        validate_dynamic_cluster(self.cluster)
 
     def _coerce_val(self, value: BufferField) -> bytes:
         if isinstance(value, models.Model):
@@ -253,9 +252,7 @@ class RedisBuffer(Buffer):
     def _make_lock_key(self, key: str) -> str:
         return f"l:{key}"
 
-    def _lock_key(
-        self, client: RedisCluster[T] | rb.RoutingClient, key: str, ex: int
-    ) -> None | str:
+    def _lock_key(self, client: RedisCluster[T] | StrictRedis[T], key: str, ex: int) -> None | str:
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to scheduled tasks + periodic task
         if not client.set(lock_key, "1", nx=True, ex=ex):
@@ -361,15 +358,7 @@ class RedisBuffer(Buffer):
         }
 
     def get_redis_connection(self, key: str, transaction: bool = True) -> Pipeline:
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            conn = self.cluster
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            conn = self.cluster.get_local_client_for_key(key)
-        else:
-            raise AssertionError("unreachable")
-
-        pipe = conn.pipeline(transaction=transaction)
-        return pipe
+        return self.cluster.pipeline(transaction=transaction)
 
     def incr(
         self,
@@ -383,14 +372,12 @@ class RedisBuffer(Buffer):
         Increment the key by doing the following:
 
         - Insert/update a hashmap based on (model, columns)
-            - Perform an incrby on counters if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
+            - Perform an incrby on counters
             - Perform a set (last write wins) on extra
             - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
         """
         key = make_key(model, filters)
-        # We can't use conn.map() due to wanting to support multiple pending
-        # keys (one per Redis partition)
         pipe = self.get_redis_connection(key, transaction=(not self.is_redis_cluster))
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         _validate_json_roundtrip(filters, model)
@@ -429,7 +416,7 @@ class RedisBuffer(Buffer):
         )
 
     def process_pending(self) -> None:
-        client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
+        client = self.cluster
         lock_key = self._lock_key(client, self.pending_key, ex=60)
         if not lock_key:
             return
@@ -457,28 +444,21 @@ class RedisBuffer(Buffer):
                 if keys:
                     self.cluster.zrem(self.pending_key, *keys)
 
-            elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-                with self.cluster.all() as conn:
-                    results = conn.zrange(self.pending_key, 0, -1)
-
-                with self.cluster.all() as conn:
-                    for host_id, keysb in results.value.items():
-                        if not keysb:
-                            continue
-                        keycount += len(keysb)
-                        for keyb in keysb:
-                            key = keyb.decode("utf-8")
-                            model_key = self._extract_model_from_key(key=key)
-                            pending_buffer = pending_buffers_router.get_pending_buffer(
-                                model_key=model_key
-                            )
-                            pending_buffer.append(item=key)
-                            if pending_buffer.full():
-                                process_incr.apply_async(
-                                    kwargs={"batch_keys": pending_buffer.flush()},
-                                    headers={"sentry-propagate-traces": False},
-                                )
-                        conn.target([host_id]).zrem(self.pending_key, *keysb)
+            elif is_instance_standalone_redis(self.cluster, self.is_redis_cluster):
+                keysb = self.cluster.zrange(self.pending_key, 0, -1)
+                keycount += len(keysb)
+                for keyb in keysb:
+                    key = keyb.decode("utf-8")
+                    model_key = self._extract_model_from_key(key=key)
+                    pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
+                    pending_buffer.append(item=key)
+                    if pending_buffer.full():
+                        process_incr.apply_async(
+                            kwargs={"batch_keys": pending_buffer.flush()},
+                            headers={"sentry-propagate-traces": False},
+                        )
+                if keysb:
+                    self.cluster.zrem(self.pending_key, *keysb)
             else:
                 raise AssertionError("unreachable")
 
@@ -522,7 +502,7 @@ class RedisBuffer(Buffer):
         return super().process(model, columns, filters, extra, signal_only)
 
     def _process_single_incr(self, key: str) -> None:
-        client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
+        client = self.cluster
         lock_key = self._lock_key(client, key, ex=10)
         if not lock_key:
             metrics.incr("buffer.revoked", tags={"reason": "locked"}, skip_internal=False)

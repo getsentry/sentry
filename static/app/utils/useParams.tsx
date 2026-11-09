@@ -15,6 +15,8 @@ type ParamKeys =
   | 'appId'
   | 'appSlug'
   | 'artifactId'
+  | 'attributeName'
+  | 'attributeType'
   | 'authId'
   | 'automationId'
   | 'baseArtifactId'

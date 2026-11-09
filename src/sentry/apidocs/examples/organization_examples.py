@@ -495,7 +495,7 @@ class OrganizationExamples:
                 "end": "2023-09-19T12:28:00Z",
                 "projects": [
                     {
-                        "id": "1",
+                        "id": 1,
                         "slug": "android-project",
                         "stats": [
                             {
@@ -589,7 +589,6 @@ class OrganizationExamples:
                     {"teamSlug": "ancient-gabelers", "role": "admin"},
                     {"teamSlug": "powerful-abolitionist", "role": "contributor"},
                 ],
-                "invite_link": None,
                 "isOnlyOwner": False,
                 "orgRoleList": ORG_ROLE_LIST,
                 "teamRoleList": TEAM_ROLE_LIST,
@@ -647,6 +646,8 @@ class OrganizationExamples:
                         "title": "feat(raspberries): Made raspberries even more delicious",
                         "message": "Made raspberries even more delicious",
                         "dateCreated": "2024-05-03T07:32:28.205043Z",
+                        "mergedAt": "2024-05-03T09:12:44.104571Z",
+                        "status": "merged",
                         "repository": {
                             "id": "1",
                             "name": "raj/raspberries",
@@ -662,6 +663,7 @@ class OrganizationExamples:
                             "id": "2837091",
                             "name": "Raj's Raspberries",
                             "username": "rajraspberry",
+                            "email": "raj@raspberries",
                             "avatarUrl": "https://gravatar.com/avatar/bf99685de539465db9208ab3a888843ba0e5e85b1f156084484c7c6c31312be5?s=32&d=mm",
                             "isActive": True,
                             "isSuspended": False,
@@ -683,8 +685,8 @@ class OrganizationExamples:
                             ],
                             "avatar": {
                                 "avatarType": "upload",
-                                "avatarUuid": "xyz123",
-                                "avatarUrl": "https://sentry.io/avatar/xyz123/",
+                                "avatarUuid": "2d641b5d3c8c4b6aa3b14c4d0e7f9c3a",
+                                "avatarUrl": "https://sentry.io/avatar/2d641b5d3c8c4b6aa3b14c4d0e7f9c3a/",
                             },
                         },
                         "externalUrl": "https://github.com/raj/raspberries/pull/70214",
@@ -705,6 +707,7 @@ class OrganizationExamples:
                         "id": "2837091",
                         "name": "Raj's Raspberries",
                         "username": "rajraspberry",
+                        "email": "raj@raspberries",
                         "avatarUrl": "https://gravatar.com/avatar/bf99685de539465db9208ab3a888843ba0e5e85b1f156084484c7c6c31312be5?s=32&d=mm",
                         "isActive": True,
                         "isSuspended": False,
@@ -722,44 +725,10 @@ class OrganizationExamples:
                         ],
                         "avatar": {
                             "avatarType": "upload",
-                            "avatarUuid": "xyz123",
-                            "avatarUrl": "https://sentry.io/avatar/xyz123/",
+                            "avatarUuid": "2d641b5d3c8c4b6aa3b14c4d0e7f9c3a",
+                            "avatarUrl": "https://sentry.io/avatar/2d641b5d3c8c4b6aa3b14c4d0e7f9c3a/",
                         },
                     },
-                    "releases": [
-                        {
-                            "version": "control@abc123",
-                            "shortVersion": "control@abc123",
-                            "ref": None,
-                            "url": None,
-                            "dateReleased": None,
-                            "dateCreated": "2024-05-21T11:26:16.190281Z",
-                        },
-                        {
-                            "version": "backend@abc123",
-                            "shortVersion": "backend@abc123",
-                            "ref": None,
-                            "url": None,
-                            "dateReleased": None,
-                            "dateCreated": "2024-05-21T11:56:36.790866Z",
-                        },
-                        {
-                            "version": "control@def789",
-                            "shortVersion": "control@def789",
-                            "ref": None,
-                            "url": None,
-                            "dateReleased": None,
-                            "dateCreated": "2024-05-21T12:44:25.923663Z",
-                        },
-                        {
-                            "version": "frontend@ghi012",
-                            "shortVersion": "frontend@ghi012",
-                            "ref": None,
-                            "url": None,
-                            "dateReleased": None,
-                            "dateCreated": "2024-05-21T12:46:42.338358Z",
-                        },
-                    ],
                 },
                 "deployCount": 1,
                 "lastDeploy": {
@@ -931,7 +900,7 @@ class OrganizationExamples:
                     "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
                     "fingerprints": ["c4a4d06bc314205bb3b6bdb612dde7f1"],
                     "groupID": "1",
-                    "id": "1",
+                    "id": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
                     "location": "example.py:42",
                     "message": "",
                     "title": "This is an example Python exception",
