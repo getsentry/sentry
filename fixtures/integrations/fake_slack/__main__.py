@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from sentry.testutils.fake_slack.server import FakeSlack, make_server
+from fixtures.integrations.fake_slack.server import FakeSlack, make_server
 
 
 def main() -> None:

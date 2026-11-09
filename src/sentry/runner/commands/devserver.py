@@ -307,7 +307,7 @@ def devserver(
                     [
                         sys.executable,
                         "-m",
-                        "sentry.testutils.fake_slack",
+                        "fixtures.integrations.fake_slack",
                         "--host",
                         host,
                         "--port",

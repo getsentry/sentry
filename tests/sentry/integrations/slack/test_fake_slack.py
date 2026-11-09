@@ -9,9 +9,9 @@ from django.test import override_settings
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+from fixtures.integrations.fake_slack.server import FakeSlack, make_server
 from sentry.integrations.slack.sdk_client import SlackSdkClient, slack_api_base_url
 from sentry.testutils.cases import TestCase
-from sentry.testutils.fake_slack.server import FakeSlack, make_server
 from sentry.utils import json
 
 

@@ -6,7 +6,10 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.integration import SlackIntegrationProvider
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
-from sentry.testutils.fake_slack.server import TEAM  # noqa: S007
+
+TEAM_ID = "T0FAKE"
+TEAM_NAME = "Fake Slack"
+TEAM_DOMAIN = "fake-slack"
 
 
 class Command(BaseCommand):
@@ -27,14 +30,14 @@ class Command(BaseCommand):
         organization = self._get_organization(options["org"])
         integration, _ = Integration.objects.update_or_create(
             provider=IntegrationProviderSlug.SLACK.value,
-            external_id=TEAM["id"],
+            external_id=TEAM_ID,
             defaults={
-                "name": TEAM["name"],
+                "name": TEAM_NAME,
                 "status": ObjectStatus.ACTIVE,
                 "metadata": {
                     "access_token": "xoxb-fake-slack",
                     "installation_type": "born_as_bot",
-                    "domain_name": f"{TEAM['domain']}.slack.com",
+                    "domain_name": f"{TEAM_DOMAIN}.slack.com",
                     "scopes": sorted(SlackIntegrationProvider.identity_oauth_scopes),
                 },
             },
@@ -43,7 +46,7 @@ class Command(BaseCommand):
 
         port = settings.SENTRY_FAKE_SLACK_PORT
         self.stdout.write(
-            f"Connected {organization.slug} to the {TEAM['name']} workspace "
+            f"Connected {organization.slug} to the {TEAM_NAME} workspace "
             f"(integration {integration.id}).\n"
             f"Send Slack notifications to any channel, like #alerts, and see them in Fake Slack "
             f"on port {port} (http://localhost:{port} locally) while the devserver runs."

@@ -4,6 +4,7 @@ import pytest
 from django.core.management import CommandError, call_command
 from django.test import override_settings
 
+from fixtures.integrations.fake_slack.server import TEAM
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import TestCase
@@ -28,7 +29,9 @@ class FakeSlackSetupTest(TestCase):
         self.run_command("--org", self.organization.slug)
 
         integration = Integration.objects.get(provider="slack")
-        assert integration.external_id == "T0FAKE"
+        assert integration.external_id == TEAM["id"]
+        assert integration.name == TEAM["name"]
+        assert integration.metadata["domain_name"] == f"{TEAM['domain']}.slack.com"
         assert integration.metadata["access_token"] == "xoxb-fake-slack"
         assert OrganizationIntegration.objects.filter(
             integration=integration, organization_id=self.organization.id
