@@ -137,6 +137,39 @@ describe('useChartInterval', () => {
     expect(chartInterval).toBe('3h');
   });
 
+  it('offers a 30 day interval for long ranges when requested', () => {
+    let chartInterval!: ReturnType<typeof useChartInterval>[0];
+    let intervalOptions!: ReturnType<typeof useChartInterval>[2];
+    let defaultIntervalOptions!: ReturnType<typeof useChartInterval>[2];
+
+    function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      [chartInterval, , intervalOptions] = useChartInterval({
+        unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_BIGGEST,
+        includeThirtyDayInterval: true,
+      });
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      [, , defaultIntervalOptions] = useChartInterval();
+      return null;
+    }
+
+    render(<TestPage />);
+    expect(intervalOptions.map(o => o.value)).not.toContain('30d');
+
+    act(() =>
+      PageFiltersStore.updateDateTime({
+        period: '90d',
+        start: null,
+        end: null,
+        utc: true,
+      })
+    );
+
+    expect(intervalOptions).toContainEqual({value: '30d', label: '30 days'});
+    expect(chartInterval).not.toBe('30d');
+    expect(defaultIntervalOptions.map(o => o.value)).not.toContain('30d');
+  });
+
   it('preserves a custom interval that is not too granular for the time range', () => {
     // Default 14d period produces ladder-derived options ['1h', '3h', '6h', '1d'].
     // A 12h interval is coarser than the minimum (1h), so it should be preserved

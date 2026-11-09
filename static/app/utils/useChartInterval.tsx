@@ -9,6 +9,7 @@ import {
   GranularityLadder,
   ONE_HOUR,
   SIX_HOURS,
+  SIXTY_DAYS,
   THIRTY_DAYS,
   TWELVE_HOURS,
   TWO_WEEKS,
@@ -31,7 +32,14 @@ export enum ChartIntervalUnspecifiedStrategy {
 
 export function useChartInterval({
   unspecifiedStrategy = ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
-}: {unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy} = {}): [
+  includeThirtyDayInterval = false,
+}: {
+  /**
+   * Offer a 30 day interval for long time ranges. Never used as the default.
+   */
+  includeThirtyDayInterval?: boolean;
+  unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy;
+} = {}): [
   string,
   (interval: string) => void,
   intervalOptions: Array<{label: string; value: string}>,
@@ -64,6 +72,13 @@ export function useChartInterval({
         options.push(ONE_DAY_OPTION);
       }
 
+      if (
+        includeThirtyDayInterval &&
+        diffInMinutes >= MINIMUM_DURATION_FOR_THIRTY_DAY_INTERVAL
+      ) {
+        options.push(THIRTY_DAY_OPTION);
+      }
+
       return {
         baseIntervalOptions: options,
         defaultInterval: fallback,
@@ -76,7 +91,7 @@ export function useChartInterval({
         // this would produce a single (incomplete) bucket.
         timeRangeInHours: diffInMinutes / 60,
       };
-    }, [datetime, unspecifiedStrategy]);
+    }, [datetime, unspecifiedStrategy, includeThirtyDayInterval]);
 
   const [interval, intervalOptions] = useMemo((): [
     string,
@@ -167,6 +182,9 @@ const MAXIMUM_INTERVAL = new GranularityLadder([
 
 const ONE_DAY_OPTION = {value: '1d', label: t('1 day')};
 const MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL = TWO_WEEKS;
+
+const THIRTY_DAY_OPTION = {value: '30d', label: t('30 days')};
+const MINIMUM_DURATION_FOR_THIRTY_DAY_INTERVAL = SIXTY_DAYS;
 
 /**
  * Builds a human readable label for an arbitrary interval shorthand (e.g. `1d`),
