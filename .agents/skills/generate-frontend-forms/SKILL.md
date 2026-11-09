@@ -1113,13 +1113,13 @@ When creating auto-save fields:
 
 ## File References
 
-| File                                                   | Purpose                     |
-| ------------------------------------------------------ | --------------------------- |
-| `static/app/components/core/form/scrapsForm.tsx`       | Main form hook              |
-| `static/app/components/core/form/autoSaveForm.tsx`     | Auto-save wrapper           |
-| `static/app/components/core/form/formErrorContext.tsx` | Host error-mapper contract  |
-| `static/app/scrapsProviders/formError.tsx`             | Sentry request-error mapper |
-| `static/app/components/core/form/field/*.tsx`          | Individual field components |
-| `static/app/components/core/form/layout/index.tsx`     | Layout components           |
-| `static/app/components/core/form/displayField.tsx`     | Display-only layouts        |
-| `static/app/components/core/form/form.stories.tsx`     | Usage examples              |
+| File                                                         | Purpose                     |
+| ------------------------------------------------------------ | --------------------------- |
+| `static/packages/scraps/src/form/scrapsForm.tsx`             | Main form hook              |
+| `static/packages/scraps/src/form/autoSaveForm.tsx`           | Auto-save wrapper           |
+| `static/packages/scraps/src/form/formErrorContext/index.tsx` | Host error-mapper contract  |
+| `static/app/scrapsProviders/formError.tsx`                   | Sentry request-error mapper |
+| `static/packages/scraps/src/form/field/*.tsx`                | Individual field components |
+| `static/packages/scraps/src/form/layout/index.tsx`           | Layout components           |
+| `static/packages/scraps/src/form/displayField.tsx`           | Display-only layouts        |
+| `static/app/components/core/form/form.mdx`                   | Usage examples              |

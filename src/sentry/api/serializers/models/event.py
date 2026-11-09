@@ -14,14 +14,17 @@ from sentry_sdk import traces
 
 from sentry import options
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.event_metadata import EventMetadataResponse
 from sentry.api.serializers.models.eventattachment import EventAttachmentSerializerResponse
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
+from sentry.apidocs.formats import HexId, NumericId, hex_id, numeric_id
 from sentry.eventtypes import EventTypeStr
 from sentry.grouping.api import GroupingConfig
 from sentry.incidents.typings.metric_issue_evidence import MetricIssueOccurrenceResponse
+from sentry.interfaces.contexts import contexts_response_schema
 from sentry.interfaces.sdk import EventSdkApiContext
 from sentry.interfaces.user import EventUserApiContext
 from sentry.issues.issue_occurrence import IssueOccurrenceResponse
@@ -29,7 +32,7 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.eventerror import EventError, EventErrorApiContext
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
-from sentry.sdk_updates import SdkSetupState, get_suggested_updates
+from sentry.sdk_updates import SdkSetupState, SdkUpdateSuggestionResponse, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -171,10 +174,10 @@ def get_entries(
 
 
 class BaseEventSerializerResponse(TypedDict):
-    id: Annotated[str, ApiDescription("ID of the event")]
-    groupID: Annotated[str | None, ApiDescription("ID of the issue the event belongs to")]
-    eventID: Annotated[str, ApiDescription("ID of the event")]
-    projectID: Annotated[str, ApiDescription("ID of the project the event belongs to")]
+    id: Annotated[HexId, ApiDescription("ID of the event")]
+    groupID: Annotated[NumericId | None, ApiDescription("ID of the issue the event belongs to")]
+    eventID: Annotated[HexId, ApiDescription("ID of the event")]
+    projectID: Annotated[NumericId, ApiDescription("ID of the project the event belongs to")]
     message: Annotated[str | None, ApiDescription("Event message")]
     title: Annotated[str, ApiDescription("Event title")]
     location: Annotated[
@@ -197,7 +200,7 @@ class BaseEventSerializerResponse(TypedDict):
         str | None, ApiDescription("Distribution of the release the event was sent with")
     ]
     packages: Annotated[
-        dict[str, object],
+        dict[str, str | None],
         ApiDescription(
             "Modules loaded when the event occurred, keyed by module name with their versions"
         ),
@@ -205,7 +208,7 @@ class BaseEventSerializerResponse(TypedDict):
     type: Annotated[
         EventTypeStr, ApiDescription("Event type, such as error, default or transaction")
     ]
-    metadata: Annotated[dict[str, object], ApiDescription("Event metadata")]
+    metadata: Annotated[EventMetadataResponse, ApiDescription("Event metadata")]
     # Typed variants come first: generated clients try `anyOf` members in order, and the
     # catch-all `IssueOccurrenceResponse` also matches every typed occurrence.
     occurrence: Annotated[
@@ -228,8 +231,11 @@ class EventDetailFields(TypedDict):
     user: Annotated[EventUserApiContext | None, ApiDescription("User context of the event")]
     tags: Annotated[list[EventTag], ApiDescription("Tags attached to the event")]
     contexts: Annotated[
-        dict[str, object] | None,
-        ApiDescription("Contexts of the event, such as device, os, browser and runtime"),
+        dict[str, dict[str, Any]] | None,
+        ApiDescription(
+            "Contexts of the event, such as device, os, browser and runtime, keyed by alias"
+        ),
+        ApiSchema(contexts_response_schema),
     ]
     sdk: Annotated[EventSdkApiContext | None, ApiDescription("SDK that sent the event")]
     context: Annotated[
@@ -295,7 +301,8 @@ class IssueEventSerializerResponse(SqlFormatEventSerializerResponse):
         ApiDescription("User feedback submitted for the event. Null when there's none"),
     ]
     sdkUpdates: Annotated[
-        list[dict[str, object]], ApiDescription("Suggested updates for the SDK that sent the event")
+        list[SdkUpdateSuggestionResponse],
+        ApiDescription("Suggested updates for the SDK that sent the event"),
     ]
     resolvedWith: Annotated[
         list[str],
@@ -462,10 +469,10 @@ class EventSerializer(Serializer):
         occurrence = getattr(obj, "occurrence", None)
 
         event_data: EventSerializerResponse = {
-            "id": obj.event_id,
-            "groupID": str(obj.group_id) if obj.group_id else None,
-            "eventID": obj.event_id,
-            "projectID": str(obj.project_id),
+            "id": hex_id(obj.event_id),
+            "groupID": numeric_id(obj.group_id) if obj.group_id else None,
+            "eventID": hex_id(obj.event_id),
+            "projectID": numeric_id(obj.project_id),
             "size": obj.size,
             "entries": attrs["entries"],
             "dist": obj.dist,
@@ -480,7 +487,7 @@ class EventSerializer(Serializer):
             "context": context,
             "packages": packages,
             "type": obj.get_event_type(),
-            "metadata": obj.get_event_metadata(),
+            "metadata": cast(EventMetadataResponse, obj.get_event_metadata()),
             "tags": tags,
             "platform": obj.platform,
             "dateReceived": received,
@@ -696,7 +703,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         is_public = kwargs.pop("is_public", False)
         return super().get_attrs(item_list, user, is_public=is_public, **kwargs)
 
-    def _get_sdk_updates(self, obj: Event | GroupEvent) -> list[dict[str, object]]:
+    def _get_sdk_updates(self, obj: Event | GroupEvent) -> list[SdkUpdateSuggestionResponse]:
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
     def _get_resolved_with(self, obj: Event | GroupEvent) -> list[str]:
@@ -758,13 +765,15 @@ class SharedEventSerializer(EventSerializer):
 SimpleEventSerializerResponse = TypedDict(
     "SimpleEventSerializerResponse",
     {
-        "id": Annotated[str, ApiDescription("ID of the event")],
+        "id": Annotated[HexId, ApiDescription("ID of the event")],
         "event.type": Annotated[
             str, ApiDescription("Event type, such as error, default or transaction")
         ],
-        "groupID": Annotated[str | None, ApiDescription("ID of the issue the event belongs to")],
-        "eventID": Annotated[str, ApiDescription("ID of the event")],
-        "projectID": Annotated[str, ApiDescription("ID of the project the event belongs to")],
+        "groupID": Annotated[
+            NumericId | None, ApiDescription("ID of the issue the event belongs to")
+        ],
+        "eventID": Annotated[HexId, ApiDescription("ID of the event")],
+        "projectID": Annotated[NumericId, ApiDescription("ID of the project the event belongs to")],
         "message": Annotated[str, ApiDescription("Event message")],
         "title": Annotated[str, ApiDescription("Event title")],
         "location": Annotated[
@@ -782,7 +791,7 @@ SimpleEventSerializerResponse = TypedDict(
         "crashFile": Annotated[
             str | None, ApiDescription("Crash report attachment of the event, if any")
         ],
-        "metadata": Annotated[dict[str, Any], ApiDescription("Event metadata")],
+        "metadata": Annotated[EventMetadataResponse, ApiDescription("Event metadata")],
     },
 )
 
@@ -852,11 +861,11 @@ class SimpleEventSerializer(EventSerializer):
         event_user = obj.get_minimal_user()
 
         return {
-            "id": str(obj.event_id),
+            "id": hex_id(obj.event_id),
             "event.type": str(obj.get_event_type()),
-            "groupID": str(obj.group_id) if obj.group_id else None,
-            "eventID": str(obj.event_id),
-            "projectID": str(obj.project_id),
+            "groupID": numeric_id(obj.group_id) if obj.group_id else None,
+            "eventID": hex_id(obj.event_id),
+            "projectID": numeric_id(obj.project_id),
             # XXX for 'message' this doesn't do the proper resolution of logentry
             # etc. that _get_legacy_message_with_meta does.
             "message": obj.message,
@@ -869,7 +878,7 @@ class SimpleEventSerializer(EventSerializer):
             "dateCreated": obj.datetime,
             # Needed to generate minidump links in UI
             "crashFile": attrs["crash_file"],
-            "metadata": obj.get_event_metadata(),
+            "metadata": cast(EventMetadataResponse, obj.get_event_metadata()),
         }
 
 

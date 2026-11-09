@@ -34,6 +34,7 @@ from sentry.models.dashboard_widget import (
 from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
 from sentry.search.events.fields import is_function, parse_arguments
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -580,7 +581,9 @@ class DashboardListResponse(TypedDict):
     id: Annotated[str, ApiDescription("ID of the dashboard")]
     title: Annotated[str, ApiDescription("Title of the dashboard")]
     dateCreated: Annotated[datetime, ApiDescription("When the dashboard was created (ISO 8601)")]
-    createdBy: Annotated[dict[str, object] | None, ApiDescription("User who created the dashboard")]
+    createdBy: Annotated[
+        UserSerializerResponse | None, ApiDescription("User who created the dashboard")
+    ]
     environment: Annotated[list[str], ApiDescription("Saved environment filter for the dashboard")]
     filters: Annotated[
         DashboardFilters, ApiDescription("Saved release and global filters for the dashboard")
@@ -617,7 +620,7 @@ class _WidgetPreview(TypedDict):
 class _Widget(TypedDict):
     widget_display: list[str | None]
     widget_preview: list[_WidgetPreview]
-    created_by: dict[str, object] | None
+    created_by: UserSerializerResponse | None
     permissions: NotRequired[dict[str, object]]
     is_favorited: NotRequired[bool]
     projects: list[int]
@@ -715,7 +718,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             lambda: {
                 "widget_display": [],
                 "widget_preview": [],
-                "created_by": {},
+                "created_by": None,
                 "projects": [],
                 "environment": [],
                 "filters": {},
@@ -799,11 +802,39 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         }
 
 
+# Mirrors the GlobalFilter type in static/app/views/dashboards/types.tsx, which
+# is the only writer of these filters.
+class DashboardGlobalFilterTag(TypedDict):
+    key: Annotated[str, ApiDescription("Key of the tag or attribute the filter applies to")]
+    name: Annotated[str, ApiDescription("Display name of the tag or attribute")]
+    kind: NotRequired[
+        Annotated[str, ApiDescription("Kind of the field, such as tag, measurement or field")]
+    ]
+
+
+class DashboardGlobalFilter(TypedDict):
+    dataset: Annotated[
+        str,
+        ApiDescription(
+            "Widget dataset the filter applies to, such as error-events, transaction-like, spans or logs"
+        ),
+    ]
+    tag: Annotated[DashboardGlobalFilterTag, ApiDescription("Tag or attribute being filtered")]
+    value: Annotated[
+        str, ApiDescription("Filter condition in search syntax, such as browser.name:[Chrome]")
+    ]
+    isTemporary: NotRequired[
+        Annotated[
+            bool, ApiDescription("Whether the filter comes from a link and isn't saved by the user")
+        ]
+    ]
+
+
 class DashboardFilters(TypedDict, total=False):
     release: Annotated[list[str], ApiDescription("Saved release filter")]
     releaseId: Annotated[list[str], ApiDescription("Saved release ID filter")]
     globalFilter: Annotated[
-        list[dict[str, object]], ApiDescription("Saved global filters applied to every widget")
+        list[DashboardGlobalFilter], ApiDescription("Saved global filters applied to every widget")
     ]
 
 
@@ -825,7 +856,9 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     id: Annotated[str, ApiDescription("ID of the dashboard")]
     title: Annotated[str, ApiDescription("Title of the dashboard")]
     dateCreated: Annotated[datetime, ApiDescription("When the dashboard was created (ISO 8601)")]
-    createdBy: Annotated[dict[str, object] | None, ApiDescription("User who created the dashboard")]
+    createdBy: Annotated[
+        UserSerializerResponse | None, ApiDescription("User who created the dashboard")
+    ]
     widgets: Annotated[list[DashboardWidgetResponse], ApiDescription("Widgets on the dashboard")]
     projects: Annotated[
         list[int], ApiDescription("Saved project filter for the dashboard. [-1] means all projects")

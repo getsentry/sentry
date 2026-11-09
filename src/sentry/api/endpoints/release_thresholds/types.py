@@ -1,18 +1,26 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Annotated, Any, TypedDict
+from typing import TYPE_CHECKING, Annotated, TypedDict
 
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.release_threshold.constants import ThresholdTypeName, TriggerTypeName
+
+if TYPE_CHECKING:
+    from sentry.api.serializers.models.environment import EnvironmentSerializerResponse
+    from sentry.api.serializers.models.project import ProjectSerializerResponse
 
 
 class SerializedThreshold(TypedDict, total=False):
     id: Annotated[str, ApiDescription("ID of the threshold")]
     date_added: Annotated[datetime, ApiDescription("When the threshold was created (ISO 8601)")]
     environment: Annotated[
-        dict[str, Any] | None,
+        EnvironmentSerializerResponse | None,
         ApiDescription("Environment the threshold applies to. Null for all environments"),
     ]
-    project: Annotated[dict[str, Any], ApiDescription("Project the threshold applies to")]
+    project: Annotated[
+        ProjectSerializerResponse, ApiDescription("Project the threshold applies to")
+    ]
     release: Annotated[
         str, ApiDescription("Version of the release the threshold was checked against")
     ]

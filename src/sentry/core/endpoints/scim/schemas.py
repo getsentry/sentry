@@ -1,4 +1,4 @@
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Literal, NotRequired, TypedDict
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -17,7 +17,55 @@ from sentry.utils.http import absolute_uri
 from .constants import SCIM_SCHEMA_GROUP, SCIM_SCHEMA_SCHEMA, SCIM_SCHEMA_USER
 from .utils import SCIMApiError, SCIMDiscoveryEndpoint, SCIMMetaResponse
 
-SCIM_USER_ATTRIBUTES_SCHEMA: dict[str, Any] = {
+# Values defined by RFC 7643, section 7.
+SCIMAttributeType = Literal[
+    "string", "boolean", "decimal", "integer", "dateTime", "reference", "complex", "binary"
+]
+SCIMAttributeMutability = Literal["readOnly", "readWrite", "immutable", "writeOnly"]
+SCIMAttributeReturned = Literal["always", "never", "default", "request"]
+SCIMAttributeUniqueness = Literal["none", "server", "global"]
+
+
+class SCIMSubAttributeResponse(TypedDict):
+    name: Annotated[str, ApiDescription("Name of the attribute")]
+    type: Annotated[SCIMAttributeType, ApiDescription("Data type of the attribute")]
+    multiValued: Annotated[bool, ApiDescription("Whether the attribute holds a list of values")]
+    description: Annotated[str, ApiDescription("What the attribute holds")]
+    required: Annotated[bool, ApiDescription("Whether the attribute is required")]
+    caseExact: NotRequired[
+        Annotated[bool, ApiDescription("Whether string values are compared case-sensitively")]
+    ]
+    canonicalValues: NotRequired[
+        Annotated[list[str], ApiDescription("Values the attribute is expected to take")]
+    ]
+    mutability: Annotated[
+        SCIMAttributeMutability, ApiDescription("Whether and when the attribute can be changed")
+    ]
+    returned: Annotated[
+        SCIMAttributeReturned, ApiDescription("When the attribute is returned in a response")
+    ]
+    uniqueness: NotRequired[
+        Annotated[SCIMAttributeUniqueness, ApiDescription("Scope in which values are unique")]
+    ]
+
+
+class SCIMAttributeResponse(SCIMSubAttributeResponse):
+    subAttributes: NotRequired[
+        Annotated[
+            list[SCIMSubAttributeResponse],
+            ApiDescription("Attributes of a complex attribute"),
+        ]
+    ]
+
+
+class SCIMSchemaDefinition(TypedDict):
+    id: str
+    name: str
+    description: str
+    attributes: list[SCIMAttributeResponse]
+
+
+SCIM_USER_ATTRIBUTES_SCHEMA: SCIMSchemaDefinition = {
     "id": SCIM_SCHEMA_USER,
     "name": "User",
     "description": "SCIM User maps to Sentry Organization Member",
@@ -141,7 +189,7 @@ SCIM_USER_ATTRIBUTES_SCHEMA: dict[str, Any] = {
     ],
 }
 
-SCIM_GROUP_ATTRIBUTES_SCHEMA: dict[str, Any] = {
+SCIM_GROUP_ATTRIBUTES_SCHEMA: SCIMSchemaDefinition = {
     "id": SCIM_SCHEMA_GROUP,
     "name": "Group",
     "description": "SCIM Group maps to Sentry Team",
@@ -206,14 +254,14 @@ class SCIMSchemaResponse(TypedDict):
     name: Annotated[str, ApiDescription("Name of the schema: User or Group")]
     description: Annotated[str, ApiDescription("What the schema's resources map to in Sentry")]
     attributes: Annotated[
-        list[dict[str, Any]],
+        list[SCIMAttributeResponse],
         ApiDescription("Attributes of the schema, as SCIM attribute definitions"),
     ]
     meta: Annotated[SCIMMetaResponse, ApiDescription("Resource type and location of the schema")]
 
 
 def build_schema_representation(
-    organization: Organization, schema: dict[str, Any]
+    organization: Organization, schema: SCIMSchemaDefinition
 ) -> SCIMSchemaResponse:
     return {
         "schemas": [SCIM_SCHEMA_SCHEMA],

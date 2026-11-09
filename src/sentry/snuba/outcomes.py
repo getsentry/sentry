@@ -529,12 +529,12 @@ def massage_sessions_result(
 
     def make_timeseries(
         rows: list[dict[str, Any]], group: Mapping[str, Any]
-    ) -> dict[str, list[float | None]]:
+    ) -> dict[str, list[int]]:
         for span_row in rows:
             span_row[ts_col] = span_row[ts_col][:19] + "Z"
 
         rows.sort(key=lambda row: row[ts_col])
-        fields: list[tuple[str, Field, list[float | None]]]
+        fields: list[tuple[str, Field, list[int]]]
         fields = [(name, field, []) for name, field in query.fields.items()]
         group_index = 0
         row: dict[str, Any] | None
@@ -588,14 +588,16 @@ def massage_sessions_result(
 
 
 class _StatsGroup(TypingTypedDict):
-    by: Annotated[dict[str, Any], ApiDescription("Values of the group-by columns of the group")]
+    by: Annotated[
+        dict[str, str | int], ApiDescription("Values of the group-by columns of the group")
+    ]
     totals: Annotated[
-        dict[str, Any],
+        dict[str, int],
         ApiDescription("Value of each requested field over the whole time range, by field"),
     ]
     series: NotRequired[
         Annotated[
-            dict[str, Any],
+            dict[str, list[int]],
             ApiDescription("Value of each requested field for each interval, by field"),
         ]
     ]
@@ -627,10 +629,22 @@ def massage_outcomes_result(
 
 
 class _CategoryStats(TypingTypedDict):
-    category: str
-    outcomes: dict[str, int]
-    totals: dict[str, int]
-    reason: NotRequired[str]
+    category: Annotated[str, ApiDescription("Data category of the counts, such as error")]
+    outcomes: Annotated[
+        dict[str, int],
+        ApiDescription("Quantity of each outcome, such as accepted or rate_limited"),
+    ]
+    totals: Annotated[
+        dict[str, int],
+        ApiDescription(
+            "Totals of the requested fields, such as sum(quantity). Also has dropped, the quantity of the dropped outcomes, unless the outcome filter leaves them all out"
+        ),
+    ]
+    reason: NotRequired[
+        Annotated[
+            str, ApiDescription("Reason for the outcomes. Only present when grouped by reason")
+        ]
+    ]
 
 
 class _Project(TypingTypedDict):
