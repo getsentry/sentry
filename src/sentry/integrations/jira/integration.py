@@ -766,7 +766,7 @@ class JiraIntegration(IssueSyncIntegration):
             # project Icon.
             if len(projects) > 0:
                 metadata["icon"] = projects[0]["avatarUrls"]["48x48"]
-            integration.update(name=name, metadata=metadata)
+            integration.update(name=name, metadata=metadata, date_updated=timezone.now())
 
     def get_link_issue_config(
         self, group: Group, **kwargs: object
