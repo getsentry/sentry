@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
+import {IconIssues} from '@sentry/icons/issues';
 import {useQueryState} from 'nuqs';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -12,6 +15,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {useAutomationRuns} from 'sentry/views/seerWorkflows/automations/hooks/useAutomationRuns';
 import {getStrategyLabel} from 'sentry/views/seerWorkflows/strategies';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
@@ -22,7 +27,8 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'status', width: 'min-content'},
   {key: 'id', width: 'max-content'},
   {key: 'date', width: 'max-content'},
-  {key: 'strategy', width: '1fr'},
+  {key: 'output', width: '1fr'},
+  {key: 'trigger', width: '1fr'},
 ];
 
 /**
@@ -48,7 +54,8 @@ export function RunsTable({configId}: {configId?: string}) {
             <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('ID')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('Date')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Output')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Trigger')}</SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
         }
       >
@@ -68,7 +75,9 @@ export function RunsTable({configId}: {configId?: string}) {
 }
 
 function RunRow({run}: {run: SeerAutomationRun}) {
+  const organization = useOrganization();
   const status = getRunDisplayStatus(run.status);
+  const outputs = run.executions.flatMap(execution => execution.outputs);
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell>
@@ -86,7 +95,35 @@ function RunRow({run}: {run: SeerAutomationRun}) {
         </Tooltip>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        <Text>{getStrategyLabel(run.strategy)}</Text>
+        {outputs.length > 0 ? (
+          <Stack>
+            {outputs.map((output, index) => (
+              <Link
+                key={`${output.id}-${index}`}
+                to={getInvestigationPath(organization.slug, output.id)}
+              >
+                {`${output.id} | ${output.title}`}
+              </Link>
+            ))}
+          </Stack>
+        ) : (
+          <Text variant="muted">{'—'}</Text>
+        )}
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Stack>
+          <Text>{getStrategyLabel(run.strategy)}</Text>
+          {run.trigger && (
+            <Flex gap="xs" align="center">
+              <IconIssues size="xs" />
+              <Link
+                to={`/organizations/${organization.slug}/issues/${run.trigger.groupId}/`}
+              >
+                {`issue:${run.trigger.groupId}`}
+              </Link>
+            </Flex>
+          )}
+        </Stack>
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );

@@ -23,9 +23,6 @@ type SeerWorkflowExecutionBase = {
   dateCompleted: string | null;
   dateUpdated: string;
   id: string;
-  /**
-   * Empty when the viewer can't access investigations
-   */
   outputs: ExecutionOutput[];
   seerRunId: string | null;
 };
@@ -71,11 +68,7 @@ type SeerAutomationRunBase = {
   executions: SeerWorkflowExecution[];
   id: string;
   strategy: string;
-  /**
-   * Null for runs not started by a metric monitor. Optional until the backend
-   * returns it (getsentry/sentry#130512).
-   */
-  trigger?: WorkflowTrigger | null;
+  trigger: WorkflowTrigger | null;
 };
 
 export type SeerAutomationRun = SeerAutomationRunBase &
