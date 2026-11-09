@@ -308,13 +308,12 @@ def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
         return None
     try:
         snapshot = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot
-        if snapshot.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            return None
-        trigger = MetricBreachTrigger.parse_obj(snapshot.inputs)
+        if snapshot.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+            trigger = MetricBreachTrigger.parse_obj(snapshot.inputs)
+            return {"type": "monitor", "id": str(trigger.detector_id)}
     except ValidationError:
         logger.exception("seer.workflow_run.invalid_trigger", extra={"run_id": run.id})
-        return None
-    return {"type": "monitor", "id": str(trigger.detector_id)}
+    return None
 
 
 def serialize_workflow_execution(
