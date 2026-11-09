@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 
 /**
- * The files the package ships under spec/, by name, with their paths in the
+ * The files the build collects under spec/, by name, with their paths in the
  * repository. `make build-api-docs` writes the spec and the API ownership
  * stats, and `make build-rpc-schema` writes the RPC method schema.
  */

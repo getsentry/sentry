@@ -8,8 +8,10 @@
 # lands while a release is pending is left unreleased.
 #
 # Environment:
-#   SPEC_DIR       The package's spec/ files built from HEAD.
-#   GITHUB_OUTPUT  Set by GitHub Actions.
+#   SPEC_DIR           The package's spec/ files built from HEAD.
+#   GH_TOKEN           A token that can read this repository's releases.
+#   GITHUB_REPOSITORY  Set by GitHub Actions.
+#   GITHUB_OUTPUT      Set by GitHub Actions.
 set -eu
 
 package_dir=static/packages/api
@@ -49,15 +51,22 @@ fi
 released=$(mktemp -d)
 trap 'rm -rf "$released"' EXIT
 trap 'exit 1' INT TERM
-tarball=$(timeout 300 npm pack "@sentry/api@${base#"$tag_prefix"}" --pack-destination "$released" --silent)
-tar -xzf "$released/$tarball" -C "$released"
+# The last release's GitHub release has the spec files it was built from as
+# assets. A release from before they were attached has none, so every file
+# counts as changed.
+json_assets=$(gh release view "$base" --repo "$GITHUB_REPOSITORY" --json assets \
+  --jq '[.assets[].name | select(endswith(".json"))] | length')
+if [ "$json_assets" -gt 0 ]; then
+  timeout 300 gh release download "$base" --repo "$GITHUB_REPOSITORY" \
+    --pattern '*.json' --dir "$released"
+fi
 
 spec_changed=false
 data_changed=false
 for file in "$SPEC_DIR"/*; do
   name=${file##*/}
   # cmp exits 1 when the files differ and 2 when the release lacks the file.
-  if ! cmp -s "$file" "$released/package/spec/$name"; then
+  if ! cmp -s "$file" "$released/$name"; then
     if [ "$name" = openapi-derefed.json ]; then
       spec_changed=true
     else

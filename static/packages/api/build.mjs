@@ -5,9 +5,9 @@ import { generateClient } from "./lib/hey-api.mjs";
 import { normalizeSpec } from "./lib/normalize-spec.mjs";
 import { specFiles } from "./lib/spec-files.mjs";
 
-// 0. Ship the spec and the files built with it under spec/, so consumers such
-//    as sentry-docs can read them from the published package. This also fails
-//    fast when the repository has not built one of them yet.
+// 0. Collect the spec and the files built with it under spec/. Each api@
+//    release attaches them as GitHub release assets (package-pack.yml). This
+//    also fails fast when the repository has not built one of them yet.
 mkdirSync("spec", { recursive: true });
 for (const [name, source] of Object.entries(specFiles)) cpSync(source, `spec/${name}`);
 // `node build.mjs --spec-only` stops here, for CI jobs that only need spec/.

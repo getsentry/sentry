@@ -15,8 +15,7 @@
   "types": "dist/index.d.ts",
   "sideEffects": false,
   "files": [
-    "dist",
-    "spec"
+    "dist"
   ],
   "scripts": {
     "build": "node build.mjs",
@@ -56,8 +55,7 @@
     "./source-analysis": {
       "types": "./dist/source-analysis.d.ts",
       "import": "./dist/source-analysis.js"
-    },
-    "./spec/*.json": "./spec/*.json"
+    }
   },
   "homepage": "https://docs.sentry.io/api/",
   "publishConfig": {
