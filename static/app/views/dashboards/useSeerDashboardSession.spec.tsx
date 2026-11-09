@@ -177,7 +177,7 @@ describe('useSeerDashboardSession', () => {
         data: expect.objectContaining({
           query: 'Add an error rate widget',
           on_page_context:
-            'The user is editing an existing dashboard. The current dashboard state is:\n\n{"title":"My Dashboard","widgets":[{"title":"Count","displayType":"line","interval":"1h","queries":[{"name":"","conditions":"","fields":["count()"],"columns":[],"aggregates":["count()"],"orderby":""}]}]}\n\nThis session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change.',
+            'The user is editing an existing dashboard. The current dashboard state is:\n\n{"title":"My Dashboard","widgets":[{"title":"Count","displayType":"line","interval":"1h","queries":[{"name":"","conditions":"","fields":["count()"],"columns":[],"aggregates":["count()"],"orderby":""}]}]}\n\nThis session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change. Keep the `id` of every widget and query you keep or change, and leave `id` out of widgets and queries you add.',
         }),
       })
     );
