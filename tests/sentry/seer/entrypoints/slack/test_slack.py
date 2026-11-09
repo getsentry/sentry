@@ -26,6 +26,7 @@ from sentry.notebooks.models import Notebook, NotebookActionRequestState
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
+    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
     SeerAgentResponse,
     SeerAgentWriteApproval,
@@ -248,6 +249,89 @@ class SlackAutofixEntrypointTest(TestCase):
                 data=ANY,
             )
 
+    def _send_autofix_update(
+        self, event_type: SentryAppEventType, cache_payload: SlackAutofixCachePayload
+    ) -> SeerAutofixUpdate:
+        with patch(
+            "sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates"
+        ) as mock_schedule_all_thread_updates:
+            SlackAutofixEntrypoint.on_autofix_update(
+                event_type=event_type,
+                event_payload=MOCK_SEER_WEBHOOKS[event_type],
+                cache_payload=cache_payload,
+            )
+        mock_schedule_all_thread_updates.assert_called_once()
+        return mock_schedule_all_thread_updates.call_args.kwargs["data"]
+
+    @patch.object(SeerAutofixOperator, "can_trigger_autofix", return_value=False)
+    def test_on_autofix_update_without_credits_hides_next_step(
+        self, mock_can_run: MagicMock
+    ) -> None:
+        cache_payload = self._get_entrypoint().create_autofix_cache_payload()
+        # The check runs once per update, not once per thread.
+        cache_payload["threads"] = [
+            self.thread,
+            SlackThreadDetails(channel_id="C0OTHER", thread_ts="1234567890.999999"),
+        ]
+        expected_next_points = {
+            SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED: AutofixStoppingPoint.SOLUTION,
+            SentryAppEventType.SEER_SOLUTION_COMPLETED: AutofixStoppingPoint.CODE_CHANGES,
+            SentryAppEventType.SEER_CODING_COMPLETED: AutofixStoppingPoint.OPEN_PR,
+        }
+        for event_type, next_point in expected_next_points.items():
+            mock_can_run.reset_mock()
+            data = self._send_autofix_update(event_type, cache_payload)
+            mock_can_run.assert_called_once_with(group=self.group, stopping_point=next_point)
+            assert data.has_credits_for_next_step is False
+
+    @patch.object(SeerAutofixOperator, "can_trigger_autofix", return_value=True)
+    def test_on_autofix_update_with_credits_keeps_next_step(self, mock_can_run: MagicMock) -> None:
+        cache_payload = self._get_entrypoint().create_autofix_cache_payload()
+        data = self._send_autofix_update(
+            SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED, cache_payload
+        )
+        mock_can_run.assert_called_once_with(
+            group=self.group, stopping_point=AutofixStoppingPoint.SOLUTION
+        )
+        assert data.has_credits_for_next_step is True
+
+    @patch.object(SeerAutofixOperator, "can_trigger_autofix", return_value=False)
+    def test_on_autofix_update_skips_credit_check_without_next_step(
+        self, mock_can_run: MagicMock
+    ) -> None:
+        cache_payload = self._get_entrypoint().create_autofix_cache_payload()
+        data = self._send_autofix_update(SentryAppEventType.SEER_PR_CREATED, cache_payload)
+        mock_can_run.assert_not_called()
+        assert data.has_credits_for_next_step is True
+
+    @patch.object(SeerAutofixOperator, "can_trigger_autofix", return_value=False)
+    def test_on_autofix_update_skips_credit_check_for_handoff(
+        self, mock_can_run: MagicMock
+    ) -> None:
+        cache_payload = self._get_entrypoint().create_autofix_cache_payload()
+        cache_payload["handoff_target"] = CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
+        data = self._send_autofix_update(
+            SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED, cache_payload
+        )
+        mock_can_run.assert_not_called()
+        assert data.has_credits_for_next_step is True
+
+    @patch("sentry.seer_credit.backend.check_seer_credits")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True)
+    def test_on_autofix_update_skips_billing_when_flag_off(
+        self,
+        mock_has_seer_access: MagicMock,
+        mock_quota: MagicMock,
+        mock_check_seer_credits: MagicMock,
+    ) -> None:
+        cache_payload = self._get_entrypoint().create_autofix_cache_payload()
+        data = self._send_autofix_update(
+            SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED, cache_payload
+        )
+        mock_check_seer_credits.assert_not_called()
+        assert data.has_credits_for_next_step is True
+
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
@@ -350,6 +434,37 @@ class SlackAutofixEntrypointTest(TestCase):
         assert renderable["text"] == "Seer stopped early"
         assert "The API key expired." in str(renderable["blocks"])
         assert "Rotate the key." in str(renderable["blocks"])
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_out_of_credits_run_posts_out_of_credits_message(
+        self,
+        mock_send_threaded_message: MagicMock,
+        _mock_has_access: MagicMock,
+    ) -> None:
+        SeerOperatorAutofixCache.populate_post_autofix_cache(
+            entrypoint_key=SeerEntrypointKey.SLACK,
+            run_id=MOCK_RUN_ID,
+            cache_payload=self._get_entrypoint().create_autofix_cache_payload(),
+        )
+
+        with self.tasks():
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ERRORED,
+                event_payload={
+                    "run_id": MOCK_RUN_ID,
+                    "group_id": self.group.id,
+                    "failure_reason": "out_of_credits",
+                },
+                organization_id=self.organization.id,
+            )
+
+        blocks = str(mock_send_threaded_message.call_args.kwargs["renderable"]["blocks"])
+        assert AUTOFIX_OUT_OF_CREDITS_MESSAGE in blocks
+        assert "couldn't finish working on this issue" not in blocks
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(

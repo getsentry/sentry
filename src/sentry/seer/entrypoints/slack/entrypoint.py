@@ -24,6 +24,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixError,
+    SeerAutofixOutOfCredits,
     SeerAutofixStopped,
     SeerAutofixUpdate,
     SeerInvestigationError,
@@ -45,6 +46,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.credits import OUT_OF_CREDITS
 from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestData,
     AgentApprovalRequestSerializer,
@@ -57,6 +59,7 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
 )
+from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
@@ -464,7 +467,7 @@ class SlackAutofixEntrypoint(
         match event_type:
             case SentryAppEventType.SEER_ERRORED | SentryAppEventType.SEER_STOPPED:
                 stopped = event_type == SentryAppEventType.SEER_STOPPED
-                message: SeerAutofixError | SeerAutofixStopped
+                message: SeerAutofixError | SeerAutofixOutOfCredits | SeerAutofixStopped
                 if stopped:
                     from sentry.integrations.slack.utils.escape import escape_slack_text
 
@@ -479,6 +482,10 @@ class SlackAutofixEntrypoint(
                         organization_id=cache_payload["organization_id"],
                         error_message=AUTOFIX_RUN_FAILED_MESSAGE,
                     )
+                    if event_payload.get("failure_reason") == OUT_OF_CREDITS:
+                        message = SeerAutofixOutOfCredits(
+                            organization_id=cache_payload["organization_id"], started=True
+                        )
                 # Posted to the whole thread: the run may have been started by anyone.
                 schedule_all_thread_updates(
                     threads=cache_payload["threads"],
@@ -606,6 +613,8 @@ class SlackAutofixEntrypoint(
                 return
 
         data = SeerAutofixUpdate(**data_kwargs)
+        if not SeerAutofixOperator.can_trigger_next_step(update=data):
+            data = data.copy(update={"has_credits_for_next_step": False})
         schedule_all_thread_updates(
             threads=cache_payload["threads"],
             integration_id=cache_payload["integration_id"],

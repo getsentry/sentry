@@ -1,5 +1,5 @@
 import logging
-from typing import Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from taskbroker_client.retry import Retry
 
@@ -71,6 +71,9 @@ from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path, safe_execute
 from sentry.viewer_context import ActorId, ActorType
 
+if TYPE_CHECKING:
+    from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
+
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
     SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED: ActivityType.SEER_RCA_COMPLETED,
@@ -113,6 +116,14 @@ PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
 PROCESS_INVESTIGATION_TIMEOUT_SECONDS = 60
 
 AGENT_REFRESH_TIMEOUT_SECONDS = 60
+
+# The Seer operation (and so the credit check) for the autofix step a stopping point starts.
+AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION: dict[AutofixStoppingPoint, SeerOperation] = {
+    AutofixStoppingPoint.ROOT_CAUSE: SeerOperation.AUTOFIX_ROOT_CAUSE,
+    AutofixStoppingPoint.SOLUTION: SeerOperation.AUTOFIX_SOLUTION,
+    AutofixStoppingPoint.CODE_CHANGES: SeerOperation.AUTOFIX_CODE_CHANGES,
+    AutofixStoppingPoint.OPEN_PR: SeerOperation.AUTOFIX_OPEN_PR,
+}
 
 
 def has_seer_autofix_entrypoint_access(
@@ -168,18 +179,23 @@ class SeerAutofixOperator[CachePayloadT]:
         )
 
     @classmethod
-    def can_trigger_autofix(cls, *, group: Group) -> bool:
+    def can_trigger_autofix(
+        cls,
+        *,
+        group: Group,
+        stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE,
+    ) -> bool:
         """
-        Checks if a group is permitted to trigger autofix.
+        Checks if a group is permitted to trigger the autofix step that stopping_point starts.
         Validates Seer access for the organization, the issue category, and that the
-        organization can pay for the root cause step.
+        organization can pay for that step.
         """
         if not has_seer_access(group.organization) or not is_issue_category_eligible(group):
             return False
         try:
             check_autofix_billing(
                 group.organization,
-                SeerOperation.AUTOFIX_ROOT_CAUSE,
+                AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION[stopping_point],
                 is_new_run=True,
                 # Free cohort orgs have no subscription, so the quota check always fails for them.
                 skip_quota_for_free_cohort=True,
@@ -187,6 +203,36 @@ class SeerAutofixOperator[CachePayloadT]:
         except (NoSeerQuotaException, SeerOutOfCreditsException):
             return False
         return True
+
+    @classmethod
+    def can_trigger_next_step(cls, *, update: "SeerAutofixUpdate") -> bool:
+        """
+        Whether the org can run the Seer step that follows the update. True when there is no
+        next Seer step to run, so callers only hide the next-step action when it can't run.
+        """
+        # Imported here to avoid a cycle: the templates import issue_summary, which imports this module.
+        from sentry.notifications.platform.templates.seer import SeerAutofixTrigger
+
+        # At root cause with a handoff target, the next action hands the run to an external
+        # coding agent, not a Seer step.
+        if update.handoff_target and update.current_point == AutofixStoppingPoint.ROOT_CAUSE:
+            return True
+        if not update.has_next_trigger:
+            return True
+        next_point = SeerAutofixTrigger.from_update(update).stopping_point
+        try:
+            group = Group.objects.get_from_cache(id=update.group_id)
+        except Group.DoesNotExist:
+            logger.warning(
+                "seer.operator.next_step_check.group_missing",
+                extra={
+                    "organization_id": update.organization_id,
+                    "run_id": update.run_id,
+                    "group_id": update.group_id,
+                },
+            )
+            return False
+        return cls.can_trigger_autofix(group=group, stopping_point=next_point)
 
     def trigger_autofix(
         self,
