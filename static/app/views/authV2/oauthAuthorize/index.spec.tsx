@@ -126,6 +126,52 @@ describe('OAuthAuthorize', () => {
     }
   );
 
+  it('asks for a fresh sign-in instead of the existing session for prompt=login', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      body: {stage: 'reauthenticate'},
+    });
+    const logout = MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      body: {},
+    });
+    MockApiClient.addMockResponse({url: '/auth-v2/csrf/', body: {}});
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        pendingMfa: null,
+        serverHostname: 'sentry.example.com',
+        canRegister: false,
+        hasNewsletter: false,
+      },
+    });
+    const approve = MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      method: 'POST',
+      body: {},
+    });
+    render(<OAuthAuthorize />, {
+      initialRouterConfig: {
+        location: {
+          pathname: location.pathname,
+          query: {
+            ...Object.fromEntries(new URLSearchParams(location.search)),
+            prompt: 'login',
+          },
+        },
+      },
+    });
+
+    expect(
+      await screen.findByText('Sign in to authorize this application…')
+    ).toBeVisible();
+    expect(screen.getByRole('textbox', {name: 'Email'})).toBeVisible();
+    expect(screen.queryByRole('button', {name: 'Authorize'})).not.toBeInTheDocument();
+    expect(logout).toHaveBeenCalledTimes(1);
+    expect(approve).not.toHaveBeenCalled();
+  });
+
   it('posts denial and follows the server callback', async () => {
     const deny = MockApiClient.addMockResponse({
       url: '/auth/oauth/authorize/',
