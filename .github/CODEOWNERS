@@ -65,7 +65,6 @@
 # then beats a frame in a shared component. GitHub review routing only depends on order
 # when patterns overlap, and the one overlap here is intended: more specific settings
 # sub-paths declared by other teams further down now take precedence.
-/static/packages/scraps/                              @getsentry/design-engineering
 /static/app/utils/theme/                              @getsentry/design-engineering
 /static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/components/core/                          @getsentry/design-engineering
@@ -225,6 +224,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/js/jest.config.*                                   @getsentry/owners-js-build
 /tests/js/bin/                                           @getsentry/owners-js-build
 /tests/js/package.json                                   @getsentry/owners-js-build @getsentry/owners-js-deps
+# After the build and deps globs so Scraps' own package.json, tsconfig.*, and
+# oxlint.config.ts belong to Design Engineering too.
+/static/packages/scraps/                                 @getsentry/design-engineering
 
 ## Product Design
 /static/fonts/                                           @getsentry/product-design
