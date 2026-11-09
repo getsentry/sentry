@@ -5,9 +5,17 @@ import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
+import {
+  SeerCodeReviewDeprecationAlert,
+  SeerPricingChangeAlert,
+} from 'getsentry/components/ai/seerPricingChangeAlert';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 
-export function SeerSettingsPageBanners() {
+export function SeerSettingsPageBanners({
+  isCodeReviewPage = false,
+}: {
+  isCodeReviewPage?: boolean;
+}) {
   const subscription = useSubscription();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
@@ -21,6 +29,8 @@ export function SeerSettingsPageBanners() {
 
   return (
     <Fragment>
+      {isCodeReviewPage ? <SeerCodeReviewDeprecationAlert /> : <SeerPricingChangeAlert />}
+
       {showNoActiveSeerSubscriptionBanner ? <NoActiveSeerSubscriptionBanner /> : null}
 
       {canWrite ? null : <OrganizationPermissionAlert />}

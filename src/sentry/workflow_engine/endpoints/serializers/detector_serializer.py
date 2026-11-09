@@ -1,19 +1,30 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, TypedDict, cast
 
 from django.db.models import OuterRef, Subquery
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.api.serializers.models.group import SimpleGroupSerializer
+from sentry.api.serializers.models.group import (
+    SimpleGroupSerializer,
+    SimpleGroupSerializerResponse,
+)
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.types.actor import Actor
+from sentry.workflow_engine.endpoints.serializers.data_source_serializer import (
+    DataSourceSerializerResponse,
+)
+from sentry.workflow_engine.endpoints.serializers.response_schemas import detector_config_schema
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
+    TriggerSerializerResponse,
+)
+from sentry.workflow_engine.generated_schema_types import DetectorConfigResponse
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataConditionGroup,
@@ -22,6 +33,7 @@ from sentry.workflow_engine.models import (
     DetectorGroup,
     DetectorWorkflow,
 )
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 from sentry.workflow_engine.types import DetectorType
 
 
@@ -33,7 +45,7 @@ class DetectorSerializerResponseOptional(TypedDict, total=False):
     alertRuleId: int | None
     ruleId: int | None
     latestGroup: Annotated[
-        dict[str, Any] | None, ApiDescription("Latest issue the monitor created")
+        SimpleGroupSerializerResponse | None, ApiDescription("Latest issue the monitor created")
     ]
     description: Annotated[str | None, ApiDescription("Description of the monitor")]
 
@@ -55,14 +67,17 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     dateCreated: Annotated[datetime, ApiDescription("When the monitor was created (ISO 8601)")]
     dateUpdated: Annotated[datetime, ApiDescription("When the monitor was last updated (ISO 8601)")]
     dataSources: Annotated[
-        list[dict[str, Any]] | None,
+        list[DataSourceSerializerResponse] | None,
         ApiDescription("Data sources the monitor evaluates, such as a query subscription"),
     ]
     conditionGroup: Annotated[
-        dict[str, Any] | None, ApiDescription("Conditions that decide the monitor's status")
+        TriggerSerializerResponse | None,
+        ApiDescription("Conditions that decide the monitor's status"),
     ]
     config: Annotated[
-        dict[str, Any], ApiDescription("Configuration of the monitor, which depends on its type")
+        DetectorConfigResponse,
+        ApiDescription("Configuration of the monitor, which depends on its type"),
+        ApiSchema(detector_config_schema),
     ]
     enabled: Annotated[bool, ApiDescription("Whether the monitor is enabled")]
 
@@ -101,9 +116,12 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
         }
 
         workflows_map = defaultdict(list)
-        detector_workflows = DetectorWorkflow.objects.filter(detector__in=item_list).values_list(
-            "detector_id", "workflow_id"
-        )
+
+        # Ensure the workflow_ids belonging to hidden workflows are not included
+        detector_workflows = DetectorWorkflow.objects.filter(
+            detector__in=item_list, workflow__type__in=VISIBLE_WORKFLOW_TYPES
+        ).values_list("detector_id", "workflow_id")
+
         for detector_id, workflow_id in detector_workflows:
             workflows_map[detector_id].append(str(workflow_id))
 
@@ -190,8 +208,8 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
                 },
             )
             attrs[item]["latest_group"] = latest_groups_map.get(item.id)
-            if item.id in configs:
-                attrs[item]["config"] = configs[item.id]
+            if item.type == DetectorType.ERROR and item.project_id in configs:
+                attrs[item]["config"] = configs[item.project_id]
             else:
                 attrs[item]["config"] = item.config
             attrs[item]["owner"] = item.owner and owner_lookup.get(item.owner) or None
@@ -225,8 +243,11 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
-            "config": convert_dict_key_case(
-                self._normalize_config(attrs.get("config", {})), snake_to_camel_case
+            "config": cast(
+                DetectorConfigResponse,
+                convert_dict_key_case(
+                    self._normalize_config(attrs.get("config", {})), snake_to_camel_case
+                ),
             ),
             "enabled": obj.enabled,
             "alertRuleId": alert_rule_mapping.get("alert_rule_id"),

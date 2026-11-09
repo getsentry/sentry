@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import responses
+from django.test import override_settings
 from responses import matchers
 
 from sentry.constants import ObjectStatus
@@ -30,10 +31,10 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.locking import UnableToAcquireLock
 
 
 class BaseIntegrationServiceTest(TestCase):
@@ -676,16 +677,9 @@ class StartGracePeriodForProviderTest(TestCase):
 
 
 @all_silo_test
+@override_settings(LINEAR_CLIENT_ID="sentry-app-id", LINEAR_CLIENT_SECRET="sentry-app-secret")
 @freeze_time("2025-01-01T05:22:00Z")
 class GetAccessTokenTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.enterContext(
-            override_options(
-                {"linear.client-id": "sentry-app-id", "linear.client-secret": "sentry-app-secret"}
-            )
-        )
-
     def create_linear(self, **metadata: Any) -> Integration:
         return self.create_integration(
             organization=self.organization,
@@ -723,6 +717,13 @@ class GetAccessTokenTest(TestCase):
             },
         )
 
+    def age_past_forced_refresh_reuse_window(self, integration: Integration) -> None:
+        """Make the stored credentials look older than FORCED_REFRESH_REUSE_WINDOW."""
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Integration.objects.filter(id=integration.id).update(
+                date_updated=datetime(2025, 1, 1, 5, 21, tzinfo=timezone.utc)
+            )
+
     @responses.activate
     def test_linear_reuses_valid_token(self) -> None:
         integration = self.create_linear()
@@ -754,6 +755,7 @@ class GetAccessTokenTest(TestCase):
     @responses.activate
     def test_linear_replaces_rejected_unexpired_token(self) -> None:
         integration = self.create_linear()
+        self.age_past_forced_refresh_reuse_window(integration)
         self.mock_linear_token()
 
         token = integration_service.get_access_token(
@@ -766,6 +768,90 @@ class GetAccessTokenTest(TestCase):
         assert token.token == "linear-token-2"
         assert self.get_token(integration) == token
         assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_linear_concurrent_forced_refreshes_reuse_replaced_token(self) -> None:
+        # Tool calls holding the same rejected token force refreshes one after another;
+        # only the first one rotates the credentials.
+        integration = self.create_linear()
+        self.age_past_forced_refresh_reuse_window(integration)
+        self.mock_linear_token()
+
+        first = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+        second = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+
+        assert first is not None
+        assert first.token == "linear-token-2"
+        assert second == first
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_reuses_stored_token(self, mock_acquire: MagicMock) -> None:
+        # Another caller's refresh holds the lock longer than the wait, but the stored
+        # token is still valid, so the waiter hands it out instead of failing.
+        integration = self.create_linear()
+
+        assert self.get_token(integration) == RpcAccessToken(
+            token="linear-token", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_forced_refresh_reuses_recent_replacement(
+        self, mock_acquire: MagicMock
+    ) -> None:
+        # The lock holder just replaced the rejected token; a forcing waiter that timed
+        # out on the lock reuses the replacement instead of reporting a failed refresh.
+        integration = self.create_linear()
+
+        token = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+
+        assert token is not None
+        assert token.token == "linear-token"
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_forced_refresh_without_replacement_fails(
+        self, mock_acquire: MagicMock
+    ) -> None:
+        # The stored credentials predate the reuse window, so they're the ones the
+        # forcing caller saw rejected; without the lock there's nothing safe to hand out.
+        integration = self.create_linear()
+        self.age_past_forced_refresh_reuse_window(integration)
+
+        token = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+
+        assert token is None
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_with_expiring_token_fails(self, mock_acquire: MagicMock) -> None:
+        # The stored token is about to expire (that's what the lock holder is fixing),
+        # so the waiter can't use it and reports the token unavailable.
+        integration = self.create_linear(expires_at="2025-01-01T05:25:00+00:00")
+
+        assert self.get_token(integration) is None
+        assert len(responses.calls) == 0
 
     @responses.activate
     def test_linear_missing_expiry_obtains_new_token(self) -> None:
@@ -809,6 +895,7 @@ class GetAccessTokenTest(TestCase):
         integration = self.create_linear(expires_at=None)
         self.mock_linear_token()
         assert self.get_token(integration) is not None
+        self.age_past_forced_refresh_reuse_window(integration)
         responses.add(
             responses.POST,
             LINEAR_TOKEN_URL,

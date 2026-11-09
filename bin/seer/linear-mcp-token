@@ -73,11 +73,11 @@ def main() -> None:
         )
 
     expires = token.expires_at.isoformat() if token.expires_at else "never"
-    print(
+    print(  # noqa: S002, T201
         f"org={org.slug} integration_id={integration.id} ({integration.name}) expires_at={expires}",
         file=sys.stderr,
     )
-    print(token.token)
+    print(token.token)  # noqa: S002, T201
 
 
 if __name__ == "__main__":

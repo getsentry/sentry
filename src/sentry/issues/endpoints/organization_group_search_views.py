@@ -129,10 +129,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         | Response[None]
     ):
         """
-        List the current organization member's custom views
-        `````````````````````````````````````````
-
-        Retrieve a list of custom views for the current organization member.
+        Return the current organization member's issue views, with starred views first. Set
+        `createdBy=others` to list organization-visible views created by other members instead.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)

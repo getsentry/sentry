@@ -61,7 +61,8 @@ def cadence_tick() -> None:
     claimed_count = 0
     try:
         while True:
-            claimed, selected = _claim_batch(now)
+            with metrics.timer("cadence.tick.claim_batch_duration", sample_rate=1.0):
+                claimed, selected = _claim_batch(now)
             claimed_count += sum(len(firings) for firings in claimed.values())
             _dispatch(claimed)
             if selected < TICK_BATCH_SIZE:

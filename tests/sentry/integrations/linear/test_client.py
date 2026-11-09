@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 import requests
 import responses
+from django.test import override_settings
 from responses import matchers
 
 from sentry.exceptions import RestrictedIPAddress
@@ -22,7 +23,6 @@ from sentry.integrations.linear.client import (
 )
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 WORKSPACE_RESPONSE = {
@@ -54,8 +54,8 @@ FORBIDDEN_RESPONSE = {
 class TestLinearOAuthTokens:
     @pytest.fixture(autouse=True)
     def linear_options(self) -> Iterator[None]:
-        with override_options(
-            {"linear.client-id": "sentry-app-id", "linear.client-secret": "sentry-app-secret"}
+        with override_settings(
+            LINEAR_CLIENT_ID="sentry-app-id", LINEAR_CLIENT_SECRET="sentry-app-secret"
         ):
             yield
 
@@ -197,7 +197,7 @@ class TestLinearOAuthTokens:
             refresh_access_token("refresh-token")
 
     @responses.activate
-    @override_options({"linear.client-secret": ""})
+    @override_settings(LINEAR_CLIENT_SECRET="")
     def test_missing_sentry_app_configuration(self) -> None:
         with pytest.raises(IntegrationConfigurationError, match="not configured in Sentry"):
             refresh_access_token("refresh-token")

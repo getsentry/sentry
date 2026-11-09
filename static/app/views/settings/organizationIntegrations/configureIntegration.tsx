@@ -9,6 +9,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -41,13 +42,11 @@ import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {canManageIntegrations} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {buildGcpVerifyPayload} from 'sentry/utils/seer/gcpConnection';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -439,8 +438,11 @@ function IntegrationTabContent({
 }
 
 function ConfigureIntegration() {
-  const location = useLocation();
   const navigate = useNavigate();
+  const [{tab: tabParam}, setQueryParams] = useQueryStates({
+    tab: parseAsString,
+    cursor: parseAsString,
+  });
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {integrationId, providerKey} = useParams<{
@@ -607,18 +609,12 @@ function ConfigureIntegration() {
     ...userMappingTabs,
   ];
 
-  const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
   const tab =
-    tabParam && allTabs.some(([key]) => key === tabParam)
-      ? tabParam
-      : (allTabs[0]?.[0] ?? 'settings');
+    allTabs.find(([key]) => key === tabParam)?.[0] ?? allTabs[0]?.[0] ?? 'settings';
 
   const onTabChange = (value: Tab) => {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
-    const {cursor: _, ...query} = location.query;
-    navigate({
-      query: {...query, tab: value},
-    });
+    setQueryParams({tab: value, cursor: null}, {history: 'push'});
   };
 
   /**

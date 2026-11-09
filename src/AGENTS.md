@@ -110,6 +110,12 @@ class MyPermission(SentryPermission):
     }
 ```
 
+New scopes in `SENTRY_SCOPES` (`src/sentry/conf/server.py`) use `<resource>:<action>`:
+
+- `<resource>` is the singular snake_case object being accessed, such as `saved_query` or `project_key`. Do not put the object in the action under a parent resource: `project_key:write`, not `project:keys`.
+- `<action>` is `read`, `write`, `admin`, or `create`, such as `project_key:create`. Use another verb only when those don't fit, and add it to `SCOPE_ACTIONS` in `tests/sentry/conf/test_scopes.py`.
+- `test_scope_names_follow_resource_action` enforces this. Older scopes that break it are listed in `LEGACY_SCOPE_NAMES` there; do not add to that list.
+
 ### Logging, Tracing, Metrics, Options
 
 Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()` → use the **`backend-conventions`** skill.
@@ -121,6 +127,7 @@ Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()`
 - The control silo holds global data such as `User`, `Integration`, and `OrganizationMapping`. The cell silo holds organization-scoped data such as `Organization`, `Project`, and `Group`.
 - Each model declares its silo with `@control_silo_model` or `@cell_silo_model` (`src/sentry/db/models/base.py`). Each endpoint declares it with `@control_silo_endpoint` or `@cell_silo_endpoint`.
 - Never join across silos. Use outboxes (`src/sentry/hybridcloud/models/outbox.py`) for cross-silo updates. For silo, RPC, and outbox work, use the **`hybrid-cloud-rpc`**, **`hybrid-cloud-outboxes`**, and **`cell-architecture`** skills.
+- Never add an RPC method and its first production caller in the same PR. Silos deploy separately, and control deploys after the cells, so the caller runs before the serving silo has the method and every call fails with `Service unavailable (404 status)`. Land the method first, and land the caller only after the method has deployed to every silo that serves it.
 
 ### Database Guidelines
 

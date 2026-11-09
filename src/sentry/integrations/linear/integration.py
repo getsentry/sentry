@@ -4,9 +4,9 @@ import logging
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2ApiStep, OAuth2ApiStepError
 from sentry.integrations.base import (
@@ -131,8 +131,8 @@ class LinearIntegrationProvider(IntegrationProvider):
             LinearOAuthApiStep(
                 authorize_url=LINEAR_AUTHORIZE_URL,
                 access_token_url=LINEAR_TOKEN_URL,
-                client_id=options.get("linear.client-id"),
-                client_secret=options.get("linear.client-secret"),
+                client_id=settings.LINEAR_CLIENT_ID,
+                client_secret=settings.LINEAR_CLIENT_SECRET,
                 scope="read",
                 redirect_url="/extensions/linear/setup/",
                 bind_key="oauth_data",

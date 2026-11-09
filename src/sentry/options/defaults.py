@@ -1060,9 +1060,6 @@ register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Linear MCP Integration
-register("linear.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("linear.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1648,6 +1645,14 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables telemetry classifier enrichment writes to snuba-items.
+register(
+    "telemetry-classifiers.eap-write.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Conversation classifiers PoC.

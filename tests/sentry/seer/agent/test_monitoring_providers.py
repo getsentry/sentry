@@ -14,7 +14,6 @@ from sentry.models.organization import Organization
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.options import override_options
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -747,9 +746,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert get_monitoring_provider_connections(self.organization, None) == []
 
     @responses.activate
-    @override_options(
-        {"linear.client-id": "sentry-app-id", "linear.client-secret": "sentry-app-secret"}
-    )
+    @override_settings(LINEAR_CLIENT_ID="sentry-app-id", LINEAR_CLIENT_SECRET="sentry-app-secret")
     def test_org_linear_connection_skips_token_refresh_failure(self) -> None:
         self._create_org_linear_integration(metadata={"refresh_token": "linear-refresh-token"})
         responses.add(responses.POST, LINEAR_TOKEN_URL, status=503)
@@ -758,9 +755,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_options(
-        {"linear.client-id": "sentry-app-id", "linear.client-secret": "sentry-app-secret"}
-    )
+    @override_settings(LINEAR_CLIENT_ID="sentry-app-id", LINEAR_CLIENT_SECRET="sentry-app-secret")
     def test_org_linear_refreshes_expired_token_without_user(self) -> None:
         self._create_org_linear_integration(metadata={"refresh_token": "linear-refresh-token"})
         responses.add(

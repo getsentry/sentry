@@ -55,7 +55,6 @@ from sentry.seer.sentry_data_models import (
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity
@@ -1197,16 +1196,15 @@ class TestRefreshMonitoringProviderToken(APITestCase):
         assert result == {"error": "refresh_not_supported"}
 
 
-@override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+@override_settings(
+    SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY,
+    LINEAR_CLIENT_ID="sentry-app-id",
+    LINEAR_CLIENT_SECRET="sentry-app-secret",
+)
 @cell_silo_test
 class TestRefreshOrgMonitoringProviderToken(APITestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.enterContext(
-            override_options(
-                {"linear.client-id": "sentry-app-id", "linear.client-secret": "sentry-app-secret"}
-            )
-        )
         self.integration = self.create_integration(
             organization=self.organization,
             provider="linear",
