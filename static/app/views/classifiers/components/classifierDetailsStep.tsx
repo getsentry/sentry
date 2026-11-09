@@ -18,7 +18,7 @@ export const ClassifierDetailsStep = withForm({
             <form.AppField name="name">
               {field => (
                 <field.Layout.Stack
-                  label={t('Classifier Title')}
+                  label={t('Classifier title')}
                   hintText={t('This is what the classifier is called within Sentry.')}
                   required
                 >
@@ -29,7 +29,7 @@ export const ClassifierDetailsStep = withForm({
             <form.AppField name="resultAttribute">
               {field => (
                 <field.Layout.Stack
-                  label={t('Attribute Name')}
+                  label={t('Attribute name')}
                   hintText={t(
                     'This is how the attribute is listed when it surfaces. This might be difficult to change later.'
                   )}
@@ -53,7 +53,7 @@ export const ClassifierDetailsStep = withForm({
                 busy={isSubmitting}
                 disabled={isSubmitting}
               >
-                {t('Create Classifier')}
+                {t('Create classifier')}
               </Button>
             )}
           </form.Subscribe>

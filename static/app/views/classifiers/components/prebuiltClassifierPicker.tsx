@@ -42,7 +42,7 @@ export function PrebuiltClassifierPicker({
   return (
     <Grid
       role="radiogroup"
-      aria-label={t('Prebuilt Classifiers')}
+      aria-label={t('Prebuilt classifiers')}
       columns={{xs: '1fr', md: 'repeat(3, minmax(0, 1fr))'}}
       gap="lg"
     >

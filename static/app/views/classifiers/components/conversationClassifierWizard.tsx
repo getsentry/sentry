@@ -84,7 +84,7 @@ function ConversationPreview({
     <Stack gap="md">
       <Stack gap="2xs">
         <Heading as="h2" size="lg">
-          {t('Matched Conversations')}
+          {t('Matched conversations')}
         </Heading>
         <Text variant="muted">
           {t(

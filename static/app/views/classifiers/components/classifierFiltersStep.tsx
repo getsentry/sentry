@@ -49,7 +49,7 @@ export function ClassifierFiltersStep({
           <Stack gap="xl">
             <Stack gap="md">
               <Heading as="h2" size="md">
-                {t('Filter Classifier')}
+                {t('Filter classifier')}
               </Heading>
               <Flex gap="md" align="center" wrap="wrap">
                 <ClassifierProjectSelect resetParams={resetParamsOnProjectChange} />
@@ -59,7 +59,7 @@ export function ClassifierFiltersStep({
             </Stack>
             <Stack gap="md">
               <Heading as="h2" size="md">
-                {t('Prebuilt Classifiers')}
+                {t('Prebuilt classifiers')}
               </Heading>
               <PrebuiltClassifierPicker
                 dataset={dataset}
@@ -69,7 +69,7 @@ export function ClassifierFiltersStep({
             </Stack>
             <Flex justify="end">
               <Button icon={<IconPlay />} disabled={!hasProject} onClick={onPreview}>
-                {isPreviewing ? t('Re-run Preview') : t('Preview')}
+                {isPreviewing ? t('Re-run preview') : t('Preview')}
               </Button>
             </Flex>
           </Stack>

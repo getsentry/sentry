@@ -75,7 +75,7 @@ describe('NewClassifier', () => {
     renderPage({dataset: 'trace_spans'});
 
     expect(await screen.findByText('Coming soon')).toBeInTheDocument();
-    expect(screen.queryByText('Filter Classifier')).not.toBeInTheDocument();
+    expect(screen.queryByText('Filter classifier')).not.toBeInTheDocument();
   });
 
   it('keeps the project from the page filters', async () => {
@@ -142,7 +142,7 @@ describe('NewClassifier', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Preview'}));
 
     expect(
-      await screen.findByRole('heading', {name: 'Matched Conversations'})
+      await screen.findByRole('heading', {name: 'Matched conversations'})
     ).toBeInTheDocument();
     await waitFor(() => {
       expect(conversationsMock).toHaveBeenCalledWith(
@@ -158,7 +158,7 @@ describe('NewClassifier', () => {
     });
     expect(conversationsMock).toHaveBeenCalledTimes(1);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Re-run Preview'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Re-run preview'}));
 
     await waitFor(() => expect(conversationsMock).toHaveBeenCalledTimes(2));
   });
@@ -227,10 +227,10 @@ describe('NewClassifier', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-    expect(await screen.findByRole('textbox', {name: /Classifier Title/})).toHaveValue(
+    expect(await screen.findByRole('textbox', {name: /Classifier title/})).toHaveValue(
       'Tool failure'
     );
-    expect(screen.getByRole('textbox', {name: /Attribute Name/})).toHaveValue(
+    expect(screen.getByRole('textbox', {name: /Attribute name/})).toHaveValue(
       'sentry.classifier.tool_failure'
     );
   });
@@ -262,15 +262,15 @@ describe('NewClassifier', () => {
     await userEvent.click(await screen.findByRole('radio', {name: /User frustration/}));
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-    const title = await screen.findByRole('textbox', {name: /Classifier Title/});
+    const title = await screen.findByRole('textbox', {name: /Classifier title/});
     expect(title).toHaveValue('User frustration');
-    expect(screen.getByRole('textbox', {name: /Attribute Name/})).toHaveValue(
+    expect(screen.getByRole('textbox', {name: /Attribute name/})).toHaveValue(
       'sentry.classifier.user_frustration'
     );
 
     await userEvent.clear(title);
     await userEvent.type(title, 'Frustrated users');
-    await userEvent.click(screen.getByRole('button', {name: 'Create Classifier'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create classifier'}));
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalledWith(
@@ -311,19 +311,19 @@ describe('NewClassifier', () => {
     await userEvent.click(await screen.findByRole('radio', {name: /Tool failure/}));
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-    const title = await screen.findByRole('textbox', {name: /Classifier Title/});
+    const title = await screen.findByRole('textbox', {name: /Classifier title/});
     await userEvent.type(title, ' v2');
     await userEvent.click(screen.getByRole('button', {name: 'Back'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
 
-    expect(await screen.findByRole('textbox', {name: /Classifier Title/})).toHaveValue(
+    expect(await screen.findByRole('textbox', {name: /Classifier title/})).toHaveValue(
       'Tool failure v2'
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Create Classifier'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create classifier'}));
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox', {name: /Attribute Name/})).toHaveAttribute(
+      expect(screen.getByRole('textbox', {name: /Attribute name/})).toHaveAttribute(
         'aria-invalid',
         'true'
       );
