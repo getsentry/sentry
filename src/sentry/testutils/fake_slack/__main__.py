@@ -14,8 +14,7 @@ def main() -> None:
     parser.add_argument(
         "--public-url",
         default=os.environ.get("FAKE_SLACK_PUBLIC_URL"),
-        help="The URL people open the viewer at, used in message links. "
-        "Defaults to $FAKE_SLACK_PUBLIC_URL, or http://localhost:<port>.",
+        help="Viewer URL used in message links. Defaults to http://localhost:<port>.",
     )
     args = parser.parse_args()
 

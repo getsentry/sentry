@@ -1,14 +1,11 @@
-"""A fake Slack Web API for local development.
+"""A fake Slack Web API for SENTRY_USE_FAKE_SLACK. It accepts every call and validates nothing.
 
-With SENTRY_USE_FAKE_SLACK on, the devserver starts this server and Sentry's Slack client sends its
-API calls here. Messages are kept in a JSON file and shown like a Slack workspace at GET /.
-
-It accepts every call and validates nothing, so it shows what Sentry sends, not whether Slack would
-accept it. It uses only the standard library, so it starts without loading Sentry.
+Standard library only, so the devserver can start it without loading Sentry.
 """
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import itertools
 import json  # noqa: S003
@@ -70,7 +67,7 @@ class FakeSlack:
 
     def snapshot(self) -> dict[str, Any]:
         with self.lock:
-            return {"team": TEAM, **json.loads(json.dumps(self.state))}
+            return {"team": TEAM, **copy.deepcopy(self.state)}
 
     def _channel_id(self, channel: str) -> str:
         channel = channel.lstrip("#")
@@ -177,14 +174,12 @@ class FakeSlack:
             "permalink": f"{self.public_url}/#{channel}/{thread}/{ts}",
         }
 
-    def _channels(self) -> list[dict[str, Any]]:
-        return [
+    def _conversations_list(self, args: Mapping[str, Any]) -> Response:
+        channels = [
             {"id": cid, "name": name, "is_channel": True, "is_private": False, "is_member": True}
             for cid, name in self.state["channels"].items()
         ]
-
-    def _conversations_list(self, args: Mapping[str, Any]) -> Response:
-        return {"ok": True, "channels": self._channels(), "response_metadata": {"next_cursor": ""}}
+        return {"ok": True, "channels": channels, "response_metadata": {"next_cursor": ""}}
 
     def _users_conversations(self, args: Mapping[str, Any]) -> Response:
         return self._conversations_list(args)
@@ -245,7 +240,7 @@ def _flatten(params: Mapping[str, list[str]]) -> dict[str, Any]:
     return {key: values[0] if len(values) == 1 else values for key, values in params.items()}
 
 
-def make_handler(slack: FakeSlack) -> type[BaseHTTPRequestHandler]:
+def make_server(host: str, port: int, slack: FakeSlack) -> ThreadingHTTPServer:
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format: str, *args: Any) -> None:
             pass
@@ -292,8 +287,4 @@ def make_handler(slack: FakeSlack) -> type[BaseHTTPRequestHandler]:
             sys.stdout.flush()
             self._send_json(result)
 
-    return Handler
-
-
-def make_server(host: str, port: int, slack: FakeSlack) -> ThreadingHTTPServer:
-    return ThreadingHTTPServer((host, port), make_handler(slack))
+    return ThreadingHTTPServer((host, port), Handler)

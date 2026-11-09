@@ -113,7 +113,6 @@ let state = {channels: {}, messages: []};
 let current = null, openThread = null, focusTs = null, lastSignature = '';
 const seen = new Set(); let initialized = false;
 
-// Links to other messages in this viewer stay in the tab, like Slack permalinks do.
 function linkAttrs(url) {
   url = String(url ?? '');
   const internal = url.startsWith(location.origin + '/#') || url.startsWith('#');
@@ -168,7 +167,6 @@ function mrkdwn(text) {
 }
 
 function markdown(text) {
-  // "markdown" blocks use standard markdown.
   let s = esc(text);
   s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => `<a ${linkAttrs(url.replace(/&amp;/g, '&'))}>${label}</a>`);
   s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');

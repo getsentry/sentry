@@ -59,11 +59,13 @@ class FakeSlackServerTest(TestCase):
                     channel=scheduled["channel"],
                     scheduled_message_id=scheduled["scheduled_message_id"],
                 )
+            unsimulated = client.api_call("views.open", json={"trigger_id": "1"})
             with pytest.raises(SlackApiError, match="message_not_found"):
                 client.chat_update(channel="#alerts", ts="1.0", text="Missing")
 
         assert posted["channel"] == "C0ALERTS"
         assert scheduled["channel"] == "C0SEER"
+        assert unsimulated["fake_slack"] == "views.open is not simulated"
         assert permalink["permalink"] == (
             f"https://fake-slack.example.com/#C0ALERTS/{posted['ts']}/{reply['ts']}"
         )
@@ -84,9 +86,3 @@ class FakeSlackServerTest(TestCase):
             assert b"<title>Fake Slack</title>" in response.read()
         urlopen(Request(f"{self.url}/reset", method="POST")).close()
         assert self.slack.snapshot()["messages"] == []
-
-    def test_unsimulated_methods_succeed(self) -> None:
-        assert self.slack.call("views.open", {"trigger_id": "123"}) == {
-            "ok": True,
-            "fake_slack": "views.open is not simulated",
-        }
