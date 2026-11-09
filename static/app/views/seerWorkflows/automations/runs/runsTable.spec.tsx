@@ -182,6 +182,35 @@ describe('RunsTable', () => {
     expect(screen.queryByRole('link', {name: /issue:/})).not.toBeInTheDocument();
   });
 
+  it('hides the strategy in the trigger column when showStrategy is false', async () => {
+    MockApiClient.addMockResponse({
+      url: runsUrl,
+      body: {
+        runs: [
+          makeRun({
+            id: '9',
+            strategy: 'breached_metric_investigation',
+            trigger: {
+              detectorId: '5',
+              environment: null,
+              eventId: 'abc',
+              groupId: '4388',
+              observedAt: '2026-04-20T00:00:00Z',
+              occurrenceId: 'def',
+              projectId: '2',
+              type: 'breached_metric',
+            },
+          }),
+        ],
+      },
+    });
+
+    render(<RunsTable showStrategy={false} />, {organization});
+
+    expect(await screen.findByRole('link', {name: 'issue:4388'})).toBeInTheDocument();
+    expect(screen.queryByText('Breached metrics')).not.toBeInTheDocument();
+  });
+
   it('shows an empty state when there are no runs', async () => {
     MockApiClient.addMockResponse({url: runsUrl, body: {runs: []}});
 

@@ -33,9 +33,17 @@ const COLUMNS: TableColumnConfig[] = [
 ];
 
 /**
- * Pass `configId` to only show one automation's runs
+ * Pass `configId` to only show one automation's runs. Pass `showStrategy={false}` to
+ * leave the strategy out of the trigger column, e.g. when the page is already scoped
+ * to one automation.
  */
-export function RunsTable({configId}: {configId?: string}) {
+export function RunsTable({
+  configId,
+  showStrategy = true,
+}: {
+  configId?: string;
+  showStrategy?: boolean;
+}) {
   const [cursor] = useQueryState('cursor');
   const {runs, pageLinks, isPending, isLoadingError, refetch} = useAutomationRuns({
     configId,
@@ -67,7 +75,7 @@ export function RunsTable({configId}: {configId?: string}) {
         ) : runs.length === 0 ? (
           <SimpleTable.Empty>{t('No runs yet.')}</SimpleTable.Empty>
         ) : (
-          runs.map(run => <RunRow key={run.id} run={run} />)
+          runs.map(run => <RunRow key={run.id} run={run} showStrategy={showStrategy} />)
         )}
       </SimpleTable>
       <Pagination pageLinks={pageLinks} />
@@ -75,7 +83,7 @@ export function RunsTable({configId}: {configId?: string}) {
   );
 }
 
-function RunRow({run}: {run: SeerAutomationRun}) {
+function RunRow({run, showStrategy}: {run: SeerAutomationRun; showStrategy: boolean}) {
   const organization = useOrganization();
   const status = getRunDisplayStatus(run.status);
   const outputs = run.executions.flatMap(execution => execution.outputs);
@@ -113,7 +121,7 @@ function RunRow({run}: {run: SeerAutomationRun}) {
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Stack>
-          <Text>{getStrategyLabel(run.strategy)}</Text>
+          {showStrategy && <Text>{getStrategyLabel(run.strategy)}</Text>}
           {run.trigger?.type === 'breached_metric' ? (
             <Flex gap="xs" align="center">
               <IconIssues size="xs" />
