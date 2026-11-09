@@ -25,8 +25,9 @@ from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
-from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS, ObjectStatus
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
@@ -963,8 +964,9 @@ def _with_no_access_service_account_projects(
     endpoint: OrganizationEndpoint,
 ) -> SeerServiceAccountGrant:
     """
-    Return the grant plus the current account's projects the caller can't read. Narrowing
-    an all-projects account needs the same global role as granting all projects.
+    Return the grant plus the current account's active projects the caller can't read.
+    Narrowing an all-projects account needs the same global role as granting all projects,
+    and adding scopes to an account with projects the caller can't read is denied.
     """
     if current is None or grant.all_projects:
         return grant
@@ -974,16 +976,25 @@ def _with_no_access_service_account_projects(
             "Only a role with access to all projects can narrow a service account's projects.",
         )
         return grant
-    return replace(
-        grant,
-        project_ids=_with_no_access_project_ids(
-            grant.project_ids,
-            current.project_ids,
-            request=request,
-            organization=organization,
-            endpoint=endpoint,
-        ),
+    current_project_ids = list(
+        Project.objects.filter(
+            organization_id=organization.id,
+            id__in=current.project_ids,
+            status=ObjectStatus.ACTIVE,
+        ).values_list("id", flat=True)
     )
+    project_ids = _with_no_access_project_ids(
+        grant.project_ids,
+        current_project_ids,
+        request=request,
+        organization=organization,
+        endpoint=endpoint,
+    )
+    if set(project_ids) - set(grant.project_ids) and set(grant.scopes) - set(current.scope_list):
+        raise PermissionDenied(
+            "You can't add scopes to a service account that has projects you can't access."
+        )
+    return replace(grant, project_ids=project_ids)
 
 
 def audit_service_account(

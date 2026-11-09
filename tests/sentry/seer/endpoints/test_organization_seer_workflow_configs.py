@@ -730,6 +730,64 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
 
     @with_feature("organizations:service-accounts")
+    def test_member_cannot_add_scopes_to_a_service_account_with_hidden_projects(self) -> None:
+        member, accessible = self.create_member_with_project(open_membership=False)
+        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        with outbox_runner():
+            workflow = self.create_metric_workflow(
+                service_account_grant=SeerServiceAccountGrant(
+                    scopes=["event:read", "project:read"], project_ids=[accessible.id, hidden.id]
+                )
+            )
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            serviceAccount={
+                "scopes": ["event:read", "event:write", "project:read"],
+                "projectIds": [accessible.id],
+            },
+            status_code=403,
+        )
+        assert get_service_account(workflow.config_id).scope_list == [
+            "event:read",
+            "project:read",
+        ]
+
+        self.get_success_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            serviceAccount={"scopes": ["event:read"], "projectIds": [accessible.id]},
+        )
+        account = get_service_account(workflow.config_id)
+        assert account.scope_list == ["event:read"]
+        assert service_account_project_ids(account) == sorted([accessible.id, hidden.id])
+
+    @with_feature("organizations:service-accounts")
+    def test_put_service_account_drops_deleted_projects(self) -> None:
+        kept = self.create_project()
+        deleted = self.create_project()
+        with outbox_runner():
+            workflow = self.create_metric_workflow(
+                service_account_grant=SeerServiceAccountGrant(
+                    scopes=["event:read"], project_ids=[kept.id, deleted.id]
+                )
+            )
+        deleted.delete()
+
+        self.get_success_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            serviceAccount={"scopes": ["event:read"], "projectIds": [kept.id]},
+        )
+
+        assert service_account_project_ids(get_service_account(workflow.config_id)) == [kept.id]
+
+    @with_feature("organizations:service-accounts")
     def test_put_creates_a_service_account_for_a_config_without_one(self) -> None:
         config = self.create_config()
         grant = {"scopes": ["event:read", "project:read"], "projectIds": [self.project.id]}
