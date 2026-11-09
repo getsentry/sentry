@@ -9,11 +9,24 @@ type SeerWorkflowError = {
   message: string;
 };
 
+/**
+ * Something an execution produced, e.g. a linked investigation
+ */
+type ExecutionOutput = {
+  id: string;
+  title: string;
+  type: 'investigation';
+};
+
 type SeerWorkflowExecutionBase = {
   dateAdded: string;
   dateCompleted: string | null;
   dateUpdated: string;
   id: string;
+  /**
+   * Empty when the viewer can't access investigations
+   */
+  outputs: ExecutionOutput[];
   seerRunId: string | null;
 };
 
@@ -28,6 +41,14 @@ type SeerWorkflowExecution = SeerWorkflowExecutionBase &
     | {error: SeerWorkflowError; status: 'failed'}
   );
 
+/**
+ * What started a run, e.g. the monitor whose breach triggered it
+ */
+export type WorkflowTrigger = {
+  id: string;
+  type: string;
+};
+
 type SeerAutomationRunBase = {
   configId: string;
   dateAdded: string;
@@ -36,6 +57,10 @@ type SeerAutomationRunBase = {
   executions: SeerWorkflowExecution[];
   id: string;
   strategy: string;
+  /**
+   * Not returned by the backend yet
+   */
+  trigger?: WorkflowTrigger | null;
 };
 
 export type SeerAutomationRun = SeerAutomationRunBase &
