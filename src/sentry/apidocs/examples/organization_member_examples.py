@@ -64,7 +64,7 @@ INVITED_ORGANIZATION_MEMBER = {
         "partnership:restricted": False,
     },
     "dateCreated": "2021-07-07T21:13:01.120263Z",
-    "inviteStatus": "pending",
+    "inviteStatus": "approved",
     "inviterName": "maininviter@antarcticarocks.com",
 }
 

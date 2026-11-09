@@ -1,4 +1,5 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
@@ -111,6 +112,9 @@ describe('normalizeCompareQueryParts', () => {
 
 describe('useReadQueriesFromLocation', () => {
   const pathname = '/organizations/org-slug/explore/traces/compare/';
+  const ignoreCaseOrganization = OrganizationFixture({
+    features: ['explore-ignore-case-default'],
+  });
 
   const defaultQuery = {
     yAxes: ['count(span.duration)'],
@@ -120,8 +124,9 @@ describe('useReadQueriesFromLocation', () => {
     query: '',
   };
 
-  function readQueries(queries: string[]) {
+  function readQueries(queries: string[], organization = OrganizationFixture()) {
     const {result} = renderHookWithProviders(useReadQueriesFromLocation, {
+      organization,
       initialRouterConfig: {location: {pathname, query: {queries}}},
     });
     return result.current;
@@ -131,11 +136,41 @@ describe('useReadQueriesFromLocation', () => {
     return readQueries([JSON.stringify(query)])[0];
   }
 
-  function readCaseInsensitive(queries: Array<Record<string, unknown>>) {
-    return readQueries(queries.map(query => JSON.stringify(query))).map(
-      query => query.caseInsensitive
-    );
+  function readCaseInsensitive(
+    queries: Array<Record<string, unknown>>,
+    {organization = ignoreCaseOrganization} = {}
+  ) {
+    return readQueries(
+      queries.map(query => JSON.stringify(query)),
+      organization
+    ).map(query => query.caseInsensitive);
   }
+
+  it('ignores case when a compare query has no filters', () => {
+    expect(readCaseInsensitive([{yAxes: ['count(span.duration)'], query: ''}])).toEqual([
+      '1',
+    ]);
+  });
+
+  it('matches case when an existing compare query has a filter', () => {
+    expect(
+      readCaseInsensitive([{yAxes: ['count(span.duration)'], query: 'span.op:DB'}])
+    ).toEqual(['0']);
+  });
+
+  it('matches case when an existing compare query has a conditional filter', () => {
+    expect(
+      readCaseInsensitive([{yAxes: ['avg_if(`span.op:DB`,span.duration)'], query: ''}])
+    ).toEqual(['0']);
+  });
+
+  it('matches case when an existing compare query has a group by', () => {
+    expect(
+      readCaseInsensitive([
+        {yAxes: ['count(span.duration)'], query: '', groupBys: ['span.description']},
+      ])
+    ).toEqual(['0']);
+  });
 
   it('keeps an explicit compare query setting', () => {
     expect(
@@ -152,6 +187,14 @@ describe('useReadQueriesFromLocation', () => {
         {yAxes: ['count(span.duration)'], query: '', caseInsensitive: false},
       ])
     ).toEqual(['0']);
+  });
+
+  it('leaves compare queries alone when the feature is disabled', () => {
+    expect(
+      readCaseInsensitive([{yAxes: ['count(span.duration)'], query: ''}], {
+        organization: OrganizationFixture(),
+      })
+    ).toEqual([undefined]);
   });
 
   it('reads a query when it has a single string sort', () => {

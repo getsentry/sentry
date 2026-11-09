@@ -7,8 +7,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -19,7 +18,6 @@ import type {DeprecatedApiKey} from './types';
  * API Keys are deprecated, but there may be some legacy customers that still use it
  */
 function OrganizationApiKeys() {
-  const api = useApi();
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -37,15 +35,13 @@ function OrganizationApiKeys() {
 
   const removeMutation = useMutation({
     mutationFn: ({removedId}: {removedId: string}) => {
-      return api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/', {
+      return fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/', {
           path: {organizationIdOrSlug: organization.slug, apiKeyId: removedId},
         }),
-        {
-          method: 'DELETE',
-          data: {},
-        }
-      );
+        method: 'DELETE',
+        data: {},
+      });
     },
     onMutate: () => {
       toast.loading(t('Removing API key'));
@@ -74,12 +70,13 @@ function OrganizationApiKeys() {
 
   const addMutation = useMutation({
     mutationFn: (): Promise<DeprecatedApiKey> => {
-      return api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/api-keys/', {
+      return fetchMutation<DeprecatedApiKey>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/api-keys/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {method: 'POST', data: {}}
-      );
+        method: 'POST',
+        data: {},
+      });
     },
     onSuccess: data => {
       if (!data) {

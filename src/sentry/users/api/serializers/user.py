@@ -5,13 +5,14 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, TypedDict, cast
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import HexId, NumericId, hex_id, numeric_id
 from sentry.app import env
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -31,12 +32,14 @@ from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.serializers import manytoone_to_dict
 
+# The names of the avatar type choices of users, organizations and teams, as
+# get_avatar_type_display() returns them.
+AvatarTypeName = Literal["letter_avatar", "upload", "gravatar"]
+
 
 class SerializedAvatarFields(TypedDict, total=False):
-    avatarType: Annotated[
-        str, ApiDescription("Avatar type, such as letter_avatar, upload or gravatar")
-    ]
-    avatarUuid: Annotated[str | None, ApiDescription("ID of the uploaded avatar image, or null")]
+    avatarType: Annotated[AvatarTypeName, ApiDescription("Avatar type")]
+    avatarUuid: Annotated[HexId | None, ApiDescription("ID of the uploaded avatar image, or null")]
     avatarUrl: Annotated[
         str | None, ApiDescription("URL of the avatar image, or null if none is set")
     ]
@@ -129,7 +132,7 @@ class UserSerializerResponseOptional(TypedDict, total=False):
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):
-    id: Annotated[str, ApiDescription("User ID")]
+    id: Annotated[NumericId, ApiDescription("User ID")]
     name: Annotated[
         str,
         ApiDescription(
@@ -225,7 +228,7 @@ class UserSerializer(Serializer):
         **kwargs: Any,
     ) -> UserSerializerResponse | UserSerializerResponseSelf:
         d: UserSerializerResponse = {
-            "id": str(obj.id),
+            "id": numeric_id(obj.id),
             "name": obj.get_display_name(),
             "username": obj.username,
             "email": obj.email,
@@ -285,7 +288,9 @@ class UserSerializer(Serializer):
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].get_file_id() else None,
+                "avatarUuid": (
+                    hex_id(attrs["avatar"].ident) if attrs["avatar"].get_file_id() else None
+                ),
                 "avatarUrl": attrs["avatar"].absolute_url(),
             }
         else:

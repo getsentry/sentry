@@ -1,3 +1,5 @@
+import {useMutation} from '@tanstack/react-query';
+
 import {toast} from '@sentry/scraps/toast';
 
 import {openExternalIssueModal} from 'sentry/components/externalIssues/externalIssueForm';
@@ -10,7 +12,7 @@ import {
   getIntegrationDisplayName,
   getIntegrationIcon,
 } from 'sentry/utils/integrationUtil';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ExternalIssueAction, GroupIntegrationIssueResult} from './types';
@@ -24,13 +26,43 @@ interface IntegrationExternalIssueOptions {
 export function useIntegrationExternalIssues({
   group,
 }: IntegrationExternalIssueOptions): GroupIntegrationIssueResult {
-  const api = useApi();
   const organization = useOrganization();
   const {
     data: integrations = [],
     isPending,
     refetch: refetchIntegrations,
   } = useFetchIntegrations({group, organization});
+
+  const {mutate: unlinkIssue} = useMutation({
+    mutationFn: ({
+      integrationId,
+      externalIssue,
+    }: {
+      externalIssue: string;
+      integrationId: string;
+    }) =>
+      fetchMutation({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              issueId: group.id,
+              integrationId,
+            },
+          }
+        ),
+        method: 'DELETE',
+        options: {query: {externalIssue}},
+      }),
+    onSuccess: () => {
+      toast.success(t('Successfully unlinked issue.'));
+      refetchIntegrations();
+    },
+    onError: () => {
+      toast.error(t('Unable to unlink issue.'));
+    },
+  });
 
   const activeIntegrations = integrations.filter(
     integration => integration.status === 'active'
@@ -99,30 +131,7 @@ export function useIntegrationExternalIssues({
             // For example, we shouldn't have more than 1 jira ticket created for an issue for each jira configuration.
             const issue = config.externalIssues[0];
 
-            api
-              .requestPromise(
-                getApiUrl(
-                  '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
-                  {
-                    path: {
-                      organizationIdOrSlug: organization.slug,
-                      issueId: group.id,
-                      integrationId: config.id,
-                    },
-                  }
-                ),
-                {
-                  method: 'DELETE',
-                  query: {externalIssue: issue!.id},
-                }
-              )
-              .then(() => {
-                toast.success(t('Successfully unlinked issue.'));
-                refetchIntegrations();
-              })
-              .catch(() => {
-                toast.error(t('Unable to unlink issue.'));
-              });
+            unlinkIssue({integrationId: config.id, externalIssue: issue!.id});
           },
         }))
     );

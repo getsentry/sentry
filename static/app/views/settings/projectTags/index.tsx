@@ -24,10 +24,9 @@ import {t, tct} from 'sentry/locale';
 import type {TagWithTopValues} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -41,7 +40,6 @@ export default function ProjectTags() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
 
-  const api = useApi();
   const queryClient = useQueryClient();
 
   const {
@@ -60,18 +58,16 @@ export default function ProjectTags() {
 
   const {mutate} = useMutation<DeleteTagResponse, RequestError, DeleteTagVariables>({
     mutationFn: ({key}: DeleteTagVariables) =>
-      api.requestPromise(
-        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/$key/', {
+      fetchMutation({
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/$key/', {
           path: {
             organizationIdOrSlug: organization.slug,
             projectIdOrSlug: project.slug,
             key,
           },
         }),
-        {
-          method: 'DELETE',
-        }
-      ),
+        method: 'DELETE',
+      }),
     onSuccess: (_, {key}) => {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,

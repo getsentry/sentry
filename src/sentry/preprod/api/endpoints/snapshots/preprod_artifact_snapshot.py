@@ -101,23 +101,107 @@ logger = logging.getLogger(__name__)
 SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "app_id": {"type": "string", "maxLength": 255},
+        "app_id": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "ID of the app the snapshot belongs to, such as `com.example.app`.",
+        },
         "images": {
             "type": "object",
             "additionalProperties": True,
             "maxProperties": 100000,
+            "description": "Metadata of the snapshot's images, keyed by image file name.",
         },
-        "diff_threshold": {"type": "number", "minimum": 0.0, "exclusiveMaximum": 1.0},
-        "selective": {"type": "boolean"},
+        "diff_threshold": {
+            "type": "number",
+            "minimum": 0.0,
+            "exclusiveMaximum": 1.0,
+            "description": "Fraction of changed pixels, from 0 up to but not including 1, above which an image counts as changed. Images can override it.",
+        },
+        "selective": {
+            "type": "boolean",
+            "description": "Whether the snapshot holds only some of the app's images. Requires `base_sha`.",
+        },
         "all_image_file_names": {
             "type": "array",
             "items": {"type": "string"},
             "maxItems": 100000,
+            "description": "File names of all the app's images, including the ones a selective snapshot leaves out. Requires `selective`, and must include every key of `images`.",
         },
         **VCS_SCHEMA_PROPERTIES,
     },
     "required": ["app_id", "images"],
     "additionalProperties": True,
+}
+
+# The request body in the API docs. It describes what ImageMetadata checks for each
+# image after SNAPSHOT_POST_REQUEST_SCHEMA, and uses the OpenAPI 3.0 boolean form of
+# exclusiveMaximum.
+_IMAGE_METADATA_OPENAPI_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "content_hash": {
+            "type": "string",
+            "description": "Hash of the uploaded image file, which identifies the image.",
+        },
+        "display_name": {
+            "type": "string",
+            "nullable": True,
+            "description": "Name to show for the image.",
+        },
+        "group": {
+            "type": "string",
+            "nullable": True,
+            "description": "Group to show the image in, such as a device name.",
+        },
+        "width": {"type": "integer", "minimum": 0, "description": "Width in pixels."},
+        "height": {"type": "integer", "minimum": 0, "description": "Height in pixels."},
+        "diff_threshold": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "exclusiveMaximum": True,
+            "nullable": True,
+            "description": "Overrides the snapshot's `diff_threshold` for this image.",
+        },
+        "description": {
+            "type": "string",
+            "nullable": True,
+            "description": "Description of the image.",
+        },
+        "tags": {
+            "oneOf": [
+                {"type": "object", "additionalProperties": {"type": "string"}},
+                {"type": "array", "items": {"type": "string"}},
+            ],
+            "nullable": True,
+            "description": "Tags of the image, as an object of names to values or a list of names.",
+        },
+        "canvas_theme": {
+            "type": "string",
+            "enum": ["light", "dark"],
+            "nullable": True,
+            "description": "Theme the image was rendered in. Other values count as not set.",
+        },
+    },
+    "required": ["content_hash", "width", "height"],
+    "additionalProperties": True,
+}
+
+SNAPSHOT_POST_REQUEST_OPENAPI_SCHEMA: dict[str, Any] = {
+    **SNAPSHOT_POST_REQUEST_SCHEMA,
+    "properties": {
+        **SNAPSHOT_POST_REQUEST_SCHEMA["properties"],
+        "images": {
+            **SNAPSHOT_POST_REQUEST_SCHEMA["properties"]["images"],
+            "additionalProperties": _IMAGE_METADATA_OPENAPI_SCHEMA,
+        },
+        "diff_threshold": {
+            **SNAPSHOT_POST_REQUEST_SCHEMA["properties"]["diff_threshold"],
+            "maximum": 1.0,
+            "exclusiveMaximum": True,
+        },
+    },
 }
 
 SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
@@ -720,7 +804,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         operation_id="uploadProjectPreprodArtifactSnapshot",
         summary="Upload a Snapshot",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
-        request=None,
+        request={"application/json": SNAPSHOT_POST_REQUEST_OPENAPI_SCHEMA},
         responses={
             200: inline_sentry_response_serializer(
                 "SnapshotCreateResponse", SnapshotCreateResponseDict
@@ -740,6 +824,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         `images` (required, a mapping of filenames to image metadata objects),
         and optional VCS fields (`head_sha`, `base_sha`, `provider`,
         `head_repo_name`, `head_ref`, `base_repo_name`, `base_ref`, `pr_number`).
+
+        The body can be compressed with zstd: send it with the header
+        `Content-Encoding: zstd`. It can be up to 256 MiB after decompression.
 
         When VCS info with a `base_sha` is provided and a matching base snapshot
         exists, a comparison is automatically triggered.

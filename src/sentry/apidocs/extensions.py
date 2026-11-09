@@ -289,7 +289,8 @@ class TokenAuthExtension(_TypedExtension, OpenApiAuthenticationExtension):
     def get_security_requirement(self, auto_schema: AutoSchema) -> dict[str, list[Any]]:
         scopes = set()
         for permission in auto_schema.view.get_permissions():
-            for s in permission.scope_map.get(auto_schema.method, []):
+            # Guards such as DisallowImpersonatedTokenCreation require no scope.
+            for s in getattr(permission, "scope_map", {}).get(auto_schema.method, []):
                 scopes.add(s)
 
         scope_list = sorted(scopes - GRANULAR_SCOPES)
