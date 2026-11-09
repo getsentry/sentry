@@ -6,12 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -67,7 +63,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
         data,
       }),
     onSuccess: (_data, {name}) => {
-      addSuccessMessage(t('Updated user auth token.'));
+      toast.success(t('Updated user auth token.'));
 
       // Update get by id query
       setApiQueryData(
@@ -102,7 +98,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
     onError: (error: RequestError) => {
       const message = t('Failed to update the user auth token.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -111,7 +107,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
     defaultValues: {name: token.name},
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       return mutation.mutateAsync(value).catch(() => {});
     },
   });

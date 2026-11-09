@@ -2,8 +2,8 @@ import {useCallback, useEffect} from 'react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -12,8 +12,15 @@ import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestEr
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useProjects} from 'sentry/utils/useProjects';
 
-import type {TransactionThresholdMetric} from './transactionThresholdModal';
-import TransactionThresholdModal, {modalCss} from './transactionThresholdModal';
+import type {
+  ThresholdResponse,
+  TransactionThresholdMetric,
+} from './transactionThresholdModal';
+import {
+  modalCss,
+  projectTransactionThresholdApiOptions,
+  TransactionThresholdModal,
+} from './transactionThresholdModal';
 import {useEventViewProject} from './useEventViewProject';
 
 interface UseTransactionThresholdProps {
@@ -34,11 +41,6 @@ export interface TransactionThreshold {
    */
   isLoading: boolean;
   openThresholdModal: () => void;
-}
-
-interface ThresholdResponse {
-  metric: TransactionThresholdMetric;
-  threshold: number;
 }
 
 /**
@@ -76,16 +78,7 @@ export function useTransactionThreshold({
     retry: false,
   });
 
-  const projectOptions = apiOptions.as<ThresholdResponse>()(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
-    {
-      path: project
-        ? {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}
-        : skipToken,
-      query: project ? {project: project.id} : undefined,
-      staleTime: 0,
-    }
-  );
+  const projectOptions = projectTransactionThresholdApiOptions({organization, project});
   const projectThresholdQuery = useQuery({
     ...projectOptions,
     // Gate the fetch rather than the path, so the cache key stays addressable
@@ -105,7 +98,7 @@ export function useTransactionThreshold({
       projectThresholdError instanceof RequestError
         ? projectThresholdError.responseJSON?.threshold
         : undefined;
-    addErrorMessage(
+    toast.error(
       typeof thresholdMessage === 'string'
         ? thresholdMessage
         : getRequestErrorUserMessage(

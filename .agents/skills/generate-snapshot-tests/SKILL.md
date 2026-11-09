@@ -1,12 +1,14 @@
 ---
 name: generate-snapshot-tests
-description: Generate snapshot test files for Sentry frontend React components. Use when asked to "generate snapshot tests", "add snapshot tests", "create visual snapshots", "write snapshot tests", "add visual regression tests", or "snapshot this component". Accepts an optional component path or name via $ARGUMENTS.
+description: Generate visual snapshot test files for Sentry frontend React components. Use for testing appearance changes such as colors, spacing, typography, CSS min/max sizing, responsive layout, and visual variants, or when asked to "generate snapshot tests", "create visual snapshots", "add visual regression tests", or "snapshot this component". Accepts an optional component path or name via $ARGUMENTS.
 type: workflow-process
 ---
 
 # Generate Snapshot Tests
 
 Generate a `*.snapshots.tsx` file colocated with a Sentry React component, following the established pattern used by core design system components.
+
+Use the **`react-testing`** skill to decide whether a change needs RTL coverage, a visual snapshot, or both.
 
 ## Step 1: Locate the Component
 
@@ -141,6 +143,17 @@ Match container sizing to what makes the component readable:
 | Default                        | `<div style={{padding: 8}}>`             |
 | Width-sensitive (alerts, text) | `<div style={{padding: 8, width: 400}}>` |
 | Narrow (icons, small controls) | `<div style={{padding: 8}}>`             |
+
+### Responsive layout
+
+Responsive layout uses container responsive props (bare keys such as `{xs: 'column', md: 'row'}`). The snapshot harness already makes `body` an `inline-size` query container, so do not wrap the component in another one. The snapshot `viewport` option sets that container's width; snapshot one width on each side of the breakpoint:
+
+```tsx
+it.snapshot('stacked', () => <Component {...props} />, {viewport: 400});
+it.snapshot('side-by-side', () => <Component {...props} />, {viewport: 800});
+```
+
+SSR does not measure containers, so props resolved in JavaScript (such as `Stack` `direction` or `useResponsivePropValue`) always see the `zero` breakpoint. Only when the component uses them, wrap it in `ContainerQueryContext` with the breakpoint that matches the width from `theme.container`, as `tagDetailsTable.snapshots.tsx` does.
 
 ### Interactive components
 

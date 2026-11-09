@@ -4,7 +4,8 @@ import type {
   AutofixSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
+
+import {useResetAutofixStep} from './useResetAutofixStep';
 
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
@@ -40,6 +41,26 @@ function makeSection(overrides: Partial<AutofixSection> = {}): AutofixSection {
 
 describe('useResetAutofixStep', () => {
   describe('canReset', () => {
+    it('returns false for a single run', () => {
+      const autofix = makeAutofix({
+        runState: {
+          run_id: 1,
+          status: 'completed',
+          blocks: [],
+          updated_at: '2024-01-01T00:00:00Z',
+          repo_pr_states: {},
+          coding_agents: {},
+          feature_id: 'autofix_single_run',
+        },
+      });
+
+      const {result} = renderHookWithProviders(() =>
+        useResetAutofixStep({autofix, section: makeSection(), step: 'root_cause'})
+      );
+
+      expect(result.current.canReset).toBe(false);
+    });
+
     it('returns true when all conditions are met', () => {
       const autofix = makeAutofix({
         runState: {

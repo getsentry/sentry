@@ -12,8 +12,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {IssueType} from 'sentry/types/group';
+
+import {OurlogsSection} from './ourlogsSection';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -198,7 +199,7 @@ describe('OurlogsSection', () => {
         meta: {},
       },
     });
-    render(<OurlogsSection event={event} project={project} group={group} />, {
+    render(<OurlogsSection event={event} group={group} />, {
       organization,
     });
     await waitFor(() => {
@@ -223,7 +224,7 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(<OurlogsSection event={event} project={project} group={group} />, {
+    render(<OurlogsSection event={event} group={group} />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -297,10 +298,7 @@ describe('OurlogsSection', () => {
   it('renders logs for a rage-click issue when there is no trace context', async () => {
     mockReplayRecord([REPLAY_TRACE_ID]);
 
-    render(
-      <OurlogsSection event={replayEvent} project={project} group={rageClickGroup} />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayEvent} group={rageClickGroup} />, {organization});
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledWith(
@@ -323,14 +321,9 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(
-      <OurlogsSection
-        event={replayAndTraceEvent}
-        project={project}
-        group={rageClickGroup}
-      />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayAndTraceEvent} group={rageClickGroup} />, {
+      organization,
+    });
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledWith(
@@ -357,14 +350,9 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(
-      <OurlogsSection
-        event={replayAndTraceEvent}
-        project={project}
-        group={rageClickGroup}
-      />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayAndTraceEvent} group={rageClickGroup} />, {
+      organization,
+    });
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     const [, options] = mockRequest.mock.calls[0];
@@ -381,10 +369,7 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(
-      <OurlogsSection event={errorEventWithReplay} project={project} group={group} />,
-      {organization}
-    );
+    render(<OurlogsSection event={errorEventWithReplay} group={group} />, {organization});
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(replayRecordRequest).not.toHaveBeenCalled();
@@ -396,10 +381,7 @@ describe('OurlogsSection', () => {
   it('omits an empty query param when freezing on replay + traces', async () => {
     mockReplayRecord([REPLAY_TRACE_ID]);
 
-    render(
-      <OurlogsSection event={replayEvent} project={project} group={rageClickGroup} />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayEvent} group={rageClickGroup} />, {organization});
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     const [, options] = mockRequest.mock.calls[0];
@@ -409,7 +391,7 @@ describe('OurlogsSection', () => {
   it('renders nothing when the event has neither a trace id nor a replay id', async () => {
     const bareEvent = EventFixture({contexts: {}});
 
-    render(<OurlogsSection event={bareEvent} project={project} group={group} />, {
+    render(<OurlogsSection event={bareEvent} group={group} />, {
       organization,
     });
 
@@ -420,7 +402,7 @@ describe('OurlogsSection', () => {
   });
 
   it('renders Open in Explore button with correct URL when trace_id exists', async () => {
-    render(<OurlogsSection event={event} project={project} group={group} />, {
+    render(<OurlogsSection event={event} group={group} />, {
       organization: OrganizationFixture({
         features: ['ourlogs-enabled', 'visibility-explore-view'],
       }),

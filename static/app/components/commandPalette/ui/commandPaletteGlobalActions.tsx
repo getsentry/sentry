@@ -26,6 +26,7 @@ import {IconUser} from '@sentry/icons/user';
 import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
+import {useQueryState} from 'nuqs';
 
 import {
   OrganizationAvatar,
@@ -35,11 +36,6 @@ import {
 } from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
@@ -67,8 +63,8 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -130,6 +126,8 @@ export function isNavItemVisible(
   }
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
+import {toast} from '@sentry/scraps/toast';
+
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 
 import {CMDKAction} from './cmdk';
@@ -267,7 +265,7 @@ function ResolvedIdentifierCommandPaletteAction() {
 async function openCurrentReplay() {
   const replay = Sentry.getReplay();
   if (!replay) {
-    addErrorMessage(t('Session Replay is not enabled for this session'));
+    toast.error(t('Session Replay is not enabled for this session'));
     return;
   }
 
@@ -283,7 +281,7 @@ async function openCurrentReplay() {
     replayId = replay.getReplayId();
   }
   if (!replayId) {
-    addErrorMessage(t('No replay is currently recording'));
+    toast.error(t('No replay is currently recording'));
     return;
   }
 
@@ -326,7 +324,8 @@ export function GlobalCommandPaletteActions() {
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
 
-  const queryProjectIds = new Set(decodeList(location.query.project));
+  const [queryProjectIdList] = useQueryState('project', pageFilterParsers.project);
+  const queryProjectIds = new Set(queryProjectIdList);
   const currentProjects = params.projectId
     ? projects.filter(p => p.slug === params.projectId)
     : projects.filter(p => queryProjectIds.has(p.id));
@@ -484,7 +483,7 @@ export function GlobalCommandPaletteActions() {
             />
           )}
           <CMDKAction
-            display={{label: t('All Queries')}}
+            display={{label: t('Saved Queries')}}
             to={`${prefix}/explore/saved-queries/`}
           />
           {starredSavedQueries.map(query => (
@@ -1132,27 +1131,27 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('System')}}
             keywords={['default theme', 'system theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'system'});
-              addSuccessMessage(t('Theme preference saved: System'));
+              toast.success(t('Theme preference saved: System'));
             }}
           />
           <CMDKAction
             display={{label: t('Light')}}
             keywords={['light mode', 'light theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'light'});
-              addSuccessMessage(t('Theme preference saved: Light'));
+              toast.success(t('Theme preference saved: Light'));
             }}
           />
           <CMDKAction
             display={{label: t('Dark')}}
             keywords={['dark mode', 'dark theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'dark'});
-              addSuccessMessage(t('Theme preference saved: Dark'));
+              toast.success(t('Theme preference saved: Dark'));
             }}
           />
         </CMDKAction>

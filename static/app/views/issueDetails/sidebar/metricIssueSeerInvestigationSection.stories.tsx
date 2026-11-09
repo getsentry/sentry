@@ -15,7 +15,8 @@ import type {
   InvestigationDetail,
   InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
-import {MetricIssueSeerInvestigationSection} from 'sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection';
+
+import {MetricIssueSeerInvestigationSection} from './metricDetectorTriggeredSection';
 
 const INVESTIGATION_ID = '4567';
 

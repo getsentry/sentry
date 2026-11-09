@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -20,39 +21,61 @@ from .utils import SCIMDiscoveryEndpoint, SCIMMetaResponse
 
 
 class SCIMFeatureSupportResponse(TypedDict):
-    supported: bool
+    supported: Annotated[bool, ApiDescription("Whether Sentry supports the feature")]
 
 
 class SCIMBulkConfigResponse(TypedDict):
-    supported: bool
-    maxOperations: int
-    maxPayloadSize: int
+    supported: Annotated[
+        bool, ApiDescription("Whether Sentry supports bulk operations. Always false")
+    ]
+    maxOperations: Annotated[
+        int, ApiDescription("Maximum number of operations in a bulk request. Always 0")
+    ]
+    maxPayloadSize: Annotated[
+        int, ApiDescription("Maximum payload size of a bulk request in bytes. Always 0")
+    ]
 
 
 class SCIMFilterConfigResponse(TypedDict):
-    supported: bool
-    maxResults: int
+    supported: Annotated[
+        bool, ApiDescription("Whether Sentry supports filtering. Only the eq operator is supported")
+    ]
+    maxResults: Annotated[int, ApiDescription("Maximum number of resources returned in a page")]
 
 
 class SCIMAuthenticationSchemeResponse(TypedDict):
-    type: str
-    name: str
-    description: str
-    specUri: str
-    primary: bool
+    type: Annotated[
+        str, ApiDescription("Type of the authentication scheme, always oauthbearertoken")
+    ]
+    name: Annotated[str, ApiDescription("Name of the authentication scheme")]
+    description: Annotated[str, ApiDescription("How to authenticate with the scheme")]
+    specUri: Annotated[str, ApiDescription("URL of the scheme's specification")]
+    primary: Annotated[bool, ApiDescription("Whether this is the preferred authentication scheme")]
 
 
 class SCIMServiceProviderConfigResponse(TypedDict):
-    schemas: list[str]
-    documentationUri: str
-    patch: SCIMFeatureSupportResponse
-    bulk: SCIMBulkConfigResponse
-    filter: SCIMFilterConfigResponse
-    changePassword: SCIMFeatureSupportResponse
-    sort: SCIMFeatureSupportResponse
-    etag: SCIMFeatureSupportResponse
-    authenticationSchemes: list[SCIMAuthenticationSchemeResponse]
-    meta: SCIMMetaResponse
+    schemas: Annotated[
+        list[str],
+        ApiDescription("SCIM schema URIs of the response, always the ServiceProviderConfig schema"),
+    ]
+    documentationUri: Annotated[str, ApiDescription("URL of Sentry's SCIM documentation")]
+    patch: Annotated[
+        SCIMFeatureSupportResponse, ApiDescription("Whether PATCH operations are supported")
+    ]
+    bulk: Annotated[SCIMBulkConfigResponse, ApiDescription("Bulk operation support")]
+    filter: Annotated[SCIMFilterConfigResponse, ApiDescription("Filter support")]
+    changePassword: Annotated[
+        SCIMFeatureSupportResponse, ApiDescription("Whether password changes are supported")
+    ]
+    sort: Annotated[SCIMFeatureSupportResponse, ApiDescription("Whether sorting is supported")]
+    etag: Annotated[SCIMFeatureSupportResponse, ApiDescription("Whether ETags are supported")]
+    authenticationSchemes: Annotated[
+        list[SCIMAuthenticationSchemeResponse],
+        ApiDescription("Authentication schemes the SCIM API accepts"),
+    ]
+    meta: Annotated[
+        SCIMMetaResponse, ApiDescription("Resource type and location of the configuration")
+    ]
 
 
 def build_service_provider_config(

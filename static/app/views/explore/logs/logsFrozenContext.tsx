@@ -3,7 +3,8 @@ import {createContext, useContext, useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {OurLogKnownFieldKey} from './types';
 
 interface LogsFrozenContextValue {
   frozen: boolean;

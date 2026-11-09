@@ -7,9 +7,10 @@ import {t} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldValueType} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useErrorsOnlyFilter} from 'sentry/views/explore/conversations/hooks/useErrorsOnlyFilter';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+
+import {useErrorsOnlyFilter} from './useErrorsOnlyFilter';
 
 export interface ConversationUser {
   email: string | null;
@@ -126,7 +127,10 @@ const CONVERSATION_SORTS = CONVERSATION_SORT_FIELDS.flatMap(field => [
   `-${field}`,
 ]);
 
-export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
+export function useConversations({
+  enabled = true,
+  perPage = CONVERSATION_LIST_PER_PAGE,
+}: {enabled?: boolean; perPage?: number} = {}) {
   const organization = useOrganization();
   const {cursor, setCursor, unsetCursor} = useTableCursor();
   const pageFilters = usePageFilters();
@@ -143,6 +147,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
     data: response,
     isFetching,
     error,
+    refetch,
   } = useQuery({
     ...apiOptions.as<Conversation[]>()(
       '/organizations/$organizationIdOrSlug/agents/conversations/',
@@ -153,7 +158,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
           query: combinedQuery,
           project: pageFilters.selection.projects,
           environment: pageFilters.selection.environments,
-          per_page: CONVERSATION_LIST_PER_PAGE,
+          per_page: perPage,
           sort: [sort],
           ...normalizeDateTimeParams(pageFilters.selection.datetime),
         },
@@ -173,6 +178,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
     data,
     isFetching,
     error,
+    refetch,
     pageLinks,
     setCursor,
     unsetCursor,

@@ -1,6 +1,6 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import SplitDiff from 'sentry/components/splitDiff';
+import SplitDiff from './splitDiff';
 
 describe('SplitDiff', () => {
   it('shows differing content on each side for changed lines', () => {

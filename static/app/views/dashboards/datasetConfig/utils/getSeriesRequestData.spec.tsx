@@ -4,11 +4,9 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  getSeriesRequestData,
-  getTimeseriesRequestQuery,
-} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+
+import {getSeriesRequestData, getTimeseriesRequestQuery} from './getSeriesRequestData';
 
 describe('utils', () => {
   describe('getSeriesRequestData', () => {
@@ -383,7 +381,7 @@ describe('utils', () => {
       expect(params).toHaveProperty(['transformations[1]'], ['fill(zero)']);
     });
 
-    it('sends pipelines for equation y-axes', () => {
+    it('sends transformations for equation y-axes', () => {
       const widget = WidgetFixture({
         widgetType: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -412,7 +410,7 @@ describe('utils', () => {
       expect(params).toHaveProperty(['transformations[1]'], ['smooth(sma,3)']);
     });
 
-    it('drops repeated y-axes only when their pipelines also match', () => {
+    it('drops repeated y-axes only when their transformations also match', () => {
       const widget = WidgetFixture({
         widgetType: WidgetType.SPANS,
         displayType: DisplayType.LINE,

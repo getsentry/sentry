@@ -10,6 +10,7 @@ import omit from 'lodash/omit';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -24,7 +25,6 @@ import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {Banner} from 'sentry/components/banner';
-import {Confirm} from 'sentry/components/confirm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -78,16 +78,22 @@ import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {useGlobalAlerts, type AddAlert} from 'sentry/views/app/globalAlerts';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {
-  DEFAULT_EVENT_VIEW,
-  DEFAULT_EVENT_VIEW_MAP,
-} from 'sentry/views/discover/results/data';
-import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart';
-import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
-import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
-import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
-import {Tags} from 'sentry/views/discover/results/tags';
-import {getDatasetFromLocationOrSavedQueryDataset} from 'sentry/views/discover/savedQuery/datasets';
+import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import {DEFAULT_EVENT_VIEW, DEFAULT_EVENT_VIEW_MAP} from './results/data';
+import {ResultsChartContainer} from './results/resultsChart';
+import {ResultsHeader} from './results/resultsHeader';
+import {ResultsSearchQueryBuilder} from './results/resultsSearchQueryBuilder';
+import {SampleDataAlert} from './results/sampleDataAlert';
+import {Tags} from './results/tags';
+import {getDatasetFromLocationOrSavedQueryDataset} from './savedQuery/datasets';
 import {
   getSavedQueryDataset,
   getSavedQueryWithDataset,
@@ -97,23 +103,15 @@ import {
   handleResetHomepageQuery,
   handleUpdateHomepageQuery,
   handleUpdateQuery as handleUpdateSavedQuery,
-} from 'sentry/views/discover/savedQuery/utils';
-import Table from 'sentry/views/discover/table';
+} from './savedQuery/utils';
+import {Table} from './table';
 import {
   canCreateAlerts,
   generateTitle,
   getCreateAlertFromViewUrl,
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
-} from 'sentry/views/discover/utils';
-import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {TraceItemDataset} from 'sentry/views/explore/types';
-import {getExploreUrl} from 'sentry/views/explore/utils';
-import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
-import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
-import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+} from './utils';
 
 type Props = {
   addAlert: AddAlert;
@@ -1372,31 +1370,29 @@ function SaveQueryButton({
     });
   }
 
-  if (organization.features.includes('dashboards-edit')) {
-    items.push({
-      key: 'add-to-dashboard',
-      label: t('Dashboard widget'),
-      textValue: t('Dashboard widget'),
-      disabled: deprecatingTransactionsDataset,
-      tooltip: deprecationTooltip,
-      onAction: () => {
-        handleAddQueryToDashboard({
-          organization,
-          location,
-          eventView,
-          query: savedQuery,
-          yAxis,
-          widgetType: hasDatasetSelector(organization)
-            ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre...
-              SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
-                getSavedQueryDataset(organization, location, savedQuery)
-              ]
-            : undefined,
-          source: DashboardWidgetSource.DISCOVERV2,
-        });
-      },
-    });
-  }
+  items.push({
+    key: 'add-to-dashboard',
+    label: t('Dashboard widget'),
+    textValue: t('Dashboard widget'),
+    disabled: deprecatingTransactionsDataset,
+    tooltip: deprecationTooltip,
+    onAction: () => {
+      handleAddQueryToDashboard({
+        organization,
+        location,
+        eventView,
+        query: savedQuery,
+        yAxis,
+        widgetType: hasDatasetSelector(organization)
+          ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre...
+            SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+              getSavedQueryDataset(organization, location, savedQuery)
+            ]
+          : undefined,
+        source: DashboardWidgetSource.DISCOVERV2,
+      });
+    },
+  });
 
   return (
     <DropdownMenu

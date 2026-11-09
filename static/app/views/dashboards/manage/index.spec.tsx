@@ -9,18 +9,9 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ManageDashboards from 'sentry/views/dashboards/manage';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
-const FEATURES = [
-  'dashboards-basic',
-  'dashboards-edit',
-  'discover-query',
-  'dashboards-prebuilt-insights-dashboards',
-];
+const FEATURES = ['discover-query', 'dashboards-prebuilt-insights-dashboards'];
 
 describe('Dashboards > Detail', () => {
-  const mockUnauthorizedOrg = OrganizationFixture({
-    features: ['dashboards-basic', 'discover-query'],
-  });
-
   const mockAuthorizedOrg = OrganizationFixture({
     features: FEATURES,
   });
@@ -75,16 +66,6 @@ describe('Dashboards > Detail', () => {
     });
 
     expect(await screen.findByText('Oops! Something went wrong')).toBeInTheDocument();
-  });
-
-  it('denies access on missing feature', async () => {
-    render(<ManageDashboards />, {
-      organization: mockUnauthorizedOrg,
-    });
-
-    expect(
-      await screen.findByText("You don't have access to this feature")
-    ).toBeInTheDocument();
   });
 
   it('denies access on no projects', async () => {
@@ -211,7 +192,7 @@ describe('Dashboards > Detail', () => {
 
     render(<ManageDashboards />, {
       organization: OrganizationFixture({
-        features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+        features: ['discover-query'],
       }),
       initialRouterConfig: {
         location: {

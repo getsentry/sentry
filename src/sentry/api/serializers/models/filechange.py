@@ -6,8 +6,8 @@ from typing import TypedDict, cast
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
-from sentry.api.serializers.models.commit import EmptyAuthor, get_users_for_commits
-from sentry.api.serializers.release_details_types import Author
+from sentry.api.serializers.models.commit import get_users_for_commits
+from sentry.api.serializers.release_details_types import Author, EmptyAuthor
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.repository import Repository

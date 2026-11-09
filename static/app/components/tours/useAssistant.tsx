@@ -1,13 +1,6 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 
 interface AssistantResult {
@@ -15,15 +8,12 @@ interface AssistantResult {
   seen: boolean;
 }
 
-const assistantQueryKey: ApiQueryKey = [getApiUrl('/assistant/')];
+const assistantQueryOptions = apiOptions.as<AssistantResult[]>()('/assistant/', {
+  staleTime: 30000,
+});
 
-export function useAssistant(
-  options: Partial<UseApiQueryOptions<AssistantResult[]>> = {}
-) {
-  return useApiQuery<AssistantResult[]>(assistantQueryKey, {
-    staleTime: 30000,
-    ...options,
-  });
+export function useAssistant() {
+  return useQuery(assistantQueryOptions);
 }
 
 interface MutateAssistantData {
@@ -38,19 +28,18 @@ export function useMutateAssistant() {
   const api = useApi({persistInFlight: false});
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, RequestError, MutateAssistantData>({
+  return useMutation({
     mutationFn: (data: MutateAssistantData) => {
       return api.requestPromise('/assistant/', {method: 'PUT', data});
     },
     onMutate: ({guide, status}: MutateAssistantData) => {
-      setApiQueryData<AssistantResult[]>(
-        queryClient,
-        assistantQueryKey,
-        (existingData = []) =>
-          existingData.map(result =>
-            result.guide === guide ? {...result, seen: seenStatuses.has(status)} : result
-          )
-      );
+      queryClient.setQueryData(assistantQueryOptions.queryKey, previous => ({
+        ...previous,
+        headers: previous?.headers ?? {},
+        json: (previous?.json ?? []).map(result =>
+          result.guide === guide ? {...result, seen: seenStatuses.has(status)} : result
+        ),
+      }));
     },
   });
 }

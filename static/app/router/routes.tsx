@@ -4,7 +4,6 @@ import memoize from 'lodash/memoize';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {getOverride} from 'sentry/overrideRegistry';
-import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OverrideName} from 'sentry/types/overrides';
 import {errorHandler} from 'sentry/utils/errorHandler';
@@ -44,6 +43,7 @@ import {redirectDeprecatedProjectRoute} from 'sentry/views/projects/redirectDepr
 import {RouteNotFound} from 'sentry/views/routeNotFound';
 import {SettingsWrapper} from 'sentry/views/settings/components/settingsWrapper';
 
+import {translateSentryRoute} from './translateSentryRoute';
 import {type SentryRouteObject} from './types';
 
 const routeHook = (name: OverrideName): SentryRouteObject => {
@@ -610,7 +610,28 @@ function buildRoutes(): RouteObject[] {
       },
       path: 'attributes/',
       name: t('Attributes'),
-      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributes')
+          ),
+        },
+        {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Attributes'),
+              to: '/settings/:orgId/projects/:projectId/attributes/',
+            },
+          },
+          path: ':attributeType/:attributeName/',
+          name: t('Attribute Details'),
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributeDetails')
+          ),
+        },
+      ],
     },
     {
       handle: {
@@ -1495,11 +1516,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/earlyFeatures')),
     },
     {
-      path: 'dynamic-sampling/',
-      name: t('Dynamic Sampling'),
-      component: make(() => import('sentry/views/settings/dynamicSampling')),
-    },
-    {
       path: 'mcp-cli/',
       name: t('MCP & CLI'),
       component: make(() => import('sentry/views/settings/organizationMcpCli')),
@@ -1681,7 +1697,7 @@ function buildRoutes(): RouteObject[] {
   const dashboardChildren: SentryRouteObject[] = [
     {
       path: '/dashboards/',
-      component: withDomainRequired(make(() => import('sentry/views/dashboards'))),
+      component: withDomainRequired(NoOp),
       customerDomainOnlyRoute: true,
       children: [
         {
@@ -1693,7 +1709,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: '/organizations/:orgId/dashboards/',
-      component: withDomainRedirect(make(() => import('sentry/views/dashboards'))),
+      component: withDomainRedirect(NoOp),
       children: [
         {
           index: true,

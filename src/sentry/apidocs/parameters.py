@@ -169,14 +169,6 @@ class EnvironmentParams:
         type=str,
         description="The name of the environment.",
     )
-    VISIBILITY = OpenApiParameter(
-        name="visibility",
-        location="query",
-        required=False,
-        type=str,
-        description="""The visibility of the environments to filter by. Defaults to `visible`.""",
-        enum=["all", "hidden", "visible"],
-    )
 
 
 class OrganizationParams:
@@ -441,16 +433,8 @@ class IssueParams:
 
     DEFAULT_QUERY = OpenApiParameter(
         name="query",
-        description="An optional search query for filtering issues. A default query will apply if no view/query is set. For all results use this parameter with an empty string.",
+        description="An optional search query for filtering issues. A default query will apply if no query is set. For all results use this parameter with an empty string.",
         default="is:unresolved",
-        location=OpenApiParameter.QUERY,
-        type=OpenApiTypes.STR,
-        required=False,
-    )
-
-    VIEW_ID = OpenApiParameter(
-        name="viewId",
-        description="The ID of the view to use. If no query is present, the view's query and filters will be applied.",
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
@@ -478,7 +462,7 @@ class IssueParams:
 
     LIMIT = OpenApiParameter(
         name="limit",
-        description="The maximum number of issues to affect. The maximum is 100.",
+        description="The maximum number of issues to return. The maximum is 100.",
         default=100,
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.INT,
@@ -931,9 +915,15 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         name="interval",
         location="query",
         required=False,
-        type=int,
+        type={
+            "anyOf": [
+                {"type": "integer"},
+                {"type": "string", "pattern": r"^\d+[smhdw]?$"},
+            ]
+        },
         description="""The size of the bucket for the timeseries to have, must be a value smaller than the window being
-queried. If the interval is invalid a default interval will be selected instead""",
+queried. Either a number of seconds, or a number with a unit suffix of `s`, `m`, `h`, `d`, or `w`, such as `5m` or
+`1h`. If the interval is invalid a default interval will be selected instead""",
     )
     GROUP_BY = OpenApiParameter(
         name="groupBy",
@@ -949,8 +939,10 @@ top events are""",
         location="query",
         required=False,
         type=str,
-        description="""The aggregate field to create the timeseries for, defaults to `count()` when
-        not included.
+        many=True,
+        description="""The aggregate fields to create timeseries for, defaults to `count()` when
+        not included. Pass the parameter more than once to get a timeseries for each aggregate, for
+        example `?yAxis=count()&yAxis=p95(span.duration)`.
 - `count()` - Total count of events over the period.
 - `avg(field)` - Average value of the field over the period.
 - `pXX(field)` - Percentile value of the field over the period. One of: `p50`, `p75`, `p90`, `p95`, `p99`, `p100`.
@@ -1148,6 +1140,15 @@ class TraceParams:
         required=True,
         type=str,
         description="The ID of the trace, a 32-character hexadecimal string.",
+    )
+    TIMESTAMP = OpenApiParameter(
+        name="timestamp",
+        location="query",
+        required=False,
+        type=str,
+        description="""The timestamp of an event in the trace, as an ISO 8601 string or Unix timestamp in
+seconds. When passed, the query is narrowed to a window around this time, which is faster than
+searching the full time range.""",
     )
 
 
@@ -1414,6 +1415,14 @@ class DashboardParams:
         required=True,
         type=int,
         description="""The ID of the dashboard you'd like to retrieve.""",
+    )
+
+    REVISION_ID = OpenApiParameter(
+        name="revision_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the dashboard revision, from the dashboard's revision list.",
     )
 
     FILTER = OpenApiParameter(

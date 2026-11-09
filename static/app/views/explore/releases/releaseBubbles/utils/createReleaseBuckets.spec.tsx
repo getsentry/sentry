@@ -1,4 +1,4 @@
-import {createReleaseBuckets} from 'sentry/views/explore/releases/releaseBubbles/utils/createReleaseBuckets';
+import {createReleaseBuckets} from './createReleaseBuckets';
 
 describe('createReleaseBuckets', () => {
   const now = Date.now();

@@ -7,7 +7,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {Button} from '@sentry/scraps/button';
 
 import {EventView} from 'sentry/utils/discover/eventView';
-import {Tags} from 'sentry/views/discover/results/tags';
+
+import {Tags} from './tags';
 
 const org = OrganizationFixture();
 const location = LocationFixture({
