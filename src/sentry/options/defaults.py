@@ -453,7 +453,7 @@ register(
 
 register(
     "unmerge.max-batch-size",
-    default=50,
+    default=250,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

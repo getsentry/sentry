@@ -7,6 +7,7 @@ Missing/expired state must never be used to adopt an existing SQL lock.
 
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from collections.abc import Generator, Mapping, Sequence
@@ -16,6 +17,7 @@ from typing import Any
 from django.conf import settings
 from django.db import router, transaction
 from redis.client import StrictRedis
+from redis.exceptions import RedisError
 from sentry_redis_tools.clients import RedisCluster
 from taskbroker_client.retry import RetryTaskError
 
@@ -28,6 +30,8 @@ from sentry.utils import json, redis
 # bounded lifetime, independent of the number of redeliveries.
 LEASE_SECONDS = 600
 RETENTION_SECONDS = 7 * 24 * 60 * 60
+
+logger = logging.getLogger(__name__)
 
 
 class UnmergeBusy(RetryTaskError):
@@ -77,7 +81,15 @@ def reserve_legacy_hashes(project_id: int, fingerprints: Sequence[str]) -> Gener
                 reserved.append(fingerprint)
         yield reserved
     finally:
-        release_hashes(project_id, reserved, token)
+        try:
+            release_hashes(project_id, reserved, token)
+        except RedisError:
+            # SQL locks already preserve exclusion after acquisition. The
+            # reservations expire, so failed cleanup must not strand SQL locks
+            # by aborting a legacy task before it can process any events.
+            logger.exception(
+                "unmerge.legacy_reservation.release_failed", extra={"project_id": project_id}
+            )
 
 
 class BatchCheckpoint:

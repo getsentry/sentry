@@ -197,6 +197,32 @@ class UnmergeRecoveryTest(TestCase):
             with BatchCheckpoint(self.args) as checkpoint:
                 assert checkpoint.lock_hashes() == []
 
+    @patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, []))
+    def test_legacy_release_failure_does_not_strand_sql_locks(self, query: Mock) -> None:
+        with (
+            patch(
+                "sentry.issues.unmerge_recovery.release_hashes",
+                side_effect=RedisConnectionError("reservation cleanup interrupted"),
+            ),
+            patch("sentry.tasks.unmerge.truncate_denormalizations"),
+        ):
+            unmerge(self.project.id, self.source.id, None, [self.fingerprint], None)
+        query.assert_called_once()
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.UNLOCKED
+        assert client().ttl(owner_key(self.project.id, self.fingerprint)) > 0
+
+    def test_legacy_release_failure_preserves_original_error(self) -> None:
+        with (
+            patch(
+                "sentry.issues.unmerge_recovery.release_hashes",
+                side_effect=RedisConnectionError("reservation cleanup interrupted"),
+            ),
+            pytest.raises(ValueError, match="lock acquisition interrupted"),
+            reserve_legacy_hashes(self.project.id, [self.fingerprint]),
+        ):
+            raise ValueError("lock acquisition interrupted")
+
     def test_missing_checkpoint_does_not_adopt_sql_lock(self) -> None:
         with BatchCheckpoint(self.args) as checkpoint:
             checkpoint.lock_hashes()
