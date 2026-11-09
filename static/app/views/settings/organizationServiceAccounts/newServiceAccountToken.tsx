@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -13,13 +13,13 @@ import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {getServiceAccountScopeOptions} from './scopes';
 import {
   serviceAccountOptions,
   serviceAccountTokensOptions,
@@ -32,6 +32,19 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+
+const errorDetailSchema = z.union([
+  z.string(),
+  z.object({
+    name: z.array(z.string()).optional(),
+    scopes: z.array(z.string()).optional(),
+  }),
+]);
+
+function getErrorDetail(error: RequestError) {
+  const result = errorDetailSchema.safeParse(error.responseJSON?.detail);
+  return result.success ? result.data : null;
+}
 
 function NewTokenForm({serviceAccount}: {serviceAccount: ServiceAccount}) {
   const organization = useOrganization();
@@ -80,15 +93,21 @@ function NewTokenForm({serviceAccount}: {serviceAccount: ServiceAccount}) {
         if (!(error instanceof RequestError)) {
           throw error;
         }
-        const fieldErrors = requestErrorToFieldErrors(error, formApi.state.values);
-        if (Object.keys(fieldErrors).length > 0) {
-          setFieldErrors(formApi, fieldErrors);
+        const detail = getErrorDetail(error);
+        if (typeof detail === 'string') {
+          toast.error(detail);
           return;
         }
-        const detail = error.responseJSON?.detail;
-        toast.error(
-          typeof detail === 'string' ? detail : t('Failed to create the token.')
-        );
+        const nameError = detail?.name?.[0];
+        const scopesError = detail?.scopes?.[0];
+        if (nameError || scopesError) {
+          setFieldErrors(formApi, {
+            ...(nameError ? {name: {message: nameError}} : {}),
+            ...(scopesError ? {scopes: {message: scopesError}} : {}),
+          });
+        } else {
+          toast.error(t('Failed to create the token.'));
+        }
       }
     },
   });
@@ -113,21 +132,23 @@ function NewTokenForm({serviceAccount}: {serviceAccount: ServiceAccount}) {
         </form.AppField>
         <form.AppField name="scopes">
           {field => (
-            <field.Checkbox.Group value={field.state.value} onChange={field.handleChange}>
-              <field.Layout.Row
-                label={t('Permissions')}
-                hintText={t('A token can only have permissions its service account has.')}
-                required
-              >
-                <Stack gap="sm">
-                  {serviceAccount.scopes.map(scope => (
-                    <field.Checkbox.Item key={scope} value={scope}>
-                      {scope}
-                    </field.Checkbox.Item>
-                  ))}
-                </Stack>
-              </field.Layout.Row>
-            </field.Checkbox.Group>
+            <field.Layout.Row
+              label={t('Permission scopes')}
+              hintText={t('A token can only have scopes its service account has.')}
+              required
+            >
+              <field.Select
+                multiple
+                clearable
+                searchable
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={getServiceAccountScopeOptions(
+                  serviceAccount.scopes,
+                  field.state.value
+                )}
+              />
+            </field.Layout.Row>
           )}
         </form.AppField>
       </form.FieldGroup>
