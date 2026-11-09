@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
@@ -274,14 +274,15 @@ function SpanTabContentSectionInner({
     error: parseError(tracesTableQuery.error),
   } satisfies TracesTableResult;
 
+  const timeseriesQueryExtras = useMemo(
+    () => ({caseInsensitive, ...crossEventQueries}),
+    [caseInsensitive, crossEventQueries]
+  );
   const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
     useExploreTimeseries({
       query,
       enabled: isReady,
-      queryExtras: {
-        caseInsensitive,
-        ...crossEventQueries,
-      },
+      queryExtras: timeseriesQueryExtras,
     });
 
   const [interval] = useChartInterval();
@@ -349,6 +350,7 @@ function SpanTabContentSectionInner({
               setVisualizes={setVisualizes}
               samplingMode={timeseriesSamplingMode}
               rawSpanCounts={rawSpanCounts}
+              queryExtras={timeseriesQueryExtras}
             />
             <ExploreTables
               aggregatesTableResult={aggregatesTableResult}

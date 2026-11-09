@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {EventsStats} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {DataUnit} from 'sentry/utils/discover/fields';
@@ -27,6 +28,10 @@ type SeriesMap = Record<string, TimeSeries[]>;
 
 interface Options<Fields> {
   caseInsensitive?: CaseInsensitive;
+  /**
+   * Overrides the page filter's date range, e.g. to fetch a longer history
+   */
+  datetime?: PageFilterDatetime;
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
   fields?: string[];
@@ -64,14 +69,19 @@ export const useSortedTimeSeries = <
     metricQuery,
     spanQuery,
     transformations,
+    datetime,
   } = options;
 
   const pageFilters = usePageFilters();
+  const selection = useMemo(
+    () => (datetime ? {...pageFilters.selection, datetime} : pageFilters.selection),
+    [datetime, pageFilters.selection]
+  );
 
   const eventView = getSeriesEventView(
     search,
     fields,
-    pageFilters.selection,
+    selection,
     yAxis,
     topEvents,
     dataset ?? DiscoverDatasets.SPANS,
@@ -112,7 +122,7 @@ export const useSortedTimeSeries = <
       query: search,
       topEvents,
       groupBy,
-      pageFilters: pageFilters.selection,
+      pageFilters: selection,
       sort: decodeSorts(orderby)[0],
       caseInsensitive: Boolean(caseInsensitive),
       logQuery,

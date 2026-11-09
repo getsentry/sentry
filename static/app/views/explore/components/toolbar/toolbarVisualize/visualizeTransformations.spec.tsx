@@ -8,6 +8,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {
   AddTransformationButton,
+  AnomaliesTransformationRow,
   VisualizeTransformationRows,
 } from './visualizeTransformations';
 
@@ -221,5 +222,66 @@ describe('VisualizeTransformations', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
     await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
     expect(screen.getByRole('status')).toHaveTextContent('["smooth(asap)"]');
+  });
+
+  describe('anomalies', () => {
+    function AnomaliesExample({
+      disabledReason = null,
+      initialEnabled = false,
+    }: {
+      disabledReason?: string | null;
+      initialEnabled?: boolean;
+    }) {
+      const [enabled, setEnabled] = useState(initialEnabled);
+      const anomalies = {enabled, onChange: setEnabled, disabledReason};
+      return (
+        <div>
+          <AddTransformationButton
+            traceItemDataset={TraceItemDataset.SPANS}
+            transformations={[]}
+            onChange={jest.fn()}
+            anomalies={anomalies}
+          />
+          {enabled ? <AnomaliesTransformationRow anomalies={anomalies} /> : null}
+        </div>
+      );
+    }
+
+    it('turns anomalies on from the select', async () => {
+      render(<AnomaliesExample />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Transformation'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Anomalies'}));
+
+      expect(await screen.findByRole('group', {name: 'Anomalies'})).toBeInTheDocument();
+    });
+
+    it('turns anomalies off from the row', async () => {
+      render(<AnomaliesExample initialEnabled />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Remove anomalies'}));
+      expect(screen.queryByRole('group', {name: 'Anomalies'})).not.toBeInTheDocument();
+    });
+
+    it('disables the option when already on', async () => {
+      render(<AnomaliesExample initialEnabled />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Transformation'}));
+      expect(screen.getByRole('option', {name: 'Anomalies'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('disables the option and shows why', async () => {
+      render(<AnomaliesExample disabledReason="Select a single project" />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Transformation'}));
+      const option = screen.getByRole('option', {name: /Anomalies/});
+      expect(option).toHaveAttribute('aria-disabled', 'true');
+      expect(option).toHaveTextContent('Select a single project');
+    });
   });
 });

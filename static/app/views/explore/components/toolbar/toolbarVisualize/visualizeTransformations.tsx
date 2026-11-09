@@ -230,7 +230,23 @@ export function VisualizeTransformationRows({
   ) : null;
 }
 
+/**
+ * Anomaly detection is a chart overlay rather than a series transformation, so
+ * it lives in local state instead of the `transformations` query param.
+ */
+export interface AnomaliesToggle {
+  /**
+   * Why anomalies can't be shown for this chart, or `null` when they can
+   */
+  disabledReason: string | null;
+  enabled: boolean;
+  onChange: (enabled: boolean) => void;
+}
+
+const ANOMALIES_OPTION_VALUE = 'anomalies';
+
 interface AddTransformationButtonProps extends Props {
+  anomalies?: AnomaliesToggle;
   iconOnly?: boolean;
 }
 
@@ -240,17 +256,26 @@ export function AddTransformationButton({
   traceItemDataset,
   iconOnly = false,
   analyticsSource = 'explore',
+  anomalies,
 }: AddTransformationButtonProps) {
   const organization = useOrganization();
-  const kindOptions = KIND_OPTIONS.map(option => ({
+  const kindOptions: Array<SelectOption<string>> = KIND_OPTIONS.map(option => ({
     ...option,
     disabled: transformations.some(raw => parseFunction(raw)?.name === option.value),
   }));
+  if (anomalies) {
+    kindOptions.push({
+      value: ANOMALIES_OPTION_VALUE,
+      label: t('Anomalies'),
+      details: anomalies.disabledReason ?? undefined,
+      disabled: anomalies.enabled || anomalies.disabledReason !== null,
+    });
+  }
 
   return (
     <CompactSelect
       options={kindOptions}
-      disabled={transformations.length >= KIND_OPTIONS.length}
+      disabled={kindOptions.every(option => option.disabled)}
       value={undefined}
       trigger={props =>
         iconOnly ? (
@@ -269,12 +294,16 @@ export function AddTransformationButton({
         )
       }
       onChange={({value}) => {
+        if (value === ANOMALIES_OPTION_VALUE) {
+          anomalies?.onChange(true);
+          return;
+        }
         trackAnalytics('explore.visualize.transformation.added', {
           organization,
           source: analyticsSource,
           traceItemDataset,
           transformation_index: transformations.length,
-          transformation_type: value,
+          transformation_type: value as Transformation['kind'],
         });
         onChange([
           ...transformations,
@@ -284,6 +313,33 @@ export function AddTransformationButton({
         ]);
       }}
     />
+  );
+}
+
+interface AnomaliesTransformationRowProps {
+  anomalies: AnomaliesToggle;
+}
+
+/**
+ * Row shown below the chart while anomalies are on. Removing it turns them off.
+ */
+export function AnomaliesTransformationRow({anomalies}: AnomaliesTransformationRowProps) {
+  return (
+    <Flex role="group" aria-label={t('Anomalies')} align="center" gap="md">
+      <Button
+        variant="transparent"
+        size="zero"
+        icon={<IconDelete size="sm" />}
+        aria-label={t('Remove anomalies')}
+        onClick={() => anomalies.onChange(false)}
+      />
+      <Text size="sm">{t('Anomalies')}</Text>
+      {anomalies.disabledReason ? (
+        <Text size="sm" variant="muted">
+          {anomalies.disabledReason}
+        </Text>
+      ) : null}
+    </Flex>
   );
 }
 

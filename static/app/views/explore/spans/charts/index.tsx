@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
@@ -7,7 +7,7 @@ import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -18,6 +18,7 @@ import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataL
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {getAnomalyDetectionDisabledReason} from 'sentry/utils/anomalyDetection/getAnomalyDetectionDisabledReason';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
@@ -40,11 +41,17 @@ import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
 import {
   AddTransformationButton,
+  AnomaliesTransformationRow,
   VisualizeTransformationRows,
+  type AnomaliesToggle,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useExploreAnomalies} from 'sentry/views/explore/hooks/useExploreAnomalies';
+import {
+  type RPCQueryExtras,
+  type SamplingMode,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
@@ -81,6 +88,10 @@ interface ExploreChartsProps {
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: SortedTimeSeries;
   visualizes: readonly Visualize[];
+  /**
+   * Extras sent with the main timeseries query, reused for the anomaly history
+   */
+  queryExtras?: RPCQueryExtras;
   samplingMode?: SamplingMode;
 }
 
@@ -113,6 +124,7 @@ export function ExploreCharts({
   visualizes,
   setVisualizes,
   samplingMode,
+  queryExtras,
 }: ExploreChartsProps) {
   const topEvents = useTopEvents();
 
@@ -161,6 +173,7 @@ export function ExploreCharts({
                 updateVisualizes(indices, {transformations})
               }
               query={query}
+              queryExtras={queryExtras}
               timeseriesResult={timeseriesResult}
               visualizes={group.visualizes}
               samplingMode={samplingMode}
@@ -271,6 +284,7 @@ interface ChartProps {
    * The visualizes plotted on this chart.
    */
   visualizes: readonly Visualize[];
+  queryExtras?: RPCQueryExtras;
   samplingMode?: SamplingMode;
   topEvents?: number;
 }
@@ -282,6 +296,7 @@ function Chart({
   onChartVisibilityChange,
   onTransformationsChange,
   query,
+  queryExtras,
   rawSpanCounts,
   visualizes,
   timeseriesResult,
@@ -305,6 +320,19 @@ function Chart({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
   const droppedData = useDroppedDataLayer({dataset, interval});
+
+  const [showAnomalies, setShowAnomalies] = useState(false);
+  const anomalies: AnomaliesToggle = {
+    enabled: showAnomalies,
+    onChange: setShowAnomalies,
+    disabledReason: getAnomalyDetectionDisabledReason({
+      datetime: selection.datetime,
+      groupBys,
+      interval,
+      projects: selection.projects,
+      yAxisCount: visualizes.length,
+    }),
+  };
 
   const {
     dismiss: dismissChartSelectionAlert,
@@ -340,6 +368,17 @@ function Chart({
   );
 
   const plottables = useChartInfosPlottables(chartInfos);
+
+  // TODO: score the history and draw the anomalies on the chart
+  useExploreAnomalies({
+    enabled: showTransformationControls && anomalies.enabled && !anomalies.disabledReason,
+    extrapolate,
+    isMainChartLoaded:
+      !chartInfo.timeseriesResult.isPending && !chartInfo.timeseriesResult.isError,
+    query,
+    queryExtras,
+    visualize,
+  });
 
   const Title = (
     <Widget.WidgetTitle
@@ -545,6 +584,7 @@ function Chart({
                     traceItemDataset={TraceItemDataset.SPANS}
                     transformations={visualize.transformations}
                     onChange={onTransformationsChange}
+                    anomalies={anomalies}
                   />
                 ) : null}
               </Flex>
@@ -555,14 +595,20 @@ function Chart({
         revealActions="always"
         borderless
       />
-      {showTransformationControls && visualize.transformations.length > 0 ? (
+      {showTransformationControls &&
+      (visualize.transformations.length > 0 || anomalies.enabled) ? (
         <Container padding="xl" paddingTop="0" paddingBottom="md">
-          <VisualizeTransformationRows
-            traceItemDataset={TraceItemDataset.SPANS}
-            transformations={visualize.transformations}
-            layout="inline"
-            onChange={onTransformationsChange}
-          />
+          <Stack gap="sm">
+            <VisualizeTransformationRows
+              traceItemDataset={TraceItemDataset.SPANS}
+              transformations={visualize.transformations}
+              layout="inline"
+              onChange={onTransformationsChange}
+            />
+            {anomalies.enabled ? (
+              <AnomaliesTransformationRow anomalies={anomalies} />
+            ) : null}
+          </Stack>
         </Container>
       ) : null}
     </ChartWrapper>
