@@ -290,8 +290,7 @@ function AttributeSidebar({attribute}: {attribute: AttributeDetailsResponse}) {
                   <InfoTip
                     size="xs"
                     title={t(
-                      'Stored spans in the %s where Relay truncated or scrubbed this attribute.',
-                      ATTRIBUTES_STATS_PERIOD_LABEL.toLowerCase()
+                      'Stored spans in the last 14 days where Relay truncated or scrubbed this attribute.'
                     )}
                   />
                 </Flex>
