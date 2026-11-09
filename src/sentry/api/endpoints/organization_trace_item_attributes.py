@@ -38,6 +38,7 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeContext,
     TraceItemAttributeKey,
     TraceItemAttributeSource,
+    TraceItemAttributeUnit,
     TraceItemAttributeValidateResponse,
     TraceItemAttributeValidationResult,
 )
@@ -347,6 +348,15 @@ _CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
 }
 
 
+_SEARCH_TYPE_TO_UNIT: dict[str, TraceItemAttributeUnit] = {
+    "byte": "byte",
+    "currency": "currency",
+    "millisecond": "millisecond",
+    "percentage": "percentage",
+    "second": "second",
+}
+
+
 SENTRY_ALWAYS_INCLUDED_ATTRIBUTES: dict[SupportedTraceItemType, frozenset[str]] = {
     SupportedTraceItemType.SPANS: frozenset({"span.description"}),
     SupportedTraceItemType.LOGS: frozenset({"message"}),
@@ -554,6 +564,30 @@ def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
     return ATTRIBUTE_METADATA.get(name) is not None
 
 
+def resolve_attribute_unit(
+    name: str,
+    public_name: str,
+    attr_type: ColumnType,
+    item_type: SupportedTraceItemType,
+) -> TraceItemAttributeUnit | None:
+    if attr_type != "number":
+        return None
+
+    # A user attribute can share a column's public alias without being that column.
+    column = get_column_definitions(item_type).columns.get(public_name)
+    if column is not None and column.internal_name == name and not column.secondary_alias:
+        unit = _SEARCH_TYPE_TO_UNIT.get(column.search_type)
+        if unit is not None:
+            return unit
+
+    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(name)
+    if metadata is None or metadata.search_alias is None or metadata.search_alias.type is None:
+        return None
+    if _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value, "number") != "number":
+        return None
+    return _SEARCH_TYPE_TO_UNIT.get(metadata.search_alias.type)
+
+
 def _replacement_superseded_by_present_source(
     public_alias: str,
     item_type: SupportedTraceItemType,
@@ -634,10 +668,15 @@ def as_attribute_key(
         # `span.description`) instead carries its context on the definition.
         # Custom attributes get an empty context here; see
         # attach_custom_attribute_context.
-        context = build_sentry_convention_context(
-            public_name, name, attr_type
-        ) or build_sentry_attribute_context(public_name, attr_type, item_type)
-        attribute_key["context"] = context or {}
+        context: TraceItemAttributeContext = (
+            build_sentry_convention_context(public_name, name, attr_type)
+            or build_sentry_attribute_context(public_name, attr_type, item_type)
+            or {}
+        )
+        unit = resolve_attribute_unit(name, public_name, attr_type, item_type)
+        if unit is not None:
+            context["unit"] = unit
+        attribute_key["context"] = context
 
     return attribute_key
 
