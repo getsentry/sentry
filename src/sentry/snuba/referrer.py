@@ -572,6 +572,7 @@ class Referrer(StrEnum):
     API_TRACE_ITEM_ATTRIBUTE_CARDINALITY = "api.trace-item.attribute-cardinality"
     API_TRACE_ITEM_ATTRIBUTE_LAST_SEEN = "api.trace-item.attribute-last-seen"
     API_TRACE_ITEM_ATTRIBUTE_LAST_SEEN_FALLBACK = "api.trace-item.attribute-last-seen-fallback"
+    API_TRACE_ITEM_ATTRIBUTE_MODIFIED_COUNT = "api.trace-item.attribute-modified-count"
     API_TRACE_ITEM_ATTRIBUTE_VALIDATE = "api.trace-item.attribute-validate"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"

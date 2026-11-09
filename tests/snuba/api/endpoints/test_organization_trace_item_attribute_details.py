@@ -18,6 +18,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import (
     APITestCase,
     BaseSpansTestCase,
@@ -29,6 +30,8 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import snuba_rpc
 
 STATS_MODULE = "sentry.api.endpoints.organization_trace_item_attribute_stats"
+META_PREFIX = "sentry._meta.fields.attributes"
+RELAY_META = '{"meta": {"": {"len": 300, "rem": [["!limit", "s", 0, 10]]}}}'
 original_attribute_names_rpc = snuba_rpc.attribute_names_rpc
 original_table_rpc = snuba_rpc.table_rpc
 
@@ -148,7 +151,11 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
             "datasets": ["spans", "logs"],
             "context": {},
             "stats": {
-                "spans": {"lastSeen": span_timestamp.isoformat(), "cardinality": 1},
+                "spans": {
+                    "lastSeen": span_timestamp.isoformat(),
+                    "cardinality": 1,
+                    "modifiedCount": 0,
+                },
                 "logs": {"lastSeen": log_timestamp.isoformat(), "cardinality": 1},
             },
             "lastSeen": log_timestamp.isoformat(),
@@ -412,7 +419,9 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
             )
 
         assert response.status_code == 200, response.content
-        assert response.data["stats"] == {"spans": {"lastSeen": None, "cardinality": 1}}
+        assert response.data["stats"] == {
+            "spans": {"lastSeen": None, "cardinality": 1, "modifiedCount": 0}
+        }
         assert response.data["lastSeen"] is None
 
     def test_returns_rollup_last_seen_when_it_is_just_after_the_window_start(self) -> None:
@@ -512,7 +521,7 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
 
         assert response.status_code == 200, response.content
         assert response.data["stats"] == {
-            "spans": {"lastSeen": timestamp.isoformat(), "cardinality": 2}
+            "spans": {"lastSeen": timestamp.isoformat(), "cardinality": 2, "modifiedCount": 0}
         }
 
     def test_returns_null_cardinality_when_the_attribute_is_a_boolean(self) -> None:
@@ -589,7 +598,9 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["stats"] == {"spans": {"lastSeen": None, "cardinality": None}}
+        assert response.data["stats"] == {
+            "spans": {"lastSeen": None, "cardinality": None, "modifiedCount": None}
+        }
         assert response.data["lastSeen"] is None
 
     def test_returns_latest_last_seen_when_the_attribute_is_stored_under_two_names(
@@ -621,7 +632,7 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
 
         assert response.status_code == 200, response.content
         assert response.data["stats"] == {
-            "spans": {"lastSeen": newer.isoformat(), "cardinality": None}
+            "spans": {"lastSeen": newer.isoformat(), "cardinality": None, "modifiedCount": 0}
         }
         assert sorted(call.args[0].value_substring_match for call in names_rpc.call_args_list) == [
             "sentry.segment.name",
@@ -657,7 +668,7 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
 
         assert response.status_code == 200, response.content
         assert response.data["stats"] == {
-            "spans": {"lastSeen": span_timestamp.isoformat(), "cardinality": 1},
+            "spans": {"lastSeen": span_timestamp.isoformat(), "cardinality": 1, "modifiedCount": 0},
             "logs": {"lastSeen": log_timestamp.isoformat(), "cardinality": 2},
             "tracemetrics": {"lastSeen": metric_timestamp.isoformat(), "cardinality": 1},
         }
@@ -712,7 +723,112 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
 
         assert response.status_code == 200, response.content
         assert response.data["stats"] == {
-            "spans": {"lastSeen": span_timestamp.isoformat(), "cardinality": 1},
+            "spans": {"lastSeen": span_timestamp.isoformat(), "cardinality": 1, "modifiedCount": 0},
             "logs": {"lastSeen": None, "cardinality": None},
         }
         assert response.data["lastSeen"] == span_timestamp.isoformat()
+
+    def test_returns_modified_count_when_relay_modified_some_values(self) -> None:
+        self._store_span({"cart": "a" * 10, f"{META_PREFIX}.cart": RELAY_META})
+        self._store_span({"cart": "b" * 10, f"{META_PREFIX}.cart": RELAY_META})
+        self._store_span({"cart": "c"})
+
+        response = self.do_request(
+            query={
+                "attributeName": "cart",
+                "attributeType": "string",
+                "dataset": "spans",
+                "statsPeriod": "14d",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["modifiedCount"] == 2
+
+    def test_returns_modified_count_when_relay_renamed_the_attribute(self) -> None:
+        self._store_span({f"{META_PREFIX}.sentry.raw_description": RELAY_META})
+
+        response = self.do_request(
+            query={
+                "attributeName": "span.description",
+                "attributeType": "string",
+                "dataset": "spans",
+                "statsPeriod": "14d",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["modifiedCount"] == 1
+
+    def test_returns_modified_count_across_stored_names_when_the_alias_is_shared(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {"transaction": "/old"},
+                        "tags": {f"{META_PREFIX}.sentry.transaction": RELAY_META},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "data": {
+                            "sentry.segment.name": "/new",
+                            f"{META_PREFIX}.sentry.segment.name": RELAY_META,
+                        }
+                    }
+                ),
+                self.create_span({"sentry_tags": {"transaction": "/plain"}}),
+            ]
+        )
+
+        response = self.do_request(
+            query={
+                "attributeName": "transaction",
+                "attributeType": "string",
+                "dataset": "spans",
+                "statsPeriod": "14d",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["modifiedCount"] == 2
+
+    def test_omits_modified_count_when_the_dataset_is_not_spans(self) -> None:
+        self._store_log({"shared.attribute": {"string_value": "a"}})
+
+        response = self.do_request(
+            query={
+                "attributeName": "shared.attribute",
+                "attributeType": "string",
+                "dataset": "logs",
+                "statsPeriod": "14d",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert "modifiedCount" not in response.data["stats"]["logs"]
+
+    def test_returns_null_modified_count_when_its_query_fails(self) -> None:
+        timestamp = before_now(minutes=10).replace(microsecond=0)
+        self._store_span({"cart": "a", f"{META_PREFIX}.cart": RELAY_META}, timestamp=timestamp)
+
+        def table_rpc(requests: list[TraceItemTableRequest]) -> list[TraceItemTableResponse]:
+            for request in requests:
+                if request.meta.referrer == Referrer.API_TRACE_ITEM_ATTRIBUTE_MODIFIED_COUNT.value:
+                    raise snuba_rpc.SnubaRPCError("boom")
+            return original_table_rpc(requests)
+
+        with mock.patch("sentry.utils.snuba_rpc.table_rpc", side_effect=table_rpc):
+            response = self.do_request(
+                query={
+                    "attributeName": "cart",
+                    "attributeType": "string",
+                    "dataset": "spans",
+                    "statsPeriod": "14d",
+                }
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"] == {
+            "spans": {"lastSeen": timestamp.isoformat(), "cardinality": 1, "modifiedCount": None}
+        }
