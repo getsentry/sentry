@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
+import {parseAsString} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -16,9 +17,13 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
+
+const relatedIssuesParsers = {
+  query: parseAsString.withDefault(''),
+};
 
 type Props = {
   location: Location;
@@ -46,7 +51,9 @@ export function RelatedIssues({
       sort: 'trends',
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
-    const currentFilter = new MutableSearch(decodeScalar(location.query.query, ''));
+    const currentFilter = new MutableSearch(
+      loadQueryParamsFromLocation(relatedIssuesParsers, location).query
+    );
     currentFilter.renameFilter('request.method', 'http.method');
     removeTracingKeysFromSearch(currentFilter);
     currentFilter

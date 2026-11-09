@@ -1,12 +1,13 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 
 import {
   fetchGroupEventAttachmentsApiOptions,
@@ -23,7 +24,6 @@ type DeleteGroupEventAttachmentContext = {
 };
 
 export function useDeleteGroupEventAttachment() {
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
   return useMutation<
@@ -33,8 +33,8 @@ export function useDeleteGroupEventAttachment() {
     DeleteGroupEventAttachmentContext
   >({
     mutationFn: variables =>
-      api.requestPromise(
-        getApiUrl(
+      fetchMutation({
+        url: getApiUrl(
           '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/$attachmentId/',
           {
             path: {
@@ -45,10 +45,8 @@ export function useDeleteGroupEventAttachment() {
             },
           }
         ),
-        {
-          method: 'DELETE',
-        }
-      ),
+        method: 'DELETE',
+      }),
     onMutate: async variables => {
       const {queryKey} = fetchGroupEventAttachmentsApiOptions(variables);
 
@@ -72,12 +70,13 @@ export function useDeleteGroupEventAttachment() {
       return {previous};
     },
     onSuccess: () => {
-      addSuccessMessage(t('Attachment deleted'));
+      toast.success(t('Attachment deleted'));
     },
     onError: (error, variables, context) => {
-      addErrorMessage(
-        error?.responseJSON?.detail
-          ? (error.responseJSON.detail as string)
+      const detail = error?.responseJSON?.detail;
+      toast.error(
+        typeof detail === 'string'
+          ? detail
           : t('An error occurred while deleting the attachment')
       );
 

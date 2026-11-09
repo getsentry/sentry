@@ -6,9 +6,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {WidgetContainer} from 'sentry/views/performance/landing/widgets/components/widgetContainer';
-import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
+
+import {WidgetContainer} from './widgets/components/widgetContainer';
+import {PerformanceWidgetSetting} from './widgets/widgetDefinitions';
 
 const initializeData = () => {
   const data = _initializeData({

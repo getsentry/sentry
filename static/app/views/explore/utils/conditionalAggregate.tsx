@@ -27,10 +27,8 @@ import {
   isVisualizeEquation,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {
-  IF_SUFFIX,
-  parseConditionalAggregate,
-} from 'sentry/views/explore/utils/parseConditionalAggregate';
+
+import {IF_SUFFIX, parseConditionalAggregate} from './parseConditionalAggregate';
 
 /**
  * Shown when a visualize aggregate is used as a key in a series `_if` filter.

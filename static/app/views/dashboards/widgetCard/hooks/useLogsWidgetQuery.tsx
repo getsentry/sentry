@@ -26,14 +26,15 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+
 import {
   combineWidgetJsonQueryResults,
   combineWidgetQueryResults,
-} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getSeriesConfidenceInformation} from 'sentry/views/dashboards/widgetCard/hooks/utils/getSeriesConfidenceInformation';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+} from './utils/combineWidgetQueryResults';
+import {getSeriesConfidenceInformation} from './utils/getSeriesConfidenceInformation';
+import {getWidgetStaleTime} from './utils/getStaleTime';
+import {getTimeseriesWidgetQueryOptions} from './utils/getTimeseriesWidgetQueryOptions';
 
 type LogsTableResponse = TableData | EventsTableData;
 

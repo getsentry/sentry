@@ -10,11 +10,12 @@ import {
   type DashboardDetails,
   type Widget,
 } from 'sentry/views/dashboards/types';
+
 import {
   getPrebuiltDashboardConfig,
   PrebuiltDashboardId,
   type PrebuiltDashboard,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+} from './prebuiltConfigs';
 
 export const useGetPrebuiltDashboard = (prebuiltId?: PrebuiltDashboardId) => {
   const organization = useOrganization();

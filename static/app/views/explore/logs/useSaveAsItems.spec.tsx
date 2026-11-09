@@ -11,10 +11,11 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {useSaveAsItems} from './useSaveAsItems';
 
 jest.mock('sentry/actionCreators/modal');
 

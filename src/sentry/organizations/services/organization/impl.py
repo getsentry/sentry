@@ -87,6 +87,7 @@ from sentry.projects.services.project import RpcProjectFlags
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth.auth import email_unlink_notifications
+from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.types.cell import find_cells_for_orgs
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_org_delete_log
@@ -168,7 +169,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, organization_id: int, user_id: int
     ) -> RpcOrganizationMember | None:
         try:
-            member = OrganizationMember.objects.get(
+            member = OrganizationMember.objects.select_related("organization").get(
                 user_id=user_id, organization_id=organization_id
             )
         except OrganizationMember.DoesNotExist:
@@ -270,7 +271,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, organization_id: int, email: str
     ) -> RpcOrganizationMember | None:
         member = first_matching_email(
-            OrganizationMember.objects.filter(organization_id=organization_id), email
+            OrganizationMember.objects.select_related("organization").filter(
+                organization_id=organization_id
+            ),
+            email,
         )
         if member is None:
             return None
@@ -676,6 +680,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 ProjectBookmark,
                 RecentSearch,
                 Rule,
+                TelemetryClassifier,
             ]
             for model in model_list:
                 merge_users_for_model_in_org(

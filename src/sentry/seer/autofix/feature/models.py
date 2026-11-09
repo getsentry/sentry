@@ -88,6 +88,13 @@ class AutofixFeaturePayload(BaseModel):
     stopping_point: str | None = None
 
 
+class AutofixSingleRunPrInternalSettings(BaseModel):
+    # Appended to the PR description: "Fixes" issue links and the `@sentry` command hints.
+    description_suffix: str | None
+    # False opens the PR as a draft.
+    ready_for_review: bool
+
+
 class AutofixSingleRunFeaturePayload(BaseModel):
     class Config:
         extra = "ignore"
@@ -103,3 +110,6 @@ class AutofixSingleRunFeaturePayload(BaseModel):
     repo_pins: RepoPins | None = None
     user_context: str | None = None
     should_run_repo_checks: bool = False
+    pr_internal_settings: AutofixSingleRunPrInternalSettings | None = None
+    existing_run_id: int | None = None
+    reply: str | None = None

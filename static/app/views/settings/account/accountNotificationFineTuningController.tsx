@@ -2,9 +2,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useParams} from 'sentry/utils/useParams';
-import {NotificationSettingsByType} from 'sentry/views/settings/account/notifications/notificationSettingsByType';
-import {getNotificationTypeFromPathname} from 'sentry/views/settings/account/notifications/utils';
 
+import {NotificationSettingsByType} from './notifications/notificationSettingsByType';
+import {getNotificationTypeFromPathname} from './notifications/utils';
 import {AccountNotificationFineTuning} from './accountNotificationFineTuning';
 
 const accountNotifications = [

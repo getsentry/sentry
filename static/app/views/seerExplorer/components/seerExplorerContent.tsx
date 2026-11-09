@@ -19,8 +19,9 @@ import type {ComposerValue} from '@sentry/scraps/composer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {SINGLE_RUN_FEATURE_ID} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   AutofixChatProvider,
   type SendMessageOptions,
@@ -45,23 +46,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
-import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import {ChatPromptMessage} from 'sentry/views/seerExplorer/components/chat/chatPrompt';
-import {
-  groupTranscript,
-  ResponseGroup,
-} from 'sentry/views/seerExplorer/components/chat/responseGroup';
-import {findLatestTodos} from 'sentry/views/seerExplorer/components/chat/toolUse';
-import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
-import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
-import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
-import {
-  isReauthEnabled,
-  PendingUserInputDock,
-  PendingUserInputPicker,
-} from 'sentry/views/seerExplorer/components/pendingUserInputDock';
-import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
-import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
 import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/hooks/useCopySessionDataToClipboard';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
@@ -84,6 +68,21 @@ import {
   useSeerExplorerDeepLink,
   useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
+
+import {ChatPromptMessage} from './chat/chatPrompt';
+import {groupTranscript, ResponseGroup} from './chat/responseGroup';
+import {findLatestTodos} from './chat/toolUse';
+import {BlockComponent} from './chat';
+import {EmptyState} from './emptyState';
+import {useExplorerMenu} from './explorerMenu';
+import {InputSection} from './inputSection';
+import {
+  isReauthEnabled,
+  PendingUserInputDock,
+  PendingUserInputPicker,
+} from './pendingUserInputDock';
+import {SeerExplorerHeader} from './seerExplorerHeader';
+import {UpdateSlackAlert} from './updateSlackAlert';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
 
@@ -222,6 +221,7 @@ export function SeerExplorerContent({
   const {
     runId,
     sessionData,
+    featureId,
     isPolling,
     isError,
     hasSessionLoadError,
@@ -473,10 +473,10 @@ export function SeerExplorerContent({
     try {
       const url = getExplorerUrl(runId);
       await navigator.clipboard.writeText(url);
-      addSuccessMessage('Copied link to current chat');
+      toast.success('Copied link to current chat');
       trackAnalytics('seer.explorer.session_link_copied', {organization});
     } catch {
-      addErrorMessage('Failed to copy link to current chat');
+      toast.error('Failed to copy link to current chat');
     }
   }, [runId, organization]);
 
@@ -566,9 +566,7 @@ export function SeerExplorerContent({
       canInvestigate: startInvestigation !== undefined,
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
-      onBashMode: organization?.features.includes('seer-explorer-allow-bash-mode')
-        ? setOverrideBashModeEnabled
-        : undefined,
+      onBashMode: setOverrideBashModeEnabled,
       onCodeMode: organization?.features.includes('seer-explorer-code-mode-tools')
         ? setOverrideCodeModeEnable
         : undefined,
@@ -895,6 +893,7 @@ export function SeerExplorerContent({
           onSend={handleSend}
           repoPRStates={repoPRStates}
           runId={runId}
+          isSingleRun={featureId === SINGLE_RUN_FEATURE_ID}
           composerRef={composerRef}
           fileApprovalActions={
             isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
