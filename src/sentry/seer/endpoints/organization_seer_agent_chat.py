@@ -36,6 +36,7 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.feature.dispatch import continue_single_run
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
+from sentry.seer.autofix.prompt_redaction import can_see_autofix_prompts, redact_autofix_prompts
 from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.credits import SeerOperation, can_run_seer_operation
 from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
@@ -333,7 +334,9 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             state = client.get_run(run_id=resolved.seer_run_state_id)
             return Response(
                 SeerAgentChatStateResponse(
-                    session=state,
+                    session=redact_autofix_prompts(
+                        state, can_see_prompts=can_see_autofix_prompts(request)
+                    ),
                     sentry_run_id=resolved.uuid,
                     feature_id=SINGLE_RUN_FEATURE_ID if is_single_run(state) else None,
                 ).dict()

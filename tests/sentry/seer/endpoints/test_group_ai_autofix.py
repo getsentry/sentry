@@ -142,6 +142,28 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["feature_id"] == SINGLE_RUN_FEATURE_ID
 
     @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
+    def test_get_hides_the_autofix_prompt_from_customers(self, mock_get_run: MagicMock) -> None:
+        group = self.create_group()
+        self._create_run(group, state_id=1, source="autofix", minutes_ago=1)
+        state = self._state(1, single_run=False)
+        state.blocks = [
+            MemoryBlock(
+                id="b0",
+                message=Message(
+                    role="user", content="Analyze issue ABC-1 ...", metadata={"step": "root_cause"}
+                ),
+                timestamp="2023-07-18T12:00:00Z",
+            )
+        ]
+        mock_get_run.return_value = state
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["blocks"][0]["message"]["content"] == "Started Autofix"
+
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
     def test_get_returns_newer_step_run_with_autofix_feature_id(
         self, mock_get_run: MagicMock
     ) -> None:

@@ -80,6 +80,29 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.data["feature_id"] == "autofix_single_run"
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_hides_the_autofix_prompt_from_customers(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client_class.return_value.get_run.return_value = SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="b0",
+                    message=Message(
+                        role="user", content="Fix issue ABC-1 ...", metadata={"step": "single_run"}
+                    ),
+                    timestamp="2024-01-01T00:00:00Z",
+                )
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        response = self.client.get(f"{self.url}123/")
+
+        assert response.data["session"]["blocks"][0]["message"]["content"] == "Started Autofix"
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_reports_no_feature_id_for_other_runs(self, mock_client_class: MagicMock) -> None:
         mock_client_class.return_value.get_run.return_value = SeerRunState(
             run_id=123, blocks=[], status="completed", updated_at="2024-01-01T00:00:00Z"
