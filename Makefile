@@ -74,6 +74,11 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
 	pnpm run deref-api-docs
 
+# Ships in the @sentry/api package (static/packages/api) next to the API spec.
+build-rpc-schema:
+	@mkdir -p .artifacts
+	sentry rpcschema --loglevel=WARNING > .artifacts/rpc_method_schema.json
+
 # Opt-in private schema for local review; never included in the public docs build.
 build-investigation-api-docs: build-deprecated-docs
 	@mkdir -p .artifacts/investigation-api-docs

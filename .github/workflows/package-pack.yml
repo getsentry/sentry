@@ -38,10 +38,27 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       PACKAGE_DIR: static/packages/${{ needs.workspace.outputs.name }}
+      # @sentry/api builds from the API spec, which the Python app generates.
+      BUILDS_FROM_API_SPEC: ${{ needs.workspace.outputs.name == 'api' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup sentry python env
+        if: env.BUILDS_FROM_API_SPEC == 'true'
+        uses: ./.github/actions/setup-sentry
+        with:
+          skip-devservices: 'true'
       - uses: ./.github/actions/setup-node-pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Configure sentry
+        if: env.BUILDS_FROM_API_SPEC == 'true'
+        run: sentry init
+      - name: Build the API spec
+        if: env.BUILDS_FROM_API_SPEC == 'true'
+        run: make build-api-docs build-rpc-schema
+      - name: Build the package
+        if: env.BUILDS_FROM_API_SPEC == 'true'
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: pnpm run build
       - name: Pack release artifact
         working-directory: ${{ env.PACKAGE_DIR }}
         run: pnpm pack --pack-destination .artifacts

@@ -300,6 +300,7 @@ const config = defineConfig({
     'boundaries/legacy-warnings': false,
   },
   ignorePatterns: [
+    'static/packages/api/**/*',
     'static/packages/icons/**/*',
     'static/packages/scraps/**/*',
     'static/packages/search-syntax/**/*',
