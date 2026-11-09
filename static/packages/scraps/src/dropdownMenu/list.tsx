@@ -489,9 +489,14 @@ function DropdownMenuList({
                 }}
                 style={{
                   // Cap the requested height by the space available to the overlay.
+                  // That space is only known once the overlay is positioned. Until
+                  // then, cap a virtualized menu by the viewport: unbounded, its
+                  // list would be as tall as all of its rows, and the virtualizer
+                  // would mount every one of them.
                   maxHeight: calculateMenuMinHeight(
                     maxHeight,
-                    overlayPositionProps.style?.maxHeight
+                    overlayPositionProps.style?.maxHeight ??
+                      (virtualized ? '100vh' : undefined)
                   ),
                   maxWidth:
                     maxWidth === undefined
