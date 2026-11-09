@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
 import {IconExpand} from '@sentry/icons/expand';
@@ -23,6 +24,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/de
 import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
@@ -53,7 +55,7 @@ import {
   serializeVisualizes,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {CHART_HEIGHT} from 'sentry/views/explore/settings';
+import {CHART_HEIGHT, TALL_CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
@@ -105,6 +107,8 @@ const EXPLORE_CHART_GROUP = 'explore-charts_group';
 // dozens of series in one tooltip.
 const MAX_TOOLTIP_SERIES = 10;
 
+const TALL_CHART_STORAGE_KEY = 'explore:spans-chart-tall';
+
 export function ExploreCharts({
   query,
   extrapolate,
@@ -115,6 +119,8 @@ export function ExploreCharts({
   samplingMode,
 }: ExploreChartsProps) {
   const topEvents = useTopEvents();
+  // Shared by every chart so they keep the same height and stay aligned.
+  const [isTall, setIsTall] = useLocalStorageState(TALL_CHART_STORAGE_KEY, false);
 
   function updateVisualizes(
     indices: number[],
@@ -155,6 +161,8 @@ export function ExploreCharts({
               key={`${group.index}-${group.visualizes.map(v => v.yAxis).join(',')}`}
               extrapolate={extrapolate}
               index={group.index}
+              isTall={isTall}
+              onTallChange={setIsTall}
               onChartTypeChange={chartType => updateVisualizes(indices, {chartType})}
               onChartVisibilityChange={visible => updateVisualizes(indices, {visible})}
               onTransformationsChange={transformations =>
@@ -261,8 +269,10 @@ function combineChartInfos(chartInfos: ChartInfo[]): ChartInfo {
 interface ChartProps {
   extrapolate: boolean;
   index: number;
+  isTall: boolean;
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
+  onTallChange: (isTall: boolean) => void;
   onTransformationsChange: (transformations: readonly string[]) => void;
   query: string;
   rawSpanCounts: RawCounts;
@@ -278,8 +288,10 @@ interface ChartProps {
 function Chart({
   extrapolate,
   index,
+  isTall,
   onChartTypeChange,
   onChartVisibilityChange,
+  onTallChange,
   onTransformationsChange,
   query,
   rawSpanCounts,
@@ -313,7 +325,8 @@ function Chart({
     key: CHART_SELECTION_ALERT_KEY,
   });
 
-  const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
+  const visibleChartHeight = isTall ? TALL_CHART_HEIGHT : CHART_HEIGHT;
+  const chartHeight = visualize.visible ? visibleChartHeight : 50;
 
   const chartRef = useRef<ReactEchartsRef>(null);
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -422,6 +435,12 @@ function Chart({
         query={query}
         interval={interval}
         visualizeIndex={index}
+      />
+      <Button
+        aria-label={isTall ? t('Decrease chart height') : t('Increase chart height')}
+        icon={<IconChevron isDouble direction={isTall ? 'up' : 'down'} />}
+        onClick={() => onTallChange(!isTall)}
+        size="xs"
       />
       <Button
         aria-label={t('Collapse chart')}
