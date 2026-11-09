@@ -27,7 +27,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {BookmarkStarIcon} from 'sentry/components/projects/bookmarkStar';
-import {useToggleProjectBookmark} from 'sentry/components/projects/useToggleProjectBookmark';
+import {useUpdateProjectBookmark} from 'sentry/components/projects/useUpdateProjectBookmark';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -99,7 +99,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   // Captured when the menu opens, so toggling a bookmark does not reorder the
   // open menu.
   const [bookmarkedSnapshot, setBookmarkedSnapshot] = useState<Set<string>>();
-  const {mutate: toggleBookmark} = useToggleProjectBookmark({
+  const {mutate: toggleBookmark} = useUpdateProjectBookmark({
     organization,
     onMutate: ({project, isBookmarked}) => {
       setPendingBookmarks(prev => ({...prev, [project.id]: isBookmarked}));

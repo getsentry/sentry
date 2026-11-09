@@ -8,39 +8,44 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApi} from 'sentry/utils/useApi';
 
-interface ToggleProjectBookmarkVariables {
+interface UpdateProjectBookmarkVariables {
   isBookmarked: boolean;
   project: Project;
 }
 
-interface UseToggleProjectBookmarkOptions {
+interface UseUpdateProjectBookmarkOptions {
   organization: Organization;
-  onError?: (variables: ToggleProjectBookmarkVariables) => void;
-  onMutate?: (variables: ToggleProjectBookmarkVariables) => void;
+  onError?: (variables: UpdateProjectBookmarkVariables) => void;
+  onMutate?: (variables: UpdateProjectBookmarkVariables) => void;
   /**
    * Called once the request finishes, whether it succeeded or failed. The
    * projects store holds the final bookmark state by then.
    */
-  onSettled?: (variables: ToggleProjectBookmarkVariables) => void;
+  onSettled?: (variables: UpdateProjectBookmarkVariables) => void;
 }
 
 /**
  * Sets a project's bookmark and updates the projects store on success.
  * Shows an error toast when the request fails.
+ *
+ * Uses the legacy `update` action creator instead of `fetchMutation` on
+ * purpose: `update` writes the response into `ProjectsStore`, which the
+ * callers read their final bookmark state from. `persistInFlight` keeps the
+ * request alive when the calling component unmounts, e.g. a closing menu.
  */
-export function useToggleProjectBookmark({
+export function useUpdateProjectBookmark({
   organization,
   onError,
   onMutate,
   onSettled,
-}: UseToggleProjectBookmarkOptions) {
+}: UseUpdateProjectBookmarkOptions) {
   const api = useApi({persistInFlight: true});
 
   return useMutation({
     mutationFn: ({
       project,
       isBookmarked,
-    }: ToggleProjectBookmarkVariables): Promise<Project> =>
+    }: UpdateProjectBookmarkVariables): Promise<Project> =>
       update(api, {
         orgId: organization.slug,
         projectId: project.slug,

@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-import {useToggleProjectBookmark} from './useToggleProjectBookmark';
+import {useUpdateProjectBookmark} from './useUpdateProjectBookmark';
 
 interface BookmarkStarProps extends Omit<
   ButtonProps,
@@ -39,7 +39,7 @@ export function BookmarkStar({
   const [isBookmarked, setIsBookmarked] = useState(project.isBookmarked);
 
   const {mutate: handleBookmarkToggle, isPending: isBookmarking} =
-    useToggleProjectBookmark({
+    useUpdateProjectBookmark({
       organization,
       onMutate: variables => {
         onToggle?.(variables.isBookmarked);
