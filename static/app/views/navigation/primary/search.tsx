@@ -27,7 +27,7 @@ export function PrimaryNavigationSearch() {
 
   return (
     <SizeProvider size="sm">
-      <Flex justify="center" width="100%" padding="xs xs 0 xs">
+      <Flex justify="center" width="100%" padding="md xs">
         <PrimaryNavigation.Button
           analyticsKey="search"
           label={t('Command Palette')}

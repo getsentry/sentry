@@ -239,7 +239,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   }
 
   return (
-    <Stack align="center" paddingBottom="md">
+    <Stack align="center" gap="xs" paddingBottom="md">
       {button}
       <Text
         size="xs"
