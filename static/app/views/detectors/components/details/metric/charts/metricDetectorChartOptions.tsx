@@ -108,9 +108,10 @@ function createIncidentSeries(
       ],
       label: {
         silent: true,
-        show: !!openPeriod.id,
+        // Match the UI, which identifies open periods by their issue short ID
+        show: !!openPeriod.shortId,
         position: 'insideEndBottom',
-        formatter: openPeriod.id,
+        formatter: openPeriod.shortId ?? '',
         color: lineColor,
         fontSize: 10,
         fontFamily: 'Rubik',
