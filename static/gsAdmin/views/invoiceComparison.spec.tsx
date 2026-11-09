@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 
@@ -60,18 +60,47 @@ describe('InvoiceComparison', () => {
     ConfigStore.set('cells', [{name: 'us', locality_url: US_URL}]);
   });
 
-  it('loads the last 24h when the URL has no window', async () => {
-    const mock = MockApiClient.addMockResponse({
-      url: COMPARISON_URL,
-      body: comparisonBody(),
+  describe('default window', () => {
+    // hoursAgoLocal uses local setHours, so a 24h lookback that crosses a DST
+    // transition is 23 or 25 hours. Freeze a non-transition instant.
+    beforeEach(() => {
+      jest
+        .useFakeTimers({
+          doNotFake: [
+            'setTimeout',
+            'clearTimeout',
+            'setInterval',
+            'clearInterval',
+            'nextTick',
+            'setImmediate',
+            'clearImmediate',
+            'queueMicrotask',
+          ],
+        })
+        .setSystemTime(new Date('2026-01-15T15:04:05.000Z'));
     });
 
-    renderComparison({page_size: '25', rows_page: '1', unmatched_page: '1'});
+    afterEach(() => {
+      try {
+        jest.runOnlyPendingTimers();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
 
-    expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
-    const {start, end} = mock.mock.calls[0][1].query;
-    const windowMs = new Date(end).getTime() - new Date(start).getTime();
-    expect(windowMs).toBe(24 * 60 * 60 * 1000);
+    it('loads the last 24h when the URL has no window', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({page_size: '25', rows_page: '1', unmatched_page: '1'});
+
+      expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+      const {start, end} = mock.mock.calls[0][1].query;
+      const windowMs = new Date(end).getTime() - new Date(start).getTime();
+      expect(windowMs).toBe(24 * 60 * 60 * 1000);
+    });
   });
 
   it('uses the window from the URL', async () => {
@@ -109,6 +138,115 @@ describe('InvoiceComparison', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
 
     expect(router.location.query.rows_page).toBe('2');
+    expect(router.location.query.start).toEqual(expect.any(String));
+    expect(router.location.query.end).toEqual(expect.any(String));
+  });
+
+  it('does not query when the URL has only one bound', async () => {
+    const end = '2020-01-01T00:00:00.000Z';
+    const mock = MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      statusCode: 400,
+      body: {detail: 'end must be >= start.'},
+    });
+
+    renderComparison({end});
+    await act(async () => {});
+
+    expect(mock).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Failed to load comparison/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Comparing…')).not.toBeInTheDocument();
+    expect(
+      new Date(screen.getByLabelText('Generated until (local)').value).toISOString()
+    ).toBe(end);
+  });
+
+  it('does not query a partial start through now', async () => {
+    const start = '2020-01-01T00:00:00.000Z';
+    const mock = MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: comparisonBody(),
+    });
+
+    renderComparison({start});
+    await act(async () => {});
+
+    expect(mock).not.toHaveBeenCalled();
+    expect(
+      new Date(screen.getByLabelText('Generated since (local)').value).toISOString()
+    ).toBe(start);
+  });
+
+  it('keeps uncommitted dates when pagination records the default window', async () => {
+    const mock = MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: comparisonBody({rowsTotalPages: 2}),
+    });
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: comparisonBody({rowsPage: 2, rowsTotalPages: 2}),
+      match: [MockApiClient.matchQuery({rows_page: 2})],
+    });
+
+    const {router} = renderComparison({});
+    const start = screen.getByLabelText('Generated since (local)');
+    const edited = '2020-06-01T09:30';
+    await userEvent.clear(start);
+    await userEvent.type(start, edited);
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+
+    expect(start).toHaveValue(edited);
+    expect(router.location.query.rows_page).toBe('2');
+    expect(router.location.query.start).toBe(mock.mock.calls[0][1].query.start);
+    expect(router.location.query.end).toBe(mock.mock.calls[0][1].query.end);
+  });
+
+  it('does not replace a one-sided window when changing page size', async () => {
+    const end = '2020-01-01T00:00:00.000Z';
+    const mock = MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      statusCode: 400,
+      body: {detail: 'end must be >= start.'},
+    });
+
+    const {router} = renderComparison({end});
+    await userEvent.click(screen.getByRole('button', {name: 'Per page 50'}));
+    await userEvent.click(screen.getByRole('option', {name: '25'}));
+
+    expect(router.location.query.end).toBe(end);
+    expect(router.location.query.start).toBeUndefined();
+    expect(router.location.query.page_size).toBe('25');
+    expect(mock).not.toHaveBeenCalled();
+  });
+
+  it('pins the window when rewriting an unsupported page size', async () => {
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: comparisonBody(),
+    });
+
+    const {router} = renderComparison({page_size: '200'});
+
+    expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.page_size).toBe('50');
+    });
+    expect(router.location.query.start).toEqual(expect.any(String));
+    expect(router.location.query.end).toEqual(expect.any(String));
+  });
+
+  it('pins the window when clamping an out-of-range page', async () => {
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: comparisonBody({rowsPage: 2, rowsTotalPages: 2}),
+    });
+
+    const {router} = renderComparison({rows_page: '99'});
+
+    expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.rows_page).toBe('2');
+    });
     expect(router.location.query.start).toEqual(expect.any(String));
     expect(router.location.query.end).toEqual(expect.any(String));
   });
