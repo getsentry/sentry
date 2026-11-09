@@ -517,7 +517,9 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.seer.agent.client.make_agent_update_request")
-    def test_pipeline_and_iteration_send_distinct_push_sources(self, mock_post, _mock_access):
+    def test_pipeline_and_iteration_send_distinct_push_sources(
+        self, mock_post: MagicMock, _mock_access: MagicMock
+    ) -> None:
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
         self.create_seer_agent_run(
             run=run, group=self.group, project=self.project, source="autofix"

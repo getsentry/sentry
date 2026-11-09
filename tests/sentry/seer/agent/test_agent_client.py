@@ -1327,7 +1327,9 @@ class TestSeerAgentClientPushChanges(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.seer.agent.client.make_agent_update_request")
-    def test_push_changes_forwards_caller_source(self, mock_post, _mock_access):
+    def test_push_changes_forwards_caller_source(
+        self, mock_post: MagicMock, _mock_access: MagicMock
+    ) -> None:
         mock_post.return_value = MagicMock(status=200)
         client = SeerAgentClient(self.organization, self.user, enable_coding=True)
 
