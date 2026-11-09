@@ -10,17 +10,17 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
+import {hasAccessToSubscriptionOverview, hasBillingAccess} from 'getsentry/utils/billing';
 
 export function GsBillingCommandPaletteActions() {
   const organization = useOrganization();
   const subscription = useSubscription();
 
   const prefix = `/settings/${organization.slug}`;
-  const hasBillingAccess = organization.access.includes('org:billing');
-  const canViewSubscription = hasBillingAccess || (subscription?.canSelfServe ?? false);
+  const canViewSubscription = hasAccessToSubscriptionOverview(subscription, organization);
   // Partner-billed orgs are redirected away from the billing details page.
   const canEditBillingInformation =
-    hasBillingAccess && !(subscription?.isSelfServePartner ?? false);
+    hasBillingAccess(organization) && !(subscription?.isSelfServePartner ?? false);
 
   return (
     <Fragment>
