@@ -19,7 +19,7 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
         {
           type: 'text',
           text: tct(
-            "To start using logs, make sure your Sentry Ruby SDK version is [code:5.24.0] or higher. If you're on an older major version of the SDK, follow our [link:migration guide] to upgrade.",
+            "To start using logs, make sure your Sentry Ruby SDK version is [code:7.0.0] or higher. If you're on an older major version of the SDK, follow our [link:migration guide] to upgrade.",
             {
               code: <code />,
               link: (
@@ -48,11 +48,8 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
       content: [
         {
           type: 'text',
-          text: tct(
-            'To enable logging, you need to initialize the SDK with the [code:enable_logs] option set to [code:true]. You can also patch the Ruby logger to forward logs to Sentry.',
-            {
-              code: <code />,
-            }
+          text: t(
+            'Logs are enabled by default. You can also patch the Ruby logger to forward logs to Sentry.'
           ),
         },
         {
@@ -61,8 +58,6 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
           code: `require 'sentry-ruby'
 
 Sentry.init do |config|
-  # Enable sending logs to Sentry
-  config.enable_logs = true
   # Patch Ruby logger to forward logs
   config.enabled_patches = [:logger]
 end`,
