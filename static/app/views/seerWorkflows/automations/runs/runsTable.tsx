@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {IconIssues} from '@sentry/icons/issues';
+import upperFirst from 'lodash/upperFirst';
 import {useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -102,7 +103,7 @@ function RunRow({run}: {run: SeerAutomationRun}) {
                 key={`${output.id}-${index}`}
                 to={getInvestigationPath(organization.slug, output.id)}
               >
-                {`${output.id} | ${output.title}`}
+                {`INV-${output.id} | ${output.title}`}
               </Link>
             ))}
           </Stack>
@@ -113,18 +114,33 @@ function RunRow({run}: {run: SeerAutomationRun}) {
       <SimpleTable.RowCell>
         <Stack>
           <Text>{getStrategyLabel(run.strategy)}</Text>
-          {run.trigger && (
+          {run.trigger?.type === 'breached_metric' ? (
             <Flex gap="xs" align="center">
               <IconIssues size="xs" />
               <Link
                 to={`/organizations/${organization.slug}/issues/${run.trigger.groupId}/`}
               >
-                {`issue:${run.trigger.groupId}`}
+                {run.trigger.groupShortId ?? `issue:${run.trigger.groupId}`}
               </Link>
             </Flex>
+          ) : (
+            run.trigger && (
+              <Text variant="muted">{formatTriggerType(run.trigger.type)}</Text>
+            )
           )}
         </Stack>
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
+}
+
+/**
+ * Turns a trigger type like `breached_metric` into `Breached Metric`
+ */
+function formatTriggerType(type: string): string {
+  return type
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map(word => upperFirst(word))
+    .join(' ');
 }

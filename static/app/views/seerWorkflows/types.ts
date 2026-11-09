@@ -53,12 +53,20 @@ type MetricBreachTrigger = {
   occurrenceId: string;
   projectId: string;
   type: 'breached_metric';
+  groupShortId?: string | null;
+};
+
+/**
+ * A scheduled run
+ */
+type CronTrigger = {
+  type: 'cron';
 };
 
 /**
  * What started a run. Discriminated by `type`; add new trigger variants to this union.
  */
-export type WorkflowTrigger = MetricBreachTrigger;
+export type WorkflowTrigger = MetricBreachTrigger | CronTrigger;
 
 type SeerAutomationRunBase = {
   configId: string;
