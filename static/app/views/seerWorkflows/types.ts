@@ -41,7 +41,7 @@ type SeerWorkflowExecution = SeerWorkflowExecutionBase &
 /**
  * The metric monitor breach that started a run
  */
-type MetricBreachTrigger = {
+type MonitorTrigger = {
   /**
    * The monitor may have since been deleted
    */
@@ -52,7 +52,7 @@ type MetricBreachTrigger = {
   observedAt: string;
   occurrenceId: string;
   projectId: string;
-  type: 'breached_metric';
+  type: 'monitor';
   groupShortId?: string | null;
 };
 
@@ -66,7 +66,7 @@ type CronTrigger = {
 /**
  * What started a run. Discriminated by `type`; add new trigger variants to this union.
  */
-export type WorkflowTrigger = MetricBreachTrigger | CronTrigger;
+type WorkflowTrigger = MonitorTrigger | CronTrigger;
 
 type SeerAutomationRunBase = {
   configId: string;

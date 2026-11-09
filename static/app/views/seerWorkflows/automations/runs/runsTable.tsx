@@ -122,7 +122,7 @@ function RunRow({run, showStrategy}: {run: SeerAutomationRun; showStrategy: bool
       <SimpleTable.RowCell>
         <Stack>
           {showStrategy && <Text>{getStrategyLabel(run.strategy)}</Text>}
-          {run.trigger?.type === 'breached_metric' ? (
+          {run.trigger?.type === 'monitor' ? (
             <Flex gap="xs" align="center">
               <IconIssues size="xs" />
               <Link
@@ -143,7 +143,7 @@ function RunRow({run, showStrategy}: {run: SeerAutomationRun; showStrategy: bool
 }
 
 /**
- * Turns a trigger type like `breached_metric` into `Breached Metric`
+ * Turns a trigger type like `custom_trigger-type` into `Custom Trigger Type`
  */
 function formatTriggerType(type: string): string {
   return type
