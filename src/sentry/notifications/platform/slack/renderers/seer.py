@@ -29,7 +29,6 @@ from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     AGENT_OUT_OF_CREDITS_MESSAGE,
-    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
     SeerAgentOutOfCredits,
     SeerAgentResponse,
@@ -151,7 +150,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_autofix_update(data, link_decorator)
         elif isinstance(data, SeerAutofixOutOfCredits):
             return cls._render_out_of_credits(
-                message=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+                message=data.message,
                 organization_id=data.organization_id,
                 link_decorator=link_decorator,
             )
@@ -237,8 +236,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         except Organization.DoesNotExist:
             organization = None
         if organization is not None:
-            # There is no top-up or request-credits page yet, so send everyone
-            # to billing, where billing members can set up auto top up.
+            # TODO(alexsohn): change this to top-up or request credits link
             billing_url = organization.absolute_url(
                 f"/settings/{organization.slug}/billing/overview/"
             )
@@ -246,7 +244,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 ActionsBlock(
                     elements=[
                         LinkButtonElement(
-                            text="Manage Seer credits",
+                            text="Configure autoreload",
                             style="primary",
                             url=link_decorator.decorate_url(billing_url),
                             action_id=encode_action_id(

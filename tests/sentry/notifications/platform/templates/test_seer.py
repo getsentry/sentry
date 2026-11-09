@@ -7,6 +7,7 @@ from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.templates.seer import (
     AGENT_OUT_OF_CREDITS_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_START_MESSAGE,
     SeerAgentError,
     SeerAgentOutOfCredits,
     SeerAgentOutOfCreditsTemplate,
@@ -150,15 +151,18 @@ class SeerAgentErrorTemplateTest(TestCase):
 
 class SeerAutofixOutOfCreditsTemplateTest(TestCase):
     def test_render(self) -> None:
-        for started in (False, True):
+        for started, message in (
+            (False, AUTOFIX_OUT_OF_CREDITS_START_MESSAGE),
+            (True, AUTOFIX_OUT_OF_CREDITS_MESSAGE),
+        ):
             rendered = SeerAutofixOutOfCreditsTemplate().render(
                 SeerAutofixOutOfCredits(organization_id=1, started=started)
             )
 
-            assert rendered.subject == AUTOFIX_OUT_OF_CREDITS_MESSAGE
+            assert rendered.subject == message
             assert len(rendered.body) == 1
             assert isinstance(rendered.body[0], ParagraphSection)
-            assert rendered.body[0].blocks[0].text == AUTOFIX_OUT_OF_CREDITS_MESSAGE
+            assert rendered.body[0].blocks[0].text == message
 
 
 class SeerAgentOutOfCreditsTemplateTest(TestCase):

@@ -27,6 +27,7 @@ from sentry.notifications.platform.slack.renderers.seer_agent_write_approval imp
 from sentry.notifications.platform.templates.seer import (
     AGENT_OUT_OF_CREDITS_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_START_MESSAGE,
     SeerAgentError,
     SeerAgentOutOfCredits,
     SeerAgentOutOfCreditsTemplate,
@@ -394,7 +395,7 @@ def assert_out_of_credits_renderable(
     button = blocks[1].elements[0]
     assert isinstance(button, LinkButtonElement)
     assert button.text is not None
-    assert button.text.text == "Manage Seer credits"
+    assert button.text.text == "Configure autoreload"
     assert button.url is not None
     assert f"/settings/{billing_slug}/billing/overview/" in button.url
     assert button.action_id is not None
@@ -405,14 +406,17 @@ def assert_out_of_credits_renderable(
 
 class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
     def test_render_out_of_credits(self) -> None:
-        for started in (False, True):
+        for started, message in (
+            (False, AUTOFIX_OUT_OF_CREDITS_START_MESSAGE),
+            (True, AUTOFIX_OUT_OF_CREDITS_MESSAGE),
+        ):
             data = SeerAutofixOutOfCredits(organization_id=self.organization.id, started=started)
             renderable = render_seer(
                 data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
             )
             assert_out_of_credits_renderable(
                 renderable,
-                message=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+                message=message,
                 organization_id=self.organization.id,
                 billing_slug=self.organization.slug,
             )
@@ -422,7 +426,7 @@ class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
         renderable = render_seer(
             data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
         )
-        assert renderable["text"] == AUTOFIX_OUT_OF_CREDITS_MESSAGE
+        assert renderable["text"] == AUTOFIX_OUT_OF_CREDITS_START_MESSAGE
         assert len(renderable["blocks"]) == 1
         assert isinstance(renderable["blocks"][0], SectionBlock)
 

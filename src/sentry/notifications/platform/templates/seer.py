@@ -82,6 +82,7 @@ class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
         )
 
 
+AUTOFIX_OUT_OF_CREDITS_START_MESSAGE = "You do not have enough credits to start an Autofix run. Set up auto top up to keep your flow uninterrupted."
 AUTOFIX_OUT_OF_CREDITS_MESSAGE = "Your org does not have enough credits to continue your Autofix run. Set up auto top up to keep your flow uninterrupted."
 
 
@@ -90,6 +91,12 @@ class SeerAutofixOutOfCredits(NotificationData):
     # True: the org ran out of credits partway through a run.
     started: bool
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS
+
+    @property
+    def message(self) -> str:
+        return (
+            AUTOFIX_OUT_OF_CREDITS_MESSAGE if self.started else AUTOFIX_OUT_OF_CREDITS_START_MESSAGE
+        )
 
 
 @template_registry.register(NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS)
@@ -104,8 +111,8 @@ class SeerAutofixOutOfCreditsTemplate(NotificationTemplate[SeerAutofixOutOfCredi
 
     def render(self, data: SeerAutofixOutOfCredits) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
-            body=[ParagraphSection(blocks=[PlainTextBlock(text=AUTOFIX_OUT_OF_CREDITS_MESSAGE)])],
+            subject=data.message,
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=data.message)])],
         )
 
 
@@ -244,7 +251,7 @@ class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
         )
 
 
-AGENT_OUT_OF_CREDITS_MESSAGE = "Your org does not have enough Seer credits for this request. Set up auto top up to keep your flow uninterrupted."
+AGENT_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits left for you to message Seer, and you have no auto top-ups remaining. Adjust your spend and turn on auto top-up."
 
 
 class SeerAgentOutOfCredits(NotificationData):
