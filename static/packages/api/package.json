@@ -52,6 +52,10 @@
       "types": "./dist/operations.d.ts",
       "import": "./dist/operations.js"
     },
+    "./docs": {
+      "types": "./dist/docs.d.ts",
+      "import": "./dist/docs.js"
+    },
     "./source-analysis": {
       "types": "./dist/source-analysis.d.ts",
       "import": "./dist/source-analysis.js"

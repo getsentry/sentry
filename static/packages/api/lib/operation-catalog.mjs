@@ -1,7 +1,7 @@
 /** Combine original OpenAPI metadata with the generated SDK's operation identities. */
+import { HTTP_METHODS } from "./http-methods.mjs";
 import { parseSdkOperations } from "./sdk-operations.mjs";
 
-const HTTP_METHODS = new Set(["get", "post", "put", "patch", "delete", "head", "options", "trace"]);
 // RFC 9110 9.2.1: safe methods never change server state, so they are always idempotent.
 const SAFE_METHODS = new Set(["get", "head", "options", "trace"]);
 

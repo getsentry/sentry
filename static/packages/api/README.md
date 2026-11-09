@@ -135,6 +135,29 @@ experimental.has("listOrganizationTraceMetrics"); // true
 
 The catalog is generated from the same schema and SDK output as each release. Consumers own search, grouping, ranking, and command aliases; the catalog does not fetch a live schema or infer undocumented API behavior.
 
+### API reference data
+
+`@sentry/api/docs` exports what an API reference page shows for each operation, so a docs site can render the reference from the package version it pins instead of fetching the spec:
+
+```ts
+import { operations, tags } from "@sentry/api/docs";
+
+for (const operation of operations) {
+  console.log(operation.method, operation.path, operation.summary);
+  for (const response of operation.responses) console.log(response.status, response.example);
+}
+```
+
+`tags` lists the categories, with their sidebar names and descriptions. Each `ApiDocsOperation` has the original `operationId`, summary and description as the spec writes them, tags, deprecated and experimental flags, server overrides, security requirements, path and query parameters with their schemas, the request body's first content type with its schema and example, and every response with its schema and examples. The data comes from the same spec as the client in each release, so it is about 3.7 MB; import it only where you render the reference. Its shape follows semver: a breaking change to it is a major release.
+
+To preview a spec that isn't released yet, such as a local `make build-api-docs` output, build the same data from it with `extractDocs`:
+
+```ts
+import { extractDocs } from "@sentry/api/docs";
+
+const { tags, operations } = extractDocs(JSON.parse(readFileSync("tests/apidocs/openapi-derefed.json", "utf8")));
+```
+
 ### Build-time source analysis
 
 `@sentry/api/source-analysis` follows references in supplied TypeScript source to discover calls to catalog operations. Install TypeScript only when using this optional build tool; the analyzer is tested with TypeScript 5.9. Its optional peer uses a wildcard so it does not constrain the compiler used by applications that only import the client.
