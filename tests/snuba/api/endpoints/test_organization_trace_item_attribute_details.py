@@ -1,6 +1,8 @@
+from typing import Any
 from uuid import uuid4
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.testutils.cases import (
     APITestCase,
@@ -25,7 +27,11 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query=None, features=None):
+    def do_request(
+        self,
+        query: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         with self.feature(self.feature_flags if features is None else features):
             url = reverse(
                 self.viewname,
