@@ -131,7 +131,12 @@ HANDOFF_STOPPING_POINTS = frozenset(
 
 
 def _require_publish_scope(
-    request: Request, group: Group, step: str, stopping_points: Collection[str | None]
+    request: Request,
+    group: Group,
+    step: str,
+    stopping_points: Collection[str | None],
+    *,
+    can_hand_off: bool = True,
 ) -> None:
     """`seer:write` lets a caller run Autofix analysis but not publish its result. A
     request still needs `event:write` when it, or the completion hook continuing the run
@@ -142,7 +147,8 @@ def _require_publish_scope(
         step in PUBLISH_STEPS
         or AutofixStoppingPoint.OPEN_PR.value in stopping_points
         or (
-            step == AutofixStep.ROOT_CAUSE.value
+            can_hand_off
+            and step == AutofixStep.ROOT_CAUSE.value
             and not HANDOFF_STOPPING_POINTS.isdisjoint(stopping_points)
         )
     )
@@ -353,14 +359,16 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         stopping_point = data.get("stopping_point")
         stopping_points = {stopping_point}
         is_new_run = data.get("sentry_run_id") is None and data.get("run_id") is None
+        starts_single_run = is_new_run and should_use_single_run(group, step)
         if (
             stopping_point is None
-            and is_new_run
-            and should_use_single_run(group, step)
+            and starts_single_run
             and project_stopping_point(group.project) == AutofixStoppingPoint.OPEN_PR
         ):
             stopping_points.add(AutofixStoppingPoint.OPEN_PR.value)
-        _require_publish_scope(request, group, step, stopping_points)
+        _require_publish_scope(
+            request, group, step, stopping_points, can_hand_off=not starts_single_run
+        )
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")

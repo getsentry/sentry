@@ -652,6 +652,27 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_trigger_explorer.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_single_run_stops_before_pr_without_event_write(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        # Single runs never hand off to a coding agent, so only Open PR needs event:write.
+        group = self.create_group()
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
+
+        with self.feature("organizations:autofix-single-run"):
+            for stopping_point in ("solution", "code_changes"):
+                response = self.client.post(
+                    self._get_url(group.id),
+                    data={"stopping_point": stopping_point},
+                    format="json",
+                    HTTP_AUTHORIZATION=self._seer_write_bearer(),
+                )
+
+                assert response.status_code == 202, (stopping_point, response.data)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_seer_write_token_single_run_project_open_pr_requires_event_write(
         self, mock_trigger_explorer: MagicMock
     ) -> None:
