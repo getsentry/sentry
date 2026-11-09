@@ -1743,10 +1743,13 @@ class SentryVisitor(ast.NodeVisitor):
             # `options.get("k", request.GET)` passes a default, not the dict.
             return
         # Only a serializer's data= is the target shape. This includes uppercase class
-        # names and dynamic variables ending in `_cls`. `my_func(data=...)` hands the
-        # dict over exactly as a positional argument would. The `_cls` check is kept
-        # separate from `_looks_like_a_class` because `_looks_like_a_class` has two
-        # callers and only this specific check should be expanded to allow `_cls`.
+        # names, and lowercase names or attributes whose last part ends in `_cls`,
+        # `serializer` or `validator` (serializer_cls, self.get_serializer, settings.validator).
+        # `my_func(data=...)` hands the dict over exactly as a positional argument would.
+        # Known limit: a plain function that happens to end in one of those suffixes, like
+        # run_validator(data=...), is exempt too. The variable check is kept separate from
+        # `_looks_like_a_class` because `_looks_like_a_class` has two callers and only this
+        # specific check should be expanded.
         if (_looks_like_a_class(func) or _looks_like_a_class_variable(func)) and any(
             kw.arg == "data" for kw in node.keywords
         ):
