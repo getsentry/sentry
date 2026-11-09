@@ -210,7 +210,6 @@ class SeerAutofixOperator[CachePayloadT]:
         Whether the org can run the Seer step that follows the update. True when there is no
         next Seer step to run, so callers only hide the next-step action when it can't run.
         """
-        # Imported here to avoid a cycle: the templates import issue_summary, which imports this module.
         from sentry.notifications.platform.templates.seer import SeerAutofixTrigger
 
         # At root cause with a handoff target, the next action hands the run to an external
