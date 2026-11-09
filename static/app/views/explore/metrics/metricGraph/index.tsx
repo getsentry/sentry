@@ -21,10 +21,7 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
-import {
-  ExtrapolationConfidenceFooter,
-  hasLowConfidencePlottables,
-} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
@@ -253,11 +250,6 @@ function Graph({
 
   const plottables = useChartVisualizationPlottables(chartInfo);
   const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
-  const showExtrapolationConfidenceFooter =
-    hasExtrapolationConfidenceFooter &&
-    !timeseriesResult.isPending &&
-    !timeseriesResult.isFetching &&
-    hasLowConfidencePlottables(plottables);
 
   const chartTitle = useMemo(() => {
     if (visualizes.length > 1) {
@@ -340,11 +332,7 @@ function Graph({
           ) : undefined
         }
         Footer={
-          (showChart &&
-            (!hasExtrapolationConfidenceFooter ||
-              showExtrapolationConfidenceFooter ||
-              droppedData.filterNote)) ||
-          footerActions ? (
+          showChart || footerActions ? (
             <Container containerType="inline-size">
               <Flex align="center" justify="between" gap="md">
                 <Flex
@@ -356,7 +344,8 @@ function Graph({
                   gap={{zero: 'xs', xl: 'md'}}
                 >
                   {showChart && hasExtrapolationConfidenceFooter ? (
-                    showExtrapolationConfidenceFooter && (
+                    !timeseriesResult.isPending &&
+                    !timeseriesResult.isFetching && (
                       <ExtrapolationConfidenceFooter plottables={plottables} />
                     )
                   ) : showChart ? (

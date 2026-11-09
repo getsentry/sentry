@@ -44,10 +44,7 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
-import {
-  ExtrapolationConfidenceFooter,
-  hasLowConfidencePlottables,
-} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
@@ -254,15 +251,6 @@ function Graph({
 
   const plottables = useChartVisualizationPlottables(chartInfo);
   const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
-  const showExtrapolationConfidenceFooter =
-    hasExtrapolationConfidenceFooter &&
-    !chartInfo.timeseriesResult.isPending &&
-    hasLowConfidencePlottables(plottables);
-  const hasFooterContent =
-    !hasExtrapolationConfidenceFooter ||
-    showExtrapolationConfidenceFooter ||
-    Boolean(droppedData.filterNote) ||
-    showTransformationControls;
 
   const Title = (
     <Widget.WidgetTitle
@@ -375,8 +363,7 @@ function Graph({
           )
         }
         Footer={
-          visualize.visible &&
-          hasFooterContent && (
+          visualize.visible && (
             <Container containerType="inline-size">
               <Flex align="center" justify="between" gap="md">
                 <Flex
@@ -388,7 +375,7 @@ function Graph({
                   gap={{zero: 'xs', xl: 'md'}}
                 >
                   {hasExtrapolationConfidenceFooter ? (
-                    showExtrapolationConfidenceFooter && (
+                    !chartInfo.timeseriesResult.isPending && (
                       <ExtrapolationConfidenceFooter plottables={plottables} />
                     )
                   ) : (
