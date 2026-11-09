@@ -204,8 +204,8 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
                 },
             )
             attrs[item]["latest_group"] = latest_groups_map.get(item.id)
-            if item.id in configs:
-                attrs[item]["config"] = configs[item.id]
+            if item.type == DetectorType.ERROR and item.project_id in configs:
+                attrs[item]["config"] = configs[item.project_id]
             else:
                 attrs[item]["config"] = item.config
             attrs[item]["owner"] = item.owner and owner_lookup.get(item.owner) or None
