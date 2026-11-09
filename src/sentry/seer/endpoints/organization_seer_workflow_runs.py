@@ -324,14 +324,16 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
 
 
 def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
-    if getattr(run, "strategy") in SEER_CRON_WORKFLOW_STRATEGIES:
+    """Serialize the trigger of a run loaded with a `workflow_config__strategy` annotation."""
+    strategy = getattr(run, "strategy")
+    if strategy in SEER_CRON_WORKFLOW_STRATEGIES:
         return {"type": "cron"}
-    if not get_path(run.extras, "snapshot", "inputs"):
-        return None
-    try:
-        snapshot = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot
-        if snapshot.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            trigger = MetricBreachTrigger.parse_obj(snapshot.inputs)
+    if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and get_path(
+        run.extras, "snapshot", "inputs"
+    ):
+        try:
+            inputs = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot.inputs
+            trigger = MetricBreachTrigger.parse_obj(inputs)
             return {
                 "type": "breached_metric",
                 "detectorId": str(trigger.detector_id),
@@ -343,8 +345,8 @@ def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
                 "occurrenceId": trigger.occurrence_id,
                 "projectId": str(trigger.project_id),
             }
-    except ValidationError:
-        logger.exception("seer.workflow_run.invalid_trigger", extra={"run_id": run.id})
+        except ValidationError:
+            logger.exception("seer.workflow_run.invalid_trigger", extra={"run_id": run.id})
     return None
 
 
