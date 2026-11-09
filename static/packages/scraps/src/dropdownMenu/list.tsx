@@ -1,5 +1,13 @@
 import type * as React from 'react';
-import {useCallback, useContext, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  startTransition,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -89,6 +97,13 @@ export interface DropdownMenuListProps
     value: string;
   };
   size?: MenuItemProps['size'];
+  /**
+   * Item count compared with `virtualizeThreshold`. Defaults to the number of
+   * items in the menu. `DropdownMenuContent` passes the count before a search
+   * filters the items, so a menu keeps virtualizing while it is searched: the
+   * matches of a long menu can still be too many to render at once.
+   */
+  virtualizeItemCount?: number;
   /**
    * Number of items, counting the items inside sections, above which only the
    * items near the viewport are rendered. Submenus inherit the threshold of
@@ -309,6 +324,37 @@ function DropdownMenuRows({
   );
 }
 
+interface DropdownMenuSearchProps extends Omit<
+  React.ComponentProps<typeof Search>,
+  'value' | 'defaultValue' | 'onChange'
+> {
+  /** The search value when the field mounts. */
+  initialValue: string;
+  /** Called with the new search value, in a transition. */
+  onSearch: (value: string) => void;
+}
+
+/**
+ * The menu's search field. It keeps its own value, so typing re-renders only
+ * the field. The menu filters its items in a transition: the field updates as
+ * soon as a key is typed, and React can interrupt filtering a long menu when
+ * the next key comes in.
+ */
+function DropdownMenuSearch({initialValue, onSearch, ...props}: DropdownMenuSearchProps) {
+  const [value, setValue] = useState(initialValue);
+  return (
+    <Search
+      {...props}
+      value={value}
+      onChange={event => {
+        const next = event.target.value;
+        setValue(next);
+        startTransition(() => onSearch(next));
+      }}
+    />
+  );
+}
+
 function DropdownMenuList({
   closeOnSelect = true,
   onClose,
@@ -324,6 +370,7 @@ function DropdownMenuList({
   overlayPositionProps,
   zIndex,
   virtualizeThreshold,
+  virtualizeItemCount,
   ...props
 }: DropdownMenuListProps) {
   const {t} = useTranslation();
@@ -351,7 +398,8 @@ function DropdownMenuList({
     node => node.value?.leadingItems || node.value?.isSelected !== undefined
   );
   const virtualized =
-    items.length > (virtualizeThreshold ?? DEFAULT_VIRTUALIZE_THRESHOLD);
+    (virtualizeItemCount ?? items.length) >
+    (virtualizeThreshold ?? DEFAULT_VIRTUALIZE_THRESHOLD);
 
   // Implement focus states, keyboard navigation, aria-label,...
   const menuRef = useRef<HTMLUListElement>(null);
@@ -480,13 +528,13 @@ function DropdownMenuList({
     [rootOverlayState, overlayState, state, safetyTriangle, virtualizeThreshold]
   );
   const searchInput = searchState && (
-    <Search
+    <DropdownMenuSearch
       ref={searchRef}
       padding={menuTitle ? '0' : undefined}
       aria-label={searchState.placeholder ?? 'Search'}
       placeholder={searchState.placeholder ?? 'Search…'}
-      value={searchState.value}
-      onChange={event => searchState.onChange(event.target.value)}
+      initialValue={searchState.value}
+      onSearch={searchState.onChange}
       onKeyDown={event => {
         // ArrowDown moves from the search field into the filtered menu items.
         if (event.key === 'ArrowDown') {
@@ -649,6 +697,17 @@ function filterMenuItems(items: MenuItemProps[], search: string): MenuItemProps[
   });
 }
 
+/**
+ * Number of items a menu lists, counting the items inside sections but not
+ * the sections themselves. Matches the count `DropdownMenuList` virtualizes by.
+ */
+function countMenuItems(items: MenuItemProps[]): number {
+  return items.reduce(
+    (count, item) => count + (isMenuSection(item) ? (item.children?.length ?? 0) : 1),
+    0
+  );
+}
+
 /** The key of the menu item an event fired on, if it fired on one. */
 function getMenuItemKey(target: EventTarget | null): string | undefined {
   if (
@@ -693,6 +752,7 @@ export function DropdownMenuContent({
   virtualizeThreshold,
   ...props
 }: DropdownMenuContentProps) {
+  // Updated in a transition by the search field, see `DropdownMenuSearch`.
   const [searchValue, setSearchValue] = useState('');
   // A submenu renders inside its parent menu's context, so it inherits the
   // parent's threshold unless it sets its own.
@@ -708,6 +768,7 @@ export function DropdownMenuContent({
       search && searchValue ? filterMenuItems(activeItems, searchValue) : activeItems,
     [activeItems, search, searchValue]
   );
+  const activeItemCount = useMemo(() => countMenuItems(activeItems), [activeItems]);
   const defaultDisabledKeys = useMemo(
     () => getDisabledKeys(visibleItems),
     [visibleItems]
@@ -719,6 +780,7 @@ export function DropdownMenuContent({
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
       virtualizeThreshold={virtualizeThreshold ?? inheritedVirtualizeThreshold}
+      virtualizeItemCount={search ? activeItemCount : undefined}
       searchState={
         search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
       }

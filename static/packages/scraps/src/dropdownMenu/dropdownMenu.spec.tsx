@@ -1317,7 +1317,7 @@ describe('DropdownMenu', () => {
       expect(screen.getAllByRole('menuitemradio')).toHaveLength(500);
     });
 
-    it('keeps its items mounted when a search crosses the threshold', async () => {
+    it('keeps virtualizing when a search leaves fewer items than the threshold', async () => {
       render(
         <DropdownMenu
           triggerLabel="Menu"
@@ -1331,9 +1331,18 @@ describe('DropdownMenu', () => {
       const item = screen.getByRole('menuitemradio', {name: 'Item 1'});
 
       // Leaves Item 1 and Item 10–19 and 100–199, which is under the threshold.
+      // Rendering all 111 matches at once would be slow, so the menu still
+      // mounts only the matches near the viewport.
       await userEvent.type(screen.getByRole('textbox', {name: 'Search items'}), 'Item 1');
 
-      expect(screen.getAllByRole('menuitemradio')).toHaveLength(111);
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('menuitemradio', {name: 'Item 2'})
+        ).not.toBeInTheDocument()
+      );
+      const rendered = screen.getAllByRole('menuitemradio');
+      expect(rendered.length).toBeGreaterThan(0);
+      expect(rendered.length).toBeLessThan(111);
       expect(screen.getByRole('menuitemradio', {name: 'Item 1'})).toBe(item);
     });
 
