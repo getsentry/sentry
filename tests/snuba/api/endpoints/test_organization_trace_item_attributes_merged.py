@@ -319,7 +319,7 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
         assert response.status_code == 200, response.content
         attributes = {attribute["name"]: attribute for attribute in response.data}
         assert attributes["gen_ai.request.model"]["context"]["isInOtel"] is True
-        assert "isInOtel" not in attributes["project"]["context"]
+        assert "isInOtel" not in attributes["device.class"]["context"]
 
     def test_includes_internal_convention_attributes_when_user_is_staff(self) -> None:
         self.store_segment(
