@@ -2,10 +2,10 @@ import {IconDelete} from '@sentry/icons/delete';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 
 interface DebugIdBundleDeleteButtonProps {
