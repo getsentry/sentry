@@ -3,7 +3,7 @@ import {Fragment, useRef, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
+import {act, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
@@ -2106,8 +2106,9 @@ describe('CompactSelect', () => {
         if (!scroller) {
           throw new Error('The list has no scroll wrapper');
         }
-        scroller.scrollTop = 10_000;
-        fireEvent.scroll(scroller);
+        // userEvent cannot scroll. The scrollTo stub above fires the scroll
+        // event, like a user scrolling with the wheel or the scrollbar.
+        act(() => scroller.scrollTo({top: 10_000}));
         await waitFor(() =>
           expect(screen.queryByRole(optionRole, {name: 'A 1'})).not.toBeInTheDocument()
         );
@@ -2147,6 +2148,64 @@ describe('CompactSelect', () => {
         );
       }
     );
+
+    it('announces the position of a list box option among the visible options', async () => {
+      render(
+        <CompactSelect
+          search
+          options={sections}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      // Each section's options form their own set.
+      const first = await screen.findByRole('option', {name: 'A 0'});
+      expect(first).toHaveAttribute('aria-posinset', '1');
+      expect(first).toHaveAttribute('aria-setsize', '250');
+
+      // Only "B 249" matches. The hidden options stay in the collection, but
+      // are not counted.
+      await userEvent.type(screen.getByRole('textbox'), 'B 249');
+      await waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(1));
+      const match = screen.getByRole('option', {name: 'B 249'});
+      expect(match).toHaveAttribute('aria-posinset', '1');
+      expect(match).toHaveAttribute('aria-setsize', '1');
+    });
+
+    it('announces the position of a grid row among the visible rows', async () => {
+      render(
+        <CompactSelect
+          mode="grid"
+          menuWidth={300}
+          options={sections}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      expect(await screen.findByRole('grid')).toHaveAttribute('aria-rowcount', '500');
+      expect(screen.getByRole('row', {name: 'A 0'})).toHaveAttribute(
+        'aria-rowindex',
+        '1'
+      );
+
+      // Rows are numbered across sections.
+      await waitFor(() => expect(screen.getByRole('row', {name: 'A 0'})).toHaveFocus());
+      await userEvent.keyboard('{End}');
+      await waitFor(() =>
+        expect(screen.getByRole('row', {name: 'B 249'})).toHaveAttribute(
+          'aria-rowindex',
+          '500'
+        )
+      );
+    });
 
     it('counts the options inside sections against the threshold', async () => {
       render(

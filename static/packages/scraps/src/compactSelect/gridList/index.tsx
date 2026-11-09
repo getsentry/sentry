@@ -14,8 +14,11 @@ import {
   ListWrap,
   SizeLimitMessage,
 } from '@sentry/scraps/compactSelect/styles';
-import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {hasVisibleLeadingItems} from '@sentry/scraps/compactSelect/utils';
+import type {ListItemBase, SelectKey} from '@sentry/scraps/compactSelect/types';
+import {
+  getVisibleOptionPositions,
+  hasVisibleLeadingItems,
+} from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
 import {ControlContext, ReserveLeadingSlot} from '@sentry/scraps/menu';
 import {useTranslation} from '@sentry/scraps/translation';
@@ -118,6 +121,10 @@ function GridList<T extends ListItemBase>({
     () => hasVisibleLeadingItems(listItems, hiddenOptions),
     [listItems, hiddenOptions]
   );
+  const positions = useMemo(
+    () => (virtualized ? getVisibleOptionPositions(listItems, hiddenOptions) : undefined),
+    [virtualized, listItems, hiddenOptions]
+  );
 
   const virtual = useVirtualCollection({
     collection: listItems,
@@ -138,13 +145,20 @@ function GridList<T extends ListItemBase>({
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
         <Container ref={scrollRef} height="100%" overflowY="auto">
-          <ListWrap {...mergedProps} onKeyDown={onKeyDown} ref={ref}>
+          <ListWrap
+            {...mergedProps}
+            aria-rowcount={positions?.size}
+            aria-colcount={positions ? 1 : undefined}
+            onKeyDown={onKeyDown}
+            ref={ref}
+          >
             <VirtualRows
               virtual={virtual}
               renderRow={({node, props: rowProps}) => (
                 <GridListOption
                   {...rowProps}
                   node={node}
+                  rowIndex={positions?.get(node.key as SelectKey)?.rowIndex}
                   listState={listState}
                   size={size}
                 />

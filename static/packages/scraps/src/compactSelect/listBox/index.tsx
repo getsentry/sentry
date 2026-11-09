@@ -14,7 +14,10 @@ import {
   SizeLimitMessage,
 } from '@sentry/scraps/compactSelect/styles';
 import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {hasVisibleLeadingItems} from '@sentry/scraps/compactSelect/utils';
+import {
+  getVisibleOptionPositions,
+  hasVisibleLeadingItems,
+} from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
 import {ReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
@@ -192,6 +195,10 @@ export function ListBox<T extends ListItemBase>({
     () => hasVisibleLeadingItems(listItems, hiddenOptions),
     [listItems, hiddenOptions]
   );
+  const positions = useMemo(
+    () => (virtualized ? getVisibleOptionPositions(listItems, hiddenOptions) : undefined),
+    [virtualized, listItems, hiddenOptions]
+  );
 
   const mergedProps = mergeProps(listBoxProps, props);
 
@@ -298,6 +305,7 @@ export function ListBox<T extends ListItemBase>({
                   <ListBoxOption
                     {...rowProps}
                     item={node}
+                    position={positions?.get(node.key as SelectKey)}
                     listState={listState}
                     size={size}
                     showDetails={showDetails}

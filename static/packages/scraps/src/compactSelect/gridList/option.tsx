@@ -29,6 +29,12 @@ export interface GridListOptionProps<
   /** Set by a virtualized list, so the virtualizer can measure the option. */
   'data-index'?: number;
   ref?: React.Ref<HTMLLIElement>;
+  /**
+   * 1-based position among the visible rows. Set by a virtualized list, which
+   * mounts only some of its rows, so screen readers can announce the row's
+   * position.
+   */
+  rowIndex?: number;
 }
 
 /**
@@ -40,6 +46,7 @@ export function GridListOption<T extends ListItemBase>({
   listState,
   size,
   ref: refProp,
+  rowIndex,
   'data-index': dataIndex,
 }: GridListOptionProps<T>) {
   const ref = useRef<HTMLLIElement>(null);
@@ -152,6 +159,7 @@ export function GridListOption<T extends ListItemBase>({
   return (
     <ListItem
       {...rowPropsMerged}
+      aria-rowindex={rowIndex}
       data-index={dataIndex}
       ref={mergeRefs(ref, refProp)}
       size={size}

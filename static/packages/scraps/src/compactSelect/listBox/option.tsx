@@ -9,6 +9,7 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {getOptionPaddingLeft, LeadWrap} from '@sentry/scraps/compactSelect/styles';
+import type {OptionPosition} from '@sentry/scraps/compactSelect/utils';
 import {
   ControlContext,
   ListItem,
@@ -25,6 +26,11 @@ export interface ListBoxOptionProps {
   listState: ListState<any>;
   size: ListItemProps['size'];
   'data-index'?: number;
+  /**
+   * Set by a virtualized list, which mounts only some of its options, so
+   * screen readers can announce the option's position.
+   */
+  position?: OptionPosition;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
 }
@@ -38,6 +44,7 @@ export function ListBoxOption({
   listState,
   size,
   showDetails = true,
+  position,
   ref: refProp,
   'data-index': dataIndex,
 }: ListBoxOptionProps) {
@@ -129,6 +136,8 @@ export function ListBoxOption({
   return (
     <ListItem
       {...optionProps}
+      aria-posinset={position?.posInSet}
+      aria-setsize={position?.setSize}
       data-index={dataIndex}
       ref={mergeRefs(ref, refProp)}
       size={size}
