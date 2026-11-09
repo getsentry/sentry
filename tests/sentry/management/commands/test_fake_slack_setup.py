@@ -1,5 +1,4 @@
 from io import StringIO
-from unittest import mock
 
 import pytest
 from django.core.management import CommandError, call_command
@@ -26,10 +25,7 @@ class FakeSlackSetupTest(TestCase):
     @override_settings(SENTRY_USE_FAKE_SLACK=True)
     def test_connects_organization(self) -> None:
         output = self.run_command("--org", self.organization.slug)
-        with mock.patch.dict(
-            "os.environ", {"FAKE_SLACK_PUBLIC_URL": "https://8099--box.example.com"}
-        ):
-            box_output = self.run_command("--org", self.organization.slug)
+        self.run_command("--org", self.organization.slug)
 
         integration = Integration.objects.get(provider="slack")
         assert integration.external_id == "T0FAKE"
@@ -38,8 +34,7 @@ class FakeSlackSetupTest(TestCase):
             integration=integration, organization_id=self.organization.id
         ).exists()
         assert f"Connected {self.organization.slug}" in output
-        assert "see them at http://localhost:8099 " in output
-        assert "see them at https://8099--box.example.com " in box_output
+        assert "on port 8099 (http://localhost:8099 locally)" in output
 
         self.create_organization()
         with pytest.raises(CommandError, match="--org"):

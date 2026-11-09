@@ -6,7 +6,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.integration import SlackIntegrationProvider
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
-from sentry.testutils.fake_slack.server import TEAM, viewer_url  # noqa: S007
+from sentry.testutils.fake_slack.server import TEAM  # noqa: S007
 
 
 class Command(BaseCommand):
@@ -41,11 +41,12 @@ class Command(BaseCommand):
         )
         integration.add_organization(organization)
 
+        port = settings.SENTRY_FAKE_SLACK_PORT
         self.stdout.write(
             f"Connected {organization.slug} to the {TEAM['name']} workspace "
             f"(integration {integration.id}).\n"
-            f"Send Slack notifications to any channel, like #alerts, and see them at "
-            f"{viewer_url(settings.SENTRY_FAKE_SLACK_PORT)} while the devserver runs."
+            f"Send Slack notifications to any channel, like #alerts, and see them in Fake Slack "
+            f"on port {port} (http://localhost:{port} locally) while the devserver runs."
         )
 
     def _get_organization(self, slug: str | None) -> Organization:
