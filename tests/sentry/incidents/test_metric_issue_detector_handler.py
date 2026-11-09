@@ -13,7 +13,6 @@ from sentry.incidents.utils.types import (
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import DataCondition, DataPacket, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition
@@ -205,7 +204,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f"Critical: Number of errors in the last minute above {self.critical_detector_trigger.comparison}"
+            == f"Critical: count() in the last minute above {self.critical_detector_trigger.comparison}"
         )
 
     def test_title_warning(self) -> None:
@@ -216,7 +215,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f"Warning: Number of errors in the last minute above {self.warning_detector_trigger.comparison}"
+            == f"Warning: count() in the last minute above {self.warning_detector_trigger.comparison}"
         )
 
     def test_title_comparison_delta(self) -> None:
@@ -227,10 +226,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             detector_trigger=self.critical_detector_trigger,
             priority=self.critical_detector_trigger.condition_result,
         )
-        assert (
-            title
-            == "Critical: Number of errors in the last minute greater than same time one hour ago"
-        )
+        assert title == "Critical: count() in the last minute greater than same time one hour ago"
 
     def test_title_below_threshold(self) -> None:
         self.warning_detector_trigger.type = Condition.LESS
@@ -243,7 +239,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f"Warning: Number of errors in the last minute below {self.warning_detector_trigger.comparison}"
+            == f"Warning: count() in the last minute below {self.warning_detector_trigger.comparison}"
         )
 
     def test_title_different_aggregate(self) -> None:
@@ -255,7 +251,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f"Critical: Number of users affected in the last minute above {self.critical_detector_trigger.comparison}"
+            == f"Critical: count_unique(user) in the last minute above {self.critical_detector_trigger.comparison}"
         )
 
         self.snuba_query.aggregate = "percentage(sessions_crashed, sessions)"
@@ -266,7 +262,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f"Critical: Crash free session rate in the last minute above {self.critical_detector_trigger.comparison}"
+            == f"Critical: crash_free_rate(session) in the last minute above {self.critical_detector_trigger.comparison}"
         )
 
     def test_title_equation_aggregate(self) -> None:
@@ -290,7 +286,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             detector_trigger=self.critical_detector_trigger,
             priority=self.critical_detector_trigger.condition_result,
         )
-        assert title == "Detected an anomaly in the query for number of errors"
+        assert title == "Detected an anomaly in the query for count()"
 
         self.snuba_query.aggregate = "p95(transaction.duration)"
         title = self.handler.construct_title(
@@ -303,48 +299,13 @@ class TestConstructTitle(TestEvaluateMetricDetector):
     def test_dynamic_alert_title_eap(self) -> None:
         self.detector.config.update({"detection_type": "dynamic"})
         self.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
-        for event_type, aggregate, expected in (
-            (SnubaQueryEventType.EventType.TRACE_ITEM_LOG, "count(message)", "number of logs"),
-            (SnubaQueryEventType.EventType.TRACE_ITEM_LOG, "count()", "number of logs"),
-            (
-                SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
-                "count(span.duration)",
-                "number of spans",
-            ),
-            (
-                SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
-                "p95(span.duration)",
-                "p95(span.duration)",
-            ),
-            (
-                SnubaQueryEventType.EventType.TRACE_ITEM_METRIC,
-                "per_second(value,metric_name_one,counter,-)",
-                "per_second(value,metric_name_one,counter,-)",
-            ),
-        ):
-            self.snuba_query.snubaqueryeventtype_set.update(type=event_type.value)
-            self.snuba_query.aggregate = aggregate
-            title = self.handler.construct_title(
-                snuba_query=self.snuba_query,
-                detector_trigger=self.critical_detector_trigger,
-                priority=self.critical_detector_trigger.condition_result,
-            )
-            assert title == f"Detected an anomaly in the query for {expected}"
-
-    def test_title_transactions(self) -> None:
-        self.snuba_query.dataset = Dataset.Transactions.value
-        self.snuba_query.snubaqueryeventtype_set.update(
-            type=SnubaQueryEventType.EventType.TRANSACTION.value
-        )
+        self.snuba_query.aggregate = "count(message)"
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
             detector_trigger=self.critical_detector_trigger,
             priority=self.critical_detector_trigger.condition_result,
         )
-        assert (
-            title
-            == f"Critical: Number of transactions in the last minute above {self.critical_detector_trigger.comparison}"
-        )
+        assert title == "Detected an anomaly in the query for count(message)"
 
     def test_dynamic_alert_title_equation(self) -> None:
         self.detector.config.update({"detection_type": "dynamic"})

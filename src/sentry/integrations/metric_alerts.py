@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
@@ -18,47 +19,29 @@ from sentry.models.organization import Organization
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
-from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import SnubaQuery
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
-QUERY_AGGREGATION_DISPLAY = {
-    "count_unique(tags[sentry:user])": "users affected",
-    "percentage(sessions_crashed, sessions)": "% sessions crash free rate",
-    "percentage(users_crashed, users)": "% users crash free rate",
-    "failure_rate()": "% failure rate",
+# Stored forms of aggregates that users never see. The monitor form shows the key instead.
+_CRASH_FREE_RATE_AGGREGATES = {
+    "percentage(sessions_crashed, sessions)": "crash_free_rate(session)",
+    "percentage(users_crashed, users)": "crash_free_rate(user)",
 }
-
-_EventType = SnubaQueryEventType.EventType
-
-# What one item of each event type is called, and an attribute every item of that type has,
-# so that `count(<attribute>)` counts all items just like `count()`. Error monitors query
-# ERROR and DEFAULT together, and the product calls both "errors".
-_COUNTED_ITEMS: dict[_EventType, tuple[str, str | None]] = {
-    _EventType.ERROR: ("errors", None),
-    _EventType.DEFAULT: ("errors", None),
-    _EventType.TRANSACTION: ("transactions", None),
-    _EventType.TRACE_ITEM_SPAN: ("spans", "span.duration"),
-    _EventType.TRACE_ITEM_LOG: ("logs", "message"),
-}
+_PERCENT_AGGREGATES = {"failure_rate()", *_CRASH_FREE_RATE_AGGREGATES.values()}
 
 
-def get_counted_noun(snuba_query: SnubaQuery, aggregate: str) -> str | None:
-    """
-    Plural noun for what a count aggregate counts, e.g. "errors" or "logs", based on the
-    query's event types. None when the aggregate doesn't count whole items.
-    """
-    items = {_COUNTED_ITEMS.get(event_type) for event_type in snuba_query.event_types}
-    item = items.pop() if len(items) == 1 else None
-    if item is None:
-        return "events" if aggregate == "count()" else None
-
-    noun, always_present = item
-    if aggregate == "count()" or (always_present and aggregate == f"count({always_present})"):
-        return noun
-    return None
+def format_aggregate(aggregate: str) -> str:
+    """The aggregate as the monitor form shows it, e.g. `count_unique(user)`."""
+    aggregate = aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
+    if is_mri_field(aggregate):
+        return format_mri_field(aggregate)
+    if is_equation(aggregate):
+        return strip_equation(aggregate)
+    aggregate = _CRASH_FREE_RATE_AGGREGATES.get(aggregate, aggregate)
+    return aggregate.replace("(tags[sentry:user])", "(user)")
 
 
 # These should be the same as the options in the frontend
@@ -101,34 +84,25 @@ def get_incident_status_text(
     metric_value: str,
 ) -> str:
     """Returns a human readable current status of an incident"""
-    agg_display_key = snuba_query.aggregate
+    aggregate = format_aggregate(snuba_query.aggregate)
 
-    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in snuba_query.aggregate:
-        agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
-
-    if is_mri_field(agg_display_key):
-        metric_value = format_mri_field_value(agg_display_key, metric_value)
-        agg_text = format_mri_field(agg_display_key)
-    elif counted_noun := get_counted_noun(snuba_query, agg_display_key):
-        agg_text = counted_noun
-    else:
-        agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, snuba_query.aggregate)
-
-    if agg_display_key == "failure_rate()" and not comparison_delta:
+    if is_mri_field(snuba_query.aggregate):
+        metric_value = format_mri_field_value(snuba_query.aggregate, metric_value)
+    elif aggregate == "failure_rate()" and not comparison_delta:
         metric_value = f"{float(metric_value) * 100:.2f}"
 
-    if agg_text.startswith("%"):
-        metric_and_agg_text = f"{metric_value}{agg_text}"
+    if aggregate in _PERCENT_AGGREGATES:
+        metric_and_agg_text = f"{metric_value}% {aggregate}"
     else:
-        metric_and_agg_text = f"{metric_value} {agg_text}"
+        metric_and_agg_text = f"{metric_value} {aggregate}"
 
     time_window = snuba_query.time_window // 60
     # % change alerts have a comparison delta
     if comparison_delta:
-        if agg_display_key == "failure_rate()":
-            metric_and_agg_text = f"Failure rate {float(metric_value):.2f}%"
+        if aggregate == "failure_rate()":
+            metric_and_agg_text = f"{aggregate} {float(metric_value):.2f}%"
         else:
-            metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
+            metric_and_agg_text = f"{aggregate} {int(float(metric_value))}%"
         higher_or_lower = (
             "higher"
             if (
