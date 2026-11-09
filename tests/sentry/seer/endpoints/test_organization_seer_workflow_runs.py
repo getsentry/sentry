@@ -483,7 +483,18 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
     def test_returns_the_triggering_monitor(self) -> None:
         detector = self.create_detector(project=self.project)
         run = self.create_run(
-            inputs={"group_id": 1, "occurrence_id": "abc", "detector_id": detector.id}
+            inputs={
+                "event_id": "a" * 32,
+                "occurrence_id": "abc",
+                "detector_id": detector.id,
+                "evidence": {},
+                "observed_at": "2025-01-01T10:00:00Z",
+                "group_id": 1,
+                "project_id": self.project.id,
+                "binding_id": 1,
+                "workflow_id": 1,
+                "action_id": 1,
+            }
         )
 
         response = self.get_success_response(self.organization.slug)
@@ -492,18 +503,27 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert serialized_run["id"] == str(run.id)
         assert serialized_run["trigger"] == {"type": "monitor", "id": str(detector.id)}
 
-    def test_trigger_is_null_without_a_saved_monitor(self) -> None:
-        no_inputs = self.create_run()
-        no_snapshot = self.create_run(extras={})
-        malformed = self.create_run(inputs={"detector_id": "123"})
+    def test_trigger_is_null_for_other_strategies(self) -> None:
+        self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        self.create_run()
 
         response = self.get_success_response(self.organization.slug)
 
-        assert {run["id"]: run["trigger"] for run in response.data["runs"]} == {
-            str(no_inputs.id): None,
-            str(no_snapshot.id): None,
-            str(malformed.id): None,
-        }
+        assert response.data["runs"][0]["trigger"] is None
+
+    def test_trigger_is_null_without_a_snapshot(self) -> None:
+        self.create_run(extras={})
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] is None
+
+    def test_trigger_is_null_for_invalid_inputs(self) -> None:
+        self.create_run(inputs={"detector_id": "not-an-id"})
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] is None
 
     def create_run(
         self,

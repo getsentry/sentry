@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Literal, TypedDict
 
 from django.db.models import F, Prefetch, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
+from pydantic import ValidationError
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -29,12 +31,16 @@ from sentry.seer.models.workflow import (
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunExtras,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
+from sentry.seer.workflows.breached_metrics import MetricBreachTrigger
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowRunCreateSerializer(serializers.Serializer):
@@ -99,7 +105,7 @@ SeerWorkflowExecutionResponse = (
 )
 
 
-class SeerWorkflowRunTriggerResponse(TypedDict):
+class TriggerResponse(TypedDict):
     type: Literal["monitor"]
     id: str
 
@@ -108,7 +114,7 @@ class SeerWorkflowRunResponseBase(TypedDict):
     id: str
     configId: str
     strategy: str
-    trigger: SeerWorkflowRunTriggerResponse | None
+    trigger: TriggerResponse | None
     dateAdded: datetime
     dateUpdated: datetime
     dateCompleted: datetime | None
@@ -277,7 +283,7 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
         "id": str(run.id),
         "configId": str(run.workflow_config_id),
         "strategy": getattr(run, "strategy"),
-        "trigger": serialize_workflow_run_trigger(run.extras),
+        "trigger": serialize_trigger(run),
         "dateAdded": run.date_added,
         "dateUpdated": run.date_updated,
         "dateCompleted": run.date_completed,
@@ -297,15 +303,18 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
     return {**result, "status": status}
 
 
-def serialize_workflow_run_trigger(extras: object) -> SeerWorkflowRunTriggerResponse | None:
-    # Runs created without a snapshot (e.g. older rows or runs started from Seer) have no
-    # saved inputs, so read each level defensively.
-    snapshot = extras.get("snapshot") if isinstance(extras, dict) else None
-    inputs = snapshot.get("inputs") if isinstance(snapshot, dict) else None
-    detector_id = inputs.get("detector_id") if isinstance(inputs, dict) else None
-    if isinstance(detector_id, int) and not isinstance(detector_id, bool):
-        return {"type": "monitor", "id": str(detector_id)}
-    return None
+def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
+    if not run.extras.get("snapshot"):
+        return None
+    try:
+        snapshot = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot
+        if snapshot.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+            return None
+        trigger = MetricBreachTrigger.parse_obj(snapshot.inputs)
+    except ValidationError:
+        logger.exception("seer.workflow_run.invalid_trigger", extra={"run_id": run.id})
+        return None
+    return {"type": "monitor", "id": str(trigger.detector_id)}
 
 
 def serialize_workflow_execution(
