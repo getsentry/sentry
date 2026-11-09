@@ -14,6 +14,7 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as modal from 'sentry/actionCreators/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {Navigation} from 'sentry/views/navigation';
@@ -1103,6 +1104,55 @@ describe('desktop navigation', () => {
 
       assertActivePrimaryNavLink(within(primaryNav).getByRole('link', {name: 'Seer'}));
       assertInactiveNavLink(within(primaryNav).getByRole('link', {name: 'Explore'}));
+    });
+  });
+
+  describe('command palette', () => {
+    it('renders the command palette button with its hotkey label', async () => {
+      const toggleCommandPalette = jest
+        .spyOn(modal, 'toggleCommandPalette')
+        .mockResolvedValue(undefined);
+
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
+
+      const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+      const button = within(primaryNav).getByRole('button', {name: 'Command Palette'});
+      expect(button).toHaveAttribute('aria-keyshortcuts', 'Control+K');
+      expect(within(primaryNav).getByText('Ctrl K')).toBeInTheDocument();
+      // The command palette button sits outside of the navigation link lists
+      expect(button.closest('ul')).toBeNull();
+
+      await userEvent.click(button);
+      expect(toggleCommandPalette).toHaveBeenCalledWith(
+        {},
+        expect.objectContaining({slug: 'org-slug'}),
+        expect.anything(),
+        expect.any(Function),
+        'button',
+        undefined
+      );
+      toggleCommandPalette.mockRestore();
+    });
+
+    it('does not render the command palette button without an organization', () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        {
+          organization: null,
+          initialRouterConfig: {location: {pathname: '/settings/account/details/'}},
+        }
+      );
+
+      expect(
+        screen.queryByRole('button', {name: 'Command Palette'})
+      ).not.toBeInTheDocument();
     });
   });
 

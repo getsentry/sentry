@@ -54,6 +54,7 @@ import {PrimaryNavigation} from './primary/components';
 import {PrimaryNavigationHelpMenu} from './primary/helpMenu';
 import {PrimaryNavigationOnboarding} from './primary/onboarding';
 import {OrganizationDropdown} from './primary/organizationDropdown';
+import {PrimaryNavigationSearch} from './primary/search';
 import {PrimaryNavigationServiceIncidents} from './primary/serviceIncidents';
 import {useActivateNavigationGroupOnHover} from './primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from './primary/userDropdown';
@@ -137,6 +138,7 @@ function NavigationImpl() {
             <UserDropdown />
           )}
         </PrimaryNavigation.SidebarHeader>
+        <PrimaryNavigationSearch />
         <PrimaryNavigation.List ref={ref}>
           {isSettingsNavigation && organization ? (
             <SettingsPrimaryNavigationItems organizationSlug={organization.slug} />

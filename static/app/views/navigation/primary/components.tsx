@@ -186,13 +186,19 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
     Pick<OverlayTriggerIconButtonProps, 'icon'>;
   label: string;
   indicator?: 'accent' | 'danger' | 'warning';
+  /**
+   * Text rendered below the button, styled like a navigation link label.
+   * It is hidden from assistive technology, so `label` remains the
+   * accessible name. Only the button itself is clickable.
+   */
+  visibleLabel?: string;
 }
 
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const {layout} = usePrimaryNavigation();
   const organization = useOrganization({allowNull: true});
 
-  return (
+  const button = (
     <Tooltip
       title={props.label}
       disabled={layout === 'mobile'}
@@ -226,6 +232,25 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
         }
       />
     </Tooltip>
+  );
+
+  if (!props.visibleLabel) {
+    return button;
+  }
+
+  return (
+    <Stack align="center" paddingBottom="md">
+      {button}
+      <Text
+        size="xs"
+        bold
+        variant="muted"
+        aria-hidden="true"
+        style={{letterSpacing: '-0.05em'}}
+      >
+        {props.visibleLabel}
+      </Text>
+    </Stack>
   );
 }
 
@@ -332,17 +357,9 @@ type NavigationButtonProps = Omit<
   Pick<ButtonProps, 'onClick'>;
 
 function NavigationButton(props: NavigationButtonProps) {
-  const {layout} = usePrimaryNavigation();
-
   return (
     <PrimaryNavigationButtonContainer>
-      {p => (
-        <ButtonWithOverflowVisible
-          {...p}
-          {...props}
-          {...(layout === 'mobile' ? {variant: 'secondary'} : {variant: props.variant})}
-        />
-      )}
+      {p => <ButtonWithOverflowVisible {...p} {...props} />}
     </PrimaryNavigationButtonContainer>
   );
 }

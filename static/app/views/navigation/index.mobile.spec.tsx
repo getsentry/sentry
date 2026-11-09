@@ -297,6 +297,7 @@ describe('mobile navigation', () => {
     expect(
       mobileHeader.getByRole('button', {name: 'Command Palette'})
     ).toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Command Palette'})).toHaveLength(1);
     expect(mobileHeader.getByRole('button', {name: 'Help'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: "What's New"})).not.toBeInTheDocument();
 
