@@ -265,7 +265,10 @@ function AttributeRow({attribute}: {attribute: Attribute}) {
       <SimpleTable.RowCell>
         <Flex align="center" gap="sm" wrap="wrap">
           <Link
-            to={`/settings/${organization.slug}/projects/${project.slug}/attributes/${attribute.attributeType}/${encodeURIComponent(attribute.name)}/`}
+            to={{
+              pathname: `/settings/${organization.slug}/projects/${project.slug}/attributes/${attribute.attributeType}/${encodeURIComponent(attribute.name)}/`,
+              query: {source: attribute.attributeSource.source_type},
+            }}
           >
             <Text monospace variant="inherit" wordBreak="break-all">
               {attribute.name}

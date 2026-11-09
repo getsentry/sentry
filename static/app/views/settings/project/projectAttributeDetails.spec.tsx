@@ -12,13 +12,18 @@ describe('ProjectAttributeDetails', () => {
   const project = ProjectFixture();
   const detailsEndpoint = `/organizations/${organization.slug}/trace-items/attributes/details/`;
 
-  function renderDetails(attributeType: string, attributeName: string) {
+  function renderDetails(
+    attributeType: string,
+    attributeName: string,
+    query?: Record<string, string>
+  ) {
     return render(<ProjectAttributeDetails />, {
       organization,
       outletContext: {project},
       initialRouterConfig: {
         location: {
           pathname: `/settings/projects/${project.slug}/attributes/${attributeType}/${encodeURIComponent(attributeName)}/`,
+          query,
         },
         route: '/settings/projects/:projectId/attributes/:attributeType/:attributeName/',
       },
@@ -125,6 +130,29 @@ describe('ProjectAttributeDetails', () => {
       detailsEndpoint,
       expect.objectContaining({
         query: expect.objectContaining({attributeName: 'http/route'}),
+      })
+    );
+  });
+
+  it('requests the attribute by its source when the URL has a source', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      body: {
+        name: 'environment',
+        attributeType: 'string',
+        attributeSource: {source_type: 'user'},
+        datasets: ['spans'],
+        context: {},
+      },
+    });
+
+    renderDetails('string', 'environment', {source: 'user'});
+
+    expect(await screen.findByText('Custom')).toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      detailsEndpoint,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeSource: 'user'}),
       })
     );
   });

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InlineCode} from '@sentry/scraps/code';
@@ -56,6 +57,10 @@ function AttributeDetails({
 }) {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const [attributeSource] = useQueryState(
+    'source',
+    parseAsStringLiteral(['sentry', 'user'] as const)
+  );
 
   const {
     data: attribute,
@@ -70,6 +75,7 @@ function AttributeDetails({
         path: {organizationIdOrSlug: organization.slug},
         query: {
           attributeName,
+          attributeSource: attributeSource ?? undefined,
           attributeType,
           project: [project.id],
           statsPeriod: ATTRIBUTES_STATS_PERIOD,

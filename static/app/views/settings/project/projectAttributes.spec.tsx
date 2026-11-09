@@ -250,7 +250,7 @@ describe('ProjectAttributes', () => {
 
     expect(await screen.findByRole('link', {name: 'http/route'})).toHaveAttribute(
       'href',
-      `/settings/${organization.slug}/projects/${project.slug}/attributes/string/http%2Froute/`
+      `/settings/${organization.slug}/projects/${project.slug}/attributes/string/http%2Froute/?source=user`
     );
   });
 
