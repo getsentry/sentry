@@ -78,22 +78,22 @@ def _is_pattern_db_query(span: Span) -> bool:
 
 
 @dataclass(frozen=True, slots=True)
-class _WindowSpan:
-    """A span in the search window, with the facts every later span is compared against."""
+class RecentSpan:
+    """A recently seen span, with the facts every later span is compared against."""
 
     span: Span
     key: tuple[Any, ...] | None
     is_db_query: bool
 
     @classmethod
-    def of(cls, span: Span) -> _WindowSpan:
+    def from_span(cls, span: Span) -> RecentSpan:
         return cls(span, _equivalence_key(span), _is_pattern_db_query(span))
 
 
-def _has_db_query_and_different_span(pattern: Sequence[_WindowSpan], key: tuple[Any, ...]) -> bool:
+def _has_db_query_and_different_span(pattern: Sequence[RecentSpan], key: tuple[Any, ...]) -> bool:
     """Whether the pattern has a db query and a span that isn't equivalent to `key`."""
-    return any(window_span.is_db_query for window_span in pattern) and any(
-        window_span.key != key for window_span in pattern
+    return any(recent.is_db_query for recent in pattern) and any(
+        recent.key != key for recent in pattern
     )
 
 
@@ -133,8 +133,8 @@ class SearchingForMNPlusOne(MNPlusOneState):
     ) -> None:
         self.settings = settings
         self.event = event
-        self.recent_spans: deque[_WindowSpan] = deque(
-            (_WindowSpan.of(span) for span in initial_spans or []),
+        self.recent_spans: deque[RecentSpan] = deque(
+            (RecentSpan.from_span(span) for span in initial_spans or []),
             self.settings["max_sequence_length"],
         )
         self.parent_map = parent_map or {}
@@ -150,7 +150,7 @@ class SearchingForMNPlusOne(MNPlusOneState):
         if span_id and parent_span_id:
             self.parent_map[span_id] = parent_span_id
 
-        current = _WindowSpan.of(span)
+        current = RecentSpan.from_span(span)
 
         # Can't be a potential MN+1 without at least 2 previous spans.
         if len(self.recent_spans) <= 1:
@@ -179,7 +179,7 @@ class SearchingForMNPlusOne(MNPlusOneState):
                     ContinuingMNPlusOne(
                         settings=self.settings,
                         event=self.event,
-                        pattern=[window_span.span for window_span in pattern],
+                        pattern=[recent.span for recent in pattern],
                         first_span=span,
                         parent_map=self.parent_map,
                     ),

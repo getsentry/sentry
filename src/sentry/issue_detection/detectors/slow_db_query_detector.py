@@ -47,7 +47,7 @@ class SlowDBQueryDetector(PerformanceDetector):
             return
 
         if self.stored_problems.get(fingerprint):
-            self.duplicate_fingerprints += 1
+            self.duplicate_fingerprint_count += 1
             return
 
         description = get_span_description(span)

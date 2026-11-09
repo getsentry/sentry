@@ -165,7 +165,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return
 
         if self.stored_problems.get(fingerprint):
-            self.duplicate_fingerprints += 1
+            self.duplicate_fingerprint_count += 1
             return
 
         offender_span_ids = [span["span_id"] for span in self.spans]

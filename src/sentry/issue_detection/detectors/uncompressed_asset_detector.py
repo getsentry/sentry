@@ -106,7 +106,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         fingerprint = self._fingerprint(span)
         span_id = span.get("span_id", None)
         if self.stored_problems.get(fingerprint):
-            self.duplicate_fingerprints += 1
+            self.duplicate_fingerprint_count += 1
             return
         if fingerprint and span_id:
             evidence_data = {

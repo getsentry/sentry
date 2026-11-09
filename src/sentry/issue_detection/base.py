@@ -14,6 +14,8 @@ from sentry.models.project import Project
 
 from .types import Span
 
+logger = logging.getLogger(__name__)
+
 
 class DetectorType(Enum):
     SLOW_DB_QUERY = "slow_db_query"
@@ -69,7 +71,7 @@ class PerformanceDetector(ABC):
         self.stored_problems: dict[str, PerformanceProblem] = {}
         self.detector_id = detector_id
         # Problems skipped because an earlier one in this event had the same fingerprint.
-        self.duplicate_fingerprints = 0
+        self.duplicate_fingerprint_count = 0
 
     def find_span_prefix(self, settings: dict[str, Any], span_op: str) -> str | bool:
         allowed_span_ops = settings.get("allowed_span_ops", [])
@@ -104,10 +106,13 @@ class PerformanceDetector(ABC):
 
     def log_duplicate_fingerprints(self) -> None:
         """Log, once per event, how many problems repeated an earlier problem's fingerprint."""
-        if self.duplicate_fingerprints:
-            logging.info(
+        if self.duplicate_fingerprint_count:
+            logger.info(
                 "Multiple occurrences detected for fingerprint",
-                extra={"detector": self.settings_key, "occurrences": self.duplicate_fingerprints},
+                extra={
+                    "detector": self.settings_key.value,
+                    "occurrences": self.duplicate_fingerprint_count,
+                },
             )
 
     @classmethod
