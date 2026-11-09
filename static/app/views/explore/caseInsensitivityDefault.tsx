@@ -2,8 +2,10 @@ import {useEffect, type ReactNode} from 'react';
 
 import {
   CaseInsensitivityDefaultContext,
+  useCaseInsensitivity,
   useCaseInsensitivityParam,
 } from 'sentry/components/searchQueryBuilder/hooks';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -14,6 +16,7 @@ import {
   useQueryParamsVisualizes,
 } from './queryParams/context';
 import type {CrossEvent} from './queryParams/crossEvent';
+import {Mode} from './queryParams/mode';
 import {IF_SUFFIX} from './utils/parseConditionalAggregate';
 
 export function hasIgnoreCaseDefault(organization: Organization) {
@@ -44,6 +47,37 @@ export function isCaseIndependent({
     ) &&
     !groupBys?.some(groupBy => groupBy !== '')
   );
+}
+
+export function useAlwaysMatchesCaseDetails({
+  query,
+  yAxes,
+  groupBys,
+  mode,
+  caseInsensitive: queryCaseInsensitive,
+}: Pick<CaseIndependenceOptions, 'query' | 'yAxes' | 'groupBys'> & {
+  mode: Mode;
+  caseInsensitive?: boolean;
+}) {
+  const organization = useOrganization();
+  const [pageCaseInsensitive] = useCaseInsensitivity();
+  const caseInsensitive = queryCaseInsensitive ?? pageCaseInsensitive;
+
+  if (!hasIgnoreCaseDefault(organization) || !caseInsensitive) {
+    return {alert: null, dashboard: null};
+  }
+
+  const details = t('Always matches case');
+
+  // Monitors and sample-mode dashboard widgets don't keep group bys.
+  const dashboardGroupBys = mode === Mode.SAMPLES ? undefined : groupBys;
+
+  return {
+    alert: isCaseIndependent({query, yAxes}) ? null : details,
+    dashboard: isCaseIndependent({query, yAxes, groupBys: dashboardGroupBys})
+      ? null
+      : details,
+  };
 }
 
 export function ExploreCaseInsensitivityDefault({children}: {children: ReactNode}) {
