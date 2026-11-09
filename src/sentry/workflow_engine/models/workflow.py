@@ -70,6 +70,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         # A hidden workflow to support inbox notifications
         INBOX = "inbox"
 
+        # A hidden workflow that triggers a Seer automation
+        SEER_AUTOMATION = "seer_automation"
+
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
 

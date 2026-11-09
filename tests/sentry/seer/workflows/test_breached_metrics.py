@@ -901,6 +901,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert workflow.extras.name == "Latency breaches"
         assert config.version == 1
         assert config.backing_workflow is not None
+        assert config.backing_workflow.type == Workflow.Type.SEER_AUTOMATION
         assert set(
             config.backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True)
         ) == set(self.monitor_ids)
