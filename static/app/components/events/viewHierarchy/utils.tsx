@@ -5,7 +5,6 @@ import type {
   ViewHierarchyNodeField,
   ViewHierarchyWindow,
 } from 'sentry/components/events/viewHierarchy';
-import type {ViewNode} from 'sentry/components/events/viewHierarchy/wireframe';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -13,6 +12,8 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+
+import type {ViewNode} from './wireframe';
 
 export function useResizeCanvasObserver(canvases: Array<HTMLCanvasElement | null>): Rect {
   const [bounds, setCanvasBounds] = useState(Rect.empty());

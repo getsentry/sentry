@@ -4,7 +4,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {Button} from '@sentry/scraps/button';
 
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import {GuidedSteps} from './guidedSteps';
 
 describe('GuidedSteps', () => {
   it('can navigate through steps and shows previous ones as completed', async () => {

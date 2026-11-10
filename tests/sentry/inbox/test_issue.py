@@ -434,7 +434,7 @@ class IssueProducerRecordingTest(TestCase):
         self.create_member(organization=self.organization, user=mentioned)
 
         with patch(
-            "sentry.inbox.types.InboxItemEvent.objects.create",
+            "sentry.inbox.types.InboxItemEvent.objects.bulk_create",
             side_effect=IntegrityError("write failed"),
         ):
             note = create_comment(

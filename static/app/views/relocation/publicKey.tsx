@@ -5,10 +5,10 @@ import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
-import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
-import {Wrapper} from 'sentry/views/relocation/components/wrapper';
 
+import {ContinueButton} from './components/continueButton';
+import {StepHeading} from './components/stepHeading';
+import {Wrapper} from './components/wrapper';
 import type {StepProps} from './types';
 
 export function PublicKey({publicKeys, relocationState, onComplete}: StepProps) {

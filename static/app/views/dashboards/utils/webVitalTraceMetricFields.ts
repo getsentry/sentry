@@ -2,13 +2,14 @@ import isEqual from 'lodash/isEqual';
 
 import {DurationUnit, FractionUnit, type DataUnit} from 'sentry/utils/discover/fields';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import {traceMetricField} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/traceMetricField';
 import {
   ORDER,
   type ProjectScore,
   type WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
+
+import {traceMetricField} from './prebuiltConfigs/utils/traceMetricField';
 
 const WEB_VITAL_METRIC_UNITS: Record<WebVitals, DataUnit> = {
   lcp: DurationUnit.MILLISECOND,

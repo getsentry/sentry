@@ -311,7 +311,6 @@ static/app/actionCreators/events.tsx
 static/app/actionCreators/group.spec.tsx
 static/app/actionCreators/group.tsx
 static/app/actionCreators/guides.tsx
-static/app/actionCreators/indicator.tsx
 static/app/actionCreators/integrations.tsx
 static/app/actionCreators/members.tsx
 static/app/actionCreators/modal.tsx
@@ -412,9 +411,6 @@ static/app/components/badge/groupPriority.tsx
 static/app/components/badge/iconCellSignal.tsx
 static/app/components/banner.spec.tsx
 static/app/components/banner.tsx
-static/app/components/breadcrumbs.spec.tsx
-static/app/components/breadcrumbs.stories.tsx
-static/app/components/breadcrumbs.tsx
 static/app/components/calendar/calendar.stories.tsx
 static/app/components/calendar/calendarStylesWrapper.tsx
 static/app/components/calendar/datePicker.tsx
@@ -2245,7 +2241,6 @@ tests/sentry/snuba/metrics/test_metrics_layer/test_metrics_enhanced_performance.
 tests/sentry/snuba/metrics/test_metrics_layer/test_release_health.py
 tests/sentry/snuba/metrics/test_metrics_query_layer/__init__.py
 tests/sentry/snuba/metrics/test_metrics_query_layer/test_metrics_query_layer.py
-tests/sentry/snuba/metrics/test_mqb_query_transformer.py
 tests/sentry/snuba/metrics/test_naming_layer.py
 tests/sentry/snuba/metrics/test_query.py
 tests/sentry/snuba/metrics/test_query_builder.py

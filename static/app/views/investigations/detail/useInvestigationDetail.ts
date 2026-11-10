@@ -8,10 +8,11 @@ import {
   investigationOrchestrationQueryOptions,
   isFollowUpPending,
 } from 'sentry/views/investigations/api';
-import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/block';
-import {isTitleGenerationActive} from 'sentry/views/investigations/detail/utils';
 import {shouldPollInvestigationRun} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {shouldPollInvestigationBlocks} from './block';
+import {isTitleGenerationActive} from './utils';
 
 export function useInvestigationDetail(investigationId: string) {
   const organization = useOrganization();

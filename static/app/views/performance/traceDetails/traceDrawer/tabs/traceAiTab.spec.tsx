@@ -5,7 +5,8 @@ import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/u
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getStringAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {TraceAiTab} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceAiTab';
+
+import {TraceAiTab} from './traceAiTab';
 
 jest.mock('sentry/utils/analytics');
 jest.mock('sentry/views/insights/pages/agents/hooks/useAITrace');

@@ -12,7 +12,8 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
-import {SeverityLevel} from 'sentry/views/explore/logs/utils';
+
+import {SeverityLevel} from './utils';
 
 export const LOGS_GRID_BODY_ROW_HEIGHT = 26;
 

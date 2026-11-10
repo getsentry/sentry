@@ -1,4 +1,4 @@
-import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
+import {formatBytesBase2} from './formatBytesBase2';
 
 describe('formatBytesBase2', () => {
   it('formats bytes below the threshold', () => {

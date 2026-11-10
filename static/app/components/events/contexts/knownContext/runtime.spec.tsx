@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getRuntimeContextData,
-  type RuntimeContext,
-} from 'sentry/components/events/contexts/knownContext/runtime';
+
+import {getRuntimeContextData, type RuntimeContext} from './runtime';
 
 const MOCK_RUNTIME_CONTEXT: RuntimeContext = {
   version: '1.7.13',

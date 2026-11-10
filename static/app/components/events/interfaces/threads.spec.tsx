@@ -12,7 +12,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {Threads} from 'sentry/components/events/interfaces/threads';
 import {stackTraceDisplayOptionLabels} from 'sentry/components/events/traceEventDataSection';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -20,6 +19,8 @@ import type {Event, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+
+import {Threads} from './threads';
 
 describe('Threads', () => {
   const organization = OrganizationFixture();
@@ -840,7 +841,6 @@ describe('Threads', () => {
 
       it('renders suspect commits', async () => {
         const user = UserFixture();
-        user.options.prefersIssueDetailsStreamlinedUI = true;
         ConfigStore.set('user', user);
         const group = GroupFixture();
         const committers = [

@@ -9,8 +9,9 @@ import type {PageFilters} from 'sentry/types/core';
 import {WidgetInViewportProvider} from 'sentry/views/dashboards/contexts/widgetViewportContext';
 import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
+
+import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
+import {WidgetQueries} from './widgetQueries';
 
 describe('Dashboards > WidgetQueries', () => {
   const initialData = initializeOrg();

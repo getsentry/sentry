@@ -11,10 +11,11 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {InfiniteListItems} from 'sentry/components/infiniteList/infiniteListItems';
 import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListState';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ReplayListItem} from 'sentry/components/replays/list/__stories__/replayListItem';
 import {t} from 'sentry/locale';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+
+import {ReplayListItem} from './replayListItem';
 interface Props {
   onSelect: (replayId: string) => void;
   queryResult: UseInfiniteQueryResult<

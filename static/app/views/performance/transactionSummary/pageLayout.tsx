@@ -9,9 +9,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tabs} from '@sentry/scraps/tabs';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -38,8 +38,6 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/tabAnalytics';
-import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
   getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
@@ -50,7 +48,9 @@ import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {TransactionHeader} from './header';
+import {TAB_ANALYTICS} from './tabAnalytics';
 import {Tab} from './tabs';
+import {TransactionSummaryContext} from './transactionSummaryContext';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
 
@@ -199,7 +199,7 @@ export function PageLayout(props: Props) {
       >
         {({isLoading, tableData, error: discoverQueryError}) => {
           if (discoverQueryError) {
-            addErrorMessage(t('Unable to get projects associated with transaction'));
+            toast.error(t('Unable to get projects associated with transaction'));
             redirectToPerformanceHomepage(organization, location, navigate);
             return null;
           }

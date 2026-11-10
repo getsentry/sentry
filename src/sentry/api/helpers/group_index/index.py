@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Collection, Sequence
 from datetime import datetime
-from typing import Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 import sentry_sdk
 from rest_framework.authentication import SessionAuthentication
@@ -30,6 +30,10 @@ from sentry.utils.cursors import Cursor, CursorResult
 
 from . import SEARCH_MAX_HITS
 from .validators import ValidationError
+
+if TYPE_CHECKING:
+    from sentry.api.serializers.models.group import GroupReleaseVersionResponse
+    from sentry.api.serializers.types import ReleaseSerializerResponse
 
 P = ParamSpec("P")
 R = TypeVar("R", bound=Response)
@@ -264,7 +268,9 @@ def prep_search(
     return result, query_kwargs
 
 
-def serialize_releases(request: Request, group: Group, versions: list[str]) -> list[dict[str, Any]]:
+def serialize_releases(
+    request: Request, group: Group, versions: list[str]
+) -> list[ReleaseSerializerResponse | GroupReleaseVersionResponse]:
     releases = {
         release.version: release
         for release in Release.objects.filter(
@@ -288,7 +294,10 @@ def get_first_last_release(
     request: Request,
     group: Group,
     environment_names: list[str] | None = None,
-) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+) -> tuple[
+    ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
+    ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
+]:
     first_release_s = group.get_first_release(environment_names=environment_names)
     if first_release_s is not None:
         last_release_s = group.get_last_release(environment_names=environment_names)

@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 import {mat3} from 'gl-matrix';
-import * as qs from 'query-string';
+import {createSerializer, parseAsString} from 'nuqs';
 
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {clamp} from 'sentry/utils/number/clamp';
@@ -25,14 +25,13 @@ import {
 } from 'sentry/views/performance/traceDetails/traceIssueUtils';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-import {TraceRowWidthMeasurer} from 'sentry/views/performance/traceDetails/traceRenderers/traceRowWidthMeasurer';
-import {TraceTextMeasurer} from 'sentry/views/performance/traceDetails/traceRenderers/traceTextMeasurer';
-import {
-  COLLAPSED_GAP_WIDTH_PX,
-  TraceTimeCompression,
-} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import type {TraceTimeCompressionGap} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import type {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
+
+import {TraceRowWidthMeasurer} from './traceRowWidthMeasurer';
+import type {TraceScheduler} from './traceScheduler';
+import {TraceTextMeasurer} from './traceTextMeasurer';
+import {COLLAPSED_GAP_WIDTH_PX, TraceTimeCompression} from './traceTimeCompression';
+import type {TraceTimeCompressionGap} from './traceTimeCompression';
+import type {TraceView} from './traceView';
 import {
   CompressedTraceViewCalculations,
   NormalTraceViewCalculations,
@@ -41,13 +40,13 @@ import {
   type TraceIconEdge,
   type TraceViewCalculationContext,
   type TraceViewCalculations,
-} from 'sentry/views/performance/traceDetails/traceRenderers/traceViewCalculations';
-
-import type {TraceScheduler} from './traceScheduler';
+} from './traceViewCalculations';
 
 const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
 const VITAL_ZOOM_PADDING_RATIO = 0.05;
+
+const serializeFovQueryParam = createSerializer({fov: parseAsString});
 
 export type TraceTimeCompressionManagerOptions = {
   enabled: boolean;
@@ -953,13 +952,9 @@ export class VirtualizedViewManager {
 
     this.timers.onFovChange = requestAnimationTimeout(() => {
       this.navigate?.(
-        {
-          pathname: location.pathname,
-          query: {
-            ...qs.parse(location.search),
-            fov: `${view.trace_view.x},${view.trace_view.width}`,
-          },
-        },
+        serializeFovQueryParam(location.pathname + location.search, {
+          fov: `${view.trace_view.x},${view.trace_view.width}`,
+        }),
         {replace: true}
       );
       this.timers.onFovChange = null;

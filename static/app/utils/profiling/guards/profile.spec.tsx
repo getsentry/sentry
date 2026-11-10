@@ -4,7 +4,7 @@ import {
   isSampledProfile,
   isSentryAndroidContinuousProfileChunk,
   isSentryContinuousProfileChunk,
-} from 'sentry/utils/profiling/guards/profile';
+} from './profile';
 
 const sampledProfile: Profiling.SampledProfile = {
   type: 'sampled',

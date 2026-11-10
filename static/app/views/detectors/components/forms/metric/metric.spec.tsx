@@ -9,7 +9,8 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
-import {NewMetricDetectorForm} from 'sentry/views/detectors/components/forms/metric/metric';
+
+import {NewMetricDetectorForm} from './metric';
 
 describe('NewMetricDetectorForm', () => {
   const organization = OrganizationFixture({

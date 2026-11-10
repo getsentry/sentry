@@ -11,10 +11,10 @@ import {
 } from 'sentry/views/explore/profiling/profilesProvider';
 import {useTransaction} from 'sentry/views/performance/traceDetails/traceApi/useTransaction';
 import {getCustomInstrumentationLink} from 'sentry/views/performance/traceDetails/traceConfigurations';
-import {ProfilePreview} from 'sentry/views/performance/traceDetails/traceDrawer/details/profiling/profilePreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {NoInstrumentationNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 
+import {ProfilePreview} from './profiling/profilePreview';
 import {TraceDrawerComponents} from './styles';
 import {getProfileMeta} from './utils';
 

@@ -13,13 +13,14 @@ import {
 } from 'sentry/components/events/interfaces/frame/utils';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
 import {getFileExtension} from 'sentry/utils/fileExtension';
+
+import {FrameVariablesGrid} from './frameVariablesGrid';
 
 interface FrameContentProps {
   effectiveContext?: Array<[number, string | null]>;

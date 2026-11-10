@@ -31,7 +31,8 @@ import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {ChartFooter} from 'sentry/views/discover/results/chartFooter';
+
+import {ChartFooter} from './chartFooter';
 
 type ResultsChartProps = {
   api: Client;

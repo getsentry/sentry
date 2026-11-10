@@ -9,15 +9,16 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {CHART_TOOLTIP_VIEWPORT_OFFSET} from 'sentry/components/charts/components/tooltip';
-import {severityColor, withAlpha} from 'sentry/components/droppedData/band/severityColor';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {severityColor, withAlpha} from './severityColor';
 import {
   BAND_HEIGHT,
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
-} from 'sentry/components/droppedData/band/useDroppedDataBand';
-import type {OutcomeRow} from 'sentry/components/droppedData/types';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+} from './useDroppedDataBand';
 
 const chartRef: React.RefObject<ReactEchartsRef | null> = {current: null};
 

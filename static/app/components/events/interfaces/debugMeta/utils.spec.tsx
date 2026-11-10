@@ -1,9 +1,6 @@
-import {
-  combineStatus,
-  getFileName,
-  getStatusWeight,
-} from 'sentry/components/events/interfaces/debugMeta/utils';
 import {ImageStatus} from 'sentry/types/debugImage';
+
+import {combineStatus, getFileName, getStatusWeight} from './utils';
 
 describe('DebugMeta  - utils', () => {
   describe('getStatusWeight function', () => {

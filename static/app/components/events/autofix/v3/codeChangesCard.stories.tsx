@@ -9,13 +9,14 @@ import type {
   RawFeedback,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
 import * as Storybook from 'sentry/stories';
 import type {User} from 'sentry/types/user';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+
+import {CodeChangesCard} from './codeChangesCard';
 
 // The Feedback section is gated behind this feature flag; the wrapper below
 // injects it so every example renders it.
@@ -151,7 +152,7 @@ function makeAutofix(
     isPolling: false,
     isProcessing: false,
     // Async no-ops — none of these are invoked by the static examples below.
-    startStep: () => Promise.resolve(0),
+    startStep: () => Promise.resolve({runId: 0, isSingleRun: false}),
     createPR: () => Promise.resolve(),
     reset: noop,
     triggerCodingAgentHandoff: () => Promise.resolve(),

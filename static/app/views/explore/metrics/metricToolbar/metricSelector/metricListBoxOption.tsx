@@ -7,10 +7,7 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {LeadWrap} from '@sentry/scraps/compactSelect';
 import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
 
-import {
-  isMetricSelectorOption,
-  type MetricSelectorItem,
-} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
+import {isMetricSelectorOption, type MetricSelectorItem} from './types';
 
 interface MetricListBoxOptionProps {
   dataIndex: number;

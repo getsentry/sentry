@@ -13,7 +13,12 @@ from requests import PreparedRequest
 from requests.exceptions import ConnectionError, SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2ApiStep, OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import (
+    ERR_INVALID_STATE,
+    OAuth2ApiStep,
+    OAuth2CallbackView,
+    OAuth2LoginView,
+)
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
@@ -162,6 +167,21 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    def test_dispatch_without_state(self, mock_record: MagicMock) -> None:
+        request = RequestFactory().get("/", {"code": "auth-code"})
+        request.session = Client().session
+        request.subdomain = None
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+
+        with (
+            patch.object(pipeline, "error") as error,
+            patch.object(OAuth2CallbackView, "exchange_token") as exchange_token,
+        ):
+            self.view.dispatch(request, pipeline)
+
+        error.assert_called_once_with(ERR_INVALID_STATE)
+        assert not exchange_token.called
 
 
 @control_silo_test

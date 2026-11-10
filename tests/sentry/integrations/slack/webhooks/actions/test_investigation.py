@@ -108,7 +108,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         detector = self.create_detector(
             project=self.project,
             type=MetricIssue.slug,
-            config={"detection_type": "static", "comparison_delta": None},
+            config={"detection_type": "static"},
             workflow_condition_group=condition_group,
             name="Checkout errors",
         )

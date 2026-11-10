@@ -186,12 +186,13 @@ This allows workflows to target a product-specific detector or the broader issue
 
 [`Workflow`](../models/workflow.py) is organization-scoped. Important fields are:
 
-| Field or relationship  | Meaning                                                 |
-| ---------------------- | ------------------------------------------------------- |
-| `when_condition_group` | Optional trigger group evaluated before action filters  |
-| `environment`          | `NULL` for all environments or one specific environment |
-| `config.frequency`     | Repeat suppression interval in minutes                  |
-| `enabled`              | Whether the workflow is eligible to run                 |
+| Field or relationship  | Meaning                                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                 | `alert` (default) for user-facing alerts, or a hidden automation type such as `inbox`; alert APIs expose only `VISIBLE_WORKFLOW_TYPES` |
+| `when_condition_group` | Optional trigger group evaluated before action filters                                                                                 |
+| `environment`          | `NULL` for all environments or one specific environment                                                                                |
+| `config.frequency`     | Repeat suppression interval in minutes                                                                                                 |
+| `enabled`              | Whether the workflow is eligible to run                                                                                                |
 
 ### `WorkflowDataConditionGroup`
 
@@ -211,6 +212,13 @@ owning integration or notification package rather than in `workflow_engine`.
 
 An action can be reachable from more than one Workflow. The data model does not define
 action execution order.
+
+API serializers load this graph in bulk: `WorkflowSerializer.get_attrs()` prefetches
+environments and joins each `WorkflowDataConditionGroup` to its condition group;
+`DataConditionGroupSerializer.get_attrs()` joins each `DataConditionGroupAction` to
+its action. The latter also serves detector trigger groups. Per-object `serialize()`
+methods use the loaded attributes without database queries. Keep these joins within
+the cell silo; owner and integration references must not introduce cross-silo joins.
 
 ## Runtime State and History
 
@@ -242,6 +250,13 @@ foreign key can become null after deletion so existing issue history remains val
 The association is normally created during Issue Platform ingestion. Compatibility
 paths can backfill missing associations. Callers resolving a detector from an issue must
 handle deleted or missing detector records.
+
+Open-period history serialization groups activities by `group_open_period_id`, without
+loading each activity's parent. Serializer attributes remain keyed by the original
+`GroupOpenPeriod` instances from the page. Activities are ordered by creation time and
+clipped to 100 per period after fetching and serialization. With a start bound, the
+current query includes one globally latest pre-window activity across the page, not
+one per period; ID grouping does not change this selection policy.
 
 ### `WorkflowActionGroupStatus`
 
@@ -276,6 +291,11 @@ source object, generic data source, source mapping, and workflows.
 
 Default detectors and workflows are created by [`defaults/`](../defaults) from project
 and organization signal receivers. These functions must remain idempotent.
+
+Workflows created through the public API go through
+[`WorkflowValidator`](../endpoints/validators/base/workflow.py), which never sets `type`,
+so they are always `alert`. Code that creates a hidden workflow type passes `type` to
+`Workflow.objects.create` directly.
 
 ### Updates
 

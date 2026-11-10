@@ -150,14 +150,11 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // The hooks below reset state only when its module is already loaded. Check
 // require.cache to avoid loading the module and its imports into every spec.
-// Close any open modals before each test
 beforeEach(() => {
-  if (require.resolve('sentry/stores/modalStore') in require.cache) {
+  if (require.resolve('@sentry/scraps/modal') in require.cache) {
     jest
-      .requireActual<typeof import('sentry/stores/modalStore')>(
-        'sentry/stores/modalStore'
-      )
-      .ModalStore.closeModal();
+      .requireActual<typeof import('@sentry/scraps/modal')>('@sentry/scraps/modal')
+      .closeModal();
   }
 });
 afterEach(() => {

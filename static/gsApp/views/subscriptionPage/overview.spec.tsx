@@ -4,7 +4,7 @@ import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {RecurringCreditFixture} from 'getsentry-test/fixtures/recurringCredit';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
@@ -160,5 +160,33 @@ describe('Subscription > Overview', () => {
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(screen.queryByText(/Usage:/)).not.toBeInTheDocument();
     expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
+  });
+
+  it('renders an error with retry when the customer response is empty', async () => {
+    // Clear the cached subscription so the page fetches it from the customer endpoint.
+    SubscriptionStore.init();
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'GET',
+    });
+
+    render(<Overview />, {
+      organization,
+      additionalWrapper: SecondaryNavigationContextProvider,
+    });
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('permission-denied')).not.toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'GET',
+      body: SubscriptionFixture({organization, plan: 'mm2_b_100k'}),
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    expect(await screen.findByText(/Usage:/)).toBeInTheDocument();
   });
 });

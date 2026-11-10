@@ -2,7 +2,7 @@ import {createRef} from 'react';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Sticky} from 'sentry/components/sticky';
+import {Sticky} from './sticky';
 
 describe('Sticky', () => {
   const originalIntersectionObserver = window.IntersectionObserver;

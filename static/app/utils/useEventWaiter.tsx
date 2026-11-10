@@ -6,10 +6,10 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+
+import {apiOptions} from './api/apiOptions';
+import {makeDetailedProjectApiOptions} from './project/useDetailedProject';
+import {RequestError} from './requestError/requestError';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 
@@ -74,16 +74,6 @@ export function useEventWaiter({
 }: UseEventWaiterOptions): EventWaiterResult {
   const shouldPoll = !disabled && !!organization && !!project;
 
-  const issuesUrl = getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: project.slug,
-      },
-    }
-  );
-
   // Poll the project endpoint to detect when the first event arrives
   const projectQuery = useQuery({
     ...makeDetailedProjectApiOptions({
@@ -120,9 +110,15 @@ export function useEventWaiter({
     : null;
 
   // For errors, fetch the first issue group once we know the first event exists
-  const issuesQuery = useApiQuery<Group[]>([issuesUrl], {
+  const issuesQuery = useQuery({
+    ...apiOptions.as<Group[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
+      {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        staleTime: 0,
+      }
+    ),
     enabled: eventType === 'error' && !!projectEventValue,
-    staleTime: 0,
   });
 
   useEffect(() => {

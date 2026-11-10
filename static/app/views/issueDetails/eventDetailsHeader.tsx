@@ -23,27 +23,25 @@ import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {EventGraph} from 'sentry/views/issueDetails/eventGraph';
-import {EventSearch} from 'sentry/views/issueDetails/eventSearch';
-import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
-import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/issueCronCheckTimeline';
-import {
-  IssueDetailsTour,
-  IssueDetailsTourContext,
-} from 'sentry/views/issueDetails/issueDetailsTour';
-import {IssueTagsPreview} from 'sentry/views/issueDetails/issueTagsPreview';
-import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/issueUptimeCheckTimeline';
-import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
-import {OccurrenceSummary} from 'sentry/views/issueDetails/occurrenceSummary';
-import {getDetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorSection';
-import {ToggleSidebar} from 'sentry/views/issueDetails/sidebar/toggleSidebar';
-import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
+
+import {useEventQuery} from './hooks/useEventQuery';
+import {MetricIssueChart} from './metricIssues/metricIssueChart';
+import {getDetectorDetails} from './sidebar/detectorSection';
+import {ToggleSidebar} from './sidebar/toggleSidebar';
+import {useIssueDetails} from './context';
+import {EventGraph} from './eventGraph';
+import {EventSearch} from './eventSearch';
+import {IssueCronCheckTimeline} from './issueCronCheckTimeline';
+import {IssueDetailsTour, IssueDetailsTourContext} from './issueDetailsTour';
+import {IssueTagsPreview} from './issueTagsPreview';
+import {IssueUptimeCheckTimeline} from './issueUptimeCheckTimeline';
+import {OccurrenceSummary} from './occurrenceSummary';
+import {useGroupDefaultStatsPeriod} from './useGroupDefaultStatsPeriod';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
   useEnvironmentsFromUrl,
-} from 'sentry/views/issueDetails/utils';
+} from './utils';
 
 interface EventDetailsHeaderProps {
   group: Group;

@@ -6,10 +6,11 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import {IssueListSortOptions} from 'sentry/views/issueList/actions/sortOptions';
-import {IssueSearch} from 'sentry/views/issueList/issueSearch';
-import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
-import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {IssueListSortOptions} from './actions/sortOptions';
+import {IssueViewSaveButton} from './issueViews/issueViewSaveButton';
+import {IssueSearch} from './issueSearch';
+import type {IssueSortOptions} from './utils';
 
 interface Props {
   onSearch: (query: string) => void;

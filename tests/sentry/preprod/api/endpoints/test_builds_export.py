@@ -240,7 +240,10 @@ class BuildsExportEndpointTest(APITestCase):
         self._create_installable_build(app_id="foo")
         response = self._request({"query": "no_such_key:foo"})
         assert response.status_code == 400
-        assert response.json() == {"detail": "Invalid key for this search: no_such_key"}
+        assert response.json() == {
+            "detail": "Invalid key for this search: no_such_key",
+            "code": "invalid_search_query",
+        }
 
     def test_bad_project(self) -> None:
         self._create_installable_build()

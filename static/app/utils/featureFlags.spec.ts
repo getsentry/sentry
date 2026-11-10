@@ -1,10 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  addOrganizationFeaturesHandler,
-  addProjectFeaturesHandler,
-} from 'sentry/utils/featureFlags';
+import {addOrganizationFeaturesHandler, addProjectFeaturesHandler} from './featureFlags';
 
 describe('addOrganizationFeaturesHandler', () => {
   let organization: any;

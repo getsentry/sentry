@@ -16,12 +16,10 @@ import {
 import {Container} from '@sentry/scraps/layout';
 
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
-import {
-  DebugMetaSearchProvider,
-  useDebugMetaSearch,
-} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import type {Image} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
+
+import {DebugMetaSearchProvider, useDebugMetaSearch} from './debugMetaSearchContext';
 
 let mockRowSize = 60;
 

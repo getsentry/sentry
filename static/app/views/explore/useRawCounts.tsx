@@ -1,14 +1,15 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+
+import {SAMPLING_MODE} from './hooks/useProgressiveQuery';
 
 type QueryResultItem<K extends string> = Record<K, number | null>;
 
@@ -62,20 +63,21 @@ export function useRawCounts({
 
   const baseReferrer = getBaseReferrer(dataset);
 
-  const normalScanQueryKey: ApiQueryKey = [
-    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
+  const normalScanOptions = apiOptions.as<QueryResult<typeof count>>()(
+    '/organizations/$organizationIdOrSlug/events/',
     {
+      path: {organizationIdOrSlug: organization.slug},
       query: {
         ...baseQueryParams,
         referrer: `${baseReferrer}.normal`,
         sampling: SAMPLING_MODE.NORMAL,
       },
-    },
-  ];
+      staleTime: 0,
+    }
+  );
 
-  const normalScanResult = useApiQuery<QueryResult<typeof count>>(normalScanQueryKey, {
+  const normalScanResult = useQuery({
+    ...normalScanOptions,
     enabled: enabled ?? true,
     staleTime: 0,
   });
@@ -87,11 +89,10 @@ export function useRawCounts({
     extrapolationMode: 'serverOnly',
   };
 
-  const totalCountQueryKey: ApiQueryKey = [
-    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
+  const totalCountOptions = apiOptions.as<QueryResult<typeof count>>()(
+    '/organizations/$organizationIdOrSlug/events/',
     {
+      path: {organizationIdOrSlug: organization.slug},
       query: {
         ...baseQueryParams,
         referrer: `${baseReferrer}.high-accuracy`,
@@ -100,10 +101,12 @@ export function useRawCounts({
           ? normalModeExtrapolatedOptions
           : {}),
       },
-    },
-  ];
+      staleTime: 0,
+    }
+  );
 
-  const totalCountResult = useApiQuery<QueryResult<typeof count>>(totalCountQueryKey, {
+  const totalCountResult = useQuery({
+    ...totalCountOptions,
     enabled: enabled ?? true,
     staleTime: 0,
   });

@@ -9,13 +9,6 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
-import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
-import {
-  getOutcomeColors,
-  isOutcomeSelected,
-  type OutcomeSelection,
-} from 'sentry/components/droppedData/drawer/outcomeColors';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import {
   droppedEventsToOutcomeGroups,
@@ -33,6 +26,14 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
+
+import {DroppedDataChart} from './droppedDataChart';
+import {DroppedDataOutcomeList} from './droppedDataOutcomeList';
+import {
+  getOutcomeColors,
+  isOutcomeSelected,
+  type OutcomeSelection,
+} from './outcomeColors';
 
 interface DroppedDataDrawerProps extends UseDroppedDataParams {
   onAskSeer?: AskSeerHandler;

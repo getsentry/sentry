@@ -13,15 +13,16 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
-import {groupUserFeedbackApiOptions} from 'sentry/views/issueDetails/groupUserFeedbackApiOptions';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {useGroupId} from './groupIdContext';
+import {groupUserFeedbackApiOptions} from './groupUserFeedbackApiOptions';
+import {useGroup} from './useGroup';
 
 function GroupUserFeedback() {
   const organization = useOrganization();
   const [cursor] = useQueryState('cursor', parseAsString);
-  const params = useParams<{groupId: string}>();
+  const groupId = useGroupId();
 
   const {
     data: group,
@@ -29,12 +30,12 @@ function GroupUserFeedback() {
     isError: isErrorGroup,
     refetch: refetchGroup,
   } = useGroup({
-    groupId: params.groupId,
+    groupId,
   });
 
   const {data, isPending, isError, refetch} = useQuery({
     ...groupUserFeedbackApiOptions(organization, {
-      groupId: params.groupId,
+      groupId,
       query: {
         cursor: cursor ?? undefined,
       },
@@ -84,7 +85,7 @@ function GroupUserFeedback() {
               <EventUserFeedback
                 key={item.id}
                 report={item}
-                eventLink={`/organizations/${organization.slug}/issues/${params.groupId}/events/${item.eventID}/?referrer=user-feedback`}
+                eventLink={`/organizations/${organization.slug}/issues/${groupId}/events/${item.eventID}/?referrer=user-feedback`}
               />
             ))}
             <Pagination pageLinks={pageLinks} />

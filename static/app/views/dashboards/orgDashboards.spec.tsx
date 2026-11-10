@@ -9,16 +9,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {OrgDashboards} from 'sentry/views/dashboards/orgDashboards';
-import {
-  PREBUILT_DASHBOARDS,
-  PrebuiltDashboardId,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+
+import {PREBUILT_DASHBOARDS, PrebuiltDashboardId} from './utils/prebuiltConfigs';
+import {OrgDashboards} from './orgDashboards';
 
 describe('OrgDashboards', () => {
-  const organization = OrganizationFixture({
-    features: ['dashboards-basic', 'dashboards-edit'],
-  });
+  const organization = OrganizationFixture();
 
   const dashboardPath = `/organizations/${organization.slug}/dashboard/1/`;
 

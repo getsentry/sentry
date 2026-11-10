@@ -3,7 +3,8 @@ import {CategoricalSeriesFixture} from 'sentry-fixture/categoricalSeries';
 import {sampleCountCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/countCategorical';
 import {sampleDurationCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/durationCategorical';
 import {sampleStackedCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/stackedCategorical';
-import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
+
+import {Bars} from './bars';
 
 describe('Bars', () => {
   describe('Properties', () => {
