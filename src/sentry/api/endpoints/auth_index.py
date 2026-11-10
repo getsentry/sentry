@@ -25,7 +25,7 @@ from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.principal import (
     acting_user_id,
-    owned_by_acting_user,
+    is_owned_by_acting_user,
     require_user,
     set_request_principal,
 )
@@ -315,7 +315,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
                 if verify_authenticator:
                     if not Authenticator.objects.filter(
-                        owned_by_acting_user(request.user), type=U2fInterface.type
+                        is_owned_by_acting_user(request.user), type=U2fInterface.type
                     ).exists():
                         return Response(
                             {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN

@@ -1,7 +1,8 @@
 import {Client} from 'sentry/api';
-import {defined} from 'sentry/utils/defined';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+
+import {RequestError} from './requestError/requestError';
+import {defined} from './defined';
+import {parseLinkHeader} from './parseLinkHeader';
 
 type Options = {
   linkPreviousHref: string;

@@ -16,12 +16,13 @@ import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {IssueListActions} from 'sentry/views/issueList/actions';
-import {GroupListBody, ISSUE_LIST_COLUMNS} from 'sentry/views/issueList/groupListBody';
-import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
-import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {IssueListActions} from './actions';
+import {GroupListBody, ISSUE_LIST_COLUMNS} from './groupListBody';
+import {IssueListBulkCommandPaletteActions} from './issueListBulkCommandPaletteActions';
+import {NewViewEmptyState} from './newViewEmptyState';
+import type {IssueUpdateData} from './types';
+import type {IssueSortOptions} from './utils';
 
 interface IssueListTableProps {
   allResultsVisible: boolean;

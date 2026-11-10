@@ -2,11 +2,13 @@ import {
   queryOptions,
   skipToken,
   useMutation,
+  useQuery,
   useQueryClient,
   type UseMutationOptions,
 } from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -21,9 +23,7 @@ import type {
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -62,16 +62,17 @@ export const automationsApiOptions = (
   });
 };
 
-const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
-    path: {organizationIdOrSlug: orgSlug, workflowId: automationId},
-  }),
-];
+const automationApiOptions = (orgSlug: string, automationId: string) =>
+  apiOptions.as<Automation>()(
+    '/organizations/$organizationIdOrSlug/workflows/$workflowId/',
+    {path: {organizationIdOrSlug: orgSlug, workflowId: automationId}, staleTime: 0}
+  );
 
 export function useAutomationQuery(automationId: string) {
   const {slug} = useOrganization();
 
-  return useApiQuery<Automation>(makeAutomationQueryKey(slug, automationId), {
+  return useQuery({
+    ...automationApiOptions(slug, automationId),
     staleTime: 0,
     retry: false,
   });
@@ -109,34 +110,25 @@ export function automationFireHistoryApiOptions({
 export function useDataConditionsQuery(groupType: DataConditionHandlerGroupType) {
   const {slug} = useOrganization();
 
-  return useApiQuery<DataConditionHandler[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/data-conditions/', {
-        path: {organizationIdOrSlug: slug},
-      }),
-      {query: {group: groupType}},
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<DataConditionHandler[]>()(
+      '/organizations/$organizationIdOrSlug/data-conditions/',
+      {path: {organizationIdOrSlug: slug}, query: {group: groupType}, staleTime: Infinity}
+    ),
+    retry: false,
+  });
 }
 
 export function useAvailableActionsQuery() {
   const {slug} = useOrganization();
 
-  return useApiQuery<ActionHandler[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/available-actions/', {
-        path: {organizationIdOrSlug: slug},
-      }),
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<ActionHandler[]>()(
+      '/organizations/$organizationIdOrSlug/available-actions/',
+      {path: {organizationIdOrSlug: slug}, staleTime: Infinity}
+    ),
+    retry: false,
+  });
 }
 
 export function useCreateAutomation({
@@ -166,7 +158,7 @@ export function useCreateAutomation({
       if (suppressErrorMessage) {
         return;
       }
-      addErrorMessage(
+      toast.error(
         getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
           t('Unable to create alert')
       );
@@ -193,10 +185,10 @@ export function useDeleteAutomationMutation() {
       queryClient.invalidateQueries({
         queryKey: automationsApiOptions(org).queryKey,
       });
-      addSuccessMessage(t('Alert deleted'));
+      toast.success(t('Alert deleted'));
     },
     onError: error => {
-      addErrorMessage(t('Unable to delete alert: %s', error.message));
+      toast.error(t('Unable to delete alert: %s', error.message));
     },
   });
 }
@@ -231,10 +223,10 @@ export function useDeleteAutomationsMutation() {
       queryClient.invalidateQueries({
         queryKey: automationsApiOptions(org).queryKey,
       });
-      addSuccessMessage(t('Alerts deleted'));
+      toast.success(t('Alerts deleted'));
     },
     onError: error => {
-      addErrorMessage(t('Unable to delete alerts: %s', error.message));
+      toast.error(t('Unable to delete alerts: %s', error.message));
     },
   });
 }
@@ -263,14 +255,9 @@ export function useUpdateAutomation({
       ),
     onSuccess: data => {
       // Update cache with new automation data
-      setApiQueryData(
-        queryClient,
-        [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
-            path: {organizationIdOrSlug: org.slug, workflowId: data.id},
-          }),
-        ],
-        data
+      queryClient.setQueryData(
+        automationApiOptions(org.slug, data.id).queryKey,
+        previous => ({...previous, json: data, headers: previous?.headers ?? {}})
       );
       // Invalidate list query
       queryClient.invalidateQueries({
@@ -281,7 +268,7 @@ export function useUpdateAutomation({
       if (suppressErrorMessage) {
         return;
       }
-      addErrorMessage(
+      toast.error(
         getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
           t('Unable to update alert')
       );
@@ -320,10 +307,10 @@ export function useUpdateAutomationsMutation() {
       queryClient.invalidateQueries({
         queryKey: automationsApiOptions(org).queryKey,
       });
-      addSuccessMessage(variables.enabled ? t('Alerts enabled') : t('Alerts disabled'));
+      toast.success(variables.enabled ? t('Alerts enabled') : t('Alerts disabled'));
     },
     onError: (error, variables) => {
-      addErrorMessage(
+      toast.error(
         t(
           'Unable to %s alerts: %2$s',
           variables.enabled ? t('enable') : t('disable'),
@@ -362,13 +349,13 @@ export function useSendTestNotification(
       queryClient.invalidateQueries({
         queryKey: automationsApiOptions(org).queryKey,
       });
-      addSuccessMessage(
+      toast.success(
         tn('Notification fired!', 'Notifications sent!', variables.actions.length)
       );
       options?.onSuccess?.(data, variables, onMutateResult, context);
     },
     onError: (error, variables, onMutateResult, context) => {
-      addErrorMessage(
+      toast.error(
         getWorkflowEngineResponseErrorMessage(error.responseJSON) ||
           tn('Notification failed', 'Notifications failed', variables.actions.length)
       );

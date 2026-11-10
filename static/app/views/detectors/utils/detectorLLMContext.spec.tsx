@@ -15,7 +15,8 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {detectorToLLMContext} from 'sentry/views/detectors/utils/detectorLLMContext';
+
+import {detectorToLLMContext} from './detectorLLMContext';
 
 describe('detectorToLLMContext', () => {
   it('reports the shared identity fields', () => {

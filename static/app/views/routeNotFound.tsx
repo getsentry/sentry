@@ -8,7 +8,8 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useLastKnownRoute} from 'sentry/views/lastKnownRouteContextProvider';
+
+import {useLastKnownRoute} from './lastKnownRouteContextProvider';
 
 export function RouteNotFound() {
   const navigate = useNavigate();

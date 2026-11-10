@@ -128,6 +128,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
@@ -229,6 +230,11 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, create_snuba_query
+from sentry.telemetry_classifiers.models import (
+    TelemetryClassifier,
+    TelemetryClassifierDataset,
+    TelemetryClassifierOutputType,
+)
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
@@ -427,9 +433,7 @@ DEFAULT_EVENT_DATA = {
     "platform": "python",
 }
 
-default_detector_config_data = {
-    MetricIssue.slug: {"threshold_period": 1, "detection_type": "static"}
-}
+default_detector_config_data = {MetricIssue.slug: {"detection_type": "static"}}
 
 
 def _patch_artifact_manifest(
@@ -2613,7 +2617,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_inbox_item_event(
         inbox_item: InboxItem,
-        type: str = "issue.assigned",
+        type: str = "issue.user_assigned",
         actor: User | RpcUser | None = None,
         **kwargs: Any,
     ) -> InboxItemEvent:
@@ -2732,6 +2736,24 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_telemetry_classifier(
+        project: Project | None = None, **kwargs: Any
+    ) -> TelemetryClassifier:
+        if project is None:
+            project = Factories.create_project()
+        defaults: dict[str, Any] = {
+            "name": petname.generate(2, " ", letters=10).title(),
+            "result_attribute": "sentry.classifier.result",
+            "dataset": TelemetryClassifierDataset.CONVERSATION,
+            "filter_query": "",
+            "natural_language_prompt": "Is the user frustrated?",
+            "compiled_prompt": "Return yes when the user is frustrated.",
+            "output_type": TelemetryClassifierOutputType.BINARY,
+        }
+        return TelemetryClassifier.objects.create(project=project, **{**defaults, **kwargs})
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_dashboard(
         organization: Organization | None = None,
         title: str | None = None,
@@ -2837,6 +2859,21 @@ class Factories:
         query = ExploreSavedQuery.objects.create(organization=organization, **kwargs)
         query.set_projects([project.id for project in projects])
         return query
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_search_view(
+        organization: Organization,
+        user_id: int,
+        projects: Sequence[Project] = (),
+        **kwargs: Any,
+    ) -> GroupSearchView:
+        kwargs.setdefault("name", petname.generate(2, " ", letters=10).title())
+        kwargs.setdefault("query", "is:unresolved")
+        kwargs.setdefault("query_sort", "date")
+        view = GroupSearchView.objects.create(organization=organization, user_id=user_id, **kwargs)
+        view.projects.set(projects)
+        return view
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -3596,9 +3633,11 @@ class Factories:
         for action in trigger_actions:
             Factories.create_seer_workflow_trigger_binding(config, action)
         if monitors:
-            BreachedMetricWorkflow(
+            workflow = BreachedMetricWorkflow(
                 config_id=config.id, organization_id=config.organization_id
-            ).set_monitor_selection([monitor.id for monitor in monitors])
+            )
+            with workflow.update_config() as update:
+                update.set_monitor_selection([monitor.id for monitor in monitors])
             config.refresh_from_db()
         return config
 

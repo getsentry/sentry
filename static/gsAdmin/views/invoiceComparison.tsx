@@ -1,6 +1,7 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
@@ -158,10 +159,10 @@ function nowLocal(): string {
   return toDatetimeLocalValue(new Date());
 }
 
+// Subtract elapsed time, not wall-clock hours: `setHours` across a DST
+// transition yields a 23h or 25h window.
 function hoursAgoLocal(hours: number): string {
-  const d = new Date();
-  d.setHours(d.getHours() - hours);
-  return toDatetimeLocalValue(d);
+  return toDatetimeLocalValue(new Date(Date.now() - hours * 60 * 60 * 1000));
 }
 
 // `datetime-local` value is local time without offset; convert to a UTC ISO
@@ -209,54 +210,76 @@ export function InvoiceComparison() {
   const cells = getCells();
   const location = useLocation();
   const navigate = useNavigate();
-  const [cell, setCell] = useState(cells[0] ?? null);
 
   // URL is the source of truth for everything that affects the query and
   // the displayed paginator state, so refresh / share-link reproduces the
   // exact view. Local state only tracks what the user is typing in the
   // date inputs before they click Run.
+  const [queryRegion, setQueryRegion] = useQueryState('region', parseAsString);
+  const cell = cells.find(c => c.name === queryRegion) ?? cells[0] ?? null;
   const queryStart = firstQueryValue(location.query.start);
   const queryEnd = firstQueryValue(location.query.end);
   const rowsPage = parsePageParam(location.query.rows_page);
   const unmatchedPage = parsePageParam(location.query.unmatched_page);
   const pageSize = parsePageSizeParam(location.query.page_size);
 
+  // Without a window in the URL (first visit, or a link that only carries
+  // pagination params) query the last 24h so the tables load without waiting
+  // on Run. Frozen at mount so paginating doesn't shift the window.
+  const [defaultWindow] = useState(() => ({
+    start: localInputToUtcIso(hoursAgoLocal(24)),
+    end: localInputToUtcIso(nowLocal()),
+  }));
+  // A single bound in the URL is not a range. Filling the other side from the
+  // default makes the endpoint reject `end < start`, or loads every invoice
+  // since an old start (`compare_invoices` reads the whole window, then
+  // paginates), so don't query until both are set.
+  const urlHasBound = Boolean(queryStart || queryEnd);
+  const windowStart = urlHasBound ? queryStart : defaultWindow.start;
+  const windowEnd = urlHasBound ? queryEnd : defaultWindow.end;
+  const hasWindow = Boolean(windowStart && windowEnd);
+
   const [startInput, setStartInput] = useState(() =>
-    queryStart ? utcIsoToDatetimeLocalValue(queryStart) : hoursAgoLocal(24)
+    utcIsoToDatetimeLocalValue(windowStart ?? defaultWindow.start)
   );
   const [endInput, setEndInput] = useState(() =>
-    queryEnd ? utcIsoToDatetimeLocalValue(queryEnd) : nowLocal()
+    utcIsoToDatetimeLocalValue(windowEnd ?? defaultWindow.end)
   );
 
-  // Keep the date inputs in sync with the URL on back/forward and in-app
-  // navigation that changes start/end (e.g. opening a shared link). When the
-  // URL has no window yet we leave the inputs alone so the user's in-progress
-  // typing isn't clobbered.
+  // Keep the date inputs in sync with the window being shown on back/forward
+  // and in-app navigation (e.g. opening a shared link). Keyed on the shown
+  // window rather than the URL, so pinning the default window into an empty
+  // URL doesn't clobber dates typed but not yet run.
   useEffect(() => {
-    if (queryStart) {
+    if (windowStart) {
       // oxlint-disable-next-line react/set-state-in-effect
-      setStartInput(utcIsoToDatetimeLocalValue(queryStart));
+      setStartInput(utcIsoToDatetimeLocalValue(windowStart));
     }
-    if (queryEnd) {
-      setEndInput(utcIsoToDatetimeLocalValue(queryEnd));
+    if (windowEnd) {
+      setEndInput(utcIsoToDatetimeLocalValue(windowEnd));
     }
-  }, [queryStart, queryEnd]);
+  }, [windowStart, windowEnd]);
 
-  const enabled = Boolean(queryStart && queryEnd && cell);
-  const {data, isPending, isError, error, isPlaceholderData} = useQuery({
+  // Written into every URL this page rewrites, so a refresh or shared link
+  // reproduces the window being shown. Left out for a one-sided URL so the
+  // bound that is there isn't replaced.
+  const pinnedWindow = useMemo(
+    () => (hasWindow ? {start: windowStart, end: windowEnd} : {}),
+    [hasWindow, windowStart, windowEnd]
+  );
+
+  const {data, isLoading, isError, error, isPlaceholderData} = useQuery({
     ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
-      path: enabled && cell ? {region: cell.name} : skipToken,
+      path: cell && hasWindow ? {region: cell.name} : skipToken,
       host: cell?.locality_url,
-      query: enabled
-        ? {
-            start: queryStart,
-            end: queryEnd,
-            rows_page: rowsPage,
-            unmatched_page: unmatchedPage,
-            rows_page_size: pageSize,
-            unmatched_page_size: pageSize,
-          }
-        : undefined,
+      query: {
+        start: windowStart,
+        end: windowEnd,
+        rows_page: rowsPage,
+        unmatched_page: unmatchedPage,
+        rows_page_size: pageSize,
+        unmatched_page_size: pageSize,
+      },
       staleTime: 0,
     }),
     // Keep the previously-rendered page visible while paginating or
@@ -276,12 +299,12 @@ export function InvoiceComparison() {
       navigate(
         {
           pathname: location.pathname,
-          query: {...location.query, page_size: String(pageSize)},
+          query: {...location.query, ...pinnedWindow, page_size: String(pageSize)},
         },
         {replace: true}
       );
     }
-  }, [rawPageSize, pageSize, navigate, location.pathname, location.query]);
+  }, [rawPageSize, pageSize, navigate, location.pathname, location.query, pinnedWindow]);
 
   // If the backend clamped our requested page (e.g. user landed on
   // ?rows_page=99 against a 2-page result), rewrite the URL to the
@@ -304,7 +327,10 @@ export function InvoiceComparison() {
     }
     if (Object.keys(fixes).length > 0) {
       navigate(
-        {pathname: location.pathname, query: {...location.query, ...fixes}},
+        {
+          pathname: location.pathname,
+          query: {...location.query, ...pinnedWindow, ...fixes},
+        },
         {replace: true}
       );
     }
@@ -316,6 +342,7 @@ export function InvoiceComparison() {
     navigate,
     location.pathname,
     location.query,
+    pinnedWindow,
   ]);
 
   // The endpoint returns rows pre-sorted by |delta_pct| desc; this component
@@ -326,7 +353,7 @@ export function InvoiceComparison() {
   const setPage = (key: 'rows_page' | 'unmatched_page', page: number) => {
     navigate({
       pathname: location.pathname,
-      query: {...location.query, [key]: String(page)},
+      query: {...location.query, ...pinnedWindow, [key]: String(page)},
     });
   };
 
@@ -338,6 +365,7 @@ export function InvoiceComparison() {
       pathname: location.pathname,
       query: {
         ...location.query,
+        ...pinnedWindow,
         page_size: String(size),
         rows_page: '1',
         unmatched_page: '1',
@@ -393,11 +421,9 @@ export function InvoiceComparison() {
                 trigger={triggerProps => (
                   <OverlayTrigger.Button {...triggerProps} prefix="Region" />
                 )}
-                value={cell?.locality_url ?? ''}
-                options={cells.map(c => ({label: c.name, value: c.locality_url}))}
-                onChange={opt => {
-                  setCell(cells.find(c => c.locality_url === opt.value) ?? null);
-                }}
+                value={cell?.name ?? ''}
+                options={cells.map(c => ({label: c.name, value: c.name}))}
+                onChange={opt => setQueryRegion(opt.value)}
               />
             </Stack>
             <Stack gap="xs">
@@ -439,7 +465,9 @@ export function InvoiceComparison() {
         </PanelBody>
       </Panel>
 
-      {enabled && isPending && <LoadingIndicator>Comparing…</LoadingIndicator>}
+      {/* isPending stays true while the query is skipped (no cell, or a
+          one-sided window), which would spin forever. */}
+      {isLoading && <LoadingIndicator>Comparing…</LoadingIndicator>}
 
       {isError && (
         <Alert.Container>

@@ -1,7 +1,7 @@
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface GroupTag {
@@ -33,35 +33,32 @@ interface FetchIssueTagsParameters {
   limit?: number;
 }
 
-type GroupTagUseQueryOptions = Partial<UseApiQueryOptions<GroupTag[]>>;
-
-const makeGroupTagsQueryKey = ({
+const groupTagsOptions = ({
   groupId,
   orgSlug,
   environment,
   limit,
-}: FetchIssueTagsParameters): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/', {
-    path: {organizationIdOrSlug: orgSlug, issueId: groupId!},
-  }),
-  {query: {environment, limit}},
-];
+}: FetchIssueTagsParameters) =>
+  apiOptions.as<GroupTag[]>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/tags/',
+    {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId!},
+      query: {environment, limit},
+      staleTime: 30000,
+    }
+  );
 
 export function useGroupTags(
   parameters: Omit<FetchIssueTagsParameters, 'orgSlug'>,
-  {enabled = true, ...options}: GroupTagUseQueryOptions = {}
+  options: {enabled?: boolean} = {}
 ) {
   const organization = useOrganization();
-  return useApiQuery<GroupTag[]>(
-    makeGroupTagsQueryKey({
+  return useQuery({
+    ...groupTagsOptions({
       orgSlug: organization.slug,
       limit: 3,
       ...parameters,
     }),
-    {
-      staleTime: 30000,
-      enabled: defined(parameters.groupId) && enabled,
-      ...options,
-    }
-  );
+    enabled: defined(parameters.groupId) && (options.enabled ?? true),
+  });
 }

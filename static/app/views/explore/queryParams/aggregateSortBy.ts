@@ -1,8 +1,9 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
-import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+
+import type {AggregateField} from './aggregateField';
+import {isGroupBy} from './groupBy';
+import {isVisualize} from './visualize';
 
 export function getAggregateSortBys(
   rawSortBys: readonly string[],

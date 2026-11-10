@@ -20,7 +20,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {IdBadge} from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
@@ -30,6 +29,8 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
+
+import {IdBadge} from './idBadge';
 
 const StyledIconUser = styled(IconUser)`
   margin-left: ${p => p.theme.space['2xs']};

@@ -15,11 +15,11 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupActivityType} from 'sentry/types/group';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
+
+import {IssueDetailsSidebar} from './sidebar';
 
 describe('IssueDetailsSidebar', () => {
   const user = UserFixture();
-  user.options.prefersIssueDetailsStreamlinedUI = true;
   ConfigStore.set('user', user);
 
   const activityContent = 'test-note';

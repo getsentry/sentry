@@ -24,14 +24,15 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
-import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
+import type {TraceTree} from './traceModels/traceTree';
 import {
   TRACE_VIEW_MOBILE_VITALS,
   TRACE_VIEW_WEB_VITALS,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTree.measurements';
-import {useTraceContextSections} from 'sentry/views/performance/traceDetails/useTraceContextSections';
-import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
+} from './traceModels/traceTree.measurements';
+import {useTraceContextSections} from './useTraceContextSections';
+import {TraceLayoutTabKeys} from './useTraceLayoutTabs';
 
 type Props = {
   rootEventResults: TraceRootEventQueryResults;

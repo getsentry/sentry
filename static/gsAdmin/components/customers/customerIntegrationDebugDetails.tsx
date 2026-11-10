@@ -6,8 +6,8 @@ import moment from 'moment-timezone';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -63,12 +63,12 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
             method: 'POST',
             data,
           });
-          addSuccessMessage('Integrations reset successfully.');
+          toast.success('Integrations reset successfully.');
           setRefreshKey(value => value + 1);
         } catch (error) {
           const responseText =
             error instanceof RequestError ? error.responseText : undefined;
-          addErrorMessage(responseText || 'Failed to reset integrations.');
+          toast.error(responseText || 'Failed to reset integrations.');
         }
       },
     });

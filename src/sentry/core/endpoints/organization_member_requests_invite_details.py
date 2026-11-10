@@ -22,6 +22,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.roles import organization_roles
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import get_api_key_for_audit_log
 
 
@@ -64,7 +65,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
     def _get_member(
         self,
-        request_user: User,
+        request_user: User | RpcUser,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,

@@ -1,7 +1,8 @@
 import {useEffect, useRef} from 'react';
 import {useQueryState} from 'nuqs';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {IntegrationSettingsPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import type {
   IntegrationProvider,

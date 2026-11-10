@@ -1,11 +1,10 @@
 from collections import defaultdict
-from collections.abc import Collection, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 
 import sentry_sdk
-from django.db.models import Q
 from sentry_sdk import traces
 
 from sentry import features, options
@@ -441,31 +440,6 @@ def _get_environment_by_group(group_id: int) -> Environment | None:
 
     metrics_incr("process_workflows.activity_environment", tags={"outcome": outcome})
     return environment
-
-
-def _get_associated_workflows(
-    detectors: Collection[Detector], environment: Environment | None
-) -> set[Workflow]:
-    """
-    Get workflows associated with detectors and environment via direct DB query.
-    Used as fallback when cache is disabled via feature flag.
-    """
-    detector_ids = [detector.id for detector in detectors]
-
-    environment_filter = (
-        (Q(environment_id=None) | Q(environment_id=environment.id))
-        if environment
-        else Q(environment_id=None)
-    )
-    return set(
-        Workflow.objects.filter(
-            environment_filter,
-            detectorworkflow__detector_id__in=detector_ids,
-            enabled=True,
-        )
-        .select_related("environment")
-        .distinct()
-    )
 
 
 def _build_workflow_evaluations(

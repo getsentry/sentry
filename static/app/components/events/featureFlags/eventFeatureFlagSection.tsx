@@ -10,16 +10,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {EventFeatureFlagDrawer} from 'sentry/components/events/featureFlags/eventFeatureFlagDrawer';
-import {FeatureFlagSettingsButton} from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
-import {FeatureFlagSort} from 'sentry/components/events/featureFlags/featureFlagSort';
-import {FlagActionDropdown} from 'sentry/components/events/featureFlags/flagActionDropdown';
-import {
-  FlagControlOptions,
-  ORDER_BY_OPTIONS,
-  OrderBy,
-  sortedFlags,
-} from 'sentry/components/events/featureFlags/utils';
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
@@ -39,6 +29,12 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
+
+import {EventFeatureFlagDrawer} from './eventFeatureFlagDrawer';
+import {FeatureFlagSettingsButton} from './featureFlagSettingsButton';
+import {FeatureFlagSort} from './featureFlagSort';
+import {FlagActionDropdown} from './flagActionDropdown';
+import {FlagControlOptions, ORDER_BY_OPTIONS, OrderBy, sortedFlags} from './utils';
 
 export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {
   return (
@@ -169,9 +165,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       () => (
         <GroupIdProvider groupId={group.id}>
           <EventFeatureFlagDrawer
-            group={group}
             event={event}
-            project={project}
             hydratedFlags={hydratedFlags}
             initialOrderBy={orderBy}
             focusControl={focusControl}

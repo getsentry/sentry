@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import random
 from abc import ABC, abstractmethod
 from datetime import timedelta
@@ -12,6 +13,8 @@ from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.models.project import Project
 
 from .types import Span
+
+logger = logging.getLogger(__name__)
 
 
 class DetectorType(Enum):
@@ -67,6 +70,8 @@ class PerformanceDetector(ABC):
         self._event = event
         self.stored_problems: dict[str, PerformanceProblem] = {}
         self.detector_id = detector_id
+        # Problems skipped because an earlier one in this event had the same fingerprint.
+        self.duplicate_fingerprint_count = 0
 
     def find_span_prefix(self, settings: dict[str, Any], span_op: str) -> str | bool:
         allowed_span_ops = settings.get("allowed_span_ops", [])
@@ -82,10 +87,9 @@ class PerformanceDetector(ABC):
         if not op or not span_id:
             return None
 
-        span_duration = get_span_duration(span)
         op_prefix = self.find_span_prefix(self.settings, op)
         if op_prefix:
-            return op, span_id, op_prefix, span_duration, self.settings
+            return op, span_id, op_prefix, get_span_duration(span), self.settings
         return None
 
     def event(self) -> dict[str, Any]:
@@ -99,6 +103,17 @@ class PerformanceDetector(ABC):
 
     def on_complete(self) -> None:
         pass
+
+    def log_duplicate_fingerprints(self) -> None:
+        """Log, once per event, how many problems repeated an earlier problem's fingerprint."""
+        if self.duplicate_fingerprint_count:
+            logger.info(
+                "Multiple occurrences detected for fingerprint",
+                extra={
+                    "detector": self.settings_key.value,
+                    "occurrences": self.duplicate_fingerprint_count,
+                },
+            )
 
     @classmethod
     def is_detection_allowed_for_system(cls) -> bool:

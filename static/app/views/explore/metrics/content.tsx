@@ -18,12 +18,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
-import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
-import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
-import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {MetricsTabOnboarding} from './metricsOnboarding';
+import {MetricsTabContent} from './metricsTab';
+import {MultiMetricsQueryParamsProvider} from './multiMetricsQueryParams';
 
 const METRICS_TITLE = t('Application Metrics');
 

@@ -9,15 +9,12 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
-import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
-import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
@@ -39,21 +36,16 @@ import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
+import {OurlogsDrawer} from './ourlogsDrawer';
+import {useEventLogsUrl} from './useEventLogsUrl';
+
 const logsDrawerParsers = {
   [LOGS_DRAWER_QUERY_PARAM]: parseAsBoolean.withDefault(false),
   expandedLogId: parseAsString,
 };
 const loadLogsDrawerParams = createLoader(logsDrawerParsers);
 
-export function OurlogsSection({
-  event,
-  project,
-  group,
-}: {
-  event: Event;
-  group: Group;
-  project: Project;
-}) {
+export function OurlogsSection({event, group}: {event: Event; group: Group}) {
   const location = useLocation();
   const organization = useOrganization();
   const traceId = event.contexts?.trace?.trace_id;
@@ -118,12 +110,7 @@ export function OurlogsSection({
         freeze={freeze}
       >
         <LogsPageDataProvider disabled={false} staleTime={EXPLORE_FIVE_MIN_STALE_TIME}>
-          <OurlogsSectionContent
-            event={event}
-            group={group}
-            project={project}
-            freeze={freeze}
-          />
+          <OurlogsSectionContent event={event} freeze={freeze} />
         </LogsPageDataProvider>
       </LogsQueryParamsProvider>
     </LazyRender>
@@ -132,14 +119,10 @@ export function OurlogsSection({
 
 function OurlogsSectionContent({
   event,
-  project,
-  group,
   freeze,
 }: {
   event: Event;
   freeze: LogsFrozenContextProviderProps;
-  group: Group;
-  project: Project;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -194,9 +177,7 @@ function OurlogsSectionContent({
               staleTime={EXPLORE_FIVE_MIN_STALE_TIME}
             >
               <OurlogsDrawer
-                group={group}
                 event={event}
-                project={project}
                 embeddedOptions={
                   expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
                 }
@@ -223,16 +204,7 @@ function OurlogsSectionContent({
         }
       );
     }
-  }, [
-    isDrawerInUrl,
-    expandedLogId,
-    freeze,
-    group,
-    event,
-    project,
-    openDrawer,
-    setDrawerQuery,
-  ]);
+  }, [isDrawerInUrl, expandedLogId, freeze, event, openDrawer, setDrawerQuery]);
   if (!feature) {
     return null;
   }

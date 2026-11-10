@@ -1,11 +1,12 @@
 import {useQueryClient, useMutation} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import {groupSearchViewsApiOptions} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 
@@ -15,23 +16,20 @@ type UpdateGroupSearchViewStarredOrderVariables = {
 };
 
 export const useUpdateGroupSearchViewStarredOrder = () => {
-  const api = useApi();
   const queryClient = useQueryClient();
 
   return useMutation<void, RequestError, UpdateGroupSearchViewStarredOrderVariables>({
     mutationFn: ({orgSlug, viewIds}: UpdateGroupSearchViewStarredOrderVariables) =>
-      api.requestPromise(
-        getApiUrl(
+      fetchMutation<void>({
+        url: getApiUrl(
           '/organizations/$organizationIdOrSlug/group-search-views/starred/order/',
           {
             path: {organizationIdOrSlug: orgSlug},
           }
         ),
-        {
-          method: 'PUT',
-          data: {view_ids: viewIds},
-        }
-      ),
+        method: 'PUT',
+        data: {view_ids: viewIds},
+      }),
     onSuccess: (_, parameters) => {
       // Reorder the existing views in the cache
       const groupSearchViews = queryClient.getQueryData(
@@ -50,7 +48,7 @@ export const useUpdateGroupSearchViewStarredOrder = () => {
       );
     },
     onError: () => {
-      addErrorMessage(t('Failed to update starred views order'));
+      toast.error(t('Failed to update starred views order'));
     },
   });
 };

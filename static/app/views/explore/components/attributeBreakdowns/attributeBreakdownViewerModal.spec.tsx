@@ -6,12 +6,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {closeModal} from 'sentry/actionCreators/modal';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {closeModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 import AttributeBreakdownViewerModal from './attributeBreakdownViewerModal';
-
-jest.mock('sentry/actionCreators/modal');
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
@@ -545,3 +543,8 @@ describe('AttributeBreakdownViewerModal', () => {
     });
   });
 });
+
+jest.mock('@sentry/scraps/modal', () => ({
+  ...jest.requireActual('@sentry/scraps/modal'),
+  closeModal: jest.fn(),
+}));

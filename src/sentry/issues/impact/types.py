@@ -1,0 +1,117 @@
+from __future__ import annotations
+
+from typing import Annotated, Final, Literal, TypedDict
+
+from pydantic import BaseModel, Field
+
+from sentry.apidocs.descriptions import ApiDescription
+
+IMPACT_FEATURE_ID: Final = "impact_assessment"
+
+ImpactLevel = Literal["super_low", "low", "moderate", "high", "super_high"]
+
+
+def get_impact_level(score: float | None) -> ImpactLevel | None:
+    if score is None:
+        return None
+    if score < 20:
+        return "super_low"
+    if score < 40:
+        return "low"
+    if score < 60:
+        return "moderate"
+    if score < 80:
+        return "high"
+    return "super_high"
+
+
+class ImpactCitationData(TypedDict):
+    reference: Annotated[
+        str, ApiDescription("Stable identifier for the evidence supporting this claim")
+    ]
+    claim: Annotated[
+        str, ApiDescription("Concise explanation of what the cited evidence establishes")
+    ]
+    source: Annotated[
+        str,
+        ApiDescription("The category of evidence cited, such as an event, trace, replay, or log"),
+    ]
+
+
+class AvailableImpactCitation(TypedDict):
+    reference: str
+    source: str
+
+
+class ImpactDerivedData(TypedDict):
+    score: Annotated[
+        float | None,
+        ApiDescription(
+            "Estimated per-occurrence impact on the end user's capability from 0 to 100"
+        ),
+    ]
+    level: Annotated[
+        ImpactLevel | None, ApiDescription("Impact level derived from the assessment score")
+    ]
+    description: Annotated[
+        str, ApiDescription("Human-readable description of the capability affected by the issue")
+    ]
+    citations: Annotated[
+        list[ImpactCitationData],
+        ApiDescription("Evidence-backed claims supporting the impact assessment"),
+    ]
+    sourceEventId: Annotated[
+        str, ApiDescription("ID of the issue event used to generate the impact assessment")
+    ]
+
+
+# See assess_impact_for_group(), these citations should be stable references to details pulled from
+# the event itself that were supplied to the agent, that way we can reverse them and display them
+# as rich embeds alongside the impact assessment.
+class ImpactCitation(BaseModel):
+    reference: str = Field(
+        min_length=1,
+        max_length=128,
+        description="Stable identifier for the evidence supporting this claim.",
+    )
+    claim: str = Field(
+        min_length=1,
+        max_length=2_000,
+        description="Concise explanation of what the cited evidence establishes.",
+    )
+    source: str = Field(
+        min_length=1,
+        max_length=64,
+        description="The category of evidence cited, such as an event, trace, replay, or log.",
+    )
+
+
+class ProjectImpactContext(BaseModel):
+    description: str = Field(
+        min_length=1,
+        max_length=4_000,
+        description="Customer-provided context about the project's user-facing purpose.",
+    )
+
+
+# Keep these Seer response models in sync with the corresponding contract in Seer.
+class SeerImpactAssessmentResponse(BaseModel):
+    score: float | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+        description=(
+            "Estimated per-occurrence impact on the end user's capability from 0 to 100. "
+            "This does not measure reach, frequency, urgency, or priority."
+        ),
+    )
+    description: str = Field(
+        min_length=1,
+        max_length=2_000,
+        description="Human-readable description of the capability affected by the issue.",
+    )
+    citations: list[ImpactCitation] = Field(
+        min_items=1,
+        max_items=16,
+        description="Citations selected from the available citation catalog.",
+    )

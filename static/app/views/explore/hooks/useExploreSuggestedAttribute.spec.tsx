@@ -2,7 +2,8 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
+
+import {useExploreSuggestedAttribute} from './useExploreSuggestedAttribute';
 
 const arrayAttributes: TagCollection = {
   // Tag array: stored under its backend key form, displayed as `csv_headers`.

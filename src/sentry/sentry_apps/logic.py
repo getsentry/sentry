@@ -192,6 +192,11 @@ class SentryAppUpdater:
 
             self.sentry_app.scope_list = self.scopes
 
+            # Without an application the app has no tokens, and application=None would match
+            # every personal token.
+            if self.sentry_app.application_id is None:
+                return
+
             # update the scopes of active tokens tokens
             tokens = list(
                 ApiToken.objects.filter(

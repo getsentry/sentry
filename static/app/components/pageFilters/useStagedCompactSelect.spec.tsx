@@ -7,7 +7,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
-import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
+import {useStagedCompactSelect} from './useStagedCompactSelect';
 
 function useTestOptions(
   toggleOptionRef: React.MutableRefObject<((val: string) => void) | undefined>

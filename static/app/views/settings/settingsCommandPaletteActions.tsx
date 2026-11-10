@@ -1,26 +1,20 @@
 import {useMemo, type ReactNode} from 'react';
-import {IconLock} from '@sentry/icons/lock';
-import {IconMail} from '@sentry/icons/mail';
 import {IconSettings} from '@sentry/icons/settings';
-import {IconSubscribed} from '@sentry/icons/subscribed';
-import {IconUser} from '@sentry/icons/user';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {t} from 'sentry/locale';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FORM_FIELD_REGISTRY} from 'sentry/views/settings/fieldRegistry.generated';
-import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
-const ROUTE_ICONS: Record<string, ReactNode> = {
-  '/settings/account/details/': <IconUser />,
-  '/settings/account/security/': <IconLock />,
-  '/settings/account/notifications/': <IconSubscribed />,
-  '/settings/account/emails/': <IconMail />,
-  '/settings/:orgId/': <IconSettings />,
-  '/settings/:orgId/security-and-privacy/': <IconLock />,
-};
+import {
+  getUserNavigationConfiguration,
+  getUserOrgNavigationConfiguration,
+} from './organization/userOrgNavigationConfiguration';
+import {FORM_FIELD_REGISTRY} from './fieldRegistry.generated';
+import {getSettingsScopeTitle, type SettingsScope} from './settingsScope';
+import type {NavigationSection} from './types';
+import {useSettingsV3} from './useSettingsV3';
 
 function normalizeRouteForLookup(route: string): string {
   if (route === '/settings/organization/') {
@@ -79,13 +73,60 @@ type SettingsFieldSection = {
 
 type FormFieldDefinition = (typeof FORM_FIELD_REGISTRY)[string];
 
-function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
-  const routeTitleMap = new Map<string, string>();
-  for (const section of getUserOrgNavigationConfiguration()) {
-    for (const item of section.items) {
-      routeTitleMap.set(item.path, item.title);
+function getNavItems(sections: NavigationSection[]) {
+  return sections.flatMap(section => section.items);
+}
+
+type RouteDisplay = {title: string; icon?: ReactNode};
+
+/**
+ * Title and icon of each settings page, keyed by route, taken from the
+ * settings navigation configuration.
+ */
+function getRouteDisplayMap(settingsV3: boolean): Map<string, RouteDisplay> {
+  const routeDisplayMap = new Map<string, RouteDisplay>();
+
+  if (!settingsV3) {
+    for (const item of getNavItems(getUserOrgNavigationConfiguration())) {
+      routeDisplayMap.set(item.path, {title: item.title, icon: item.icon});
+    }
+    return routeDisplayMap;
+  }
+
+  // With settings-v3, org and account pages live in separate scopes and can
+  // share a title (both index pages are "General"). Titles used by more than
+  // one scope are prefixed with the scope's name to tell them apart.
+  const scopedItems: Array<[SettingsScope, ReturnType<typeof getNavItems>]> = [
+    ['org', getNavItems(getUserOrgNavigationConfiguration({settingsV3}))],
+    ['account', getNavItems(getUserNavigationConfiguration({settingsV3}))],
+  ];
+
+  const scopesByTitle = new Map<string, Set<SettingsScope>>();
+  for (const [scope, items] of scopedItems) {
+    for (const item of items) {
+      const scopes = scopesByTitle.get(item.title) ?? new Set();
+      scopes.add(scope);
+      scopesByTitle.set(item.title, scopes);
     }
   }
+
+  for (const [scope, items] of scopedItems) {
+    for (const item of items) {
+      const isShared = (scopesByTitle.get(item.title)?.size ?? 0) > 1;
+      routeDisplayMap.set(item.path, {
+        title: isShared ? `${getSettingsScopeTitle(scope)} › ${item.title}` : item.title,
+        icon: item.icon,
+      });
+    }
+  }
+  return routeDisplayMap;
+}
+
+export function getSettingsFieldSections(
+  orgSlug: string,
+  settingsV3: boolean
+): SettingsFieldSection[] {
+  const routeDisplayMap = getRouteDisplayMap(settingsV3);
 
   const groups = new Map<string, Map<string, FormFieldDefinition>>();
   for (const field of Object.values(FORM_FIELD_REGISTRY)) {
@@ -107,13 +148,14 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
 
   return Array.from(groups.entries())
     .map(([route, fieldMap]): SettingsFieldSection => {
-      const title = routeTitleMap.get(route) ?? titleFromRoute(route);
+      const routeDisplay = routeDisplayMap.get(route);
+      const title = routeDisplay?.title ?? titleFromRoute(route);
       const resolvedPath = resolveRoutePath(route, orgSlug);
 
       return {
         key: route,
         title,
-        icon: ROUTE_ICONS[route],
+        icon: routeDisplay?.icon,
         fields: Array.from(fieldMap.values())
           .filter(
             (f): f is FormFieldDefinition & {label: string} =>
@@ -140,9 +182,10 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
 
 export function SettingsCommandPaletteActions() {
   const organization = useOrganization({allowNull: true});
+  const settingsV3 = useSettingsV3();
   const sections = useMemo(
-    () => (organization ? getSettingsFieldSections(organization.slug) : []),
-    [organization]
+    () => (organization ? getSettingsFieldSections(organization.slug, settingsV3) : []),
+    [organization, settingsV3]
   );
 
   if (sections.length === 0) {

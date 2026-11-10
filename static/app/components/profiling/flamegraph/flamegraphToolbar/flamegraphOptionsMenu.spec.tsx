@@ -1,8 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
+
+import {FlamegraphOptionsMenu} from './flamegraphOptionsMenu';
 
 function ContinuousOptionsMenu() {
   return (

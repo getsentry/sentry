@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getGPUContextData,
-  type GPUContext,
-} from 'sentry/components/events/contexts/knownContext/gpu';
+
+import {getGPUContextData, type GPUContext} from './gpu';
 
 const MOCK_GPU_CONTEXT: GPUContext = {
   name: '',

@@ -48,7 +48,6 @@ import {LegacyGridContainLabel} from 'echarts/features';
 import {CanvasRenderer, SVGRenderer} from 'echarts/renderers';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import {markLine} from 'sentry/components/charts/components/markLine';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -70,6 +69,7 @@ import {defined} from 'sentry/utils/defined';
 
 import {createGridOptions} from './components/grid';
 import {legend as makeLegend} from './components/legend';
+import {markLine} from './components/markLine';
 import {
   CHART_TOOLTIP_VIEWPORT_OFFSET,
   computeChartTooltip,

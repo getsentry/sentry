@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import {Outlet, useMatches} from 'react-router';
 
-import {MCPPageHeader} from 'sentry/views/insights/pages/mcp/mcpPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
+
+import {MCPPageHeader} from './mcpPageHeader';
 
 function MCPLayout() {
   const handle = useMatches().at(-1)?.handle as {module?: ModuleName} | undefined;

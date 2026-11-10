@@ -14,9 +14,10 @@ import {Heading} from '@sentry/scraps/text';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {t} from 'sentry/locale';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
+
+import {AppSizeInsightsSidebarRow} from './appSizeInsightsSidebarRow';
 
 interface AppSizeInsightsSidebarProps {
   isOpen: boolean;

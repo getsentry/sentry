@@ -11,8 +11,9 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
-import {MessageFormatter} from 'sentry/views/explore/replays/detail/console/messageFormatter';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+
+import {MessageFormatter} from './messageFormatter';
 
 interface Props extends ReturnType<typeof useCrumbHandlers> {
   currentHoverTime: number | undefined;

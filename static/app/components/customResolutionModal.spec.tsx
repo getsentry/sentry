@@ -7,8 +7,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
-import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
 import {ConfigStore} from 'sentry/stores/configStore';
+
+import {CustomResolutionModal} from './customResolutionModal';
 
 describe('CustomResolutionModal', () => {
   const project = ProjectFixture({id: '1', slug: 'project-slug'});

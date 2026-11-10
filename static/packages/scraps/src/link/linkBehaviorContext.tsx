@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import {createContext, useContext, type FunctionComponent} from 'react';
+import {createContext, useCallback, useContext, type FunctionComponent} from 'react';
 import * as queryString from 'query-string';
 
 import type {LinkProps} from './link';
@@ -19,16 +19,7 @@ function AnchorLink({
   state: _state,
   ...props
 }: LinkProps) {
-  if (typeof to === 'string') {
-    return <a {...props} href={to} />;
-  }
-
-  const {pathname = '', hash = '', search = '', query} = to;
-  const querySearch = query ? queryString.stringify(query) : search;
-  const href = `${pathname}${
-    querySearch && !querySearch.startsWith('?') ? '?' : ''
-  }${querySearch}${hash && !hash.startsWith('#') ? '#' : ''}${hash}`;
-  return <a {...props} href={href} />;
+  return <a {...props} href={destinationToHref(to)} />;
 }
 
 const defaultLinkBehavior = <T extends LinkProps>() =>
@@ -48,3 +39,22 @@ export const useLinkBehavior = <T extends LinkProps>(props: T) => {
 
   return {Component: component, behavior: () => behavior(props)};
 };
+
+function destinationToHref(to: LinkProps['to']): string {
+  if (typeof to === 'string') {
+    return to;
+  }
+  const {pathname = '', hash = '', search = '', query} = to;
+  const querySearch = query ? queryString.stringify(query) : search;
+  return `${pathname}${querySearch && !querySearch.startsWith('?') ? '?' : ''}${querySearch}${hash && !hash.startsWith('#') ? '#' : ''}${hash}`;
+}
+
+/** Resolve collection hrefs through the same application behavior as Link. */
+export function useResolveLinkHref() {
+  const linkBehavior = useContext(LinkBehaviorContext);
+  return useCallback(
+    (to: LinkProps['to']) =>
+      destinationToHref(linkBehavior ? linkBehavior.behavior({to}).to : to),
+    [linkBehavior]
+  );
+}

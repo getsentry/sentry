@@ -19,10 +19,6 @@ import {useChartSelection} from 'sentry/views/explore/components/attributeBreakd
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
-import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
-import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
-import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
@@ -53,6 +49,11 @@ import {
 } from 'sentry/views/explore/utils';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/traceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
+
+import type {AggregatesTableResult} from './useExploreAggregatesTable';
+import type {SpansTableResult} from './useExploreSpansTable';
+import type {TracesTableResult} from './useExploreTracesTable';
+import {useTopEvents} from './useTopEvents';
 
 const {info, fmt} = Sentry.logger;
 

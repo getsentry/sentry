@@ -12,7 +12,8 @@ import {
 
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Tags} from 'sentry/views/discover/results/tags';
+
+import {Tags} from './tags';
 
 // There seem to be no types for this, but it's essentially what is passed to the
 // EventView constructor

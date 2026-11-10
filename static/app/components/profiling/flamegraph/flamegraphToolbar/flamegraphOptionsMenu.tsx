@@ -8,7 +8,6 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {ProfileChunkAttachmentsButton} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/profileChunkAttachmentsButton';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
@@ -17,6 +16,8 @@ import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {ProfileChunkAttachmentsButton} from './profileChunkAttachmentsButton';
 
 const continuousProfileParsers = {
   end: parseAsString,

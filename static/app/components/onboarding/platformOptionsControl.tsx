@@ -8,7 +8,7 @@ import type {
   BasePlatformOptions,
   PlatformOption,
   SelectedPlatformOptions,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+} from './gettingStartedDoc/types';
 
 export function usePlatformOptionsQueryStates(platformOptions?: BasePlatformOptions) {
   return useQueryStates(

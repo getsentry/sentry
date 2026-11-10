@@ -12,7 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
+import {MetricsSection} from './metricsSection';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -148,7 +148,7 @@ describe('MetricsSection', () => {
         ],
       },
     });
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
     });
     await userEvent.click(
@@ -163,7 +163,7 @@ describe('MetricsSection', () => {
       contexts: {},
     });
 
-    render(<MetricsSection event={eventWithoutTrace} project={project} group={group} />, {
+    render(<MetricsSection event={eventWithoutTrace} />, {
       organization,
     });
 
@@ -175,7 +175,7 @@ describe('MetricsSection', () => {
       features: [],
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization: orgWithoutFeature,
     });
 
@@ -191,7 +191,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
     });
 
@@ -204,7 +204,7 @@ describe('MetricsSection', () => {
   });
 
   it('renders metrics section with data', async () => {
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -252,7 +252,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
     });
 
@@ -292,7 +292,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -346,18 +346,15 @@ describe('MetricsSection', () => {
       },
     });
 
-    const {router} = render(
-      <MetricsSection event={event} project={project} group={group} />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
-            query: {project: project.id},
-          },
+    const {router} = render(<MetricsSection event={event} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {project: project.id},
         },
-      }
-    );
+      },
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: 'View more'}));
     await waitFor(() => expect(router.location.query.metricsDrawer).toBe('true'));
@@ -381,15 +378,12 @@ describe('MetricsSection', () => {
     });
     const pathname = `/organizations/${organization.slug}/issues/${group.id}/`;
 
-    const {router} = render(
-      <MetricsSection event={event} project={project} group={group} />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname, query: {project: project.id, metricsDrawer: 'true'}},
-        },
-      }
-    );
+    const {router} = render(<MetricsSection event={event} />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname, query: {project: project.id, metricsDrawer: 'true'}},
+      },
+    });
     expect(
       await screen.findByRole('complementary', {name: 'metrics drawer'})
     ).toBeInTheDocument();
@@ -428,7 +422,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
     });
 

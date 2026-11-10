@@ -2,7 +2,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import ProjectBadge from './projectBadge';
 
 describe('ProjectBadge', () => {
   it('renders with Avatar and team name', () => {

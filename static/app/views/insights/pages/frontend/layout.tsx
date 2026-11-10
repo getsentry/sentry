@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import {Outlet, useMatches} from 'react-router';
 
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
+
+import {FrontendHeader} from './frontendPageHeader';
 
 function FrontendLayout() {
   const handle = useMatches().at(-1)?.handle as {module?: ModuleName} | undefined;

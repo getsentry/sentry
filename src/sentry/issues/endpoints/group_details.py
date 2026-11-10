@@ -14,7 +14,7 @@ from sentry import analytics, features, options, tagstore, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.client import client
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_func, get_environments
@@ -26,7 +26,12 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
+from sentry.api.serializers.models.group import (
+    BaseGroupSerializerResponse,
+    GroupDetailsResponse,
+    GroupParticipantResponse,
+    GroupSeenByResponse,
+)
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -101,6 +106,7 @@ class GroupDetailsPermission(GroupPermission):
 @cell_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     permission_classes = (GroupDetailsPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -131,7 +137,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
     def _get_seen_by_and_participants(
         self, request: Request, group: Group
-    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    ) -> tuple[list[GroupSeenByResponse], list[GroupParticipantResponse]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         participant_ids = set(GroupSubscriptionManager.get_participating_user_ids(group))
         user_ids = {seen.user_id for seen in seen_by} | participant_ids
@@ -146,11 +152,15 @@ class GroupDetailsEndpoint(GroupEndpoint):
         users_by_id = {int(user["id"]): user for user in users}
         return (
             [
-                {**users_by_id[seen.user_id], "lastSeen": seen.last_seen}
+                cast(GroupSeenByResponse, {**users_by_id[seen.user_id], "lastSeen": seen.last_seen})
                 for seen in seen_by
                 if seen.user_id in users_by_id
             ],
-            [{**user, "type": "user"} for user in users if int(user["id"]) in participant_ids],
+            [
+                cast(GroupParticipantResponse, {**user, "type": "user"})
+                for user in users
+                if int(user["id"]) in participant_ids
+            ],
         )
 
     def _report_status_inconsistency(self, group: Group) -> None:
@@ -242,8 +252,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
     )
     def get(self, request: Request, group: Group) -> Response[GroupDetailsResponse]:
         """
-        Return details on an individual issue, including its basic stats, comment
-        and user-report counts, and a summary of the latest event.
+        Return details on an individual issue, including its basic stats, comment count, and
+        user-report count.
         """
         from sentry.utils import snuba
 
@@ -314,8 +324,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     data.update(
                         {
                             "forecast": {
-                                "data": fetched_forecast_dict.get("forecast"),
-                                "date_added": fetched_forecast_dict.get("date_added"),
+                                "data": fetched_forecast_dict["forecast"],
+                                "date_added": fetched_forecast_dict["date_added"],
                             }
                         }
                     )

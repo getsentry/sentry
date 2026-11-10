@@ -4,8 +4,8 @@ import {
   safeParseQueryKey,
   type CanonicalApiQueryKey,
   type InfiniteApiQueryKey,
-} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+} from './apiQueryKey';
+import {getApiUrl} from './getApiUrl';
 
 describe('apiQueryKey', () => {
   describe('parseQueryKey', () => {

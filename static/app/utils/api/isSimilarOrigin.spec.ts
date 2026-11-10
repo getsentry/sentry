@@ -1,4 +1,4 @@
-import {isSimilarOrigin} from 'sentry/utils/api/isSimilarOrigin';
+import {isSimilarOrigin} from './isSimilarOrigin';
 
 describe('isSimilarOrigin', () => {
   test.each([

@@ -9,16 +9,17 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
-import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+
+import {FrameContent} from './frame/frameContent';
+import {IssueFrameActions} from './issueStackTrace/issueFrameActions';
+import {DisplayOptions} from './displayOptions';
+import {StackTraceViewStateProvider} from './stackTraceContext';
+import {StackTraceFrames} from './stackTraceFrames';
+import {StackTraceProvider} from './stackTraceProvider';
+import type {StackTraceViewStateProviderProps} from './types';
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;

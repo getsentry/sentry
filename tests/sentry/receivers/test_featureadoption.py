@@ -1,8 +1,16 @@
-from django.utils import timezone
+import logging
+from unittest.mock import patch
 
+import pytest
+from django.db import router, transaction
+from django.utils import timezone
+from redis.exceptions import ConnectionError as RedisConnectionError
+
+from sentry.adoption import manager
 from sentry.models.featureadoption import FeatureAdoption
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.signals import (
     advanced_search,
@@ -15,6 +23,7 @@ from sentry.signals import (
     issue_resolved,
     member_joined,
     project_created,
+    receivers_raise_on_send,
     save_search_created,
     sso_enabled,
     user_feedback_received,
@@ -23,6 +32,10 @@ from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
 class FeatureAdoptionTest(TestCase, SnubaTestCase):
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture) -> None:
+        self.caplog = caplog
+
     def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now()
@@ -464,6 +477,56 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         )
         assert feature_complete
 
+    def test_project_created_records_after_commit(self) -> None:
+        first_project_id = manager.get_by_slug("first_project").id
+        assert not FeatureAdoption.objects.filter(
+            organization_id=self.organization.id, feature_id=first_project_id
+        ).exists()
+        assert not FeatureAdoption.objects.in_cache(self.organization.id, first_project_id)
+
+        with transaction.atomic(router.db_for_write(Project)):
+            with receivers_raise_on_send():
+                project_created.send_robust(
+                    project=self.project, user=self.owner, sender=type(self.project)
+                )
+            # With a clean cache, no row here means that record did not run
+            # inside the transaction, so it made no Redis call there.
+            assert not FeatureAdoption.objects.filter(
+                organization_id=self.organization.id, feature_id=first_project_id
+            ).exists()
+
+        assert FeatureAdoption.objects.filter(
+            organization_id=self.organization.id, feature_id=first_project_id, complete=True
+        ).exists()
+        assert FeatureAdoption.objects.in_cache(self.organization.id, first_project_id)
+
+    def test_project_created_record_failure_is_logged(self) -> None:
+        with (
+            patch.object(
+                FeatureAdoption.objects.cache_backend,
+                "in_cache",
+                side_effect=RedisConnectionError("redis is down"),
+            ),
+            self.caplog.at_level(logging.ERROR, logger="sentry.receivers.features"),
+            receivers_raise_on_send(),
+        ):
+            with transaction.atomic(router.db_for_write(Project)):
+                project_created.send_robust(
+                    project=self.project, user=self.owner, sender=type(self.project)
+                )
+
+        assert any(
+            r.message == "feature_adoption.first_project_failed"
+            and getattr(r, "organization_id", None) == self.organization.id
+            for r in self.caplog.records
+        )
+        assert (
+            FeatureAdoption.objects.get_by_slug(
+                organization=self.organization, slug="first_project"
+            )
+            is None
+        )
+
     def test_member_joined(self) -> None:
         member = self.create_member(
             organization=self.organization, teams=[self.team], user=self.create_user()
@@ -608,7 +671,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
 
         # The redis set expires on its own TTL, so a cold cache is a normal state.
         key = FeatureAdoption.objects.cache_backend.key_tpl.format(org_id)
-        FeatureAdoption.objects.cache_backend.get_client(key).delete(key)
+        FeatureAdoption.objects.cache_backend.cluster.delete(key)
 
         # This batch mixes a feature that is already in the database with a new one.
         FeatureAdoption.objects.bulk_record(org_id, ["python", "source_maps"])

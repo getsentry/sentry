@@ -21,9 +21,10 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import {PriorityLevel} from 'sentry/types/group';
-import IssueListOverview from 'sentry/views/issueList/overview';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
+
+import IssueListOverview from './overview';
+import {IssueSortOptions} from './utils';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -56,10 +57,6 @@ describe('IssueListOverview (actions)', () => {
       body: [groupStats],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
@@ -72,11 +69,6 @@ describe('IssueListOverview (actions)', () => {
       url: '/organizations/org-slug/issues-count/',
       method: 'GET',
       body: [{}],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -97,7 +89,7 @@ describe('IssueListOverview (actions)', () => {
       body: [],
     });
 
-    TagStore.init?.();
+    TagStore.reset();
   });
 
   afterEach(() => {
@@ -282,7 +274,7 @@ describe('IssueListOverview (actions)', () => {
             environment: ['production'],
             statsPeriod: '24h',
             utc: true,
-            sort: IssueSortOptions.DATE,
+            sort: IssueSortOptions.RECOMMENDED,
           },
           data: {status: 'resolved', statusDetails: {}, substatus: null},
         })

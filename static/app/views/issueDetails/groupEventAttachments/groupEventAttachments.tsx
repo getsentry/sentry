@@ -6,6 +6,7 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {EventAttachmentsQuotaExceededNotice} from 'sentry/components/events/eventAttachmentsQuotaExceededNotice';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -73,6 +74,12 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
   });
 
   const {mutate: deleteAttachment} = useDeleteGroupEventAttachment();
+
+  // Only crash reports carry the quota signal, so screenshots never show this notice
+  const showQuotaExceededNotice =
+    activeAttachmentsTab !== EventAttachmentFilter.SCREENSHOT &&
+    organization.features.includes('attachments-quota-exceeded-notice') &&
+    !!group.metadata.attachments_quota_exceeded;
 
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
@@ -155,6 +162,9 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
           onChange={key => setPreviouslyUsedAttachmentsTab(key)}
         />
       </Flex>
+      {showQuotaExceededNotice && (
+        <EventAttachmentsQuotaExceededNotice project={project} variant="issue" />
+      )}
       {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
         ? screenshotGallery
         : attachmentsTable}

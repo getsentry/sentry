@@ -11,12 +11,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
-import {EMPTY_HIGHLIGHT_DEFAULT} from 'sentry/components/events/highlights/util';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import * as analytics from 'sentry/utils/analytics';
 
+import {HighlightsDataSection} from './highlightsDataSection';
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
+import {EMPTY_HIGHLIGHT_DEFAULT} from './util';
 
 describe('HighlightsDataSection', () => {
   const organization = OrganizationFixture();

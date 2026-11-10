@@ -1,11 +1,14 @@
 from datetime import datetime
 
+from django.test import override_settings
+
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 
@@ -168,3 +171,22 @@ class OrganizationGroupSearchViewsStarredEndpointTest(APITestCase):
         # Write does not imply read.
         self._use_token(["user_preference:write"])
         self.get_error_response(self.organization.slug, status_code=403)
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_member_read_token_is_translated(self) -> None:
+        self._use_token(["member:read"])
+        self.get_success_response(self.organization.slug)
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_member_read_not_accepted_with_granular_scopes(self) -> None:
+        self._use_token(["member:read"])
+        self.get_error_response(self.organization.slug, status_code=403)
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_member_read_accepted_without_granular_scopes(self) -> None:
+        self._use_token(["member:read"])
+        self.get_success_response(self.organization.slug)

@@ -3,11 +3,15 @@ from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
-from slack_sdk.models.blocks import LinkButtonElement, SectionBlock
+from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, SectionBlock
 from slack_sdk.web import SlackResponse
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.integration import SlackIntegration
+from sentry.integrations.slack.message_builder.routing import (
+    SlackActionTracking,
+    decode_action_id,
+)
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import EventLifecycleOutcome
@@ -16,7 +20,7 @@ from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
-from sentry.notebooks.models import Notebook
+from sentry.notebooks.models import Notebook, NotebookActionRequestState
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
@@ -45,7 +49,11 @@ from sentry.seer.entrypoints.cache import (
     SeerOperatorInvestigationCache,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
+from sentry.seer.entrypoints.slack.cache import (
+    SlackSeerAgentMessageCache,
+    SlackSeerAgentReply,
+    SlackSeerAgentReplyCache,
+)
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
     SlackAgentCachePayload,
@@ -57,8 +65,12 @@ from sentry.seer.entrypoints.slack.entrypoint import (
     SlackThreadDetails,
     prepare_slack_thread_for_autofix_updates,
 )
-from sentry.seer.entrypoints.slack.investigation_status import MAX_SUMMARY_DESCRIPTION_LENGTH
+from sentry.seer.entrypoints.slack.investigation_status import (
+    MAX_NEXT_STEP_RATIONALE_LENGTH,
+    MAX_SUMMARY_DESCRIPTION_LENGTH,
+)
 from sentry.seer.entrypoints.slack.messaging import (
+    edit_thread_message,
     process_thread_update,
     schedule_all_thread_updates,
     send_thread_update,
@@ -67,7 +79,11 @@ from sentry.seer.entrypoints.slack.messaging import (
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
 from sentry.sentry_apps.event_types import SentryAppEventType
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
+    IntegrationError,
+    IntegrationResourceNotFoundError,
+)
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -263,6 +279,48 @@ class SlackAutofixEntrypointTest(TestCase):
         renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
         assert "https://github.com/owner/repo/pull/123" in str(renderable["blocks"])
 
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_errored_run_posts_to_every_thread(
+        self,
+        mock_send_threaded_message: MagicMock,
+        mock_send_threaded_ephemeral_message: MagicMock,
+        _mock_has_access: MagicMock,
+    ) -> None:
+        other_thread = SlackThreadDetails(channel_id="C0OTHER", thread_ts="1234567890.999999")
+        cache_payload = self._get_entrypoint().create_autofix_cache_payload()
+        cache_payload["threads"] = [self.thread, other_thread]
+        SeerOperatorAutofixCache.populate_post_autofix_cache(
+            entrypoint_key=SeerEntrypointKey.SLACK,
+            run_id=MOCK_RUN_ID,
+            cache_payload=cache_payload,
+        )
+
+        with self.tasks():
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ERRORED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+                organization_id=self.organization.id,
+            )
+
+        posted_to = [
+            (call.kwargs["channel_id"], call.kwargs["thread_ts"])
+            for call in mock_send_threaded_message.call_args_list
+        ]
+        assert sorted(posted_to) == sorted(
+            [
+                (self.thread["channel_id"], self.thread["thread_ts"]),
+                (other_thread["channel_id"], other_thread["thread_ts"]),
+            ]
+        )
+        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        assert "couldn't finish working on this issue" in str(renderable["blocks"])
+        mock_send_threaded_ephemeral_message.assert_not_called()
+
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
@@ -298,6 +356,68 @@ class SlackAutofixEntrypointTest(TestCase):
             renderable=ANY,
             slack_user_id=self.slack_user_id,
         )
+
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AUTOFIX_UPDATE]})
+    @patch(
+        "sentry.notifications.platform.templates.seer.organization_service.get_option",
+        return_value=True,
+    )
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_send_thread_update_tracks_buttons_and_records_sent(
+        self,
+        mock_send_threaded_message: MagicMock,
+        mock_record_sent: MagicMock,
+        _mock_get_option: MagicMock,
+    ) -> None:
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
+
+        send_thread_update(install=self._get_installation(), thread=self.thread, data=data)
+
+        context = NotificationTrackingContext(
+            source=NotificationSource.SEER_AUTOFIX_UPDATE,
+            provider=NotificationProviderKey.SLACK,
+            category=NotificationCategory.SEER,
+            notification_uuid=data.notification_uuid,
+            organization_id=self.organization.id,
+        )
+        mock_record_sent.assert_called_once_with(
+            context, links={NotificationLink.ISSUE, SlackAction.SEER_AUTOFIX_START}
+        )
+        renderable: SlackRenderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        tracked_actions = [
+            routing_data
+            for block in renderable["blocks"]
+            if isinstance(block, ActionsBlock)
+            for element in block.elements
+            if isinstance(element, ButtonElement)
+            and element.action_id
+            and (routing_data := decode_action_id(element.action_id)).tracking is not None
+        ]
+        assert [routing_data.action for routing_data in tracked_actions] == [
+            SlackAction.SEER_AUTOFIX_START
+        ]
+        assert tracked_actions[0].tracking == SlackActionTracking(
+            notification_uuid=data.notification_uuid,
+            source=NotificationSource.SEER_AUTOFIX_UPDATE,
+        )
+
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value=None,
+    )
+    def test_send_thread_update_without_response_does_not_record_sent(
+        self, _mock_send_threaded_message: MagicMock, mock_record_sent: MagicMock
+    ) -> None:
+        send_thread_update(
+            install=self._get_installation(), thread=self.thread, data=self._create_update()
+        )
+
+        mock_record_sent.assert_not_called()
 
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message",
@@ -822,6 +942,54 @@ class SlackAgentEntrypointTest(TestCase):
         assert payload["thread"]["channel_id"] == self.channel_id
         assert payload["slack_user_id"] == self.slack_user_id
 
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AGENT_RESPONSE]})
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    def test_edit_thread_message_records_sent(
+        self, mock_update_message: MagicMock, mock_record_sent: MagicMock
+    ) -> None:
+        data = SeerAgentResponse(
+            run_id=MOCK_RUN_ID, organization_id=self.organization.id, summary="Done."
+        )
+
+        edit_thread_message(
+            install=self._get_entrypoint().install,
+            channel_id=self.channel_id,
+            message_ts="1.1",
+            data=data,
+        )
+
+        mock_update_message.assert_called_once()
+        mock_record_sent.assert_called_once_with(
+            NotificationTrackingContext(
+                source=NotificationSource.SEER_AGENT_RESPONSE,
+                provider=NotificationProviderKey.SLACK,
+                category=NotificationCategory.SEER,
+                notification_uuid=data.notification_uuid,
+                organization_id=self.organization.id,
+            ),
+            links=set(),
+        )
+
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.update_message",
+        side_effect=IntegrationResourceNotFoundError,
+    )
+    def test_edit_thread_message_to_deleted_message_does_not_record_sent(
+        self, _mock_update_message: MagicMock, mock_record_sent: MagicMock
+    ) -> None:
+        edit_thread_message(
+            install=self._get_entrypoint().install,
+            channel_id=self.channel_id,
+            message_ts="1.1",
+            data=SeerAgentResponse(
+                run_id=MOCK_RUN_ID, organization_id=self.organization.id, summary="Done."
+            ),
+        )
+
+        mock_record_sent.assert_not_called()
+
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message",
         return_value={"ok": True, "message_ts": "1234567890.000100"},
@@ -1261,6 +1429,62 @@ class SlackAgentEntrypointTest(TestCase):
             ),
         ]
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("slack_sdk.web.client.WebClient.chat_update")
+    def test_on_agent_update_retries_failed_edits_and_skips_deleted_replies(
+        self, update: Mock, mock_record: Mock
+    ) -> None:
+        state = _agent_state("First answer.")
+        state.blocks += [
+            MemoryBlock(
+                id="b3",
+                message=Message(role="user", content="Open a PR."),
+                timestamp="2024-01-01T00:00:02Z",
+            ),
+            MemoryBlock(
+                id="b4",
+                message=Message(role="assistant", content="Second answer."),
+                timestamp="2024-01-01T00:00:03Z",
+            ),
+        ]
+        state.repo_pr_states["acme/web"] = RepoPRState(
+            repo_name="acme/web", pr_creation_status="creating"
+        )
+        # Both answers were posted before the PR status changed, so both footers need an edit.
+        for key, ts in (("b2", "1.1"), ("b4", "2.2")):
+            SlackSeerAgentReplyCache.set(
+                run_id=state.run_id,
+                key=key,
+                reply=SlackSeerAgentReply(message_ts=ts, pr_status_hash="stale"),
+            )
+        update.side_effect = [
+            TypedSlackApiError("error", _slack_response({"ok": False, "error": "ratelimited"})),
+            TypedSlackApiError(
+                "error", _slack_response({"ok": False, "error": "message_not_found"})
+            ),
+            _slack_response({"ok": True}),
+        ]
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+
+        def refresh() -> None:
+            SlackAgentEntrypoint.on_agent_update(
+                cache_payload=cache_payload, run_id=state.run_id, state=state
+            )
+
+        # The rate-limited edit doesn't block the next one, and raises so the refresh task retries.
+        with pytest.raises(IntegrationError):
+            refresh()
+        # The retry edits only the rate-limited answer; the deleted one is never edited again.
+        refresh()
+        refresh()
+
+        assert [call.kwargs["ts"] for call in update.call_args_list] == ["1.1", "2.2", "1.1"]
+        assert [
+            type(call.args[1])
+            for call in mock_record.mock_calls
+            if call.args[0] == EventLifecycleOutcome.HALTED
+        ] == [IntegrationConfigurationError, IntegrationResourceNotFoundError]
+
 
 def _slack_response(data: dict[str, Any]) -> SlackResponse:
     return SlackResponse(
@@ -1420,18 +1644,16 @@ class SlackInvestigationEntrypointTest(TestCase):
             summary=summary, summary_description=description
         )
 
-    def _conclusion_text(self) -> str:
+    def _conclusion_sections(self) -> list[str]:
         (call,) = [
             call
             for call in self.mock_post_message.call_args_list
             if call.kwargs["text"] == "Seer finished the investigation"
         ]
         assert call.kwargs["thread_ts"] == self.message_ts
-        section, _divider, actions = call.kwargs["blocks"]
+        *sections, _divider, actions = call.kwargs["blocks"]
         assert actions.elements[0].url.startswith(self.investigation.get_absolute_url())
-        text = section.text.text
-        assert isinstance(text, str)
-        return text
+        return [section.text.text for section in sections]
 
     def test_trigger_success_leaves_status_message_to_updates(self) -> None:
         entrypoint = self._get_entrypoint()
@@ -1681,7 +1903,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         self._update([_hypothesis()])
 
         self.mock_update.assert_called_once()
-        assert self._conclusion_text() == "*A release added a slow font*\nPreload the font."
+        assert self._conclusion_sections() == ["*A release added a slow font*\nPreload the font."]
         cache_payload = self._get_cache()
         assert cache_payload is not None
         assert cache_payload["final_sent"] is True
@@ -1696,7 +1918,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         self._update([_hypothesis()])
 
         self.mock_update.assert_not_called()
-        assert self._conclusion_text() == "*A release added a slow font*"
+        assert self._conclusion_sections() == ["*A release added a slow font*"]
 
     def test_failed_or_cancelled_run_posts_no_conclusion(self) -> None:
         self._set_summary("A release added a slow font")
@@ -1718,8 +1940,59 @@ class SlackInvestigationEntrypointTest(TestCase):
 
         self._update([_hypothesis()])
 
-        assert self._conclusion_text() == (
+        assert self._conclusion_sections() == [
             "*&lt;!channel&gt; &amp; friends*\n" + "a" * (MAX_SUMMARY_DESCRIPTION_LENGTH - 1) + "…"
+        ]
+
+    def test_conclusion_includes_the_suggested_next_step(self) -> None:
+        self._set_cache()
+        self._set_summary("A release added a slow font")
+        self.create_notebook_action_request(
+            notebook=self.investigation,
+            primary=True,
+            title="Preload the font",
+            rationale="It stops blocking the first paint.",
+        )
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._conclusion_sections() == [
+            "*A release added a slow font*",
+            "*Suggested next step:* Preload the font\nIt stops blocking the first paint.",
+        ]
+
+    def test_conclusion_skips_next_steps_that_are_not_current(self) -> None:
+        self._set_cache()
+        self._set_summary("A release added a slow font")
+        self.create_notebook_action_request(notebook=self.investigation, key="not-primary")
+        self.create_notebook_action_request(
+            notebook=self.investigation,
+            key="withdrawn",
+            primary=True,
+            state=NotebookActionRequestState.WITHDRAWN,
+        )
+        self.create_notebook_action_request(
+            notebook=self.investigation, key="other-report", primary=True, producer_revision=1
+        )
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._conclusion_sections() == ["*A release added a slow font*"]
+
+    def test_conclusion_truncates_the_next_step_rationale(self) -> None:
+        self._set_cache()
+        self._set_summary("A release added a slow font")
+        self.create_notebook_action_request(
+            notebook=self.investigation, primary=True, title="Act", rationale="a" * 3000
+        )
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._conclusion_sections()[1] == (
+            "*Suggested next step:* Act\n" + "a" * (MAX_NEXT_STEP_RATIONALE_LENGTH - 1) + "…"
         )
 
     def test_no_summary_marks_final_sent(self) -> None:

@@ -10,7 +10,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import OrganizationFeatureFlagsChangeTracking, {
   type Secret,
@@ -114,7 +115,7 @@ describe('OrganizationFeatureFlagsIndex', () => {
 
   describe('removing', () => {
     it('allows to remove secrets', async () => {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      jest.spyOn(toast, 'success');
 
       const secrets: Secret[] = [
         SecretFixture(),
@@ -153,7 +154,7 @@ describe('OrganizationFeatureFlagsIndex', () => {
       expect(secretsTable.getByText('openfeature')).toBeInTheDocument();
       expect(secretsTable.queryByText('launchdarkly')).not.toBeInTheDocument();
 
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         'Removed the provider and signing secret for the organization.'
       );
 

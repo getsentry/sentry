@@ -29,15 +29,17 @@ export function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>(
 
   const handleResizeColumn = useCallback(
     (columnIndex: number, resizedColumn: Col) => {
-      const widths = columnsWidthWidths.map(
-        (column, i) =>
-          (i === columnIndex ? resizedColumn.width : column.width) ?? COL_WIDTH_UNDEFINED
-      );
-      setWidthParam(
-        dropRightWhile(widths, width => width === COL_WIDTH_UNDEFINED).map(String)
-      );
+      // One resize can commit several columns before a rerender, so build on the pending value.
+      setWidthParam(previousWidths => {
+        const widths = columns
+          .map((column, i) =>
+            decodeInteger(previousWidths[i], column.width ?? COL_WIDTH_UNDEFINED)
+          )
+          .with(columnIndex, resizedColumn.width ?? COL_WIDTH_UNDEFINED);
+        return dropRightWhile(widths, width => width === COL_WIDTH_UNDEFINED).map(String);
+      });
     },
-    [columnsWidthWidths, setWidthParam]
+    [columns, setWidthParam]
   );
 
   return {

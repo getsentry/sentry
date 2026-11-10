@@ -1,14 +1,12 @@
 import {Fragment} from 'react';
 
 import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
-import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
-import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import {
-  TitleCell,
-  type TitleCellProps,
-} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import * as Storybook from 'sentry/stories';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
+
+import {ActionCell} from './actionCell';
+import {TimeAgoCell} from './timeAgoCell';
+import {TitleCell, type TitleCellProps} from './titleCell';
 
 type ExampleAutomation = {
   actions: ActionType[];

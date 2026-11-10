@@ -16,6 +16,7 @@ from rest_framework.fields import BooleanField, CharField, URLField
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -64,7 +65,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
-from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.hashlib import sha1_text
@@ -675,7 +675,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         except ApiError as e:
             self.raise_error(e)
 
-    def make_choices(self, values: Sequence[Mapping[str, Any]]) -> list[tuple[object, str]]:
+    def make_choices(self, values: Sequence[Mapping[str, Any]]) -> list[tuple[str | int, str]]:
         if not values:
             return []
         results = []
@@ -693,7 +693,8 @@ class JiraServerIntegration(IssueSyncIntegration):
                 value = item["label"]
             else:
                 continue
-            results.append((key, cast("str", value)))
+            # Jira gives every allowed value that has a name an ID.
+            results.append((cast("str | int", key), cast("str", value)))
         return results
 
     def error_message_from_json(self, data: Mapping[str, Any]) -> str:
@@ -815,7 +816,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs: object
+        self, group: Group | None, user: RequestPrincipal, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         """
         We use the `group` to get three things: organization_slug, project

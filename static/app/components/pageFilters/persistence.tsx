@@ -1,12 +1,12 @@
 import * as Sentry from '@sentry/react';
 
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import type {PageFiltersState} from 'sentry/components/pageFilters/types';
 import type {PinnedPageFilter} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 import {getStateFromQuery} from './parse';
+import {PageFiltersStore} from './store';
+import type {PageFiltersState} from './types';
 
 function makeLocalStorageKey(orgSlug: string) {
   return `global-selection:${orgSlug}`;

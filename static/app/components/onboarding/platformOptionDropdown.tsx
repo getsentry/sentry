@@ -5,12 +5,13 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {t} from 'sentry/locale';
+
+import type {PlatformOption} from './gettingStartedDoc/types';
 import {
   usePlatformOptionsQueryStates,
   useUrlPlatformOptions,
-} from 'sentry/components/onboarding/platformOptionsControl';
-import {t} from 'sentry/locale';
+} from './platformOptionsControl';
 
 type OptionControlProps = {
   onChange: (selectedOption: SelectOption<string>) => void;

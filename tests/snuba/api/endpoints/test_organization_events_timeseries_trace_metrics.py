@@ -1,8 +1,10 @@
 from datetime import timedelta
 from typing import Any
 
+import pytest
 from django.urls import reverse
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import (
@@ -523,3 +525,92 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 3_600_000, [2, 2, 2, 1, 2], ignore_accuracy=True
         )
+
+    def _create_web_vital_score(
+        self, vital: str, ratio: float, hour: int, transaction: str = "/"
+    ) -> TraceItem:
+        return self.create_trace_metric(
+            f"browser.web_vital.{vital}.score",
+            ratio,
+            "distribution",
+            metric_unit="ratio",
+            timestamp=self.start + timedelta(hours=hour, minutes=1),
+            attributes={"sentry.segment.name": transaction},
+        )
+
+    def test_web_vital_total_performance_score(self) -> None:
+        self.store_eap_items(
+            [
+                self._create_web_vital_score("lcp", 1.0, hour=0),
+                self._create_web_vital_score("cls", 0.5, hour=0),
+                self._create_web_vital_score("lcp", 0.5, hour=1),
+                self._create_web_vital_score("lcp", 1.0, hour=2),
+                self._create_web_vital_score("cls", 1.0, hour=2),
+            ]
+        )
+
+        self.end = self.start + timedelta(hours=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "performance_score(measurements.score.total)",
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
+        assert timeseries["yAxis"] == "performance_score(measurements.score.total)"
+        # only the vitals with data in each bucket contribute their weight (LCP 0.30, CLS 0.15)
+        assert [bucket["value"] for bucket in timeseries["values"]] == pytest.approx(
+            [(1.0 * 0.30 + 0.5 * 0.15) / 0.45, 0.5, 1.0]
+        )
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "percentage",
+            "valueUnit": None,
+            "interval": 3_600_000,
+        }
+
+    def test_web_vital_total_opportunity_score_top_events(self) -> None:
+        self.store_eap_items(
+            [
+                self._create_web_vital_score("lcp", 0.5, hour=0, transaction="/slow"),
+                self._create_web_vital_score("lcp", 0.5, hour=0, transaction="/slow"),
+                self._create_web_vital_score("lcp", 1.0, hour=0, transaction="/fast"),
+                self._create_web_vital_score("lcp", 0.0, hour=1, transaction="/slow"),
+                self._create_web_vital_score("lcp", 1.0, hour=1, transaction="/fast"),
+            ]
+        )
+
+        self.end = self.start + timedelta(hours=2)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "opportunity_score(measurements.score.total)",
+                "groupBy": ["transaction"],
+                "orderby": "-opportunity_score(measurements.score.total)",
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 2
+
+        slow, fast = response.data["timeSeries"]
+        assert slow["groupBy"] == [{"key": "transaction", "value": "/slow"}]
+        assert [bucket["value"] for bucket in slow["values"]] == pytest.approx(
+            [(2 - 1.0) / 5, (1 - 0.0) / 5]
+        )
+        assert fast["groupBy"] == [{"key": "transaction", "value": "/fast"}]
+        assert [bucket["value"] for bucket in fast["values"]] == pytest.approx([0.0, 0.0])
+        assert slow["meta"]["valueType"] == "percentage"

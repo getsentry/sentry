@@ -1404,10 +1404,10 @@ wheels = [
 
 [[package]]
 name = "oauthlib"
-version = "4.0.0"
+version = "4.0.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/oauthlib-4.0.0-py3-none-any.whl", hash = "sha256:624c28c13a0a59cabf9747dfa52af63be3e512a7f2714df16e91b5b3a145e6cd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/oauthlib-4.0.1-py3-none-any.whl", hash = "sha256:498a298876e996301950a5b053d12c31628bb7b895db03666430c69ce182eb61" },
 ]
 
 [[package]]
@@ -1970,17 +1970,6 @@ wheels = [
 ]
 
 [[package]]
-name = "rb"
-version = "1.11.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "redis" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/rb-1.11.0-py2.py3-none-any.whl", hash = "sha256:b10d6f25e7797537df110bbec52be2bc6d2c987d7ec2cad64ab34c44d6581d5b" },
-]
-
-[[package]]
 name = "redis"
 version = "3.4.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -2225,6 +2214,7 @@ dependencies = [
     { name = "grpcio" },
     { name = "hiredis" },
     { name = "iso3166" },
+    { name = "jinja2" },
     { name = "jsonschema" },
     { name = "lxml" },
     { name = "maxminddb" },
@@ -2253,7 +2243,6 @@ dependencies = [
     { name = "python-u2flib-server" },
     { name = "python3-saml" },
     { name = "pyvat" },
-    { name = "rb" },
     { name = "redis" },
     { name = "redis-py-cluster" },
     { name = "reportlab" },
@@ -2398,6 +2387,7 @@ requires-dist = [
     { name = "grpcio", specifier = ">=1.84.1" },
     { name = "hiredis", specifier = ">=2.3.2" },
     { name = "iso3166", specifier = ">=2.1.1" },
+    { name = "jinja2", specifier = ">=3.1.6" },
     { name = "jsonschema", specifier = ">=4.20.0" },
     { name = "lxml", specifier = ">=6.1.0" },
     { name = "maxminddb", specifier = ">=2.3.0" },
@@ -2426,7 +2416,6 @@ requires-dist = [
     { name = "python-u2flib-server", specifier = ">=5.0.0" },
     { name = "python3-saml", specifier = ">=1.15.0" },
     { name = "pyvat", specifier = ">=1.3.15" },
-    { name = "rb", specifier = ">=1.11.0" },
     { name = "redis", specifier = ">=3.4.1" },
     { name = "redis-py-cluster", specifier = ">=2.1.0" },
     { name = "reportlab", specifier = ">=4.4.0" },
@@ -2435,16 +2424,16 @@ requires-dist = [
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
     { name = "sentry-arroyo", specifier = ">=2.47.0" },
-    { name = "sentry-conventions", specifier = ">=0.30.0" },
+    { name = "sentry-conventions", specifier = ">=0.33.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=3.0.2" },
     { name = "sentry-ophio", specifier = ">=1.3.1" },
     { name = "sentry-options", specifier = ">=1.2.15" },
-    { name = "sentry-protos", specifier = ">=0.99.0" },
+    { name = "sentry-protos", specifier = ">=0.111.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.10.1" },
-    { name = "sentry-scm", specifier = ">=3.0.0" },
-    { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.72.0" },
+    { name = "sentry-scm", specifier = ">=3.1.1" },
+    { name = "sentry-sdk", extras = ["http2"], specifier = "==3.0.0b4" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "sentry-viewercontext", specifier = ">=0.2.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
@@ -2546,10 +2535,10 @@ wheels = [
 
 [[package]]
 name = "sentry-conventions"
-version = "0.30.0"
+version = "0.33.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_conventions-0.30.0-py3-none-any.whl", hash = "sha256:1046c502f1c45c170249dafe0beed0f6b29d46561c42ac484039ab8377e80d73" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_conventions-0.33.0-py3-none-any.whl", hash = "sha256:613c4b4bdf9e93137ee27b6eb5821041c33c5a6d6c6fd72abab9e0f395e2f727" },
 ]
 
 [[package]]
@@ -2621,7 +2610,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.99.0"
+version = "0.111.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs" },
@@ -2629,7 +2618,7 @@ dependencies = [
     { name = "protobuf" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.99.0-py3-none-any.whl", hash = "sha256:9ba3ad0ca459a8db8b303e13eb75218b0cd269814af9083cae3f9e88dddec9b9" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.111.0-py3-none-any.whl", hash = "sha256:3ad9e1ec3cf9e37259c5cfa2429134b85d9aca6760b54e240a143e7d5c2be3a3" },
 ]
 
 [[package]]
@@ -2658,7 +2647,7 @@ wheels = [
 
 [[package]]
 name = "sentry-scm"
-version = "3.0.0"
+version = "3.1.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "cryptography" },
@@ -2668,19 +2657,19 @@ dependencies = [
     { name = "urllib3" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-3.0.0-py3-none-any.whl", hash = "sha256:536aa5a2bddc9b59fa94d0d76a04b8a6b5028a43811a545c2ad2d83b7d9474ab" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-3.1.1-py3-none-any.whl", hash = "sha256:281e111bfe07b12d620462e1b592cb90a0838a1530d72ea9e49749cafdf4a963" },
 ]
 
 [[package]]
 name = "sentry-sdk"
-version = "2.73.0"
+version = "3.0.0b4"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "certifi" },
     { name = "urllib3" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-2.73.0-py3-none-any.whl", hash = "sha256:0bcfa6928ea5adbb89591858b514d27adac27c7a3cccc31b20ed10e0b09eda9e" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-3.0.0b4-py3-none-any.whl", hash = "sha256:e27ef8f59547dc063e2d2d46561705d4c77baa4c7534f7997e67802f4b7b0cea" },
 ]
 
 [package.optional-dependencies]

@@ -12,8 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
 
-from sentry import analytics, features, quotas
-from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
+from sentry import features, quotas
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -504,8 +503,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         sentry_sdk.set_attribute("query.query_source", query_source.value)
 
         # We are going to start ratcheting usage of this endpoint for legacy
-        # datasets. For now, log usage from blocked orgs but still permit the
-        # request.
+        # datasets. For now, log all external usage but still permit the
+        # request. Logging allowlisted (unblocked) orgs too lets us see who
+        # still relies on these datasets before shrinking the allowlist.
         is_external_api_request = request.auth and referrer == Referrer.API_AUTH_TOKEN_EVENTS
         is_legacy_dataset = dataset in {transactions, discover, metrics_enhanced_performance}
         is_blocked = features.has(
@@ -513,12 +513,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             organization,
             actor=request.user,
         )
-        if is_external_api_request and is_legacy_dataset and is_blocked:
+        if is_external_api_request and is_legacy_dataset:
             sdk_logger.warning(
-                "events endpoint called by blocked org",
+                "events endpoint called with legacy dataset",
                 attributes={
                     "org_id": organization.id,
                     "org_slug": organization.slug,
+                    "is_blocked": is_blocked,
                     "effective_dataset": DATASET_LABELS.get(dataset, ""),
                     "requested_dataset": request.GET.get("dataset", ""),
                     "endpoint_name": "organization-events-timeseries",
@@ -564,8 +565,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         span.set_attribute("query.cache_hit", "missing")
                 else:
                     span.set_attribute("query.invalid_cache_reason", "non_candidate")
-
-        self._emit_analytics_event(organization, referrer)
 
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
@@ -813,16 +812,3 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         timeseries["values"] = timeseries_values
 
         return timeseries
-
-    def _emit_analytics_event(self, organization: Organization, referrer: str) -> None:
-        if "agent-monitoring" not in referrer:
-            return
-        try:
-            analytics.record(
-                AgentMonitoringQuery(
-                    organization_id=organization.id,
-                    referrer=referrer,
-                )
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)

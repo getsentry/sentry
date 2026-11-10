@@ -5,22 +5,33 @@ import {
   DASHBOARD_DESCRIPTION,
   DASHBOARD_TITLE,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
+import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {
+  OPPORTUNITY_SCORE_FIELD,
+  PERFORMANCE_SCORE_FIELD,
+  webVitalP75Field,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {
+  PAGELOADS_FIELD,
   scoreBreakdownChartWidget,
   scoreBreakdownWheelWidget,
   WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
   webVitalP75Meter,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/widgets';
-import {
-  ISSUE_TYPES,
-  WEB_VITALS_PREBUILT_CONFIG,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
-import {ModuleName} from 'sentry/views/insights/types';
+} from './widgets';
 
-// TODO: Move the pages table to trace metrics once total score and opportunity are queryable
-const SPANS_PAGES_TABLE = WEB_VITALS_PREBUILT_CONFIG.widgets.find(
-  widget => widget.id === 'pages-table'
-)!;
+const PAGES_TABLE_COLUMNS = [SpanFields.TRANSACTION, SpanFields.PROJECT];
+const PAGES_TABLE_AGGREGATES = [
+  PAGELOADS_FIELD,
+  webVitalP75Field('lcp'),
+  webVitalP75Field('fcp'),
+  webVitalP75Field('cls'),
+  webVitalP75Field('ttfb'),
+  webVitalP75Field('inp'),
+  PERFORMANCE_SCORE_FIELD,
+  OPPORTUNITY_SCORE_FIELD,
+];
 
 /**
  * Trace metrics variant of `WEB_VITALS_PREBUILT_CONFIG`
@@ -105,7 +116,46 @@ export const WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
       ],
       layout: {y: 2, w: 4, h: 2, x: 2, minH: 2},
     },
-    SPANS_PAGES_TABLE,
+    {
+      id: 'pages-table',
+      title: t('Pages'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.TRACEMETRICS,
+      interval: '5m',
+      tableWidths: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: [...PAGES_TABLE_COLUMNS, ...PAGES_TABLE_AGGREGATES],
+          aggregates: PAGES_TABLE_AGGREGATES,
+          columns: PAGES_TABLE_COLUMNS,
+          orderby: `-${OPPORTUNITY_SCORE_FIELD}`,
+          fieldAliases: [
+            t('Pages'),
+            t('Project'),
+            t('Pageloads'),
+            t('LCP'),
+            t('FCP'),
+            t('CLS'),
+            t('TTFB'),
+            t('INP'),
+            t('Perf Score'),
+            t('Opportunity'),
+          ],
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.TRANSACTION,
+              staticDashboardId: 7,
+              // The page details dashboard still has spans widgets, so filter those too
+              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE, WidgetType.SPANS],
+            },
+          ],
+        },
+      ],
+      layout: {y: 4, w: 6, h: 6, x: 0, minH: 2},
+    },
   ],
   onboarding: {type: 'module', moduleName: ModuleName.VITAL},
 };

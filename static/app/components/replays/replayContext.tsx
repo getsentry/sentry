@@ -13,8 +13,6 @@ import {Replayer, ReplayerEvents} from '@sentry/rrweb';
 import type {Mirror} from '@sentry/rrweb-snapshot';
 import isEqual from 'lodash/isEqual';
 
-import {useReplayHighlighting} from 'sentry/components/replays/useReplayHighlighting';
-import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {clamp} from 'sentry/utils/number/clamp';
 import type {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -30,6 +28,8 @@ import {useRAF} from 'sentry/utils/useRAF';
 import {useUser} from 'sentry/utils/useUser';
 
 import {canvasReplayerPlugin} from './canvasReplayerPlugin';
+import {useReplayHighlighting} from './useReplayHighlighting';
+import {VideoReplayerWithInteractions} from './videoReplayerWithInteractions';
 
 type RootElem = null | HTMLDivElement;
 
