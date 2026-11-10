@@ -65,6 +65,32 @@ describe('SlackLinkTeam', () => {
     expect(screen.getByText('#backend')).toBeInTheDocument();
   });
 
+  it('lists teams from every page', async () => {
+    mockContext();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${deOrg.slug}/slack/link-team/${SIGNED_PARAMS}/`,
+      body: [team],
+      headers: {
+        Link:
+          '<https://de.sentry.io>; rel="previous"; results="false"; cursor="0:0:1", ' +
+          '<https://de.sentry.io>; rel="next"; results="true"; cursor="0:100:0"',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${deOrg.slug}/slack/link-team/${SIGNED_PARAMS}/`,
+      body: [TeamFixture({id: '11', slug: 'frontend'})],
+      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+    });
+
+    render(<SlackLinkTeam />, {initialRouterConfig});
+
+    await selectEvent.select(await screen.findByLabelText('Organization'), 'DE Org');
+    await selectEvent.openMenu(screen.getByLabelText('Team'));
+
+    expect(await screen.findByText('#frontend')).toBeInTheDocument();
+    expect(screen.getByText('#backend')).toBeInTheDocument();
+  });
+
   it('selects the only organization', async () => {
     mockContext([usOrg]);
     mockTeams(usOrg, []);

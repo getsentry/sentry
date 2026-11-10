@@ -1,4 +1,4 @@
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -7,6 +7,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 const schema = z.object({
@@ -27,7 +28,7 @@ interface LinkTeamFormProps {
 
 export function LinkTeamForm({organizations, signedParams}: LinkTeamFormProps) {
   const defaultValues: z.input<typeof schema> = {
-    organization: organizations.length === 1 ? organizations[0]!.slug : null,
+    organization: organizations.length === 1 ? (organizations[0]?.slug ?? null) : null,
     team: null,
   };
 
@@ -40,8 +41,8 @@ export function LinkTeamForm({organizations, signedParams}: LinkTeamFormProps) {
   const selectedSlug = useStore(form.store, state => state.values.organization);
   const selectedOrganization = organizations.find(org => org.slug === selectedSlug);
 
-  const {data: teams, isFetching: isFetchingTeams} = useQuery({
-    ...apiOptions.as<Team[]>()(
+  const teamsQuery = useInfiniteQuery({
+    ...apiOptions.asInfinite<Team[]>()(
       '/organizations/$organizationIdOrSlug/slack/link-team/$signedParams/',
       {
         path: selectedOrganization
@@ -51,8 +52,11 @@ export function LinkTeamForm({organizations, signedParams}: LinkTeamFormProps) {
         staleTime: 0,
       }
     ),
+    select: ({pages}) => pages.flatMap(page => page.json),
     retry: false,
   });
+  useFetchAllPages({result: teamsQuery});
+  const {data: teams, isFetching: isFetchingTeams} = teamsQuery;
 
   const hasNoTeams = teams !== undefined && teams.length === 0;
 
